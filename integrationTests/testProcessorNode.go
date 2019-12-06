@@ -171,6 +171,8 @@ type TestProcessorNode struct {
 	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
+
+	ChainID []byte
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance
@@ -202,6 +204,7 @@ func NewTestProcessorNode(
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
+		ChainID:          []byte("integration tests chain ID"),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -376,6 +379,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.ChainID,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -401,6 +405,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.ChainID,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -902,6 +907,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
+	blockHeader.SetChainID(tpn.ChainID)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {

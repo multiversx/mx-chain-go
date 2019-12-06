@@ -147,3 +147,9 @@ var ErrNilExecuteStoredMessages = errors.New("executeStoredMessages is nil")
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrInvalidChainID signals that an invalid chain ID has been provided
+var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
+
+// ErrInvalidHeader signals that the received header is invalid
+var ErrInvalidHeader = errors.New("invalid header")

@@ -123,6 +123,7 @@ type Core struct {
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
+	ChainID                  []byte
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -201,6 +202,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
+		ChainID:                  []byte(args.config.GeneralSettings.NetworkID),
 	}, nil
 }
 
@@ -1436,6 +1438,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1492,6 +1495,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err

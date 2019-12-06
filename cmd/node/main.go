@@ -1183,6 +1183,7 @@ func createNode(
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithChainID(core.ChainID),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

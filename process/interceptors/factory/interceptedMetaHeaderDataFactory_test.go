@@ -66,6 +66,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		BlockSigner:      createMockSigner(),
 		AddrConv:         createMockAddressConverter(),
 		FeeHandler:       createMockFeeHandler(),
+		ChainID:          []byte("chain ID"),
 	}
 }
 

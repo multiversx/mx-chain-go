@@ -454,3 +454,15 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 		return nil
 	}
 }
+
+// WithChainID sets up the chain ID on which the current node is supposed to work on
+func WithChainID(chainID []byte) Option {
+	return func(n *Node) error {
+		if len(chainID) == 0 {
+			return ErrInvalidChainID
+		}
+		n.chainID = chainID
+
+		return nil
+	}
+}

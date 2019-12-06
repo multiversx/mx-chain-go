@@ -54,6 +54,7 @@ const blsConsensusType = "bls"
 const bnConsensusType = "bn"
 
 var r *rand.Rand
+var consensusChainID = []byte("consensus chain ID")
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -366,7 +367,7 @@ func createConsensusOnlyNode(
 	rounder, err := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(uint64(roundTime)),
+		time.Millisecond*time.Duration(roundTime),
 		syncer)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second))
@@ -391,14 +392,14 @@ func createConsensusOnlyNode(
 		inPubKeys[shardId] = append(inPubKeys[shardId], string(sPubKey))
 	}
 
-	testMultiSig := mock.NewMultiSigner(uint32(consensusSize))
+	testMultiSig := mock.NewMultiSigner(consensusSize)
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	accntAdapter := createAccountsDB(testMarshalizer)
 
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
-		node.WithRoundDuration(uint64(roundTime)),
+		node.WithRoundDuration(roundTime),
 		node.WithConsensusGroupSize(int(consensusSize)),
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
@@ -427,6 +428,7 @@ func createConsensusOnlyNode(
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithChainID(consensusChainID),
 	)
 
 	if err != nil {

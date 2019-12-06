@@ -576,4 +576,4 @@ var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
+var ErrInvalidChainID = errors.New("invalid chain ID while processing")

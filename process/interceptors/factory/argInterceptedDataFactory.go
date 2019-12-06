@@ -23,4 +23,5 @@ type ArgInterceptedDataFactory struct {
 	BlockSigner      crypto.SingleSigner
 	AddrConv         state.AddressConverter
 	FeeHandler       process.FeeHandler
+	ChainID          []byte
 }

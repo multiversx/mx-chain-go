@@ -16,6 +16,7 @@ import (
 )
 
 var errExpected = errors.New("expected error")
+var chainID = []byte("chain ID")
 
 const maxTxNonceDeltaAllowed = 100
 
@@ -106,6 +107,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -133,6 +135,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -160,6 +163,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -187,6 +191,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -214,6 +219,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -241,6 +247,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -268,6 +275,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -295,6 +303,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -322,6 +331,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -349,6 +359,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -376,6 +387,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -403,6 +415,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -430,6 +443,7 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		maxTxNonceDeltaAllowed,
 		nil,
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.Nil(t, icf)
@@ -457,10 +471,39 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		nil,
+		chainID,
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -484,6 +527,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	assert.NotNil(t, icf)
@@ -513,6 +557,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -542,6 +587,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -571,6 +617,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -600,6 +647,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -629,6 +677,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -658,6 +707,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -687,6 +737,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -716,6 +767,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -752,6 +804,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()
@@ -801,6 +854,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()

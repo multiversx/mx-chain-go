@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -33,6 +34,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
+	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -62,6 +64,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	chainID []byte,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -77,6 +80,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
+		chainID,
 	)
 	if err != nil {
 		return nil, err
@@ -96,6 +100,7 @@ func NewWorker(
 		shardCoordinator:   shardCoordinator,
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
+		chainID:            chainID,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -125,6 +130,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	chainID []byte,
 ) error {
 	if consensusService == nil || consensusService.IsInterfaceNil() {
 		return ErrNilConsensusService
@@ -164,6 +170,9 @@ func checkNewWorkerParams(
 	}
 	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return ErrNilSyncTimer
+	}
+	if len(chainID) == 0 {
+		return ErrInvalidChainID
 	}
 
 	return nil
@@ -217,10 +226,9 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
@@ -228,6 +236,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	cnsDta := &consensus.Message{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
+		return err
+	}
+	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
+		err := fmt.Errorf("%w received: %s, wanted %s",
+			ErrInvalidChainID,
+			hex.EncodeToString(cnsDta.ChainID),
+			hex.EncodeToString(wrk.chainID),
+		)
+
 		return err
 	}
 
@@ -268,20 +285,32 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
 		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
 		isHeaderValid := !check.IfNil(header) && headerHash != nil
-		if isHeaderValid {
-			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-			if errNotCritical != nil {
-				log.Debug("add header in forkdetector", "error", errNotCritical.Error())
-			}
+		if !isHeaderValid {
+			return ErrInvalidHeader
+		}
 
-			log.Debug("received proposed block",
-				"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-				"header hash", cnsDta.BlockHeaderHash,
-				"round", header.GetRound(),
-				"nonce", header.GetNonce(),
-				"prev hash", header.GetPrevHash(),
+		isChainIdOk := bytes.Equal(header.GetChainID(), wrk.chainID)
+		if !isChainIdOk {
+			return fmt.Errorf(
+				"%w, received: %s, wanted: %s",
+				ErrInvalidChainID,
+				hex.EncodeToString(header.GetChainID()),
+				hex.EncodeToString(wrk.chainID),
 			)
 		}
+
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if errNotCritical != nil {
+			log.Debug("add header in forkdetector", "error", errNotCritical.Error())
+		}
+
+		log.Debug("received proposed block",
+			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+			"header hash", cnsDta.BlockHeaderHash,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"prev hash", header.GetPrevHash(),
+		)
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

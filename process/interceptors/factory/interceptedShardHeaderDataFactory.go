@@ -18,6 +18,7 @@ type interceptedShardHeaderDataFactory struct {
 	multiSigVerifier  crypto.MultiSigVerifier
 	nodesCoordinator  sharding.NodesCoordinator
 	keyGen            crypto.KeyGenerator
+	chainID           []byte
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -46,6 +47,9 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.BlockKeyGen) {
 		return nil, process.ErrNilKeyGen
 	}
+	if len(argument.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
@@ -55,6 +59,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		nodesCoordinator:  argument.NodesCoordinator,
 		singleSigVerifier: argument.BlockSigner,
 		keyGen:            argument.BlockKeyGen,
+		chainID:           argument.ChainID,
 	}, nil
 }
 
@@ -69,6 +74,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		NodesCoordinator:  ishdf.nodesCoordinator,
 		ShardCoordinator:  ishdf.shardCoordinator,
 		KeyGen:            ishdf.keyGen,
+		ChainID:           ishdf.chainID,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
