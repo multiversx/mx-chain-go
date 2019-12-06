@@ -1466,7 +1466,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{})
+	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{}, 0)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -1535,7 +1535,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{})
+	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{}, 0)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
