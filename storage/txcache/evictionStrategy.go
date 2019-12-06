@@ -28,7 +28,7 @@ func NewEvictionStrategy(capacity int, cache *TxCache) *EvictionStrategy {
 
 // DoEvictionIfNecessary does cache eviction
 func (model *EvictionStrategy) DoEvictionIfNecessary(incomingTx *transaction.Transaction) {
-	if model.Cache.txCount.Get() < int64(model.CountThreshold) {
+	if model.Cache.txByHash.Counter.Get() < int64(model.CountThreshold) {
 		return
 	}
 
@@ -46,7 +46,7 @@ func (model *EvictionStrategy) DoEvictionIfNecessary(incomingTx *transaction.Tra
 // DoSendersEvictionIfNecessary removes senders (along with their transactions) from the cache
 // Removes "each and every" sender from the cache
 func (model *EvictionStrategy) DoSendersEvictionIfNecessary() {
-	sendersEvictionNecessary := model.Cache.sendersCount.Get() > int64(model.CountThreshold)
+	sendersEvictionNecessary := model.Cache.txListBySender.Counter.Get() > int64(model.CountThreshold)
 
 	if sendersEvictionNecessary {
 		model.doArbitrarySendersEviction()
@@ -55,9 +55,10 @@ func (model *EvictionStrategy) DoSendersEvictionIfNecessary() {
 
 func (model *EvictionStrategy) doArbitrarySendersEviction() {
 	sendersToEvict := make([]string, 0)
+	//txsToEvict := make([]string, 0)
 
 	index := 0
-	model.Cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
 		if index%model.EachAndEverySender == 0 {
 			sendersToEvict = append(sendersToEvict, key)
 		}
@@ -72,8 +73,9 @@ func (model *EvictionStrategy) doArbitrarySendersEviction() {
 // DoHighNonceTransactionsEviction removes transactions from the cache
 func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 	sendersToEvict := make([]string, 0)
+	//txsToEvict := make([]string, 0)
 
-	model.Cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
 		txList := txListUntyped.(*TxListForSender)
 
 		if txList.HasMoreThan(model.ManyTransactions) {

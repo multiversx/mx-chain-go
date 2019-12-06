@@ -6,11 +6,21 @@ import (
 
 // TxCache is
 type TxCache struct {
-	txCount          AtomicCounter
-	sendersCount     AtomicCounter
-	txListBySender   *ConcurrentMap
-	txByHash         *ConcurrentMap
+	txListBySender   TxListBySenderMap
+	txByHash         TxByHashMap
 	evictionStrategy *EvictionStrategy
+}
+
+// TxListBySenderMap is
+type TxListBySenderMap struct {
+	Map     *ConcurrentMap
+	Counter AtomicCounter
+}
+
+// TxByHashMap is
+type TxByHashMap struct {
+	Map     *ConcurrentMap
+	Counter AtomicCounter
 }
 
 // NewTxCache creates a new transaction cache
@@ -25,10 +35,14 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 	txByHash := NewConcurrentMap(size, shardsHint)
 
 	txCache := &TxCache{
-		txCount:        0,
-		sendersCount:   0,
-		txListBySender: txBySender,
-		txByHash:       txByHash,
+		txListBySender: TxListBySenderMap{
+			Map:     txBySender,
+			Counter: 0,
+		},
+		txByHash: TxByHashMap{
+			Map:     txByHash,
+			Counter: 0,
+		},
 	}
 
 	return txCache
@@ -39,7 +53,8 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 	sender := string(tx.SndAddr)
 
-	cache.txByHash.Set(string(txHash), tx)
+	cache.txByHash.Map.Set(string(txHash), tx)
+	cache.txByHash.Counter.Increment()
 
 	listForSender, ok := cache.getListForSender(sender)
 	if !ok {
@@ -51,11 +66,11 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 	}
 
 	listForSender.AddTransaction(txHash, tx)
-	cache.txCount.Increment()
+
 }
 
 func (cache *TxCache) getListForSender(sender string) (*TxListForSender, bool) {
-	listForSenderUntyped, ok := cache.txListBySender.Get(sender)
+	listForSenderUntyped, ok := cache.txListBySender.Map.Get(sender)
 	if !ok {
 		return nil, false
 	}
@@ -70,7 +85,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool
 }
 
 func (cache *TxCache) getTx(txHash string) (*transaction.Transaction, bool) {
-	txUntyped, ok := cache.txByHash.Get(txHash)
+	txUntyped, ok := cache.txByHash.Map.Get(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -88,7 +103,7 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 	for pass := 0; ; pass++ {
 		copiedInThisPass := 0
 
-		cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+		cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
 			if resultIsFull {
 				return
 			}
@@ -125,8 +140,8 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 		return
 	}
 
-	cache.txByHash.Remove(string(txHash))
-	cache.txCount.Decrement()
+	cache.txByHash.Map.Remove(string(txHash))
+	cache.txByHash.Counter.Decrement()
 
 	sender := string(tx.SndAddr)
 	listForSender, ok := cache.getListForSender(sender)
@@ -145,7 +160,7 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 func (cache *TxCache) CountTx() int {
 	count := 0
 
-	cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+	cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
 		txList := txListUntyped.(*TxListForSender)
 		count += txList.Items.Len()
 	})
@@ -155,14 +170,14 @@ func (cache *TxCache) CountTx() int {
 
 func (cache *TxCache) addSender(sender string) *TxListForSender {
 	listForSender := NewTxListForSender()
-	cache.txListBySender.Set(sender, listForSender)
-	cache.sendersCount.Increment()
+	cache.txListBySender.Map.Set(sender, listForSender)
+	cache.txListBySender.Counter.Increment()
 	return listForSender
 }
 
 func (cache *TxCache) removeSender(sender string) {
-	cache.txListBySender.Remove(sender)
-	cache.sendersCount.Decrement()
+	cache.txListBySender.Map.Remove(sender)
+	cache.txListBySender.Counter.Decrement()
 }
 
 func (cache *TxCache) removeSenders(senders []string) {
