@@ -113,7 +113,7 @@ func (list *TxListForSender) RestartBatchCopying(batchSize int) {
 func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction) int {
 	element := list.CopyBatchIndex
 	batchSize := list.CopyBatchSize
-	availableLength := len(destination)
+	availableSpace := len(destination)
 
 	if element == nil {
 		return 0
@@ -123,16 +123,14 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 	// And we can't mutate the sender's list while reading it
 	list.mutex.Lock()
 
-	// todo rewrite loop, make it more readable
 	copied := 0
-	for true {
-		if element == nil || copied == batchSize || availableLength == copied {
+	for ; ; copied++ {
+		if element == nil || copied == batchSize || copied == availableSpace {
 			break
 		}
 
 		tx := element.Value.(*transaction.Transaction)
 		destination[copied] = tx
-		copied++
 		element = element.Next()
 	}
 
