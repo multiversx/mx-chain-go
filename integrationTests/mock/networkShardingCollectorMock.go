@@ -12,12 +12,16 @@ type networkShardingCollectorMock struct {
 
 	mutFallbackPkShardMap sync.RWMutex
 	fallbackPkShardMap    map[string]uint32
+
+	mutFallbackPidShardMap sync.RWMutex
+	fallbackPidShardMap    map[string]uint32
 }
 
 func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 	return &networkShardingCollectorMock{
-		peerIdPkMap:        make(map[p2p.PeerID][]byte),
-		fallbackPkShardMap: make(map[string]uint32),
+		peerIdPkMap:         make(map[p2p.PeerID][]byte),
+		fallbackPkShardMap:  make(map[string]uint32),
+		fallbackPidShardMap: make(map[string]uint32),
 	}
 }
 
@@ -31,6 +35,12 @@ func (nscm *networkShardingCollectorMock) UpdatePublicKeyShardId(pk []byte, shar
 	nscm.mutFallbackPkShardMap.Lock()
 	nscm.fallbackPkShardMap[string(pk)] = shardId
 	nscm.mutFallbackPkShardMap.Unlock()
+}
+
+func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32) {
+	nscm.mutFallbackPidShardMap.Lock()
+	nscm.fallbackPidShardMap[string(pid)] = shardId
+	nscm.mutFallbackPidShardMap.Unlock()
 }
 
 func (nscm *networkShardingCollectorMock) IsInterfaceNil() bool {
