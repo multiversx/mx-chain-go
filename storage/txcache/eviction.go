@@ -57,7 +57,7 @@ func (model *EvictionModel) doArbitrarySendersEviction() {
 	keyByte := byte(rand.Intn(256))
 
 	model.Cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
-		if key[16] == keyByte {
+		if key[len(key)/2] == keyByte {
 			sendersToEvict = append(sendersToEvict, key)
 		}
 	})

@@ -15,13 +15,16 @@ type TxListForSender struct {
 	mutex          sync.Mutex
 }
 
+// NewTxListForSender creates a new (sorted) list of transactions
+func NewTxListForSender() *TxListForSender {
+	return &TxListForSender{
+		Items: linkedList.New(),
+	}
+}
+
 // AddTransaction adds a transaction in sender's list
 // This is a "sorted" insert
 func (list *TxListForSender) AddTransaction(tx *transaction.Transaction) {
-	if list.Items == nil {
-		list.Items = linkedList.New()
-	}
-
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	list.mutex.Lock()
 

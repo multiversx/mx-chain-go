@@ -48,7 +48,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 		listForSender = cache.addSender(sender)
 	}
 
-	//cache.evictionModel.DoEvictionIfNecessary(tx)
+	cache.evictionModel.DoEvictionIfNecessary(tx)
 
 	listForSender.AddTransaction(tx)
 	cache.txCount.Increment()
@@ -154,7 +154,7 @@ func (cache *TxCache) CountTx() int {
 }
 
 func (cache *TxCache) addSender(sender string) *TxListForSender {
-	listForSender := &TxListForSender{}
+	listForSender := NewTxListForSender()
 	cache.txListBySender.Set(sender, listForSender)
 	cache.sendersCount.Increment()
 	return listForSender

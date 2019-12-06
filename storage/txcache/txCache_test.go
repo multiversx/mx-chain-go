@@ -58,6 +58,11 @@ func Test_GetSorted_Dummy(t *testing.T) {
 	assert.Len(t, sorted, 8)
 }
 
+func Test_AddTx_Evicts(t *testing.T) {
+	cache := NewTxCache(1, 1)
+	cache.AddTx([]byte("hash-alice-1"), createTx("alice", uint64(1)))
+}
+
 func Test_GetSorted(t *testing.T) {
 	context := setupTestContext(t, nil)
 
