@@ -61,6 +61,18 @@ func (list *TxListForSender) RemoveTransaction(tx *transaction.Transaction) {
 	list.mutex.Unlock()
 }
 
+// RemoveHighNonceTransactions removes "count" transactions from the back of the list
+func (list *TxListForSender) RemoveHighNonceTransactions(count int) {
+	list.mutex.Lock()
+
+	for element := list.Items.Back(); element != nil && count > 0; element = element.Prev() {
+		list.Items.Remove(element)
+		count--
+	}
+
+	list.mutex.Unlock()
+}
+
 func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) *linkedList.Element {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
 		tx := element.Value.(*transaction.Transaction)
@@ -72,6 +84,11 @@ func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) 
 	return nil
 }
 
+// HasMoreThan checks whether the list has more items than specified
+func (list *TxListForSender) HasMoreThan(count int) bool {
+	return list.Items.Len() > count
+}
+
 // IsEmpty checks whether the list is empty
 func (list *TxListForSender) IsEmpty() bool {
 	return list.Items.Len() == 0
@@ -79,8 +96,13 @@ func (list *TxListForSender) IsEmpty() bool {
 
 // RestartBatchCopying resets the internal state used for copy operations
 func (list *TxListForSender) RestartBatchCopying(batchSize int) {
+	// We cannot copy or start copy from multiple goroutines at the same time
+	list.mutex.Lock()
+
 	list.CopyBatchIndex = list.Items.Front()
 	list.CopyBatchSize = batchSize
+
+	list.mutex.Unlock()
 }
 
 // CopyBatchTo copies a batch (usually small) of transactions to a destination slice

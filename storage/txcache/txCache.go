@@ -1,14 +1,16 @@
 package txcache
 
 import (
-	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 // TxCache is
 type TxCache struct {
-	txListBySender *cmap.ConcurrentMap
-	txByHash       *cmap.ConcurrentMap
+	txCount        AtomicCounter
+	sendersCount   AtomicCounter
+	txListBySender *ConcurrentMap
+	txByHash       *ConcurrentMap
+	evictionModel  *EvictionModel
 }
 
 // NewTxCache creates a new transaction cache
@@ -18,14 +20,18 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 	// Note: for simplicity, we use the same "shardsHint" for both internal concurrent maps
 
 	// We'll hold at most "size" lists of 1 transaction
-	txBySender := cmap.New(size, shardsHint)
+	txBySender := NewCMap(size, shardsHint)
 	// We'll hold at most "size" transactions
-	txByHash := cmap.New(size, shardsHint)
+	txByHash := NewCMap(size, shardsHint)
 
 	txCache := &TxCache{
+		txCount:        0,
+		sendersCount:   0,
 		txListBySender: txBySender,
 		txByHash:       txByHash,
 	}
+
+	txCache.evictionModel = NewEvictionModel(size, txCache)
 
 	return txCache
 }
@@ -39,15 +45,13 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 
 	listForSender, ok := cache.getListForSender(sender)
 	if !ok {
-		listForSender = &TxListForSender{}
-		cache.txListBySender.Set(sender, listForSender)
+		listForSender = cache.addSender(sender)
 	}
 
-	listForSender.AddTransaction(tx)
+	//cache.evictionModel.DoEvictionIfNecessary(tx)
 
-	// todo: implement eviction
-	// option 1: catch eviction event of cache.txByHash and remove the tx from the other collection as well
-	// option 2:
+	listForSender.AddTransaction(tx)
+	cache.txCount.Increment()
 }
 
 func (cache *TxCache) getListForSender(sender string) (*TxListForSender, bool) {
@@ -122,15 +126,18 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 	}
 
 	cache.txByHash.Remove(string(txHash))
+	cache.txCount.Decrement()
+
 	sender := string(tx.SndAddr)
 	listForSender, ok := cache.getListForSender(sender)
 	if !ok {
+		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
 		return
 	}
 
 	listForSender.RemoveTransaction(tx)
 	if listForSender.IsEmpty() {
-		cache.txListBySender.Remove(sender)
+		cache.removeSender(sender)
 	}
 }
 
@@ -144,4 +151,26 @@ func (cache *TxCache) CountTx() int {
 	})
 
 	return count
+}
+
+func (cache *TxCache) addSender(sender string) *TxListForSender {
+	listForSender := &TxListForSender{}
+	cache.txListBySender.Set(sender, listForSender)
+	cache.sendersCount.Increment()
+	return listForSender
+}
+
+func (cache *TxCache) removeSender(sender string) {
+	cache.txListBySender.Remove(sender)
+	cache.sendersCount.Decrement()
+}
+
+func (cache *TxCache) removeSenders(senders []string) {
+	for _, senderKey := range senders {
+		cache.removeSender(senderKey)
+	}
+}
+
+func (cache *TxCache) selfCheck() {
+	// todo check sync between the two maps
 }
