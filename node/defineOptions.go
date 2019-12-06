@@ -454,3 +454,14 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 		return nil
 	}
 }
+
+// WithHeaderSigVerifier sets up a header sig verifier for the Node
+func WithHeaderSigVerifier(headerSigVerifier process.ConsensusHeaderSigVerifier) Option {
+	return func(n *Node) error {
+		if check.IfNil(headerSigVerifier) {
+			return process.ErrNilHeaderSigVerifier
+		}
+		n.headerSigVerifier = headerSigVerifier
+		return nil
+	}
+}

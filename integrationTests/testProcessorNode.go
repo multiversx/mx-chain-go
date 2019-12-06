@@ -376,6 +376,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			&mock.HeaderSigVerifierMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -401,6 +402,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			&mock.HeaderSigVerifierMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

@@ -52,50 +52,6 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewInterceptedShardHeaderDataFactory_NilMultiSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.MultiSigVerifier = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.NodesCoordinator = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilNodesCoordinator, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilBlockSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockSigner = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilSingleSigner, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilBlockKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockKeyGen = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilKeyGen, err)
-}
-
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 

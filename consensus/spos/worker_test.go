@@ -64,7 +64,8 @@ func initWorker() *spos.Worker {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	return sposWorker
 }
@@ -110,7 +111,8 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusService, err)
@@ -145,7 +147,8 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
@@ -180,7 +183,8 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
@@ -215,7 +219,8 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
@@ -250,7 +255,8 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
@@ -284,7 +290,8 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -318,7 +325,8 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilForkDetector, err)
@@ -352,7 +360,8 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilKeyGenerator, err)
@@ -386,7 +395,8 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
@@ -420,7 +430,8 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		nil,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilRounder, err)
@@ -454,7 +465,8 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		rounderMock,
 		nil,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
@@ -488,7 +500,8 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		nil,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
@@ -522,7 +535,8 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		nil)
+		nil,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -557,7 +571,8 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		&mock.HeaderSigVerifierMock{})
 
 	assert.NotNil(t, wrk)
 	assert.Nil(t, err)

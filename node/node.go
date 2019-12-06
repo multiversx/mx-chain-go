@@ -109,6 +109,7 @@ type Node struct {
 	blackListHandler      process.BlackListHandler
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	headerSigVerifier     process.ConsensusHeaderSigVerifier
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -279,6 +280,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
+		n.headerSigVerifier,
 	)
 	if err != nil {
 		return err

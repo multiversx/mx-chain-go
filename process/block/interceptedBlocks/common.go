@@ -1,123 +1,12 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.GetOrCreate("process/block/interceptedBlocks")
-
-// headerMultiSigVerifier is an "abstract" struct that is able to verify the signature of a header handler
-type headerSigVerifier struct {
-	marshalizer                marshal.Marshalizer
-	hasher                     hashing.Hasher
-	nodesCoordinator           sharding.NodesCoordinator
-	multiSigVerifier           crypto.MultiSigVerifier
-	singleSigVerifier          crypto.SingleSigner
-	keyGen                     crypto.KeyGenerator
-	copyHeaderWithoutSig       func(src data.HeaderHandler) data.HeaderHandler
-	copyHeaderWithoutLeaderSig func(src data.HeaderHandler) data.HeaderHandler
-}
-
-func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
-
-	randSeed := header.GetPrevRandSeed()
-	bitmap := header.GetPubKeysBitmap()
-	if len(bitmap) == 0 {
-		return process.ErrNilPubKeysBitmap
-	}
-	if bitmap[0]&1 == 0 {
-		return process.ErrBlockProposerSignatureMissing
-	}
-
-	consensusPubKeys, err := hsv.nodesCoordinator.GetValidatorsPublicKeys(
-		randSeed,
-		header.GetRound(),
-		header.GetShardID(),
-	)
-	if err != nil {
-		return err
-	}
-
-	verifier, err := hsv.multiSigVerifier.Create(consensusPubKeys, 0)
-	if err != nil {
-		return err
-	}
-
-	err = verifier.SetAggregatedSig(header.GetSignature())
-	if err != nil {
-		return err
-	}
-
-	// get marshalled block header without signature and bitmap
-	// as this is the message that was signed
-	headerCopy := hsv.copyHeaderWithoutSig(header)
-
-	hash, err := core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
-	if err != nil {
-		return err
-	}
-
-	return verifier.Verify(hash, bitmap)
-}
-
-func (hsv *headerSigVerifier) verifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
-	leaderPubKey, err := hsv.getLeader(header)
-	if err != nil {
-		return err
-	}
-
-	err = hsv.verifyRandSeed(leaderPubKey, header)
-	if err != nil {
-		log.Trace("block rand seed",
-			"error", err.Error())
-		return err
-	}
-
-	err = hsv.verifyLeaderSignature(leaderPubKey, header)
-	if err != nil {
-		log.Trace("block leader's signature",
-			"error", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func (hsv *headerSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
-	prevRandSeed := header.GetPrevRandSeed()
-	randSeed := header.GetRandSeed()
-	return hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
-}
-
-func (hsv *headerSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
-	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
-	headerBytes, err := hsv.marshalizer.Marshal(&headerCopy)
-	if err != nil {
-		return err
-	}
-
-	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
-}
-
-func (hsv *headerSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
-	prevRandSeed := header.GetPrevRandSeed()
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
-	if err != nil {
-		return nil, err
-	}
-
-	leaderPubKeyValidator := headerConsensusGroup[0]
-	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
-}
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
@@ -132,20 +21,8 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arg.MultiSigVerifier) {
-		return process.ErrNilMultiSigVerifier
-	}
-	if check.IfNil(arg.NodesCoordinator) {
-		return process.ErrNilNodesCoordinator
-	}
 	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
-	}
-	if check.IfNil(arg.KeyGen) {
-		return process.ErrNilKeyGen
-	}
-	if check.IfNil(arg.SingleSigVerifier) {
-		return process.ErrNilSingleSigner
 	}
 
 	return nil

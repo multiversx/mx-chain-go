@@ -55,17 +55,18 @@ func createMockFeeHandler() process.FeeHandler {
 
 func createMockArgument() *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		Marshalizer:      &mock.MarshalizerMock{},
-		Hasher:           mock.HasherMock{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier: mock.NewMultiSigner(),
-		NodesCoordinator: mock.NewNodesCoordinatorMock(),
-		KeyGen:           createMockKeyGen(),
-		BlockKeyGen:      createMockKeyGen(),
-		Signer:           createMockSigner(),
-		BlockSigner:      createMockSigner(),
-		AddrConv:         createMockAddressConverter(),
-		FeeHandler:       createMockFeeHandler(),
+		Marshalizer:       &mock.MarshalizerMock{},
+		Hasher:            mock.HasherMock{},
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		MultiSigVerifier:  mock.NewMultiSigner(),
+		NodesCoordinator:  mock.NewNodesCoordinatorMock(),
+		KeyGen:            createMockKeyGen(),
+		BlockKeyGen:       createMockKeyGen(),
+		Signer:            createMockSigner(),
+		BlockSigner:       createMockSigner(),
+		AddrConv:          createMockAddressConverter(),
+		FeeHandler:        createMockFeeHandler(),
+		HeaderSigVerifier: &mock.HeaderSigVerifierMock{},
 	}
 }
 
@@ -109,50 +110,6 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.Nil(t, imh)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilMultiSigVeriferShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.MultiSigVerifier = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.NodesCoordinator = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilNodesCoordinator, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilBlockSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockSigner = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilSingleSigner, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilBlockKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockKeyGen = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
