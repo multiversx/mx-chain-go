@@ -916,3 +916,23 @@ func TestBaseForkDetector_ResetFork(t *testing.T) {
 	bfd.ResetFork()
 	assert.False(t, bfd.ShouldForceFork())
 }
+
+func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {
+	t.Parallel()
+
+	roundDuration := uint64(1)
+	rounderMock := &mock.RounderMock{
+		RoundTimeDuration: time.Second,
+	}
+
+	genesisTime := int64(9000)
+	hdrTimeStamp := uint64(10000)
+	hdrRound := uint64(20)
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, genesisTime)
+
+	hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
+
+	expectedTimeStamp := hdrTimeStamp - (hdrRound * roundDuration)
+	timeDuration := bfd.ComputeGenesisTimeFromHeader(hdr1)
+	assert.Equal(t, int64(expectedTimeStamp), timeDuration)
+}
