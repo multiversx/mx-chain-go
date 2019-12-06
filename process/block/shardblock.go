@@ -377,12 +377,8 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if nextBlocksVerified < sp.metaBlockFinality {
-		for nonce := lastVerifiedHdr.GetNonce(); nonce <= lastVerifiedHdr.GetNonce()+1; nonce++ {
-			go func(requestedNonce uint64) {
-				sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), requestedNonce)
-			}(nonce)
-		}
-
+		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce())
+		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 		return process.ErrHeaderNotFinal
 	}
 
