@@ -377,7 +377,12 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if nextBlocksVerified < sp.metaBlockFinality {
-		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+		for nonce := lastVerifiedHdr.GetNonce(); nonce <= lastVerifiedHdr.GetNonce()+1; nonce++ {
+			go func(requestedNonce uint64) {
+				sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), requestedNonce)
+			}(nonce)
+		}
+
 		return process.ErrHeaderNotFinal
 	}
 
@@ -1135,8 +1140,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	log.Trace("received meta block from network",
-		"hash", metaBlockHash,
+		"round", metaBlock.Round,
 		"nonce", metaBlock.Nonce,
+		"hash", metaBlockHash,
 	)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
