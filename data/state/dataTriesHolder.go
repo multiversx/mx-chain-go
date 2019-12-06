@@ -39,7 +39,7 @@ func (dth *dataTriesHolder) GetAll() []data.Trie {
 	defer dth.mutex.Unlock()
 
 	tries := make([]data.Trie, 0)
-	for key, _ := range dth.tries {
+	for key := range dth.tries {
 		tries = append(tries, dth.tries[key])
 	}
 

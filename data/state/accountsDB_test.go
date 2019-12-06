@@ -665,7 +665,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 
 	commitCalled := 0
 	marsh := &mock.MarshalizerMock{}
-	serializedAccount, err := marsh.Marshal(mock.AccountWrapMock{})
+	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
@@ -701,7 +701,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
 	_ = adb.SaveDataTrie(state2)
 
-	_, err = adb.Commit()
+	_, err := adb.Commit()
 	assert.Nil(t, err)
 	//one commit for the JournalEntryData and one commit for the main trie
 	assert.Equal(t, 2, commitCalled)
