@@ -433,6 +433,17 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	}
 }
 
+// WithBootStorer sets up a boot storer for the Node
+func WithBootStorer(bootStorer process.BootStorer) Option {
+	return func(n *Node) error {
+		if check.IfNil(bootStorer) {
+			return ErrNilBootStorer
+		}
+		n.bootStorer = bootStorer
+		return nil
+	}
+}
+
 // WithNetworkShardingCollector sets up a network sharding updater for the Node
 func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
 	return func(n *Node) error {

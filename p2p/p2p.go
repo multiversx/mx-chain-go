@@ -166,8 +166,8 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
-	GetPeerCounts() *PeerCounts
+	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32) error
+	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -213,9 +213,9 @@ type PeerShardResolver interface {
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
 
-// PeerCounts represents the DTO structure used to output the count metrics for connected peers
-type PeerCounts struct {
-	UnknownPeers    int
-	IntraShardPeers int
-	CrossShardPeers int
+// ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
+type ConnectedPeersInfo struct {
+	UnknownPeers    []string
+	IntraShardPeers []string
+	CrossShardPeers []string
 }

@@ -66,6 +66,7 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 
 	ShardDataStorage StorageConfig
+	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
@@ -121,10 +122,16 @@ type KadDhtPeerDiscoveryConfig struct {
 	InitialPeerList      []string
 }
 
+// ShardingConfig will hold the network sharding config settings
+type ShardingConfig struct {
+	PrioBits uint32
+}
+
 // P2PConfig will hold all the P2P settings
 type P2PConfig struct {
 	Node                NodeConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
+	Sharding            ShardingConfig
 }
 
 // ResourceStatsConfig will hold all resource stats settings

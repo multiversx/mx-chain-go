@@ -25,6 +25,10 @@ type BlockProcessorStub struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
+func (blProcMock *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
+
+}
+
 // ProcessBlock mocks pocessing a block
 func (blProcMock *BlockProcessorStub) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
@@ -89,6 +93,10 @@ func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round u
 // CreateNewHeader creates a new header
 func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
+}
+
+func (bpm *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

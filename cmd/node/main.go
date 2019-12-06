@@ -134,6 +134,12 @@ VERSION:
 		Usage: "The configuration file for servers confidential data",
 		Value: "./config/server.toml",
 	}
+	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
+	gasScheduleConfigurationFile = cli.StringFlag{
+		Name:  "gasCostsConfig",
+		Usage: "The configuration file for gas costs used in SmartContract execution",
+		Value: "./config/gasSchedule.toml",
+	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.IntFlag{
 		Name:  "port",
@@ -315,6 +321,7 @@ func main() {
 		configurationEconomicsFile,
 		configurationPreferencesFile,
 		p2pConfigurationFile,
+		gasScheduleConfigurationFile,
 		txSignSk,
 		sk,
 		profileMode,
@@ -708,12 +715,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
+	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
+	if err != nil {
+		return err
+	}
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
 		genesisConfig,
 		economicsData,
 		nodesConfig,
+		gasSchedule,
 		syncer,
 		shardCoordinator,
 		nodesCoordinator,
@@ -757,6 +770,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		p2pConfig,
 	)
 	if err != nil {
 		return err
@@ -785,6 +799,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusMetrics,
+		gasSchedule,
 		economicsData,
 	)
 	if err != nil {
@@ -1119,6 +1134,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	p2pConfig *config.P2PConfig,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1128,6 +1144,7 @@ func createNode(
 	networkShardingCollector, err := prepareNetworkShardingCollector(
 		network,
 		config,
+		p2pConfig,
 		nodesCoordinator,
 		shardCoordinator,
 	)
@@ -1173,6 +1190,7 @@ func createNode(
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithNetworkShardingCollector(networkShardingCollector),
+		node.WithBootStorer(process.BootStorer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1208,6 +1226,7 @@ func createNode(
 func prepareNetworkShardingCollector(
 	network *factory.Network,
 	config *config.Config,
+	p2pConfig *config.P2PConfig,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 ) (*networkSharding.PeerShardMapper, error) {
@@ -1220,7 +1239,7 @@ func prepareNetworkShardingCollector(
 	localId := network.NetMessenger.ID()
 	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector, p2pConfig.Sharding.PrioBits)
 	if err != nil {
 		return nil, err
 	}
@@ -1333,6 +1352,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
+	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
@@ -1354,7 +1374,7 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 		if err != nil {
 			return nil, err
 		}
@@ -1365,10 +1385,10 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(addrConv, vmContainer)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
+	return external.NewNodeApiResolver(scQueryService, statusMetrics)
 }
