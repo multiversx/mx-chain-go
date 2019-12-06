@@ -506,11 +506,17 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 	tr.snapshotInProgress = true
 
+	var err error
+	defer func() {
+		if err != nil {
+			tr.snapshotInProgress = false
+		}
+	}()
+
 	rootHash := tr.root.getHash()
 
 	db, err := tr.newSnapshotDb()
 	if err != nil {
-		tr.snapshotInProgress = false
 		return err
 	}
 
@@ -519,7 +525,6 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 
 		err = tr.snapshots[0].Close()
 		if err != nil {
-			tr.snapshotInProgress = false
 			return err
 		}
 		tr.snapshots = tr.snapshots[1:]
@@ -537,19 +542,16 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		tr.snapshotDbCfg,
 	)
 	if err != nil {
-		tr.snapshotInProgress = false
 		return err
 	}
 
 	encRoot, err := tr.db.Get(rootHash)
 	if err != nil {
-		tr.snapshotInProgress = false
 		return err
 	}
 
 	newRoot, err := decodeNode(encRoot, tr.marshalizer, tr.hasher)
 	if err != nil {
-		tr.snapshotInProgress = false
 		return err
 	}
 
