@@ -11,15 +11,15 @@ type ConcurrentMap struct {
 	shards     []*ConcurrentMapShard
 }
 
-// ConcurrentMapShared is a "thread" safe string to anything map.
+// ConcurrentMapShard is a "thread" safe string to anything map.
 type ConcurrentMapShard struct {
 	maxSize      int
 	items        map[string]interface{}
 	sync.RWMutex // Read Write mutex, guards access to internal map.
 }
 
-// New creates a new concurrent map.
-func NewCMap(maxSize int, shardCount int) *ConcurrentMap {
+// NewConcurrentMap creates a new concurrent map.
+func NewConcurrentMap(maxSize int, shardCount int) *ConcurrentMap {
 	m := ConcurrentMap{
 		shardCount: shardCount,
 		shards:     make([]*ConcurrentMapShard, shardCount),
