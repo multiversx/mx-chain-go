@@ -1,14 +1,13 @@
 package txcache
 
 import (
-	"math/rand"
-
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 // EvictionModel is a cache eviction model
 type EvictionModel struct {
 	CountThreshold         int
+	EachAndEverySender     int
 	ManyTransactions       int
 	PartOfManyTransactions int
 	Cache                  *TxCache
@@ -18,6 +17,7 @@ type EvictionModel struct {
 func NewEvictionModel(capacity int, cache *TxCache) *EvictionModel {
 	model := &EvictionModel{
 		CountThreshold:         capacity * 99 / 100,
+		EachAndEverySender:     capacity/100 + 1,
 		ManyTransactions:       capacity * 1 / 100,
 		PartOfManyTransactions: capacity * (1 / 4) / 100,
 		Cache:                  cache,
@@ -44,6 +44,7 @@ func (model *EvictionModel) DoEvictionIfNecessary(incomingTx *transaction.Transa
 }
 
 // DoSendersEvictionIfNecessary removes senders (along with their transactions) from the cache
+// Removes "each and every"
 func (model *EvictionModel) DoSendersEvictionIfNecessary() {
 	sendersEvictionNecessary := model.Cache.sendersCount.Get() > int64(model.CountThreshold)
 
@@ -54,12 +55,14 @@ func (model *EvictionModel) DoSendersEvictionIfNecessary() {
 
 func (model *EvictionModel) doArbitrarySendersEviction() {
 	sendersToEvict := make([]string, 0)
-	keyByte := byte(rand.Intn(256))
 
+	index := 0
 	model.Cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
-		if key[len(key)/2] == keyByte {
+		if index%model.EachAndEverySender == 0 {
 			sendersToEvict = append(sendersToEvict, key)
 		}
+
+		index++
 	})
 
 	// to do. delete from txByHash also
