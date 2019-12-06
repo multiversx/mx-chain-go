@@ -1,6 +1,8 @@
 package topicResolverSender
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -66,7 +68,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	peerList := trs.peerListCreator.PeerList()
 	if len(peerList) == 0 {
-		return dataRetriever.ErrNoConnectedPeerToSendRequest
+		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrNoConnectedPeerToSendRequest, trs.topicName)
 	}
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix

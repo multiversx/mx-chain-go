@@ -770,6 +770,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		p2pConfig,
 	)
 	if err != nil {
 		return err
@@ -1133,6 +1134,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	p2pConfig *config.P2PConfig,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1142,6 +1144,7 @@ func createNode(
 	networkShardingCollector, err := prepareNetworkShardingCollector(
 		network,
 		config,
+		p2pConfig,
 		nodesCoordinator,
 		shardCoordinator,
 	)
@@ -1223,6 +1226,7 @@ func createNode(
 func prepareNetworkShardingCollector(
 	network *factory.Network,
 	config *config.Config,
+	p2pConfig *config.P2PConfig,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 ) (*networkSharding.PeerShardMapper, error) {
@@ -1235,7 +1239,7 @@ func prepareNetworkShardingCollector(
 	localId := network.NetMessenger.ID()
 	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector, p2pConfig.Sharding.PrioBits)
 	if err != nil {
 		return nil, err
 	}

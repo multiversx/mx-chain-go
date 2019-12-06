@@ -18,80 +18,80 @@ func TestNewStatusMetricsProvider(t *testing.T) {
 func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key1"
-	ndh.Increment(key1)
+	sm.Increment(key1)
 
-	retMap, err := ndh.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
+
 	assert.Nil(t, retMap[key1])
 }
 
 func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key2"
 	value1 := "value2"
-
 	// set a key which is initialized with a string and the Increment method won't affect the key
-	ndh.SetStringValue(key1, value1)
-	ndh.Increment(key1)
+	sm.SetStringValue(key1, value1)
+	sm.Increment(key1)
 
-	retMap, _ := ndh.StatusMetricsMap()
+	retMap := sm.StatusMetricsMap()
+
 	assert.Equal(t, value1, retMap[key1])
 }
 
 func TestStatusMetricsProvider_IncrementShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key1 := "test-key3"
-	ndh.SetUInt64Value(key1, 0)
-	ndh.Increment(key1)
+	sm.SetUInt64Value(key1, 0)
+	sm.Increment(key1)
 
-	retMap, err := ndh.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
+
 	assert.Equal(t, uint64(1), retMap[key1])
 }
 
 func TestStatusMetricsProvider_Decrement(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key := "test-key4"
-	ndh.SetUInt64Value(key, 2)
-	ndh.Decrement(key)
+	sm.SetUInt64Value(key, 2)
+	sm.Decrement(key)
 
-	retMap, err := ndh.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
+
 	assert.Equal(t, uint64(1), retMap[key])
 }
 
 func TestStatusMetricsProvider_SetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key := "test-key5"
 	value := int64(5)
-	ndh.SetInt64Value(key, value)
-	ndh.Decrement(key)
+	sm.SetInt64Value(key, value)
+	sm.Decrement(key)
 
-	retMap, err := ndh.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
+
 	assert.Equal(t, value, retMap[key])
 }
 
 func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
+	sm := statusHandler.NewStatusMetrics()
 	key := "test-key6"
 	value := "value"
-	ndh.SetStringValue(key, value)
-	ndh.Decrement(key)
+	sm.SetStringValue(key, value)
+	sm.Decrement(key)
 
-	retMap, err := ndh.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
+
 	assert.Equal(t, value, retMap[key])
 }
