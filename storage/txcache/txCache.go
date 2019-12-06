@@ -6,11 +6,11 @@ import (
 
 // TxCache is
 type TxCache struct {
-	txCount        AtomicCounter
-	sendersCount   AtomicCounter
-	txListBySender *ConcurrentMap
-	txByHash       *ConcurrentMap
-	evictionModel  *EvictionModel
+	txCount          AtomicCounter
+	sendersCount     AtomicCounter
+	txListBySender   *ConcurrentMap
+	txByHash         *ConcurrentMap
+	evictionStrategy *EvictionStrategy
 }
 
 // NewTxCache creates a new transaction cache
@@ -20,9 +20,9 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 	// Note: for simplicity, we use the same "shardsHint" for both internal concurrent maps
 
 	// We'll hold at most "size" lists of 1 transaction
-	txBySender := NewCMap(size, shardsHint)
+	txBySender := NewConcurrentMap(size, shardsHint)
 	// We'll hold at most "size" transactions
-	txByHash := NewCMap(size, shardsHint)
+	txByHash := NewConcurrentMap(size, shardsHint)
 
 	txCache := &TxCache{
 		txCount:        0,
@@ -30,8 +30,6 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 		txListBySender: txBySender,
 		txByHash:       txByHash,
 	}
-
-	txCache.evictionModel = NewEvictionModel(size, txCache)
 
 	return txCache
 }
@@ -48,7 +46,9 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 		listForSender = cache.addSender(sender)
 	}
 
-	cache.evictionModel.DoEvictionIfNecessary(tx)
+	if cache.evictionStrategy != nil {
+		cache.evictionStrategy.DoEvictionIfNecessary(tx)
+	}
 
 	listForSender.AddTransaction(tx)
 	cache.txCount.Increment()

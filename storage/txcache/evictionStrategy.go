@@ -4,8 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
-// EvictionModel is a cache eviction model
-type EvictionModel struct {
+// EvictionStrategy is a cache eviction model
+type EvictionStrategy struct {
 	CountThreshold         int
 	EachAndEverySender     int
 	ManyTransactions       int
@@ -13,9 +13,9 @@ type EvictionModel struct {
 	Cache                  *TxCache
 }
 
-// NewEvictionModel creates a new EvictionModel
-func NewEvictionModel(capacity int, cache *TxCache) *EvictionModel {
-	model := &EvictionModel{
+// NewEvictionStrategy creates a new EvictionModel
+func NewEvictionStrategy(capacity int, cache *TxCache) *EvictionStrategy {
+	model := &EvictionStrategy{
 		CountThreshold:         capacity * 99 / 100,
 		EachAndEverySender:     capacity/100 + 1,
 		ManyTransactions:       capacity * 1 / 100,
@@ -27,7 +27,7 @@ func NewEvictionModel(capacity int, cache *TxCache) *EvictionModel {
 }
 
 // DoEvictionIfNecessary does cache eviction
-func (model *EvictionModel) DoEvictionIfNecessary(incomingTx *transaction.Transaction) {
+func (model *EvictionStrategy) DoEvictionIfNecessary(incomingTx *transaction.Transaction) {
 	if model.Cache.txCount.Get() < int64(model.CountThreshold) {
 		return
 	}
@@ -44,8 +44,8 @@ func (model *EvictionModel) DoEvictionIfNecessary(incomingTx *transaction.Transa
 }
 
 // DoSendersEvictionIfNecessary removes senders (along with their transactions) from the cache
-// Removes "each and every"
-func (model *EvictionModel) DoSendersEvictionIfNecessary() {
+// Removes "each and every" sender from the cache
+func (model *EvictionStrategy) DoSendersEvictionIfNecessary() {
 	sendersEvictionNecessary := model.Cache.sendersCount.Get() > int64(model.CountThreshold)
 
 	if sendersEvictionNecessary {
@@ -53,7 +53,7 @@ func (model *EvictionModel) DoSendersEvictionIfNecessary() {
 	}
 }
 
-func (model *EvictionModel) doArbitrarySendersEviction() {
+func (model *EvictionStrategy) doArbitrarySendersEviction() {
 	sendersToEvict := make([]string, 0)
 
 	index := 0
@@ -65,12 +65,12 @@ func (model *EvictionModel) doArbitrarySendersEviction() {
 		index++
 	})
 
-	// to do. delete from txByHash also
+	// to do. delete from txByHash also!
 	model.Cache.removeSenders(sendersToEvict)
 }
 
 // DoHighNonceTransactionsEviction removes transactions from the cache
-func (model *EvictionModel) DoHighNonceTransactionsEviction() {
+func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 	sendersToEvict := make([]string, 0)
 
 	model.Cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
@@ -85,6 +85,6 @@ func (model *EvictionModel) DoHighNonceTransactionsEviction() {
 		}
 	})
 
-	// to do. delete from txByHash also
+	// to do. delete from txByHash also!
 	model.Cache.removeSenders(sendersToEvict)
 }
