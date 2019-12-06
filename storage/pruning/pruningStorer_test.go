@@ -150,14 +150,18 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	ps.ClearCache()
 
 	// data should still be available in the closed persister
-	err = ps.Has(testKey)
+	err = ps.HasInEpoch(testKey, 0)
 	assert.Nil(t, err)
+
+	// data should not be available when calling in another epoch
+	err = ps.HasInEpoch(testKey, 1)
+	assert.NotNil(t, err)
 
 	// after one more epoch change, the persister which holds the data should be removed and the key should not be available
 	_ = ps.ChangeEpoch(2)
 	ps.ClearCache()
 
-	err = ps.Has(testKey)
+	err = ps.HasInEpoch(testKey, 0)
 	assert.NotNil(t, err)
 }
 
@@ -212,7 +216,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
-		// simulate an opening of an existing database from the file path by saving persisters in a map based on their path
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
 		CreateCalled: func(path string) (storage.Persister, error) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
@@ -245,8 +249,8 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 
 	ps.ClearCache()
 
-	// check if data is still available after searching in closed persisters
-	res, err = ps.Get(testKey)
+	// check if data is still available after searching in closed activePersisters
+	res, err = ps.GetFromEpoch(testKey, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }

@@ -2,6 +2,7 @@ package pruning
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"regexp"
 	"sync"
@@ -23,14 +24,15 @@ const DefaultEpochDirectoryName = "Epoch"
 type persisterData struct {
 	persister storage.Persister
 	path      string
+	isClosed  bool
 }
 
-// PruningStorer represents a storer which creates a new persister for each epoch and removes older persisters
+// PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
 	lock                  sync.RWMutex
 	fullArchive           bool
-	persisters            []*persisterData
-	closedPersistersPaths []string
+	activePersisters      []*persisterData
+	persistersMapByEpoch  map[uint32]*persisterData
 	cacher                storage.Cacher
 	bloomFilter           storage.BloomFilter
 	dbPath                string
@@ -90,19 +92,25 @@ func initPruningStorer(
 		filePath = filePath + shardIdStr
 	}
 	db, err = args.PersisterFactory.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
 
 	var persisters []*persisterData
 	persisters = append(persisters, &persisterData{
 		persister: db,
 		path:      filePath,
+		isClosed:  false,
 	})
 
+	persistersMapByEpoch := make(map[uint32]*persisterData)
+	persistersMapByEpoch[0] = persisters[0]
 	pdb := &PruningStorer{
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
-		persisters:            persisters,
+		activePersisters:      persisters,
 		persisterFactory:      args.PersisterFactory,
-		closedPersistersPaths: make([]string, 0),
+		persistersMapByEpoch:  persistersMapByEpoch,
 		cacher:                cache,
 		bloomFilter:           nil,
 		dbPath:                filePath,
@@ -119,7 +127,7 @@ func initPruningStorer(
 		pdb.bloomFilter = bf
 	}
 
-	err = pdb.persisters[0].persister.Init()
+	err = pdb.activePersisters[0].persister.Init()
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +144,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	ps.cacher.Put(key, data)
 
-	err := ps.persisters[0].persister.Put(key, data)
+	err := ps.activePersisters[0].persister.Put(key, data)
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
@@ -164,9 +172,9 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		// not found in cache
 		// search it in second persistence medium
 		found := false
-		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.persisters))); idx++ {
+		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
 			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-				v, err = ps.persisters[idx].persister.Get(key)
+				v, err = ps.activePersisters[idx].persister.Get(key)
 
 				if err != nil {
 					continue
@@ -178,15 +186,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 				break
 			}
 		}
-		if !found && len(ps.closedPersistersPaths) > 0 {
-			res, err := ps.getFromClosedPersisters(key)
-			if err != nil {
-				log.Debug("get from closed persisters", "error", err.Error())
-			} else {
-				ps.cacher.Put(key, res)
-				return res, nil
-			}
-		}
 		if !found {
 			return nil, fmt.Errorf("key %s not found in %s",
 				base64.StdEncoding.EncodeToString(key), ps.identifier)
@@ -196,18 +195,36 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return v.([]byte), nil
 }
 
-func (ps *PruningStorer) getFromClosedPersisters(key []byte) ([]byte, error) {
-	for _, path := range ps.closedPersistersPaths {
-		persister, err := ps.persisterFactory.Create(path)
+// GetFromEpoch will search a key only in the persister for the given epoch
+func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+	// TODO: this will be used when requesting from resolvers
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		return v.([]byte), nil
+	}
+
+	persisterData, exists := ps.persistersMapByEpoch[epoch]
+	if !exists {
+		return nil, fmt.Errorf("key %s not found in %s",
+			base64.StdEncoding.EncodeToString(key), ps.identifier)
+	}
+
+	if !persisterData.isClosed {
+		return persisterData.persister.Get(key)
+	} else {
+		persister, err := ps.persisterFactory.Create(persisterData.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
-			continue
+			return nil, err
 		}
 
 		err = persister.Init()
 		if err != nil {
 			log.Debug("init old persister", "error", err.Error())
-			continue
+			return nil, err
 		}
 
 		res, errToRet := persister.Get(key)
@@ -215,14 +232,21 @@ func (ps *PruningStorer) getFromClosedPersisters(key []byte) ([]byte, error) {
 		err = persister.Close()
 		if err != nil {
 			log.Debug("close old persister", "error", err.Error())
+			return nil, err
 		}
 
 		if errToRet == nil {
 			return res, nil
 		}
-	}
+		log.Warn("get from closed persister",
+			"id", ps.identifier,
+			"epoch", epoch,
+			"key", key,
+			"error", errToRet.Error())
 
-	return nil, fmt.Errorf("key %s not found in %s", base64.StdEncoding.EncodeToString(key), ps.identifier)
+		return nil, fmt.Errorf("key %s not found in %s",
+			base64.StdEncoding.EncodeToString(key), ps.identifier)
+	}
 }
 
 // Has checks if the key is in the Unit.
@@ -238,7 +262,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 	}
 
 	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		for _, persister := range ps.persisters {
+		for _, persister := range ps.activePersisters {
 			if persister.persister.Has(key) != nil {
 				continue
 			}
@@ -250,13 +274,38 @@ func (ps *PruningStorer) Has(key []byte) error {
 	return storage.ErrKeyNotFound
 }
 
+// HasInEpoch checks if the key is in the Unit in a given epoch.
+// It first checks the cache. If it is not found, it checks the bloom filter
+// and if present it checks the db
+func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
+	// TODO: this will be used when requesting from resolvers
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	has := ps.cacher.Has(key)
+	if has {
+		return nil
+	}
+
+	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
+		persister, ok := ps.persistersMapByEpoch[epoch]
+		if !ok {
+			return storage.ErrKeyNotFound
+		}
+
+		return persister.persister.Has(key)
+	}
+
+	return storage.ErrKeyNotFound
+}
+
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (ps *PruningStorer) Remove(key []byte) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
 	ps.cacher.Remove(key)
-	return ps.persisters[0].persister.Remove(key)
+	return ps.activePersisters[0].persister.Remove(key)
 }
 
 // ClearCache cleans up the entire cache
@@ -277,8 +326,8 @@ func (ps *PruningStorer) DestroyUnit() error {
 
 	var err error
 	numOfPersistersRemoved := 0
-	totalNumOfPersisters := len(ps.persisters)
-	for _, persister := range ps.persisters {
+	totalNumOfPersisters := len(ps.activePersisters)
+	for _, persister := range ps.activePersisters {
 		err = persister.persister.Destroy()
 		if err != nil {
 			log.Debug("pruning db: destroy",
@@ -295,7 +344,7 @@ func (ps *PruningStorer) DestroyUnit() error {
 			"total", totalNumOfPersisters)
 		return storage.ErrDestroyingUnit
 	}
-	return ps.persisters[0].persister.Destroy()
+	return ps.activePersisters[0].persister.Destroy()
 }
 
 // registerHandler will register a new function to the epoch start notifier
@@ -322,19 +371,22 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 		return err
 	}
 
-	singleItemPersisters := []*persisterData{
-		{
-			persister: db,
-			path:      filePath,
-		},
+	newPersister := &persisterData{
+		persister: db,
+		path:      filePath,
+		isClosed:  false,
 	}
-	ps.persisters = append(singleItemPersisters, ps.persisters...)
-	err = ps.persisters[0].persister.Init()
+
+	singleItemPersisters := []*persisterData{newPersister}
+	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
+	ps.persistersMapByEpoch[epoch] = newPersister
+
+	err = ps.activePersisters[0].persister.Init()
 	if err != nil {
 		return err
 	}
 
-	err = ps.closeAndDestroyPersisters()
+	err = ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
 		log.Debug("closing and destroying old persister", "error", err.Error())
 		return err
@@ -343,39 +395,37 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) closeAndDestroyPersisters() error {
-	// recent persisters have to he closed for both scenarios: full archive or not
-	if ps.numOfActivePersisters < uint32(len(ps.persisters)) {
-		err := ps.persisters[ps.numOfActivePersisters].persister.Close()
+func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+	// recent activePersisters have to he closed for both scenarios: full archive or not
+	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
+		persisterToClose := ps.activePersisters[ps.numOfActivePersisters]
+		err := persisterToClose.persister.Close()
 		if err != nil {
 			log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
 			return err
 		}
-		ps.closedPersistersPaths = append(ps.closedPersistersPaths, ps.persisters[ps.numOfActivePersisters].path)
+		// remove it from the active persisters slice
+		ps.activePersisters = append(ps.activePersisters[:ps.numOfActivePersisters], ps.activePersisters[ps.numOfActivePersisters+1:]...)
+		persisterToClose.isClosed = true
+		epochToClose := epoch - ps.numOfActivePersisters
+		ps.persistersMapByEpoch[epochToClose] = persisterToClose
 	}
 
-	if !ps.fullArchive {
-		if ps.numOfEpochsToKeep < uint32(len(ps.persisters)) {
-			err := ps.persisters[ps.numOfEpochsToKeep].persister.DestroyClosed()
-			if err != nil {
-				log.Error("error destroying db", "error", err.Error(), "id", ps.identifier)
-				return err
-			}
-			removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
-			ps.cleanClosedPersisters(ps.persisters[ps.numOfEpochsToKeep].path)
-			ps.persisters = append(ps.persisters[:ps.numOfEpochsToKeep], ps.persisters[ps.numOfEpochsToKeep+1:]...)
+	if !ps.fullArchive && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
+		epochToRemove := epoch - ps.numOfEpochsToKeep
+		persisterToDestroy, ok := ps.persistersMapByEpoch[epochToRemove]
+		if !ok {
+			return errors.New("persister to destroy not found")
+		}
+		delete(ps.persistersMapByEpoch, epochToRemove)
+
+		err := persisterToDestroy.persister.DestroyClosed()
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
-}
-
-func (ps *PruningStorer) cleanClosedPersisters(path string) {
-	for idx, persPath := range ps.closedPersistersPaths {
-		if persPath == path {
-			ps.closedPersistersPaths = append(ps.closedPersistersPaths[:idx], ps.closedPersistersPaths[idx+1:]...)
-		}
-	}
 }
 
 // getNewFilePath will return the file path for the new epoch. It uses regex to change the default path
