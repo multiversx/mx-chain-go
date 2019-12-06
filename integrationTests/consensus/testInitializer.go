@@ -370,7 +370,7 @@ func createConsensusOnlyNode(
 		time.Millisecond*time.Duration(roundTime),
 		syncer)
 
-	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second))
+	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second), 0)
 
 	hdrResolver := &mock.HeaderResolverMock{}
 	mbResolver := &mock.MiniBlocksResolverMock{}
