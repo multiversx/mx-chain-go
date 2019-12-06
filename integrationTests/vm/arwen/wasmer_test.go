@@ -44,7 +44,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
-func TestSCAbortExecution(t *testing.T) {
+func TestSCAbortExecution_DontAbort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
@@ -62,21 +62,25 @@ func TestSCAbortExecution(t *testing.T) {
 	expectedBytes := []byte{100}
 	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 	assertReturnData(t, vmOutput, expectedBytes)
+}
+
+func TestSCAbortExecution_Abort(t *testing.T) {
+	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
 
 	// Run testFunc with argument 1, which will abort execution, leading to a
 	// call to int64finish(99).
-	arguments = make([][]byte, 0)
+	arguments := make([][]byte, 0)
 	arguments = append(arguments, []byte{0x01})
 
-	vmInput = defaultVMInput(arguments)
+	vmInput := defaultVMInput(arguments)
 	vmInput.CallerAddr = ownerAddressBytes
 
-	callInput = makeCallInput(scAddress, "testFunc", vmInput)
-	vmOutput, err = wasmvm.RunSmartContractCall(callInput)
+	callInput := makeCallInput(scAddress, "testFunc", vmInput)
+	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 1, len(vmOutput.ReturnData))
-	expectedBytes = []byte{98}
+	expectedBytes := []byte{98}
 	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 	assertReturnData(t, vmOutput, expectedBytes)
 }
