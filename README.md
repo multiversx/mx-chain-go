@@ -1,3 +1,5 @@
+<!-- release v1.0.56 -->
+
 <div style="text-align:center">
   <img src="https://github.com/ElrondNetwork/elrond-go/blob/master/elrond_logo_01.svg"></img>
 </div>  
