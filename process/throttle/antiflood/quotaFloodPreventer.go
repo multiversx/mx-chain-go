@@ -18,7 +18,7 @@ type quota struct {
 
 // qoutaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
-	mutOperation sync.Mutex
+	mutOperation sync.RWMutex
 	cacher       storage.Cacher
 	maxMessages  uint32
 	maxSize      uint64

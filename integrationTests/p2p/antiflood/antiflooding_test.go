@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
@@ -14,7 +15,7 @@ import (
 )
 
 var durationBootstrapingTime = 2 * time.Second
-var maxSize = 1 << 20 //1MB
+var maxSize = uint64(1 << 20) //1MB
 
 // TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send a large number of messages
 // all originating from its peer ID
@@ -36,7 +37,7 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := 5
+	maxMumProcessMessages := uint32(5)
 	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages)
 	assert.Nil(t, err)
 
@@ -48,7 +49,7 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 	protectedIdexes := []int{5, 7}
 
 	//flooder will deactivate its flooding mechanism as to be able to flood the network
-	interceptors[flooderIdx].CountersMap = nil
+	interceptors[flooderIdx].FloodPreventer = nil
 
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
@@ -66,7 +67,7 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 
 	isFlooding.Store(false)
 
-	checkMessagesOnPeers(t, peers, interceptors, uint64(maxMumProcessMessages), floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, maxMumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 // TestAntifloodWithMessagesFromOtherPeers tests what happens if a peer decide to send a number of messages
@@ -89,7 +90,7 @@ func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
 	// (check integrationTests.CreateFixedNetworkOf14Peers function)
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := 5
+	maxMumProcessMessages := uint32(5)
 	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages)
 	assert.Nil(t, err)
 
@@ -102,7 +103,7 @@ func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
 
 	//flooders will deactivate their flooding mechanism as to be able to flood the network
 	for _, idx := range flooderIdxes {
-		interceptors[idx].CountersMap = nil
+		interceptors[idx].FloodPreventer = nil
 	}
 
 	//generate a message from connected peers of the main flooder (peer 2)
@@ -112,25 +113,25 @@ func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
 	}
 	time.Sleep(broadcastMessageDuration)
 
-	checkMessagesOnPeers(t, peers, interceptors, uint64(maxMumProcessMessages), floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, maxMumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 func checkMessagesOnPeers(
 	t *testing.T,
 	peers []p2p.Messenger,
 	interceptors []*messageProcessor,
-	maxMumProcessMessages uint64,
+	maxMumProcessMessages uint32,
 	floodedIdxes []int,
 	protectedIdexes []int,
 ) {
 	checkFunctionForFloodedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesProcessed())
+		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesProcessed())
 		//can not precisely determine how many message have been received
-		assert.True(t, maxMumProcessMessages < interceptor.MessagesReceived())
+		assert.True(t, maxMumProcessMessages < interceptor.NumMessagesReceived())
 	}
 	checkFunctionForProtectedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesProcessed())
-		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesReceived())
+		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesProcessed())
+		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesReceived())
 	}
 
 	fmt.Println("checking flooded peers")
@@ -139,7 +140,7 @@ func checkMessagesOnPeers(
 	checkPeers(peers, interceptors, protectedIdexes, checkFunctionForProtectedPeers)
 }
 
-func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNumMessages int) ([]*messageProcessor, error) {
+func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNumMessages uint32) ([]*messageProcessor, error) {
 	interceptors := make([]*messageProcessor, len(peers))
 
 	for idx, p := range peers {
@@ -152,7 +153,7 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
-		interceptors[idx].CountersMap, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, uint32(maxNumMessages), uint64(maxSize))
+		interceptors[idx].FloodPreventer, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, maxNumMessages, maxSize)
 		err = p.RegisterMessageProcessor(topic, interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
@@ -160,7 +161,6 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 	}
 
 	return interceptors, nil
-
 }
 
 func checkPeers(
@@ -173,10 +173,12 @@ func checkPeers(
 	for _, idx := range indexes {
 		peer := peers[idx]
 		interceptor := interceptors[idx]
-		fmt.Printf("%s got %d total messages and processed %d\n",
+		fmt.Printf("%s got %d (%s) total messages and processed %d (%s)\n",
 			peer.ID().Pretty(),
-			interceptor.MessagesReceived(),
-			interceptor.MessagesProcessed(),
+			interceptor.NumMessagesReceived(),
+			core.ConvertBytes(interceptor.SizeMessagesReceived()),
+			interceptor.NumMessagesProcessed(),
+			core.ConvertBytes(interceptor.SizeMessagesProcessed()),
 		)
 
 		checkFunction(interceptor)

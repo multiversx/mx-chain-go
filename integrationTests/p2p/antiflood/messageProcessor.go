@@ -10,10 +10,15 @@ import (
 )
 
 type messageProcessor struct {
-	numMessagesReceived uint64
-	mutMessages         sync.Mutex
-	messages            map[p2p.PeerID][]p2p.MessageP2P
-	CountersMap         process.FloodPreventer
+	numMessagesProcessed  uint32
+	sizeMessagesProcessed uint64
+
+	numMessagesReceived  uint32
+	sizeMessagesReceived uint64
+
+	mutMessages    sync.Mutex
+	messages       map[p2p.PeerID][]p2p.MessageP2P
+	FloodPreventer process.FloodPreventer
 }
 
 func newMessageProcessor() *messageProcessor {
@@ -23,23 +28,27 @@ func newMessageProcessor() *messageProcessor {
 }
 
 func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, _ func(buffToSend []byte)) error {
-	atomic.AddUint64(&mp.numMessagesReceived, 1)
+	atomic.AddUint32(&mp.numMessagesReceived, 1)
+	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 
-	if mp.CountersMap != nil {
+	if mp.FloodPreventer != nil {
 		//protect from directly connected peer
-		ok := mp.CountersMap.TryIncrement(string(fromConnectedPeer), uint64(len(message.Data())))
+		ok := mp.FloodPreventer.TryIncrement(string(fromConnectedPeer), uint64(len(message.Data())))
 		if !ok {
 			return fmt.Errorf("system flooded")
 		}
 
 		if fromConnectedPeer != message.Peer() {
 			//protect from the flooding messages that originate from the same source but come from different peers
-			ok = mp.CountersMap.TryIncrement(string(message.Peer()), uint64(len(message.Data())))
+			ok = mp.FloodPreventer.TryIncrement(string(message.Peer()), uint64(len(message.Data())))
 			if !ok {
 				return fmt.Errorf("system flooded")
 			}
 		}
 	}
+
+	atomic.AddUint32(&mp.numMessagesProcessed, 1)
+	atomic.AddUint64(&mp.sizeMessagesProcessed, uint64(len(message.Data())))
 
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
@@ -49,27 +58,20 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 	return nil
 }
 
-func (mp *messageProcessor) Messages(pid p2p.PeerID) []p2p.MessageP2P {
-	mp.mutMessages.Lock()
-	defer mp.mutMessages.Unlock()
-
-	return mp.messages[pid]
+func (mp *messageProcessor) NumMessagesProcessed() uint32 {
+	return atomic.LoadUint32(&mp.numMessagesProcessed)
 }
 
-func (mp *messageProcessor) MessagesReceived() uint64 {
-	return atomic.LoadUint64(&mp.numMessagesReceived)
+func (mp *messageProcessor) SizeMessagesProcessed() uint64 {
+	return atomic.LoadUint64(&mp.sizeMessagesProcessed)
 }
 
-func (mp *messageProcessor) MessagesProcessed() uint64 {
-	mp.mutMessages.Lock()
-	defer mp.mutMessages.Unlock()
+func (mp *messageProcessor) NumMessagesReceived() uint32 {
+	return atomic.LoadUint32(&mp.numMessagesReceived)
+}
 
-	count := 0
-	for _, msgs := range mp.messages {
-		count += len(msgs)
-	}
-
-	return uint64(count)
+func (mp *messageProcessor) SizeMessagesReceived() uint64 {
+	return atomic.LoadUint64(&mp.sizeMessagesReceived)
 }
 
 func (mp *messageProcessor) IsInterfaceNil() bool {
