@@ -19,6 +19,13 @@ func NewTxListBySenderMap(size int, shardsHint int) TxListBySenderMap {
 	}
 }
 
+// AddTx adds a transaction in the map, in the corresponding list (selected by its sender)
+func (txMap *TxListBySenderMap) AddTx(txHash []byte, tx *transaction.Transaction) {
+	sender := string(tx.SndAddr)
+	listForSender := txMap.getOrAddListForSender(sender)
+	listForSender.AddTransaction(txHash, tx)
+}
+
 func (txMap *TxListBySenderMap) getOrAddListForSender(sender string) *TxListForSender {
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
@@ -45,13 +52,8 @@ func (txMap *TxListBySenderMap) addSender(sender string) *TxListForSender {
 	return listForSender
 }
 
-func (txMap *TxListBySenderMap) addTransaction(txHash []byte, tx *transaction.Transaction) {
-	sender := string(tx.SndAddr)
-	listForSender := txMap.getOrAddListForSender(sender)
-	listForSender.AddTransaction(txHash, tx)
-}
-
-func (txMap *TxListBySenderMap) removeTransaction(tx *transaction.Transaction) {
+// RemoveTx removes a transaction from the map
+func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) {
 	sender := string(tx.SndAddr)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
@@ -59,7 +61,7 @@ func (txMap *TxListBySenderMap) removeTransaction(tx *transaction.Transaction) {
 		return
 	}
 
-	listForSender.RemoveTransaction(tx)
+	listForSender.RemoveTx(tx)
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
 	}

@@ -35,7 +35,7 @@ func Test_RemoveByTxHash(t *testing.T) {
 	tx := createTx("alice", 1)
 
 	context.Cache.AddTx(txHash, tx)
-	context.Cache.RemoveByTxHash(txHash)
+	context.Cache.RemoveTxByHash(txHash)
 	foundTx, ok := context.Cache.GetByTxHash(txHash)
 
 	assert.False(t, ok)
@@ -65,7 +65,7 @@ func Test_GetSorted(t *testing.T) {
 	// in reversed-nonce order.
 	// Total of "noSenders" * "noTransactions" transactions in the cache.
 	noSenders := 1000
-	noTransactionsPerSender := 1000
+	noTransactionsPerSender := 100
 	noTotalTransactions := noSenders * noTransactionsPerSender
 	noRequestedTransactions := math.MaxInt16
 
@@ -94,31 +94,6 @@ func Test_GetSorted(t *testing.T) {
 
 		assert.LessOrEqual(t, previousNonce, nonce)
 		nonces[sender] = nonce
-	}
-}
-
-func Benchmark_Add_Get_Remove_Many(b *testing.B) {
-	context := setupTestContext(nil, b)
-
-	noTransactions := 10000
-
-	for index := 0; index < noTransactions; index++ {
-		hash := fmt.Sprintf("hash%d", index)
-		tx := createTx("alice", uint64(index))
-		context.Cache.AddTx([]byte(hash), tx)
-
-		foundTx, ok := context.Cache.GetByTxHash([]byte(hash))
-		assert.True(b, ok)
-		assert.Equal(b, tx, foundTx)
-	}
-
-	for index := 0; index < noTransactions; index++ {
-		hash := fmt.Sprintf("hash%d", index)
-		context.Cache.RemoveByTxHash([]byte(hash))
-
-		foundTx, ok := context.Cache.GetByTxHash([]byte(hash))
-		assert.False(b, ok)
-		assert.Nil(b, foundTx)
 	}
 }
 

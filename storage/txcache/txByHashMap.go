@@ -19,23 +19,13 @@ func NewTxByHashMap(size int, shardsHint int) TxByHashMap {
 	}
 }
 
-func (txMap *TxByHashMap) addTransaction(txHash []byte, tx *transaction.Transaction) {
+func (txMap *TxByHashMap) AddTx(txHash []byte, tx *transaction.Transaction) {
 	txMap.Map.Set(string(txHash), tx)
 	txMap.Counter.Increment()
 }
 
-func (txMap *TxByHashMap) getTransaction(txHash string) (*transaction.Transaction, bool) {
-	txUntyped, ok := txMap.Map.Get(txHash)
-	if !ok {
-		return nil, false
-	}
-
-	tx := txUntyped.(*transaction.Transaction)
-	return tx, true
-}
-
-func (txMap *TxByHashMap) removeTransaction(txHash string) (*transaction.Transaction, bool) {
-	tx, ok := txMap.getTransaction(txHash)
+func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, bool) {
+	tx, ok := txMap.GetTx(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -45,7 +35,17 @@ func (txMap *TxByHashMap) removeTransaction(txHash string) (*transaction.Transac
 	return tx, true
 }
 
-func (txMap *TxByHashMap) removeTransactionsBulk(txHashes [][]byte) int64 {
+func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) {
+	txUntyped, ok := txMap.Map.Get(txHash)
+	if !ok {
+		return nil, false
+	}
+
+	tx := txUntyped.(*transaction.Transaction)
+	return tx, true
+}
+
+func (txMap *TxByHashMap) RemoveTransactionsBulk(txHashes [][]byte) int64 {
 	for _, txHash := range txHashes {
 		txMap.Map.Remove(string(txHash))
 	}

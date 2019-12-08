@@ -31,13 +31,13 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 		cache.evictionStrategy.DoEvictionIfNecessary(tx)
 	}
 
-	cache.txByHash.addTransaction(txHash, tx)
-	cache.txListBySender.addTransaction(txHash, tx)
+	cache.txByHash.AddTx(txHash, tx)
+	cache.txListBySender.AddTx(txHash, tx)
 }
 
 // GetByTxHash gets the transaction by hash
 func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool) {
-	tx, ok := cache.txByHash.getTransaction(string(txHash))
+	tx, ok := cache.txByHash.GetTx(string(txHash))
 	return tx, ok
 }
 
@@ -59,7 +59,7 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 
 			// Do this on first pass only
 			if pass == 0 {
-				txList.RestartBatchCopying(batchSizePerSender)
+				txList.StartBatchCopying(batchSizePerSender)
 			}
 
 			copied := txList.CopyBatchTo(result[resultFillIndex:])
@@ -80,11 +80,11 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 	return result[:resultFillIndex]
 }
 
-// RemoveByTxHash removes
-func (cache *TxCache) RemoveByTxHash(txHash []byte) {
-	tx, ok := cache.txByHash.removeTransaction(string(txHash))
+// RemoveTxByHash removes
+func (cache *TxCache) RemoveTxByHash(txHash []byte) {
+	tx, ok := cache.txByHash.RemoveTx(string(txHash))
 	if ok {
-		cache.txListBySender.removeTransaction(tx)
+		cache.txListBySender.RemoveTx(tx)
 	}
 }
 

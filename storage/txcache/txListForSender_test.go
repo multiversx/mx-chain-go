@@ -3,6 +3,7 @@ package txcache
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +15,7 @@ func Test_AddTransaction_Sorts(t *testing.T) {
 	list.AddTransaction([]byte("d"), createTx(".", 4))
 	list.AddTransaction([]byte("b"), createTx(".", 2))
 
-	txHashes := list.getTxHashes()
+	txHashes := list.GetTxHashes()
 
 	assert.Equal(t, 4, list.Items.Len())
 	assert.Equal(t, 4, len(txHashes))
@@ -32,7 +33,7 @@ func Test_RemoveTransaction(t *testing.T) {
 	list.AddTransaction([]byte("a"), tx)
 	assert.Equal(t, 1, list.Items.Len())
 
-	list.RemoveTransaction(tx)
+	list.RemoveTx(tx)
 	assert.Equal(t, 0, list.Items.Len())
 }
 
@@ -40,7 +41,7 @@ func Test_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 	list := NewTxListForSender()
 	tx := createTx(".", 1)
 
-	list.RemoveTransaction(tx)
+	list.RemoveTx(tx)
 	assert.Equal(t, 0, list.Items.Len())
 }
 
@@ -51,15 +52,15 @@ func Test_RemoveHighNonceTransactions(t *testing.T) {
 		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
-	list.RemoveHighNonceTransactions(50)
+	list.RemoveHighNonceTxs(50)
 	assert.Equal(t, 50, list.Items.Len())
 	assert.Equal(t, uint64(49), list.getHighestNonceTx().Nonce)
 
-	list.RemoveHighNonceTransactions(20)
+	list.RemoveHighNonceTxs(20)
 	assert.Equal(t, 30, list.Items.Len())
 	assert.Equal(t, uint64(29), list.getHighestNonceTx().Nonce)
 
-	list.RemoveHighNonceTransactions(30)
+	list.RemoveHighNonceTxs(30)
 	assert.Equal(t, 0, list.Items.Len())
 	assert.Nil(t, list.getHighestNonceTx())
 }
@@ -71,9 +72,66 @@ func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
-	list.RemoveHighNonceTransactions(0)
+	list.RemoveHighNonceTxs(0)
 	assert.Equal(t, 100, list.Items.Len())
 
-	list.RemoveHighNonceTransactions(500)
+	list.RemoveHighNonceTxs(500)
 	assert.Equal(t, 0, list.Items.Len())
+}
+
+func Test_CopyBatchTo(t *testing.T) {
+	list := NewTxListForSender()
+
+	for index := 0; index < 100; index++ {
+		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+	}
+
+	destination := make([]*transaction.Transaction, 1000)
+
+	// Nothing is copied if copy mode isn't started
+	copied := list.CopyBatchTo(destination)
+	assert.Equal(t, 0, copied)
+
+	// Copy in batches of 50
+	list.StartBatchCopying(50)
+
+	// First batch
+	copied = list.CopyBatchTo(destination)
+	assert.Equal(t, 50, copied)
+	assert.NotNil(t, destination[49])
+	assert.Nil(t, destination[50])
+
+	// Second batch
+	copied = list.CopyBatchTo(destination[50:])
+	assert.Equal(t, 50, copied)
+	assert.NotNil(t, destination[99])
+
+	// No third batch
+	copied = list.CopyBatchTo(destination)
+	assert.Equal(t, 0, copied)
+
+	// Restart copy
+	list.StartBatchCopying(12345)
+	copied = list.CopyBatchTo(destination)
+	assert.Equal(t, 100, copied)
+}
+
+func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
+	list := NewTxListForSender()
+
+	for index := 0; index < 100; index++ {
+		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+	}
+
+	list.StartBatchCopying(10)
+
+	// When empty destination
+	destination := make([]*transaction.Transaction, 0)
+	copied := list.CopyBatchTo(destination)
+	assert.Equal(t, 0, copied)
+
+	// When small destination
+	destination = make([]*transaction.Transaction, 5)
+	copied = list.CopyBatchTo(destination)
+	assert.Equal(t, 5, copied)
 }

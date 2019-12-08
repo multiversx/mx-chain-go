@@ -62,7 +62,7 @@ func (model *EvictionStrategy) doArbitrarySendersEviction() {
 		txList := txListUntyped.(*TxListForSender)
 
 		if index%model.EachAndEverySender == 0 {
-			txHashes := txList.getTxHashes()
+			txHashes := txList.GetTxHashes()
 			txsToEvict = append(txsToEvict, txHashes...)
 			sendersToEvict = append(sendersToEvict, key)
 		}
@@ -70,7 +70,7 @@ func (model *EvictionStrategy) doArbitrarySendersEviction() {
 		index++
 	})
 
-	model.Cache.txByHash.removeTransactionsBulk(txsToEvict)
+	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }
 
@@ -83,7 +83,7 @@ func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 		txList := txListUntyped.(*TxListForSender)
 
 		if txList.HasMoreThan(model.ManyTransactions) {
-			txHashes := txList.RemoveHighNonceTransactions(model.PartOfManyTransactions)
+			txHashes := txList.RemoveHighNonceTxs(model.PartOfManyTransactions)
 			txsToEvict = append(txsToEvict, txHashes...)
 		}
 
@@ -92,6 +92,6 @@ func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 		}
 	})
 
-	model.Cache.txByHash.removeTransactionsBulk(txsToEvict)
+	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }

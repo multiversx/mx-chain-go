@@ -9,10 +9,10 @@ import (
 
 // TxListForSender is
 type TxListForSender struct {
-	CopyBatchIndex *linkedList.Element
-	CopyBatchSize  int
 	Items          *linkedList.List
 	mutex          sync.Mutex
+	copyBatchIndex *linkedList.Element
+	copyBatchSize  int
 }
 
 // TxListForSenderNode is a node of the linked list
@@ -58,8 +58,8 @@ func (list *TxListForSender) findTxWithLargerNonce(nonce uint64) *linkedList.Ele
 	return nil
 }
 
-// RemoveTransaction removes a transaction from the sender's list
-func (list *TxListForSender) RemoveTransaction(tx *transaction.Transaction) {
+// RemoveTx removes a transaction from the sender's list
+func (list *TxListForSender) RemoveTx(tx *transaction.Transaction) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	list.mutex.Lock()
 
@@ -72,8 +72,8 @@ func (list *TxListForSender) RemoveTransaction(tx *transaction.Transaction) {
 	list.mutex.Unlock()
 }
 
-// RemoveHighNonceTransactions removes "count" transactions from the back of the list
-func (list *TxListForSender) RemoveHighNonceTransactions(count int) [][]byte {
+// RemoveHighNonceTxs removes "count" transactions from the back of the list
+func (list *TxListForSender) RemoveHighNonceTxs(count int) [][]byte {
 	removedTxHashes := make([][]byte, count)
 
 	list.mutex.Lock()
@@ -116,13 +116,13 @@ func (list *TxListForSender) IsEmpty() bool {
 	return list.Items.Len() == 0
 }
 
-// RestartBatchCopying resets the internal state used for copy operations
-func (list *TxListForSender) RestartBatchCopying(batchSize int) {
+// StartBatchCopying resets the internal state used for copy operations
+func (list *TxListForSender) StartBatchCopying(batchSize int) {
 	// We cannot copy or start copy from multiple goroutines at the same time
 	list.mutex.Lock()
 
-	list.CopyBatchIndex = list.Items.Front()
-	list.CopyBatchSize = batchSize
+	list.copyBatchIndex = list.Items.Front()
+	list.copyBatchSize = batchSize
 
 	list.mutex.Unlock()
 }
@@ -130,8 +130,8 @@ func (list *TxListForSender) RestartBatchCopying(batchSize int) {
 // CopyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
 func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction) int {
-	element := list.CopyBatchIndex
-	batchSize := list.CopyBatchSize
+	element := list.copyBatchIndex
+	batchSize := list.copyBatchSize
 	availableSpace := len(destination)
 
 	if element == nil {
@@ -153,13 +153,14 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 		element = element.Next()
 	}
 
-	list.CopyBatchIndex = element
+	list.copyBatchIndex = element
 
 	list.mutex.Unlock()
 	return copied
 }
 
-func (list *TxListForSender) getTxHashes() [][]byte {
+// GetTxHashes returns the hashes of transactions in the list
+func (list *TxListForSender) GetTxHashes() [][]byte {
 	result := make([][]byte, list.Items.Len())
 
 	index := 0
