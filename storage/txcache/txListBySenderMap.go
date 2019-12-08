@@ -8,6 +8,17 @@ type TxListBySenderMap struct {
 	Counter AtomicCounter
 }
 
+// NewTxListBySenderMap creates a new map-like structure for holding and accessing transactions by sender
+func NewTxListBySenderMap(size int, shardsHint int) TxListBySenderMap {
+	// We'll hold at most "size" lists of 1 transaction
+	backingMap := NewConcurrentMap(size, shardsHint)
+
+	return TxListBySenderMap{
+		Map:     backingMap,
+		Counter: 0,
+	}
+}
+
 func (txMap *TxListBySenderMap) getOrAddListForSender(sender string) *TxListForSender {
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {

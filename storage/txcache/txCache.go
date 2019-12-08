@@ -16,21 +16,9 @@ type TxCache struct {
 // "shardsHint" is used to configure the internal concurrent maps on which the implementation relies
 func NewTxCache(size int, shardsHint int) *TxCache {
 	// Note: for simplicity, we use the same "shardsHint" for both internal concurrent maps
-
-	// We'll hold at most "size" lists of 1 transaction
-	txBySender := NewConcurrentMap(size, shardsHint)
-	// We'll hold at most "size" transactions
-	txByHash := NewConcurrentMap(size, shardsHint)
-
 	txCache := &TxCache{
-		txListBySender: TxListBySenderMap{
-			Map:     txBySender,
-			Counter: 0,
-		},
-		txByHash: TxByHashMap{
-			Map:     txByHash,
-			Counter: 0,
-		},
+		txListBySender: NewTxListBySenderMap(size, shardsHint),
+		txByHash:       NewTxByHashMap(size, shardsHint),
 	}
 
 	return txCache

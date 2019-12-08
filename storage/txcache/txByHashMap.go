@@ -8,6 +8,17 @@ type TxByHashMap struct {
 	Counter AtomicCounter
 }
 
+// NewTxByHashMap creates a new map-like structure for holding and accessing transactions by txHash
+func NewTxByHashMap(size int, shardsHint int) TxByHashMap {
+	// We'll hold at most "size" transactions
+	backingMap := NewConcurrentMap(size, shardsHint)
+
+	return TxByHashMap{
+		Map:     backingMap,
+		Counter: 0,
+	}
+}
+
 func (txMap *TxByHashMap) addTransaction(txHash []byte, tx *transaction.Transaction) {
 	txMap.Map.Set(string(txHash), tx)
 	txMap.Counter.Increment()
