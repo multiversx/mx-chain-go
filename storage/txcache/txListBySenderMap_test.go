@@ -33,8 +33,10 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	assert.Equal(t, int64(2), myMap.Counter.Get())
 
 	myMap.RemoveTx(txAlice2)
+	// All alice's transactions have been removed now
 	assert.Equal(t, int64(1), myMap.Counter.Get())
 
 	myMap.RemoveTx(txBob)
+	// Also Bob has no more transactions
 	assert.Equal(t, int64(0), myMap.Counter.Get())
 }

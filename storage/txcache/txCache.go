@@ -92,7 +92,3 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) {
 func (cache *TxCache) CountTx() int64 {
 	return cache.txByHash.Counter.Get()
 }
-
-func (cache *TxCache) selfCheck() {
-	// todo check sync between the two maps
-}

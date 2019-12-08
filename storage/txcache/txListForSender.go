@@ -28,9 +28,9 @@ func NewTxListForSender() *TxListForSender {
 	}
 }
 
-// AddTransaction adds a transaction in sender's list
+// AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (list *TxListForSender) AddTransaction(txHash []byte, tx *transaction.Transaction) {
+func (list *TxListForSender) AddTx(txHash []byte, tx *transaction.Transaction) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	list.mutex.Lock()
 
@@ -78,16 +78,18 @@ func (list *TxListForSender) RemoveHighNonceTxs(count int) [][]byte {
 
 	list.mutex.Lock()
 
+	index := 0
 	var previous *linkedList.Element
-	for element := list.Items.Back(); element != nil && count > 0; element = previous {
+	for element := list.Items.Back(); element != nil && count > index; element = previous {
 		// Remove node
 		previous = element.Prev()
 		list.Items.Remove(element)
-		count--
 
 		// Keep track of removed transaction
 		value := element.Value.(TxListForSenderNode)
-		removedTxHashes = append(removedTxHashes, value.TxHash)
+		removedTxHashes[index] = value.TxHash
+
+		index++
 	}
 
 	list.mutex.Unlock()

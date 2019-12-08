@@ -10,7 +10,7 @@ type TxListBySenderMap struct {
 
 // NewTxListBySenderMap creates a new map-like structure for holding and accessing transactions by sender
 func NewTxListBySenderMap(size int, shardsHint int) TxListBySenderMap {
-	// We'll hold at most "size" lists of 1 transaction
+	// We'll hold at most "size" lists of at least 1 transaction
 	backingMap := NewConcurrentMap(size, shardsHint)
 
 	return TxListBySenderMap{
@@ -23,7 +23,7 @@ func NewTxListBySenderMap(size int, shardsHint int) TxListBySenderMap {
 func (txMap *TxListBySenderMap) AddTx(txHash []byte, tx *transaction.Transaction) {
 	sender := string(tx.SndAddr)
 	listForSender := txMap.getOrAddListForSender(sender)
-	listForSender.AddTransaction(txHash, tx)
+	listForSender.AddTx(txHash, tx)
 }
 
 func (txMap *TxListBySenderMap) getOrAddListForSender(sender string) *TxListForSender {

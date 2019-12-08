@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_AddTransaction_Sorts(t *testing.T) {
+func Test_AddTx_Sorts(t *testing.T) {
 	list := NewTxListForSender()
 
-	list.AddTransaction([]byte("a"), createTx(".", 1))
-	list.AddTransaction([]byte("c"), createTx(".", 3))
-	list.AddTransaction([]byte("d"), createTx(".", 4))
-	list.AddTransaction([]byte("b"), createTx(".", 2))
+	list.AddTx([]byte("a"), createTx(".", 1))
+	list.AddTx([]byte("c"), createTx(".", 3))
+	list.AddTx([]byte("d"), createTx(".", 4))
+	list.AddTx([]byte("b"), createTx(".", 2))
 
 	txHashes := list.GetTxHashes()
 
@@ -30,7 +30,7 @@ func Test_RemoveTransaction(t *testing.T) {
 	list := NewTxListForSender()
 	tx := createTx(".", 1)
 
-	list.AddTransaction([]byte("a"), tx)
+	list.AddTx([]byte("a"), tx)
 	assert.Equal(t, 1, list.Items.Len())
 
 	list.RemoveTx(tx)
@@ -49,7 +49,7 @@ func Test_RemoveHighNonceTransactions(t *testing.T) {
 	list := NewTxListForSender()
 
 	for index := 0; index < 100; index++ {
-		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
 	list.RemoveHighNonceTxs(50)
@@ -69,7 +69,7 @@ func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 	list := NewTxListForSender()
 
 	for index := 0; index < 100; index++ {
-		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
 	list.RemoveHighNonceTxs(0)
@@ -83,7 +83,7 @@ func Test_CopyBatchTo(t *testing.T) {
 	list := NewTxListForSender()
 
 	for index := 0; index < 100; index++ {
-		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
 	destination := make([]*transaction.Transaction, 1000)
@@ -120,7 +120,7 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	list := NewTxListForSender()
 
 	for index := 0; index < 100; index++ {
-		list.AddTransaction([]byte{byte(index)}, createTx(".", uint64(index)))
+		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
 	list.StartBatchCopying(10)
