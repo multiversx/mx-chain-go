@@ -44,3 +44,16 @@ func (txMap *TxByHashMap) removeTransaction(txHash string) (*transaction.Transac
 	txMap.Counter.Decrement()
 	return tx, true
 }
+
+func (txMap *TxByHashMap) removeTransactionsBulk(txHashes [][]byte) int64 {
+	for _, txHash := range txHashes {
+		txMap.Map.Remove(string(txHash))
+	}
+
+	oldCount := txMap.Counter.Get()
+	newCount := int64(txMap.Map.Count())
+	noRemoved := newCount - oldCount
+
+	txMap.Counter.Set(newCount)
+	return noRemoved
+}

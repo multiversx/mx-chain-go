@@ -54,32 +54,37 @@ func (model *EvictionStrategy) DoSendersEvictionIfNecessary() {
 }
 
 func (model *EvictionStrategy) doArbitrarySendersEviction() {
+	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
-	//txsToEvict := make([]string, 0)
 
 	index := 0
 	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
+		txList := txListUntyped.(*TxListForSender)
+
 		if index%model.EachAndEverySender == 0 {
+			txHashes := txList.getTxHashes()
+			txsToEvict = append(txsToEvict, txHashes...)
 			sendersToEvict = append(sendersToEvict, key)
 		}
 
 		index++
 	})
 
-	// to do. delete from txByHash also!
+	model.Cache.txByHash.removeTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }
 
 // DoHighNonceTransactionsEviction removes transactions from the cache
 func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
+	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
-	//txsToEvict := make([]string, 0)
 
 	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
 		txList := txListUntyped.(*TxListForSender)
 
 		if txList.HasMoreThan(model.ManyTransactions) {
-			txList.RemoveHighNonceTransactions(model.PartOfManyTransactions)
+			txHashes := txList.RemoveHighNonceTransactions(model.PartOfManyTransactions)
+			txsToEvict = append(txsToEvict, txHashes...)
 		}
 
 		if txList.IsEmpty() {
@@ -87,6 +92,6 @@ func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 		}
 	})
 
-	// to do. delete from txByHash also!
+	model.Cache.txByHash.removeTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }

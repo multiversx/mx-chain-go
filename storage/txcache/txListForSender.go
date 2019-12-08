@@ -73,15 +73,26 @@ func (list *TxListForSender) RemoveTransaction(tx *transaction.Transaction) {
 }
 
 // RemoveHighNonceTransactions removes "count" transactions from the back of the list
-func (list *TxListForSender) RemoveHighNonceTransactions(count int) {
+func (list *TxListForSender) RemoveHighNonceTransactions(count int) [][]byte {
+	removedTxHashes := make([][]byte, count)
+
 	list.mutex.Lock()
 
-	for element := list.Items.Back(); element != nil && count > 0; element = element.Prev() {
+	var previous *linkedList.Element
+	for element := list.Items.Back(); element != nil && count > 0; element = previous {
+		// Remove node
+		previous = element.Prev()
 		list.Items.Remove(element)
 		count--
+
+		// Keep track of removed transaction
+		value := element.Value.(TxListForSenderNode)
+		removedTxHashes = append(removedTxHashes, value.TxHash)
 	}
 
 	list.mutex.Unlock()
+
+	return removedTxHashes
 }
 
 func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) *linkedList.Element {
@@ -146,4 +157,16 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 
 	list.mutex.Unlock()
 	return copied
+}
+
+func (list *TxListForSender) getTxHashes() [][]byte {
+	result := make([][]byte, list.Items.Len())
+
+	index := 0
+	for element := list.Items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(TxListForSenderNode)
+		result[index] = value.TxHash
+	}
+
+	return result
 }
