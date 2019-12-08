@@ -476,6 +476,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
+		ValidatorStatsRootHash:   []byte("validator stats root hash"),
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
