@@ -35,7 +35,7 @@ func (list *TxListForSender) AddTransaction(txHash []byte, tx *transaction.Trans
 	list.mutex.Lock()
 
 	nonce := tx.Nonce
-	mark := list.findTransactionWithLargerNonce(nonce)
+	mark := list.findTxWithLargerNonce(nonce)
 	newNode := TxListForSenderNode{txHash, tx}
 
 	if mark == nil {
@@ -47,7 +47,7 @@ func (list *TxListForSender) AddTransaction(txHash []byte, tx *transaction.Trans
 	list.mutex.Unlock()
 }
 
-func (list *TxListForSender) findTransactionWithLargerNonce(nonce uint64) *linkedList.Element {
+func (list *TxListForSender) findTxWithLargerNonce(nonce uint64) *linkedList.Element {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(TxListForSenderNode)
 		if value.Tx.Nonce > nonce {
@@ -63,7 +63,7 @@ func (list *TxListForSender) RemoveTransaction(tx *transaction.Transaction) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	list.mutex.Lock()
 
-	marker := list.findTransaction(tx)
+	marker := list.findTx(tx)
 
 	if marker != nil {
 		list.Items.Remove(marker)
@@ -95,7 +95,7 @@ func (list *TxListForSender) RemoveHighNonceTransactions(count int) [][]byte {
 	return removedTxHashes
 }
 
-func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) *linkedList.Element {
+func (list *TxListForSender) findTx(txToFind *transaction.Transaction) *linkedList.Element {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(TxListForSenderNode)
 		if value.Tx == txToFind {
@@ -166,7 +166,19 @@ func (list *TxListForSender) getTxHashes() [][]byte {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(TxListForSenderNode)
 		result[index] = value.TxHash
+		index++
 	}
 
 	return result
+}
+
+func (list *TxListForSender) getHighestNonceTx() *transaction.Transaction {
+	back := list.Items.Back()
+
+	if back == nil {
+		return nil
+	}
+
+	value := back.Value.(TxListForSenderNode)
+	return value.Tx
 }
