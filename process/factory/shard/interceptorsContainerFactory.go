@@ -38,7 +38,6 @@ type interceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
-	chainID                []byte
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object

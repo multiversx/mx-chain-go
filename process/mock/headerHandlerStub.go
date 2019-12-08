@@ -150,10 +150,7 @@ func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte, processed bool)
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
-	if hhs == nil {
-		return true
-	}
-	return false
+	return hhs == nil
 }
 
 func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {

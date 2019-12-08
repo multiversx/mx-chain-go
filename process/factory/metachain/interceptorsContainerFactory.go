@@ -43,7 +43,6 @@ type interceptorsContainerFactory struct {
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
-	chainID                []byte
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
