@@ -588,4 +588,4 @@ var ErrNilMediator = errors.New("nil mediator")
 var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
-var ErrEpochStartDataDoesNotMatch = errors.New("epooch start data does not match")
+var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")

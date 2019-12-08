@@ -1648,12 +1648,12 @@ func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return err
 	}
 
-	createEpochStartHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, *epochStart)
+	createdEpochStartHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, *epochStart)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(receivedEpochStartHash, createEpochStartHash) {
+	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
 		return process.ErrEpochStartDataDoesNotMatch
 	}
 
