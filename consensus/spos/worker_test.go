@@ -822,7 +822,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 	assert.Nil(t, err)
 }
 
-func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
+func TestWorker_ProcessReceivedMessageErrHeaderIsInvalid(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
@@ -830,6 +830,38 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockHeader),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
+	assert.Equal(t, spos.ErrInvalidHeader, err)
+}
+
+func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	hdr := block.Header{Nonce: 1, Round: 1}
+	subRoundData, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	blkHeaderHash := mock.HasherMock{}.Compute(string(subRoundData))
+
+	wrk.SetBlockProcessor(
+		&mock.BlockProcessorMock{
+			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+				return &hdr
+			},
+		},
+	)
+
+	cnsMsg := consensus.NewConsensusMessage(
+		blkHeaderHash,
+		subRoundData,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
