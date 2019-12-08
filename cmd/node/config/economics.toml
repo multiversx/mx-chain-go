@@ -17,4 +17,4 @@
 
 [ValidatorSettings]
     StakeValue = "500000000000000000000000"
-    UnBoundPeriod = "10"
+    UnBoundPeriod = "100000"
