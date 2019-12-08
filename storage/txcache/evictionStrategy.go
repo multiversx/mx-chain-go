@@ -67,7 +67,7 @@ func (model *EvictionStrategy) doArbitrarySendersEviction() {
 	})
 
 	// to do. delete from txByHash also!
-	model.Cache.removeSenders(sendersToEvict)
+	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }
 
 // DoHighNonceTransactionsEviction removes transactions from the cache
@@ -88,5 +88,5 @@ func (model *EvictionStrategy) DoHighNonceTransactionsEviction() {
 	})
 
 	// to do. delete from txByHash also!
-	model.Cache.removeSenders(sendersToEvict)
+	model.Cache.txListBySender.removeSenders(sendersToEvict)
 }

@@ -79,7 +79,7 @@ func Test_GetSorted(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, noTotalTransactions, context.Cache.CountTx())
+	assert.Equal(t, int64(noTotalTransactions), context.Cache.CountTx())
 
 	sorted := context.Cache.GetSorted(noRequestedTransactions, 2)
 

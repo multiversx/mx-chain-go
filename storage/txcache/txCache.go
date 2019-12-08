@@ -11,18 +11,6 @@ type TxCache struct {
 	evictionStrategy *EvictionStrategy
 }
 
-// TxListBySenderMap is
-type TxListBySenderMap struct {
-	Map     *ConcurrentMap
-	Counter AtomicCounter
-}
-
-// TxByHashMap is
-type TxByHashMap struct {
-	Map     *ConcurrentMap
-	Counter AtomicCounter
-}
-
 // NewTxCache creates a new transaction cache
 // "size" dictates the maximum number of transactions to hold in this cache at a given time
 // "shardsHint" is used to configure the internal concurrent maps on which the implementation relies
@@ -51,47 +39,18 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
-	sender := string(tx.SndAddr)
-
-	cache.txByHash.Map.Set(string(txHash), tx)
-	cache.txByHash.Counter.Increment()
-
-	listForSender, ok := cache.getListForSender(sender)
-	if !ok {
-		listForSender = cache.addSender(sender)
-	}
-
 	if cache.evictionStrategy != nil {
 		cache.evictionStrategy.DoEvictionIfNecessary(tx)
 	}
 
-	listForSender.AddTransaction(txHash, tx)
-
+	cache.txByHash.addTransaction(txHash, tx)
+	cache.txListBySender.addTransaction(txHash, tx)
 }
 
-func (cache *TxCache) getListForSender(sender string) (*TxListForSender, bool) {
-	listForSenderUntyped, ok := cache.txListBySender.Map.Get(sender)
-	if !ok {
-		return nil, false
-	}
-
-	listForSender := listForSenderUntyped.(*TxListForSender)
-	return listForSender, true
-}
-
-// GetByTxHash gets
+// GetByTxHash gets the transaction by hash
 func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool) {
-	return cache.getTx(string(txHash))
-}
-
-func (cache *TxCache) getTx(txHash string) (*transaction.Transaction, bool) {
-	txUntyped, ok := cache.txByHash.Map.Get(txHash)
-	if !ok {
-		return nil, false
-	}
-
-	tx := txUntyped.(*transaction.Transaction)
-	return tx, true
+	tx, ok := cache.txByHash.getTransaction(string(txHash))
+	return tx, ok
 }
 
 // GetSorted gets
@@ -135,55 +94,15 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 
 // RemoveByTxHash removes
 func (cache *TxCache) RemoveByTxHash(txHash []byte) {
-	tx, ok := cache.getTx(string(txHash))
-	if !ok {
-		return
-	}
-
-	cache.txByHash.Map.Remove(string(txHash))
-	cache.txByHash.Counter.Decrement()
-
-	sender := string(tx.SndAddr)
-	listForSender, ok := cache.getListForSender(sender)
-	if !ok {
-		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		return
-	}
-
-	listForSender.RemoveTransaction(tx)
-	if listForSender.IsEmpty() {
-		cache.removeSender(sender)
+	tx, ok := cache.txByHash.removeTransaction(string(txHash))
+	if ok {
+		cache.txListBySender.removeTransaction(tx)
 	}
 }
 
-// CountTx counts
-func (cache *TxCache) CountTx() int {
-	count := 0
-
-	cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
-		txList := txListUntyped.(*TxListForSender)
-		count += txList.Items.Len()
-	})
-
-	return count
-}
-
-func (cache *TxCache) addSender(sender string) *TxListForSender {
-	listForSender := NewTxListForSender()
-	cache.txListBySender.Map.Set(sender, listForSender)
-	cache.txListBySender.Counter.Increment()
-	return listForSender
-}
-
-func (cache *TxCache) removeSender(sender string) {
-	cache.txListBySender.Map.Remove(sender)
-	cache.txListBySender.Counter.Decrement()
-}
-
-func (cache *TxCache) removeSenders(senders []string) {
-	for _, senderKey := range senders {
-		cache.removeSender(senderKey)
-	}
+// CountTx gets the number of transactions in the cache
+func (cache *TxCache) CountTx() int64 {
+	return cache.txByHash.Counter.Get()
 }
 
 func (cache *TxCache) selfCheck() {
