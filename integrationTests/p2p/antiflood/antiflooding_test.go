@@ -15,12 +15,11 @@ import (
 )
 
 var durationBootstrapingTime = 2 * time.Second
-var maxSize = uint64(1 << 20) //1MB
 
 // TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send a large number of messages
 // all originating from its peer ID
 // All directed peers should prevent the flooding to the rest of the network and process only a limited number of messages
-func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
+func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -38,7 +37,8 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	maxMumProcessMessages := uint32(5)
-	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages)
+	maxMessageSize := uint64(1 << 20) //1MB
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
@@ -74,7 +74,7 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 // originating form other peer IDs. Since this is exceptionally hard to accomplish in integration tests because it needs
 // 3-rd party library tweaking, the test is reduced to 10 peers generating 1 message through one peer that acts as a flooder
 // All directed peers should prevent the flooding to the rest of the network and process only a limited number of messages
-func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
+func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -91,7 +91,8 @@ func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	maxMumProcessMessages := uint32(5)
-	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages)
+	maxMessageSize := uint64(1 << 20) //1MB
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
@@ -116,22 +117,76 @@ func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
 	checkMessagesOnPeers(t, peers, interceptors, maxMumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
+// TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send large messages
+// all originating from its peer ID
+// All directed peers should prevent the flooding to the rest of the network and process only a limited number of messages
+func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	peers, err := integrationTests.CreateFixedNetworkOf7Peers()
+	assert.Nil(t, err)
+
+	defer func() {
+		integrationTests.ClosePeers(peers)
+	}()
+
+	//node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
+	//large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
+
+	topic := "test_topic"
+	broadcastMessageDuration := time.Second * 2
+	maxMumProcessMessages := uint32(100000)
+	maxMessageSize := uint64(1 << 10) //1KB
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
+	assert.Nil(t, err)
+
+	fmt.Println("bootstrapping nodes")
+	time.Sleep(durationBootstrapingTime)
+
+	flooderIdx := 3
+	floodedIdxes := []int{0, 2, 4, 6}
+	protectedIdexes := []int{5, 7}
+
+	//flooder will deactivate its flooding mechanism as to be able to flood the network
+	interceptors[flooderIdx].FloodPreventer = nil
+
+	fmt.Println("flooding the network")
+	isFlooding := atomic.Value{}
+	isFlooding.Store(true)
+	go func() {
+		for {
+			peers[flooderIdx].Broadcast(topic, make([]byte, maxMessageSize+1))
+
+			if !isFlooding.Load().(bool) {
+				return
+			}
+		}
+	}()
+	time.Sleep(broadcastMessageDuration)
+
+	isFlooding.Store(false)
+
+	checkMessagesOnPeers(t, peers, interceptors, 1, floodedIdxes, protectedIdexes)
+}
+
 func checkMessagesOnPeers(
 	t *testing.T,
 	peers []p2p.Messenger,
 	interceptors []*messageProcessor,
-	maxMumProcessMessages uint32,
+	maxNumProcessMessages uint32,
 	floodedIdxes []int,
 	protectedIdexes []int,
 ) {
 	checkFunctionForFloodedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesProcessed())
+		assert.Equal(t, maxNumProcessMessages, interceptor.NumMessagesProcessed())
 		//can not precisely determine how many message have been received
-		assert.True(t, maxMumProcessMessages < interceptor.NumMessagesReceived())
+		assert.True(t, maxNumProcessMessages < interceptor.NumMessagesReceived())
 	}
 	checkFunctionForProtectedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesProcessed())
-		assert.Equal(t, maxMumProcessMessages, interceptor.NumMessagesReceived())
+		assert.Equal(t, maxNumProcessMessages, interceptor.NumMessagesProcessed())
+		assert.Equal(t, maxNumProcessMessages, interceptor.NumMessagesReceived())
 	}
 
 	fmt.Println("checking flooded peers")
@@ -140,7 +195,7 @@ func checkMessagesOnPeers(
 	checkPeers(peers, interceptors, protectedIdexes, checkFunctionForProtectedPeers)
 }
 
-func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNumMessages uint32) ([]*messageProcessor, error) {
+func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNumMessages uint32, maxSize uint64) ([]*messageProcessor, error) {
 	interceptors := make([]*messageProcessor, len(peers))
 
 	for idx, p := range peers {
