@@ -13,6 +13,7 @@ var log = logger.GetOrCreate("txcache/eviction")
 // EvictionStrategyConfig is a cache eviction model
 type EvictionStrategyConfig struct {
 	CountThreshold                 int
+	CountJustAFewSenders           int
 	NoOldestSendersToEvict         int
 	ALotOfTransactionsForASender   int
 	NoTxsToEvictForASenderWithALot int
@@ -58,7 +59,7 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 	}
 
 	// Third pass
-	if model.areThereTooManyTxs() {
+	if model.areThereTooManyTxs() && !model.areThereJustAFewSenders() {
 		steps, countTxs, countSenders := model.EvictSendersWhileTooManyTxs()
 		log.Debug("DoEviction, 3rd pass:", "steps", steps, "countTxs", countTxs, "countSenders", countSenders)
 	}
@@ -67,12 +68,20 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 }
 
 func (model *EvictionStrategy) areThereTooManySenders() bool {
-	tooManySenders := model.Cache.txListBySender.Counter.Get() > int64(model.Config.CountThreshold)
+	noSenders := model.Cache.txListBySender.Counter.Get()
+	tooManySenders := noSenders > int64(model.Config.CountThreshold)
 	return tooManySenders
 }
 
+func (model *EvictionStrategy) areThereJustAFewSenders() bool {
+	noSenders := model.Cache.txListBySender.Counter.Get()
+	justAFewSenders := noSenders < int64(model.Config.CountJustAFewSenders)
+	return justAFewSenders
+}
+
 func (model *EvictionStrategy) areThereTooManyTxs() bool {
-	tooManyTxs := model.Cache.txByHash.Counter.Get() > int64(model.Config.CountThreshold)
+	noTxs := model.Cache.txByHash.Counter.Get()
+	tooManyTxs := noTxs > int64(model.Config.CountThreshold)
 	return tooManyTxs
 }
 

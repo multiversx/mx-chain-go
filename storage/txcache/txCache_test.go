@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -94,21 +93,100 @@ func Test_GetSorted(t *testing.T) {
 	}
 }
 
-func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.T) {
-	logger.SetLogLevel("txcache/eviction:DEBUG")
-
-	cache := NewTxCache(250000, 1)
+func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	config := EvictionStrategyConfig{
 		CountThreshold:                 240000,
 		NoOldestSendersToEvict:         10,
 		ALotOfTransactionsForASender:   1000,
 		NoTxsToEvictForASenderWithALot: 250,
 	}
+
+	// 5000 * 100
+	cache := NewTxCache(250000, 1)
 	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 5000, 100)
+	assert.Equal(t, int64(240000), cache.CountTx())
 
-	noSenders := 5000
-	noTransactionsPerSender := 100
+	// 1000 * 1000
+	cache = NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
+	assert.Equal(t, int64(240000), cache.CountTx())
+}
 
+// This seems to be the worst case in terms of eviction complexity
+// Eviction is triggered often and little eviction (only 10 senders) is done
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestSendersToEvict_10(b *testing.B) {
+	config := EvictionStrategyConfig{
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         10,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	assert.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestSendersToEvict_100(b *testing.B) {
+	config := EvictionStrategyConfig{
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         100,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	assert.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestSendersToEvict_1000(b *testing.B) {
+	config := EvictionStrategyConfig{
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	assert.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
+	config := EvictionStrategyConfig{
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
+	assert.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
+	config := EvictionStrategyConfig{
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCache(250000, 1)
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
+	assert.Equal(b, int64(240000), cache.CountTx())
+}
+
+func addManyTransactionsWithUniformDistribution(cache *TxCache, noSenders int, noTransactionsPerSender int) {
 	for senderTag := 0; senderTag < noSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
 
@@ -118,8 +196,6 @@ func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.
 			cache.AddTx([]byte(txHash), tx)
 		}
 	}
-
-	assert.LessOrEqual(t, cache.CountTx(), int64(240000))
 }
 
 func createTx(sender string, nonce uint64) *transaction.Transaction {
