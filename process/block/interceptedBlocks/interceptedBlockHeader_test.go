@@ -26,7 +26,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
-		HeaderSigVerifier: &mock.HeaderSigVerifierMock{},
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	hdr := createMockShardHeader()
@@ -166,7 +166,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	arg := createDefaultShardArgument()
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierMock{
+	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},

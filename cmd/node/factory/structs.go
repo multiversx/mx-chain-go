@@ -509,7 +509,20 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
-	interceptorContainerFactory, resolversContainerFactory, blackListHandler, headerSigVerifier, err := newInterceptorAndResolverContainerFactory(
+	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
+		Marshalizer:       args.core.Marshalizer,
+		Hasher:            args.core.Hasher,
+		NodesCoordinator:  args.nodesCoordinator,
+		MultiSigVerifier:  args.crypto.MultiSigner,
+		SingleSigVerifier: args.crypto.SingleSigner,
+		KeyGen:            args.crypto.BlockSignKeyGen,
+	}
+	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
 		args.data, args.core,
@@ -517,6 +530,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		args.network,
 		args.economicsData,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -1392,7 +1406,8 @@ func newInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, process.HeaderSigVerifierHandler, error) {
+	headerSigVerifier process.HeaderSigVerifierHandler,
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorAndResolverContainerFactory(
@@ -1404,6 +1419,7 @@ func newInterceptorAndResolverContainerFactory(
 			state,
 			network,
 			economics,
+			headerSigVerifier,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1416,10 +1432,11 @@ func newInterceptorAndResolverContainerFactory(
 			network,
 			state,
 			economics,
+			headerSigVerifier,
 		)
 	}
 
-	return nil, nil, nil, nil, errors.New("could not create interceptor and resolver container factory")
+	return nil, nil, nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func newShardInterceptorAndResolverContainerFactory(
@@ -1431,20 +1448,8 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, process.HeaderSigVerifierHandler, error) {
-	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       core.Marshalizer,
-		Hasher:            core.Hasher,
-		NodesCoordinator:  nodesCoordinator,
-		MultiSigVerifier:  crypto.MultiSigner,
-		SingleSigVerifier: crypto.SingleSigner,
-		KeyGen:            crypto.BlockSignKeyGen,
-	}
-	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
+	headerSigVerifier process.HeaderSigVerifierHandler,
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1467,12 +1472,12 @@ func newShardInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
@@ -1485,10 +1490,10 @@ func newShardInterceptorAndResolverContainerFactory(
 		dataPacker,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, headerSigVerifier, nil
+	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
 }
 
 func newMetaInterceptorAndResolverContainerFactory(
@@ -1500,20 +1505,8 @@ func newMetaInterceptorAndResolverContainerFactory(
 	network *Network,
 	state *State,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, process.HeaderSigVerifierHandler, error) {
-	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       core.Marshalizer,
-		Hasher:            core.Hasher,
-		NodesCoordinator:  nodesCoordinator,
-		MultiSigVerifier:  crypto.MultiSigner,
-		SingleSigVerifier: crypto.SingleSigner,
-		KeyGen:            crypto.BlockSignKeyGen,
-	}
-	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
+	headerSigVerifier process.HeaderSigVerifierHandler,
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -1536,12 +1529,12 @@ func newMetaInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -1554,9 +1547,9 @@ func newMetaInterceptorAndResolverContainerFactory(
 		dataPacker,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
-	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, headerSigVerifier, nil
+	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
 }
 
 func generateGenesisHeadersAndApplyInitialBalances(

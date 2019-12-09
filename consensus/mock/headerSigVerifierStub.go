@@ -2,11 +2,11 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-type HeaderSigVerifierMock struct {
+type HeaderSigVerifierStub struct {
 	VerifyRandSeedCaller func(header data.HeaderHandler) error
 }
 
-func (hsvm *HeaderSigVerifierMock) VerifyRandSeed(header data.HeaderHandler) error {
+func (hsvm *HeaderSigVerifierStub) VerifyRandSeed(header data.HeaderHandler) error {
 	if hsvm.VerifyRandSeedCaller != nil {
 		return hsvm.VerifyRandSeedCaller(header)
 	}
@@ -14,6 +14,6 @@ func (hsvm *HeaderSigVerifierMock) VerifyRandSeed(header data.HeaderHandler) err
 	return nil
 }
 
-func (hsvm *HeaderSigVerifierMock) IsInterfaceNil() bool {
+func (hsvm *HeaderSigVerifierStub) IsInterfaceNil() bool {
 	return false
 }

@@ -18,7 +18,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
-		HeaderSigVerifier: &mock.HeaderSigVerifierMock{},
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -155,7 +155,7 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	arg := createDefaultShardArgument()
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierMock{
+	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},

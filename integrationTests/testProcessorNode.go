@@ -163,6 +163,8 @@ type TestProcessorNode struct {
 
 	MultiSigner crypto.MultiSigner
 
+	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
@@ -199,9 +201,10 @@ func NewTestProcessorNode(
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -230,9 +233,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	sk, pk := kg.GeneratePair()
 
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -376,7 +380,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
-			&mock.HeaderSigVerifierMock{},
+			tpn.HeaderSigVerifier,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -402,7 +406,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
-			&mock.HeaderSigVerifierMock{},
+			tpn.HeaderSigVerifier,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"math/big"
 	"time"
 
@@ -456,10 +457,10 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 }
 
 // WithHeaderSigVerifier sets up a header sig verifier for the Node
-func WithHeaderSigVerifier(headerSigVerifier process.ConsensusHeaderSigVerifier) Option {
+func WithHeaderSigVerifier(headerSigVerifier spos.ConsensusHeaderSigVerifier) Option {
 	return func(n *Node) error {
 		if check.IfNil(headerSigVerifier) {
-			return process.ErrNilHeaderSigVerifier
+			return ErrNilHeaderSigVerifier
 		}
 		n.headerSigVerifier = headerSigVerifier
 		return nil

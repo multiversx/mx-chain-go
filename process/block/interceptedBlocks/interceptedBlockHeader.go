@@ -116,25 +116,3 @@ func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
 	}
 	return false
 }
-
-func (inHdr *InterceptedHeader) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.Header)
-
-	headerCopy := *hdr
-	headerCopy.Signature = nil
-	headerCopy.PubKeysBitmap = nil
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
-}
-
-func (inHdr *InterceptedHeader) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.Header)
-
-	headerCopy := *hdr
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
-}

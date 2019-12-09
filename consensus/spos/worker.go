@@ -33,7 +33,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
-	headerSigVerifier  process.ConsensusHeaderSigVerifier
+	headerSigVerifier  ConsensusHeaderSigVerifier
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -63,7 +63,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	headerSigVerifier process.ConsensusHeaderSigVerifier,
+	headerSigVerifier ConsensusHeaderSigVerifier,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -129,7 +129,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	headerSigVerifier process.ConsensusHeaderSigVerifier,
+	headerSigVerifier ConsensusHeaderSigVerifier,
 ) error {
 	if check.IfNil(consensusService) {
 		return ErrNilConsensusService

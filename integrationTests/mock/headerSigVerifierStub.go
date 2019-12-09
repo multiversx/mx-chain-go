@@ -2,13 +2,13 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-type HeaderSigVerifierMock struct {
+type HeaderSigVerifierStub struct {
 	VerifyRandSeedAndLeaderSignatureCalled func(header data.HeaderHandler) error
 	VerifySignatureCalled                  func(header data.HeaderHandler) error
 	VerifyRandSeedCalled                   func(header data.HeaderHandler) error
 }
 
-func (hsvm *HeaderSigVerifierMock) VerifyRandSeed(header data.HeaderHandler) error {
+func (hsvm *HeaderSigVerifierStub) VerifyRandSeed(header data.HeaderHandler) error {
 	if hsvm.VerifyRandSeedCalled != nil {
 		return hsvm.VerifyRandSeedCalled(header)
 	}
@@ -16,7 +16,7 @@ func (hsvm *HeaderSigVerifierMock) VerifyRandSeed(header data.HeaderHandler) err
 	return nil
 }
 
-func (hsvm *HeaderSigVerifierMock) VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
+func (hsvm *HeaderSigVerifierStub) VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
 	if hsvm.VerifyRandSeedAndLeaderSignatureCalled != nil {
 		return hsvm.VerifyRandSeedAndLeaderSignatureCalled(header)
 	}
@@ -24,7 +24,7 @@ func (hsvm *HeaderSigVerifierMock) VerifyRandSeedAndLeaderSignature(header data.
 	return nil
 }
 
-func (hsvm *HeaderSigVerifierMock) VerifySignature(header data.HeaderHandler) error {
+func (hsvm *HeaderSigVerifierStub) VerifySignature(header data.HeaderHandler) error {
 	if hsvm.VerifySignatureCalled != nil {
 		return hsvm.VerifySignatureCalled(header)
 	}
@@ -32,6 +32,6 @@ func (hsvm *HeaderSigVerifierMock) VerifySignature(header data.HeaderHandler) er
 	return nil
 }
 
-func (hsvm *HeaderSigVerifierMock) IsInterfaceNil() bool {
+func (hsvm *HeaderSigVerifierStub) IsInterfaceNil() bool {
 	return false
 }
