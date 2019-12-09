@@ -224,7 +224,7 @@ func TestIndexHashedGroupSelector_SetNilEligibleMapShouldErr(t *testing.T) {
 	}
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap))
+	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap, 0))
 }
 
 func TestIndexHashedGroupSelector_SetNilWaitingMapShouldErr(t *testing.T) {
@@ -248,7 +248,7 @@ func TestIndexHashedGroupSelector_SetNilWaitingMapShouldErr(t *testing.T) {
 	}
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil))
+	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil, 0))
 }
 
 func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
@@ -273,7 +273,7 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
-	assert.Equal(t, eligibleMap[0], ihgs.EligibleList())
+	assert.Equal(t, eligibleMap[0], ihgs.EligibleList(arguments.Epoch))
 }
 
 //------- ComputeValidatorsGroup
@@ -347,7 +347,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0, 0)
 
 	assert.Nil(t, list2)
 	assert.Equal(t, sharding.ErrNilRandomness, err)
@@ -373,7 +373,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5, 0)
 
 	assert.Nil(t, list2)
 	assert.Equal(t, sharding.ErrInvalidShardId, err)
@@ -387,9 +387,10 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
 	}
-
+	tmp := createDummyNodesMap(2, 1, "meta")
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
+	nodesMap[core.MetachainShardId] = tmp[core.MetachainShardId]
 	nodeShuffler := &mock.NodeShufflerMock{}
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
@@ -405,7 +406,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, list, list2)
@@ -451,7 +452,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, eligibleMap[0][:2], list2)
@@ -509,7 +510,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, validator0, list2[1])
@@ -556,7 +557,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, eligibleMap[0][:2], list2)
@@ -641,7 +642,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(list2))
@@ -685,7 +686,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
@@ -715,7 +716,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPub
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey(nil)
+	_, _, err := ihgs.GetValidatorWithPublicKey(nil, 0)
 	assert.Equal(t, sharding.ErrNilPubKey, err)
 }
 
@@ -744,7 +745,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrValida
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"))
+	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"), 0)
 	assert.Equal(t, sharding.ErrValidatorNotFound, err)
 }
 
@@ -787,17 +788,17 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldWork(t *testing
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	validator, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
+	validator, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"), 0)
 	assert.Nil(t, err)
 	assert.Equal(t, core.MetachainShardId, shardId)
 	assert.Equal(t, []byte("addr0_meta"), validator.Address())
 
-	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
+	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"), 0)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), shardId)
 	assert.Equal(t, []byte("addr1_shard0"), validator.Address())
 
-	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
+	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"), 0)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), shardId)
 	assert.Equal(t, []byte("addr2_shard1"), validator.Address())
@@ -852,6 +853,7 @@ func TestIndexHashedGroupSelector_GetAllValidatorsPublicKeys(t *testing.T) {
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	allValidatorsPublicKeys := ihgs.GetAllValidatorsPublicKeys()
+	allValidatorsPublicKeys, err := ihgs.GetAllValidatorsPublicKeys(0)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
+	assert.Nil(t, err)
 }

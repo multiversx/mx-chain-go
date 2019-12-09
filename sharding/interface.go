@@ -28,19 +28,19 @@ type Validator interface {
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
 	PublicKeysSelector
-	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator) error
-	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
-	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
+	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, epoch uint32) error
+	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
+	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
-	GetValidatorsIndexes(publicKeys []string) []uint64
-	GetAllValidatorsPublicKeys() map[uint32][][]byte
-	GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error)
-	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error)
-	GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
+	GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetSelectedPublicKeys(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
+	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
 

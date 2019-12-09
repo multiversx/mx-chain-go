@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -9,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"math/big"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -121,7 +122,12 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return p.peerAdapter.RootHash()
 	}
 
-	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
+	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		header.GetShardID(),
+		header.GetEpoch(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +172,9 @@ func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader
 	}
 
 	for i := previousHeader.GetRound() + 1; i < currentHeader.GetRound(); i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), i, previousHeader.GetShardID())
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(
+			previousHeader.GetPrevRandSeed(), i, previousHeader.GetShardID(), previousHeader.GetEpoch(),
+		)
 		if err != nil {
 			return err
 		}
@@ -209,7 +217,9 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 			return err
 		}
 
-		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID())
+		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(
+			shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID(), shardHeader.GetEpoch(),
+		)
 		if err != nil {
 			return err
 		}

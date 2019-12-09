@@ -422,12 +422,18 @@ func (mp *metaProcessor) indexBlock(
 		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
 
-	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId)
+	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(
+		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
+	)
 	if err != nil {
 		return
 	}
 
-	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+	if err != nil {
+		return
+	}
+
 	go mp.core.Indexer().SaveMetaBlock(metaBlock, signersIndexes)
 
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)

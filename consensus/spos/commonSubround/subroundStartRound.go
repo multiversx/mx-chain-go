@@ -204,8 +204,13 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = sr.Blockchain().GetGenesisHeader()
+	}
+
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
+	signersIndexes, _ := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, currentHeader.GetEpoch())
 	round := sr.Rounder().Index()
 
 	roundInfo := indexer.RoundInfo{
@@ -240,6 +245,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		uint64(sr.RoundIndex),
 		shardId,
 		sr.NodesCoordinator(),
+		currentHeader.GetEpoch(),
 	)
 	if err != nil {
 		return err

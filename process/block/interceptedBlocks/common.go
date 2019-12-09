@@ -38,6 +38,7 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
+		header.GetEpoch(),
 	)
 	if err != nil {
 		return err
@@ -67,7 +68,12 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 
 func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
 	prevRandSeed := header.GetPrevRandSeed()
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
+	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(
+		prevRandSeed,
+		header.GetRound(),
+		header.GetShardID(),
+		header.GetEpoch(),
+	)
 	if err != nil {
 		return err
 	}

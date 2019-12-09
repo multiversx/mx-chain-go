@@ -405,7 +405,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 	arguments := CreateMockArguments()
 	arguments.InitialNodes = nil
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return nil, computeValidatorsErr
 		},
 	}
@@ -425,7 +425,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 	arguments := CreateMockArguments()
 	arguments.InitialNodes = nil
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
 		},
 	}
@@ -453,7 +453,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
 		},
 	}
@@ -481,7 +481,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}}, nil
 		},
 	}
@@ -532,7 +532,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 		},
 	}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
 		},
 	}
@@ -588,7 +588,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 		},
 	}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
 		},
 	}
@@ -654,7 +654,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
 		},
 	}

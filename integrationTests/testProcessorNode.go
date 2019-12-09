@@ -173,7 +173,7 @@ func NewTestProcessorNode(
 
 	pkBytes, _ := pk.ToByteArray()
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 			validator := mock.NewValidatorMock(big.NewInt(0), 0, pkBytes, []byte("add"))
 			return []sharding.Validator{validator}, nil
 		},

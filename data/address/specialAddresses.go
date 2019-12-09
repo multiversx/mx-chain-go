@@ -61,13 +61,13 @@ func NewSpecialAddressHolder(
 func (sp *specialAddresses) SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error {
 	// give transaction coordinator the consensus group validators addresses where to send the rewards.
 	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-		randomness, round, shardID,
+		randomness, round, shardID, epoch,
 	)
 	if err != nil {
 		return err
 	}
 
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardID)
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardID, epoch)
 	if err != nil {
 		return err
 	}
@@ -108,11 +108,12 @@ func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64
 		randomness,
 		round,
 		core.MetachainShardId,
+		epoch,
 	)
 	if err != nil {
 		return err
 	}
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, core.MetachainShardId)
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 	if err != nil {
 		return err
 	}

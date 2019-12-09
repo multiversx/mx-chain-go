@@ -480,12 +480,21 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(header.GetPrevRandSeed(), header.GetRound(), shardId)
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		shardId,
+		header.GetEpoch(),
+	)
 	if err != nil {
 		return
 	}
 
-	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, header.GetEpoch())
+	if err != nil {
+		return
+	}
+
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
 
 	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)

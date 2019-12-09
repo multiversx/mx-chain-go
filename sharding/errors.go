@@ -52,6 +52,9 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
+// ErrEpochNodesConfigDesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does not exist")
+
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
 

@@ -21,7 +21,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,
 		NodesCoordinator: &mock.NodesCoordinatorMock{
-			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
 
 				validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("pubKey"), []byte("pubKey"))
 				return []sharding.Validator{validator}, nil

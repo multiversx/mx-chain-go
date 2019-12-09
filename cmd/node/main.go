@@ -844,7 +844,7 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 		return
 	}
 
-	validatorsPubKeys := coordinator.GetAllValidatorsPublicKeys()
+	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
 
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)

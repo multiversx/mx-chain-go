@@ -80,9 +80,11 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
-	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
-	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+	//cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	//pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	//waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+
+	waitingMap := make(map[uint32][]sharding.Validator)
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
@@ -131,10 +133,10 @@ func ProposeBlockWithConsensusSignature(
 	round uint64,
 	nonce uint64,
 	randomness []byte,
+	epoch uint32,
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
-
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId)
+	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
@@ -230,7 +232,9 @@ func AllShardsProposeBlock(
 		}
 
 		prevRandomness := currentBlockHeader.GetRandSeed()
-		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness)
+		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
+			i, nodesMap, round, nonce, prevRandomness, currentBlockHeader.GetEpoch(),
+		)
 		newRandomness[i] = header[i].GetRandSeed()
 	}
 

@@ -32,6 +32,7 @@ func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) stri
 	return communicationIdentifierBetweenShards(shardId1, shardId2)
 }
 
-func (ihgs *indexHashedNodesCoordinator) EligibleList() []Validator {
-	return ihgs.eligibleMap[ihgs.shardId]
+func (ihgs *indexHashedNodesCoordinator) EligibleList(epoch uint32) []Validator {
+	nodesConfig := ihgs.nodesConfig[epoch]
+	return nodesConfig.eligibleMap[nodesConfig.shardId]
 }

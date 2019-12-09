@@ -46,7 +46,7 @@ func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
 }
 
 func (sh *SpecialAddressHandlerMock) SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) error {
-	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, shardId)
+	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, shardId, epoch)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (sh *SpecialAddressHandlerMock) SetMetaConsensusData(randomness []byte, rou
 		sh.metaConsensusData = make([]*data.ConsensusRewardData, 0)
 	}
 
-	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, core.MetachainShardId)
+	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, core.MetachainShardId, epoch)
 	if err != nil {
 		return err
 	}
