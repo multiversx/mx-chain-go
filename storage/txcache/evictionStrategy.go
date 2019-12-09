@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
@@ -10,7 +11,7 @@ var log = logger.GetOrCreate("txcache/eviction")
 // EvictionStrategyConfig is a cache eviction model
 type EvictionStrategyConfig struct {
 	CountThreshold                  int
-	EachAndEverySender              int
+	NoOldestSendersToEvict          int
 	ManyTransactionsForASender      int
 	PartOfManyTransactionsOfASender int
 }
@@ -37,27 +38,32 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 		return
 	}
 
+	// todo: mutex for eviction
+
 	// First pass
-	// If senders capacity is close to be reached reached, arbitrarily evict senders
 	// Senders capacity is close to be reached first (before txs capacity) when there are a lot of senders with little or one transaction
 	if model.areThereTooManySenders() {
 		log.Debug("DoEviction: 1st pass")
-		model.DoArbitrarySendersEviction()
+		countTxs, countSenders := model.EvictOldestSenders()
+		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	// Second pass
 	// For senders with many transactions (> "ManyTransactionsForASender"), evict "PartOfManyTransactionsOfASender" transactions
 	if model.areThereTooManyTxs() {
 		log.Debug("DoEviction: 2nd pass")
-		model.DoHighNonceTransactionsEviction()
+		countTxs, countSenders := model.DoHighNonceTransactionsEviction()
+		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
-	// Third pass (in a loop)
-	// While tx capacity is still close to be reached, arbitrarily evict senders
-	for step := 1; model.areThereTooManyTxs(); step++ {
-		log.Debug("DoEviction: 3nd pass", "step", step)
-		model.DoArbitrarySendersEviction()
+	// Third pass
+	if model.areThereTooManyTxs() {
+		log.Debug("DoEviction: 3nd pass")
+		countTxs, countSenders := model.EvictSendersWhileTooManyTxs()
+		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
 	}
+
+	// todo: release mutex
 }
 
 func (model *EvictionStrategy) areThereTooManySenders() bool {
@@ -70,32 +76,24 @@ func (model *EvictionStrategy) areThereTooManyTxs() bool {
 	return tooManyTxs
 }
 
-// DoArbitrarySendersEviction removes senders (along with their transactions) from the cache
-func (model *EvictionStrategy) DoArbitrarySendersEviction() (int, int) {
-	txsToEvict := make([][]byte, 0)
+// EvictOldestSenders removes (oldest) senders (along with their transactions) from the cache
+func (model *EvictionStrategy) EvictOldestSenders() (int, int) {
+	listsOrdered := model.Cache.txListBySender.GetListsSortedByOrderNumber()
+	sliceEnd := core.MinInt(model.Config.NoOldestSendersToEvict, len(listsOrdered))
+	listsToEvict := listsOrdered[:sliceEnd]
 	sendersToEvict := make([]string, 0)
+	txsToEvict := make([][]byte, 0)
 
-	index := 0
-	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
-		txList := txListUntyped.(*TxListForSender)
-
-		if index%model.Config.EachAndEverySender == 0 {
-			txHashes := txList.GetTxHashes()
-			txsToEvict = append(txsToEvict, txHashes...)
-			sendersToEvict = append(sendersToEvict, key)
-		}
-
-		index++
-	})
+	for _, txList := range listsToEvict {
+		sendersToEvict = append(sendersToEvict, txList.sender)
+		txHashes := txList.GetTxHashes()
+		txsToEvict = append(txsToEvict, txHashes...)
+	}
 
 	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 
-	countTxs := len(txsToEvict)
-	countSenders := len(sendersToEvict)
-
-	log.Debug("DoArbitrarySendersEviction", "countTxs", countTxs, "countSenders", countSenders)
-	return countTxs, countSenders
+	return len(txsToEvict), len(listsToEvict)
 }
 
 // DoHighNonceTransactionsEviction removes transactions from the cache
@@ -119,9 +117,40 @@ func (model *EvictionStrategy) DoHighNonceTransactionsEviction() (int, int) {
 	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 
-	countTxs := len(txsToEvict)
-	countSenders := len(sendersToEvict)
+	return len(txsToEvict), len(sendersToEvict)
+}
 
-	log.Debug("DoHighNonceTransactionsEviction", "countTxs", countTxs, "countSenders", countSenders)
+// EvictSendersWhileTooManyTxs removes (oldest) senders (along with their transactions) from the cache, while number is transactions is close to capacity
+func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (int, int) {
+	listsOrdered := model.Cache.txListBySender.GetListsSortedByOrderNumber()
+
+	countTxs := 0
+	countSenders := 0
+
+	sliceStart := 0
+	for step := 1; model.areThereTooManyTxs(); step++ {
+		log.Debug("EvictSendersWhileTooManyTxs", "step", step)
+
+		batchSize := model.Config.NoOldestSendersToEvict
+		sliceEnd := core.MinInt(sliceStart+batchSize, len(listsOrdered))
+		listsToEvict := listsOrdered[sliceStart:sliceEnd]
+		sendersToEvict := make([]string, 0)
+		txsToEvict := make([][]byte, 0)
+
+		for _, txList := range listsToEvict {
+			sendersToEvict = append(sendersToEvict, txList.sender)
+			txHashes := txList.GetTxHashes()
+			txsToEvict = append(txsToEvict, txHashes...)
+		}
+
+		model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
+		model.Cache.txListBySender.removeSenders(sendersToEvict)
+
+		countTxs += len(txsToEvict)
+		countSenders += len(listsToEvict)
+
+		sliceStart += batchSize
+	}
+
 	return countTxs, countSenders
 }

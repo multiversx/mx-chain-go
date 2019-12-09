@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +81,7 @@ func Test_GetSorted(t *testing.T) {
 
 	sorted := cache.GetSorted(noRequestedTransactions, 2)
 
-	assert.Len(t, sorted, min(noRequestedTransactions, noTotalTransactions))
+	assert.Len(t, sorted, core.MinInt(noRequestedTransactions, noTotalTransactions))
 
 	// Check order
 	nonces := make(map[string]uint64, noSenders)
@@ -98,7 +99,7 @@ func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.
 	logger.SetLogLevel("txcache/eviction:DEBUG")
 
 	cache := NewTxCache(250000, 1)
-	config := EvictionStrategyConfig{CountThreshold: 240000, EachAndEverySender: 10, ManyTransactionsForASender: 1000, PartOfManyTransactionsOfASender: 250}
+	config := EvictionStrategyConfig{CountThreshold: 240000, NoOldestSendersToEvict: 10, ManyTransactionsForASender: 1000, PartOfManyTransactionsOfASender: 250}
 	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
 
 	noSenders := 5000
@@ -137,14 +138,6 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
 }
 
 func printMemUsage(message string) {

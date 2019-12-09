@@ -2,10 +2,13 @@ package txcache
 
 import "github.com/ElrondNetwork/elrond-go/data/transaction"
 
+import "sort"
+
 // TxListBySenderMap is
 type TxListBySenderMap struct {
-	Map     *ConcurrentMap
-	Counter AtomicCounter
+	Map             *ConcurrentMap
+	Counter         AtomicCounter
+	nextOrderNumber AtomicCounter
 }
 
 // NewTxListBySenderMap creates a new map-like structure for holding and accessing transactions by sender
@@ -46,9 +49,13 @@ func (txMap *TxListBySenderMap) getListForSender(sender string) (*TxListForSende
 }
 
 func (txMap *TxListBySenderMap) addSender(sender string) *TxListForSender {
-	listForSender := NewTxListForSender()
+	orderNumber := txMap.nextOrderNumber.Get()
+	listForSender := NewTxListForSender(sender, orderNumber)
+
 	txMap.Map.Set(sender, listForSender)
 	txMap.Counter.Increment()
+	txMap.nextOrderNumber.Increment()
+
 	return listForSender
 }
 
@@ -76,4 +83,21 @@ func (txMap *TxListBySenderMap) removeSenders(senders []string) {
 	for _, senderKey := range senders {
 		txMap.removeSender(senderKey)
 	}
+}
+
+// GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
+func (txMap *TxListBySenderMap) GetListsSortedByOrderNumber() []*TxListForSender {
+	lists := make([]*TxListForSender, txMap.Counter.Get())
+
+	index := 0
+	txMap.Map.IterCb(func(key string, item interface{}) {
+		lists[index] = item.(*TxListForSender)
+		index++
+	})
+
+	sort.Slice(lists, func(i, j int) bool {
+		return lists[i].orderNumber < lists[j].orderNumber
+	})
+
+	return lists
 }

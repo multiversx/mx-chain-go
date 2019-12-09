@@ -4,16 +4,16 @@ import "testing"
 
 import "github.com/stretchr/testify/assert"
 
-func Test_DoArbitrarySendersEviction(t *testing.T) {
+func Test_EvictOldestSenders(t *testing.T) {
 	cache := NewTxCache(100, 1)
-	config := EvictionStrategyConfig{CountThreshold: 1, EachAndEverySender: 2}
+	config := EvictionStrategyConfig{CountThreshold: 1, NoOldestSendersToEvict: 2}
 	eviction := NewEvictionStrategy(cache, config)
 
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
 	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
-	noTxs, noSenders := eviction.DoArbitrarySendersEviction()
+	noTxs, noSenders := eviction.EvictOldestSenders()
 	assert.Equal(t, 2, noTxs)
 	assert.Equal(t, 2, noSenders)
 	assert.Equal(t, int64(1), cache.txListBySender.Counter.Get())
@@ -44,4 +44,8 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	assert.Equal(t, 0, noSenders)
 	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(351), cache.txByHash.Counter.Get())
+}
+
+func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
+	// todo
 }

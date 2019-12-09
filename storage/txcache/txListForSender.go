@@ -13,6 +13,8 @@ type TxListForSender struct {
 	mutex          sync.Mutex
 	copyBatchIndex *linkedList.Element
 	copyBatchSize  int
+	orderNumber    int64
+	sender         string
 }
 
 // TxListForSenderNode is a node of the linked list
@@ -22,9 +24,11 @@ type TxListForSenderNode struct {
 }
 
 // NewTxListForSender creates a new (sorted) list of transactions
-func NewTxListForSender() *TxListForSender {
+func NewTxListForSender(sender string, globalIndex int64) *TxListForSender {
 	return &TxListForSender{
-		Items: linkedList.New(),
+		Items:       linkedList.New(),
+		orderNumber: globalIndex,
+		sender:      sender,
 	}
 }
 

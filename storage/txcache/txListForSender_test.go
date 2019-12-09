@@ -8,7 +8,7 @@ import (
 )
 
 func Test_AddTx_Sorts(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 
 	list.AddTx([]byte("a"), createTx(".", 1))
 	list.AddTx([]byte("c"), createTx(".", 3))
@@ -27,7 +27,7 @@ func Test_AddTx_Sorts(t *testing.T) {
 }
 
 func Test_RemoveTransaction(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 	tx := createTx(".", 1)
 
 	list.AddTx([]byte("a"), tx)
@@ -38,7 +38,7 @@ func Test_RemoveTransaction(t *testing.T) {
 }
 
 func Test_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 	tx := createTx(".", 1)
 
 	list.RemoveTx(tx)
@@ -46,7 +46,7 @@ func Test_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 }
 
 func Test_RemoveHighNonceTransactions(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 
 	for index := 0; index < 100; index++ {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
@@ -66,7 +66,7 @@ func Test_RemoveHighNonceTransactions(t *testing.T) {
 }
 
 func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 
 	for index := 0; index < 100; index++ {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
@@ -80,7 +80,7 @@ func Test_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
 }
 
 func Test_CopyBatchTo(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 
 	for index := 0; index < 100; index++ {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
@@ -117,7 +117,7 @@ func Test_CopyBatchTo(t *testing.T) {
 }
 
 func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
-	list := NewTxListForSender()
+	list := NewTxListForSender(".", 0)
 
 	for index := 0; index < 100; index++ {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
