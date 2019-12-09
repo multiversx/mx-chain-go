@@ -78,14 +78,25 @@ func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) {
 }
 
 func (txMap *TxListBySenderMap) removeSender(sender string) {
+	if !txMap.Map.Has(sender) {
+		return
+	}
+
 	txMap.Map.Remove(sender)
 	txMap.Counter.Decrement()
 }
 
-func (txMap *TxListBySenderMap) removeSenders(senders []string) {
+// RemoveSendersBulk removes senders, in bulk
+func (txMap *TxListBySenderMap) RemoveSendersBulk(senders []string) int {
+	oldCount := txMap.Counter.Get()
+
 	for _, senderKey := range senders {
 		txMap.removeSender(senderKey)
 	}
+
+	newCount := txMap.Counter.Get()
+	noRemoved := oldCount - newCount
+	return int(noRemoved)
 }
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number

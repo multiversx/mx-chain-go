@@ -48,15 +48,15 @@ func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) 
 	return tx, true
 }
 
-func (txMap *TxByHashMap) RemoveTransactionsBulk(txHashes [][]byte) int64 {
+func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) int {
 	for _, txHash := range txHashes {
 		txMap.Map.Remove(string(txHash))
 	}
 
 	oldCount := txMap.Counter.Get()
 	newCount := int64(txMap.Map.Count())
-	noRemoved := newCount - oldCount
+	noRemoved := oldCount - newCount
 
 	txMap.Counter.Set(newCount)
-	return noRemoved
+	return int(noRemoved)
 }

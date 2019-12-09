@@ -52,7 +52,6 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 	}
 
 	// Second pass
-	// For senders with many transactions (> "ManyTransactionsForASender"), evict "PartOfManyTransactionsOfASender" transactions
 	if model.areThereTooManyTxs() {
 		countTxs, countSenders := model.EvictHighNonceTransactions()
 		log.Debug("DoEviction, 2nd pass:", "countTxs", countTxs, "countSenders", countSenders)
@@ -98,14 +97,15 @@ func (model *EvictionStrategy) evictSendersAndTheirTxs(listsToEvict []*TxListFor
 	return model.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-func (model *EvictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (int, int) {
-	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
-	model.Cache.txListBySender.removeSenders(sendersToEvict)
-
-	return len(txsToEvict), len(sendersToEvict)
+func (model *EvictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs int, countSenders int) {
+	countTxs = model.Cache.txByHash.RemoveTxsBulk(txsToEvict)
+	countSenders = model.Cache.txListBySender.RemoveSendersBulk(sendersToEvict)
+	return
 }
 
 // EvictHighNonceTransactions removes transactions from the cache
+// For senders with many transactions (> "ALotOfTransactionsForASender"), evict "NoTxsToEvictForASenderWithALot" transactions
+// Also makes sure that there's no sender with 0 transactions
 func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
@@ -128,20 +128,31 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 }
 
 // EvictSendersWhileTooManyTxs removes transactions
+// Eviction happens in ((transaction count) - CountThreshold) / NoOldestSendersToEvict + 1 steps
+// One batch of senders is removed in each step
 func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (step int, countTxs int, countSenders int) {
-	listsOrdered := model.Cache.txListBySender.GetListsSortedByOrderNumber()
+	batchesSource := model.Cache.txListBySender.GetListsSortedByOrderNumber()
+	batchSize := model.Config.NoOldestSendersToEvict
+	batchStart := 0
 
-	sliceStart := 0
 	for step = 1; model.areThereTooManyTxs(); step++ {
-		batchSize := model.Config.NoOldestSendersToEvict
-		sliceEnd := core.MinInt(sliceStart+batchSize, len(listsOrdered))
-		listsToEvict := listsOrdered[sliceStart:sliceEnd]
+		batchEnd := core.MinInt(batchStart+batchSize, len(batchesSource))
+		batch := batchesSource[batchStart:batchEnd]
 
-		stepCountTxs, stepCountSenders := model.evictSendersAndTheirTxs(listsToEvict)
+		stepCountTxs, stepCountSenders := model.evictSendersAndTheirTxs(batch)
 
 		countTxs += stepCountTxs
 		countSenders += stepCountSenders
-		sliceStart += batchSize
+		batchStart += batchSize
+
+		// Infinite loop otherwise
+		if stepCountTxs == 0 {
+			break
+		}
+
+		if stepCountSenders < batchSize {
+			break
+		}
 	}
 
 	return
