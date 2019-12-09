@@ -328,7 +328,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		header.GetEpoch() != currentBlockHeader.GetEpoch()+1
+		header.GetEpoch() != sp.epochStartTrigger.Epoch()
 	if isOldEpochAndShouldBeNew {
 		return process.ErrEpochDoesNotMatch
 	}

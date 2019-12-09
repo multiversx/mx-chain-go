@@ -575,9 +575,6 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
-
 // ErrMissingPrevShardData signals that a required shard data information is missing
 var ErrMissingPrevShardData = errors.New("shard data is missing")
 
@@ -589,3 +586,6 @@ var ErrNilMediator = errors.New("nil mediator")
 
 // ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
 var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
+
+// ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
+var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")

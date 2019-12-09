@@ -185,7 +185,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	if t.isEpochStart == true {
+	if t.isEpochStart && header.GetEpoch() == t.epoch {
 		return
 	}
 
@@ -230,13 +230,12 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 	for hash, meta := range t.mapEpochStartHdrs {
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEpochStart && t.epoch+1 == meta.Epoch {
+		if canActivateEpochStart && t.epoch < meta.Epoch {
 			t.epoch = meta.Epoch
 			t.isEpochStart = true
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
-			break
 		}
 	}
 }
