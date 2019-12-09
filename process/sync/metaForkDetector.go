@@ -18,6 +18,7 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -30,6 +31,7 @@ func NewMetaForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

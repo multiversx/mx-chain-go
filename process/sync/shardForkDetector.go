@@ -18,6 +18,7 @@ type shardForkDetector struct {
 func NewShardForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -30,6 +31,7 @@ func NewShardForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

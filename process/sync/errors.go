@@ -50,3 +50,6 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 
 // ErrNilNotarizedHeader signals that an nil notarized header has been provided
 var ErrNilNotarizedHeader = errors.New("nil notarized header")
+
+// ErrGenesisTimeMissmatch signals that a received header has a genesis time missmatch
+var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")
