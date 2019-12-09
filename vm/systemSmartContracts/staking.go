@@ -68,6 +68,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.slash(args)
 	case "get":
 		return r.get(args)
+	case "isStaked":
+		return r.isStaked(args)
 	}
 
 	return vmcommon.UserError
@@ -124,7 +126,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}
@@ -169,7 +171,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == false {
+	if !registrationData.Staked {
 		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
@@ -277,6 +279,31 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	data := r.eei.GetStorage(args.Arguments[0])
+	registrationData := StakingData{}
+	if data != nil {
+		err := json.Unmarshal(data, &registrationData)
+		if err != nil {
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
+			return vmcommon.UserError
+		}
+	}
+
+	if registrationData.Staked {
+		log.Debug("account already staked, re-staking is invalid")
+		return vmcommon.Ok
+	}
+
+	return vmcommon.UserError
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

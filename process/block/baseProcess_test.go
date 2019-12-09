@@ -187,6 +187,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			return cs
 		},
 	}
+
 	return sdp
 }
 

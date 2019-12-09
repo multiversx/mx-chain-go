@@ -165,34 +165,6 @@ func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(shardId, nonce)
 }
 
-type StorageBootstrapperMock struct {
-	GetHeaderCalled               func(hash []byte) (data.HeaderHandler, error)
-	GetBlockBodyCalled            func(header data.HeaderHandler) (data.BodyHandler, error)
-	ApplyNotarizedBlocksCalled    func(lastNotarized map[uint32]*HdrInfo) error
-	AddHeaderToForkDetectorCalled func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
-}
-
-func (sbm *StorageBootstrapperMock) getHeader(hash []byte) (data.HeaderHandler, error) {
-	return sbm.GetHeaderCalled(hash)
-}
-
-func (sbm *StorageBootstrapperMock) getBlockBody(header data.HeaderHandler) (data.BodyHandler, error) {
-	return sbm.GetBlockBodyCalled(header)
-}
-
-func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(lastNotarized map[uint32]*HdrInfo) error {
-
-	return sbm.ApplyNotarizedBlocksCalled(lastNotarized)
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
-	if sbm == nil {
-		return true
-	}
-	return false
-}
-
 func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state process.BlockHeaderState, finality int64) bool {
 	return bfd.isHeaderReceivedTooLate(header, state, finality)
 }
@@ -207,6 +179,10 @@ func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler,
 
 func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
 	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
+}
+
+func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+	return bfd.computeGenesisTimeFromHeader(headerHandler)
 }
 
 func GetCacherWithHeaders(

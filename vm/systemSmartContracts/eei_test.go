@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -15,7 +16,7 @@ import (
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(nil, &mock.CryptoHookStub{})
+	vmContext, err := NewVMContext(nil, hooks.NewVMCryptoHook())
 
 	assert.Nil(t, vmContext)
 	assert.Equal(t, vm.ErrNilBlockchainHook, err)
@@ -33,7 +34,7 @@ func TestNewVMContext_NilCryptoHook(t *testing.T) {
 func TestNewVMContext(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	assert.NotNil(t, vmContext)
 	assert.Nil(t, err)
@@ -42,7 +43,7 @@ func TestNewVMContext(t *testing.T) {
 func TestVmContext_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	assert.False(t, vmContext.IsInterfaceNil())
 
 	vmContext = nil
@@ -52,7 +53,7 @@ func TestVmContext_IsInterfaceNil(t *testing.T) {
 func TestVmContext_CleanCache(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	vmContext.CleanCache()
 
@@ -73,7 +74,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 	},
 	}
 
-	vmContext, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
 
 	res := vmContext.GetBalance(addr)
 	assert.Equal(t, res.Uint64(), balance.Uint64())
@@ -82,7 +83,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	vmOutput := vmContext.CreateVMOutput()
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
@@ -92,13 +93,13 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	assert.Equal(t, 0, len(vmOutput.DeletedAccounts))
 	assert.Equal(t, 0, len(vmOutput.TouchedAccounts))
 	assert.Equal(t, uint64(0), vmOutput.GasRefund.Uint64())
-	assert.Equal(t, uint64(0), vmOutput.GasRemaining.Uint64())
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
 
 func TestVmContext_SelfDestruct(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	addr := []byte("addr")
 	vmContext.SetSCAddress(addr)
@@ -113,7 +114,7 @@ func TestVmContext_SelfDestruct(t *testing.T) {
 func TestVmContext_SetStorage(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	key := []byte("key")
 	data := []byte("data")
@@ -129,7 +130,7 @@ func TestVmContext_SetStorage(t *testing.T) {
 func TestVmContext_Transfer(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	destination := []byte("dest")
 	sender := []byte("sender")

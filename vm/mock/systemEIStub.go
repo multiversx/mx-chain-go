@@ -1,8 +1,10 @@
 package mock
 
 import (
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type SystemEIStub struct {
@@ -31,7 +33,7 @@ func (s *SystemEIStub) CryptoHook() vmcommon.CryptoHook {
 	if s.CryptoHookCalled != nil {
 		return s.CryptoHookCalled()
 	}
-	return &CryptoHookStub{}
+	return hooks.NewVMCryptoHook()
 }
 
 func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
