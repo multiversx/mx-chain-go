@@ -577,3 +577,9 @@ var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
 // ErrInvalidValue signals that an invalid value was provided
 var ErrInvalidValue = errors.New("invalid value provided")
+
+// ErrNilQuotaStatusHandler signals that a nil quota status handler has been provided
+var ErrNilQuotaStatusHandler = errors.New("nil quota status handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")

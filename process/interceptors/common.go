@@ -7,14 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-func preProcessMesage(throttler process.InterceptorThrottler, message p2p.MessageP2P) error {
+func preProcessMesage(
+	throttler process.InterceptorThrottler,
+	antifloodHandler process.P2PAntifloodHandler,
+	message p2p.MessageP2P,
+	fromConnectedPeer p2p.PeerID,
+) error {
+
 	if message == nil {
 		return process.ErrNilMessage
 	}
 	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
-
+	err := antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
 	if !throttler.CanProcess() {
 		return process.ErrSystemBusy
 	}

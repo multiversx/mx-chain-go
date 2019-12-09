@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -30,7 +29,7 @@ type ArgStakingToPeer struct {
 
 	ArgParser process.ArgumentsParser
 	CurrTxs   dataRetriever.TransactionCacher
-	ScQuery   external.SCQueryService
+	ScQuery   process.SCQueryService
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -44,7 +43,7 @@ type stakingToPeer struct {
 
 	argParser process.ArgumentsParser
 	currTxs   dataRetriever.TransactionCacher
-	scQuery   external.SCQueryService
+	scQuery   process.SCQueryService
 
 	mutPeerChanges sync.Mutex
 	peerChanges    map[string]block.PeerData

@@ -208,7 +208,12 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
-		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, maxNumMessages, maxSize)
+		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
+			antifloodPool,
+			&nilQuotaStatusHandler{},
+			maxNumMessages,
+			maxSize,
+		)
 		err = p.RegisterMessageProcessor(topic, interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
