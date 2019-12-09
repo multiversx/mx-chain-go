@@ -55,7 +55,7 @@ func benchMarshal(b *testing.B, m marshal.Marshalizer, obj dataGenerator) {
 	}
 }
 
-func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, validate bool) {
+func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, validate bool, sizeCheck bool) {
 	b.StopTimer()
 	dArray := obj.(dataGenerator).GenerateDummyArray()
 	l := len(dArray)
@@ -67,6 +67,10 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 
 		_ = copy(t, mar)
 		serialized[i] = t
+	}
+
+	if sizeCheck {
+		m = marshal.NewSizeCheckUnmarshalizer(m, 100)
 	}
 
 	b.ReportAllocs()
@@ -102,25 +106,37 @@ func BenchmarkJsonTransactionMarshal(b *testing.B) {
 func BenchmarkCapnprotoTransactionUnmarshalNoValidate(b *testing.B) {
 	tx := &Transaction{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, tx, false)
+	benchUnmarshal(b, cmr, tx, false, false)
+}
+
+func BenchmarkCapnprotoTransactionUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	tx := &Transaction{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, tx, false, true)
 }
 
 func BenchmarkJsonTransactionUnmarshalNoValidate(b *testing.B) {
 	tx := &Transaction{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, tx, false)
+	benchUnmarshal(b, jmr, tx, false, false)
+}
+
+func BenchmarkJsonTransactionUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	tx := &Transaction{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, tx, false, true)
 }
 
 func BenchmarkCapnprotoTransactionUnmarshalValidate(b *testing.B) {
 	tx := &Transaction{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, tx, true)
+	benchUnmarshal(b, cmr, tx, true, false)
 }
 
 func BenchmarkJsonTransactionUnmarshalValidate(b *testing.B) {
 	tx := &Transaction{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, tx, true)
+	benchUnmarshal(b, jmr, tx, true, false)
 }
 
 func BenchmarkCapnprotoMiniBlocksMarshal(b *testing.B) {
@@ -138,25 +154,37 @@ func BenchmarkJsonMiniBlocksMarshal(b *testing.B) {
 func BenchmarkCapnprotoMiniBlocksUnmarshalNoValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, false)
+	benchUnmarshal(b, cmr, bl, false, false)
+}
+
+func BenchmarkCapnprotoMiniBlocksUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	bl := &MiniBlock{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, bl, false, true)
 }
 
 func BenchmarkJsonMiniBlocksUnmarshalNoValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, false)
+	benchUnmarshal(b, jmr, bl, false, false)
+}
+
+func BenchmarkJsonMiniBlocksUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	bl := &MiniBlock{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, bl, false, true)
 }
 
 func BenchmarkCapnprotoMiniBlocksUnmarshalValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
+	benchUnmarshal(b, cmr, bl, true, false)
 }
 
 func BenchmarkJsonMiniBlocksUnmarshalValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
+	benchUnmarshal(b, cmr, bl, true, false)
 }
 
 func BenchmarkCapnprotoHeaderMarshal(b *testing.B) {
@@ -174,25 +202,37 @@ func BenchmarkJsonHeaderMarshal(b *testing.B) {
 func BenchmarkCapnprotoHeaderUnmarshalNoValidate(b *testing.B) {
 	h := &Header{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, h, false)
+	benchUnmarshal(b, cmr, h, false, false)
+}
+
+func BenchmarkCapnprotoHeaderUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	h := &Header{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, h, false, true)
 }
 
 func BenchmarkJsonHeaderUnmarshalNoValidate(b *testing.B) {
 	h := &Header{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, h, false)
+	benchUnmarshal(b, jmr, h, false, false)
+}
+
+func BenchmarkJsonHeaderUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	h := &Header{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, h, false, true)
 }
 
 func BenchmarkCapnprotoHeaderUnmarshalValidate(b *testing.B) {
 	h := &Header{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, h, true)
+	benchUnmarshal(b, cmr, h, true, false)
 }
 
 func BenchmarkJsonHeaderUnmarshalValidate(b *testing.B) {
 	h := &Header{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, h, true)
+	benchUnmarshal(b, jmr, h, true, false)
 }
 
 // GenerateDummyArray is used to generate an array of MiniBlockHeaders with dummy data
