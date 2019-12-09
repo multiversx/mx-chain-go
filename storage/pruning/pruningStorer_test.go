@@ -133,7 +133,22 @@ func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
 func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	t.Parallel()
 
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"], _ = memorydb.New()
 	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers, _ := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
 	args.NumOfActivePersisters = 1
 	args.NumOfEpochsToKeep = 2
 	ps, _ := pruning.NewPruningStorer(args)

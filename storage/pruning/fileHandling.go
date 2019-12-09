@@ -18,16 +18,18 @@ func removeDirectoryIfEmpty(path string) {
 		epochDirectory += elementsSplitBySeparator[idx] + string(os.PathSeparator)
 	}
 
-	shardDirectory := epochDirectory + elementsSplitBySeparator[len(elementsSplitBySeparator)-2]
-	if isDirectoryEmpty(shardDirectory) {
-		err := os.RemoveAll(shardDirectory)
-		if err != nil {
-			log.Debug("delete old db directory", "error", err.Error())
-		}
+	if len(elementsSplitBySeparator) > 2 { // if length is less than 2, the path is incorrect
+		shardDirectory := epochDirectory + elementsSplitBySeparator[len(elementsSplitBySeparator)-2]
+		if isDirectoryEmpty(shardDirectory) {
+			err := os.RemoveAll(shardDirectory)
+			if err != nil {
+				log.Debug("delete old db directory", "error", err.Error())
+			}
 
-		err = os.RemoveAll(epochDirectory)
-		if err != nil {
-			log.Debug("delete old db directory", "error", err.Error())
+			err = os.RemoveAll(epochDirectory)
+			if err != nil {
+				log.Debug("delete old db directory", "error", err.Error())
+			}
 		}
 	}
 }
