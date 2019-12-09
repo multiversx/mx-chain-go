@@ -38,7 +38,7 @@ func NewShardForkDetector(
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
-	bfd.fork.forcedForkNonce = math.MaxUint64
+	bfd.fork.nonce = math.MaxUint64
 
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,

@@ -32,7 +32,7 @@ type forkInfo struct {
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
 	isNotarizedShardStuck  bool
-	forcedForkNonce        uint64
+	nonce                  uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -48,15 +48,16 @@ type baseForkDetector struct {
 	genesisTime      int64
 }
 
+// SetForkNonce sets the nonce where the chain should roll back
 func (bfd *baseForkDetector) SetForkNonce(nonce uint64) {
 	bfd.mutFork.Lock()
-	bfd.fork.forcedForkNonce = nonce
+	bfd.fork.nonce = nonce
 	bfd.mutFork.Unlock()
 }
 
 func (bfd *baseForkDetector) getForcedForkNonce() uint64 {
 	bfd.mutFork.RLock()
-	nonce := bfd.fork.forcedForkNonce
+	nonce := bfd.fork.nonce
 	bfd.mutFork.RUnlock()
 
 	return nonce

@@ -904,7 +904,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 
 	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() != sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
 		shouldRevertChain = true
-		nextHeader, _, err := process.GetHeaderFromStorageWithNonce(
+		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
 			currentHeader.GetNonce()-1,
 			sp.shardCoordinator.SelfId(),
 			sp.store,
@@ -916,7 +916,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 		}
 
 		nonce = currentHeader.GetNonce()
-		currentHeader = nextHeader
+		currentHeader = prevHeader
 	}
 
 	if shouldRevertChain {
