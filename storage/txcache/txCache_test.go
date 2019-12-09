@@ -38,7 +38,7 @@ func Test_RemoveByTxHash(t *testing.T) {
 	assert.Nil(t, foundTx)
 }
 
-func Test_GetSorted_Dummy(t *testing.T) {
+func Test_GetTransactions_Dummy(t *testing.T) {
 	cache := NewTxCache(250000, 16)
 
 	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
@@ -50,11 +50,11 @@ func Test_GetSorted_Dummy(t *testing.T) {
 	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
 	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted := cache.GetSorted(10, 2)
+	sorted := cache.GetTransactions(10, 2)
 	assert.Len(t, sorted, 8)
 }
 
-func Test_GetSorted(t *testing.T) {
+func Test_GetTransactions(t *testing.T) {
 	cache := NewTxCache(250000, 16)
 
 	// For "noSenders" senders, add "noTransactions" transactions,
@@ -77,7 +77,7 @@ func Test_GetSorted(t *testing.T) {
 
 	assert.Equal(t, int64(noTotalTransactions), cache.CountTx())
 
-	sorted := cache.GetSorted(noRequestedTransactions, 2)
+	sorted := cache.GetTransactions(noRequestedTransactions, 2)
 
 	assert.Len(t, sorted, core.MinInt(noRequestedTransactions, noTotalTransactions))
 
