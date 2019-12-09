@@ -41,8 +41,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool
 	return tx, ok
 }
 
-// GetSorted gets
-func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*transaction.Transaction {
+// GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
+// It returns at most "noRequested" transactions
+// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "noRequested" limit is reached before iterating over all senders
+func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) []*transaction.Transaction {
 	result := make([]*transaction.Transaction, noRequested)
 	resultFillIndex := 0
 	resultIsFull := false
