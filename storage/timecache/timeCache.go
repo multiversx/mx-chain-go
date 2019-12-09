@@ -36,8 +36,6 @@ func (tc *TimeCache) Add(key string) error {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	tc.sweep()
-
 	_, ok := tc.data[key]
 	if ok {
 		return storage.ErrDuplicateKeyToAdd
@@ -48,9 +46,12 @@ func (tc *TimeCache) Add(key string) error {
 	return nil
 }
 
-// sweep starts from the oldest element and will search each element if it is still valid to be kept.
-// sweep ends when it finds an element that is still valid
-func (tc *TimeCache) sweep() {
+// Sweep starts from the oldest element and will search each element if it is still valid to be kept. Sweep ends when
+// it finds an element that is still valid
+func (tc *TimeCache) Sweep() {
+	tc.mut.Lock()
+	defer tc.mut.Unlock()
+
 	for {
 		if len(tc.keys) == 0 {
 			return
@@ -79,7 +80,6 @@ func (tc *TimeCache) Has(key string) bool {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	tc.sweep()
 	_, ok := tc.data[key]
 
 	return ok

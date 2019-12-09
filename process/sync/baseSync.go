@@ -98,12 +98,13 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore          storage.Storer
-	headerNonceHashStore storage.Storer
-	hdrRes               dataRetriever.HeaderResolver
-	syncStarter          syncStarter
-	bootStorer           process.BootStorer
-	storageBootstrapper  process.BootstrapperFromStorage
+	headerStore           storage.Storer
+	headerNonceHashStore  storage.Storer
+	hdrRes                dataRetriever.HeaderResolver
+	syncStarter           syncStarter
+	bootStorer            process.BootStorer
+	storageBootstrapper   process.BootstrapperFromStorage
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -136,6 +137,8 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	log.Trace("received header from network",
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash,
 	)
@@ -154,6 +157,8 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	if bytes.Equal(hash, headerHash) {
 		log.Debug("received requested header from network",
+			"shard", headerHandler.GetShardID(),
+			"round", headerHandler.GetRound(),
 			"nonce", headerHandler.GetNonce(),
 			"hash", hash,
 		)
@@ -173,6 +178,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 	}
 
 	log.Trace("received header from network",
+		"shard", shardId,
 		"nonce", nonce,
 		"hash", hash,
 	)
@@ -195,6 +201,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 
 	if *n == nonce {
 		log.Debug("received requested header from network",
+			"shard", shardId,
 			"nonce", nonce,
 			"hash", hash,
 		)
@@ -341,6 +348,7 @@ func checkBootstrapNilParameters(
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) error {
 	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
@@ -378,6 +386,9 @@ func checkBootstrapNilParameters(
 	if check.IfNil(watcher) {
 		return process.ErrNilNetworkWatcher
 	}
+	if check.IfNil(requestedItemsHandler) {
+		return dataRetriever.ErrNilRequestedItemsHandler
+	}
 
 	return nil
 }
@@ -409,15 +420,27 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	haveHeaderInPoolWithNonce func(uint64) bool,
 	hdrRes dataRetriever.HeaderResolver) {
 
+	boot.requestedItemsHandler.Sweep()
+
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
+		key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), currentNonce)
+		if boot.requestedItemsHandler.Has(key) {
+			continue
+		}
+
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
 		if !haveHeader {
 			err := hdrRes.RequestDataFromNonce(currentNonce)
 			if err != nil {
 				log.Debug("RequestDataFromNonce", "error", err.Error())
 				continue
+			}
+
+			err = boot.requestedItemsHandler.Add(key)
+			if err != nil {
+				log.Trace("add requested item with error", "error", err.Error())
 			}
 
 			nbRequestedHdrs++
@@ -547,23 +570,24 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	startTime := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
-	if err != nil {
-		return err
-	}
-	elapsedTime := time.Now().Sub(startTime).Seconds()
+	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
 	)
-
-	startTime = time.Now()
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
-	elapsedTime = time.Now().Sub(startTime).Seconds()
+
+	startTime = time.Now()
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
 	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("block has been synced successfully",
 		"nonce", hdr.GetNonce(),
 	)
@@ -595,6 +619,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
+		prevHeaderHash := currHeader.GetPrevHash()
 		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
 			return err
@@ -616,6 +641,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			currHeaderHash,
 			currHeader,
 			currBlockBody,
+			prevHeaderHash,
 			prevHeader,
 			prevBlockBody)
 
@@ -649,6 +675,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
 	currBlockBody data.BodyHandler,
+	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
 	prevBlockBody data.BodyHandler,
 ) error {
@@ -661,23 +688,17 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}()
 
-	var prevHeaderHash []byte
-
 	if currHeader.GetNonce() > 1 {
-		prevHeaderHash = currHeader.GetPrevHash()
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevBlockBody)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = boot.setCurrentBlockInfo(nil, nil, nil)
+		if err != nil {
+			return err
+		}
 	}
-
-	err = boot.blkc.SetCurrentBlockHeader(prevHeader)
-	if err != nil {
-		return err
-	}
-
-	err = boot.blkc.SetCurrentBlockBody(prevBlockBody)
-	if err != nil {
-		return err
-	}
-
-	boot.blkc.SetCurrentBlockHeaderHash(prevHeaderHash)
 
 	err = boot.blkExecutor.RevertStateToBlock(prevHeader)
 	if err != nil {
@@ -767,4 +788,25 @@ func (boot *baseBootstrap) restoreState(
 	if err != nil {
 		log.Debug("RevertStateToBlock", "error", err.Error())
 	}
+}
+
+func (boot *baseBootstrap) setCurrentBlockInfo(
+	headerHash []byte,
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+
+	err := boot.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = boot.blkc.SetCurrentBlockBody(body)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
 }
