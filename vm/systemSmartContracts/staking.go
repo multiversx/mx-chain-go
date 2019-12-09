@@ -281,8 +281,5 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
-	if r == nil {
-		return true
-	}
-	return false
+	return r == nil
 }

@@ -256,6 +256,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 			return vmcommon.UserError
 		}
 
+		s.eei.SetStorage(blsKey, []byte("registered"))
 		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
 	}
 
