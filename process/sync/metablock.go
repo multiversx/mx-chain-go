@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -24,8 +25,6 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-
-	resolversFinder dataRetriever.ResolversFinder
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -96,6 +95,7 @@ func NewMetaBootstrap(
 		bootStorer:            bootStorer,
 		storageBootstrapper:   storageBootstrapper,
 		requestedItemsHandler: requestedItemsHandler,
+		miniBlocks:            poolsHolder.MiniBlocks(),
 	}
 
 	boot := MetaBootstrap{
@@ -105,12 +105,19 @@ func NewMetaBootstrap(
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
+	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
 	//should be then removed from MetaBootstrap
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	//sync should request the missing block body on the intrashard topic
+	miniBlocksResolver, err := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +134,24 @@ func NewMetaBootstrap(
 	base.hdrRes = hdrRes
 	base.forkInfo = process.NewForkInfo()
 
+	miniBlocksRes, ok := miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	boot.miniBlocksResolver = miniBlocksRes
+
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)
+	boot.chRcvMiniBlocks = make(chan bool)
 
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedHeaderHash(nil)
+	boot.setRequestedMiniBlocks(nil)
+
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.headers.RegisterHandler(boot.receivedHeader)
+	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 
 	boot.chStopSync = make(chan bool)
 
@@ -149,7 +167,22 @@ func NewMetaBootstrap(
 }
 
 func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return block.Body{}, nil
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		hashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	return block.Body(miniBlocks), nil
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
@@ -333,7 +366,76 @@ func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.Header
 }
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return boot.getBlockBody(headerHandler)
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		hashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	boot.setRequestedMiniBlocks(nil)
+
+	miniBlockSlice, err := boot.getMiniBlocksRequestingIfMissing(hashes)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBody := block.Body(miniBlockSlice)
+
+	return blockBody, nil
+}
+
+func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint32, nonce uint64) {
+	nextBlockNonce := boot.getNonceForNextBlock()
+	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+	if nonce < nextBlockNonce || nonce > maxNonce {
+		return
+	}
+
+	header, _, err := process.GetMetaHeaderFromPoolWithNonce(
+		nonce,
+		boot.headers,
+		boot.headersNonces)
+
+	if err != nil {
+		log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	hashes := make([][]byte, 0)
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+			continue
+		}
+
+		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
+	}
+
+	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
+		if err != nil {
+			log.Debug("RequestDataFromHashArray", "error", err.Error())
+			return
+		}
+
+		for _, hash := range missingMiniBlocksHashes {
+			err = boot.requestedItemsHandler.Add(string(hash))
+			if err != nil {
+				log.Trace("add requested item with error", "error", err.Error())
+			}
+		}
+
+		log.Trace("requested in advance mini blocks",
+			"num miniblocks", len(missingMiniBlocksHashes),
+			"header nonce", header.Nonce,
+		)
+	}
 }
 
 func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
