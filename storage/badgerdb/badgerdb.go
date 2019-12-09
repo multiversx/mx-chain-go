@@ -210,7 +210,6 @@ func (s *DB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *DB) DestroyClosed() error {
-	s.dbClosed <- struct{}{}
 	return os.RemoveAll(s.path)
 }
 

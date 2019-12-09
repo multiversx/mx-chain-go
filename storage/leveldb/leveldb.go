@@ -208,13 +208,6 @@ func (s *DB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *DB) DestroyClosed() error {
-	s.mutBatch.Lock()
-	s.batch.Reset()
-	s.sizeBatch = 0
-	s.mutBatch.Unlock()
-
-	s.dbClosed <- struct{}{}
-
 	return os.RemoveAll(s.path)
 }
 

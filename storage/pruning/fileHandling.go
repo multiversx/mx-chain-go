@@ -9,7 +9,7 @@ import (
 // removeDirectoryIfEmpty will clean the directories after all persisters for one epoch were destroyed
 // the structure is this way :
 // workspace/db/Epoch_X/Shard_Y/DbName
-// we need to remove the last 3 if everything is empty
+// we need to remove the last 3 directories if everything is empty
 func removeDirectoryIfEmpty(path string) {
 	elementsSplitBySeparator := strings.Split(path, string(os.PathSeparator))
 

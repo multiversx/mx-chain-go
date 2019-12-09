@@ -31,9 +31,11 @@ func GetDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfi
 func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 	var hashFuncs []storageUnit.HasherType
 	if cfg.HashFunc != nil {
-		hashFuncs = make([]storageUnit.HasherType, 0)
+		hashFuncs = make([]storageUnit.HasherType, len(cfg.HashFunc))
+		idx := 0
 		for _, hf := range cfg.HashFunc {
-			hashFuncs = append(hashFuncs, storageUnit.HasherType(hf))
+			hashFuncs[idx] = storageUnit.HasherType(hf)
+			idx++
 		}
 	}
 

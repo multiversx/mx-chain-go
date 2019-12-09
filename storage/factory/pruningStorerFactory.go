@@ -66,38 +66,12 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var bootstrapUnit *pruning.PruningStorer
 	var err error
 
+	successfullyCreatedStorers := make([]storage.Storer, 0)
 	defer func() {
 		// cleanup
 		if err != nil {
-			if headerUnit != nil {
-				_ = headerUnit.DestroyUnit()
-			}
-			if peerBlockUnit != nil {
-				_ = peerBlockUnit.DestroyUnit()
-			}
-			if miniBlockUnit != nil {
-				_ = miniBlockUnit.DestroyUnit()
-			}
-			if txUnit != nil {
-				_ = txUnit.DestroyUnit()
-			}
-			if unsignedTxUnit != nil {
-				_ = unsignedTxUnit.DestroyUnit()
-			}
-			if rewardTxUnit != nil {
-				_ = rewardTxUnit.DestroyUnit()
-			}
-			if metachainHeaderUnit != nil {
-				_ = metachainHeaderUnit.DestroyUnit()
-			}
-			if metaHdrHashNonceUnit != nil {
-				_ = metaHdrHashNonceUnit.DestroyUnit()
-			}
-			if shardHdrHashNonceUnit != nil {
-				_ = shardHdrHashNonceUnit.DestroyUnit()
-			}
-			if bootstrapUnit != nil {
-				_ = bootstrapUnit.DestroyUnit()
+			for _, storer := range successfullyCreatedStorers {
+				_ = storer.DestroyUnit()
 			}
 		}
 	}()
@@ -121,6 +95,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, txUnit)
 
 	unsignedTxUnitStorerArgs := &pruning.PruningStorerArgs{
 		Identifier:            "unsignedTxUnit",
@@ -137,6 +112,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
 	rewardTxUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "rewardTxUnit",
@@ -153,6 +129,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, rewardTxUnit)
 
 	miniBlockUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "miniBlockUnit",
@@ -169,6 +146,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
 
 	peerBlockUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "peerBlockUnit",
@@ -185,6 +163,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerBlockUnit)
 
 	headerUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "headerUnit",
@@ -201,6 +180,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
 	metaChainHeaderUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "metachainHeaderUnit",
@@ -217,6 +197,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
 	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "metaHdrHashNonceUnit",
@@ -233,6 +214,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, metaHdrHashNonceUnit)
 
 	shardHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "shardHrHashNonceUnit",
@@ -249,6 +231,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnit)
 
 	// TODO: the path will be fetched from a path naming component
 	heartbeatUniqueID := strings.Replace(psf.uniqueID, "Epoch_0", "Static", 1)
@@ -259,6 +242,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
 	bootstrapUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "bootstrapUnit",
@@ -275,6 +259,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
@@ -308,44 +293,21 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var bootstrapUnit *pruning.PruningStorer
 	var err error
 
+	successfullyCreatedStorers := make([]storage.Storer, 0)
+
 	defer func() {
 		// cleanup
 		if err != nil {
 			log.Error("create meta store", "error", err.Error())
-			if peerDataUnit != nil {
-				_ = peerDataUnit.DestroyUnit()
-			}
-			if shardDataUnit != nil {
-				_ = shardDataUnit.DestroyUnit()
-			}
-			if metaBlockUnit != nil {
-				_ = metaBlockUnit.DestroyUnit()
-			}
-			if headerUnit != nil {
-				_ = headerUnit.DestroyUnit()
-			}
-			if metaHdrHashNonceUnit != nil {
-				_ = metaHdrHashNonceUnit.DestroyUnit()
+			for _, storer := range successfullyCreatedStorers {
+				_ = storer.DestroyUnit()
 			}
 			if shardHdrHashNonceUnits != nil {
 				for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
-					_ = shardHdrHashNonceUnits[i].DestroyUnit()
+					if shardHdrHashNonceUnits[i] != nil {
+						_ = shardHdrHashNonceUnits[i].DestroyUnit()
+					}
 				}
-			}
-			if txUnit != nil {
-				_ = txUnit.DestroyUnit()
-			}
-			if unsignedTxUnit != nil {
-				_ = unsignedTxUnit.DestroyUnit()
-			}
-			if miniBlockUnit != nil {
-				_ = miniBlockUnit.DestroyUnit()
-			}
-			if miniBlockHeadersUnit != nil {
-				_ = miniBlockHeadersUnit.DestroyUnit()
-			}
-			if bootstrapUnit != nil {
-				_ = bootstrapUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -369,6 +331,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, metaBlockUnit)
 
 	shardDataUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "shardDataUnit",
@@ -385,6 +348,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, shardDataUnit)
 
 	peerDataUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "peerDataUnit",
@@ -401,6 +365,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, peerDataUnit)
 
 	headerUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "headerUnit",
@@ -417,6 +382,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
 	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "metaHdrHashNonceUnit",
@@ -433,6 +399,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, metaHdrHashNonceUnit)
 
 	shardHdrHashNonceUnits = make([]*pruning.PruningStorer, psf.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
@@ -462,6 +429,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
 	txUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "txUnit",
@@ -478,6 +446,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, txUnit)
 
 	unsignedTxUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "unsignedTxUnit",
@@ -494,6 +463,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
 	miniBlockUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "miniBlockUnit",
@@ -510,6 +480,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
 
 	miniBlockHeadersUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "miniBlockHeadersUnit",
@@ -526,6 +497,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockHeadersUnit)
 
 	bootstrapUnitArgs := &pruning.PruningStorerArgs{
 		Identifier:            "bootstrapUnit",
@@ -542,6 +514,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	if err != nil {
 		return nil, err
 	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)

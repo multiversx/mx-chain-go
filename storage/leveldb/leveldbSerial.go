@@ -206,10 +206,7 @@ func (s *SerialDB) Close() error {
 	s.closed = true
 	s.mutClosed.Unlock()
 
-	err := s.putBatch()
-	if err != nil {
-		return err
-	}
+	_ = s.putBatch()
 
 	s.cancel()
 
