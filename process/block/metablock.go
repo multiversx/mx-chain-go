@@ -964,7 +964,8 @@ func (mp *metaProcessor) CommitBlock(
 		"shard headers capacity", mp.dataPool.ShardHeaders().MaxSize(),
 	)
 
-	go mp.headerPoolsCleaner.Clean(mp.forkDetector.GetHighestFinalBlockNonce(), mp.getLastNotarizedHdrsNonces())
+	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	//go mp.headerPoolsCleaner.Clean(mp.forkDetector.GetHighestFinalBlockNonce(), mp.getLastNotarizedHdrsNonces())
 
 	return nil
 }
@@ -1254,8 +1255,6 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
-
-	mp.blockTracker.AddHeader(shardHeader)
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
 		shardHeaderPool.Remove(shardHeaderHash)

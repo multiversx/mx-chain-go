@@ -11,49 +11,63 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
+	bt, err := track.NewShardBlockTrack(nil, &mock.RounderMock{})
+
+	assert.Equal(t, process.ErrNilPoolsHolder, err)
+	assert.Nil(t, bt)
+}
+
+func TestNewBlockTrack_ShouldErrNilHeadersNoncesDataPool(t *testing.T) {
+	bt, err := track.NewShardBlockTrack(&mock.PoolsHolderMock{}, &mock.RounderMock{})
+
+	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+	assert.Nil(t, bt)
+}
+
 func TestNewBlockTrack_ShouldErrNilRounder(t *testing.T) {
-	bt, err := track.NewBlockTrack(nil)
+	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), nil)
 
 	assert.Equal(t, process.ErrNilRounder, err)
 	assert.Nil(t, bt)
 }
 
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
-	bt, err := track.NewBlockTrack(&mock.RounderMock{})
+	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, bt)
 }
 
 func TestNewBlockTrack_AddHeaderForShardShouldNotUpdateIfHeaderIsNil(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
-	bt.AddHeader(nil)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	bt.AddHeader(nil, nil)
 	lastHeader := bt.LastHeaderForShard(0)
 	assert.Nil(t, lastHeader)
 }
 
 func TestNewBlockTrack_AddHeaderShouldNotUpdateIfRoundIsLowerOrEqual(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
 	header1 := &block.Header{Round: 2}
 	header2 := &block.Header{Round: 1}
 	header3 := &block.Header{Round: 2}
 
-	bt.AddHeader(header1)
+	bt.AddHeader(header1, []byte("hash1"))
 	lastHeader := bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 
-	bt.AddHeader(header2)
+	bt.AddHeader(header2, []byte("hash2"))
 	lastHeader = bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 
-	bt.AddHeader(header3)
+	bt.AddHeader(header3, []byte("hash3"))
 	lastHeader = bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 }
 
 func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
 	header1 := &block.Header{Round: 2}
 	header2 := &block.Header{Round: 3}
@@ -63,22 +77,22 @@ func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
 	header5 := &block.MetaBlock{Round: 3}
 	header6 := &block.MetaBlock{Round: 4}
 
-	bt.AddHeader(header1)
-	bt.AddHeader(header4)
+	bt.AddHeader(header1, []byte("hash1"))
+	bt.AddHeader(header4, []byte("hash4"))
 	lastHeader := bt.LastHeaderForShard(0)
 	lastHeaderMeta := bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header1, lastHeader)
 	assert.Equal(t, header4, lastHeaderMeta)
 
-	bt.AddHeader(header2)
-	bt.AddHeader(header5)
+	bt.AddHeader(header2, []byte("hash2"))
+	bt.AddHeader(header5, []byte("hash5"))
 	lastHeader = bt.LastHeaderForShard(0)
 	lastHeaderMeta = bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header2, lastHeader)
 	assert.Equal(t, header5, lastHeaderMeta)
 
-	bt.AddHeader(header3)
-	bt.AddHeader(header6)
+	bt.AddHeader(header3, []byte("hash3"))
+	bt.AddHeader(header6, []byte("hash6"))
 	lastHeader = bt.LastHeaderForShard(0)
 	lastHeaderMeta = bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header3, lastHeader)
@@ -86,15 +100,15 @@ func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
 }
 
 func TestNewBlockTrack_LastHeaderForShardShouldWork(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
 	header1 := &block.Header{ShardId: 0, Round: 2}
 	header2 := &block.Header{ShardId: 1, Round: 2}
 	header3 := &block.MetaBlock{Round: 2}
 
-	bt.AddHeader(header1)
-	bt.AddHeader(header2)
-	bt.AddHeader(header3)
+	bt.AddHeader(header1, []byte("hash1"))
+	bt.AddHeader(header2, []byte("hash2"))
+	bt.AddHeader(header3, []byte("hash3"))
 
 	lastHeader := bt.LastHeaderForShard(header1.GetShardID())
 	assert.Equal(t, header1, lastHeader)
@@ -107,25 +121,25 @@ func TestNewBlockTrack_LastHeaderForShardShouldWork(t *testing.T) {
 }
 
 func TestNewBlockTrack_IsShardStuckShoudReturnFalseWhenListIsEmpty(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
 	isShardStuck := bt.IsShardStuck(0)
 	assert.False(t, isShardStuck)
 }
 
 func TestNewBlockTrack_IsShardStuckShoudReturnFalse(t *testing.T) {
-	bt, _ := track.NewBlockTrack(&mock.RounderMock{})
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
 
-	bt.AddHeader(&block.Header{})
+	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	isShardStuck := bt.IsShardStuck(0)
 	assert.False(t, isShardStuck)
 }
 
 func TestNewBlockTrack_IsShardStuckShoudReturnTrue(t *testing.T) {
 	rounderMock := &mock.RounderMock{}
-	bt, _ := track.NewBlockTrack(rounderMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), rounderMock)
 
-	bt.AddHeader(&block.Header{})
+	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	rounderMock.RoundIndex = process.MaxRoundsWithoutCommittedBlock + 1
 	isShardStuck := bt.IsShardStuck(0)
 	assert.True(t, isShardStuck)

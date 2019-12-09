@@ -80,7 +80,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 				},
 			},
 			BlockTracker: &mock.BlockTrackerStub{
-				AddHeaderCalled: func(header data.HeaderHandler) {},
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 			},
 			HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{},
 		},

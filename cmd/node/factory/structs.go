@@ -511,7 +511,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.data, args.core,
+		args.data,
+		args.core,
 		args.crypto,
 		args.state,
 		args.network,
@@ -546,7 +547,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	blockTracker, err := track.NewBlockTrack(rounder)
+	blockTracker, err := newBlockTracker(args.shardCoordinator, args.data.Datapool, args.data.MetaDatapool, rounder)
 	if err != nil {
 		return nil, err
 	}
@@ -1749,6 +1750,24 @@ func createInMemoryShardCoordinatorAndAccount(
 	return newShardCoordinator, accounts, nil
 }
 
+func newBlockTracker(
+	shardCoordinator sharding.Coordinator,
+	datapool dataRetriever.PoolsHolder,
+	metaDatapool dataRetriever.MetaPoolsHolder,
+	rounder consensus.Rounder,
+) (process.BlockTracker, error) {
+
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return track.NewShardBlockTrack(datapool, rounder)
+	}
+
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return track.NewMetaBlockTrack(metaDatapool, rounder)
+	}
+
+	return nil, errors.New("could not create block tracker")
+}
+
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -1829,7 +1848,6 @@ func newBlockProcessor(
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-
 		return newMetaBlockProcessor(
 			resolversFinder,
 			processArgs.shardCoordinator,
@@ -1850,7 +1868,7 @@ func newBlockProcessor(
 		)
 	}
 
-	return nil, errors.New("could not create block processor and tracker")
+	return nil, errors.New("could not create block processor")
 }
 
 func newShardBlockProcessor(

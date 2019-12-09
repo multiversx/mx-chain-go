@@ -6,7 +6,7 @@ import (
 
 type BlockTrackerStub struct {
 	IsShardStuckCalled       func(shardId uint32) bool
-	AddHeaderCalled          func(header data.HeaderHandler)
+	AddHeaderCalled          func(header data.HeaderHandler, hash []byte)
 	LastHeaderForShardCalled func(shardId uint32) data.HeaderHandler
 }
 
@@ -14,8 +14,8 @@ func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 	return bts.IsShardStuckCalled(shardId)
 }
 
-func (bts *BlockTrackerStub) AddHeader(header data.HeaderHandler) {
-	bts.AddHeaderCalled(header)
+func (bts *BlockTrackerStub) AddHeader(header data.HeaderHandler, hash []byte) {
+	bts.AddHeaderCalled(header, hash)
 }
 
 func (bts *BlockTrackerStub) LastHeaderForShard(shardId uint32) data.HeaderHandler {

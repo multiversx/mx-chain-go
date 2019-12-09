@@ -805,7 +805,8 @@ func (sp *shardProcessor) CommitBlock(
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
 
-	go sp.headerPoolsCleaner.Clean(sp.forkDetector.GetHighestFinalBlockNonce(), sp.getLastNotarizedHdrsNonces())
+	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
+	//go sp.headerPoolsCleaner.Clean(sp.forkDetector.GetHighestFinalBlockNonce(), sp.getLastNotarizedHdrsNonces())
 
 	return nil
 }
@@ -1177,8 +1178,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	} else {
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
-
-	sp.blockTracker.AddHeader(metaBlock)
 
 	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool) {
 		metaBlocksPool.Remove(metaBlockHash)

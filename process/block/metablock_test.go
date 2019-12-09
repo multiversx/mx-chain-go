@@ -48,7 +48,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 				},
 			},
 			BlockTracker: &mock.BlockTrackerStub{
-				AddHeaderCalled: func(header data.HeaderHandler) {},
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 			},
 			HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
 				CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},

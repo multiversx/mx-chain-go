@@ -3426,7 +3426,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	arguments.ForkDetector = forkDetector
 	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -3583,7 +3583,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	arguments.ForkDetector = forkDetector
 	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -3717,7 +3717,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	arguments.ForkDetector = forkDetector
 	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -4074,7 +4074,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	arguments.Marshalizer = marshalizer
 	arguments.StartHeaders = genesisBlocks
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 
@@ -4137,7 +4137,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	arguments.Marshalizer = marshalizer
 	arguments.StartHeaders = genesisBlocks
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 
@@ -4198,7 +4198,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	arguments.Marshalizer = marshalizer
 	arguments.StartHeaders = genesisBlocks
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 
@@ -4289,7 +4289,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	arguments.ShardCoordinator = shardC
 	arguments.StartHeaders = createGenesisBlocks(shardC)
 	arguments.BlockTracker = &mock.BlockTrackerStub{
-		AddHeaderCalled: func(header data.HeaderHandler) {},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
 	}
 	arguments.HeaderPoolsCleaner = &mock.HeaderPoolsCleanerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)

@@ -534,9 +534,9 @@ type RequestBlockBodyHandler interface {
 
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
-	IsShardStuck(shardId uint32) bool
-	AddHeader(header data.HeaderHandler)
-	LastHeaderForShard(shardId uint32) data.HeaderHandler
+	IsShardStuck(shardID uint32) bool
+	AddHeader(header data.HeaderHandler, hash []byte)
+	LastHeaderForShard(shardID uint32) data.HeaderHandler
 	IsInterfaceNil() bool
 }
 
