@@ -35,6 +35,8 @@ const ShardTopic = "shard"
 // GlobalTopic is a global testing that all nodes will bind an interceptor
 const GlobalTopic = "global"
 
+const networkShardingPrioBits = 6
+
 // TestP2PNode represents a container type of class used in integration tests
 // with all its fields exported, used mainly on P2P tests
 type TestP2PNode struct {
@@ -90,7 +92,7 @@ func NewTestP2PNode(
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
-	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater)
+	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater, networkShardingPrioBits)
 	if err != nil {
 		fmt.Printf("Error setting messenger.SetPeerShardResolver: %s\n", err.Error())
 	}
@@ -305,7 +307,7 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 		for _, n := range nodes {
 			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
 
-			peerCounts := n.Messenger.GetPeerCounts()
+			peerInfo := n.Messenger.GetConnectedPeersInfo()
 
 			lineData := display.NewLineData(
 				false,
@@ -317,9 +319,9 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
 					fmt.Sprintf("%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
-						peerCounts.IntraShardPeers,
-						peerCounts.CrossShardPeers,
-						peerCounts.UnknownPeers,
+						len(peerInfo.IntraShardPeers),
+						len(peerInfo.CrossShardPeers),
+						len(peerInfo.UnknownPeers),
 					),
 				},
 			)

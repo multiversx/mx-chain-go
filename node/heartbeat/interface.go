@@ -40,5 +40,6 @@ type HeartbeatStorageHandler interface {
 type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
 	IsInterfaceNil() bool
 }

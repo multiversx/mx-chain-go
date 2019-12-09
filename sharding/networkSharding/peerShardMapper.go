@@ -99,7 +99,7 @@ func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shard
 }
 
 func (psm *PeerShardMapper) byIDSearchingPidInFallbackCache(pid p2p.PeerID) (shardId uint32) {
-	shardObj, ok := psm.peerIdPk.Get([]byte(pid))
+	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
 		return sharding.UnknownShardId
 	}

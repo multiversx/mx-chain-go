@@ -62,7 +62,7 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 	sendMessagesOnIntraShardTopic(t, nodesMap)
 	sendMessagesOnCrossShardTopic(t, nodesMap)
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 10; i++ {
 		t.Log("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
 
 		time.Sleep(time.Second)

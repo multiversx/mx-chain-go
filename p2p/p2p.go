@@ -166,8 +166,8 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
-	GetPeerCounts() *PeerCounts
+	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32) error
+	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -211,6 +211,13 @@ type PeerDiscoveryFactory interface {
 type PeerShardResolver interface {
 	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
+}
+
+// ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
+type ConnectedPeersInfo struct {
+	UnknownPeers    []string
+	IntraShardPeers []string
+	CrossShardPeers []string
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component

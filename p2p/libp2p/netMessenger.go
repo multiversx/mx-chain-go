@@ -22,6 +22,7 @@ import (
 )
 
 const durationBetweenSends = time.Microsecond * 10
+const durationBetweenPeersPrints = time.Second * 20
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -40,7 +41,6 @@ const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 
 const defaultThresholdMinConnectedPeers = 3
-const kadSharderPrioBits = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -193,6 +193,20 @@ func createMessenger(
 			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
+
+	go func() {
+		for {
+			time.Sleep(durationBetweenPeersPrints)
+
+			peersInfo := netMes.GetConnectedPeersInfo()
+			log.Debug("network connection status",
+				"connected peers", len(netMes.Peers()),
+				"intra shard", len(peersInfo.IntraShardPeers),
+				"cross shard", len(peersInfo.CrossShardPeers),
+				"unknown", len(peersInfo.UnknownPeers),
+			)
+		}
+	}()
 
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.ctxProvider.Host().Addrs() {
@@ -562,12 +576,12 @@ func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
 
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
 // between p2p.PeerID and shardId
-func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
+func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver, prioBits uint32) error {
 	if check.IfNil(peerShardResolver) {
 		return p2p.ErrNilPeerShardResolver
 	}
 
-	kadSharder, err := networksharding.NewKadSharder(kadSharderPrioBits, peerShardResolver)
+	kadSharder, err := networksharding.NewKadSharder(prioBits, peerShardResolver)
 	if err != nil {
 		return err
 	}
@@ -575,25 +589,31 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	return netMes.connMonitor.SetSharder(kadSharder)
 }
 
-// GetPeerCounts gets the current connected peer counts
-func (netMes *networkMessenger) GetPeerCounts() *p2p.PeerCounts {
+// GetConnectedPeersInfo gets the current connected peers information
+func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
-	peerCounts := &p2p.PeerCounts{}
+	peerInfo := &p2p.ConnectedPeersInfo{}
 	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
 
 	for _, p := range peers {
 		shard := netMes.connMonitor.sharder.GetShard(p)
+		conns := netMes.ctxProvider.connHost.Network().ConnsToPeer(p)
+		connString := "[invalid connection string]"
+		if len(conns) > 0 {
+			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
+		}
+
 		switch shard {
 		case sharding.UnknownShardId:
-			peerCounts.UnknownPeers++
+			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
 		case crt:
-			peerCounts.IntraShardPeers++
+			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)
 		default:
-			peerCounts.CrossShardPeers++
+			peerInfo.CrossShardPeers = append(peerInfo.CrossShardPeers, connString)
 		}
 	}
 
-	return peerCounts
+	return peerInfo
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

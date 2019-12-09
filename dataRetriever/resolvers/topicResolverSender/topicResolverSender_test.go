@@ -137,7 +137,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
 
-	assert.Equal(t, dataRetriever.ErrNoConnectedPeerToSendRequest, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNoConnectedPeerToSendRequest))
 }
 
 func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
