@@ -2561,10 +2561,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *testing
 	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, err)
 
 	emptyEpochStart := block.EpochStart{}
@@ -2591,11 +2589,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockHashComputeIssueShouldErr(t 
 
 	mp, err := blproc.NewMetaProcessor(arguments)
 	assert.Nil(t, err)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, epStart)
 	assert.Equal(t, expectedErr, err)
 }
@@ -2662,11 +2657,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 		},
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, err)
 	assert.NotNil(t, epStart)
 	assert.Equal(t, hash1, epStart.LastFinalizedHeaders[0].LastFinishedMetaBlock)

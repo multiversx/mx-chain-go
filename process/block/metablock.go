@@ -1025,7 +1025,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ map[string]map[string]struct{}) {
 }
 
 func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandler data.ChainHandler) {
@@ -1485,10 +1485,10 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 }
 
 func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
-	headerHash []byte,
-	shardMiniBlockHeader *block.ShardMiniBlockHeader,
-	round uint64,
-	shardId uint32,
+	_ []byte,
+	_ *block.ShardMiniBlockHeader,
+	_ uint64,
+	_ uint32,
 ) error {
 	// TODO: real processing has to be done here, using metachain state
 	return nil
@@ -1620,7 +1620,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	metaHdr.ValidatorStatsRootHash = rootHash
 
-	epochStart, err := mp.createEpochStartForMetablock(metaHdr)
+	epochStart, err := mp.createEpochStartForMetablock()
 	if err != nil {
 		return err
 	}
@@ -1638,7 +1638,7 @@ func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return nil
 	}
 
-	epochStart, err := mp.createEpochStartForMetablock(metaBlock)
+	epochStart, err := mp.createEpochStartForMetablock()
 	if err != nil {
 		return err
 	}
@@ -1660,7 +1660,7 @@ func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	return nil
 }
 
-func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
+func (mp *metaProcessor) createEpochStartForMetablock() (*block.EpochStart, error) {
 	if !mp.epochStartTrigger.IsEpochStart() {
 		return &block.EpochStart{}, nil
 	}
@@ -1792,7 +1792,7 @@ func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
