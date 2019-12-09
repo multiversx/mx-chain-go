@@ -42,6 +42,7 @@ type baseForkDetector struct {
 	mutFork    sync.RWMutex
 
 	blackListHandler process.BlackListHandler
+	genesisTime      int64
 	blockTracker     process.BlockTracker
 }
 
@@ -61,20 +62,17 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
+	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
 
 	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
-		// which is bound to a previous black listed header.
-		err := bfd.blackListHandler.Add(string(headerHash))
-		if err != nil {
-			log.Trace("add requested item with error",
-				"error", err.Error(),
-				"key", headerHash)
-
-		}
-
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return process.ErrHeaderIsBlackListed
+	}
+	//TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
+	if genesisTimeFromHeader != bfd.genesisTime {
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
+		return ErrGenesisTimeMissmatch
 	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
@@ -585,4 +583,9 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		bfd.headers[hdrNonce] = preservedHdrInfos
 	}
 	bfd.mutHeaders.Unlock()
+}
+
+func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+	genesisTime := int64(headerHandler.GetTimeStamp() - headerHandler.GetRound()*uint64(bfd.rounder.TimeDuration().Seconds()))
+	return genesisTime
 }

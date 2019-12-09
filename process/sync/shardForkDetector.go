@@ -19,6 +19,7 @@ type shardForkDetector struct {
 func NewShardForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 	blockTracker process.BlockTracker,
 ) (*shardForkDetector, error) {
 
@@ -35,6 +36,7 @@ func NewShardForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,
 	}
 

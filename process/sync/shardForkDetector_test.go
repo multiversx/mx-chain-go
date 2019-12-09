@@ -17,6 +17,7 @@ func TestNewShardForkDetector_NilRounderShouldErr(t *testing.T) {
 		nil,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	assert.Nil(t, sfd)
 	assert.Equal(t, process.ErrNilRounder, err)
@@ -29,6 +30,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&mock.RounderMock{},
 		nil,
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	assert.Nil(t, sfd)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
@@ -53,6 +55,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&mock.RounderMock{},
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sfd)
@@ -71,6 +74,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
@@ -84,6 +88,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
@@ -99,6 +104,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
@@ -120,6 +126,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
@@ -141,6 +148,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
@@ -157,6 +165,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
 	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
@@ -177,6 +186,7 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed, nil, nil)

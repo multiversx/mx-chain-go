@@ -373,6 +373,7 @@ func createConsensusOnlyNode(
 		rounder,
 		timecache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
+		0,
 	)
 
 	hdrResolver := &mock.HeaderResolverMock{}

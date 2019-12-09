@@ -1923,6 +1923,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 		rounder,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -2003,6 +2004,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		rounder,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerStub{},
+		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}

@@ -16,6 +16,7 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 	blockTracker process.BlockTracker,
 ) (*metaForkDetector, error) {
 
@@ -32,6 +33,7 @@ func NewMetaForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,
 	}
 
