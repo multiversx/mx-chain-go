@@ -1058,7 +1058,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		HeaderInfo:           headerInfo,
+		LastHeader:           headerInfo,
 		LastNotarizedHeaders: lastNotarizedHdrs,
 		LastFinals:           lastFinals,
 		HighestFinalNonce:    highestFinalNonce,

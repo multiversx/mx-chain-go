@@ -221,6 +221,7 @@ type BlockProcessor interface {
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesis()
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
+	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
 }
 
@@ -524,6 +525,7 @@ type BootStorer interface {
 // BootstrapperFromStorage is the interface needed by boot component to load data from storage
 type BootstrapperFromStorage interface {
 	LoadFromStorage() error
+	GetHighestBlockNonce() uint64
 	IsInterfaceNil() bool
 }
 

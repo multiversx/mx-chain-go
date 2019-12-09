@@ -43,6 +43,7 @@ type storageBootstrapper struct {
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
 	headerNonceHashStore storage.Storer
+	highestNonce         uint64
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -98,8 +99,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
-		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo)
-		st.bootstrapper.cleanupNotarizedStorage(storageHeadersInfo[i].HeaderInfo.Hash)
+		st.cleanupStorage(storageHeadersInfo[i].LastHeader)
+		st.bootstrapper.cleanupNotarizedStorage(storageHeadersInfo[i].LastHeader.Hash)
 	}
 
 	err = st.bootStorer.SaveLastRound(round)
@@ -107,14 +108,21 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
+	st.highestNonce = headerInfo.LastHeader.Nonce
+
 	return nil
 }
 
+// GetHighestBlockNonce will return nonce of last block loaded from storage
+func (st *storageBootstrapper) GetHighestBlockNonce() uint64 {
+	return st.highestNonce
+}
+
 func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) error {
-	headerHash := hdrInfo.HeaderInfo.Hash
+	headerHash := hdrInfo.LastHeader.Hash
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
-		log.Debug("cannot get header ", "nonce", hdrInfo.HeaderInfo.Nonce,
+		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce,
 			"error", err.Error())
 		return err
 	}
@@ -137,7 +145,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {
 	highestFinalNonce := hdrInfo.HighestFinalNonce
-	highestNonce := hdrInfo.HeaderInfo.Nonce
+	highestNonce := hdrInfo.LastHeader.Nonce
 
 	lastRound := hdrInfo.LastRound
 	bootInfos := make([]bootstrapStorage.BootstrapData, 0)
@@ -155,7 +163,7 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		}
 
 		bootInfos = append(bootInfos, strHdrI)
-		highestNonce = strHdrI.HeaderInfo.Nonce
+		highestNonce = strHdrI.LastHeader.Nonce
 
 		lastRound = strHdrI.LastRound
 		if lastRound == 0 {
@@ -178,8 +186,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 	for i := len(bootInfos) - 1; i >= 0; i-- {
 		log.Debug("apply block",
-			"nonce", bootInfos[i].HeaderInfo.Nonce,
-			"shardId", bootInfos[i].HeaderInfo.ShardId)
+			"nonce", bootInfos[i].LastHeader.Nonce,
+			"shardId", bootInfos[i].LastHeader.ShardId)
 
 		lastCrossNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range bootInfos[i].LastNotarizedHeaders {
@@ -205,7 +213,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			lastFinalHashes = append(lastFinalHashes, lastFinal.Hash)
 		}
 
-		err = st.addHeaderToForkDetector(bootInfos[i].HeaderInfo.Hash, lastFinalHashes)
+		err = st.addHeaderToForkDetector(bootInfos[i].LastHeader.Hash, lastFinalHashes)
 		if err != nil {
 			log.Debug("cannot apply final block", "error", err.Error())
 			return err

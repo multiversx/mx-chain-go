@@ -201,6 +201,9 @@ func (boot *MetaBootstrap) StartSync() {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
+	} else {
+		_, numHdrs := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
+		boot.blkExecutor.SetNumProcessedObj(numHdrs)
 	}
 
 	go boot.syncBlocks()

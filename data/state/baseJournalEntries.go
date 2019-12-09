@@ -1,9 +1,5 @@
 package state
 
-import (
-	"github.com/ElrondNetwork/elrond-go/data"
-)
-
 //------- BaseJournalEntryCreation
 
 // BaseJournalEntryCreation creates a new account entry in the state trie
@@ -71,88 +67,6 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bjech *BaseJournalEntryCodeHash) IsInterfaceNil() bool {
 	if bjech == nil {
-		return true
-	}
-	return false
-}
-
-//------- BaseJournalEntryRoot
-
-// BaseJournalEntryRootHash creates an account's root hash change
-type BaseJournalEntryRootHash struct {
-	account     AccountHandler
-	oldRootHash []byte
-	oldTrie     data.Trie
-}
-
-// NewBaseJournalEntryRootHash outputs a new BaseJournalEntry used to save and revert an account's root hash change
-func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte, oldTrie data.Trie) (*BaseJournalEntryRootHash, error) {
-	if account == nil || account.IsInterfaceNil() {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &BaseJournalEntryRootHash{
-		account:     account,
-		oldRootHash: oldRootHash,
-		oldTrie:     oldTrie,
-	}, nil
-}
-
-// Revert applies undo operation
-func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
-	bjer.account.SetRootHash(bjer.oldRootHash)
-	bjer.account.SetDataTrie(bjer.oldTrie)
-
-	return bjer.account, nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (bjer *BaseJournalEntryRootHash) IsInterfaceNil() bool {
-	if bjer == nil {
-		return true
-	}
-	return false
-}
-
-//------- BaseJournalEntryData
-
-// BaseJournalEntryData is used to mark an account's data change
-type BaseJournalEntryData struct {
-	trie    data.Trie
-	account AccountHandler
-}
-
-// NewBaseJournalEntryData outputs a new BaseJournalEntry implementation used to keep track of data change.
-// The revert will practically empty the dirty data map
-func NewBaseJournalEntryData(account AccountHandler, trie data.Trie) (*BaseJournalEntryData, error) {
-	if account == nil || account.IsInterfaceNil() {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &BaseJournalEntryData{
-		account: account,
-		trie:    trie,
-	}, nil
-}
-
-// Revert will empty the dirtyData map from AccountState
-func (bjed *BaseJournalEntryData) Revert() (AccountHandler, error) {
-	dataTrieTracker := bjed.account.DataTrieTracker()
-	if dataTrieTracker != nil {
-		bjed.account.DataTrieTracker().ClearDataCaches()
-	}
-
-	return nil, nil
-}
-
-// Trie returns the referenced PatriciaMerkelTree for committing the changes
-func (bjed *BaseJournalEntryData) Trie() data.Trie {
-	return bjed.trie
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (bjed *BaseJournalEntryData) IsInterfaceNil() bool {
-	if bjed == nil {
 		return true
 	}
 	return false
