@@ -50,7 +50,7 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 	for pass := 0; ; pass++ {
 		copiedInThisPass := 0
 
-		cache.txListBySender.ForEach(func(key string, txList *TxListForSender) {
+		cache.ForEachSender(func(key string, txList *TxListForSender) {
 			if resultIsFull {
 				return
 			}
@@ -89,4 +89,9 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) {
 // CountTx gets the number of transactions in the cache
 func (cache *TxCache) CountTx() int64 {
 	return cache.txByHash.Counter.Get()
+}
+
+// ForEachSender iterates over the senders
+func (cache *TxCache) ForEachSender(function ForEachSender) {
+	cache.txListBySender.ForEach(function)
 }

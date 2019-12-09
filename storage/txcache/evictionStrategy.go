@@ -12,10 +12,10 @@ var log = logger.GetOrCreate("txcache/eviction")
 
 // EvictionStrategyConfig is a cache eviction model
 type EvictionStrategyConfig struct {
-	CountThreshold                  int
-	NoOldestSendersToEvict          int
-	ALotOfTransactionsForASender    int
-	NoTxsToRemoveForASenderWithALot int
+	CountThreshold                 int
+	NoOldestSendersToEvict         int
+	ALotOfTransactionsForASender   int
+	NoTxsToEvictForASenderWithALot int
 }
 
 // EvictionStrategy is a cache eviction model
@@ -92,8 +92,7 @@ func (model *EvictionStrategy) evictSendersAndTheirTxs(listsToEvict []*TxListFor
 
 	for _, txList := range listsToEvict {
 		sendersToEvict = append(sendersToEvict, txList.sender)
-		txHashes := txList.GetTxHashes()
-		txsToEvict = append(txsToEvict, txHashes...)
+		txsToEvict = append(txsToEvict, txList.GetTxHashes()...)
 	}
 
 	return model.doEvictItems(txsToEvict, sendersToEvict)
@@ -111,12 +110,12 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	model.Cache.txListBySender.ForEach(func(key string, txList *TxListForSender) {
+	model.Cache.ForEachSender(func(key string, txList *TxListForSender) {
 		aLot := model.Config.ALotOfTransactionsForASender
-		noToRemove := model.Config.NoTxsToRemoveForASenderWithALot
+		toEvictForSenderCount := model.Config.NoTxsToEvictForASenderWithALot
 
 		if txList.HasMoreThan(aLot) {
-			txsToEvictForSender := txList.RemoveHighNonceTxs(noToRemove)
+			txsToEvictForSender := txList.RemoveHighNonceTxs(toEvictForSenderCount)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
@@ -139,6 +138,7 @@ func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (step int, countTxs
 		listsToEvict := listsOrdered[sliceStart:sliceEnd]
 
 		stepCountTxs, stepCountSenders := model.evictSendersAndTheirTxs(listsToEvict)
+
 		countTxs += stepCountTxs
 		countSenders += stepCountSenders
 		sliceStart += batchSize

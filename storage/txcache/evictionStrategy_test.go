@@ -27,9 +27,9 @@ func Test_EvictOldestSenders(t *testing.T) {
 func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	cache := NewTxCache(300, 1)
 	config := EvictionStrategyConfig{
-		CountThreshold:                  400,
-		ALotOfTransactionsForASender:    50,
-		NoTxsToRemoveForASenderWithALot: 25,
+		CountThreshold:                 400,
+		ALotOfTransactionsForASender:   50,
+		NoTxsToEvictForASenderWithALot: 25,
 	}
 	eviction := NewEvictionStrategy(cache, config)
 

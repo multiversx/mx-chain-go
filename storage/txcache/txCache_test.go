@@ -99,10 +99,10 @@ func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.
 
 	cache := NewTxCache(250000, 1)
 	config := EvictionStrategyConfig{
-		CountThreshold:                  240000,
-		NoOldestSendersToEvict:          10,
-		ALotOfTransactionsForASender:    1000,
-		NoTxsToRemoveForASenderWithALot: 250,
+		CountThreshold:                 240000,
+		NoOldestSendersToEvict:         10,
+		ALotOfTransactionsForASender:   1000,
+		NoTxsToEvictForASenderWithALot: 250,
 	}
 	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
 

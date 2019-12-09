@@ -105,11 +105,11 @@ func (txMap *TxListBySenderMap) GetListsSortedByOrderNumber() []*TxListForSender
 	return lists
 }
 
-// ForEach is an iterator callback
-type ForEach func(key string, value *TxListForSender)
+// ForEachSender is an iterator callback
+type ForEachSender func(key string, value *TxListForSender)
 
 // ForEach iterates over the senders
-func (txMap *TxListBySenderMap) ForEach(function ForEach) {
+func (txMap *TxListBySenderMap) ForEach(function ForEachSender) {
 	txMap.Map.IterCb(func(key string, item interface{}) {
 		txList := item.(*TxListForSender)
 		function(key, txList)
