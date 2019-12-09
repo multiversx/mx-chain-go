@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"runtime"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -140,18 +139,3 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	return bytes
 }
 
-func printMemUsage(message string) {
-	fmt.Println(">>> Memory usage", message, ":")
-
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
-	fmt.Printf("Alloc = %v MiB", bytesToMegabytes(m.Alloc))
-	fmt.Printf("\tTotalAlloc = %v MiB", bytesToMegabytes(m.TotalAlloc))
-	fmt.Printf("\tSys = %v MiB", bytesToMegabytes(m.Sys))
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
-}
-
-func bytesToMegabytes(b uint64) uint64 {
-	return b / 1024 / 1024
-}

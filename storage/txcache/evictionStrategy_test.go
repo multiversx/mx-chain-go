@@ -6,7 +6,10 @@ import "github.com/stretchr/testify/assert"
 
 func Test_EvictOldestSenders(t *testing.T) {
 	cache := NewTxCache(100, 1)
-	config := EvictionStrategyConfig{CountThreshold: 1, NoOldestSendersToEvict: 2}
+	config := EvictionStrategyConfig{
+		CountThreshold:         1,
+		NoOldestSendersToEvict: 2,
+	}
 	eviction := NewEvictionStrategy(cache, config)
 
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
@@ -14,6 +17,7 @@ func Test_EvictOldestSenders(t *testing.T) {
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
 	noTxs, noSenders := eviction.EvictOldestSenders()
+
 	assert.Equal(t, 2, noTxs)
 	assert.Equal(t, 2, noSenders)
 	assert.Equal(t, int64(1), cache.txListBySender.Counter.Get())
@@ -22,7 +26,11 @@ func Test_EvictOldestSenders(t *testing.T) {
 
 func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	cache := NewTxCache(300, 1)
-	config := EvictionStrategyConfig{CountThreshold: 400, ManyTransactionsForASender: 50, PartOfManyTransactionsOfASender: 25}
+	config := EvictionStrategyConfig{
+		CountThreshold:                  400,
+		ManyTransactionsForASender:      50,
+		PartOfManyTransactionsOfASender: 25,
+	}
 	eviction := NewEvictionStrategy(cache, config)
 
 	for index := 0; index < 200; index++ {
@@ -38,7 +46,7 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(401), cache.txByHash.Counter.Get())
 
-	noTxs, noSenders := eviction.DoHighNonceTransactionsEviction()
+	noTxs, noSenders := eviction.EvictHighNonceTransactions()
 
 	assert.Equal(t, 50, noTxs)
 	assert.Equal(t, 0, noSenders)
@@ -47,5 +55,26 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 }
 
 func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
-	// todo
+	cache := NewTxCache(300, 1)
+	config := EvictionStrategyConfig{
+		CountThreshold:         100,
+		NoOldestSendersToEvict: 25,
+	}
+	eviction := NewEvictionStrategy(cache, config)
+
+	// 200 senders, each with 1 transaction
+	for index := 0; index < 200; index++ {
+		sender := string(createFakeSenderAddress(index))
+		cache.AddTx([]byte{byte(index)}, createTx(sender, uint64(1)))
+	}
+
+	assert.Equal(t, int64(200), cache.txListBySender.Counter.Get())
+	assert.Equal(t, int64(200), cache.txByHash.Counter.Get())
+
+	noTxs, noSenders := eviction.EvictSendersWhileTooManyTxs()
+
+	assert.Equal(t, 100, noTxs)
+	assert.Equal(t, 100, noSenders)
+	assert.Equal(t, int64(100), cache.txListBySender.Counter.Get())
+	assert.Equal(t, int64(100), cache.txByHash.Counter.Get())
 }
