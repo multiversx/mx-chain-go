@@ -373,9 +373,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	buffToSend, err = json.Marshal(hb)
 
-	assert.Nil(t, err)
-
 	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
+	assert.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 
