@@ -98,3 +98,24 @@ func TestSizeUnmarshlizer_MU(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, o, o2)
 }
+
+func BenchmarkSizeCheck_Disabled(b *testing.B) {
+	m := &JsonMarshalizer{}
+	benchInput := [][]byte{[]byte(goodFull), []byte(good), []byte(withExtra), []byte(badSyntax)}
+	ts := &testStruct{}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = m.Unmarshal(ts, benchInput[i%len(benchInput)])
+	}
+}
+
+func BenchmarkSizeCheck_Enabled(b *testing.B) {
+	jm := &JsonMarshalizer{}
+	m := NewSizeCheckUnmarshalizer(jm, 20)
+	benchInput := [][]byte{[]byte(goodFull), []byte(good), []byte(withExtra), []byte(badSyntax)}
+	ts := &testStruct{}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = m.Unmarshal(ts, benchInput[i%len(benchInput)])
+	}
+}
