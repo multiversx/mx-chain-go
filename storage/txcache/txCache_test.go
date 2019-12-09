@@ -98,7 +98,12 @@ func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.
 	logger.SetLogLevel("txcache/eviction:DEBUG")
 
 	cache := NewTxCache(250000, 1)
-	config := EvictionStrategyConfig{CountThreshold: 240000, NoOldestSendersToEvict: 10, ManyTransactionsForASender: 1000, PartOfManyTransactionsOfASender: 250}
+	config := EvictionStrategyConfig{
+		CountThreshold:                  240000,
+		NoOldestSendersToEvict:          10,
+		ALotOfTransactionsForASender:    1000,
+		NoTxsToRemoveForASenderWithALot: 250,
+	}
 	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
 
 	noSenders := 5000
@@ -138,4 +143,3 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
 }
-

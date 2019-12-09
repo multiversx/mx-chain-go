@@ -28,8 +28,8 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	cache := NewTxCache(300, 1)
 	config := EvictionStrategyConfig{
 		CountThreshold:                  400,
-		ManyTransactionsForASender:      50,
-		PartOfManyTransactionsOfASender: 25,
+		ALotOfTransactionsForASender:    50,
+		NoTxsToRemoveForASenderWithALot: 25,
 	}
 	eviction := NewEvictionStrategy(cache, config)
 
