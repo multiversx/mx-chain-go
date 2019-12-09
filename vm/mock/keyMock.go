@@ -29,10 +29,7 @@ func (sspk *PublicKeyMock) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sspk *PublicKeyMock) IsInterfaceNil() bool {
-	if sspk == nil {
-		return true
-	}
-	return false
+	return sspk == nil
 }
 
 //------- PrivateKeyMock
@@ -55,10 +52,7 @@ func (sk *PrivateKeyMock) Scalar() crypto.Scalar {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sk *PrivateKeyMock) IsInterfaceNil() bool {
-	if sk == nil {
-		return true
-	}
-	return false
+	return sk == nil
 }
 
 //------KeyGenMock
@@ -67,11 +61,11 @@ func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	return &PrivateKeyMock{}, &PublicKeyMock{}
 }
 
-func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+func (keyGen *KeyGenMock) PrivateKeyFromByteArray(_ []byte) (crypto.PrivateKey, error) {
 	return &PrivateKeyMock{}, nil
 }
 
-func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+func (keyGen *KeyGenMock) PublicKeyFromByteArray(_ []byte) (crypto.PublicKey, error) {
 	return &PublicKeyMock{}, nil
 }
 
@@ -81,8 +75,5 @@ func (keyGen *KeyGenMock) Suite() crypto.Suite {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (keyGen *KeyGenMock) IsInterfaceNil() bool {
-	if keyGen == nil {
-		return true
-	}
-	return false
+	return keyGen == nil
 }

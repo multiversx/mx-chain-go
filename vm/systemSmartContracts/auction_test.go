@@ -214,13 +214,13 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
-		if bytes.Compare(key, arguments.CallerAddr) == 0 {
+		if bytes.Equal(key, arguments.CallerAddr) {
 			return auctionDataBytes
 		}
 		return nil
 	}
 	eei.SetStorageCalled = func(key []byte, value []byte) {
-		if bytes.Compare(key, arguments.CallerAddr) == 0 {
+		if bytes.Equal(key, arguments.CallerAddr) {
 			var auctionData AuctionData
 			_ = json.Unmarshal(value, &auctionData)
 			assert.Equal(t, big.NewInt(26000000), auctionData.TotalStakeValue)
@@ -258,19 +258,19 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
-		if bytes.Compare(key, arguments.CallerAddr) == 0 {
+		if bytes.Equal(key, arguments.CallerAddr) {
 			return auctionDataBytes
 		}
 		return nil
 	}
 	eei.SetStorageCalled = func(key []byte, value []byte) {
-		if bytes.Compare(key, arguments.CallerAddr) == 0 {
+		if bytes.Equal(key, arguments.CallerAddr) {
 			var auctionData AuctionData
 			_ = json.Unmarshal(value, &auctionData)
 			assert.Equal(t, big.NewInt(26000000), auctionData.TotalStakeValue)
-			assert.True(t, bytes.Compare(auctionData.BlsPubKeys[2], key1) == 0)
-			assert.True(t, bytes.Compare(auctionData.BlsPubKeys[3], key2) == 0)
-			assert.True(t, bytes.Compare(auctionData.RewardAddress, rewardAddr) == 0)
+			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[2], key1))
+			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[3], key2))
+			assert.True(t, bytes.Equal(auctionData.RewardAddress, rewardAddr))
 			assert.Equal(t, maxStakePerNoce, auctionData.MaxStakePerNode)
 		}
 	}
@@ -312,10 +312,10 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 	eei := &mock.SystemEIStub{}
 	kg := &mock.KeyGenMock{}
 	eei.GetStorageCalled = func(key []byte) []byte {
-		if bytes.Compare(key, arguments.CallerAddr) == 0 {
+		if bytes.Equal(key, arguments.CallerAddr) {
 			return auctionDataBytes
 		}
-		if bytes.Compare(key, auctionData.BlsPubKeys[0]) == 0 {
+		if bytes.Equal(key, auctionData.BlsPubKeys[0]) {
 			return stakedDataBytes
 		}
 		return nil
@@ -360,10 +360,10 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	eei := &mock.SystemEIStub{}
 	kg := &mock.KeyGenMock{}
 	eei.GetStorageCalled = func(key []byte) []byte {
-		if bytes.Compare(arguments.CallerAddr, key) == 0 {
+		if bytes.Equal(arguments.CallerAddr, key) {
 			return auctionDataBytes
 		}
-		if bytes.Compare(key, auctionData.BlsPubKeys[0]) == 0 {
+		if bytes.Equal(key, auctionData.BlsPubKeys[0]) {
 			return stakedDataBytes
 		}
 
