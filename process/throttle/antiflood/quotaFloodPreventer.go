@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const minMessages = 1
 const minTotalSize = 1 //1Byte
+const initNumMessages = 1
 
 type quota struct {
 	numMessages uint32
@@ -31,7 +33,7 @@ func NewQuotaFloodPreventer(
 	maxTotalSizePerPeer uint64,
 ) (*quotaFloodPreventer, error) {
 
-	if cacher == nil {
+	if check.IfNil(cacher) {
 		return nil, process.ErrNilCacher
 	}
 	if maxMessagesPerPeer < minMessages {
@@ -56,11 +58,11 @@ func NewQuotaFloodPreventer(
 	}, nil
 }
 
-// TryIncrement tries to increment the counter values held at "identifier" position
+// Increment tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
-func (qfp *quotaFloodPreventer) TryIncrement(identifier string, size uint64) bool {
-	//we need the mutOperation here as the get and put should be done atomically.
-	// Otherwise we might yield a slightly higher number of false valid increments
+// We need the mutOperation here as the get and put should be done atomically.
+// Otherwise we might yield a slightly higher number of false valid increments
+func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
@@ -92,7 +94,7 @@ func (qfp *quotaFloodPreventer) TryIncrement(identifier string, size uint64) boo
 
 func (qfp *quotaFloodPreventer) putDefaultQuota(cacher storage.Cacher, identifier string, size uint64) {
 	q := &quota{
-		numMessages: 1,
+		numMessages: initNumMessages,
 		totalSize:   size,
 	}
 	qfp.cacher.Put([]byte(identifier), q)

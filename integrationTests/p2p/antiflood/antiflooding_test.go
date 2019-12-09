@@ -24,7 +24,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	peers, err := integrationTests.CreateFixedNetworkOf7Peers()
+	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
 
 	defer func() {
@@ -49,7 +49,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	protectedIdexes := []int{5, 7}
 
 	//flooder will deactivate its flooding mechanism as to be able to flood the network
-	interceptors[flooderIdx].FloodPreventer = nil
+	interceptors[flooderIdx].floodPreventer = nil
 
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
@@ -104,7 +104,7 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 
 	//flooders will deactivate their flooding mechanism as to be able to flood the network
 	for _, idx := range flooderIdxes {
-		interceptors[idx].FloodPreventer = nil
+		interceptors[idx].floodPreventer = nil
 	}
 
 	//generate a message from connected peers of the main flooder (peer 2)
@@ -125,7 +125,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	peers, err := integrationTests.CreateFixedNetworkOf7Peers()
+	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
 
 	defer func() {
@@ -150,7 +150,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	protectedIdexes := []int{5, 7}
 
 	//flooder will deactivate its flooding mechanism as to be able to flood the network
-	interceptors[flooderIdx].FloodPreventer = nil
+	interceptors[flooderIdx].floodPreventer = nil
 
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
@@ -208,7 +208,7 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
-		interceptors[idx].FloodPreventer, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, maxNumMessages, maxSize)
+		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, maxNumMessages, maxSize)
 		err = p.RegisterMessageProcessor(topic, interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())

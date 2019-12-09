@@ -230,7 +230,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -288,7 +288,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -355,7 +355,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	buffToSend, err := json.Marshal(hb)
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId, nil)
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -375,7 +375,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId, nil)
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 
 	time.Sleep(1 * time.Second)
 
@@ -454,6 +454,6 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 		Pubkey: []byte(pubKey),
 	}
 	buffToSend, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	return err
 }

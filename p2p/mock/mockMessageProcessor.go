@@ -16,7 +16,7 @@ func NewMockMessageProcessor(peer p2p.PeerID) *MockMessageProcessor {
 	return &processor
 }
 
-func (processor *MockMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID, _ func(buffToSend []byte)) error {
+func (processor *MockMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	fmt.Printf("Message received by %s from %s: %s\n", string(processor.Peer), string(message.Peer()), string(message.Data()))
 	return nil
 }

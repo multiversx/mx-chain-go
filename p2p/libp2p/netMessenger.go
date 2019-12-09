@@ -451,12 +451,8 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	broadcastHandler := func(buffToSend []byte) {
-		netMes.Broadcast(topic, buffToSend)
-	}
-
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message), p2p.PeerID(pid), broadcastHandler)
+		err := handler.ProcessReceivedMessage(NewMessage(message), p2p.PeerID(pid))
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
 		}
@@ -511,7 +507,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer, nil)
+		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
 		}

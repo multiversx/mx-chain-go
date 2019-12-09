@@ -108,14 +108,14 @@ func CreateMessengerWithNoDiscovery(ctx context.Context) p2p.Messenger {
 	return libP2PMes
 }
 
-// CreateFixedNetworkOf7Peers assembles a network as following:
+// CreateFixedNetworkOf8Peers assembles a network as following:
 //
 //                             0------------------- 1
 //                             |                    |
 //        2 ------------------ 3 ------------------ 4
 //        |                    |                    |
 //        5                    6                    7
-func CreateFixedNetworkOf7Peers() ([]p2p.Messenger, error) {
+func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 	numPeers := 7
 	peers := make([]p2p.Messenger, numPeers+1)
 

@@ -292,11 +292,11 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 	for _, peer := range messenger.Network.Peers() {
 		if async {
 			go func(receivingPeer *Messenger) {
-				err := receivingPeer.ReceiveMessage(topic, message, messenger.P2PID, true)
+				err := receivingPeer.ReceiveMessage(topic, message, messenger.P2PID)
 				log.LogIfError(err)
 			}(peer)
 		} else {
-			err = peer.ReceiveMessage(topic, message, messenger.P2PID, true)
+			err = peer.ReceiveMessage(topic, message, messenger.P2PID)
 		}
 		if err != nil {
 			break
@@ -322,7 +322,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 			return ErrReceivingPeerNotConnected
 		}
 
-		return receivingPeer.ReceiveMessage(topic, message, messenger.P2PID, false)
+		return receivingPeer.ReceiveMessage(topic, message, messenger.P2PID)
 	}
 
 	return ErrNotConnectedToNetwork
@@ -333,7 +333,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 // previously registered a message processor for that topic. The Network will
 // log the message only if the Network.LogMessages flag is set and only if the
 // Messenger has the requested topic and MessageProcessor.
-func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, allowBroadcast bool) error {
+func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
@@ -350,14 +350,7 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P,
 		messenger.Network.LogMessage(message)
 	}
 
-	var handler func(buffToSend []byte)
-	if allowBroadcast {
-		handler = func(buffToSend []byte) {
-			messenger.Broadcast(topic, buffToSend)
-		}
-	}
-
-	return validator.ProcessReceivedMessage(message, fromConnectedPeer, handler)
+	return validator.ProcessReceivedMessage(message, fromConnectedPeer)
 }
 
 // IsConnectedToTheNetwork returns true as this implementation is always connected to its network

@@ -99,7 +99,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId, nil)
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -113,7 +113,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId, nil)
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrInvalidRequestType, err)
 }
 
@@ -158,7 +158,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
 		fromConnectedPeerId,
-		nil,
 	)
 
 	assert.Nil(t, err)
@@ -210,7 +209,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
 		fromConnectedPeerId,
-		nil,
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -256,7 +254,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
 		fromConnectedPeerId,
-		nil,
 	)
 
 	assert.Nil(t, err)
@@ -300,7 +297,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	_ = gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
 		fromConnectedPeerId,
-		nil,
 	)
 
 	assert.False(t, wasSent)

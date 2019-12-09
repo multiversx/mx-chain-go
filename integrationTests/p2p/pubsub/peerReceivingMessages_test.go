@@ -20,7 +20,7 @@ type messageProcessorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
-func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID, _ func(buffToSend []byte)) error {
+func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return mps.ProcessReceivedMessageCalled(message)
 }
 
@@ -136,7 +136,7 @@ func TestBroadcastMessageComesFormTheConnectedPeers(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	peers, err := integrationTests.CreateFixedNetworkOf7Peers()
+	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
 
 	defer func() {
