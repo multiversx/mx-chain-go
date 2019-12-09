@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -155,10 +154,6 @@ func (bfd *baseForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 // computeProbableHighestNonce computes the probable highest nonce from the valid received/processed headers
 func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	probableHighestNonce := bfd.finalCheckpoint().nonce
-	lastProposedBlockNonce := bfd.lastProposedBlockNonce()
-	if lastProposedBlockNonce > 0 {
-		probableHighestNonce = core.MaxUint64(bfd.finalCheckpoint().nonce, lastProposedBlockNonce-1)
-	}
 
 	bfd.mutHeaders.RLock()
 	for nonce := range bfd.headers {
