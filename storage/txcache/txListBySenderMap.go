@@ -1,14 +1,17 @@
 package txcache
 
-import "github.com/ElrondNetwork/elrond-go/data/transaction"
+import (
+	"sort"
 
-import "sort"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+)
 
 // TxListBySenderMap is
 type TxListBySenderMap struct {
 	Map             *ConcurrentMap
-	Counter         AtomicCounter
-	nextOrderNumber AtomicCounter
+	Counter         core.AtomicCounter
+	nextOrderNumber core.AtomicCounter
 }
 
 // NewTxListBySenderMap creates a new map-like structure for holding and accessing transactions by sender

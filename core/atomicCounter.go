@@ -1,4 +1,4 @@
-package txcache
+package core
 
 import "sync/atomic"
 
@@ -23,9 +23,4 @@ func (counter *AtomicCounter) Decrement() int64 {
 // Get gets counter
 func (counter *AtomicCounter) Get() int64 {
 	return atomic.LoadInt64((*int64)(counter))
-}
-
-// GetUnstable gets
-func (counter *AtomicCounter) GetUnstable() int64 {
-	return (int64)(*counter)
 }

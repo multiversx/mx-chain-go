@@ -1,11 +1,14 @@
 package txcache
 
-import "github.com/ElrondNetwork/elrond-go/data/transaction"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+)
 
 // TxByHashMap is
 type TxByHashMap struct {
 	Map     *ConcurrentMap
-	Counter AtomicCounter
+	Counter core.AtomicCounter
 }
 
 // NewTxByHashMap creates a new map-like structure for holding and accessing transactions by txHash
