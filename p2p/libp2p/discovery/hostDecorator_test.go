@@ -42,10 +42,10 @@ func TestDecoratorConstructor(t *testing.T) {
 	}{
 		{h: nil, ctx: nil, cps: 0, to: 0, expDecNil: true, expErrNil: false, expCps: 0, name: "All zero"},
 		{h: nil, ctx: ctx, cps: 0, to: time.Second, expDecNil: true, expErrNil: false, expCps: 0, name: "Nil Host"},
-		{h: hst, ctx: nil, cps: 0, to: time.Second, expDecNil: true, expErrNil: false, expCps: 0, name: "Nil Host"},
-		{h: hst, ctx: ctx, cps: 0, to: -1, expDecNil: true, expErrNil: false, expCps: 0, name: "Zero timeout"},
-		{h: hst, ctx: ctx, cps: cpsLow, to: 0, expDecNil: false, expErrNil: true, expCps: hardCPSLimitLow, name: "Low cps"},
-		{h: hst, ctx: ctx, cps: cpsHigh, to: 0, expDecNil: false, expErrNil: true, expCps: hardCPSLimitHigh, name: "High cps"},
+		{h: hst, ctx: nil, cps: 0, to: time.Second, expDecNil: true, expErrNil: false, expCps: 0, name: "Nil Context"},
+		{h: hst, ctx: ctx, cps: 0, to: -1, expDecNil: true, expErrNil: false, expCps: 0, name: "Bad timeout"},
+		{h: hst, ctx: ctx, cps: cpsLow, to: 0, expDecNil: true, expErrNil: false, expCps: hardCPSLimitLow, name: "Low cps"},
+		{h: hst, ctx: ctx, cps: cpsHigh, to: 0, expDecNil: true, expErrNil: false, expCps: hardCPSLimitHigh, name: "High cps"},
 		{h: hst, ctx: ctx, cps: cpsAvg, to: 0, expDecNil: false, expErrNil: true, expCps: int(cpsAvg), name: "All good"},
 	}
 
