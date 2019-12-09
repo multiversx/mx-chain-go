@@ -57,8 +57,9 @@ func (mbt *metaBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	log.Trace("received meta block from network in block tracker",
+	log.Debug("received meta block from network in block tracker",
 		"shard", metaBlock.GetShardID(),
+		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
 	)
@@ -73,8 +74,9 @@ func (mbt *metaBlockTrack) receivedShardHeader(headerHash []byte) {
 		return
 	}
 
-	log.Trace("received shard header from network in block tracker",
+	log.Debug("received shard header from network in block tracker",
 		"shard", header.GetShardID(),
+		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 	)

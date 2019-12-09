@@ -50,7 +50,7 @@ func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) {
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &headerInfo{hash: hash, header: header})
-	bbt.displayHeadersForShard(shardID)
+	//bbt.displayHeadersForShard(shardID)
 }
 
 // LastHeaderForShard returns the last header received (highest round) for the given shard
@@ -98,7 +98,7 @@ func (bbt *baseBlockTrack) displayHeaders() {
 	bbt.mutHeaders.RLock()
 	defer bbt.mutHeaders.RUnlock()
 
-	for shardID, _ := range bbt.headers {
+	for shardID := range bbt.headers {
 		bbt.displayHeadersForShard(shardID)
 	}
 }
