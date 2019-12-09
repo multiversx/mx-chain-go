@@ -94,10 +94,14 @@ func (model *EvictionStrategy) EvictOldestSenders() (int, int) {
 		txsToEvict = append(txsToEvict, txHashes...)
 	}
 
+	return model.evictItems(txsToEvict, sendersToEvict)
+}
+
+func (model *EvictionStrategy) evictItems(txsToEvict [][]byte, sendersToEvict []string) (int, int) {
 	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 
-	return len(txsToEvict), len(listsToEvict)
+	return len(txsToEvict), len(sendersToEvict)
 }
 
 // EvictHighNonceTransactions removes transactions from the cache
@@ -118,10 +122,7 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 		}
 	})
 
-	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
-	model.Cache.txListBySender.removeSenders(sendersToEvict)
-
-	return len(txsToEvict), len(sendersToEvict)
+	return model.evictItems(txsToEvict, sendersToEvict)
 }
 
 // EvictSendersWhileTooManyTxs removes transactions
@@ -147,8 +148,7 @@ func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (int, int) {
 			txsToEvict = append(txsToEvict, txHashes...)
 		}
 
-		model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
-		model.Cache.txListBySender.removeSenders(sendersToEvict)
+		model.evictItems(txsToEvict, sendersToEvict)
 
 		countTxs += len(txsToEvict)
 		countSenders += len(listsToEvict)
