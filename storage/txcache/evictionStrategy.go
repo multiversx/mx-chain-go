@@ -86,6 +86,10 @@ func (model *EvictionStrategy) EvictOldestSenders() (int, int) {
 	sliceEnd := core.MinInt(model.Config.NoOldestSendersToEvict, len(listsOrdered))
 	listsToEvict := listsOrdered[:sliceEnd]
 
+	return model.evictSendersAndTheirTxs(listsToEvict)
+}
+
+func (model *EvictionStrategy) evictSendersAndTheirTxs(listsToEvict []*TxListForSender) (int, int) {
 	sendersToEvict := make([]string, 0)
 	txsToEvict := make([][]byte, 0)
 
@@ -95,10 +99,10 @@ func (model *EvictionStrategy) EvictOldestSenders() (int, int) {
 		txsToEvict = append(txsToEvict, txHashes...)
 	}
 
-	return model.evictItems(txsToEvict, sendersToEvict)
+	return model.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-func (model *EvictionStrategy) evictItems(txsToEvict [][]byte, sendersToEvict []string) (int, int) {
+func (model *EvictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (int, int) {
 	model.Cache.txByHash.RemoveTransactionsBulk(txsToEvict)
 	model.Cache.txListBySender.removeSenders(sendersToEvict)
 
@@ -121,7 +125,7 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 		}
 	})
 
-	return model.evictItems(txsToEvict, sendersToEvict)
+	return model.doEvictItems(txsToEvict, sendersToEvict)
 }
 
 // EvictSendersWhileTooManyTxs removes transactions
@@ -138,20 +142,10 @@ func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (int, int) {
 		batchSize := model.Config.NoOldestSendersToEvict
 		sliceEnd := core.MinInt(sliceStart+batchSize, len(listsOrdered))
 		listsToEvict := listsOrdered[sliceStart:sliceEnd]
-		sendersToEvict := make([]string, 0)
-		txsToEvict := make([][]byte, 0)
 
-		for _, txList := range listsToEvict {
-			sendersToEvict = append(sendersToEvict, txList.sender)
-			txHashes := txList.GetTxHashes()
-			txsToEvict = append(txsToEvict, txHashes...)
-		}
-
-		model.evictItems(txsToEvict, sendersToEvict)
-
-		countTxs += len(txsToEvict)
-		countSenders += len(listsToEvict)
-
+		stepCountTxs, stepCountSenders := model.evictSendersAndTheirTxs(listsToEvict)
+		countTxs += stepCountTxs
+		countSenders += stepCountSenders
 		sliceStart += batchSize
 	}
 
