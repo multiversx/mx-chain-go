@@ -47,24 +47,21 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 	// First pass
 	// Senders capacity is close to be reached first (before txs capacity) when there are a lot of senders with little or one transaction
 	if model.areThereTooManySenders() {
-		log.Debug("DoEviction: 1st pass")
 		countTxs, countSenders := model.EvictOldestSenders()
-		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
+		log.Debug("DoEviction, 1st pass:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	// Second pass
 	// For senders with many transactions (> "ManyTransactionsForASender"), evict "PartOfManyTransactionsOfASender" transactions
 	if model.areThereTooManyTxs() {
-		log.Debug("DoEviction: 2nd pass")
 		countTxs, countSenders := model.EvictHighNonceTransactions()
-		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
+		log.Debug("DoEviction, 2nd pass:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	// Third pass
 	if model.areThereTooManyTxs() {
-		log.Debug("DoEviction: 3nd pass")
-		countTxs, countSenders := model.EvictSendersWhileTooManyTxs()
-		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
+		steps, countTxs, countSenders := model.EvictSendersWhileTooManyTxs()
+		log.Debug("DoEviction, 3rd pass:", "steps", steps, "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	model.mutex.Unlock()
@@ -129,16 +126,11 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 }
 
 // EvictSendersWhileTooManyTxs removes transactions
-func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (int, int) {
+func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (step int, countTxs int, countSenders int) {
 	listsOrdered := model.Cache.txListBySender.GetListsSortedByOrderNumber()
 
-	countTxs := 0
-	countSenders := 0
-
 	sliceStart := 0
-	for step := 1; model.areThereTooManyTxs(); step++ {
-		log.Debug("EvictSendersWhileTooManyTxs", "step", step)
-
+	for step = 1; model.areThereTooManyTxs(); step++ {
 		batchSize := model.Config.NoOldestSendersToEvict
 		sliceEnd := core.MinInt(sliceStart+batchSize, len(listsOrdered))
 		listsToEvict := listsOrdered[sliceStart:sliceEnd]
@@ -149,5 +141,5 @@ func (model *EvictionStrategy) EvictSendersWhileTooManyTxs() (int, int) {
 		sliceStart += batchSize
 	}
 
-	return countTxs, countSenders
+	return
 }

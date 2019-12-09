@@ -58,7 +58,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	cache := NewTxCache(300, 1)
 	config := EvictionStrategyConfig{
 		CountThreshold:         100,
-		NoOldestSendersToEvict: 25,
+		NoOldestSendersToEvict: 20,
 	}
 	eviction := NewEvictionStrategy(cache, config)
 
@@ -71,8 +71,9 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	assert.Equal(t, int64(200), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(200), cache.txByHash.Counter.Get())
 
-	noTxs, noSenders := eviction.EvictSendersWhileTooManyTxs()
+	steps, noTxs, noSenders := eviction.EvictSendersWhileTooManyTxs()
 
+	assert.Equal(t, 6, steps) // eviction happens in CountThreshold / NoOldestSendersToEvict + 1 steps
 	assert.Equal(t, 100, noTxs)
 	assert.Equal(t, 100, noSenders)
 	assert.Equal(t, int64(100), cache.txListBySender.Counter.Get())
