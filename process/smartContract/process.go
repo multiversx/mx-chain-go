@@ -599,8 +599,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		TxHash:  txHash,
 	}
 
-	resultedScrs := make([]data.TransactionHandler, 0)
-	resultedScrs = append(resultedScrs, scr)
+	resultedScrs := []data.TransactionHandler{scr}
 
 	return resultedScrs, nil
 }
@@ -646,7 +645,7 @@ func (sc *scProcessor) createSCRTransactions(
 	tx data.TransactionHandler,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	scResults := make([]data.TransactionHandler, 0)
+	scResults := make([]data.TransactionHandler, 0, len(outAccs))
 
 	for i := 0; i < len(outAccs); i++ {
 		scTx := sc.createSmartContractResult(outAccs[i], tx, txHash)

@@ -126,7 +126,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	lines := displayHeader(header)
 
-	shardLines := make([]*display.LineData, 0)
+	shardLines := make([]*display.LineData, 0, len(lines)+6)
 	shardLines = append(shardLines, display.NewLineData(false, []string{
 		"Header",
 		"Block type",

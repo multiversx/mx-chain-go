@@ -85,7 +85,7 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 
 	lines := displayHeader(header)
 
-	metaLines := make([]*display.LineData, 0)
+	metaLines := make([]*display.LineData, 0, len(lines)+3)
 	metaLines = append(metaLines, display.NewLineData(false, []string{
 		"Header",
 		"Block type",

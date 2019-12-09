@@ -148,7 +148,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	rtxh.protocolRewardsMeta = rtxh.createProtocolRewardsForMeta()
 	rtxh.addTransactionsToPool(rtxh.protocolRewardsMeta)
 
-	calculatedRewardTxs := make([]data.TransactionHandler, 0)
+	calculatedRewardTxs := make([]data.TransactionHandler, 0, len(rtxh.protocolRewards)+len(rtxh.protocolRewardsMeta)+len(rtxh.feeRewards))
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
@@ -229,7 +229,7 @@ func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, 
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
-	marshaledTxs := make([][]byte, 0)
+	marshaledTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		rTx, ok := rtxh.rewardTxsForBlock[string(txHash)]
 		if !ok {
@@ -345,13 +345,13 @@ func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 // createProtocolRewards creates the protocol reward transactions
 func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	consensusRewardData := rtxh.address.ConsensusShardRewardData()
-	consensusRewardTxs := make([]data.TransactionHandler, 0)
 
 	isRewardValueZero := rtxh.economicsRewards.RewardsValue().Cmp(big.NewInt(0)) == 0
 	if isRewardValueZero {
-		return consensusRewardTxs
+		return []data.TransactionHandler{}
 	}
 
+	consensusRewardTxs := make([]data.TransactionHandler, 0, len(consensusRewardData.Addresses))
 	for _, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
 		rTx.Value = rtxh.economicsRewards.RewardsValue()

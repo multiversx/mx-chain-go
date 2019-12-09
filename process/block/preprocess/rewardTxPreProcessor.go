@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -404,7 +405,7 @@ func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *bloc
 
 // computeMissingRewardTxsForMiniBlock computes missing reward transactions for a certain miniblock
 func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
-	missingRewardTxs := make([][]byte, 0)
+	missingRewardTxs := make([][]byte, 0, len(miniBlock.TxHashes))
 	if miniBlock.Type != block.RewardsBlock {
 		return missingRewardTxs
 	}
@@ -422,7 +423,7 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(miniBlock *
 		}
 	}
 
-	return missingRewardTxs
+	return sliceUtil.TrimSliceSliceByte(missingRewardTxs)
 }
 
 // getAllRewardTxsFromMiniBlock gets all the reward transactions from a miniblock into a new structure
@@ -438,8 +439,8 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	}
 
 	// verify if all reward transactions exists
-	rewardTxs := make([]*rewardTx.RewardTx, 0)
-	txHashes := make([][]byte, 0)
+	rewardTxs := make([]*rewardTx.RewardTx, 0, len(mb.TxHashes))
+	txHashes := make([][]byte, 0, len(mb.TxHashes))
 	for _, txHash := range mb.TxHashes {
 		if !haveTime() {
 			return nil, nil, process.ErrTimeIsOut
@@ -494,7 +495,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
-	processedTxHashes := make([][]byte, 0)
+	processedTxHashes := make([][]byte, 0, len(rewardMiniBlocksSlice))
 
 	for _, mb := range rewardMiniBlocksSlice {
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)
@@ -573,9 +574,8 @@ func (rtp *rewardTxPreprocessor) CreateMarshalizedData(txHashes [][]byte) ([][]b
 
 // GetAllCurrentUsedTxs returns all the reward transactions used at current creation / processing
 func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
-	rewardTxPool := make(map[string]data.TransactionHandler)
-
 	rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
+	rewardTxPool := make(map[string]data.TransactionHandler, len(rtp.rewardTxsForBlock.txHashAndInfo))
 	for txHash, txData := range rtp.rewardTxsForBlock.txHashAndInfo {
 		rewardTxPool[txHash] = txData.tx
 	}
