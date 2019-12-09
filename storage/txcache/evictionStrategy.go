@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -20,6 +22,7 @@ type EvictionStrategyConfig struct {
 type EvictionStrategy struct {
 	Cache  *TxCache
 	Config EvictionStrategyConfig
+	mutex  sync.Mutex
 }
 
 // NewEvictionStrategy creates a new EvictionModel
@@ -38,7 +41,8 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 		return
 	}
 
-	// todo: mutex for eviction
+	// We do not allow more evictions to start concurrently
+	model.mutex.Lock()
 
 	// First pass
 	// Senders capacity is close to be reached first (before txs capacity) when there are a lot of senders with little or one transaction
@@ -63,7 +67,7 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 		log.Debug("Evicted:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
-	// todo: release mutex
+	model.mutex.Unlock()
 }
 
 func (model *EvictionStrategy) areThereTooManySenders() bool {
