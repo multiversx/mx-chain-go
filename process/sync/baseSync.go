@@ -653,7 +653,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+		_, _ = updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
+
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {
 			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
