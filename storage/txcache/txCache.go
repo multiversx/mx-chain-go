@@ -28,7 +28,7 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 // Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 	if cache.EvictionStrategy != nil {
-		cache.EvictionStrategy.DoEvictionIfNecessary(tx)
+		cache.EvictionStrategy.DoEviction(tx)
 	}
 
 	cache.txByHash.AddTx(txHash, tx)

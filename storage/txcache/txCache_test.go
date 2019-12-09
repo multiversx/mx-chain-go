@@ -1,19 +1,16 @@
 package txcache
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
+	"runtime"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/assert"
 )
-
-type testContext struct {
-	T     *testing.T
-	B     *testing.B
-	Cache *TxCache
-}
 
 func Test_AddTx(t *testing.T) {
 	cache := NewTxCache(250000, 16)
@@ -97,11 +94,27 @@ func Test_GetSorted(t *testing.T) {
 	}
 }
 
-func Test_AddManyTransactionsToCacheWithEviction(t *testing.T) {
+func Test_AddManyTransactionsToCacheWithEviction_UniformDistribution(t *testing.T) {
+	logger.SetLogLevel("txcache/eviction:DEBUG")
+
 	cache := NewTxCache(250000, 1)
 	config := EvictionStrategyConfig{CountThreshold: 240000, EachAndEverySender: 10, ManyTransactionsForASender: 1000, PartOfManyTransactionsOfASender: 250}
 	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
 
+	noSenders := 5000
+	noTransactionsPerSender := 100
+
+	for senderTag := 0; senderTag < noSenders; senderTag++ {
+		sender := createFakeSenderAddress(senderTag)
+
+		for txNonce := noTransactionsPerSender; txNonce > 0; txNonce-- {
+			txHash := createFakeTxHash(sender, txNonce)
+			tx := createTx(string(sender), uint64(txNonce))
+			cache.AddTx([]byte(txHash), tx)
+		}
+	}
+
+	assert.LessOrEqual(t, cache.CountTx(), int64(240000))
 }
 
 func createTx(sender string, nonce uint64) *transaction.Transaction {
@@ -111,10 +124,41 @@ func createTx(sender string, nonce uint64) *transaction.Transaction {
 	}
 }
 
+func createFakeSenderAddress(senderTag int) []byte {
+	bytes := make([]byte, 32)
+	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
+	binary.LittleEndian.PutUint64(bytes[24:], uint64(senderTag))
+	return bytes
+}
+
+func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
+	bytes := make([]byte, 32)
+	copy(bytes, fakeSenderAddress)
+	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
+	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
+	return bytes
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
 	}
 
 	return b
+}
+
+func printMemUsage(message string) {
+	fmt.Println(">>> Memory usage", message, ":")
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bytesToMegabytes(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bytesToMegabytes(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bytesToMegabytes(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bytesToMegabytes(b uint64) uint64 {
+	return b / 1024 / 1024
 }
