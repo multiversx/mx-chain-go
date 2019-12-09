@@ -22,11 +22,13 @@ func NewTxByHashMap(size int, shardsHint int) TxByHashMap {
 	}
 }
 
+// AddTx adds a transaction to the map
 func (txMap *TxByHashMap) AddTx(txHash []byte, tx *transaction.Transaction) {
 	txMap.Map.Set(string(txHash), tx)
 	txMap.Counter.Increment()
 }
 
+// RemoveTx removes a transaction from the map
 func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, bool) {
 	tx, ok := txMap.GetTx(txHash)
 	if !ok {
@@ -38,6 +40,7 @@ func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, boo
 	return tx, true
 }
 
+// GetTx gets a transaction from the map
 func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) {
 	txUntyped, ok := txMap.Map.Get(txHash)
 	if !ok {
@@ -48,6 +51,7 @@ func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) 
 	return tx, true
 }
 
+// RemoveTxsBulk removes transactions, in bulk
 func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) int {
 	for _, txHash := range txHashes {
 		txMap.Map.Remove(string(txHash))
