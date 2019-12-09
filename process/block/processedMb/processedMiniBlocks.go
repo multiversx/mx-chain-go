@@ -7,9 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
-var log = logger.GetOrCreate("core/processedMb")
+var log = logger.GetOrCreate("process/processedMb")
 
-// ProcessedMiniBlockTracker is used to store all processed min blocks hashes for e meta block hash
+// ProcessedMiniBlockTracker is used to store all processed mini blocks hashes for a meta block hash
 type ProcessedMiniBlockTracker struct {
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex

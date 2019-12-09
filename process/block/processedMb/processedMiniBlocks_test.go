@@ -1,7 +1,8 @@
-package processedMb
+package processedMb_test
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pmb := NewProcessedMiniBlocks()
+	pmb := processedMb.NewProcessedMiniBlocks()
 
 	mbHash1 := "hash1"
 	mbHash2 := "hash2"
@@ -38,7 +39,7 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 	t.Parallel()
 
-	pmb := NewProcessedMiniBlocks()
+	pmb := processedMb.NewProcessedMiniBlocks()
 
 	mbHash1 := "hash1"
 	mbHash2 := "hash2"
@@ -60,7 +61,7 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) {
 	t.Parallel()
 
-	pmb := NewProcessedMiniBlocks()
+	pmb := processedMb.NewProcessedMiniBlocks()
 
 	mbHash1 := "hash1"
 	mtbHash1 := "meta1"
