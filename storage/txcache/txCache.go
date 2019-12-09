@@ -50,12 +50,10 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 	for pass := 0; ; pass++ {
 		copiedInThisPass := 0
 
-		cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
+		cache.txListBySender.ForEach(func(key string, txList *TxListForSender) {
 			if resultIsFull {
 				return
 			}
-
-			txList := txListUntyped.(*TxListForSender)
 
 			// Do this on first pass only
 			if pass == 0 {

@@ -85,6 +85,7 @@ func (model *EvictionStrategy) EvictOldestSenders() (int, int) {
 	listsOrdered := model.Cache.txListBySender.GetListsSortedByOrderNumber()
 	sliceEnd := core.MinInt(model.Config.NoOldestSendersToEvict, len(listsOrdered))
 	listsToEvict := listsOrdered[:sliceEnd]
+
 	sendersToEvict := make([]string, 0)
 	txsToEvict := make([][]byte, 0)
 
@@ -109,9 +110,7 @@ func (model *EvictionStrategy) EvictHighNonceTransactions() (int, int) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	model.Cache.txListBySender.Map.IterCb(func(key string, txListUntyped interface{}) {
-		txList := txListUntyped.(*TxListForSender)
-
+	model.Cache.txListBySender.ForEach(func(key string, txList *TxListForSender) {
 		if txList.HasMoreThan(model.Config.ManyTransactionsForASender) {
 			txHashes := txList.RemoveHighNonceTxs(model.Config.PartOfManyTransactionsOfASender)
 			txsToEvict = append(txsToEvict, txHashes...)
