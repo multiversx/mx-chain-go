@@ -606,7 +606,7 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 			toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
 
 			for i := numAllocatedNodes + 1; i < uint64(len(validator.BlsPubKeys)); i++ {
-				reservePool[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
+				reservePool[string(validator.BlsPubKeys[i])] = selectorProp
 			}
 		}
 

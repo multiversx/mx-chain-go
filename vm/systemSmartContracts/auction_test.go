@@ -132,11 +132,13 @@ func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBoundPeriod, numNodes, eei, kg)
 
+	bid1 := createABid(25000000, 2, 12500000)
+	bid2 := createABid(30000000, 3, 10000000)
+	bid3 := createABid(40000000, 2, 20000000)
+	bid4 := createABid(50000000, 2, 25000000)
+
 	bids := []AuctionData{
-		createABid(25000000, 2, 12500000),
-		createABid(30000000, 3, 10000000),
-		createABid(40000000, 2, 20000000),
-		createABid(50000000, 2, 25000000),
+		bid1, bid2, bid3, bid4,
 	}
 
 	nodePrice, err := stakingAuctionSC.calculateNodePrice(bids)
@@ -157,18 +159,34 @@ func TestAuctionSC_selection_Case1(t *testing.T) {
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBoundPeriod, numNodes, eei, kg)
 
+	bid1 := createABid(25000000, 2, 12500000)
+	bid2 := createABid(30000000, 3, 10000000)
+	bid3 := createABid(40000000, 2, 20000000)
+	bid4 := createABid(50000000, 2, 25000000)
+
 	bids := []AuctionData{
-		createABid(25000000, 2, 12500000),
-		createABid(30000000, 3, 10000000),
-		createABid(40000000, 2, 20000000),
-		createABid(50000000, 2, 25000000),
+		bid1, bid2, bid3, bid4,
 	}
 
+	expectedKeys := [][]byte{bid1.BlsPubKeys[0], bid3.BlsPubKeys[0], bid3.BlsPubKeys[1], bid4.BlsPubKeys[0], bid4.BlsPubKeys[1]}
+
 	data := stakingAuctionSC.selection(bids)
-	assert.Equal(t, int(numNodes), len(data))
+	for _, key := range data {
+		for i, expectedKey := range expectedKeys {
+			if bytes.Equal(key, expectedKey) {
+				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
+				break
+			}
+
+			if i == len(expectedKeys)-1 {
+				assert.Equal(t, expectedKeys, data)
+				assert.Fail(t, "test fail")
+			}
+		}
+	}
 }
 
-func TestAuctionSC_selection_Case2(t *testing.T) {
+func TestAuctionSC_selection_Case2FirstBidderShouldTake50Percents(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1)
@@ -195,8 +213,111 @@ func TestAuctionSC_selection_Case2(t *testing.T) {
 		createABid(1000000, 1, 1000000),
 	}
 
+	expectedKeys := make([][]byte, 0)
+	for i, bid := range bids {
+		if i == 0 {
+			continue
+		}
+		expectedKeys = append(expectedKeys, bid.BlsPubKeys...)
+	}
+
 	data := stakingAuctionSC.selection(bids)
-	assert.Equal(t, int(numNodes), len(data))
+	//check that 50% keys belong to the first bidder
+	count := 0
+	firstBidderKeys := bids[0].BlsPubKeys
+	for i, key := range data {
+		for j, expectedKey := range firstBidderKeys {
+			if bytes.Equal(key, expectedKey) {
+				firstBidderKeys = append(firstBidderKeys[:j], firstBidderKeys[j+1:]...)
+				data = append(data[:i], data[i+1:]...)
+				count++
+				break
+			}
+		}
+	}
+	assert.Equal(t, 5, count)
+	///////////////////////////////////////////////////////////
+
+	for _, key := range data {
+		for i, expectedKey := range expectedKeys {
+			if bytes.Equal(key, expectedKey) {
+				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
+				break
+			}
+
+			if i == len(expectedKeys)-1 {
+				assert.Equal(t, expectedKeys, data)
+				assert.Fail(t, "test fail")
+			}
+		}
+	}
+}
+
+func TestAuctionSC_selection_Case3PanicNumAllocatedNodesToBig(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1)
+	totalSupply := big.NewInt(100000000000)
+	minStep := big.NewInt(100000)
+	unBoundPeriod := uint64(100000)
+	numNodes := uint32(10)
+	eei := &mock.SystemEIStub{}
+	kg := &mock.KeyGenMock{}
+
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBoundPeriod, numNodes, eei, kg)
+
+	bids := []AuctionData{
+		createABid(100000000, 10, 10000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+	}
+
+	expectedKeys := make([][]byte, 0)
+	for i, bid := range bids {
+		if i == 0 {
+			continue
+		}
+		expectedKeys = append(expectedKeys, bid.BlsPubKeys...)
+	}
+
+	data := stakingAuctionSC.selection(bids)
+	//check that 50% keys belong to the first bidder
+	count := 0
+	firstBidderKeys := bids[0].BlsPubKeys
+	for i, key := range data {
+		for j, expectedKey := range firstBidderKeys {
+			if bytes.Equal(key, expectedKey) {
+				firstBidderKeys = append(firstBidderKeys[:j], firstBidderKeys[j+1:]...)
+				data = append(data[:i], data[i+1:]...)
+				count++
+				break
+			}
+		}
+	}
+	assert.Equal(t, 5, count)
+	///////////////////////////////////////////////////////////
+
+	for _, key := range data {
+		for i, expectedKey := range expectedKeys {
+			if bytes.Equal(key, expectedKey) {
+				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
+				break
+			}
+
+			if i == len(expectedKeys)-1 {
+				assert.Equal(t, expectedKeys, data)
+				assert.Fail(t, "test fail")
+			}
+		}
+	}
 }
 
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
