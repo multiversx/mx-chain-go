@@ -45,7 +45,3 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(351), cache.txByHash.Counter.Get())
 }
-
-func Test_AddManyTransactionsToCacheWithEviction(t *testing.T) {
-
-}

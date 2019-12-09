@@ -8,7 +8,7 @@ import (
 type TxCache struct {
 	txListBySender   TxListBySenderMap
 	txByHash         TxByHashMap
-	evictionStrategy *EvictionStrategy
+	EvictionStrategy *EvictionStrategy
 }
 
 // NewTxCache creates a new transaction cache
@@ -27,8 +27,8 @@ func NewTxCache(size int, shardsHint int) *TxCache {
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
-	if cache.evictionStrategy != nil {
-		cache.evictionStrategy.DoEvictionIfNecessary(tx)
+	if cache.EvictionStrategy != nil {
+		cache.EvictionStrategy.DoEvictionIfNecessary(tx)
 	}
 
 	cache.txByHash.AddTx(txHash, tx)

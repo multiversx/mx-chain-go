@@ -16,50 +16,50 @@ type testContext struct {
 }
 
 func Test_AddTx(t *testing.T) {
-	context := setupTestContext(t, nil)
+	cache := NewTxCache(250000, 16)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
 
-	context.Cache.AddTx(txHash, tx)
-	foundTx, ok := context.Cache.GetByTxHash(txHash)
+	cache.AddTx(txHash, tx)
+	foundTx, ok := cache.GetByTxHash(txHash)
 
 	assert.True(t, ok)
 	assert.Equal(t, tx, foundTx)
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	context := setupTestContext(t, nil)
+	cache := NewTxCache(250000, 16)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
 
-	context.Cache.AddTx(txHash, tx)
-	context.Cache.RemoveTxByHash(txHash)
-	foundTx, ok := context.Cache.GetByTxHash(txHash)
+	cache.AddTx(txHash, tx)
+	cache.RemoveTxByHash(txHash)
+	foundTx, ok := cache.GetByTxHash(txHash)
 
 	assert.False(t, ok)
 	assert.Nil(t, foundTx)
 }
 
 func Test_GetSorted_Dummy(t *testing.T) {
-	context := setupTestContext(t, nil)
+	cache := NewTxCache(250000, 16)
 
-	context.Cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
-	context.Cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
-	context.Cache.AddTx([]byte("hash-alice-2"), createTx("alice", 2))
-	context.Cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
-	context.Cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
-	context.Cache.AddTx([]byte("hash-bob-6"), createTx("bob", 6))
-	context.Cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
-	context.Cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
+	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
+	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
+	cache.AddTx([]byte("hash-alice-2"), createTx("alice", 2))
+	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
+	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
+	cache.AddTx([]byte("hash-bob-6"), createTx("bob", 6))
+	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
+	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted := context.Cache.GetSorted(10, 2)
+	sorted := cache.GetSorted(10, 2)
 	assert.Len(t, sorted, 8)
 }
 
 func Test_GetSorted(t *testing.T) {
-	context := setupTestContext(t, nil)
+	cache := NewTxCache(250000, 16)
 
 	// For "noSenders" senders, add "noTransactions" transactions,
 	// in reversed-nonce order.
@@ -75,13 +75,13 @@ func Test_GetSorted(t *testing.T) {
 		for txNonce := noTransactionsPerSender; txNonce > 0; txNonce-- {
 			txHash := fmt.Sprintf("hash%d%d", senderTag, txNonce)
 			tx := createTx(sender, uint64(txNonce))
-			context.Cache.AddTx([]byte(txHash), tx)
+			cache.AddTx([]byte(txHash), tx)
 		}
 	}
 
-	assert.Equal(t, int64(noTotalTransactions), context.Cache.CountTx())
+	assert.Equal(t, int64(noTotalTransactions), cache.CountTx())
 
-	sorted := context.Cache.GetSorted(noRequestedTransactions, 2)
+	sorted := cache.GetSorted(noRequestedTransactions, 2)
 
 	assert.Len(t, sorted, min(noRequestedTransactions, noTotalTransactions))
 
@@ -97,16 +97,11 @@ func Test_GetSorted(t *testing.T) {
 	}
 }
 
-func setupTestContext(t *testing.T, b *testing.B) *testContext {
-	cache := NewTxCache(250000, 16)
+func Test_AddManyTransactionsToCacheWithEviction(t *testing.T) {
+	cache := NewTxCache(250000, 1)
+	config := EvictionStrategyConfig{CountThreshold: 240000, EachAndEverySender: 10, ManyTransactionsForASender: 1000, PartOfManyTransactionsOfASender: 250}
+	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
 
-	context := &testContext{
-		T:     t,
-		B:     b,
-		Cache: cache,
-	}
-
-	return context
 }
 
 func createTx(sender string, nonce uint64) *transaction.Transaction {
