@@ -32,6 +32,7 @@ type forkInfo struct {
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
 	isNotarizedShardStuck  bool
+	forcedForkNonce        uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -44,6 +45,20 @@ type baseForkDetector struct {
 	mutFork    sync.RWMutex
 
 	blackListHandler process.BlackListHandler
+}
+
+func (bfd *baseForkDetector) SetForkNonce(nonce uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.forcedForkNonce = nonce
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) getForcedForkNonce() uint64 {
+	bfd.mutFork.RLock()
+	nonce := bfd.fork.forcedForkNonce
+	bfd.mutFork.RUnlock()
+
+	return nonce
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -178,7 +193,7 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
-func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
+func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
 	var preservedHdrInfos []*headerInfo
@@ -392,9 +407,15 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	)
 
 	forkInfo := process.NewForkInfo()
-
 	if bfd.shouldForceFork() {
 		forkInfo.IsDetected = true
+		return forkInfo
+	}
+
+	if bfd.getForcedForkNonce() < math.MaxUint64 {
+		forkInfo.IsDetected = true
+		forkInfo.Nonce = bfd.getForcedForkNonce()
+		bfd.SetForkNonce(math.MaxUint64)
 		return forkInfo
 	}
 

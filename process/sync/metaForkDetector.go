@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -34,6 +36,7 @@ func NewMetaForkDetector(
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+	bfd.fork.forcedForkNonce = math.MaxUint64
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,
@@ -47,8 +50,8 @@ func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeaders []data.HeaderHandler,
-	finalHeadersHashes [][]byte,
+	_ []data.HeaderHandler,
+	_ [][]byte,
 	isNotarizedShardStuck bool,
 ) error {
 
