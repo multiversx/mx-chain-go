@@ -30,7 +30,7 @@ type ArgStatusHandlers struct {
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 }
 
-// StatusHandlersInfo is struct that store all components that are returned when status handlers are created
+// StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
 	PrometheusJoinUrl        string
 	UsePrometheus            bool
