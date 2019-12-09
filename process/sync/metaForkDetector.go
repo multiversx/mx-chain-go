@@ -16,8 +16,8 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
-	genesisTime int64,
 	blockTracker process.BlockTracker,
+	genesisTime int64,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(rounder) {

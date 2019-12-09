@@ -49,6 +49,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlockTracker(t *testing.T) {
 		rounderMock,
 		&mock.BlackListHandlerStub{},
 		nil,
+		0,
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, bfd)
@@ -77,7 +78,12 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 	incorrectTimeStamp := uint64(genesisTime + int64(roundTimeDuration)*int64(round) - 1)
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1, RoundTimeDuration: roundTimeDuration}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, genesisTime)
+	bfd, _ := sync.NewShardForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerStub{},
+		genesisTime,
+	)
 
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"), process.BHProposed)
 	assert.Equal(t, sync.ErrGenesisTimeMissmatch, err)
@@ -1032,7 +1038,12 @@ func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {
 	genesisTime := int64(9000)
 	hdrTimeStamp := uint64(10000)
 	hdrRound := uint64(20)
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, genesisTime)
+	bfd, _ := sync.NewShardForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerStub{},
+		genesisTime,
+	)
 
 	hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
 

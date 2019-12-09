@@ -19,8 +19,8 @@ type shardForkDetector struct {
 func NewShardForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
-	genesisTime int64,
 	blockTracker process.BlockTracker,
+	genesisTime int64,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(rounder) {

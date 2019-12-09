@@ -43,6 +43,7 @@ func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&mock.RounderMock{},
 		&mock.BlackListHandlerStub{},
 		nil,
+		0,
 	)
 	assert.Nil(t, sfd)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
