@@ -169,7 +169,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 	if !ok {
 		// not found in cache
-		// search it in second persistence medium
+		// search it in active persisters
 		found := false
 		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
 			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {

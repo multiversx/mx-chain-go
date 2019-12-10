@@ -26,9 +26,11 @@ func removeDirectoryIfEmpty(path string) {
 				log.Debug("delete old db directory", "error", err.Error())
 			}
 
-			err = os.RemoveAll(epochDirectory)
-			if err != nil {
-				log.Debug("delete old db directory", "error", err.Error())
+			if isDirectoryEmpty(epochDirectory) {
+				err = os.RemoveAll(epochDirectory)
+				if err != nil {
+					log.Debug("delete old db directory", "error", err.Error())
+				}
 			}
 		}
 	}
@@ -40,7 +42,7 @@ func isDirectoryEmpty(name string) bool {
 		return false
 	}
 	defer func() {
-		err := f.Close()
+		err = f.Close()
 		if err != nil {
 			log.Debug("pruning db - file close", "error", err.Error())
 		}

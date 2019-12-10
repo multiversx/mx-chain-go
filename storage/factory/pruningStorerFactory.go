@@ -76,157 +76,63 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		}
 	}()
 
-	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
-	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
-	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
-
-	txUnitStorerArgs := &pruning.PruningStorerArgs{
-		Identifier:            "txUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.TxStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.TxStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.TxStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.TxStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	txUnitStorerArgs := psf.createPruningStorerArgs("txUnit", psf.generalConfig.TxStorage)
 	txUnit, err = pruning.NewPruningStorer(txUnitStorerArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, txUnit)
 
-	unsignedTxUnitStorerArgs := &pruning.PruningStorerArgs{
-		Identifier:            "unsignedTxUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.UnsignedTransactionStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.UnsignedTransactionStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.UnsignedTransactionStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.UnsignedTransactionStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	unsignedTxUnitStorerArgs := psf.createPruningStorerArgs("unsignedTxUnit", psf.generalConfig.UnsignedTransactionStorage)
 	unsignedTxUnit, err = pruning.NewPruningStorer(unsignedTxUnitStorerArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
-	rewardTxUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "rewardTxUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.RewardTxStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.RewardTxStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.RewardTxStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.RewardTxStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	rewardTxUnitArgs := psf.createPruningStorerArgs("rewardTxUnit", psf.generalConfig.RewardTxStorage)
 	rewardTxUnit, err = pruning.NewPruningStorer(rewardTxUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, rewardTxUnit)
 
-	miniBlockUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "miniBlockUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MiniBlocksStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MiniBlocksStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MiniBlocksStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MiniBlocksStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	miniBlockUnitArgs := psf.createPruningStorerArgs("miniBlockUnit", psf.generalConfig.MiniBlocksStorage)
 	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
 
-	peerBlockUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "peerBlockUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.PeerBlockBodyStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.PeerBlockBodyStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.PeerBlockBodyStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.PeerBlockBodyStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	peerBlockUnitArgs := psf.createPruningStorerArgs("peerBlockUnit", psf.generalConfig.PeerBlockBodyStorage)
 	peerBlockUnit, err = pruning.NewPruningStorer(peerBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, peerBlockUnit)
 
-	headerUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "headerUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.BlockHeaderStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.BlockHeaderStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.BlockHeaderStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.BlockHeaderStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	headerUnitArgs := psf.createPruningStorerArgs("headerUnit", psf.generalConfig.BlockHeaderStorage)
 	headerUnit, err = pruning.NewPruningStorer(headerUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
-	metaChainHeaderUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "metachainHeaderUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MetaBlockStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MetaBlockStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MetaBlockStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MetaBlockStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	metaChainHeaderUnitArgs := psf.createPruningStorerArgs("metachainHeaderUnit", psf.generalConfig.MetaBlockStorage)
 	metachainHeaderUnit, err = pruning.NewPruningStorer(metaChainHeaderUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
-	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "metaHdrHashNonceUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MetaHdrNonceHashStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MetaHdrNonceHashStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	metaHdrHashNonceUnitArgs := psf.createPruningStorerArgs("metaHdrHashNonceUnit", psf.generalConfig.MetaHdrNonceHashStorage)
 	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metaHdrHashNonceUnit)
 
-	shardHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "shardHrHashNonceUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.ShardHdrNonceHashStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.ShardHdrNonceHashStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	shardHdrHashNonceUnitArgs := psf.createPruningStorerArgs("shardHrHashNonceUnit", psf.generalConfig.ShardHdrNonceHashStorage)
 	shardHdrHashNonceUnit, err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, psf.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, err
@@ -244,17 +150,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
-	bootstrapUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "bootstrapUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.BootstrapStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.BootstrapStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.BootstrapStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.BootstrapStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	bootstrapUnitArgs := psf.createPruningStorerArgs("bootstrapUnit", psf.generalConfig.BootstrapStorage)
 	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
 		return nil, err
@@ -302,99 +198,38 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 			for _, storer := range successfullyCreatedStorers {
 				_ = storer.DestroyUnit()
 			}
-			if shardHdrHashNonceUnits != nil {
-				for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
-					if shardHdrHashNonceUnits[i] != nil {
-						_ = shardHdrHashNonceUnits[i].DestroyUnit()
-					}
-				}
-			}
 		}
 	}()
 
-	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
-	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
-	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
-
-	metaBlockUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "metaBlockUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MetaBlockStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MetaBlockStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MetaBlockStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MetaBlockStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	metaBlockUnitArgs := psf.createPruningStorerArgs("metaBlockUnit", psf.generalConfig.MetaBlockStorage)
 	metaBlockUnit, err = pruning.NewPruningStorer(metaBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metaBlockUnit)
 
-	shardDataUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "shardDataUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.ShardDataStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.ShardDataStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.ShardDataStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.ShardDataStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	shardDataUnitArgs := psf.createPruningStorerArgs("shardDataUnit", psf.generalConfig.ShardDataStorage)
 	shardDataUnit, err = pruning.NewPruningStorer(shardDataUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, shardDataUnit)
 
-	peerDataUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "peerDataUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.PeerDataStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.PeerDataStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.PeerDataStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.PeerDataStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	peerDataUnitArgs := psf.createPruningStorerArgs("peerDataUnit", psf.generalConfig.PeerDataStorage)
 	peerDataUnit, err = pruning.NewPruningStorer(peerDataUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, peerDataUnit)
 
-	headerUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "headerUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.BlockHeaderStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.BlockHeaderStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.BlockHeaderStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.BlockHeaderStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	headerUnitArgs := psf.createPruningStorerArgs("headerUnit", psf.generalConfig.BlockHeaderStorage)
 	headerUnit, err = pruning.NewPruningStorer(headerUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
-	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "metaHdrHashNonceUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MetaHdrNonceHashStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MetaHdrNonceHashStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	metaHdrHashNonceUnitArgs := psf.createPruningStorerArgs("metaHdrHashNonceUnit", psf.generalConfig.MetaHdrNonceHashStorage)
 	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
 	if err != nil {
 		return nil, err
@@ -403,21 +238,13 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 
 	shardHdrHashNonceUnits = make([]*pruning.PruningStorer, psf.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
-		shardHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
-			Identifier:            "shardHdrHashNonceUnit",
-			FullArchive:           fullArchiveMode,
-			CacheConf:             GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
-			DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.ShardHdrNonceHashStorage.DB.FilePath),
-			PersisterFactory:      NewPersisterFactory(psf.generalConfig.ShardHdrNonceHashStorage.DB),
-			BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Bloom),
-			NumOfEpochsToKeep:     numOfEpochsToKeep,
-			NumOfActivePersisters: numOfActivePersisters,
-			Notifier:              psf.epochStartNotifier,
-		}
+		shardHdrHashNonceUnitArgs := psf.createPruningStorerArgs("shardHdrHashNonceUnit",
+			psf.generalConfig.ShardHdrNonceHashStorage)
 		shardHdrHashNonceUnits[i], err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, i)
 		if err != nil {
 			return nil, err
 		}
+		successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnits[i])
 	}
 
 	// TODO: the path will be fetched from a path naming component
@@ -431,85 +258,35 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
-	txUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "txUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.TxStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.TxStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.TxStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.TxStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	txUnitArgs := psf.createPruningStorerArgs("txUnit", psf.generalConfig.TxStorage)
 	txUnit, err = pruning.NewPruningStorer(txUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, txUnit)
 
-	unsignedTxUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "unsignedTxUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.UnsignedTransactionStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.UnsignedTransactionStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.UnsignedTransactionStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.UnsignedTransactionStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	unsignedTxUnitArgs := psf.createPruningStorerArgs("unsignedTxUnit", psf.generalConfig.UnsignedTransactionStorage)
 	unsignedTxUnit, err = pruning.NewPruningStorer(unsignedTxUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
-	miniBlockUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "miniBlockUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MiniBlocksStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MiniBlocksStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MiniBlocksStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MiniBlocksStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	miniBlockUnitArgs := psf.createPruningStorerArgs("miniBlockUnit", psf.generalConfig.MiniBlocksStorage)
 	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
 
-	miniBlockHeadersUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "miniBlockHeadersUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.MiniBlockHeadersStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.MiniBlockHeadersStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.MiniBlockHeadersStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.MiniBlockHeadersStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	miniBlockHeadersUnitArgs := psf.createPruningStorerArgs("miniBlockHeadersUnit", psf.generalConfig.MiniBlockHeadersStorage)
 	miniBlockHeadersUnit, err = pruning.NewPruningStorer(miniBlockHeadersUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockHeadersUnit)
 
-	bootstrapUnitArgs := &pruning.PruningStorerArgs{
-		Identifier:            "bootstrapUnit",
-		FullArchive:           fullArchiveMode,
-		CacheConf:             GetCacherFromConfig(psf.generalConfig.BootstrapStorage.Cache),
-		DbPath:                filepath.Join(psf.uniqueID, psf.generalConfig.BootstrapStorage.DB.FilePath),
-		PersisterFactory:      NewPersisterFactory(psf.generalConfig.BootstrapStorage.DB),
-		BloomFilterConf:       GetBloomFromConfig(psf.generalConfig.BootstrapStorage.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-	}
+	bootstrapUnitArgs := psf.createPruningStorerArgs("bootstrapUnit", psf.generalConfig.BootstrapStorage)
 	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
 		return nil, err
@@ -534,4 +311,24 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 
 	return store, err
+}
+
+func (psf *StorageServiceFactory) createPruningStorerArgs(identifier string, storageConfig config.StorageConfig) *pruning.PruningStorerArgs {
+	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
+	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
+	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
+
+	args := &pruning.PruningStorerArgs{
+		Identifier:            identifier,
+		FullArchive:           fullArchiveMode,
+		CacheConf:             GetCacherFromConfig(storageConfig.Cache),
+		DbPath:                filepath.Join(psf.uniqueID, storageConfig.DB.FilePath),
+		PersisterFactory:      NewPersisterFactory(storageConfig.DB),
+		BloomFilterConf:       GetBloomFromConfig(storageConfig.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              psf.epochStartNotifier,
+	}
+
+	return args
 }
