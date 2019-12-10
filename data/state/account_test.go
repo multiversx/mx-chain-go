@@ -229,31 +229,3 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
-
-func TestAccount_SetRootHashWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	rootHash := []byte("roothash")
-	err = acc.SetRootHashWithJournal(rootHash)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, rootHash, acc.RootHash)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}

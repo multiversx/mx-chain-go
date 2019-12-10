@@ -37,6 +37,7 @@ type node interface {
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
 	deepClone() node
+	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 }
 
 type branchNode struct {
@@ -213,6 +214,21 @@ func keyBytesToHex(str []byte) []byte {
 	nibbles[length-1] = hexTerminator
 
 	return nibbles
+}
+
+func hexToKeyBytes(hex []byte) ([]byte, error) {
+	hex = hex[:len(hex)-1]
+	length := len(hex)
+	if length%2 != 0 {
+		return nil, ErrInvalidLength
+	}
+
+	key := make([]byte, length/2)
+	for i := range key {
+		key[i] = hex[i*2]*hexTerminator + hex[i*2+1]
+	}
+
+	return key, nil
 }
 
 // prefixLen returns the length of the common prefix of a and b.
