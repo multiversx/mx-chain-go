@@ -116,12 +116,7 @@ func CreateMessengerWithNoDiscovery(ctx context.Context) p2p.Messenger {
 //        |                    |                    |
 //        5                    6                    7
 func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
-	numPeers := 7
-	peers := make([]p2p.Messenger, numPeers+1)
-
-	for i := 0; i <= numPeers; i++ {
-		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
-	}
+	peers := createMessengersWithNoDiscovery(8)
 
 	connections := map[int][]int{
 		0: {1, 3},
@@ -149,12 +144,7 @@ func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 //  |  |  |  |  |  |  |  |  |  |  |
 //  3  4  5  6  7  8  9  10 11 12 13
 func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
-	numPeers := 13
-	peers := make([]p2p.Messenger, numPeers+1)
-
-	for i := 0; i <= numPeers; i++ {
-		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
-	}
+	peers := createMessengersWithNoDiscovery(14)
 
 	connections := map[int][]int{
 		0: {1},
@@ -168,6 +158,16 @@ func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
 	}
 
 	return peers, nil
+}
+
+func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
+	peers := make([]p2p.Messenger, numPeers)
+
+	for i := 0; i < numPeers; i++ {
+		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
+	}
+
+	return peers
 }
 
 func createConnections(peers []p2p.Messenger, connections map[int][]int) error {
