@@ -101,6 +101,17 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
+func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.HeaderSigVerifier = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
 func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 

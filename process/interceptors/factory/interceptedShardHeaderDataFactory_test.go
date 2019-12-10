@@ -30,6 +30,17 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.HeaderSigVerifier = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
 func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 

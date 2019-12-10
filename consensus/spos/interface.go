@@ -94,8 +94,8 @@ type WorkerHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ConsensusHeaderSigVerifier is the interface needed at consensus level to check a header  if is correct
-type ConsensusHeaderSigVerifier interface {
+// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
+type RandSeedVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

@@ -33,5 +33,5 @@ func (hsvm *HeaderSigVerifierStub) VerifySignature(header data.HeaderHandler) er
 }
 
 func (hsvm *HeaderSigVerifierStub) IsInterfaceNil() bool {
-	return false
+	return hsvm == nil
 }

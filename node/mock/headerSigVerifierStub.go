@@ -15,5 +15,5 @@ func (hsvm *HeaderSigVerifierStub) VerifyRandSeed(header data.HeaderHandler) err
 }
 
 func (hsvm *HeaderSigVerifierStub) IsInterfaceNil() bool {
-	return false
+	return hsvm == nil
 }

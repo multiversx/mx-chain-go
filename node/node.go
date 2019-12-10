@@ -109,7 +109,7 @@ type Node struct {
 	blackListHandler      process.BlackListHandler
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	headerSigVerifier     spos.ConsensusHeaderSigVerifier
+	headerSigVerifier     spos.RandSeedVerifier
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

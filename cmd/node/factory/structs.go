@@ -161,7 +161,7 @@ type Process struct {
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
-	HeaderSigVerifier     process.HeaderSigVerifierHandler
+	HeaderSigVerifier     HeaderSigVerifierHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -1410,7 +1410,7 @@ func newInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-	headerSigVerifier process.HeaderSigVerifierHandler,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1452,7 +1452,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-	headerSigVerifier process.HeaderSigVerifierHandler,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -1509,7 +1509,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	network *Network,
 	state *State,
 	economics *economics.EconomicsData,
-	headerSigVerifier process.HeaderSigVerifierHandler,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(

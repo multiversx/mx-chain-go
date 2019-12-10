@@ -24,6 +24,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
+	if check.IfNil(arg.HeaderSigVerifier) {
+		return process.ErrNilHeaderSigVerifier
+	}
 
 	return nil
 }

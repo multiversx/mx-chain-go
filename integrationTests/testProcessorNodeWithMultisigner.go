@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"strconv"
 	"testing"
 	"time"
@@ -18,6 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -107,7 +107,6 @@ func CreateNodesWithNodesCoordinator(
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		for i := range validatorList {
-
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -160,8 +159,18 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 		for i := range validatorList {
-			ownAccount := CreateTestWalletAccountWithKeygenAndSingleSigner(shardCoordinator, shardId, singleSigner, keyGenForBlocks)
-			args := headerCheck.ArgsHeaderSigVerifier{Marshalizer: TestMarshalizer, Hasher: TestHasher, NodesCoordinator: nodesCoordinator, MultiSigVerifier: TestMultiSig, SingleSigVerifier: singleSigner, KeyGen: keyGenForBlocks}
+			ownAccount := CreateTestWalletAccountWithKeygenAndSingleSigner(
+				shardCoordinator,
+				shardId,
+				singleSigner,
+				keyGenForBlocks)
+			args := headerCheck.ArgsHeaderSigVerifier{
+				Marshalizer:       TestMarshalizer,
+				Hasher:            TestHasher,
+				NodesCoordinator:  nodesCoordinator,
+				MultiSigVerifier:  TestMultiSig,
+				SingleSigVerifier: singleSigner,
+				KeyGen:            keyGenForBlocks}
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),

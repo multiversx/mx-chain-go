@@ -161,8 +161,7 @@ type TestProcessorNode struct {
 	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	MultiSigner crypto.MultiSigner
-
+	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	//Node is used to call the functionality already implemented in it

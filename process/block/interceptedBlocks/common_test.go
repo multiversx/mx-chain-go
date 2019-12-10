@@ -11,10 +11,11 @@ import (
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		Hasher:           mock.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		HdrBuff:          []byte("test buffer"),
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		Hasher:            mock.HasherMock{},
+		Marshalizer:       &mock.MarshalizerMock{},
+		HdrBuff:           []byte("test buffer"),
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	return arg
@@ -84,6 +85,17 @@ func TestCheckBlockHeaderArgument_NilMarshalizerShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestCheckBlockHeaderArgument_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.HeaderSigVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 }
 
 func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
