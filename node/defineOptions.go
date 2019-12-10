@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -451,6 +452,17 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 			return ErrNilRequestedItemsHandler
 		}
 		n.requestedItemsHandler = requestedItemsHandler
+		return nil
+	}
+}
+
+// WithHeaderSigVerifier sets up a header sig verifier for the Node
+func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
+	return func(n *Node) error {
+		if check.IfNil(headerSigVerifier) {
+			return ErrNilHeaderSigVerifier
+		}
+		n.headerSigVerifier = headerSigVerifier
 		return nil
 	}
 }
