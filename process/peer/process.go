@@ -20,10 +20,6 @@ import (
 
 var log = logger.GetOrCreate("process/peer")
 
-const (
-	defaultRatingValue = uint32(1)
-)
-
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
@@ -99,7 +95,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	rater := arguments.Rater
 	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
-	startRatingValue := defaultRatingValue
+
 	if !ok {
 		return nil, process.ErrNilRatingReader
 	}
@@ -110,11 +106,10 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
-	startRatingValue = rater.GetStartRating()
 
 	vs.initialNodes = arguments.InitialNodes
 
-	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, startRatingValue)
+	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
