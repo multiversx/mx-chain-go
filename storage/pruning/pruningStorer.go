@@ -444,7 +444,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 			return err
 		}
 		// remove it from the active persisters slice
-		ps.activePersisters = append(ps.activePersisters[:ps.numOfActivePersisters], ps.activePersisters[ps.numOfActivePersisters+1:]...)
+		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
 		persisterToClose.isClosed = true
 		epochToClose := epoch - ps.numOfActivePersisters
 		ps.persistersMapByEpoch[epochToClose] = persisterToClose
