@@ -44,9 +44,9 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 	sumTxs := 0
 
 	strCache := process.ShardCacherIdentifier(shardId, shardId)
-	txStore := txPool.ShardDataStore(strCache)
-	if txStore != nil {
-		sumTxs += txStore.Len()
+	txCache := txPool.GetTxCache(strCache)
+	if txCache != nil {
+		sumTxs += txCache.Len()
 	}
 
 	for i := uint32(0); i < nrShards; i++ {
@@ -55,15 +55,15 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 		}
 
 		strCache = process.ShardCacherIdentifier(i, shardId)
-		txStore = txPool.ShardDataStore(strCache)
-		if txStore != nil {
-			sumTxs += txStore.Len()
+		txCache = txPool.GetTxCache(strCache)
+		if txCache != nil {
+			sumTxs += txCache.Len()
 		}
 
 		strCache = process.ShardCacherIdentifier(shardId, i)
-		txStore = txPool.ShardDataStore(strCache)
-		if txStore != nil {
-			sumTxs += txStore.Len()
+		txCache = txPool.GetTxCache(strCache)
+		if txCache != nil {
+			sumTxs += txCache.Len()
 		}
 	}
 

@@ -354,17 +354,17 @@ func GetTransactionHandler(
 	senderShardID uint32,
 	destShardID uint32,
 	txHash []byte,
-	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 ) (data.TransactionHandler, error) {
 
-	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
+	err := checkGetTransactionParamsForNil(txPool, storageService, marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, txPool)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -380,20 +380,20 @@ func GetTransactionHandlerFromPool(
 	senderShardID uint32,
 	destShardID uint32,
 	txHash []byte,
-	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 ) (data.TransactionHandler, error) {
 
-	if shardedDataCacherNotifier == nil {
+	if txPool == nil {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
 	strCache := ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-	if txStore == nil {
+	txCache := txPool.GetTxCache(strCache)
+	if txCache == nil {
 		return nil, ErrNilStorage
 	}
 
-	val, ok := txStore.Peek(txHash)
+	val, ok := txCache.GetByTxHash(txHash)
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -476,12 +476,12 @@ func checkGetHeaderWithNonceParamsForNil(
 }
 
 func checkGetTransactionParamsForNil(
-	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 ) error {
 
-	if shardedDataCacherNotifier == nil || shardedDataCacherNotifier.IsInterfaceNil() {
+	if txPool.IsInterfaceNil() {
 		return ErrNilShardedDataCacherNotifier
 	}
 	if storageService == nil || storageService.IsInterfaceNil() {

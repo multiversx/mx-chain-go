@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 // UnitType is the type for Storage unit identifiers
@@ -166,7 +167,6 @@ type PeerListCreator interface {
 }
 
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
-// TODO-TXCACHE: ShardedTxCacheContainer
 type ShardedDataCacherNotifier interface {
 	Notifier
 
@@ -213,9 +213,9 @@ type TransactionCacher interface {
 
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
-	RewardTransactions() ShardedDataCacherNotifier
+	Transactions() TxPool
+	UnsignedTransactions() TxPool
+	RewardTransactions() TxPool
 	Headers() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher
@@ -231,8 +231,8 @@ type MetaPoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
+	Transactions() TxPool
+	UnsignedTransactions() TxPool
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
@@ -270,4 +270,21 @@ type RequestedItemsHandler interface {
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
+}
+
+// TxPool defines an interface for the transaction pool
+type TxPool interface {
+	Notifier
+
+	GetTxCache(cacheID string) *txcache.TxCache
+	AddTx(txHash []byte, tx data.TransactionHandler, cacheID string)
+	SearchFirstTx(txHash []byte) (tx data.TransactionHandler, ok bool)
+	RemoveTx(txHash []byte, cacheID string)
+	RemoveTxBulk(txHashes [][]byte, cacheID string)
+	RemoveTxFromAllShards(txHash []byte)
+	MergeShardStores(sourceCacheID, destCacheID string)
+	MoveTxs(sourceCacheID, destCacheID string, txHashes [][]byte)
+	Clear()
+	ClearShardStore(cacheID string)
+	CreateShardStore(cacheID string)
 }

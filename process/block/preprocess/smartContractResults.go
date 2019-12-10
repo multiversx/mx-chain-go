@@ -24,7 +24,7 @@ type smartContractResults struct {
 	chRcvAllScrs                 chan bool
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte)
 	scrForBlock                  txsForBlock
-	scrPool                      dataRetriever.ShardedDataCacherNotifier
+	scrPool                      dataRetriever.TxPool
 	storage                      dataRetriever.StorageService
 	scrProcessor                 process.SmartContractResultProcessor
 	accounts                     state.AccountsAdapter
@@ -32,7 +32,7 @@ type smartContractResults struct {
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
 func NewSmartContractResultPreprocessor(
-	scrDataPool dataRetriever.ShardedDataCacherNotifier,
+	scrDataPool dataRetriever.TxPool,
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -169,7 +169,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 				return scrRestored, err
 			}
 
-			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
+			scr.scrPool.AddTx([]byte(txHash), &tx, strCache)
 		}
 
 		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
@@ -402,7 +402,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 ) ([]*smartContractResult.SmartContractResult, [][]byte, error) {
 
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
-	txCache := scr.scrPool.ShardDataStore(strCache)
+	txCache := scr.scrPool.GetTxCache(strCache)
 	if txCache == nil {
 		return nil, nil, process.ErrNilUTxDataPool
 	}
@@ -415,7 +415,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 			return nil, nil, process.ErrTimeIsOut
 		}
 
-		tmp, _ := txCache.Peek(txHash)
+		tmp, _ := txCache.GetByTxHash(txHash)
 		if tmp == nil {
 			return nil, nil, process.ErrNilSmartContractResult
 		}

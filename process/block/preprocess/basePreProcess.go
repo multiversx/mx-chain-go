@@ -44,7 +44,7 @@ type basePreProcess struct {
 	gasHandler       process.GasHandler
 }
 
-func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
+func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.TxPool, mbType block.Type) error {
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
@@ -59,7 +59,7 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 		}
 
 		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
-		txPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
+		txPool.RemoveTxBulk(currentMiniBlock.TxHashes, strCache)
 
 		miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, currentMiniBlock)
 		if err != nil {
@@ -131,7 +131,7 @@ func (bpp *basePreProcess) saveTxsToStorage(
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
 	forBlock *txsForBlock,
-	txPool dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 ) bool {
 	forBlock.mutTxsForBlock.Lock()
 
@@ -165,7 +165,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	forBlock *txsForBlock,
 	chRcvAllTxs chan bool,
 	currType block.Type,
-	txPool dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 ) map[uint32][]*txsHashesInfo {
 
 	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)

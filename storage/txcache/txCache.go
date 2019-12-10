@@ -118,6 +118,11 @@ func (cache *TxCache) CountTx() int64 {
 	return cache.txByHash.counter.Get()
 }
 
+// Len is an alias for CountTx
+func (cache *TxCache) Len() int {
+	return int(cache.CountTx())
+}
+
 // CountSenders gets the number of senders in the cache
 func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()

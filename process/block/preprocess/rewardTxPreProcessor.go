@@ -22,7 +22,7 @@ type rewardTxPreprocessor struct {
 	chReceivedAllRewardTxs chan bool
 	onRequestRewardTx      func(shardID uint32, txHashes [][]byte)
 	rewardTxsForBlock      txsForBlock
-	rewardTxPool           dataRetriever.ShardedDataCacherNotifier
+	rewardTxPool           dataRetriever.TxPool
 	storage                dataRetriever.StorageService
 	rewardsProcessor       process.RewardTransactionProcessor
 	rewardsProducer        process.InternalTransactionProducer
@@ -31,7 +31,7 @@ type rewardTxPreprocessor struct {
 
 // NewRewardTxPreprocessor creates a new reward transaction preprocessor object
 func NewRewardTxPreprocessor(
-	rewardTxDataPool dataRetriever.ShardedDataCacherNotifier,
+	rewardTxDataPool dataRetriever.TxPool,
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -171,7 +171,7 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 				return rewardTxsRestored, err
 			}
 
-			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
+			rtp.rewardTxPool.AddTx([]byte(txHash), &tx, strCache)
 		}
 
 		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
@@ -246,7 +246,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 	for _, rewardMb := range computedRewardMiniblocks {
 		txShardData := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
 		for _, txHash := range rewardMb.TxHashes {
-			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
+			tx, ok := rtp.rewardTxPool.SearchFirstTx(txHash)
 			if !ok {
 				log.Debug("reward txs not found in pool", "error", process.ErrRewardTransactionNotFound.Error())
 				continue
@@ -432,7 +432,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 ) ([]*rewardTx.RewardTx, [][]byte, error) {
 
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
-	txCache := rtp.rewardTxPool.ShardDataStore(strCache)
+	txCache := rtp.rewardTxPool.GetTxCache(strCache)
 	if txCache == nil {
 		return nil, nil, process.ErrNilRewardTxDataPool
 	}
@@ -445,7 +445,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 			return nil, nil, process.ErrTimeIsOut
 		}
 
-		tmp, ok := txCache.Peek(txHash)
+		tmp, ok := txCache.GetByTxHash(txHash)
 		if !ok {
 			return nil, nil, process.ErrNilRewardTransaction
 		}

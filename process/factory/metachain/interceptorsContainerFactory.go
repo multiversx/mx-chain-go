@@ -372,8 +372,8 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: icf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		TxPool:      icf.dataPool.Transactions(),
+		TxValidator: txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -431,8 +431,8 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic st
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: icf.dataPool.UnsignedTransactions(),
-		TxValidator:      txValidator,
+		TxPool:      icf.dataPool.UnsignedTransactions(),
+		TxValidator: txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {

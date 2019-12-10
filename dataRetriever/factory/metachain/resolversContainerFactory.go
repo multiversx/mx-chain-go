@@ -271,7 +271,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 func (rcf *resolversContainerFactory) generateTxResolvers(
 	topic string,
 	unit dataRetriever.UnitType,
-	dataPool dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 ) ([]string, []dataRetriever.Resolver, error) {
 
 	shardC := rcf.shardCoordinator
@@ -284,7 +284,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, txPool)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -296,7 +296,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, txPool)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -311,7 +311,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 	topic string,
 	excludedTopic string,
 	unit dataRetriever.UnitType,
-	dataPool dataRetriever.ShardedDataCacherNotifier,
+	txPool dataRetriever.TxPool,
 ) (dataRetriever.Resolver, error) {
 
 	txStorer := rcf.store.GetStorer(unit)
@@ -323,7 +323,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 
 	resolver, err := resolvers.NewTxResolver(
 		resolverSender,
-		dataPool,
+		txPool,
 		txStorer,
 		rcf.marshalizer,
 		rcf.dataPacker,
