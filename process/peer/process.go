@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sync"
@@ -154,11 +155,96 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
+func (p *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
+	if p.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nil
+	}
+
+	metaBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return nil
+	}
+
+	for _, peerChange := range metaBlock.PeerInfo {
+		err := p.updatePeerState(peerChange)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) updatePeerState(
+	peerChange block.PeerData,
+) error {
+	adrSrc, err := p.adrConv.CreateAddressFromPublicKeyBytes(peerChange.Address)
+	if err != nil {
+		return err
+	}
+
+	if peerChange.Action == block.PeerDeregistration {
+		return p.peerAdapter.RemoveAccount(adrSrc)
+	}
+
+	accHandler, err := p.peerAdapter.GetAccountWithJournal(adrSrc)
+	if err != nil {
+		return err
+	}
+
+	account, ok := accHandler.(*state.PeerAccount)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	zero := big.NewInt(0)
+	if peerChange.ValueChange.Cmp(zero) != 0 {
+		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
+		err := account.SetStakeWithJournal(actualValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	if peerChange.Action == block.PeerRegistrantion && peerChange.TimeStamp != account.Nonce {
+		err := account.SetNonceWithJournal(peerChange.TimeStamp)
+		if err != nil {
+			return err
+		}
+
+		err = account.SetNodeInWaitingListWithJournal(true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
+		err := account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return p.peerAdapter.RootHash()
+	}
+
+	err := p.processPeerChanges(header)
+	if err != nil {
+		return nil, err
 	}
 
 	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
@@ -426,7 +512,7 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 		return nil, err
 	}
 
-	account, err := p.peerAdapter.GetExistingAccount(addressContainer)
+	account, err := p.peerAdapter.GetAccountWithJournal(addressContainer)
 	if err != nil {
 		return nil, err
 	}

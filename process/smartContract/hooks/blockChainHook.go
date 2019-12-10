@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -188,6 +189,10 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 // GetBlockhash returns the header hash for a requested nonce delta
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	hdr := bh.blockChain.GetCurrentBlockHeader()
+
+	if check.IfNil(hdr) {
+		return nil, process.ErrNilBlockHeader
+	}
 	if nonce > hdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
@@ -306,11 +311,6 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 
 	if len(vmType) != core.VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
-	}
-
-	_, err := bh.getShardAccountFromAddressBytes(creatorAddress)
-	if err != nil {
-		return nil, err
 	}
 
 	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)

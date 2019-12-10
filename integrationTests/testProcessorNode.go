@@ -86,7 +86,7 @@ var MinTxGasPrice = uint64(10)
 var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(100000)
+const MaxGasLimitPerBlock = uint64(10000000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -97,6 +97,9 @@ const OpGasValueForMockVm = uint64(50)
 
 // TimeSpanForBadHeaders is the expiry time for an added block header hash
 var TimeSpanForBadHeaders = time.Second * 30
+
+// roundDuration defines the duration of the round
+const roundDuration = time.Duration(5 * time.Second)
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -122,14 +125,13 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ShardDataPool    dataRetriever.PoolsHolder
-	MetaDataPool     dataRetriever.MetaPoolsHolder
-	Storage          dataRetriever.StorageService
-	PeerState        state.AccountsAdapter
-	AccntState       state.AccountsAdapter
-	AddressConverter state.AddressConverter
-	BlockChain       data.ChainHandler
-	GenesisBlocks    map[uint32]data.HeaderHandler
+	ShardDataPool dataRetriever.PoolsHolder
+	MetaDataPool  dataRetriever.MetaPoolsHolder
+	Storage       dataRetriever.StorageService
+	PeerState     state.AccountsAdapter
+	AccntState    state.AccountsAdapter
+	BlockChain    data.ChainHandler
+	GenesisBlocks map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 
@@ -152,16 +154,14 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
 
-	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	Rater                        sharding.RaterHandler
-
-	ForkDetector        process.ForkDetector
-	BlockProcessor      process.BlockProcessor
-	BroadcastMessenger  consensus.BroadcastMessenger
-	Bootstrapper        TestBootstrapper
-	Rounder             *mock.RounderMock
-	BootstrapStorer     *mock.BoostrapStorerMock
-	StorageBootstrapper *mock.StorageBootstrapperMock
+	ForkDetector          process.ForkDetector
+	BlockProcessor        process.BlockProcessor
+	BroadcastMessenger    consensus.BroadcastMessenger
+	Bootstrapper          TestBootstrapper
+	Rounder               *mock.RounderMock
+	BootstrapStorer       *mock.BoostrapStorerMock
+	StorageBootstrapper   *mock.StorageBootstrapperMock
+	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
 	EpochStartTrigger TestEpochStartTrigger
 
@@ -267,6 +267,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
+	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
@@ -431,6 +432,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.ShardHeadersForMetachainTopic,
 			factory.MetachainBlocksTopic,
 			factory.TransactionTopic,
@@ -453,6 +455,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
@@ -525,6 +528,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -538,10 +542,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		rewardsHandler,
 		tpn.EconomicsData,
+		txTypeHandler,
 		tpn.GasHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
@@ -618,9 +621,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.addMockVm(tpn.BlockchainHook)
 
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
@@ -632,11 +636,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScrForwarder,
 		&metaProcess.TransactionFeeHandler{},
 		tpn.EconomicsData,
+		txTypeHandler,
 		tpn.GasHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-
+	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -656,6 +659,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
+		scProcessor,
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
@@ -1204,4 +1208,8 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 
 func (tpn *TestProcessorNode) initRounder() {
 	tpn.Rounder = &mock.RounderMock{}
+}
+
+func (tpn *TestProcessorNode) initRequestedItemsHandler() {
+	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -37,7 +38,7 @@ func createBlockBody() block.Body {
 		{
 			TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
 			ReceiverShardID: 0,
-			SenderShardID:   0,
+			SenderShardID:   sharding.MetachainShardId,
 			Type:            block.SmartContractResultBlock,
 		},
 	}
@@ -144,9 +145,11 @@ func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 	t.Parallel()
 
+	called := false
 	testError := errors.New("error")
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
+		called = true
 		return nil, testError
 	}
 
@@ -156,7 +159,8 @@ func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, testError, err)
+	assert.Nil(t, err)
+	assert.True(t, called)
 }
 
 func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T) {

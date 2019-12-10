@@ -120,10 +120,6 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []
 		mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 	}
 
-	if mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs == nil {
-		mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64, mp.shardCoordinator.NumberOfShards())
-	}
-
 	mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
 	mp.hdrsForCurrBlock.missingHdrs++
 }
@@ -148,8 +144,8 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
-func (mp *metaProcessor) CreateEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
-	return mp.createEpochStartForMetablock(metaBlock)
+func (mp *metaProcessor) CreateEpochStartForMetablock() (*block.EpochStart, error) {
+	return mp.createEpochStartForMetablock()
 }
 
 func (mp *metaProcessor) GetLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {

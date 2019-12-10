@@ -454,7 +454,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 
 	existingAccountErr := errors.New("existing account err")
 	adapter := getAccountsMock()
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, existingAccountErr
 	}
 
@@ -482,7 +482,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	t.Parallel()
 
 	adapter := getAccountsMock()
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}
 
@@ -513,7 +513,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	adapter := getAccountsMock()
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{}, nil
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -571,7 +571,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 		},
 	}
 
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{}, nil
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -627,7 +627,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	increaseValidatorCalled := false
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			IncreaseLeaderSuccessRateWithJournalCalled: func() error {
 				increaseLeaderCalled = true
@@ -709,7 +709,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	missedBlocksErr := errors.New("missed blocks error")
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	adapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
 				return missedBlocksErr
@@ -875,7 +875,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	decreaseErr := errors.New("peer acc err")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
 				return decreaseErr
@@ -913,7 +913,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
 				decreaseCount++

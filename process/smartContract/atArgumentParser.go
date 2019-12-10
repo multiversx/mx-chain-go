@@ -14,6 +14,7 @@ type atArgumentParser struct {
 }
 
 const atSep = "@"
+const atSepChar = '@'
 
 // NewAtArgumentParser creates a new argument parser implementation that splits arguments by @ character
 func NewAtArgumentParser() (process.ArgumentsParser, error) {
@@ -76,6 +77,10 @@ func (at *atArgumentParser) GetSeparator() string {
 
 // GetStorageUpdates parse data into storage updates
 func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
+	if len(data) > 0 && data[0] == atSepChar {
+		data = data[1:]
+	}
+
 	splitString := strings.Split(data, atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return nil, process.ErrStringSplitFailed
