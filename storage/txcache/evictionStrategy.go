@@ -112,7 +112,7 @@ func (model *evictionStrategy) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	model.cache.ForEachSender(func(key string, txList *txListForSender) {
+	model.cache.forEachSender(func(key string, txList *txListForSender) {
 		aLot := model.config.ALotOfTransactionsForASender
 		toEvictForSenderCount := model.config.NoTxsToEvictForASenderWithALot
 

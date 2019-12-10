@@ -22,7 +22,7 @@ func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 	// Note: for simplicity, we use the same "noChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
 		txListBySender: newTxListBySenderMap(size, noChunksHint),
-		txByHash:       NewTxByHashMap(size, noChunksHint),
+		txByHash:       newTxByHashMap(size, noChunksHint),
 	}
 
 	return txCache

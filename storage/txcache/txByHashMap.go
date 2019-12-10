@@ -11,8 +11,8 @@ type txByHashMap struct {
 	counter    core.AtomicCounter
 }
 
-// NewTxByHashMap creates a new TxByHashMap instance
-func NewTxByHashMap(size uint32, noChunksHint uint32) txByHashMap {
+// newTxByHashMap creates a new TxByHashMap instance
+func newTxByHashMap(size uint32, noChunksHint uint32) txByHashMap {
 	// We'll hold at most "size" transactions
 	backingMap := NewConcurrentMap(size, noChunksHint)
 
