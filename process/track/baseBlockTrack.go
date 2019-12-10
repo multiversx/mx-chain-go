@@ -7,8 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("process/track")
@@ -19,10 +21,14 @@ type headerInfo struct {
 }
 
 type baseBlockTrack struct {
-	rounder consensus.Rounder
+	rounder          consensus.Rounder
+	shardCoordinator sharding.Coordinator
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32]map[uint64][]*headerInfo
+
+	mutNotarizedHeaders sync.RWMutex
+	notarizedHeaders    map[uint32][]data.HeaderHandler
 }
 
 // AddHeader adds the given header to the received headers list
@@ -125,4 +131,30 @@ func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
 			"round", header.GetRound(),
 			"nonce", header.GetNonce())
 	}
+}
+
+func (bbt *baseBlockTrack) setNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
+	bbt.mutNotarizedHeaders.Lock()
+	defer bbt.mutNotarizedHeaders.Unlock()
+
+	if startHeaders == nil {
+		return process.ErrNotarizedHdrsSliceIsNil
+	}
+
+	bbt.notarizedHeaders = make(map[uint32][]data.HeaderHandler, bbt.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < bbt.shardCoordinator.NumberOfShards(); i++ {
+		header, ok := startHeaders[i].(*block.Header)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		bbt.notarizedHeaders[i] = append(bbt.notarizedHeaders[i], header)
+	}
+
+	metaBlock, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+	bbt.notarizedHeaders[sharding.MetachainShardId] = append(bbt.notarizedHeaders[sharding.MetachainShardId], metaBlock)
+
+	return nil
 }

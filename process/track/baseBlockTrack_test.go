@@ -3,6 +3,7 @@ package track_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -11,43 +12,96 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
+		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
+	return genesisBlocks
+}
+
+func createGenesisBlock(ShardID uint32) *block.Header {
+	rootHash := []byte("roothash")
+	return &block.Header{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		ShardId:       ShardID,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *block.MetaBlock {
+	rootHash := []byte("roothash")
+	return &block.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
 func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
-	bt, err := track.NewShardBlockTrack(nil, &mock.RounderMock{})
+	bt, err := track.NewShardBlockTrack(nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), nil)
 
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 	assert.Nil(t, bt)
 }
 
-func TestNewBlockTrack_ShouldErrNilHeadersNoncesDataPool(t *testing.T) {
-	bt, err := track.NewShardBlockTrack(&mock.PoolsHolderMock{}, &mock.RounderMock{})
+func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
+	bt, err := track.NewShardBlockTrack(&mock.PoolsHolderMock{}, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), nil)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 	assert.Nil(t, bt)
 }
 
 func TestNewBlockTrack_ShouldErrNilRounder(t *testing.T) {
-	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), nil)
+	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), nil, mock.NewMultipleShardsCoordinatorMock(), nil)
 
 	assert.Equal(t, process.ErrNilRounder, err)
 	assert.Nil(t, bt)
 }
 
+func TestNewBlockTrack_ShouldErrNilShardCoordinator(t *testing.T) {
+	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, nil, nil)
+
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, bt)
+}
+
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
-	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, err := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, bt)
 }
 
 func TestNewBlockTrack_AddHeaderForShardShouldNotUpdateIfHeaderIsNil(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 	bt.AddHeader(nil, nil)
 	lastHeader := bt.LastHeaderForShard(0)
 	assert.Nil(t, lastHeader)
 }
 
 func TestNewBlockTrack_AddHeaderShouldNotUpdateIfRoundIsLowerOrEqual(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	header1 := &block.Header{Round: 2}
 	header2 := &block.Header{Round: 1}
@@ -67,7 +121,9 @@ func TestNewBlockTrack_AddHeaderShouldNotUpdateIfRoundIsLowerOrEqual(t *testing.
 }
 
 func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	header1 := &block.Header{Round: 2}
 	header2 := &block.Header{Round: 3}
@@ -100,7 +156,9 @@ func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
 }
 
 func TestNewBlockTrack_LastHeaderForShardShouldWork(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	header1 := &block.Header{ShardId: 0, Round: 2}
 	header2 := &block.Header{ShardId: 1, Round: 2}
@@ -121,14 +179,18 @@ func TestNewBlockTrack_LastHeaderForShardShouldWork(t *testing.T) {
 }
 
 func TestNewBlockTrack_IsShardStuckShoudReturnFalseWhenListIsEmpty(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	isShardStuck := bt.IsShardStuck(0)
 	assert.False(t, isShardStuck)
 }
 
 func TestNewBlockTrack_IsShardStuckShoudReturnFalse(t *testing.T) {
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{})
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), &mock.RounderMock{}, shardCoordinatorMock, genesisBlocks)
 
 	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	isShardStuck := bt.IsShardStuck(0)
@@ -137,7 +199,9 @@ func TestNewBlockTrack_IsShardStuckShoudReturnFalse(t *testing.T) {
 
 func TestNewBlockTrack_IsShardStuckShoudReturnTrue(t *testing.T) {
 	rounderMock := &mock.RounderMock{}
-	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), rounderMock)
+	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
+	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
+	bt, _ := track.NewShardBlockTrack(mock.NewPoolsHolderMock(), rounderMock, shardCoordinatorMock, genesisBlocks)
 
 	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	rounderMock.RoundIndex = process.MaxRoundsWithoutCommittedBlock + 1

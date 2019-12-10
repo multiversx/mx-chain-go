@@ -3,8 +3,10 @@ package track
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -18,6 +20,8 @@ type shardBlockTrack struct {
 func NewShardBlockTrack(
 	poolsHolder dataRetriever.PoolsHolder,
 	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+	startHeaders map[uint32]data.HeaderHandler,
 ) (*shardBlockTrack, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -32,9 +36,18 @@ func NewShardBlockTrack(
 	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	bbt := &baseBlockTrack{
-		rounder: rounder,
+		rounder:          rounder,
+		shardCoordinator: shardCoordinator,
+	}
+
+	err := bbt.setNotarizedHeaders(startHeaders)
+	if err != nil {
+		return nil, err
 	}
 
 	sbt := &shardBlockTrack{
