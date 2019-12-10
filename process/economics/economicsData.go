@@ -46,7 +46,6 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	rd, err := NewRatingsData(economics.RatingSettings)
-
 	if err != nil {
 		return nil, err
 	}

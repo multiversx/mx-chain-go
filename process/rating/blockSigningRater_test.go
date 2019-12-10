@@ -41,7 +41,7 @@ func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderM
 		GetRatingCalled: func(s string) uint32 {
 			value, ok := ratingsMap[s]
 			if !ok {
-				return 0
+				return startRating
 			}
 			return value
 		},
@@ -81,7 +81,7 @@ func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnZero(t *te
 	assert.Equal(t, uint32(1), rt)
 }
 
-func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnError(t *testing.T) {
+func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
@@ -90,7 +90,7 @@ func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnError(t *testing.T) 
 
 	rt := bsr.GetRating("test")
 
-	assert.Equal(t, uint32(0), rt)
+	assert.Equal(t, startRating, rt)
 }
 
 func TestBlockSigningRater_GetRatingsWithAllKnownPeersShouldReturnRatings(t *testing.T) {

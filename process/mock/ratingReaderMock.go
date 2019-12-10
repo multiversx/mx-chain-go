@@ -23,5 +23,5 @@ func (rrm *RatingReaderMock) GetRatings(pks []string) map[string]uint32 {
 }
 
 func (rrm *RatingReaderMock) IsInterfaceNil() bool {
-	return false
+	return rrm == nil
 }

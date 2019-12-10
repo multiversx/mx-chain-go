@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -35,6 +36,7 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
+		RatingReader:                &NilRatingReader{},
 	}, nil
 }
 
@@ -52,27 +54,19 @@ func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32
 
 //GetRating returns the Rating for the specified public key
 func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
-	if bsr.RatingReader == nil {
-		return 1
-	}
 	return bsr.RatingReader.GetRating(pk)
 }
 
 //GetRatings gets all the ratings that the current rater has
 func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
-	if bsr.RatingReader == nil {
-		newMap := make(map[string]uint32)
-		for _, v := range addresses {
-			newMap[v] = 1
-		}
-		return newMap
-	}
 	return bsr.RatingReader.GetRatings(addresses)
 }
 
 //SetRatingReader sets the Reader that can read ratings
 func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
-	bsr.RatingReader = reader
+	if !check.IfNil(reader) {
+		bsr.RatingReader = reader
+	}
 }
 
 //SetRatingReader sets the Reader that can read ratings

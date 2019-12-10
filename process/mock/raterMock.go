@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/sharding"
+
 type RaterMock struct {
 	StartRating       uint32
 	MinRating         uint32
@@ -15,7 +17,7 @@ type RaterMock struct {
 	ComputeDecreaseProposerCalled  func(val uint32) uint32
 	ComputeIncreaseValidatorCalled func(val uint32) uint32
 	ComputeDecreaseValidatorCalled func(val uint32) uint32
-	RatingReader                   RatingReader
+	RatingReader                   sharding.RatingReader
 }
 
 func GetNewMockRater() *RaterMock {
@@ -83,19 +85,10 @@ func (rm *RaterMock) ComputeDecreaseValidator(val uint32) uint32 {
 	return rm.ComputeDecreaseValidatorCalled(val)
 }
 
-//SetRatingReader sets the Reader that can read ratings
-func (rm *RaterMock) SetRatingReader(reader RatingReader) {
-
+func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
+	rm.RatingReader = reader
 }
 
-//SetRatingReader sets the Reader that can read ratings
 func (rm *RaterMock) IsInterfaceNil() bool {
-	return false
-}
-
-type RatingReader interface {
-	//GetRating gets the rating for the public key
-	GetRating(string) uint32
-	//GetRatings gets all the ratings as a map[pk] ratingValue
-	GetRatings([]string) map[string]uint32
+	return rm == nil
 }

@@ -63,6 +63,7 @@ type NodesShuffler interface {
 	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
 }
 
+//RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type RaterHandler interface {
 	RatingReader
 	//GetStartRating gets the start rating values
@@ -77,6 +78,7 @@ type RaterHandler interface {
 	ComputeDecreaseValidator(val uint32) uint32
 }
 
+//RatingReader provides rating reading capabilities for the ratingHandler
 type RatingReader interface {
 	//GetRating gets the rating for the public key
 	GetRating(string) uint32
@@ -86,6 +88,7 @@ type RatingReader interface {
 	IsInterfaceNil() bool
 }
 
+//RatingReaderSetter provides the capabilities to set a RatingReader
 type RatingReaderSetter interface {
 	//GetRating gets the rating for the public key
 	SetRatingReader(RatingReader)

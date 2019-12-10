@@ -24,6 +24,7 @@ func (bsr *RatingReader) GetRatings(addresses []string) map[string]uint32 {
 	return ratings
 }
 
+//IsInterfaceNil checks if the underlying object is nil
 func (bsr *RatingReader) IsInterfaceNil() bool {
 	return bsr == nil
 }

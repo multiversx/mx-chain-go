@@ -3,6 +3,7 @@ package peer
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math/big"
 	"sync"
 
@@ -79,6 +80,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
+	if check.IfNil(arguments.Rater) {
+		return nil, process.ErrNilRater
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:      arguments.PeerAdapter,
@@ -96,18 +100,17 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	rater := arguments.Rater
 	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
 	startRatingValue := defaultRatingValue
-	if ok {
-		log.Debug("setting ratingReader")
-
-		rr := &RatingReader{
-			getRating: vs.getRating,
-		}
-
-		ratingReaderSetter.SetRatingReader(rr)
-		startRatingValue = rater.GetStartRating()
-	} else {
-		log.Warn("no ratingReader has been set")
+	if !ok {
+		return nil, process.ErrNilRatingReader
 	}
+	log.Debug("setting ratingReader")
+
+	rr := &RatingReader{
+		getRating: vs.getRating,
+	}
+
+	ratingReaderSetter.SetRatingReader(rr)
+	startRatingValue = rater.GetStartRating()
 
 	vs.initialNodes = arguments.InitialNodes
 
@@ -283,12 +286,16 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
+	p.displayRatings()
+
+	return p.peerAdapter.RootHash()
+}
+
+func (p *validatorStatistics) displayRatings() {
 	for _, node := range p.initialNodes {
 		address, _ := p.adrConv.CreateAddressFromHex(node.Address)
 		log.Trace("ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
 	}
-
-	return p.peerAdapter.RootHash()
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -674,9 +681,9 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 
 func (vs *validatorStatistics) getRating(s string) uint32 {
 	peer, err := vs.getPeerAccount([]byte(s))
-
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
+		return vs.rater.GetStartRating()
 	}
 
 	return peer.GetRating()
@@ -687,6 +694,7 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
+		return vs.rater.GetStartRating()
 	}
 
 	return peer.GetTempRating()

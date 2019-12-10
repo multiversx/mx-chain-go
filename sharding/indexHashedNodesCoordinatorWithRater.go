@@ -13,12 +13,10 @@ type indexHashedNodesCoordinatorWithRater struct {
 func NewIndexHashedNodesCoordinatorWithRater(
 	indexNodesCoordinator *indexHashedNodesCoordinator,
 	rater RatingReader,
-) (*indexHashedNodesCoordinatorWithRater,
-	error) {
+) (*indexHashedNodesCoordinatorWithRater, error) {
 	if check.IfNil(indexNodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
 	}
-
 	if check.IfNil(rater) {
 		return nil, ErrNilRater
 	}
@@ -47,6 +45,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(shardId uin
 	return validatorList
 }
 
+//IsInterfaceNil verifies that the underlying value is nil
 func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihgs == nil
 }

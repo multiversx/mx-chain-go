@@ -16,14 +16,14 @@ type PeerAccountHandlerMock struct {
 	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
-	SetNonceWithJournalCalled      func(nonce uint64) error    `json:"-"`
-	SetCodeHashWithJournalCalled   func(codeHash []byte) error `json:"-"`
-	SetRootHashWithJournalCalled   func([]byte) error          `json:"-"`
-	RatingCalled                   func() uint32               `json:"-"`
-	SetCodeWithJournalCalled       func(codeHash []byte) error `json:"-"`
-	SetRatingWithJournalCalled     func(rating uint32) error   `json:"-"`
-	TempRatingCalled               func() uint32               `json:"-"`
-	SetTempRatingWithJournalCalled func(rating uint32) error   `json:"-"`
+	SetNonceWithJournalCalled      func(nonce uint64) error
+	SetCodeHashWithJournalCalled   func(codeHash []byte) error
+	SetRootHashWithJournalCalled   func([]byte) error
+	RatingCalled                   func() uint32
+	SetCodeWithJournalCalled       func(codeHash []byte) error
+	SetRatingWithJournalCalled     func(rating uint32) error
+	TempRatingCalled               func() uint32
+	SetTempRatingWithJournalCalled func(rating uint32) error
 
 	IncreaseLeaderSuccessRateWithJournalCalled    func() error
 	DecreaseLeaderSuccessRateWithJournalCalled    func() error
