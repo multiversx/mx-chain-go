@@ -52,7 +52,19 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 		}
 		return hnc
 	}
-
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{
+			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
+				return false, false
+			},
+			RegisterHandlerCalled: func(func(key []byte)) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+			RemoveCalled: func(key []byte) {},
+		}
+		return sds
+	}
 	return pools
 }
 
@@ -69,6 +81,21 @@ func createMockResolversFinderMeta() *mock.ResolversFinderStub {
 					},
 				}, nil
 			}
+
+			return nil, nil
+		},
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
+				return &mock.MiniBlocksResolverMock{
+					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+				}, nil
+			}
+
 			return nil, nil
 		},
 	}
@@ -674,7 +701,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 	wasCalled := 0
 
-	pools := &mock.MetaPoolsHolderStub{}
+	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
@@ -937,7 +964,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	dataAvailable := false
 	hash := []byte("aaa")
 
-	pools := &mock.MetaPoolsHolderStub{}
+	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
@@ -1049,7 +1076,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 
 	hash := []byte("aaa")
-	pools := &mock.MetaPoolsHolderStub{}
+	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
@@ -1083,6 +1110,20 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 			return nil, false
 		}
 		return hnc
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{
+			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
+				return false, false
+			},
+			RegisterHandlerCalled: func(func(key []byte)) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+			RemoveCalled: func(key []byte) {
+			},
+		}
+		return sds
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1147,7 +1188,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	}
 
 	hash := []byte("aaa")
-	pools := &mock.MetaPoolsHolderStub{}
+	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
@@ -2072,6 +2113,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
+				_, ok := obj.(*block.MetaBlock)
+				if !ok {
+					return nil
+				}
+
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
 				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
@@ -2239,6 +2285,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
+				_, ok := obj.(*block.Header)
+				if !ok {
+					return nil
+				}
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
@@ -2437,7 +2487,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pools := &mock.MetaPoolsHolderStub{}
+	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
