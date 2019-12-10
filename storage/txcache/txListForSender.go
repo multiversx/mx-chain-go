@@ -1,32 +1,32 @@
 package txcache
 
 import (
-	linkedList "container/list"
+	"container/list"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// TxListForSender is
-type TxListForSender struct {
-	Items          *linkedList.List
+// txListForSender is
+type txListForSender struct {
+	items          *list.List
 	mutex          sync.Mutex
-	copyBatchIndex *linkedList.Element
+	copyBatchIndex *list.Element
 	copyBatchSize  int
 	orderNumber    int64
 	sender         string
 }
 
-// TxListForSenderNode is a node of the linked list
-type TxListForSenderNode struct {
-	TxHash []byte
-	Tx     *transaction.Transaction
+// txListForSenderNode is a node of the linked list
+type txListForSenderNode struct {
+	txHash []byte
+	tx     data.TransactionHandler
 }
 
-// NewTxListForSender creates a new (sorted) list of transactions
-func NewTxListForSender(sender string, globalIndex int64) *TxListForSender {
-	return &TxListForSender{
-		Items:       linkedList.New(),
+// newTxListForSender creates a new (sorted) list of transactions
+func newTxListForSender(sender string, globalIndex int64) *txListForSender {
+	return &txListForSender{
+		items:       list.New(),
 		orderNumber: globalIndex,
 		sender:      sender,
 	}
@@ -34,27 +34,27 @@ func NewTxListForSender(sender string, globalIndex int64) *TxListForSender {
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (list *TxListForSender) AddTx(txHash []byte, tx *transaction.Transaction) {
+func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHandler) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
-	list.mutex.Lock()
+	listForSender.mutex.Lock()
 
-	nonce := tx.Nonce
-	mark := list.findTxWithLargerNonce(nonce)
-	newNode := TxListForSenderNode{txHash, tx}
+	nonce := tx.GetNonce()
+	mark := listForSender.findTxWithLargerNonce(nonce)
+	newNode := txListForSenderNode{txHash, tx}
 
 	if mark == nil {
-		list.Items.PushBack(newNode)
+		listForSender.items.PushBack(newNode)
 	} else {
-		list.Items.InsertBefore(newNode, mark)
+		listForSender.items.InsertBefore(newNode, mark)
 	}
 
-	list.mutex.Unlock()
+	listForSender.mutex.Unlock()
 }
 
-func (list *TxListForSender) findTxWithLargerNonce(nonce uint64) *linkedList.Element {
-	for element := list.Items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(TxListForSenderNode)
-		if value.Tx.Nonce > nonce {
+func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(txListForSenderNode)
+		if value.tx.GetNonce() > nonce {
 			return element
 		}
 	}
@@ -63,48 +63,50 @@ func (list *TxListForSender) findTxWithLargerNonce(nonce uint64) *linkedList.Ele
 }
 
 // RemoveTx removes a transaction from the sender's list
-func (list *TxListForSender) RemoveTx(tx *transaction.Transaction) {
+func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
-	list.mutex.Lock()
+	listForSender.mutex.Lock()
 
-	marker := list.findTx(tx)
-
-	if marker != nil {
-		list.Items.Remove(marker)
+	marker := listForSender.findTx(tx)
+	isFound := marker != nil
+	if isFound {
+		listForSender.items.Remove(marker)
 	}
 
-	list.mutex.Unlock()
+	listForSender.mutex.Unlock()
+
+	return isFound
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
-func (list *TxListForSender) RemoveHighNonceTxs(count int) [][]byte {
+func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
 	removedTxHashes := make([][]byte, count)
 
-	list.mutex.Lock()
+	listForSender.mutex.Lock()
 
-	index := 0
-	var previous *linkedList.Element
-	for element := list.Items.Back(); element != nil && count > index; element = previous {
+	index := uint32(0)
+	var previous *list.Element
+	for element := listForSender.items.Back(); element != nil && count > index; element = previous {
 		// Remove node
 		previous = element.Prev()
-		list.Items.Remove(element)
+		listForSender.items.Remove(element)
 
 		// Keep track of removed transaction
-		value := element.Value.(TxListForSenderNode)
-		removedTxHashes[index] = value.TxHash
+		value := element.Value.(txListForSenderNode)
+		removedTxHashes[index] = value.txHash
 
 		index++
 	}
 
-	list.mutex.Unlock()
+	listForSender.mutex.Unlock()
 
 	return removedTxHashes
 }
 
-func (list *TxListForSender) findTx(txToFind *transaction.Transaction) *linkedList.Element {
-	for element := list.Items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(TxListForSenderNode)
-		if value.Tx == txToFind {
+func (listForSender *txListForSender) findTx(txToFind data.TransactionHandler) *list.Element {
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(txListForSenderNode)
+		if value.tx == txToFind {
 			return element
 		}
 	}
@@ -113,31 +115,31 @@ func (list *TxListForSender) findTx(txToFind *transaction.Transaction) *linkedLi
 }
 
 // HasMoreThan checks whether the list has more items than specified
-func (list *TxListForSender) HasMoreThan(count int) bool {
-	return list.Items.Len() > count
+func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
+	return uint32(listForSender.items.Len()) > count
 }
 
 // IsEmpty checks whether the list is empty
-func (list *TxListForSender) IsEmpty() bool {
-	return list.Items.Len() == 0
+func (listForSender *txListForSender) IsEmpty() bool {
+	return listForSender.items.Len() == 0
 }
 
-// StartBatchCopying resets the internal state used for copy operations
-func (list *TxListForSender) StartBatchCopying(batchSize int) {
+// startBatchCopying resets the internal state used for copy operations
+func (listForSender *txListForSender) startBatchCopying(batchSize int) {
 	// We cannot copy or start copy from multiple goroutines at the same time
-	list.mutex.Lock()
+	listForSender.mutex.Lock()
 
-	list.copyBatchIndex = list.Items.Front()
-	list.copyBatchSize = batchSize
+	listForSender.copyBatchIndex = listForSender.items.Front()
+	listForSender.copyBatchSize = batchSize
 
-	list.mutex.Unlock()
+	listForSender.mutex.Unlock()
 }
 
-// CopyBatchTo copies a batch (usually small) of transactions to a destination slice
+// copyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction) int {
-	element := list.copyBatchIndex
-	batchSize := list.copyBatchSize
+func (listForSender *txListForSender) copyBatchTo(destination []data.TransactionHandler) int {
+	element := listForSender.copyBatchIndex
+	batchSize := listForSender.copyBatchSize
 	availableSpace := len(destination)
 
 	if element == nil {
@@ -146,7 +148,7 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
-	list.mutex.Lock()
+	listForSender.mutex.Lock()
 
 	copied := 0
 	for ; ; copied++ {
@@ -154,38 +156,38 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 			break
 		}
 
-		value := element.Value.(TxListForSenderNode)
-		destination[copied] = value.Tx
+		value := element.Value.(txListForSenderNode)
+		destination[copied] = value.tx
 		element = element.Next()
 	}
 
-	list.copyBatchIndex = element
+	listForSender.copyBatchIndex = element
 
-	list.mutex.Unlock()
+	listForSender.mutex.Unlock()
 	return copied
 }
 
 // GetTxHashes returns the hashes of transactions in the list
-func (list *TxListForSender) GetTxHashes() [][]byte {
-	result := make([][]byte, list.Items.Len())
+func (listForSender *txListForSender) GetTxHashes() [][]byte {
+	result := make([][]byte, listForSender.items.Len())
 
 	index := 0
-	for element := list.Items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(TxListForSenderNode)
-		result[index] = value.TxHash
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(txListForSenderNode)
+		result[index] = value.txHash
 		index++
 	}
 
 	return result
 }
 
-func (list *TxListForSender) getHighestNonceTx() *transaction.Transaction {
-	back := list.Items.Back()
+func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandler {
+	back := listForSender.items.Back()
 
 	if back == nil {
 		return nil
 	}
 
-	value := back.Value.(TxListForSenderNode)
-	return value.Tx
+	value := back.Value.(txListForSenderNode)
+	return value.tx
 }

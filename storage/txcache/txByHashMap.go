@@ -2,65 +2,65 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// TxByHashMap is
-type TxByHashMap struct {
-	Map     *ConcurrentMap
-	Counter core.AtomicCounter
+// txByHashMap is a new map-like structure for holding and accessing transactions by txHash
+type txByHashMap struct {
+	backingMap *ConcurrentMap
+	counter    core.AtomicCounter
 }
 
-// NewTxByHashMap creates a new map-like structure for holding and accessing transactions by txHash
-func NewTxByHashMap(size int, shardsHint int) TxByHashMap {
+// newTxByHashMap creates a new TxByHashMap instance
+func newTxByHashMap(size uint32, noChunksHint uint32) txByHashMap {
 	// We'll hold at most "size" transactions
-	backingMap := NewConcurrentMap(size, shardsHint)
+	backingMap := NewConcurrentMap(size, noChunksHint)
 
-	return TxByHashMap{
-		Map:     backingMap,
-		Counter: 0,
+	return txByHashMap{
+		backingMap: backingMap,
+		counter:    0,
 	}
 }
 
-// AddTx adds a transaction to the map
-func (txMap *TxByHashMap) AddTx(txHash []byte, tx *transaction.Transaction) {
-	txMap.Map.Set(string(txHash), tx)
-	txMap.Counter.Increment()
+// addTx adds a transaction to the map
+func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) {
+	txMap.backingMap.Set(string(txHash), tx)
+	txMap.counter.Increment()
 }
 
-// RemoveTx removes a transaction from the map
-func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, bool) {
-	tx, ok := txMap.GetTx(txHash)
+// removeTx removes a transaction from the map
+func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool) {
+	tx, ok := txMap.getTx(txHash)
 	if !ok {
 		return nil, false
 	}
 
-	txMap.Map.Remove(txHash)
-	txMap.Counter.Decrement()
+	txMap.backingMap.Remove(txHash)
+	txMap.counter.Decrement()
 	return tx, true
 }
 
-// GetTx gets a transaction from the map
-func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) {
-	txUntyped, ok := txMap.Map.Get(txHash)
+// getTx gets a transaction from the map
+func (txMap *txByHashMap) getTx(txHash string) (data.TransactionHandler, bool) {
+	txUntyped, ok := txMap.backingMap.Get(txHash)
 	if !ok {
 		return nil, false
 	}
 
-	tx := txUntyped.(*transaction.Transaction)
+	tx := txUntyped.(data.TransactionHandler)
 	return tx, true
 }
 
 // RemoveTxsBulk removes transactions, in bulk
-func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) int {
+func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	for _, txHash := range txHashes {
-		txMap.Map.Remove(string(txHash))
+		txMap.backingMap.Remove(string(txHash))
 	}
 
-	oldCount := txMap.Counter.Get()
-	newCount := int64(txMap.Map.Count())
+	oldCount := uint32(txMap.counter.Get())
+	newCount := uint32(txMap.backingMap.Count())
 	noRemoved := oldCount - newCount
 
-	txMap.Counter.Set(newCount)
-	return int(noRemoved)
+	txMap.counter.Set(int64(newCount))
+	return noRemoved
 }

@@ -580,6 +580,27 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		snapshot := txs.accounts.JournalLen()
+		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
+		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
+
+		err = txs.computeGasConsumed(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			orderedTxs[index],
+			orderedTxHashes[index],
+			&gasConsumedByMiniBlockInSenderShard,
+			&gasConsumedByMiniBlockInReceiverShard)
+
+		if err != nil {
+			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+				gasConsumedByMiniBlockInSenderShard,
+				gasConsumedByMiniBlockInReceiverShard,
+				txs.gasHandler.TotalGasConsumed(),
+				len(miniBlock.TxHashes),
+				len(orderedTxs)))
+
+			continue
+		}
 
 		// execute transaction to change the trie root hash
 		err = txs.processAndRemoveBadTransaction(
@@ -604,36 +625,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
 			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
 
-			continue
-		}
-
-		err = txs.computeGasConsumed(
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID,
-			orderedTxs[index],
-			orderedTxHashes[index],
-			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard)
-
-		if err != nil {
-			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-				gasConsumedByMiniBlockInSenderShard,
-				gasConsumedByMiniBlockInReceiverShard,
-				txs.gasHandler.TotalGasConsumed(),
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
-
-			err = txs.accounts.RevertToSnapshot(snapshot)
-			if err != nil {
-				log.Error(err.Error())
-			}
-
-			txs.txsForCurrBlock.mutTxsForBlock.Lock()
-			delete(txs.txsForCurrBlock.txHashAndInfo, string(orderedTxHashes[index]))
-			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
-			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
-			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
+			gasConsumedByMiniBlockInSenderShard = oldGasConsumedByMiniBlockInSenderShard
+			gasConsumedByMiniBlockInReceiverShard = oldGasConsumedByMiniBlockInReceiverShard
 
 			continue
 		}
@@ -716,10 +709,12 @@ func (txs *transactions) ProcessMiniBlock(
 		return err
 	}
 
+	processedTxHashes := make([][]byte, 0)
+
 	defer func() {
 		if err != nil {
-			txs.gasHandler.RemoveGasConsumed(miniBlock.TxHashes)
-			txs.gasHandler.RemoveGasRefunded(miniBlock.TxHashes)
+			txs.gasHandler.RemoveGasConsumed(processedTxHashes)
+			txs.gasHandler.RemoveGasRefunded(processedTxHashes)
 		}
 	}()
 
@@ -731,11 +726,6 @@ func (txs *transactions) ProcessMiniBlock(
 			return process.ErrTimeIsOut
 		}
 
-		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
-		if err != nil {
-			return err
-		}
-
 		err = txs.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
@@ -744,6 +734,19 @@ func (txs *transactions) ProcessMiniBlock(
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 
+		if err != nil {
+			return err
+		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+	}
+
+	for index := range miniBlockTxs {
+		if !haveTime() {
+			return process.ErrTimeIsOut
+		}
+
+		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
 		}

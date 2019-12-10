@@ -13,10 +13,6 @@ func (t *TxValidatorStub) CheckTxValidity(txValidatorHandler process.TxValidator
 	return t.CheckTxValidityCalled(txValidatorHandler)
 }
 
-func (t *TxValidatorStub) NumRejectedTxs() uint64 {
-	return t.RejectedTxsCalled()
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (t *TxValidatorStub) IsInterfaceNil() bool {
 	if t == nil {
