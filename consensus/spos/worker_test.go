@@ -872,7 +872,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
