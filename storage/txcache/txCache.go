@@ -13,12 +13,12 @@ type TxCache struct {
 
 // NewTxCache creates a new transaction cache
 // "size" dictates the maximum number of transactions to hold in this cache at a given time
-// "shardsHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(size uint32, shardsHint uint32) *TxCache {
-	// Note: for simplicity, we use the same "shardsHint" for both internal concurrent maps
+// "noChunksHint" is used to configure the internal concurrent maps on which the implementation relies
+func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
+	// Note: for simplicity, we use the same "noChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
-		txListBySender: NewTxListBySenderMap(size, shardsHint),
-		txByHash:       NewTxByHashMap(size, shardsHint),
+		txListBySender: NewTxListBySenderMap(size, noChunksHint),
+		txByHash:       NewTxByHashMap(size, noChunksHint),
 	}
 
 	return txCache
