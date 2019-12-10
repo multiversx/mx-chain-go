@@ -1157,18 +1157,21 @@ func createShardDataPoolFromConfig(
 
 	log.Debug("creatingShardDataPool from config")
 
+	// TODO-TXCACHE
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
 	}
 
+	// TODO-TXCACHE
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
+	// TODO-TXCACHE
 	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
@@ -1269,12 +1272,14 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
+	// TODO-TXCACHE
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
 	}
 
+	// TODO-TXCACHE
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")

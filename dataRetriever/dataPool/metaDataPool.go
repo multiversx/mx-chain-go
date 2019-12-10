@@ -10,8 +10,8 @@ type metaDataPool struct {
 	miniBlocks           storage.Cacher
 	shardHeaders         storage.Cacher
 	headersNonces        dataRetriever.Uint64SyncMapCacher
-	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
+	transactions         dataRetriever.ShardedDataCacherNotifier // TODO-TXCACHE
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier // TODO-TXCACHE
 	currBlockTxs         dataRetriever.TransactionCacher
 }
 
@@ -21,8 +21,8 @@ func NewMetaDataPool(
 	miniBlocks storage.Cacher,
 	shardHeaders storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
-	transactions dataRetriever.ShardedDataCacherNotifier,
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
+	transactions dataRetriever.ShardedDataCacherNotifier, // TODO-TXCACHE
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier, // TODO-TXCACHE
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*metaDataPool, error) {
 

@@ -166,6 +166,7 @@ type PeerListCreator interface {
 }
 
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
+// TODO-TXCACHE: ShardedTxCacheContainer
 type ShardedDataCacherNotifier interface {
 	Notifier
 

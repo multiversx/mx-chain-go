@@ -653,6 +653,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	return miniBlock, nil
 }
 
+// TODO-TXCACHE
 func (txs *transactions) computeOrderedTxs(
 	sndShardId uint32,
 	dstShardId uint32,
@@ -760,6 +761,7 @@ func (txs *transactions) ProcessMiniBlock(
 }
 
 // SortTxByNonce sort transactions according to nonces
+// TODO-TXCACHE
 func SortTxByNonce(txShardPool storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	if txShardPool == nil {
 		return nil, nil, process.ErrNilTxDataPool
