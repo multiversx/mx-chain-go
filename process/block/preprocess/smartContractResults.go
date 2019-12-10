@@ -188,7 +188,6 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
 	body block.Body,
-	round uint64,
 	haveTime func() bool,
 ) error {
 
@@ -227,7 +226,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			err := scr.processSmartContractResult(
 				txHash,
 				currScr,
-				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 			)
@@ -340,7 +338,6 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 func (scr *smartContractResults) processSmartContractResult(
 	smartContractResultHash []byte,
 	smartContractResult *smartContractResult.SmartContractResult,
-	round uint64,
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
@@ -434,10 +431,9 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
 func (scr *smartContractResults) CreateAndProcessMiniBlock(
-	senderShardId, receiverShardId uint32,
-	spaceRemained int,
-	haveTime func() bool,
-	round uint64,
+	_, _ uint32,
+	_ int,
+	_ func() bool,
 ) (*block.MiniBlock, error) {
 
 	return nil, nil
@@ -446,9 +442,8 @@ func (scr *smartContractResults) CreateAndProcessMiniBlock(
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (scr *smartContractResults) CreateAndProcessMiniBlocks(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
-	round uint64,
+	_ uint32,
+	_ uint32,
 	_ func() bool,
 ) (block.MiniBlockSlice, error) {
 
@@ -459,7 +454,6 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(
 func (scr *smartContractResults) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
-	round uint64,
 ) error {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
