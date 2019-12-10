@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -18,11 +20,18 @@ type shardBlockTrack struct {
 
 // NewShardBlockTrack creates an object for tracking the received shard blocks
 func NewShardBlockTrack(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	poolsHolder dataRetriever.PoolsHolder,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	startHeaders map[uint32]data.HeaderHandler,
 ) (*shardBlockTrack, error) {
+
+	err := checkTrackerNilParameters(hasher, marshalizer, rounder, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
 
 	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
@@ -33,19 +42,20 @@ func NewShardBlockTrack(
 	if check.IfNil(poolsHolder.MetaBlocks()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(rounder) {
-		return nil, process.ErrNilRounder
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
 
 	bbt := &baseBlockTrack{
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 	}
 
-	err := bbt.setNotarizedHeaders(startHeaders)
+	err = bbt.setNotarizedHeaders(startHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bbt.setFinalizedHeaders(startHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +67,13 @@ func NewShardBlockTrack(
 	}
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	sbt.longestChainHeadersIndexes = make([]int, 0)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
+
+	sbt.blockFinality = process.MetaBlockFinality
+
+	sbt.blockTracker = sbt
 
 	return sbt, nil
 }
@@ -78,6 +93,7 @@ func (sbt *shardBlockTrack) receivedHeader(headerHash []byte) {
 	)
 
 	sbt.AddHeader(header, headerHash)
+	sbt.doJobOnReceivedBlock(header.GetShardID())
 }
 
 func (sbt *shardBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
@@ -95,4 +111,9 @@ func (sbt *shardBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
 	)
 
 	sbt.AddHeader(metaBlock, metaBlockHash)
+	sbt.doJobOnReceivedCrossNotarizedBlock(metaBlock.GetShardID())
+}
+
+func (sbt *shardBlockTrack) computeFinalizedHeaders(headers []data.HeaderHandler) []data.HeaderHandler {
+	return nil
 }

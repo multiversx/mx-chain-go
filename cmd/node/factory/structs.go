@@ -581,12 +581,26 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	blockTracker, err := newBlockTracker(args.shardCoordinator, args.data.Datapool, args.data.MetaDatapool, rounder, genesisBlocks)
+	blockTracker, err := newBlockTracker(
+		args.core.Hasher,
+		args.core.Marshalizer,
+		args.shardCoordinator,
+		args.data.Datapool,
+		args.data.MetaDatapool,
+		rounder,
+		genesisBlocks,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, blockTracker, args.nodesConfig.StartTime)
+	forkDetector, err := newForkDetector(
+		rounder,
+		args.shardCoordinator,
+		blackListHandler,
+		blockTracker,
+		args.nodesConfig.StartTime,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1755,6 +1769,8 @@ func createInMemoryShardCoordinatorAndAccount(
 }
 
 func newBlockTracker(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	datapool dataRetriever.PoolsHolder,
 	metaDatapool dataRetriever.MetaPoolsHolder,
@@ -1763,11 +1779,11 @@ func newBlockTracker(
 ) (process.BlockTracker, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return track.NewShardBlockTrack(datapool, rounder, shardCoordinator, genesisBlocks)
+		return track.NewShardBlockTrack(hasher, marshalizer, datapool, rounder, shardCoordinator, genesisBlocks)
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return track.NewMetaBlockTrack(metaDatapool, rounder, shardCoordinator, genesisBlocks)
+		return track.NewMetaBlockTrack(hasher, marshalizer, metaDatapool, rounder, shardCoordinator, genesisBlocks)
 	}
 
 	return nil, errors.New("could not create block tracker")

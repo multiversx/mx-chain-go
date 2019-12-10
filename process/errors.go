@@ -302,7 +302,16 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
+var ErrNotarizedHdrsSliceIsNil = errors.New("notarized headers slice is nil")
+
+// ErrNotarizedHdrsSliceForShardIsNil signals that the slice holding last notarized headers for shard is nil
+var ErrNotarizedHdrsSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
+
+// ErrFinalizedHdrsSliceIsNil signals that the slice holding last finalized headers is nil
+var ErrFinalizedHdrsSliceIsNil = errors.New("finalized headers slice is nil")
+
+// ErrFinalizedHdrsSliceForShardIsNil signals that the slice holding last finalized headers for shard is nil
+var ErrFinalizedHdrsSliceForShardIsNil = errors.New("finalized headers slice for shard is nil")
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
