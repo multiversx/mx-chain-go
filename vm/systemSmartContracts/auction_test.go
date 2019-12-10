@@ -172,17 +172,14 @@ func TestAuctionSC_selection_Case1(t *testing.T) {
 
 	data := stakingAuctionSC.selection(bids)
 	for _, key := range data {
-		for i, expectedKey := range expectedKeys {
+		found := false
+		for _, expectedKey := range expectedKeys {
 			if bytes.Equal(key, expectedKey) {
-				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
+				found = true
 				break
 			}
-
-			if i == len(expectedKeys)-1 {
-				assert.Equal(t, expectedKeys, data)
-				assert.Fail(t, "test fail")
-			}
 		}
+		assert.True(t, found)
 	}
 }
 
@@ -225,32 +222,15 @@ func TestAuctionSC_selection_Case2FirstBidderShouldTake50Percents(t *testing.T) 
 	//check that 50% keys belong to the first bidder
 	count := 0
 	firstBidderKeys := bids[0].BlsPubKeys
-	for i, key := range data {
-		for j, expectedKey := range firstBidderKeys {
+	for _, key := range data {
+		for _, expectedKey := range firstBidderKeys {
 			if bytes.Equal(key, expectedKey) {
-				firstBidderKeys = append(firstBidderKeys[:j], firstBidderKeys[j+1:]...)
-				data = append(data[:i], data[i+1:]...)
 				count++
 				break
 			}
 		}
 	}
 	assert.Equal(t, 5, count)
-	///////////////////////////////////////////////////////////
-
-	for _, key := range data {
-		for i, expectedKey := range expectedKeys {
-			if bytes.Equal(key, expectedKey) {
-				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
-				break
-			}
-
-			if i == len(expectedKeys)-1 {
-				assert.Equal(t, expectedKeys, data)
-				assert.Fail(t, "test fail")
-			}
-		}
-	}
 }
 
 func TestAuctionSC_selection_Case3PanicNumAllocatedNodesToBig(t *testing.T) {
@@ -289,35 +269,19 @@ func TestAuctionSC_selection_Case3PanicNumAllocatedNodesToBig(t *testing.T) {
 	}
 
 	data := stakingAuctionSC.selection(bids)
-	//check that 50% keys belong to the first bidder
+	//check that 100% keys belong to the first bidder
 	count := 0
 	firstBidderKeys := bids[0].BlsPubKeys
-	for i, key := range data {
+	for _, key := range data {
 		for j, expectedKey := range firstBidderKeys {
 			if bytes.Equal(key, expectedKey) {
 				firstBidderKeys = append(firstBidderKeys[:j], firstBidderKeys[j+1:]...)
-				data = append(data[:i], data[i+1:]...)
 				count++
 				break
 			}
 		}
 	}
-	assert.Equal(t, 5, count)
-	///////////////////////////////////////////////////////////
-
-	for _, key := range data {
-		for i, expectedKey := range expectedKeys {
-			if bytes.Equal(key, expectedKey) {
-				expectedKeys = append(expectedKeys[:i], expectedKeys[i+1:]...)
-				break
-			}
-
-			if i == len(expectedKeys)-1 {
-				assert.Equal(t, expectedKeys, data)
-				assert.Fail(t, "test fail")
-			}
-		}
-	}
+	assert.Equal(t, 10, count)
 }
 
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {

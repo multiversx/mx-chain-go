@@ -601,9 +601,11 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 		numAllocatedNodes := uint64(allocatedNodes)
 		if allocatedNodes-float64(numAllocatedNodes) > 0.99 {
 			numAllocatedNodes += 1
-		} else {
+		} else if numAllocatedNodes < uint64(len(validator.BlsPubKeys)) {
 			selectorProp := allocatedNodes - float64(numAllocatedNodes)
-			toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
+			if numAllocatedNodes == 0 {
+				toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
+			}
 
 			for i := numAllocatedNodes + 1; i < uint64(len(validator.BlsPubKeys)); i++ {
 				reservePool[string(validator.BlsPubKeys[i])] = selectorProp
