@@ -45,6 +45,8 @@ type Worker struct {
 
 	mapHashConsensusMessage map[string][]*consensus.Message
 	mutHashConsensusMessage sync.RWMutex
+
+	antifloodHandler consensus.P2PAntifloodHandler
 }
 
 // NewWorker creates a new Worker object
@@ -62,6 +64,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -77,6 +80,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
+		antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -96,6 +100,7 @@ func NewWorker(
 		shardCoordinator:   shardCoordinator,
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
+		antifloodHandler:   antifloodHandler,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -125,45 +130,49 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
-	if consensusService == nil || consensusService.IsInterfaceNil() {
+	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
 	}
-	if blockChain == nil || blockChain.IsInterfaceNil() {
+	if check.IfNil(blockChain) {
 		return ErrNilBlockChain
 	}
-	if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
+	if check.IfNil(blockProcessor) {
 		return ErrNilBlockProcessor
 	}
-	if bootstrapper == nil || bootstrapper.IsInterfaceNil() {
+	if check.IfNil(bootstrapper) {
 		return ErrNilBootstrapper
 	}
-	if broadcastMessenger == nil || broadcastMessenger.IsInterfaceNil() {
+	if check.IfNil(broadcastMessenger) {
 		return ErrNilBroadcastMessenger
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if check.IfNil(forkDetector) {
 		return ErrNilForkDetector
 	}
-	if keyGenerator == nil || keyGenerator.IsInterfaceNil() {
+	if check.IfNil(keyGenerator) {
 		return ErrNilKeyGenerator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return ErrNilMarshalizer
 	}
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return ErrNilRounder
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return ErrNilSingleSigner
 	}
-	if syncTimer == nil || syncTimer.IsInterfaceNil() {
+	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(antifloodHandler) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -216,17 +225,21 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerIDjjj) error {
-	if message == nil || message.IsInterfaceNil() {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
 
+	err := wrk.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
 	cnsDta := &consensus.Message{}
-	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
 		return err
 	}

@@ -268,3 +268,10 @@ type RequestedItemsHandler interface {
 	Sweep()
 	IsInterfaceNil() bool
 }
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	IsInterfaceNil() bool
+}

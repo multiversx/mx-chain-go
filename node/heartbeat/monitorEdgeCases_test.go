@@ -26,6 +26,7 @@ func createMonitor(
 		&mock.MessageHandlerStub{},
 		storer,
 		timer,
+		createMockP2pAntifloodHandler(),
 	)
 
 	return mon

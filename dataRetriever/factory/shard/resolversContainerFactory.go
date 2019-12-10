@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -23,6 +24,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
+	antifloodHandler         dataRetriever.P2PAntifloodHandler
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -34,28 +36,32 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*resolversContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPools == nil || dataPools.IsInterfaceNil() {
+	if check.IfNil(dataPools) {
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
-	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
+	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
-	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
+	}
+	if check.IfNil(antifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
 
 	return &resolversContainerFactory{
@@ -67,6 +73,7 @@ func NewResolversContainerFactory(
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
+		antifloodHandler:         antifloodHandler,
 	}, nil
 }
 
@@ -238,6 +245,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 		txStorer,
 		rcf.marshalizer,
 		rcf.dataPacker,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -286,6 +294,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -362,6 +371,7 @@ func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, exc
 		rcf.dataPools.MiniBlocks(),
 		miniBlocksStorer,
 		rcf.marshalizer,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -405,6 +415,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 		rcf.dataPools.MiniBlocks(),
 		peerBlockBodyStorer,
 		rcf.marshalizer,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -457,6 +468,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -513,6 +525,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -559,8 +572,5 @@ func (rcf *resolversContainerFactory) createOneResolverSender(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
-	if rcf == nil {
-		return true
-	}
-	return false
+	return rcf == nil
 }
