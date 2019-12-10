@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TxListForSender is
@@ -20,7 +20,7 @@ type TxListForSender struct {
 // TxListForSenderNode is a node of the linked list
 type TxListForSenderNode struct {
 	TxHash []byte
-	Tx     *transaction.Transaction
+	Tx     data.TransactionHandler
 }
 
 // NewTxListForSender creates a new (sorted) list of transactions
@@ -34,11 +34,11 @@ func NewTxListForSender(sender string, globalIndex int64) *TxListForSender {
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *TxListForSender) AddTx(txHash []byte, tx *transaction.Transaction) {
+func (listForSender *TxListForSender) AddTx(txHash []byte, tx data.TransactionHandler) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 
-	nonce := tx.Nonce
+	nonce := tx.GetNonce()
 	mark := listForSender.findTxWithLargerNonce(nonce)
 	newNode := TxListForSenderNode{txHash, tx}
 
@@ -54,7 +54,7 @@ func (listForSender *TxListForSender) AddTx(txHash []byte, tx *transaction.Trans
 func (listForSender *TxListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
 	for element := listForSender.Items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(TxListForSenderNode)
-		if value.Tx.Nonce > nonce {
+		if value.Tx.GetNonce() > nonce {
 			return element
 		}
 	}
@@ -63,7 +63,7 @@ func (listForSender *TxListForSender) findTxWithLargerNonce(nonce uint64) *list.
 }
 
 // RemoveTx removes a transaction from the sender's list
-func (listForSender *TxListForSender) RemoveTx(tx *transaction.Transaction) bool {
+func (listForSender *TxListForSender) RemoveTx(tx data.TransactionHandler) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 
@@ -103,7 +103,7 @@ func (listForSender *TxListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 	return removedTxHashes
 }
 
-func (listForSender *TxListForSender) findTx(txToFind *transaction.Transaction) *list.Element {
+func (listForSender *TxListForSender) findTx(txToFind data.TransactionHandler) *list.Element {
 	for element := listForSender.Items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(TxListForSenderNode)
 		if value.Tx == txToFind {
@@ -137,7 +137,7 @@ func (listForSender *TxListForSender) StartBatchCopying(batchSize int) {
 
 // CopyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *TxListForSender) CopyBatchTo(destination []*transaction.Transaction) int {
+func (listForSender *TxListForSender) CopyBatchTo(destination []data.TransactionHandler) int {
 	element := listForSender.copyBatchIndex
 	batchSize := listForSender.copyBatchSize
 	availableSpace := len(destination)
@@ -181,7 +181,7 @@ func (listForSender *TxListForSender) GetTxHashes() [][]byte {
 	return result
 }
 
-func (listForSender *TxListForSender) getHighestNonceTx() *transaction.Transaction {
+func (listForSender *TxListForSender) getHighestNonceTx() data.TransactionHandler {
 	back := listForSender.Items.Back()
 
 	if back == nil {

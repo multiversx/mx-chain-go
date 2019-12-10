@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -218,7 +219,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, noSenders int, n
 	}
 }
 
-func createTx(sender string, nonce uint64) *transaction.Transaction {
+func createTx(sender string, nonce uint64) data.TransactionHandler {
 	return &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,

@@ -3,7 +3,7 @@ package txcache
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,11 +54,11 @@ func Test_RemoveHighNonceTransactions(t *testing.T) {
 
 	list.RemoveHighNonceTxs(50)
 	assert.Equal(t, 50, list.Items.Len())
-	assert.Equal(t, uint64(49), list.getHighestNonceTx().Nonce)
+	assert.Equal(t, uint64(49), list.getHighestNonceTx().GetNonce())
 
 	list.RemoveHighNonceTxs(20)
 	assert.Equal(t, 30, list.Items.Len())
-	assert.Equal(t, uint64(29), list.getHighestNonceTx().Nonce)
+	assert.Equal(t, uint64(29), list.getHighestNonceTx().GetNonce())
 
 	list.RemoveHighNonceTxs(30)
 	assert.Equal(t, 0, list.Items.Len())
@@ -86,7 +86,7 @@ func Test_CopyBatchTo(t *testing.T) {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
-	destination := make([]*transaction.Transaction, 1000)
+	destination := make([]data.TransactionHandler, 1000)
 
 	// Nothing is copied if copy mode isn't started
 	copied := list.CopyBatchTo(destination)
@@ -126,12 +126,12 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	list.StartBatchCopying(10)
 
 	// When empty destination
-	destination := make([]*transaction.Transaction, 0)
+	destination := make([]data.TransactionHandler, 0)
 	copied := list.CopyBatchTo(destination)
 	assert.Equal(t, 0, copied)
 
 	// When small destination
-	destination = make([]*transaction.Transaction, 5)
+	destination = make([]data.TransactionHandler, 5)
 	copied = list.CopyBatchTo(destination)
 	assert.Equal(t, 5, copied)
 }

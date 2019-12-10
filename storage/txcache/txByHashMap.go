@@ -2,7 +2,7 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TxByHashMap is a new map-like structure for holding and accessing transactions by txHash
@@ -23,13 +23,13 @@ func NewTxByHashMap(size uint32, noChunksHint uint32) TxByHashMap {
 }
 
 // AddTx adds a transaction to the map
-func (txMap *TxByHashMap) AddTx(txHash []byte, tx *transaction.Transaction) {
+func (txMap *TxByHashMap) AddTx(txHash []byte, tx data.TransactionHandler) {
 	txMap.backingMap.Set(string(txHash), tx)
 	txMap.counter.Increment()
 }
 
 // RemoveTx removes a transaction from the map
-func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, bool) {
+func (txMap *TxByHashMap) RemoveTx(txHash string) (data.TransactionHandler, bool) {
 	tx, ok := txMap.GetTx(txHash)
 	if !ok {
 		return nil, false
@@ -41,13 +41,13 @@ func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, boo
 }
 
 // GetTx gets a transaction from the map
-func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) {
+func (txMap *TxByHashMap) GetTx(txHash string) (data.TransactionHandler, bool) {
 	txUntyped, ok := txMap.backingMap.Get(txHash)
 	if !ok {
 		return nil, false
 	}
 
-	tx := txUntyped.(*transaction.Transaction)
+	tx := txUntyped.(data.TransactionHandler)
 	return tx, true
 }
 

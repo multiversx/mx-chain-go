@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
@@ -29,7 +29,7 @@ func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
-func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
+func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
 	if cache.EvictionStrategy != nil {
 		cache.EvictionStrategy.DoEviction(tx)
 	}
@@ -39,7 +39,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 }
 
 // GetByTxHash gets the transaction by hash
-func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool) {
+func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool) {
 	tx, ok := cache.txByHash.GetTx(string(txHash))
 	return tx, ok
 }
@@ -47,8 +47,8 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*transaction.Transaction, bool
 // GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "noRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "noRequested" limit is reached before iterating over all senders
-func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) []*transaction.Transaction {
-	result := make([]*transaction.Transaction, noRequested)
+func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) []data.TransactionHandler {
+	result := make([]data.TransactionHandler, noRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 

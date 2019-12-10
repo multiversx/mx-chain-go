@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TxListBySenderMap is a map-like structure for holding and accessing transactions by sender
@@ -26,8 +26,8 @@ func NewTxListBySenderMap(size uint32, noChunksHint uint32) TxListBySenderMap {
 }
 
 // AddTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *TxListBySenderMap) AddTx(txHash []byte, tx *transaction.Transaction) {
-	sender := string(tx.SndAddr)
+func (txMap *TxListBySenderMap) AddTx(txHash []byte, tx data.TransactionHandler) {
+	sender := string(tx.GetSndAddress())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(txHash, tx)
 }
@@ -63,8 +63,8 @@ func (txMap *TxListBySenderMap) addSender(sender string) *TxListForSender {
 }
 
 // RemoveTx removes a transaction from the map
-func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) bool {
-	sender := string(tx.SndAddr)
+func (txMap *TxListBySenderMap) RemoveTx(tx data.TransactionHandler) bool {
+	sender := string(tx.GetSndAddress())
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {

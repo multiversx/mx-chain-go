@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // EvictionStrategyConfig is a cache eviction model
@@ -35,7 +35,7 @@ func NewEvictionStrategy(cache *TxCache, config EvictionStrategyConfig) *Evictio
 
 // DoEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
+func (model *EvictionStrategy) DoEviction(incomingTx data.TransactionHandler) {
 	if !model.areThereTooManyTxs() {
 		return
 	}
