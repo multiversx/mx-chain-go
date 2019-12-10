@@ -5,13 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
-// TxByHashMap is
+// TxByHashMap is a new map-like structure for holding and accessing transactions by txHash
 type TxByHashMap struct {
 	Map     *ConcurrentMap
 	Counter core.AtomicCounter
 }
 
-// NewTxByHashMap creates a new map-like structure for holding and accessing transactions by txHash
+// NewTxByHashMap creates a new TxByHashMap instance
 func NewTxByHashMap(size uint32, shardsHint uint32) TxByHashMap {
 	// We'll hold at most "size" transactions
 	backingMap := NewConcurrentMap(size, shardsHint)

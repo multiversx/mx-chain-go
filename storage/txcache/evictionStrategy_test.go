@@ -16,7 +16,7 @@ func Test_EvictOldestSenders(t *testing.T) {
 	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
-	noTxs, noSenders := eviction.EvictOldestSenders()
+	noTxs, noSenders := eviction.evictOldestSenders()
 
 	assert.Equal(t, uint32(2), noTxs)
 	assert.Equal(t, uint32(2), noSenders)
@@ -46,7 +46,7 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(401), cache.txByHash.Counter.Get())
 
-	noTxs, noSenders := eviction.EvictHighNonceTransactions()
+	noTxs, noSenders := eviction.evictHighNonceTransactions()
 
 	assert.Equal(t, uint32(50), noTxs)
 	assert.Equal(t, uint32(0), noSenders)
@@ -71,7 +71,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	assert.Equal(t, int64(200), cache.txListBySender.Counter.Get())
 	assert.Equal(t, int64(200), cache.txByHash.Counter.Get())
 
-	steps, noTxs, noSenders := eviction.EvictSendersWhileTooManyTxs()
+	steps, noTxs, noSenders := eviction.evictSendersWhileTooManyTxs()
 
 	assert.Equal(t, uint32(6), steps)
 	assert.Equal(t, uint32(100), noTxs)

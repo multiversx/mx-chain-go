@@ -7,14 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
-// TxListBySenderMap is
+// TxListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type TxListBySenderMap struct {
 	Map             *ConcurrentMap
 	Counter         core.AtomicCounter
 	nextOrderNumber core.AtomicCounter
 }
 
-// NewTxListBySenderMap creates a new map-like structure for holding and accessing transactions by sender
+// NewTxListBySenderMap creates a new instance of TxListBySenderMap
 func NewTxListBySenderMap(size uint32, shardsHint uint32) TxListBySenderMap {
 	// We'll hold at most "size" lists of at least 1 transaction
 	backingMap := NewConcurrentMap(size, shardsHint)
