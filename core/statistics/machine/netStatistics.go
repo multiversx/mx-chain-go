@@ -42,6 +42,13 @@ func (ns *NetStatistics) ComputeStatistics() {
 		return
 	}
 
+	isLessRecv := nEnd[0].BytesRecv < nStart[0].BytesRecv
+	isLessSent := nEnd[0].BytesSent < nStart[0].BytesSent
+	if isLessRecv || isLessSent {
+		ns.setZeroStatsAndWait()
+		return
+	}
+
 	bpsRecv := nEnd[0].BytesRecv - nStart[0].BytesRecv
 	bpsSent := nEnd[0].BytesSent - nStart[0].BytesSent
 

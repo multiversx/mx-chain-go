@@ -121,6 +121,9 @@ var ErrMessageForPastRound = errors.New("message is for past round")
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
 
+// ErrInvalidHeader is raised when header is invalid
+var ErrInvalidHeader = errors.New("header is invalid")
+
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
 

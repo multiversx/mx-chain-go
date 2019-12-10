@@ -604,10 +604,14 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		"",
 		"Leader's Signature",
 		display.DisplayByteSlice(headerHandler.GetLeaderSignature())}))
-	lines = append(lines, display.NewLineData(true, []string{
+	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Root hash",
 		display.DisplayByteSlice(headerHandler.GetRootHash())}))
+	lines = append(lines, display.NewLineData(true, []string{
+		"",
+		"Validator stats root hash",
+		display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}))
 	return lines
 }
 
@@ -1068,7 +1072,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		HeaderInfo:           headerInfo,
+		LastHeader:           headerInfo,
 		LastNotarizedHeaders: lastNotarizedHdrs,
 		LastFinals:           lastFinals,
 		HighestFinalNonce:    highestFinalNonce,

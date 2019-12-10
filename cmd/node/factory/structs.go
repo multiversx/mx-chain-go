@@ -72,8 +72,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -545,10 +543,22 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, args.nodesConfig.StartTime)
 	if err != nil {
 		return nil, err
 	}
+
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
 		args.core,
@@ -581,6 +591,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		genesisBlocks,
 		rounder,
 		bootStorer,
+		validatorStatisticsProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -667,35 +678,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
-}
-
-// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
-func CreateStatusHandlerPresenter() view.Presenter {
-	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
-
-	return presenterStatusHandlerFactory.Create()
-}
-
-// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
-	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
-	if err != nil {
-		return nil, err
-	}
-
-	views, err := viewsFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range views {
-		err = v.Start()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return views, nil
 }
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
@@ -825,6 +807,8 @@ func createShardDataStoreFromConfig(
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -859,6 +843,12 @@ func createShardDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -938,7 +928,7 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -950,6 +940,14 @@ func createShardDataStoreFromConfig(
 		getCacherFromConfig(config.BootstrapStorage.Cache),
 		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
 		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -967,6 +965,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -980,6 +979,9 @@ func createMetaChainDataStoreFromConfig(
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
+
 	var err error
 
 	defer func() {
@@ -1016,6 +1018,12 @@ func createMetaChainDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -1074,7 +1082,7 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -1114,6 +1122,14 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -1129,6 +1145,7 @@ func createMetaChainDataStoreFromConfig(
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -1541,6 +1558,11 @@ func generateGenesisHeadersAndApplyInitialBalances(
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
+	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		isCurrentShard := shardId == shardCoordinator.SelfId()
 		if isCurrentShard {
@@ -1562,6 +1584,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			stateComponents.AddressConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
+			validatorStatsRootHash,
 		)
 		if err != nil {
 			return nil, err
@@ -1577,6 +1600,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			stateComponents.AddressConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
+			validatorStatsRootHash,
 		)
 		if err != nil {
 			return nil, err
@@ -1598,6 +1622,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		MetaDatapool:             dataComponents.MetaDatapool,
 		Economics:                economics,
+		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -1628,7 +1653,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 
 	log.Debug("MetaGenesisBlock created",
 		"roothash", genesisBlock.GetRootHash(),
+		"validatorStatsRootHash", genesisBlock.GetValidatorStatsRootHash(),
 	)
+
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
@@ -1673,6 +1700,7 @@ func createGenesisBlockAndApplyInitialBalances(
 	addressConverter state.AddressConverter,
 	genesisConfig *sharding.Genesis,
 	startTime uint64,
+	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
@@ -1686,6 +1714,7 @@ func createGenesisBlockAndApplyInitialBalances(
 		addressConverter,
 		initialBalances,
 		startTime,
+		validatorStatsRootHash,
 	)
 }
 
@@ -1721,12 +1750,13 @@ func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	headerBlackList process.BlackListHandler,
+	genesisTime int64,
 ) (process.ForkDetector, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return processSync.NewShardForkDetector(rounder, headerBlackList)
+		return processSync.NewShardForkDetector(rounder, headerBlackList, genesisTime)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return processSync.NewMetaForkDetector(rounder, headerBlackList)
+		return processSync.NewMetaForkDetector(rounder, headerBlackList, genesisTime)
 	}
 
 	return nil, ErrCreateForkDetector
@@ -1739,6 +1769,7 @@ func newBlockProcessor(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
 	bootStorer process.BootStorer,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1767,11 +1798,6 @@ func newBlockProcessor(
 		shardCoordinator,
 		nodesCoordinator,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
 	if err != nil {
 		return nil, err
 	}
