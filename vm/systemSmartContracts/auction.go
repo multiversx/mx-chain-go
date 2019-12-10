@@ -652,10 +652,7 @@ func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeed
 	}
 
 	random := s.eei.BlockChainHook().CurrentRandomSeed()
-	randomSeed := big.NewInt(0).SetBytes(random[:8])
-	rand.Seed(randomSeed.Int64())
-
-	rand.Shuffle(len(expandedList), func(i, j int) { expandedList[i], expandedList[j] = expandedList[j], expandedList[i] })
+	shuffleList(expandedList, random)
 
 	selectedKeys := make(map[string]struct{})
 	selected := uint32(0)
@@ -738,4 +735,14 @@ func calcNumAllocatedAndProportion(
 	numAllocatedNodes := uint64(allocatedNodes)
 
 	return numAllocatedNodes, allocatedNodes
+}
+
+func shuffleList(list []string, random []byte) {
+	randomSeed := big.NewInt(0).SetBytes(random[:8])
+	r := rand.New(rand.NewSource(randomSeed.Int64()))
+
+	for n := len(list); n > 0; n-- {
+		randIndex := r.Intn(n)
+		list[n-1], list[randIndex] = list[randIndex], list[n-1]
+	}
 }

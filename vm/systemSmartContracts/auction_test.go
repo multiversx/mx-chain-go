@@ -168,12 +168,13 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 		bid1, bid2, bid3, bid4,
 	}
 
-	expectedKeys := [][]byte{bid1.BlsPubKeys[0], bid3.BlsPubKeys[0], bid3.BlsPubKeys[1], bid4.BlsPubKeys[0], bid4.BlsPubKeys[1]}
+	// verify at least one is qualified from everybody
+	expectedKeys := [][]byte{bid1.BlsPubKeys[0], bid3.BlsPubKeys[0], bid4.BlsPubKeys[0]}
 
 	data := stakingAuctionSC.selection(bids)
-	for _, key := range data {
+	for _, expectedKey := range expectedKeys {
 		found := false
-		for _, expectedKey := range expectedKeys {
+		for _, key := range data {
 			if bytes.Equal(key, expectedKey) {
 				found = true
 				break
