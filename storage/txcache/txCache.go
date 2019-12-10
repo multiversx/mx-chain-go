@@ -86,7 +86,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) {
 
 // CountTx gets the number of transactions in the cache
 func (cache *TxCache) CountTx() int64 {
-	return cache.txByHash.Counter.Get()
+	return cache.txByHash.counter.Get()
 }
 
 // ForEachSender iterates over the senders

@@ -9,8 +9,8 @@ import (
 
 // TxListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type TxListBySenderMap struct {
-	Map             *ConcurrentMap
-	Counter         core.AtomicCounter
+	backingMap      *ConcurrentMap
+	counter         core.AtomicCounter
 	nextOrderNumber core.AtomicCounter
 }
 
@@ -20,8 +20,8 @@ func NewTxListBySenderMap(size uint32, noChunksHint uint32) TxListBySenderMap {
 	backingMap := NewConcurrentMap(size, noChunksHint)
 
 	return TxListBySenderMap{
-		Map:     backingMap,
-		Counter: 0,
+		backingMap: backingMap,
+		counter:    0,
 	}
 }
 
@@ -42,7 +42,7 @@ func (txMap *TxListBySenderMap) getOrAddListForSender(sender string) *TxListForS
 }
 
 func (txMap *TxListBySenderMap) getListForSender(sender string) (*TxListForSender, bool) {
-	listForSenderUntyped, ok := txMap.Map.Get(sender)
+	listForSenderUntyped, ok := txMap.backingMap.Get(sender)
 	if !ok {
 		return nil, false
 	}
@@ -55,8 +55,8 @@ func (txMap *TxListBySenderMap) addSender(sender string) *TxListForSender {
 	orderNumber := txMap.nextOrderNumber.Get()
 	listForSender := NewTxListForSender(sender, orderNumber)
 
-	txMap.Map.Set(sender, listForSender)
-	txMap.Counter.Increment()
+	txMap.backingMap.Set(sender, listForSender)
+	txMap.counter.Increment()
 	txMap.nextOrderNumber.Increment()
 
 	return listForSender
@@ -78,33 +78,33 @@ func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) {
 }
 
 func (txMap *TxListBySenderMap) removeSender(sender string) {
-	if !txMap.Map.Has(sender) {
+	if !txMap.backingMap.Has(sender) {
 		return
 	}
 
-	txMap.Map.Remove(sender)
-	txMap.Counter.Decrement()
+	txMap.backingMap.Remove(sender)
+	txMap.counter.Decrement()
 }
 
 // RemoveSendersBulk removes senders, in bulk
 func (txMap *TxListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
-	oldCount := uint32(txMap.Counter.Get())
+	oldCount := uint32(txMap.counter.Get())
 
 	for _, senderKey := range senders {
 		txMap.removeSender(senderKey)
 	}
 
-	newCount := uint32(txMap.Counter.Get())
+	newCount := uint32(txMap.counter.Get())
 	noRemoved := oldCount - newCount
 	return noRemoved
 }
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
 func (txMap *TxListBySenderMap) GetListsSortedByOrderNumber() []*TxListForSender {
-	lists := make([]*TxListForSender, txMap.Counter.Get())
+	lists := make([]*TxListForSender, txMap.counter.Get())
 
 	index := 0
-	txMap.Map.IterCb(func(key string, item interface{}) {
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
 		lists[index] = item.(*TxListForSender)
 		index++
 	})
@@ -121,7 +121,7 @@ type ForEachSender func(key string, value *TxListForSender)
 
 // ForEach iterates over the senders
 func (txMap *TxListBySenderMap) ForEach(function ForEachSender) {
-	txMap.Map.IterCb(func(key string, item interface{}) {
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
 		txList := item.(*TxListForSender)
 		function(key, txList)
 	})

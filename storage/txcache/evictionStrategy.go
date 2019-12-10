@@ -64,19 +64,19 @@ func (model *EvictionStrategy) DoEviction(incomingTx *transaction.Transaction) {
 }
 
 func (model *EvictionStrategy) areThereTooManySenders() bool {
-	noSenders := model.cache.txListBySender.Counter.Get()
+	noSenders := model.cache.txListBySender.counter.Get()
 	tooManySenders := noSenders > int64(model.config.CountThreshold)
 	return tooManySenders
 }
 
 func (model *EvictionStrategy) areThereJustAFewSenders() bool {
-	noSenders := model.cache.txListBySender.Counter.Get()
+	noSenders := model.cache.txListBySender.counter.Get()
 	justAFewSenders := noSenders < int64(model.config.CountJustAFewSenders)
 	return justAFewSenders
 }
 
 func (model *EvictionStrategy) areThereTooManyTxs() bool {
-	noTxs := model.cache.txByHash.Counter.Get()
+	noTxs := model.cache.txByHash.counter.Get()
 	tooManyTxs := noTxs > int64(model.config.CountThreshold)
 	return tooManyTxs
 }

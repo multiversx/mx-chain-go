@@ -7,8 +7,8 @@ import (
 
 // TxByHashMap is a new map-like structure for holding and accessing transactions by txHash
 type TxByHashMap struct {
-	Map     *ConcurrentMap
-	Counter core.AtomicCounter
+	backingMap *ConcurrentMap
+	counter    core.AtomicCounter
 }
 
 // NewTxByHashMap creates a new TxByHashMap instance
@@ -17,15 +17,15 @@ func NewTxByHashMap(size uint32, noChunksHint uint32) TxByHashMap {
 	backingMap := NewConcurrentMap(size, noChunksHint)
 
 	return TxByHashMap{
-		Map:     backingMap,
-		Counter: 0,
+		backingMap: backingMap,
+		counter:    0,
 	}
 }
 
 // AddTx adds a transaction to the map
 func (txMap *TxByHashMap) AddTx(txHash []byte, tx *transaction.Transaction) {
-	txMap.Map.Set(string(txHash), tx)
-	txMap.Counter.Increment()
+	txMap.backingMap.Set(string(txHash), tx)
+	txMap.counter.Increment()
 }
 
 // RemoveTx removes a transaction from the map
@@ -35,14 +35,14 @@ func (txMap *TxByHashMap) RemoveTx(txHash string) (*transaction.Transaction, boo
 		return nil, false
 	}
 
-	txMap.Map.Remove(txHash)
-	txMap.Counter.Decrement()
+	txMap.backingMap.Remove(txHash)
+	txMap.counter.Decrement()
 	return tx, true
 }
 
 // GetTx gets a transaction from the map
 func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) {
-	txUntyped, ok := txMap.Map.Get(txHash)
+	txUntyped, ok := txMap.backingMap.Get(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -54,13 +54,13 @@ func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) 
 // RemoveTxsBulk removes transactions, in bulk
 func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	for _, txHash := range txHashes {
-		txMap.Map.Remove(string(txHash))
+		txMap.backingMap.Remove(string(txHash))
 	}
 
-	oldCount := uint32(txMap.Counter.Get())
-	newCount := uint32(txMap.Map.Count())
+	oldCount := uint32(txMap.counter.Get())
+	newCount := uint32(txMap.backingMap.Count())
 	noRemoved := oldCount - newCount
 
-	txMap.Counter.Set(int64(newCount))
+	txMap.counter.Set(int64(newCount))
 	return noRemoved
 }

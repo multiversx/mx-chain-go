@@ -14,7 +14,7 @@ func Test_AddTx_IncrementsCounter(t *testing.T) {
 	myMap.AddTx([]byte("b"), createTx("bob", uint64(1)))
 
 	// There are 2 senders
-	assert.Equal(t, int64(2), myMap.Counter.Get())
+	assert.Equal(t, int64(2), myMap.counter.Get())
 }
 
 func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
@@ -27,18 +27,18 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap.AddTx([]byte("a"), txAlice1)
 	myMap.AddTx([]byte("a"), txAlice2)
 	myMap.AddTx([]byte("b"), txBob)
-	assert.Equal(t, int64(2), myMap.Counter.Get())
+	assert.Equal(t, int64(2), myMap.counter.Get())
 
 	myMap.RemoveTx(txAlice1)
-	assert.Equal(t, int64(2), myMap.Counter.Get())
+	assert.Equal(t, int64(2), myMap.counter.Get())
 
 	myMap.RemoveTx(txAlice2)
 	// All alice's transactions have been removed now
-	assert.Equal(t, int64(1), myMap.Counter.Get())
+	assert.Equal(t, int64(1), myMap.counter.Get())
 
 	myMap.RemoveTx(txBob)
 	// Also Bob has no more transactions
-	assert.Equal(t, int64(0), myMap.Counter.Get())
+	assert.Equal(t, int64(0), myMap.counter.Get())
 }
 
 func Test_GetListsSortedByOrderNumber(t *testing.T) {

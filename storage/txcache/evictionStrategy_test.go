@@ -20,8 +20,8 @@ func Test_EvictOldestSenders(t *testing.T) {
 
 	assert.Equal(t, uint32(2), noTxs)
 	assert.Equal(t, uint32(2), noSenders)
-	assert.Equal(t, int64(1), cache.txListBySender.Counter.Get())
-	assert.Equal(t, int64(1), cache.txByHash.Counter.Get())
+	assert.Equal(t, int64(1), cache.txListBySender.counter.Get())
+	assert.Equal(t, int64(1), cache.txByHash.counter.Get())
 }
 
 func Test_DoHighNonceTransactionsEviction(t *testing.T) {
@@ -43,15 +43,15 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
-	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
-	assert.Equal(t, int64(401), cache.txByHash.Counter.Get())
+	assert.Equal(t, int64(3), cache.txListBySender.counter.Get())
+	assert.Equal(t, int64(401), cache.txByHash.counter.Get())
 
 	noTxs, noSenders := eviction.evictHighNonceTransactions()
 
 	assert.Equal(t, uint32(50), noTxs)
 	assert.Equal(t, uint32(0), noSenders)
-	assert.Equal(t, int64(3), cache.txListBySender.Counter.Get())
-	assert.Equal(t, int64(351), cache.txByHash.Counter.Get())
+	assert.Equal(t, int64(3), cache.txListBySender.counter.Get())
+	assert.Equal(t, int64(351), cache.txByHash.counter.Get())
 }
 
 func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
@@ -68,14 +68,14 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 		cache.AddTx([]byte{byte(index)}, createTx(sender, uint64(1)))
 	}
 
-	assert.Equal(t, int64(200), cache.txListBySender.Counter.Get())
-	assert.Equal(t, int64(200), cache.txByHash.Counter.Get())
+	assert.Equal(t, int64(200), cache.txListBySender.counter.Get())
+	assert.Equal(t, int64(200), cache.txByHash.counter.Get())
 
 	steps, noTxs, noSenders := eviction.evictSendersWhileTooManyTxs()
 
 	assert.Equal(t, uint32(6), steps)
 	assert.Equal(t, uint32(100), noTxs)
 	assert.Equal(t, uint32(100), noSenders)
-	assert.Equal(t, int64(100), cache.txListBySender.Counter.Get())
-	assert.Equal(t, int64(100), cache.txByHash.Counter.Get())
+	assert.Equal(t, int64(100), cache.txListBySender.counter.Get())
+	assert.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
