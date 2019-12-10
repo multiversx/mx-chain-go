@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -10,9 +12,10 @@ var log = logger.GetOrCreate("txcache")
 
 // TxCache is
 type TxCache struct {
-	txListBySender   txListBySenderMap
-	txByHash         txByHashMap
-	EvictionStrategy *evictionStrategy
+	txListBySender txListBySenderMap
+	txByHash       txByHashMap
+	evictionConfig EvictionConfig
+	evictionMutex  sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -23,7 +26,16 @@ func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 	txCache := &TxCache{
 		txListBySender: newTxListBySenderMap(size, noChunksHint),
 		txByHash:       newTxByHashMap(size, noChunksHint),
+		evictionConfig: EvictionConfig{Enabled: false},
 	}
+
+	return txCache
+}
+
+// NewTxCacheWithEviction creates a new transaction cache with eviction
+func NewTxCacheWithEviction(size uint32, noChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
+	txCache := NewTxCache(size, noChunksHint)
+	txCache.evictionConfig = evictionConfig
 
 	return txCache
 }
@@ -35,8 +47,8 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
 		return
 	}
 
-	if cache.EvictionStrategy != nil {
-		cache.EvictionStrategy.doEviction(tx)
+	if cache.evictionConfig.Enabled {
+		cache.doEviction(tx)
 	}
 
 	cache.txByHash.addTx(txHash, tx)
