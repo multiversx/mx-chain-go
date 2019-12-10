@@ -49,14 +49,10 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 	resultFillIndex := 0
 	resultIsFull := false
 
-	for pass := 0; ; pass++ {
+	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
 		cache.ForEachSender(func(key string, txList *TxListForSender) {
-			if resultIsFull {
-				return
-			}
-
 			// Do this on first pass only
 			if pass == 0 {
 				txList.StartBatchCopying(batchSizePerSender)
@@ -72,7 +68,7 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 		nothingCopiedThisPass := copiedInThisPass == 0
 
 		// No more passes needed
-		if nothingCopiedThisPass || resultIsFull {
+		if nothingCopiedThisPass {
 			break
 		}
 	}
