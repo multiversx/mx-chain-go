@@ -93,3 +93,9 @@ type WorkerHandler interface {
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
+
+// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
+type RandSeedVerifier interface {
+	VerifyRandSeed(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
