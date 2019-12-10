@@ -63,18 +63,21 @@ func (txMap *TxListBySenderMap) addSender(sender string) *TxListForSender {
 }
 
 // RemoveTx removes a transaction from the map
-func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) {
+func (txMap *TxListBySenderMap) RemoveTx(tx *transaction.Transaction) bool {
 	sender := string(tx.SndAddr)
+
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		return
+		return false
 	}
 
-	listForSender.RemoveTx(tx)
+	isFound := listForSender.RemoveTx(tx)
+
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
 	}
+
+	return isFound
 }
 
 func (txMap *TxListBySenderMap) removeSender(sender string) {

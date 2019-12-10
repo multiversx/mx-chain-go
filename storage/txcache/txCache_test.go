@@ -38,6 +38,26 @@ func Test_RemoveByTxHash(t *testing.T) {
 	assert.Nil(t, foundTx)
 }
 
+func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
+	cache := NewTxCache(250000, 16)
+	err := cache.RemoveTxByHash([]byte("missing"))
+	assert.Equal(t, err, errorTxNotFound)
+}
+
+func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
+	cache := NewTxCache(250000, 16)
+
+	txHash := []byte("hash-1")
+	tx := createTx("alice", 1)
+	cache.AddTx(txHash, tx)
+
+	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
+	cache.txListBySender.RemoveTx(tx)
+
+	err := cache.RemoveTxByHash(txHash)
+	assert.Equal(t, err, errorMapsSyncInconsistency)
+}
+
 func Test_GetTransactions_Dummy(t *testing.T) {
 	cache := NewTxCache(250000, 16)
 

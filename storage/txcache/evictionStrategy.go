@@ -5,10 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
-
-var log = logger.GetOrCreate("txcache/eviction")
 
 // EvictionStrategyConfig is a cache eviction model
 type EvictionStrategyConfig struct {

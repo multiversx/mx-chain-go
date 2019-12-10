@@ -63,17 +63,19 @@ func (listForSender *TxListForSender) findTxWithLargerNonce(nonce uint64) *list.
 }
 
 // RemoveTx removes a transaction from the sender's list
-func (listForSender *TxListForSender) RemoveTx(tx *transaction.Transaction) {
+func (listForSender *TxListForSender) RemoveTx(tx *transaction.Transaction) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 
 	marker := listForSender.findTx(tx)
-
-	if marker != nil {
+	isFound := marker != nil
+	if isFound {
 		listForSender.Items.Remove(marker)
 	}
 
 	listForSender.mutex.Unlock()
+
+	return isFound
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list

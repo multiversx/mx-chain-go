@@ -2,7 +2,10 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
+
+var log = logger.GetOrCreate("txcache")
 
 // TxCache is
 type TxCache struct {
@@ -77,11 +80,20 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 }
 
 // RemoveTxByHash removes
-func (cache *TxCache) RemoveTxByHash(txHash []byte) {
+func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.RemoveTx(string(txHash))
-	if ok {
-		cache.txListBySender.RemoveTx(tx)
+	if !ok {
+		return errorTxNotFound
 	}
+
+	found := cache.txListBySender.RemoveTx(tx)
+	if !found {
+		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
+		log.Error("RemoveTxByHash detected maps sync inconsistency", "tx", txHash)
+		return errorMapsSyncInconsistency
+	}
+
+	return nil
 }
 
 // CountTx gets the number of transactions in the cache
