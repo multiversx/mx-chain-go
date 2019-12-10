@@ -60,7 +60,7 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.ForEachSender(func(key string, txList *txListForSender) {
+		cache.forEachSender(func(key string, txList *txListForSender) {
 			// Do this on first pass only
 			if pass == 0 {
 				txList.startBatchCopying(batchSizePerSender)
@@ -106,7 +106,7 @@ func (cache *TxCache) CountTx() int64 {
 	return cache.txByHash.counter.Get()
 }
 
-// ForEachSender iterates over the senders
-func (cache *TxCache) ForEachSender(function ForEachSender) {
+// forEachSender iterates over the senders
+func (cache *TxCache) forEachSender(function ForEachSender) {
 	cache.txListBySender.forEach(function)
 }
