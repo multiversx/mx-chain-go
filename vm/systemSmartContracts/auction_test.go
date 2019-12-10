@@ -146,7 +146,7 @@ func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNotEnoughQualifiedNodes, err)
 }
 
-func TestAuctionSC_selection_Case1(t *testing.T) {
+func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(10000000)
@@ -183,7 +183,7 @@ func TestAuctionSC_selection_Case1(t *testing.T) {
 	}
 }
 
-func TestAuctionSC_selection_Case2FirstBidderShouldTake50Percents(t *testing.T) {
+func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1)
@@ -210,14 +210,6 @@ func TestAuctionSC_selection_Case2FirstBidderShouldTake50Percents(t *testing.T) 
 		createABid(1000000, 1, 1000000),
 	}
 
-	expectedKeys := make([][]byte, 0)
-	for i, bid := range bids {
-		if i == 0 {
-			continue
-		}
-		expectedKeys = append(expectedKeys, bid.BlsPubKeys...)
-	}
-
 	data := stakingAuctionSC.selection(bids)
 	//check that 50% keys belong to the first bidder
 	count := 0
@@ -233,7 +225,7 @@ func TestAuctionSC_selection_Case2FirstBidderShouldTake50Percents(t *testing.T) 
 	assert.Equal(t, 5, count)
 }
 
-func TestAuctionSC_selection_Case3PanicNumAllocatedNodesToBig(t *testing.T) {
+func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1)
@@ -258,14 +250,6 @@ func TestAuctionSC_selection_Case3PanicNumAllocatedNodesToBig(t *testing.T) {
 		createABid(1000000, 1, 1000000),
 		createABid(1000000, 1, 1000000),
 		createABid(1000000, 1, 1000000),
-	}
-
-	expectedKeys := make([][]byte, 0)
-	for i, bid := range bids {
-		if i == 0 {
-			continue
-		}
-		expectedKeys = append(expectedKeys, bid.BlsPubKeys...)
 	}
 
 	data := stakingAuctionSC.selection(bids)

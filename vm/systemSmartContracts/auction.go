@@ -125,7 +125,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
-		log.Debug("setConfig function called by not the owners address")
+		log.Debug("setConfig function was not called by the owner address")
 		return vmcommon.UserError
 	}
 
@@ -191,7 +191,8 @@ func (s *stakingAuctionSC) verifyIfKeysExist(registeredKeys [][]byte, arguments 
 	}
 
 	newKeys := make([][]byte, 0)
-	for i := uint64(1); i < maxNumNodes+1; i++ {
+	keysFromArgument := arguments[1:]
+	for i := uint64(1); i < uint64(len(keysFromArgument)) && i < maxNumNodes+1; i++ {
 		if _, ok := registeredKeysMap[string(arguments[i])]; ok {
 			continue
 		}
@@ -209,6 +210,51 @@ func (s *stakingAuctionSC) verifyIfKeysExist(registeredKeys [][]byte, arguments 
 	return newKeys, nil
 }
 
+func (s *stakingAuctionSC) saveBLSKeys(registrationData *AuctionData, args [][]byte) error {
+	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
+	if uint64(len(args)) < maxNodesToRun+1 {
+		log.Debug("not enough arguments to process stake function")
+		return vm.ErrNotEnoughArgumentsToStake
+	}
+
+	newKeys, err := s.verifyIfKeysExist(registrationData.BlsPubKeys, args, maxNodesToRun)
+	if err != nil {
+		log.Debug("staking with already existing key is not allowed")
+		return vm.ErrKeyAlreadyRegistered
+	}
+
+	for _, blsKey := range newKeys {
+		_, err := s.kg.PublicKeyFromByteArray(blsKey)
+		if err != nil {
+			log.Debug("bls key is not valid")
+			return vm.ErrBLSKeyIsNotValid
+		}
+
+		err = s.saveStakedData(blsKey, &StakedData{})
+		if err != nil {
+			return err
+		}
+
+		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
+	}
+
+	return nil
+}
+
+func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, caller []byte) vmcommon.ReturnCode {
+	if len(registrationData.BlsPubKeys) == 0 {
+		log.Debug("not enough arguments to process stake function")
+		return vmcommon.UserError
+	}
+
+	err := s.saveRegistrationData(caller, registrationData)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 
@@ -224,40 +270,13 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	lenArgs := len(args.Arguments)
 	if lenArgs == 0 {
-		if len(registrationData.BlsPubKeys) == 0 {
-			log.Debug("not enough arguments to process stake function")
-			return vmcommon.UserError
-		}
-
-		err := s.saveRegistrationData(args.CallerAddr, registrationData)
-		if err != nil {
-			return vmcommon.UserError
-		}
-
-		return vmcommon.Ok
+		return s.updateStakeValue(registrationData, args.CallerAddr)
 	}
 
 	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
-	if uint64(lenArgs) < maxNodesToRun+1 {
-		log.Debug("not enough arguments to process stake function")
-		return vmcommon.UserError
-	}
-
-	newKeys, err := s.verifyIfKeysExist(registrationData.BlsPubKeys, args.Arguments, maxNodesToRun)
+	err = s.saveBLSKeys(registrationData, args.Arguments)
 	if err != nil {
-		log.Debug("Staking with already existing key is not allowed")
 		return vmcommon.UserError
-	}
-
-	for _, blsKey := range newKeys {
-		_, err := s.kg.PublicKeyFromByteArray(blsKey)
-		if err != nil {
-			log.Debug("bls key is not valid")
-			return vmcommon.UserError
-		}
-
-		s.eei.SetStorage(blsKey, []byte("registered"))
-		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
 	}
 
 	registrationData.RewardAddress = args.CallerAddr
@@ -403,7 +422,7 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 			}
 
 			if !found {
-				log.Debug("not allowed to unbound for bls key which is not under validator")
+				log.Debug("bls key for validator not found")
 				return nil, vm.ErrBLSPublicKeyMissmatch
 			}
 		}
@@ -412,6 +431,30 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 	}
 
 	return blsKeys, nil
+}
+
+func (s *stakingAuctionSC) deleteBLSStakedData(blsKey []byte) (*big.Int, error) {
+	stakedData, err := s.getStakedData(blsKey)
+	if err != nil || len(stakedData.RewardAddress) == 0 {
+		log.Debug("bls key was not staked")
+		return nil, vm.ErrBLSKeyIsNotStaked
+	}
+
+	if stakedData.Staked || stakedData.UnStakedNonce < stakedData.StartNonce {
+		log.Debug("unBound is not possible for address which is staked or is not in unbound period")
+		return nil, vm.ErrStillInUnBoundPeriod
+	}
+
+	currentNonce := s.eei.BlockChainHook().CurrentNonce()
+	if currentNonce-stakedData.UnStakedNonce < s.unBoundPeriod {
+		log.Debug("unBound is not possible for address because unbound period did not pass")
+		return nil, vm.ErrStillInUnBoundPeriod
+	}
+
+	s.eei.SetStorage(blsKey, nil)
+	config := s.getConfig(stakedData.UnStakedEpoch)
+
+	return config.NodePrice, nil
 }
 
 func (s *stakingAuctionSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -427,36 +470,21 @@ func (s *stakingAuctionSC) unBound(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	totalUnBound := big.NewInt(0)
 	for _, blsKey := range blsKeys {
-		stakedData, err := s.getStakedData(blsKey)
-		if err != nil || len(stakedData.RewardAddress) == 0 {
-			log.Debug("bls key was not staked")
+		nodePrice, err := s.deleteBLSStakedData(blsKey)
+		if err != nil {
 			return vmcommon.UserError
 		}
-
-		if stakedData.Staked || stakedData.UnStakedNonce <= stakedData.StartNonce {
-			log.Debug("unBound is not possible for address which is staked or is not in unbound period")
-			return vmcommon.UserError
-		}
-
-		currentNonce := s.eei.BlockChainHook().CurrentNonce()
-		if currentNonce-stakedData.UnStakedNonce < s.unBoundPeriod {
-			log.Debug("unBound is not possible for address because unbound period did not pass")
-			return vmcommon.UserError
-		}
-
-		s.eei.SetStorage(blsKey, nil)
-		config := s.getConfig(stakedData.UnStakedEpoch)
 
 		ownerAddress := s.eei.GetStorage([]byte(ownerKey))
-		err = s.eei.Transfer(args.CallerAddr, ownerAddress, config.NodePrice, nil)
+		err = s.eei.Transfer(args.CallerAddr, ownerAddress, nodePrice, nil)
 		if err != nil {
-			log.Debug("transfer error on finalizeUnStake function",
+			log.Debug("transfer error on unBound function",
 				"error", err.Error(),
 			)
 			return vmcommon.UserError
 		}
 
-		_ = totalUnBound.Add(totalUnBound, config.NodePrice)
+		_ = totalUnBound.Add(totalUnBound, nodePrice)
 	}
 
 	if registrationData.BlockedStake.Cmp(totalUnBound) < 0 {
@@ -519,12 +547,12 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 func (s *stakingAuctionSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
-		log.Debug("slash function called by not the owners address")
+		log.Debug("slash function not called by the owners address")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 2 {
-		log.Debug("slash function called by wrong number of arguments")
+		log.Debug("slash function called with wrong number of arguments")
 		return vmcommon.UserError
 	}
 
@@ -539,35 +567,13 @@ func (s *stakingAuctionSC) calculateNodePrice(bids []AuctionData) (*big.Int, err
 	numNodes := config.NumNodes
 
 	for nodePrice := maxNodePrice; nodePrice.Cmp(minNodePrice) >= 0; nodePrice.Sub(nodePrice, config.MinStep) {
-		qualifiedNodes := s.calcNumQualifiedNodes(nodePrice, bids)
+		qualifiedNodes := calcNumQualifiedNodes(nodePrice, bids)
 		if qualifiedNodes >= numNodes {
 			return nodePrice, nil
 		}
 	}
 
 	return nil, vm.ErrNotEnoughQualifiedNodes
-}
-
-func (s *stakingAuctionSC) calcNumQualifiedNodes(nodePrice *big.Int, bids []AuctionData) uint32 {
-	numQualifiedNodes := uint32(0)
-	for _, validator := range bids {
-		if validator.MaxStakePerNode.Cmp(nodePrice) < 0 {
-			continue
-		}
-
-		if validator.TotalStakeValue.Cmp(nodePrice) < 0 {
-			continue
-		}
-
-		maxPossibleNodes := big.NewInt(0).Div(validator.TotalStakeValue, nodePrice)
-		if maxPossibleNodes.Uint64() > uint64(len(validator.BlsPubKeys)) {
-			numQualifiedNodes += uint32(len(validator.BlsPubKeys))
-		} else {
-			numQualifiedNodes += uint32(maxPossibleNodes.Uint64())
-		}
-	}
-
-	return numQualifiedNodes
 }
 
 func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
@@ -586,22 +592,8 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 			continue
 		}
 
-		maxPossibleNodes := big.NewInt(0).Div(validator.TotalStakeValue, nodePrice)
-		validatorQualifyingStake := big.NewFloat(0).SetInt(validator.TotalStakeValue)
-		qualifiedNodes := maxPossibleNodes.Uint64()
-
-		if maxPossibleNodes.Uint64() > uint64(len(validator.BlsPubKeys)) {
-			validatorQualifyingStake = big.NewFloat(0).SetInt(big.NewInt(0).Mul(nodePrice, big.NewInt(int64(len(validator.BlsPubKeys)))))
-			qualifiedNodes = uint64(len(validator.BlsPubKeys))
-		}
-
-		proportionOfTotalStake := big.NewFloat(0).Quo(validatorQualifyingStake, totalQualifyingStake)
-		proportion, _ := proportionOfTotalStake.Float64()
-		allocatedNodes := float64(qualifiedNodes) * proportion
-		numAllocatedNodes := uint64(allocatedNodes)
-		if allocatedNodes-float64(numAllocatedNodes) > 0.99 {
-			numAllocatedNodes += 1
-		} else if numAllocatedNodes < uint64(len(validator.BlsPubKeys)) {
+		numAllocatedNodes, allocatedNodes := calcNumAllocatedAndProportion(validator, nodePrice, totalQualifyingStake)
+		if numAllocatedNodes < uint64(len(validator.BlsPubKeys)) {
 			selectorProp := allocatedNodes - float64(numAllocatedNodes)
 			if numAllocatedNodes == 0 {
 				toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
@@ -617,22 +609,32 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 		}
 	}
 
+	randomlySelected := s.fillRemainingSpace(uint32(len(finalSelectedNodes)), toBeSelectedRandom, reservePool)
+	finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+
+	return finalSelectedNodes
+}
+
+func (s *stakingAuctionSC) fillRemainingSpace(
+	alreadySelected uint32,
+	toBeSelectedRandom map[string]float64,
+	reservePool map[string]float64,
+) [][]byte {
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	stillNeeded := uint32(0)
-	if config.NumNodes > uint32(len(finalSelectedNodes)) {
-		stillNeeded = config.NumNodes - uint32(len(finalSelectedNodes))
+	if config.NumNodes > alreadySelected {
+		stillNeeded = config.NumNodes - alreadySelected
 	}
 
 	randomlySelected := s.selectRandomly(toBeSelectedRandom, stillNeeded)
-	finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+	alreadySelected += uint32(len(randomlySelected))
 
-	if config.NumNodes > uint32(len(finalSelectedNodes)) {
-		stillNeeded = config.NumNodes - uint32(len(finalSelectedNodes))
-		randomlySelected := s.selectRandomly(reservePool, stillNeeded)
-		finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+	if config.NumNodes > alreadySelected {
+		stillNeeded = config.NumNodes - alreadySelected
+		randomlySelected = append(randomlySelected, s.selectRandomly(reservePool, stillNeeded)...)
 	}
 
-	return finalSelectedNodes
+	return randomlySelected
 }
 
 func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeeded uint32) [][]byte {
@@ -671,6 +673,11 @@ func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeed
 	return randomlySelected
 }
 
+// IsInterfaceNil verifies if the underlying object is nil or not
+func (s *stakingAuctionSC) IsInterfaceNil() bool {
+	return s == nil
+}
+
 func calcTotalQualifyingStake(nodePrice *big.Int, bids []AuctionData) *big.Int {
 	totalQualifyingStake := big.NewInt(0)
 	for _, validator := range bids {
@@ -690,7 +697,45 @@ func calcTotalQualifyingStake(nodePrice *big.Int, bids []AuctionData) *big.Int {
 	return totalQualifyingStake
 }
 
-// IsInterfaceNil verifies if the underlying object is nil or not
-func (s *stakingAuctionSC) IsInterfaceNil() bool {
-	return s == nil
+func calcNumQualifiedNodes(nodePrice *big.Int, bids []AuctionData) uint32 {
+	numQualifiedNodes := uint32(0)
+	for _, validator := range bids {
+		if validator.MaxStakePerNode.Cmp(nodePrice) < 0 {
+			continue
+		}
+		if validator.TotalStakeValue.Cmp(nodePrice) < 0 {
+			continue
+		}
+
+		maxPossibleNodes := big.NewInt(0).Div(validator.TotalStakeValue, nodePrice)
+		if maxPossibleNodes.Uint64() > uint64(len(validator.BlsPubKeys)) {
+			numQualifiedNodes += uint32(len(validator.BlsPubKeys))
+		} else {
+			numQualifiedNodes += uint32(maxPossibleNodes.Uint64())
+		}
+	}
+
+	return numQualifiedNodes
+}
+
+func calcNumAllocatedAndProportion(
+	validator AuctionData,
+	nodePrice *big.Int,
+	totalQualifyingStake *big.Float,
+) (uint64, float64) {
+	maxPossibleNodes := big.NewInt(0).Div(validator.TotalStakeValue, nodePrice)
+	validatorQualifyingStake := big.NewFloat(0).SetInt(validator.TotalStakeValue)
+	qualifiedNodes := maxPossibleNodes.Uint64()
+
+	if maxPossibleNodes.Uint64() > uint64(len(validator.BlsPubKeys)) {
+		validatorQualifyingStake = big.NewFloat(0).SetInt(big.NewInt(0).Mul(nodePrice, big.NewInt(int64(len(validator.BlsPubKeys)))))
+		qualifiedNodes = uint64(len(validator.BlsPubKeys))
+	}
+
+	proportionOfTotalStake := big.NewFloat(0).Quo(validatorQualifyingStake, totalQualifyingStake)
+	proportion, _ := proportionOfTotalStake.Float64()
+	allocatedNodes := float64(qualifiedNodes) * proportion
+	numAllocatedNodes := uint64(allocatedNodes)
+
+	return numAllocatedNodes, allocatedNodes
 }

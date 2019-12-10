@@ -55,3 +55,15 @@ var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
 
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
+
+// ErrBLSKeyIsNotValid signals that bls key is invalid
+var ErrBLSKeyIsNotValid = errors.New("bls key is invalid")
+
+// ErrBLSKeyIsNotStaked signals that bls key is not staked
+var ErrBLSKeyIsNotStaked = errors.New("bls key is not staked")
+
+// ErrNotEnoughArgumentsToStake signals that the arguments provided are not enough
+var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
+
+// ErrStillInUnBoundPeriod signals that bls key is in unbound period
+var ErrStillInUnBoundPeriod = errors.New("bls key is in unbound period")
