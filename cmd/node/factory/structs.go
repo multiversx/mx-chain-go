@@ -73,8 +73,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -699,35 +697,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
-func CreateStatusHandlerPresenter() view.Presenter {
-	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
-
-	return presenterStatusHandlerFactory.Create()
-}
-
-// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
-	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
-	if err != nil {
-		return nil, err
-	}
-
-	views, err := viewsFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range views {
-		err = v.Start()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return views, nil
-}
-
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
 func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
@@ -855,6 +824,8 @@ func createShardDataStoreFromConfig(
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -889,6 +860,12 @@ func createShardDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -968,7 +945,7 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -980,6 +957,14 @@ func createShardDataStoreFromConfig(
 		getCacherFromConfig(config.BootstrapStorage.Cache),
 		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
 		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -997,6 +982,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -1010,6 +996,9 @@ func createMetaChainDataStoreFromConfig(
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
+
 	var err error
 
 	defer func() {
@@ -1046,6 +1035,12 @@ func createMetaChainDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -1104,7 +1099,7 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -1144,6 +1139,14 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -1159,6 +1162,7 @@ func createMetaChainDataStoreFromConfig(
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }

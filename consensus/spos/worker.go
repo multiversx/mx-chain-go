@@ -278,21 +278,24 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			return err
 		}
 
-		isHeaderValid := !check.IfNil(header) && headerHash != nil
-		if isHeaderValid {
-			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-			if errNotCritical != nil {
-				log.Debug("add header in forkdetector", "error", errNotCritical.Error())
-			}
-
-			log.Debug("received proposed block",
-				"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-				"header hash", cnsDta.BlockHeaderHash,
-				"round", header.GetRound(),
-				"nonce", header.GetNonce(),
-				"prev hash", header.GetPrevHash(),
-			)
+		isHeaderInvalid := check.IfNil(header) || headerHash == nil
+		if isHeaderInvalid {
+			return ErrInvalidHeader
 		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			return err
+		}
+
+		log.Debug("received proposed block",
+			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+			"header hash", cnsDta.BlockHeaderHash,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"prev hash", header.GetPrevHash(),
+		)
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

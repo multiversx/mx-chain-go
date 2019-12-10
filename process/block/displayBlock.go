@@ -16,8 +16,8 @@ import (
 
 type transactionCounter struct {
 	mutex           sync.RWMutex
-	currentBlockTxs int
-	totalTxs        int
+	currentBlockTxs uint64
+	totalTxs        uint64
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
@@ -73,8 +73,13 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 // subtractRestoredTxs updated the total processed txs in case of restore
 func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 	txc.mutex.Lock()
-	txc.totalTxs = txc.totalTxs - txsNr
-	txc.mutex.Unlock()
+	defer txc.mutex.Unlock()
+	if txc.totalTxs < uint64(txsNr) {
+		txc.totalTxs = 0
+		return
+	}
+
+	txc.totalTxs -= uint64(txsNr)
 }
 
 // displayLogInfo writes to the output information about the block and transactions
@@ -85,8 +90,13 @@ func (txc *transactionCounter) displayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
+	appStatusHandler core.AppStatusHandler,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
+
+	txc.mutex.RLock()
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, txc.totalTxs)
+	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -213,8 +223,8 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	}
 
 	txc.mutex.Lock()
-	txc.currentBlockTxs = currentBlockTxs
-	txc.totalTxs += currentBlockTxs
+	txc.currentBlockTxs = uint64(currentBlockTxs)
+	txc.totalTxs += uint64(currentBlockTxs)
 	txc.mutex.Unlock()
 
 	return lines
