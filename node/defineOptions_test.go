@@ -885,6 +885,28 @@ func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.
 	assert.Equal(t, ErrNilRequestedItemsHandler, err)
 }
 
+func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderSigVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 

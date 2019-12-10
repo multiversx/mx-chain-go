@@ -531,3 +531,10 @@ type BootstrapperFromStorage interface {
 type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
+
+// InterceptedHeaderSigVerifier is the interface needed at interceptors level to check a header if is correct
+type InterceptedHeaderSigVerifier interface {
+	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
