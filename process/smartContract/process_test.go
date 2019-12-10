@@ -618,6 +618,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	}
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	assert.True(t, called)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
@@ -665,6 +666,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	assert.True(t, called)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
