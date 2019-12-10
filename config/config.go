@@ -89,6 +89,7 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
+	Antiflood      AntifloodConfig
 	Logger         LoggerConfig
 	Address        AddressConfig
 	Hasher         TypeConfig
@@ -179,4 +180,11 @@ type FacadeConfig struct {
 	Prometheus        bool
 	PrometheusJoinURL string
 	PrometheusJobName string
+}
+
+// AntifloodConfig will hold all p2p antiflood parameters
+type AntifloodConfig struct {
+	Cache                        CacheConfig
+	MaxMessagesPerPeerPerSecond  uint32
+	MaxTotalSizePerPeerPerSecond uint64
 }

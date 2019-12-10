@@ -12,7 +12,6 @@ import (
 const minMessages = 1
 const minTotalSize = 1 //1Byte
 const initNumMessages = 1
-const totalIdentifier = "total"
 
 type quota struct {
 	numReceivedMessages   uint32
@@ -129,7 +128,6 @@ func (qfp quotaFloodPreventer) createStatistics() {
 	qfp.statusHandler.ResetStatistics()
 
 	keys := qfp.cacher.Keys()
-	totalQuota := &quota{}
 	for _, k := range keys {
 		val, ok := qfp.cacher.Get(k)
 		if !ok {
@@ -141,11 +139,6 @@ func (qfp quotaFloodPreventer) createStatistics() {
 			continue
 		}
 
-		totalQuota.numReceivedMessages += q.numReceivedMessages
-		totalQuota.sizeReceivedMessages += q.sizeReceivedMessages
-		totalQuota.numProcessedMessages += q.numProcessedMessages
-		totalQuota.sizeProcessedMessages += q.sizeProcessedMessages
-
 		qfp.statusHandler.AddQuota(
 			string(k),
 			q.numReceivedMessages,
@@ -154,14 +147,6 @@ func (qfp quotaFloodPreventer) createStatistics() {
 			q.sizeProcessedMessages,
 		)
 	}
-
-	qfp.statusHandler.AddQuota(
-		totalIdentifier,
-		totalQuota.numReceivedMessages,
-		totalQuota.sizeReceivedMessages,
-		totalQuota.numProcessedMessages,
-		totalQuota.sizeProcessedMessages,
-	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

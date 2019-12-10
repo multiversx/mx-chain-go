@@ -232,6 +232,13 @@
     Size = 1000
     Type = "LRU"
 
+[Antiflood]
+    MaxMessagesPerPeerPerSecond = 10
+    MaxTotalSizePerPeerPerSecond = 10000
+    [Antiflood.Cache]
+        Size = 5000
+        Type = "LRU"
+
 [Logger]
     Path = "logs"
     StackTraceDepth = 2

@@ -611,6 +611,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
 		nil,
 	)
 
@@ -708,7 +709,9 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		headerSigVerifier)
+		headerSigVerifier,
+		createMockP2pAntifloodHandler(),
+	)
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1

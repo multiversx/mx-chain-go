@@ -296,7 +296,6 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 	resetStatisticsCalled := false
 	quota1Compared := false
 	quota2Compared := false
-	totalCompared := false
 	qfp, _ := NewQuotaFloodPreventer(
 		cacher,
 		&mock.QuotaStatusHandlerStub{
@@ -319,14 +318,6 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 				case string(key2):
 					quotaToCompare = *quota2
 					quota2Compared = true
-				case totalIdentifier:
-					quotaToCompare = quota{
-						numReceivedMessages:   quota1.numReceivedMessages + quota2.numReceivedMessages,
-						sizeReceivedMessages:  quota1.sizeReceivedMessages + quota2.sizeReceivedMessages,
-						numProcessedMessages:  quota1.numProcessedMessages + quota2.numProcessedMessages,
-						sizeProcessedMessages: quota1.sizeProcessedMessages + quota2.sizeProcessedMessages,
-					}
-					totalCompared = true
 				default:
 					assert.Fail(t, fmt.Sprintf("unknown identifier %s", identifier))
 				}
@@ -343,7 +334,6 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 	assert.True(t, resetStatisticsCalled)
 	assert.True(t, quota1Compared)
 	assert.True(t, quota2Compared)
-	assert.True(t, totalCompared)
 }
 
 func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
