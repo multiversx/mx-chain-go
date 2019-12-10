@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
@@ -161,6 +162,7 @@ type Process struct {
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
+	HeaderSigVerifier     HeaderSigVerifierHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -506,6 +508,19 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
+	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
+		Marshalizer:       args.core.Marshalizer,
+		Hasher:            args.core.Hasher,
+		NodesCoordinator:  args.nodesCoordinator,
+		MultiSigVerifier:  args.crypto.MultiSigner,
+		SingleSigVerifier: args.crypto.SingleSigner,
+		KeyGen:            args.crypto.BlockSignKeyGen,
+	}
+	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -515,6 +530,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		args.network,
 		args.economicsData,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -627,6 +643,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
+		HeaderSigVerifier:     headerSigVerifier,
 	}, nil
 }
 
@@ -1415,6 +1432,7 @@ func newInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1427,6 +1445,7 @@ func newInterceptorAndResolverContainerFactory(
 			state,
 			network,
 			economics,
+			headerSigVerifier,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1439,6 +1458,7 @@ func newInterceptorAndResolverContainerFactory(
 			network,
 			state,
 			economics,
+			headerSigVerifier,
 		)
 	}
 
@@ -1454,8 +1474,8 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
-
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1475,6 +1495,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1510,8 +1531,8 @@ func newMetaInterceptorAndResolverContainerFactory(
 	network *Network,
 	state *State,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
-
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -1531,6 +1552,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, nil, nil, err
