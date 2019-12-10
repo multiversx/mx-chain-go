@@ -32,7 +32,9 @@ func Test_RemoveByTxHash(t *testing.T) {
 	tx := createTx("alice", 1)
 
 	cache.AddTx(txHash, tx)
-	cache.RemoveTxByHash(txHash)
+	err := cache.RemoveTxByHash(txHash)
+	assert.Nil(t, err)
+
 	foundTx, ok := cache.GetByTxHash(txHash)
 
 	assert.False(t, ok)
