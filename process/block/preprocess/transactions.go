@@ -592,13 +592,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			&gasConsumedByMiniBlockInReceiverShard)
 
 		if err != nil {
-			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-				gasConsumedByMiniBlockInSenderShard,
-				gasConsumedByMiniBlockInReceiverShard,
-				txs.gasHandler.TotalGasConsumed(),
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
-
 			continue
 		}
 
@@ -639,9 +632,24 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				"num added txs", len(miniBlock.TxHashes),
 				"total txs", len(orderedTxs),
 			)
+
+			log.Debug(fmt.Sprintf("gas limit reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+				gasConsumedByMiniBlockInSenderShard,
+				gasConsumedByMiniBlockInReceiverShard,
+				txs.gasHandler.TotalGasConsumed(),
+				len(miniBlock.TxHashes),
+				len(orderedTxs)))
+
 			return miniBlock, nil
 		}
 	}
+
+	log.Debug(fmt.Sprintf("ond.comgas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+		gasConsumedByMiniBlockInSenderShard,
+		gasConsumedByMiniBlockInReceiverShard,
+		txs.gasHandler.TotalGasConsumed(),
+		len(miniBlock.TxHashes),
+		len(orderedTxs)))
 
 	return miniBlock, nil
 }
