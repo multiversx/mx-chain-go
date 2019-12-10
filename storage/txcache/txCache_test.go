@@ -53,7 +53,7 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	cache.AddTx(txHash, tx)
 
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
-	cache.txListBySender.RemoveTx(tx)
+	cache.txListBySender.removeTx(tx)
 
 	err := cache.RemoveTxByHash(txHash)
 	assert.Equal(t, err, errorMapsSyncInconsistency)
@@ -124,13 +124,13 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 
 	// 5000 * 100
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 5000, 100)
 	assert.Equal(t, int64(240000), cache.CountTx())
 
 	// 1000 * 1000
 	cache = NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
 	assert.Equal(t, int64(240000), cache.CountTx())
 }
@@ -146,7 +146,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 	}
 
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -160,7 +160,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 	}
 
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -174,7 +174,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 	}
 
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -188,7 +188,7 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 	}
 
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -202,7 +202,7 @@ func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 	}
 
 	cache := NewTxCache(250000, 1)
-	cache.EvictionStrategy = NewEvictionStrategy(cache, config)
+	cache.EvictionStrategy = newEvictionStrategy(cache, config)
 	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }

@@ -5,32 +5,32 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// TxByHashMap is a new map-like structure for holding and accessing transactions by txHash
-type TxByHashMap struct {
+// txByHashMap is a new map-like structure for holding and accessing transactions by txHash
+type txByHashMap struct {
 	backingMap *ConcurrentMap
 	counter    core.AtomicCounter
 }
 
 // NewTxByHashMap creates a new TxByHashMap instance
-func NewTxByHashMap(size uint32, noChunksHint uint32) TxByHashMap {
+func NewTxByHashMap(size uint32, noChunksHint uint32) txByHashMap {
 	// We'll hold at most "size" transactions
 	backingMap := NewConcurrentMap(size, noChunksHint)
 
-	return TxByHashMap{
+	return txByHashMap{
 		backingMap: backingMap,
 		counter:    0,
 	}
 }
 
-// AddTx adds a transaction to the map
-func (txMap *TxByHashMap) AddTx(txHash []byte, tx data.TransactionHandler) {
+// addTx adds a transaction to the map
+func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) {
 	txMap.backingMap.Set(string(txHash), tx)
 	txMap.counter.Increment()
 }
 
-// RemoveTx removes a transaction from the map
-func (txMap *TxByHashMap) RemoveTx(txHash string) (data.TransactionHandler, bool) {
-	tx, ok := txMap.GetTx(txHash)
+// removeTx removes a transaction from the map
+func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool) {
+	tx, ok := txMap.getTx(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -40,8 +40,8 @@ func (txMap *TxByHashMap) RemoveTx(txHash string) (data.TransactionHandler, bool
 	return tx, true
 }
 
-// GetTx gets a transaction from the map
-func (txMap *TxByHashMap) GetTx(txHash string) (data.TransactionHandler, bool) {
+// getTx gets a transaction from the map
+func (txMap *txByHashMap) getTx(txHash string) (data.TransactionHandler, bool) {
 	txUntyped, ok := txMap.backingMap.Get(txHash)
 	if !ok {
 		return nil, false
@@ -52,7 +52,7 @@ func (txMap *TxByHashMap) GetTx(txHash string) (data.TransactionHandler, bool) {
 }
 
 // RemoveTxsBulk removes transactions, in bulk
-func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
+func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	for _, txHash := range txHashes {
 		txMap.backingMap.Remove(string(txHash))
 	}

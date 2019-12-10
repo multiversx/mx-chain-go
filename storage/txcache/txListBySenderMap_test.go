@@ -7,48 +7,48 @@ import (
 )
 
 func Test_AddTx_IncrementsCounter(t *testing.T) {
-	myMap := NewTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(100, 10)
 
-	myMap.AddTx([]byte("a"), createTx("alice", uint64(1)))
-	myMap.AddTx([]byte("aa"), createTx("alice", uint64(2)))
-	myMap.AddTx([]byte("b"), createTx("bob", uint64(1)))
+	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
+	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
+	myMap.addTx([]byte("b"), createTx("bob", uint64(1)))
 
 	// There are 2 senders
 	assert.Equal(t, int64(2), myMap.counter.Get())
 }
 
 func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
-	myMap := NewTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(100, 10)
 
 	txAlice1 := createTx("alice", uint64(1))
 	txAlice2 := createTx("alice", uint64(2))
 	txBob := createTx("bob", uint64(1))
 
-	myMap.AddTx([]byte("a"), txAlice1)
-	myMap.AddTx([]byte("a"), txAlice2)
-	myMap.AddTx([]byte("b"), txBob)
+	myMap.addTx([]byte("a"), txAlice1)
+	myMap.addTx([]byte("a"), txAlice2)
+	myMap.addTx([]byte("b"), txBob)
 	assert.Equal(t, int64(2), myMap.counter.Get())
 
-	myMap.RemoveTx(txAlice1)
+	myMap.removeTx(txAlice1)
 	assert.Equal(t, int64(2), myMap.counter.Get())
 
-	myMap.RemoveTx(txAlice2)
+	myMap.removeTx(txAlice2)
 	// All alice's transactions have been removed now
 	assert.Equal(t, int64(1), myMap.counter.Get())
 
-	myMap.RemoveTx(txBob)
+	myMap.removeTx(txBob)
 	// Also Bob has no more transactions
 	assert.Equal(t, int64(0), myMap.counter.Get())
 }
 
 func Test_GetListsSortedByOrderNumber(t *testing.T) {
-	myMap := NewTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(100, 10)
 
-	myMap.AddTx([]byte("a"), createTx("alice", uint64(1)))
-	myMap.AddTx([]byte("aa"), createTx("alice", uint64(2)))
-	myMap.AddTx([]byte("b"), createTx("bob", uint64(1)))
-	myMap.AddTx([]byte("aaa"), createTx("alice", uint64(2)))
-	myMap.AddTx([]byte("c"), createTx("carol", uint64(2)))
+	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
+	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
+	myMap.addTx([]byte("b"), createTx("bob", uint64(1)))
+	myMap.addTx([]byte("aaa"), createTx("alice", uint64(2)))
+	myMap.addTx([]byte("c"), createTx("carol", uint64(2)))
 
 	lists := myMap.GetListsSortedByOrderNumber()
 

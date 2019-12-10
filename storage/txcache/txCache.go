@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
@@ -9,9 +10,9 @@ var log = logger.GetOrCreate("txcache")
 
 // TxCache is
 type TxCache struct {
-	txListBySender   TxListBySenderMap
-	txByHash         TxByHashMap
-	EvictionStrategy *EvictionStrategy
+	txListBySender   txListBySenderMap
+	txByHash         txByHashMap
+	EvictionStrategy *evictionStrategy
 }
 
 // NewTxCache creates a new transaction cache
@@ -20,7 +21,7 @@ type TxCache struct {
 func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 	// Note: for simplicity, we use the same "noChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
-		txListBySender: NewTxListBySenderMap(size, noChunksHint),
+		txListBySender: newTxListBySenderMap(size, noChunksHint),
 		txByHash:       NewTxByHashMap(size, noChunksHint),
 	}
 
@@ -30,17 +31,21 @@ func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
-	if cache.EvictionStrategy != nil {
-		cache.EvictionStrategy.DoEviction(tx)
+	if check.IfNil(tx) {
+		return
 	}
 
-	cache.txByHash.AddTx(txHash, tx)
-	cache.txListBySender.AddTx(txHash, tx)
+	if cache.EvictionStrategy != nil {
+		cache.EvictionStrategy.doEviction(tx)
+	}
+
+	cache.txByHash.addTx(txHash, tx)
+	cache.txListBySender.addTx(txHash, tx)
 }
 
 // GetByTxHash gets the transaction by hash
 func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool) {
-	tx, ok := cache.txByHash.GetTx(string(txHash))
+	tx, ok := cache.txByHash.getTx(string(txHash))
 	return tx, ok
 }
 
@@ -55,13 +60,13 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.ForEachSender(func(key string, txList *TxListForSender) {
+		cache.ForEachSender(func(key string, txList *txListForSender) {
 			// Do this on first pass only
 			if pass == 0 {
-				txList.StartBatchCopying(batchSizePerSender)
+				txList.startBatchCopying(batchSizePerSender)
 			}
 
-			copied := txList.CopyBatchTo(result[resultFillIndex:])
+			copied := txList.copyBatchTo(result[resultFillIndex:])
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -81,12 +86,12 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 
 // RemoveTxByHash removes
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
-	tx, ok := cache.txByHash.RemoveTx(string(txHash))
+	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
 		return errorTxNotFound
 	}
 
-	found := cache.txListBySender.RemoveTx(tx)
+	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
 		log.Error("RemoveTxByHash detected maps sync inconsistency", "tx", txHash)
@@ -103,5 +108,5 @@ func (cache *TxCache) CountTx() int64 {
 
 // ForEachSender iterates over the senders
 func (cache *TxCache) ForEachSender(function ForEachSender) {
-	cache.txListBySender.ForEach(function)
+	cache.txListBySender.forEach(function)
 }

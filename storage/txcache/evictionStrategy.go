@@ -16,16 +16,16 @@ type EvictionStrategyConfig struct {
 	NoTxsToEvictForASenderWithALot uint32
 }
 
-// EvictionStrategy is a cache eviction model
-type EvictionStrategy struct {
+// evictionStrategy is a cache eviction model
+type evictionStrategy struct {
 	cache  *TxCache
 	config EvictionStrategyConfig
 	mutex  sync.Mutex
 }
 
-// NewEvictionStrategy creates a new EvictionModel
-func NewEvictionStrategy(cache *TxCache, config EvictionStrategyConfig) *EvictionStrategy {
-	model := &EvictionStrategy{
+// newEvictionStrategy creates a new EvictionModel
+func newEvictionStrategy(cache *TxCache, config EvictionStrategyConfig) *evictionStrategy {
+	model := &evictionStrategy{
 		cache:  cache,
 		config: config,
 	}
@@ -33,9 +33,9 @@ func NewEvictionStrategy(cache *TxCache, config EvictionStrategyConfig) *Evictio
 	return model
 }
 
-// DoEviction does cache eviction
+// doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (model *EvictionStrategy) DoEviction(incomingTx data.TransactionHandler) {
+func (model *evictionStrategy) doEviction(incomingTx data.TransactionHandler) {
 	if !model.areThereTooManyTxs() {
 		return
 	}
@@ -60,26 +60,26 @@ func (model *EvictionStrategy) DoEviction(incomingTx data.TransactionHandler) {
 	model.mutex.Unlock()
 }
 
-func (model *EvictionStrategy) areThereTooManySenders() bool {
+func (model *evictionStrategy) areThereTooManySenders() bool {
 	noSenders := model.cache.txListBySender.counter.Get()
 	tooManySenders := noSenders > int64(model.config.CountThreshold)
 	return tooManySenders
 }
 
-func (model *EvictionStrategy) areThereJustAFewSenders() bool {
+func (model *evictionStrategy) areThereJustAFewSenders() bool {
 	noSenders := model.cache.txListBySender.counter.Get()
 	justAFewSenders := noSenders < int64(model.config.CountJustAFewSenders)
 	return justAFewSenders
 }
 
-func (model *EvictionStrategy) areThereTooManyTxs() bool {
+func (model *evictionStrategy) areThereTooManyTxs() bool {
 	noTxs := model.cache.txByHash.counter.Get()
 	tooManyTxs := noTxs > int64(model.config.CountThreshold)
 	return tooManyTxs
 }
 
 // evictOldestSenders removes transactions from the cache
-func (model *EvictionStrategy) evictOldestSenders() (uint32, uint32) {
+func (model *evictionStrategy) evictOldestSenders() (uint32, uint32) {
 	listsOrdered := model.cache.txListBySender.GetListsSortedByOrderNumber()
 	sliceEnd := core.MinUint32(model.config.NoOldestSendersToEvict, uint32(len(listsOrdered)))
 	listsToEvict := listsOrdered[:sliceEnd]
@@ -87,7 +87,7 @@ func (model *EvictionStrategy) evictOldestSenders() (uint32, uint32) {
 	return model.evictSendersAndTheirTxs(listsToEvict)
 }
 
-func (model *EvictionStrategy) evictSendersAndTheirTxs(listsToEvict []*TxListForSender) (uint32, uint32) {
+func (model *evictionStrategy) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
 	sendersToEvict := make([]string, 0)
 	txsToEvict := make([][]byte, 0)
 
@@ -99,7 +99,7 @@ func (model *EvictionStrategy) evictSendersAndTheirTxs(listsToEvict []*TxListFor
 	return model.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-func (model *EvictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
+func (model *evictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = model.cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = model.cache.txListBySender.RemoveSendersBulk(sendersToEvict)
 	return
@@ -108,11 +108,11 @@ func (model *EvictionStrategy) doEvictItems(txsToEvict [][]byte, sendersToEvict 
 // evictHighNonceTransactions removes transactions from the cache
 // For senders with many transactions (> "ALotOfTransactionsForASender"), evict "NoTxsToEvictForASenderWithALot" transactions
 // Also makes sure that there's no sender with 0 transactions
-func (model *EvictionStrategy) evictHighNonceTransactions() (uint32, uint32) {
+func (model *evictionStrategy) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	model.cache.ForEachSender(func(key string, txList *TxListForSender) {
+	model.cache.ForEachSender(func(key string, txList *txListForSender) {
 		aLot := model.config.ALotOfTransactionsForASender
 		toEvictForSenderCount := model.config.NoTxsToEvictForASenderWithALot
 
@@ -132,7 +132,7 @@ func (model *EvictionStrategy) evictHighNonceTransactions() (uint32, uint32) {
 // evictSendersWhileTooManyTxs removes transactions
 // Eviction happens in ((transaction count) - CountThreshold) / NoOldestSendersToEvict + 1 steps
 // One batch of senders is removed in each step
-func (model *EvictionStrategy) evictSendersWhileTooManyTxs() (step uint32, countTxs uint32, countSenders uint32) {
+func (model *evictionStrategy) evictSendersWhileTooManyTxs() (step uint32, countTxs uint32, countSenders uint32) {
 	batchesSource := model.cache.txListBySender.GetListsSortedByOrderNumber()
 	batchSize := model.config.NoOldestSendersToEvict
 	batchStart := uint32(0)
