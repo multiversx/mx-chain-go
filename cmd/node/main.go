@@ -1096,7 +1096,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
-		node.WithMarshalizer(core.Marshalizer),
+		node.WithMarshalizer(core.Marshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
