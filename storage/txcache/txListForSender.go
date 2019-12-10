@@ -77,12 +77,12 @@ func (list *TxListForSender) RemoveTx(tx *transaction.Transaction) {
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
-func (list *TxListForSender) RemoveHighNonceTxs(count int) [][]byte {
+func (list *TxListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
 	removedTxHashes := make([][]byte, count)
 
 	list.mutex.Lock()
 
-	index := 0
+	index := uint32(0)
 	var previous *linkedList.Element
 	for element := list.Items.Back(); element != nil && count > index; element = previous {
 		// Remove node
@@ -113,8 +113,8 @@ func (list *TxListForSender) findTx(txToFind *transaction.Transaction) *linkedLi
 }
 
 // HasMoreThan checks whether the list has more items than specified
-func (list *TxListForSender) HasMoreThan(count int) bool {
-	return list.Items.Len() > count
+func (list *TxListForSender) HasMoreThan(count uint32) bool {
+	return uint32(list.Items.Len()) > count
 }
 
 // IsEmpty checks whether the list is empty

@@ -12,7 +12,7 @@ type TxByHashMap struct {
 }
 
 // NewTxByHashMap creates a new map-like structure for holding and accessing transactions by txHash
-func NewTxByHashMap(size int, shardsHint int) TxByHashMap {
+func NewTxByHashMap(size uint32, shardsHint uint32) TxByHashMap {
 	// We'll hold at most "size" transactions
 	backingMap := NewConcurrentMap(size, shardsHint)
 
@@ -52,15 +52,15 @@ func (txMap *TxByHashMap) GetTx(txHash string) (*transaction.Transaction, bool) 
 }
 
 // RemoveTxsBulk removes transactions, in bulk
-func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) int {
+func (txMap *TxByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	for _, txHash := range txHashes {
 		txMap.Map.Remove(string(txHash))
 	}
 
-	oldCount := txMap.Counter.Get()
-	newCount := int64(txMap.Map.Count())
+	oldCount := uint32(txMap.Counter.Get())
+	newCount := uint32(txMap.Map.Count())
 	noRemoved := oldCount - newCount
 
-	txMap.Counter.Set(newCount)
-	return int(noRemoved)
+	txMap.Counter.Set(int64(newCount))
+	return noRemoved
 }
