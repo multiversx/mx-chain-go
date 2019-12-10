@@ -218,6 +218,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		marshalizer,
 		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			UpdatePeerIdShardIdCalled:   func(pid p2p.PeerID, shardId uint32) {},
 		})
 
 	monitor, _ := heartbeat.NewMonitor(
