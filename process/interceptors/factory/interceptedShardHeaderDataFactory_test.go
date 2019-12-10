@@ -30,6 +30,17 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.HeaderSigVerifier = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
 func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -50,50 +61,6 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.Nil(t, imh)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilMultiSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.MultiSigVerifier = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.NodesCoordinator = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilNodesCoordinator, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilBlockSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockSigner = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilSingleSigner, err)
-}
-
-func TestNewInterceptedShardHeaderDataFactory_NilBlockKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.BlockKeyGen = nil
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {

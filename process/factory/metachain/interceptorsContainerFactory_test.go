@@ -102,6 +102,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -130,6 +131,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -158,6 +160,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -186,6 +189,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -214,6 +218,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -242,6 +247,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -270,6 +276,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -298,6 +305,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -326,6 +334,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -354,6 +363,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -382,6 +392,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -410,6 +421,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -438,6 +450,7 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		nil,
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -466,6 +479,7 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		nil,
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -522,6 +536,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -552,6 +567,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -582,6 +598,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -612,6 +629,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -642,6 +660,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -679,6 +698,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -729,6 +749,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 

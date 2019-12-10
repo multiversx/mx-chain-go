@@ -33,6 +33,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
+	headerSigVerifier  RandSeedVerifier
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -64,6 +65,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -80,6 +82,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
+		headerSigVerifier,
 		antifloodHandler,
 	)
 	if err != nil {
@@ -100,6 +103,7 @@ func NewWorker(
 		shardCoordinator:   shardCoordinator,
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
+		headerSigVerifier:  headerSigVerifier,
 		antifloodHandler:   antifloodHandler,
 	}
 
@@ -130,6 +134,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
@@ -170,6 +175,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(headerSigVerifier) {
+		return ErrNilHeaderSigVerifier
 	}
 	if check.IfNil(antifloodHandler) {
 		return ErrNilAntifloodHandler
@@ -278,8 +286,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
-		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			return err
+		}
+
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
 			return ErrInvalidHeader

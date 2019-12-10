@@ -50,7 +50,6 @@ type TxTypeHandler interface {
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
 	CheckTxValidity(txHandler TxValidatorHandler) error
-	NumRejectedTxs() uint64
 	IsInterfaceNil() bool
 }
 
@@ -531,6 +530,13 @@ type BootstrapperFromStorage interface {
 // RequestBlockBodyHandler is the interface needed by process block
 type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+}
+
+// InterceptedHeaderSigVerifier is the interface needed at interceptors level to check a header if is correct
+type InterceptedHeaderSigVerifier interface {
+	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
 }
 
 // FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
