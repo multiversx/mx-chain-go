@@ -156,7 +156,7 @@ func (bs *bootstrapStorer) IsInterfaceNil() bool {
 	return bs == nil
 }
 
-// TrimHeaderInfoSlice create a copy of the provided slice without the excess capacity
+// TrimHeaderInfoSlice creates a copy of the provided slice without the excess capacity
 func TrimHeaderInfoSlice(in []BootstrapHeaderInfo) []BootstrapHeaderInfo {
 	if len(in) == 0 {
 		return []BootstrapHeaderInfo{}

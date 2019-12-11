@@ -563,57 +563,56 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
-	lines := make([]*display.LineData, 0, 12)
-
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Epoch",
-		fmt.Sprintf("%d", headerHandler.GetEpoch())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Round",
-		fmt.Sprintf("%d", headerHandler.GetRound())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"TimeStamp",
-		fmt.Sprintf("%d", headerHandler.GetTimeStamp())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Nonce",
-		fmt.Sprintf("%d", headerHandler.GetNonce())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Prev hash",
-		display.DisplayByteSlice(headerHandler.GetPrevHash())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Prev rand seed",
-		display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Rand seed",
-		display.DisplayByteSlice(headerHandler.GetRandSeed())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Pub keys bitmap",
-		core.ToHex(headerHandler.GetPubKeysBitmap())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Signature",
-		display.DisplayByteSlice(headerHandler.GetSignature())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Leader's Signature",
-		display.DisplayByteSlice(headerHandler.GetLeaderSignature())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Root hash",
-		display.DisplayByteSlice(headerHandler.GetRootHash())}))
-	lines = append(lines, display.NewLineData(true, []string{
-		"",
-		"Validator stats root hash",
-		display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}))
-	return lines
+	return []*display.LineData{
+		display.NewLineData(false, []string{
+			"",
+			"Epoch",
+			fmt.Sprintf("%d", headerHandler.GetEpoch())}),
+		display.NewLineData(false, []string{
+			"",
+			"Round",
+			fmt.Sprintf("%d", headerHandler.GetRound())}),
+		display.NewLineData(false, []string{
+			"",
+			"TimeStamp",
+			fmt.Sprintf("%d", headerHandler.GetTimeStamp())}),
+		display.NewLineData(false, []string{
+			"",
+			"Nonce",
+			fmt.Sprintf("%d", headerHandler.GetNonce())}),
+		display.NewLineData(false, []string{
+			"",
+			"Prev hash",
+			display.DisplayByteSlice(headerHandler.GetPrevHash())}),
+		display.NewLineData(false, []string{
+			"",
+			"Prev rand seed",
+			display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
+		display.NewLineData(false, []string{
+			"",
+			"Rand seed",
+			display.DisplayByteSlice(headerHandler.GetRandSeed())}),
+		display.NewLineData(false, []string{
+			"",
+			"Pub keys bitmap",
+			core.ToHex(headerHandler.GetPubKeysBitmap())}),
+		display.NewLineData(false, []string{
+			"",
+			"Signature",
+			display.DisplayByteSlice(headerHandler.GetSignature())}),
+		display.NewLineData(false, []string{
+			"",
+			"Leader's Signature",
+			display.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+		display.NewLineData(false, []string{
+			"",
+			"Root hash",
+			display.DisplayByteSlice(headerHandler.GetRootHash())}),
+		display.NewLineData(true, []string{
+			"",
+			"Validator stats root hash",
+			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+	}
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values

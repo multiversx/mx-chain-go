@@ -17,6 +17,8 @@ import (
 
 // TODO: increase code coverage with unit tests
 
+const initialTxHashesSliceLen = 10
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -170,7 +172,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 ) map[uint32][]*txsHashesInfo {
 
 	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
-	txHashes := make([][]byte, 0, 10)
+	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]

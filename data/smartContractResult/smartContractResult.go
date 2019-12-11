@@ -143,7 +143,7 @@ func (scr *SmartContractResult) SetSndAddress(addr []byte) {
 	scr.SndAddr = addr
 }
 
-// TrimSlicePtr create a copy of the provided slice without the excess capacity
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
 func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
 	if len(in) == 0 {
 		return []*SmartContractResult{}

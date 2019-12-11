@@ -1,6 +1,6 @@
 package sliceUtil
 
-// TrimSliceSliceByte create a copy of the provided slice without the excess capacity
+// TrimSliceSliceByte creates a copy of the provided slice without the excess capacity
 func TrimSliceSliceByte(in [][]byte) [][]byte {
 	if len(in) == 0 {
 		return [][]byte{}

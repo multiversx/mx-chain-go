@@ -439,9 +439,9 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	}
 
 	// verify if all reward transactions exists
-	rewardTxs := make([]*rewardTx.RewardTx, 0, len(mb.TxHashes))
-	txHashes := make([][]byte, 0, len(mb.TxHashes))
-	for _, txHash := range mb.TxHashes {
+	rewardTxs := make([]*rewardTx.RewardTx, len(mb.TxHashes))
+	txHashes := make([][]byte, len(mb.TxHashes))
+	for idx, txHash := range mb.TxHashes {
 		if !haveTime() {
 			return nil, nil, process.ErrTimeIsOut
 		}
@@ -456,8 +456,8 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		txHashes = append(txHashes, txHash)
-		rewardTxs = append(rewardTxs, tx)
+		txHashes[idx] = txHash
+		rewardTxs[idx] = tx
 	}
 
 	return rewardTxs, txHashes, nil

@@ -124,17 +124,21 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
+	headerLines := []*display.LineData{
+		display.NewLineData(false, []string{
+			"Header",
+			"Block type",
+			"TxBlock"}),
+		display.NewLineData(false, []string{
+			"",
+			"Shard",
+			fmt.Sprintf("%d", header.ShardId)}),
+	}
+
 	lines := displayHeader(header)
 
-	shardLines := make([]*display.LineData, 0, len(lines)+6)
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"Header",
-		"Block type",
-		"TxBlock"}))
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"",
-		"Shard",
-		fmt.Sprintf("%d", header.ShardId)}))
+	shardLines := make([]*display.LineData, 0, len(lines)+len(headerLines))
+	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {

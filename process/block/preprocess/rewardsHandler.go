@@ -148,7 +148,8 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	rtxh.protocolRewardsMeta = rtxh.createProtocolRewardsForMeta()
 	rtxh.addTransactionsToPool(rtxh.protocolRewardsMeta)
 
-	calculatedRewardTxs := make([]data.TransactionHandler, 0, len(rtxh.protocolRewards)+len(rtxh.protocolRewardsMeta)+len(rtxh.feeRewards))
+	calculatedRewardTxsLen := len(rtxh.protocolRewards) + len(rtxh.protocolRewardsMeta) + len(rtxh.feeRewards)
+	calculatedRewardTxs := make([]data.TransactionHandler, 0, calculatedRewardTxsLen)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
@@ -229,8 +230,8 @@ func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, 
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
-	marshaledTxs := make([][]byte, 0, len(txHashes))
-	for _, txHash := range txHashes {
+	marshaledTxs := make([][]byte, len(txHashes))
+	for idx, txHash := range txHashes {
 		rTx, ok := rtxh.rewardTxsForBlock[string(txHash)]
 		if !ok {
 			return nil, process.ErrRewardTxNotFound
@@ -240,7 +241,7 @@ func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, 
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
-		marshaledTxs = append(marshaledTxs, marshaledTx)
+		marshaledTxs[idx] = marshaledTx
 	}
 
 	return marshaledTxs, nil
