@@ -257,7 +257,7 @@ func (txs *transactions) ProcessBlockTransactions(
 				miniBlock.ReceiverShardID,
 			)
 
-			if err != nil {
+			if err != nil && err != process.ErrFailedTransaction {
 				return err
 			}
 
