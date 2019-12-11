@@ -731,7 +731,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 			return nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -771,7 +771,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -791,7 +791,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 			return nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -833,7 +833,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -856,7 +856,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 			return nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -902,7 +902,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))
@@ -1069,7 +1069,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 				return nil
 			},
 		},
@@ -1166,13 +1166,13 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 	}
 
 	txs.gasHandler.Init()
-	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
+	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue)
 	txs.gasHandler.Init()
-	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue, 0)
+	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue)
 	txs.gasHandler.Init()
-	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue, 0)
+	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue)
 	txs.gasHandler.Init()
-	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue, 0)
+	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue)
 
 	mbsOrig := block.MiniBlockSlice{}
 	mbsOrig = append(mbsOrig, &mb1, &mb2, &mb3, &mb4)

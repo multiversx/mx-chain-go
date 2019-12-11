@@ -191,7 +191,6 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	body block.Body,
-	round uint64,
 	haveTime func() bool,
 ) error {
 
@@ -230,7 +229,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			err := rtp.processRewardTransaction(
 				txHash,
 				rTx,
-				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 			)
@@ -370,7 +368,6 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 func (rtp *rewardTxPreprocessor) processRewardTransaction(
 	rewardTxHash []byte,
 	rewardTx *rewardTx.RewardTx,
-	round uint64,
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
@@ -465,10 +462,9 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
-	senderShardId, receiverShardId uint32,
-	spaceRemained int,
-	haveTime func() bool,
-	round uint64,
+	_, _ uint32,
+	_ int,
+	_ func() bool,
 ) (*block.MiniBlock, error) {
 
 	return nil, nil
@@ -477,9 +473,8 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
-	round uint64,
+	_ uint32,
+	_ uint32,
 	_ func() bool,
 ) (block.MiniBlockSlice, error) {
 
@@ -498,7 +493,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	processedTxHashes := make([][]byte, 0, len(rewardMiniBlocksSlice))
 
 	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime, round)
+		err := rtp.ProcessMiniBlock(mb, haveTime)
 		if err != nil {
 			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
 
@@ -528,7 +523,6 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
-	round uint64,
 ) error {
 
 	if miniBlock.Type != block.RewardsBlock {

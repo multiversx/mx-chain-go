@@ -677,7 +677,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
 
-	err := scr.ProcessBlockTransactions(body, 1, haveTimeTrue)
+	err := scr.ProcessBlockTransactions(body, haveTimeTrue)
 
 	assert.Nil(t, err)
 }
@@ -735,7 +735,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 
 	body = append(body, &miniblock)
 
-	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
 	assert.Nil(t, err)
 }
@@ -771,7 +771,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 
 	body = append(body, &miniblock)
 
-	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
