@@ -127,4 +127,6 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	if !bytes.Equal(createdHash, receivedHash) {
 		return process.ErrMiniBlockHashMismatch
 	}
+
+	return nil
 }
