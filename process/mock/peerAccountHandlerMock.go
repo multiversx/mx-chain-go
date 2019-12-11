@@ -18,7 +18,6 @@ type PeerAccountHandlerMock struct {
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
-	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 
 	IncreaseLeaderSuccessRateWithJournalCalled    func() error
@@ -49,10 +48,6 @@ func (pahm *PeerAccountHandlerMock) GetRootHash() []byte {
 
 func (pahm *PeerAccountHandlerMock) SetRootHash(rootHash []byte) {
 	pahm.rootHash = rootHash
-}
-
-func (pahm *PeerAccountHandlerMock) SetRootHashWithJournal(rootHash []byte) error {
-	return pahm.SetRootHashWithJournalCalled(rootHash)
 }
 
 func (pahm *PeerAccountHandlerMock) SetNonceWithJournal(nonce uint64) error {
