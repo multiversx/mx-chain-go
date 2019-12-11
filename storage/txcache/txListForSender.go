@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// txListForSender is
+// txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	items          *list.List
 	mutex          sync.Mutex
