@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -236,8 +238,10 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	evictionWaitListSize := 100
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, marsh, hasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

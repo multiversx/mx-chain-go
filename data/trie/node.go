@@ -1,9 +1,6 @@
 package trie
 
 import (
-	"io"
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -14,41 +11,6 @@ const nrOfChildren = 17
 const firstByte = 0
 const maxTrieLevelAfterCommit = 6
 const hexTerminator = 16
-
-type node interface {
-	getHash() []byte
-	setHash() error
-	setGivenHash([]byte)
-	setHashConcurrent(wg *sync.WaitGroup, c chan error)
-	setRootHash() error
-	getCollapsed() (node, error) // a collapsed node is a node that instead of the children holds the children hashes
-	isCollapsed() bool
-	isPosCollapsed(pos int) bool
-	isDirty() bool
-	getEncodedNode() ([]byte, error)
-	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
-	resolveCollapsed(pos byte, db data.DBWriteCacher) error
-	hashNode() ([]byte, error)
-	hashChildren() error
-	tryGet(key []byte, db data.DBWriteCacher) ([]byte, error)
-	getNext(key []byte, db data.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error)
-	delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error)
-	reduceNode(pos int) (node, error)
-	isEmptyOrNil() error
-	print(writer io.Writer, index int)
-	deepClone() node
-	getDirtyHashes() ([][]byte, error)
-	getChildren(db data.DBWriteCacher) ([]node, error)
-	isValid() bool
-	setDirty(bool)
-	loadChildren(*trieSyncer) error
-
-	getMarshalizer() marshal.Marshalizer
-	setMarshalizer(marshal.Marshalizer)
-	getHasher() hashing.Hasher
-	setHasher(hashing.Hasher)
-}
 
 type baseNode struct {
 	hash   []byte

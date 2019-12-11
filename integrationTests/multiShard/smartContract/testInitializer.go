@@ -14,6 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -281,8 +283,10 @@ func createAccountsDB() (*state.AccountsDB, data.Trie) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	evictionWaitListSize := 100
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), testMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, testMarshalizer, hasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr, _ := trie.NewTrie(trieStorage, testMarshalizer, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

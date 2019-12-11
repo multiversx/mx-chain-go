@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -226,9 +228,10 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
 func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
-	evictionWaitListSize := 100
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
@@ -572,8 +575,9 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
-	evictionWaitListSize := 100
-	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
 
