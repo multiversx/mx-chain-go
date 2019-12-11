@@ -106,7 +106,7 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 func (listForSender *txListForSender) findTx(txToFind data.TransactionHandler) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
-		if value.tx == txToFind {
+		if value.tx.GetNonce() == txToFind.GetNonce() {
 			return element
 		}
 	}
