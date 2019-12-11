@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -618,6 +619,11 @@ func getTransactionByType(
 		return buildRewardTransaction(currentReward, txHash, mbHash, blockHash, mb, header)
 	}
 
+	currentReceipt, ok := tx.(*receipt.Receipt)
+	if ok && currentReward != nil {
+		return buildReceiptTransaction(currentReceipt, txHash, mbHash, blockHash, mb, header)
+	}
+
 	return nil
 }
 
@@ -703,6 +709,34 @@ func buildRewardTransaction(
 		GasPrice:      0,
 		GasLimit:      0,
 		Data:          "",
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
+}
+
+func buildReceiptTransaction(
+	rpt *receipt.Receipt,
+	txHash []byte,
+	mbHash []byte,
+	blockHash []byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         rpt.GetNonce(),
+		Round:         header.GetRound(),
+		Value:         rpt.Value.String(),
+		Receiver:      hex.EncodeToString(rpt.GetRecvAddress()),
+		Sender:        hex.EncodeToString(rpt.GetSndAddress()),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          rpt.Data,
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",

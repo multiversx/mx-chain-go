@@ -118,7 +118,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		if err == process.ErrInsufficientFunds {
 			receiptErr := txProc.createReceiptsWhenFail(tx, acntSnd)
 			if receiptErr != nil {
-				return err
+				return receiptErr
 			}
 		}
 		return err
@@ -158,6 +158,11 @@ func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, a
 
 	operation := big.NewInt(0)
 	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, cost))
+	if err != nil {
+		return err
+	}
+
+	err = txProc.increaseNonce(account)
 	if err != nil {
 		return err
 	}

@@ -377,12 +377,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.txPool.RemoveData(transactionHash, strCache)
 	}
 
-	// ignore this error, as it is treated in receipts and bad tx block
-	if err == process.ErrFailedTransaction {
-		return nil
-	}
-
-	if err != nil {
+	if err != nil && err != process.ErrFailedTransaction {
 		return err
 	}
 
@@ -391,7 +386,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	return nil
+	return err
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
@@ -607,7 +602,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			miniBlock.ReceiverShardID,
 		)
 
-		if err != nil {
+		if err != nil && err != process.ErrFailedTransaction {
 			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", orderedTxHashes[index],
@@ -627,7 +622,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+		if err != process.ErrFailedTransaction {
+			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+		}
 		addedTxs++
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
@@ -647,12 +644,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 	}
 
-	log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-		gasConsumedByMiniBlockInSenderShard,
-		gasConsumedByMiniBlockInReceiverShard,
-		txs.gasHandler.TotalGasConsumed(),
-		len(miniBlock.TxHashes),
-		len(orderedTxs)))
+	if addedTxs > 0 {
+		log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+			gasConsumedByMiniBlockInSenderShard,
+			gasConsumedByMiniBlockInReceiverShard,
+			txs.gasHandler.TotalGasConsumed(),
+			len(miniBlock.TxHashes),
+			len(orderedTxs)))
+	}
 
 	return miniBlock, nil
 }

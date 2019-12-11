@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
@@ -132,5 +135,188 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		for _, pk := range receiversPublicKeys[n.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
+	}
+}
+
+func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	minGasLimit := uint64(10000)
+	for _, node := range nodes {
+		node.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000)
+	sendValue := big.NewInt(5)
+	integrationTests.MintAllNodes(nodes, initialVal)
+	receiverAddress := []byte("12345678901234567890123456789012")
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	gasLimit := minGasLimit * 2
+	time.Sleep(time.Second)
+	nrRoundsToTest := 10
+	for i := 0; i <= nrRoundsToTest; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, "")
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	time.Sleep(time.Second)
+
+	txGasNeed := nodes[0].EconomicsData.GetMinGasLimit()
+	txGasPrice := nodes[0].EconomicsData.GetMinGasPrice()
+
+	oneTxCost := big.NewInt(0).Add(sendValue, big.NewInt(0).SetUint64(txGasNeed*txGasPrice))
+	txTotalCost := big.NewInt(0).Mul(oneTxCost, big.NewInt(int64(nrRoundsToTest)))
+
+	expectedBalance := big.NewInt(0).Sub(initialVal, txTotalCost)
+	for _, verifierNode := range nodes {
+		for _, node := range nodes {
+			accWrp, err := verifierNode.AccntState.GetExistingAccount(node.OwnAccount.Address)
+			if err != nil {
+				continue
+			}
+
+			account, _ := accWrp.(*state.Account)
+			assert.Equal(t, expectedBalance, account.Balance)
+		}
+	}
+}
+
+func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 0
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	minGasLimit := uint64(10000)
+	for _, node := range nodes {
+		node.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	nrTxsToSend := uint64(10)
+	initialVal := big.NewInt(0).SetUint64(nrTxsToSend * minGasLimit * integrationTests.MinTxGasPrice)
+	halfInitVal := big.NewInt(0).Div(initialVal, big.NewInt(2))
+	integrationTests.MintAllNodes(nodes, initialVal)
+	receiverAddress := []byte("12345678901234567890123456789012")
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	for _, node := range nodes {
+		for j := uint64(0); j < nrTxsToSend; j++ {
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, "")
+		}
+	}
+
+	time.Sleep(time.Second)
+	nrRoundsToTest := 3
+	for i := 0; i <= nrRoundsToTest; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		time.Sleep(time.Second)
+	}
+
+	time.Sleep(time.Second)
+
+	expectedReceiverValue := big.NewInt(0).Mul(big.NewInt(int64(len(nodes))), halfInitVal)
+	for _, verifierNode := range nodes {
+		for _, node := range nodes {
+			accWrp, err := verifierNode.AccntState.GetExistingAccount(node.OwnAccount.Address)
+			if err != nil {
+				continue
+			}
+
+			account, _ := accWrp.(*state.Account)
+			assert.Equal(t, big.NewInt(0), account.Balance)
+		}
+
+		receiver, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(receiverAddress)
+		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiver)
+		if err != nil {
+			continue
+		}
+
+		account, _ := accWrp.(*state.Account)
+		assert.Equal(t, expectedReceiverValue, account.Balance)
 	}
 }
