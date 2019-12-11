@@ -556,6 +556,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor

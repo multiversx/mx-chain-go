@@ -177,6 +177,9 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	if check.IfNil(acntSnd) {
 		return nil
 	}
+	if core.IsSmartContractAddress(tx.RcvAddr) {
+		return nil
+	}
 
 	totalProvided := big.NewInt(0)
 	totalProvided.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))

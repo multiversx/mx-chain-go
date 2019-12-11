@@ -547,6 +547,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 	)
 
+	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
+	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
@@ -557,6 +559,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsHandler,
 		txTypeHandler,
 		tpn.EconomicsData,
+		receiptsHandler,
+		badBlocskHandler,
 	)
 
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)

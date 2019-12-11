@@ -62,14 +62,19 @@ func NewOneMiniBlockPostProcessor(
 func (irp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	selfId := irp.shardCoordinator.SelfId()
 
-	miniBlocks := make(map[uint32]*block.MiniBlock)
+	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
+	irp.mutInterResultsForBlock.Lock()
+	defer irp.mutInterResultsForBlock.Unlock()
+
+	if len(irp.interResultsForBlock) == 0 {
+		return miniBlocks
+	}
+
 	miniBlocks[selfId] = &block.MiniBlock{
 		Type:            irp.blockType,
 		ReceiverShardID: selfId,
 		SenderShardID:   selfId,
 	}
-
-	irp.mutInterResultsForBlock.Lock()
 
 	for key := range irp.interResultsForBlock {
 		miniBlocks[selfId].TxHashes = append(miniBlocks[selfId].TxHashes, []byte(key))
@@ -78,8 +83,6 @@ func (irp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 	sort.Slice(miniBlocks[selfId].TxHashes, func(a, b int) bool {
 		return bytes.Compare(miniBlocks[selfId].TxHashes[a], miniBlocks[selfId].TxHashes[b]) < 0
 	})
-
-	irp.mutInterResultsForBlock.Unlock()
 
 	return miniBlocks
 }

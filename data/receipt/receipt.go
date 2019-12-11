@@ -1,7 +1,11 @@
 package receipt
 
 import (
+	"io"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/receipt/capnp"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // Receipt holds all the data needed for a transaction receipt
@@ -12,7 +16,6 @@ type Receipt struct {
 	TxHash  []byte   `capid:"4" json:"txHash"`
 }
 
-/*
 // Save saves the serialized data of a Receipt into a stream through Capnp protocol
 func (scr *Receipt) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
@@ -66,7 +69,7 @@ func ReceiptGoToCapn(seg *capn.Segment, src *Receipt) capnp.ReceiptCapn {
 	dest.SetTxHash(src.TxHash)
 
 	return dest
-}*/
+}
 
 // IsInterfaceNil verifies if underlying object is nil
 func (scr *Receipt) IsInterfaceNil() bool {

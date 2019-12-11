@@ -190,6 +190,8 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 			continue
 		}
 
+		log.Debug("rewardTx", "value", rTx.GetValue(), "shId", rtxh.shardCoordinator.SelfId())
+
 		txHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
 		if err != nil {
 			log.Trace("CalculateHash", "error", err.Error())
@@ -214,7 +216,7 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
-func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
+func (rtxh *rewardsHandler) VerifyInterMiniBlocks(_ block.Body) error {
 	err := rtxh.verifyCreatedRewardsTxs()
 	return err
 }

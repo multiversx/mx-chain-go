@@ -39,6 +39,7 @@ const (
 	// InvalidBlock identifies a miniblock holding invalid transactions
 	InvalidBlock Type = 5
 	// ReceiptBlock identifies a miniblock holding receipts
+	ReceiptBlock Type = 6
 )
 
 // String returns the string representation of the Type
@@ -56,6 +57,8 @@ func (bType Type) String() string {
 		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
+	case ReceiptBlock:
+		return "ReceiptBlock"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}

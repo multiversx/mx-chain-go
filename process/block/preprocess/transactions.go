@@ -645,7 +645,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				"total txs", len(orderedTxs),
 			)
 
-			log.Debug(fmt.Sprintf("gas limit reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+			log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
 				gasConsumedByMiniBlockInSenderShard,
 				gasConsumedByMiniBlockInReceiverShard,
 				txs.gasHandler.TotalGasConsumed(),
@@ -656,7 +656,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 	}
 
-	log.Debug(fmt.Sprintf("gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+	log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
 		gasConsumedByMiniBlockInSenderShard,
 		gasConsumedByMiniBlockInReceiverShard,
 		txs.gasHandler.TotalGasConsumed(),
