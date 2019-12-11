@@ -288,6 +288,11 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+// SetNumProcessedObj will set the num of processed headers
+func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
+	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
+}
+
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
 	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(header)
 	if err != nil {
