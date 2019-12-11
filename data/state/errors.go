@@ -142,3 +142,6 @@ var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
 // ErrUnknownAccountType signals that the provided account type is unknown
 var ErrUnknownAccountType = errors.New("account type is unknown")
+
+// ErrNilOrEmptyDataTrieUpdates signals that there are no data trie updates
+var ErrNilOrEmptyDataTrieUpdates = errors.New("no data trie updates")

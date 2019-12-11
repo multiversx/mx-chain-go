@@ -1035,7 +1035,7 @@ func createAndExecTxs(
 		}
 
 		startTime := time.Now()
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx)
 		duration := time.Now().Sub(startTime)
 		totalTime += int64(duration)
 		assert.Nil(b, err)

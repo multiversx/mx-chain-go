@@ -30,6 +30,10 @@ func (blProcMock *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 
 }
 
+func (blProcMock *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
+
+}
+
 // ProcessBlock mocks pocessing a block
 func (blProcMock *BlockProcessorStub) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)

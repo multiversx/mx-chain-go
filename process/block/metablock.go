@@ -251,7 +251,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
 		return err
 	}
@@ -287,6 +287,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+// SetNumProcessedObj will set the num of processed headers
+func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
+	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
 }
 
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
@@ -351,7 +356,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 // SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+func (mp *metaProcessor) SetConsensusData(_ []byte, _ uint64, _ uint32, _ uint32) {
 	// nothing to do
 }
 
@@ -586,7 +591,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
-		round,
 		haveTime)
 
 	if len(mbFromMe) > 0 {
@@ -692,7 +696,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
-				round,
 				haveTime)
 
 			if !hdrProcessFinished {
@@ -971,7 +974,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
@@ -1348,10 +1351,10 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 }
 
 func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
-	headerHash []byte,
-	shardMiniBlockHeader *block.ShardMiniBlockHeader,
-	round uint64,
-	shardId uint32,
+	_ []byte,
+	_ *block.ShardMiniBlockHeader,
+	_ uint64,
+	_ uint32,
 ) error {
 	// TODO: real processing has to be done here, using metachain state
 	return nil
@@ -1498,7 +1501,7 @@ func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 

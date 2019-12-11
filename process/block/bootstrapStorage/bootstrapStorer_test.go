@@ -50,7 +50,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{2, 3, []byte("Hash")}
 	dataBoot := bootstrapStorage.BootstrapData{
-		HeaderInfo:           headerInfo,
+		LastHeader:           headerInfo,
 		LastNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{headerInfo},
 		LastFinals:           []bootstrapStorage.BootstrapHeaderInfo{headerInfo},
 	}

@@ -79,6 +79,10 @@ func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandl
 	return nil
 }
 
+func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+
+}
+
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
