@@ -7,7 +7,7 @@ import (
 )
 
 func Test_AddTx_IncrementsCounter(t *testing.T) {
-	myMap := newTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(4)
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
 	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
@@ -18,7 +18,7 @@ func Test_AddTx_IncrementsCounter(t *testing.T) {
 }
 
 func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
-	myMap := newTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(4)
 
 	txAlice1 := createTx("alice", uint64(1))
 	txAlice2 := createTx("alice", uint64(2))
@@ -42,7 +42,7 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 }
 
 func Test_GetListsSortedByOrderNumber(t *testing.T) {
-	myMap := newTxListBySenderMap(100, 10)
+	myMap := newTxListBySenderMap(4)
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
 	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))

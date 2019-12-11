@@ -15,9 +15,8 @@ type txListBySenderMap struct {
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(size uint32, noChunksHint uint32) txListBySenderMap {
-	// We'll hold at most "size" lists of at least 1 transaction
-	backingMap := NewConcurrentMap(size, noChunksHint)
+func newTxListBySenderMap(noChunksHint uint32) txListBySenderMap {
+	backingMap := NewConcurrentMap(noChunksHint)
 
 	return txListBySenderMap{
 		backingMap: backingMap,

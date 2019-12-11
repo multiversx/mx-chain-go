@@ -13,7 +13,7 @@ import (
 )
 
 func Test_AddTx(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(4)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -26,7 +26,7 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(16)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -42,13 +42,13 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(16)
 	err := cache.RemoveTxByHash([]byte("missing"))
 	assert.Equal(t, err, errorTxNotFound)
 }
 
 func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(16)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -62,7 +62,7 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 }
 
 func Test_GetTransactions_Dummy(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(16)
 
 	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
 	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
@@ -78,7 +78,7 @@ func Test_GetTransactions_Dummy(t *testing.T) {
 }
 
 func Test_GetTransactions(t *testing.T) {
-	cache := NewTxCache(250000, 16)
+	cache := NewTxCache(16)
 
 	// For "noSenders" senders, add "noTransactions" transactions,
 	// in reversed-nonce order.
@@ -126,12 +126,12 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	}
 
 	// 5000 * 100
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 5000, 100)
 	assert.Equal(t, int64(240000), cache.CountTx())
 
 	// 1000 * 1000
-	cache = NewTxCacheWithEviction(250000, 1, config)
+	cache = NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
 	assert.Equal(t, int64(240000), cache.CountTx())
 }
@@ -147,7 +147,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 		NoTxsToEvictForASenderWithALot: 250,
 	}
 
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -161,7 +161,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 		NoTxsToEvictForASenderWithALot: 250,
 	}
 
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -175,7 +175,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NoOldestS
 		NoTxsToEvictForASenderWithALot: 250,
 	}
 
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -189,7 +189,7 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 		NoTxsToEvictForASenderWithALot: 250,
 	}
 
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
@@ -203,7 +203,7 @@ func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 		NoTxsToEvictForASenderWithALot: 250,
 	}
 
-	cache := NewTxCacheWithEviction(250000, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
 	assert.Equal(b, int64(240000), cache.CountTx())
 }

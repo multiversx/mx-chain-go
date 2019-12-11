@@ -12,9 +12,9 @@ type txByHashMap struct {
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
-func newTxByHashMap(size uint32, noChunksHint uint32) txByHashMap {
+func newTxByHashMap(noChunksHint uint32) txByHashMap {
 	// We'll hold at most "size" transactions
-	backingMap := NewConcurrentMap(size, noChunksHint)
+	backingMap := NewConcurrentMap(noChunksHint)
 
 	return txByHashMap{
 		backingMap: backingMap,

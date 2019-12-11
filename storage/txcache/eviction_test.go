@@ -10,7 +10,7 @@ func Test_EvictOldestSenders(t *testing.T) {
 		NoOldestSendersToEvict: 2,
 	}
 
-	cache := NewTxCacheWithEviction(100, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
 	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
@@ -31,7 +31,7 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 		NoTxsToEvictForASenderWithALot: 25,
 	}
 
-	cache := NewTxCacheWithEviction(300, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 
 	for index := 0; index < 200; index++ {
 		cache.AddTx([]byte{'a', byte(index)}, createTx("alice", uint64(index)))
@@ -60,7 +60,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NoOldestSendersToEvict: 20,
 	}
 
-	cache := NewTxCacheWithEviction(300, 1, config)
+	cache := NewTxCacheWithEviction(16, config)
 
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {

@@ -19,13 +19,12 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-// "size" dictates the maximum number of transactions to hold in this cache at a given time
 // "noChunksHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
+func NewTxCache(noChunksHint uint32) *TxCache {
 	// Note: for simplicity, we use the same "noChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
-		txListBySender: newTxListBySenderMap(size, noChunksHint),
-		txByHash:       newTxByHashMap(size, noChunksHint),
+		txListBySender: newTxListBySenderMap(noChunksHint),
+		txByHash:       newTxByHashMap(noChunksHint),
 		evictionConfig: EvictionConfig{Enabled: false},
 	}
 
@@ -33,8 +32,8 @@ func NewTxCache(size uint32, noChunksHint uint32) *TxCache {
 }
 
 // NewTxCacheWithEviction creates a new transaction cache with eviction
-func NewTxCacheWithEviction(size uint32, noChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
-	txCache := NewTxCache(size, noChunksHint)
+func NewTxCacheWithEviction(noChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
+	txCache := NewTxCache(noChunksHint)
 	txCache.evictionConfig = evictionConfig
 
 	return txCache
