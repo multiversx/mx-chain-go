@@ -118,7 +118,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 		Data:     txData,
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx, context.Round)
+	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
 	}
@@ -153,7 +153,7 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 		Data:     txData,
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx, context.Round)
+	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
 	}

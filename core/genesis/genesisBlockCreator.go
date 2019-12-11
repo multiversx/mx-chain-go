@@ -313,7 +313,7 @@ func deploySystemSmartContracts(
 		}
 
 		tx.SndAddr = key
-		err = txProcessor.ProcessTransaction(tx, 0)
+		err = txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
@@ -345,7 +345,7 @@ func setStakingData(
 				Challenge: nil,
 			}
 
-			err := txProcessor.ProcessTransaction(tx, 0)
+			err := txProcessor.ProcessTransaction(tx)
 			if err != nil {
 				return err
 			}
@@ -366,7 +366,7 @@ func setStakingData(
 			Challenge: nil,
 		}
 
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
