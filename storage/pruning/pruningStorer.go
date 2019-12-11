@@ -174,13 +174,12 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
 			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
 				v, err = ps.activePersisters[idx].persister.Get(key)
-
 				if err != nil {
 					continue
 				}
 
 				found = true
-				// if found in persistence unit, add it in cache
+				// if found in persistence unit, add it to cache
 				ps.cacher.Put(key, v)
 				break
 			}
@@ -235,7 +234,6 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	}
 
 	res, err := persister.Get(key)
-
 	if err == nil {
 		return res, nil
 	}

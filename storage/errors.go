@@ -60,3 +60,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrEmptyUniqueIdentifier signals that an empty unique ID has been provided
 var ErrEmptyUniqueIdentifier = errors.New("empty unique identifier")
+
+// ErrInvalidNumberOfEpochsToSave signals that an invalid number of epochs to save has been provided
+var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to save")
+
+// ErrInvalidNumberOfActivePersisters signals that an invalid number of active persisters has been provided
+var ErrInvalidNumberOfActivePersisters = errors.New("invalid number of active persisters")

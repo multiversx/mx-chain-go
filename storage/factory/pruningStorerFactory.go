@@ -16,6 +16,11 @@ import (
 
 var log = logger.GetOrCreate("storage/factory")
 
+const (
+	minimumNumberOfActivePersisters = 1
+	minimumNumberOfEpochsToKeep     = 2
+)
+
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
 	generalConfig      *config.Config
@@ -33,6 +38,12 @@ func NewStorageServiceFactory(
 ) (*StorageServiceFactory, error) {
 	if config == nil {
 		return nil, storage.ErrNilConfig
+	}
+	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && !config.StoragePruning.FullArchive {
+		return nil, storage.ErrInvalidNumberOfEpochsToSave
+	}
+	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
+		return nil, storage.ErrInvalidNumberOfActivePersisters
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, storage.ErrNilShardCoordinator

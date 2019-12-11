@@ -570,13 +570,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
-	if generalConfig.StoragePruning.NumEpochsToKeep < uint64(2) && !generalConfig.StoragePruning.FullArchive {
-		return errors.New("invalid number of epochs to save")
-	}
-	if generalConfig.StoragePruning.NumActivePersisters < uint64(1) {
-		return errors.New("invalid number of active persisters")
-	}
-
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
