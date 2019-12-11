@@ -254,7 +254,7 @@ func (bp *baseProcessor) checkBlockValidity(
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 	trieRootHash, err := bp.accounts.RootHash()
 	if err != nil {
-		log.Trace("verify account.RootHash", "error", err.Error())
+		log.Debug("verify account.RootHash", "error", err.Error())
 	}
 
 	return bytes.Equal(trieRootHash, rootHash)
