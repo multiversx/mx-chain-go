@@ -190,8 +190,6 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 			continue
 		}
 
-		log.Debug("rewardTx", "value", rTx.GetValue(), "shId", rtxh.shardCoordinator.SelfId())
-
 		txHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
 		if err != nil {
 			log.Trace("CalculateHash", "error", err.Error())

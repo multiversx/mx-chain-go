@@ -163,7 +163,7 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 func (bpp *basePreProcess) computeExistingAndMissing(
 	body block.Body,
 	forBlock *txsForBlock,
-	chRcvAllTxs chan bool,
+	_ chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {

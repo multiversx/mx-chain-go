@@ -39,6 +39,7 @@ type transactions struct {
 	mutOrderedTxs        sync.RWMutex
 	economicsFee         process.FeeHandler
 	miniBlocksCompacter  process.MiniBlocksCompacter
+	blockType            block.Type
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -54,6 +55,7 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
+	blockType block.Type,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -106,6 +108,7 @@ func NewTransactionPreprocessor(
 		accounts:             accounts,
 		economicsFee:         economicsFee,
 		miniBlocksCompacter:  miniBlocksCompacter,
+		blockType:            blockType,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -157,12 +160,8 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 		return process.ErrNilMiniBlockPool
 	}
 
-	err := txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.TxBlock)
-	if err != nil {
-		return err
-	}
+	err := txs.removeDataFromPools(body, miniBlockPool, txs.txPool, txs.blockType)
 
-	err = txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.InvalidBlock)
 	return err
 }
 
@@ -225,7 +224,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	// basic validation already done in interceptors
 	for i := 0; i < len(expandedMiniBlocks); i++ {
 		miniBlock := expandedMiniBlocks[i]
-		if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
+		if miniBlock.Type != txs.blockType {
 			continue
 		}
 
@@ -357,19 +356,8 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 		body,
 		&txs.txsForCurrBlock,
 		txs.chRcvAllTxs,
-		block.TxBlock,
+		txs.blockType,
 		txs.txPool)
-
-	missingBadTxsForShard := txs.computeExistingAndMissing(
-		body,
-		&txs.txsForCurrBlock,
-		txs.chRcvAllTxs,
-		block.InvalidBlock,
-		txs.txPool)
-
-	for key, value := range missingBadTxsForShard {
-		missingTxsForShard[key] = append(missingTxsForShard[key], value...)
-	}
 
 	return missingTxsForShard
 }
@@ -422,7 +410,7 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 
 // computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
 func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
-	if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
+	if miniBlock.Type != txs.blockType {
 		return nil
 	}
 
@@ -547,6 +535,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 ) (*block.MiniBlock, error) {
+	if txs.blockType != block.TxBlock {
+		return &block.MiniBlock{}, nil
+	}
 
 	var orderedTxs []*transaction.Transaction
 	var orderedTxHashes [][]byte
@@ -715,6 +706,10 @@ func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 ) error {
+	if txs.blockType != block.TxBlock {
+		return nil
+	}
+
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}

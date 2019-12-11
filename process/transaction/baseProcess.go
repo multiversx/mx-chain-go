@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -111,7 +112,7 @@ func (txProc *baseTxProcessor) getAddresses(
 }
 
 func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+	if check.IfNil(acntSnd) {
 		// transaction was already done at sender shard
 		return nil
 	}

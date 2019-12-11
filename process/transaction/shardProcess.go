@@ -115,6 +115,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
+		if err == process.ErrInsufficientFunds {
+			receiptErr := txProc.createReceiptsWhenFail(tx, acntSnd)
+			if receiptErr != nil {
+				return err
+			}
+		}
 		return err
 	}
 
@@ -135,15 +141,23 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 	return process.ErrWrongTransaction
 }
 
-func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, acntSnd *state.Account) error {
+func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
 
-	cost := txProc.economicsFee.ComputeFee(tx)
-	operation := big.NewInt(0)
+	account, ok := acntSnd.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
-	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	cost := txProc.economicsFee.ComputeFee(tx)
+	if account.Balance.Cmp(cost) < 0 {
+		cost.Set(account.Balance)
+	}
+
+	operation := big.NewInt(0)
+	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, cost))
 	if err != nil {
 		return err
 	}
@@ -219,6 +233,10 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	err := txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
+		receiptErr := txProc.createReceiptsWhenFail(tx, acntSnd)
+		if receiptErr != nil {
+			return nil, receiptErr
+		}
 		return nil, err
 	}
 
