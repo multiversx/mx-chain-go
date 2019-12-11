@@ -1,4 +1,4 @@
-package preprocess
+package postprocess
 
 import (
 	"bytes"

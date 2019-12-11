@@ -3,6 +3,10 @@ package transaction
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,6 +25,8 @@ type txProcessor struct {
 	txTypeHandler    process.TxTypeHandler
 	shardCoordinator sharding.Coordinator
 	economicsFee     process.FeeHandler
+	receiptForwarder process.IntermediateTransactionHandler
+	badTxForwarder   process.IntermediateTransactionHandler
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -34,34 +40,42 @@ func NewTxProcessor(
 	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
+	receiptForwarder process.IntermediateTransactionHandler,
+	badTxForwarder process.IntermediateTransactionHandler,
 ) (*txProcessor, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addressConv == nil || addressConv.IsInterfaceNil() {
+	if check.IfNil(addressConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scProcessor == nil || scProcessor.IsInterfaceNil() {
+	if check.IfNil(scProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
+	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(receiptForwarder) {
+		return nil, process.ErrNilReceiptHandler
+	}
+	if check.IfNil(badTxForwarder) {
+		return nil, process.ErrNilBadTxHandler
 	}
 
 	baseTxProcess := &baseTxProcessor{
@@ -71,19 +85,21 @@ func NewTxProcessor(
 	}
 
 	return &txProcessor{
-		baseTxProcessor: baseTxProcess,
-		hasher:          hasher,
-		marshalizer:     marshalizer,
-		scProcessor:     scProcessor,
-		txFeeHandler:    txFeeHandler,
-		txTypeHandler:   txTypeHandler,
-		economicsFee:    economicsFee,
+		baseTxProcessor:  baseTxProcess,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		scProcessor:      scProcessor,
+		txFeeHandler:     txFeeHandler,
+		txTypeHandler:    txTypeHandler,
+		economicsFee:     economicsFee,
+		receiptForwarder: receiptForwarder,
+		badTxForwarder:   badTxForwarder,
 	}, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint64) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
@@ -119,6 +135,75 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	return process.ErrWrongTransaction
 }
 
+func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, acntSnd *state.Account) error {
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+
+	cost := txProc.economicsFee.ComputeFee(tx)
+	operation := big.NewInt(0)
+
+	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	if err != nil {
+		return err
+	}
+
+	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	if err != nil {
+		return err
+	}
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	rpt := &receipt.Receipt{
+		Value:   big.NewInt(0).Set(cost),
+		SndAddr: tx.SndAddr,
+		Data:    "invalidTransaction",
+		TxHash:  txHash,
+	}
+
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	if err != nil {
+		return err
+	}
+
+	return process.ErrFailedTransaction
+}
+
+func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transaction, acntSnd *state.Account) error {
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+
+	totalProvided := big.NewInt(0)
+	totalProvided.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+
+	actualCost := txProc.economicsFee.ComputeFee(tx)
+	refundValue := big.NewInt(0).Sub(totalProvided, actualCost)
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	rpt := &receipt.Receipt{
+		Value:   big.NewInt(0).Set(refundValue),
+		SndAddr: tx.SndAddr,
+		Data:    "refundedGas",
+		TxHash:  txHash,
+	}
+
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
 	if acntSnd == nil {
 		return big.NewInt(0), nil
@@ -130,9 +215,6 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-	if acntSnd.Balance.Cmp(cost) < 0 {
-		return nil, process.ErrInsufficientFunds
-	}
 
 	operation := big.NewInt(0)
 	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))

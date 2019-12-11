@@ -577,3 +577,15 @@ var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
+
+// ErrFailedTransaction signals that transaction is of type failed.
+var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
+
+// ErrNilBadTxHandler signals that bad tx handler is nil
+var ErrNilBadTxHandler = errors.New("nil bad tx handler")
+
+// ErrNilReceiptHandler signals that receipt handler is nil
+var ErrNilReceiptHandler = errors.New("nil receipt handler")
+
+// ErrTooManyReceiptsMiniBlocks signals that there were too many receipts miniblocks created
+var ErrTooManyReceiptsMiniBlocks = errors.New("too many receipts miniblocks")

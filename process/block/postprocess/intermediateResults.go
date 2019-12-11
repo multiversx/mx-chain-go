@@ -1,11 +1,11 @@
-package preprocess
+package postprocess
 
 import (
 	"bytes"
 	"sort"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -18,16 +18,12 @@ import (
 )
 
 type intermediateResultsProcessor struct {
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	adrConv          state.AddressConverter
-	store            dataRetriever.StorageService
-	blockType        block.Type
-	currTxs          dataRetriever.TransactionCacher
+	adrConv   state.AddressConverter
+	store     dataRetriever.StorageService
+	blockType block.Type
+	currTxs   dataRetriever.TransactionCacher
 
-	mutInterResultsForBlock sync.Mutex
-	interResultsForBlock    map[string]*txInfo
+	*basePostProcessor
 }
 
 // NewIntermediateResultsProcessor creates a new intermediate results processor
@@ -40,33 +36,38 @@ func NewIntermediateResultsProcessor(
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
 ) (*intermediateResultsProcessor, error) {
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if currTxs == nil || currTxs.IsInterfaceNil() {
+	if check.IfNil(currTxs) {
 		return nil, process.ErrNilTxForCurrentBlockHandler
 	}
 
-	irp := &intermediateResultsProcessor{
+	base := &basePostProcessor{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: coordinator,
-		adrConv:          adrConv,
-		blockType:        blockType,
 		store:            store,
-		currTxs:          currTxs,
+	}
+
+	irp := &intermediateResultsProcessor{
+		basePostProcessor: base,
+		adrConv:           adrConv,
+		blockType:         blockType,
+		store:             store,
+		currTxs:           currTxs,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
@@ -120,27 +121,14 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) 
 		if mb.Type != irp.blockType {
 			continue
 		}
-		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
+		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() &&
+			mb.SenderShardID != irp.shardCoordinator.SelfId() {
 			continue
 		}
 
-		createdScrMb, ok := scrMbs[mb.ReceiverShardID]
-		if createdScrMb == nil || !ok {
-			return process.ErrNilMiniBlocks
-		}
-
-		createdHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, createdScrMb)
+		err := irp.verifyMiniBlock(scrMbs, mb)
 		if err != nil {
 			return err
-		}
-
-		receivedHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, mb)
-		if err != nil {
-			return err
-		}
-
-		if !bytes.Equal(createdHash, receivedHash) {
-			return process.ErrMiniBlockHashMismatch
 		}
 	}
 
@@ -176,37 +164,6 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 	return nil
 }
 
-// SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
-func (irp *intermediateResultsProcessor) SaveCurrentIntermediateTxToStorage() error {
-	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
-
-	for _, txInfoValue := range irp.interResultsForBlock {
-		if txInfoValue.tx == nil {
-			return process.ErrMissingTransaction
-		}
-
-		buff, err := irp.marshalizer.Marshal(txInfoValue.tx)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := irp.store.Put(dataRetriever.UnsignedTransactionUnit, irp.hasher.Compute(string(buff)), buff)
-		if errNotCritical != nil {
-			log.Debug("UnsignedTransactionUnit.Put", "error", errNotCritical.Error())
-		}
-	}
-
-	return nil
-}
-
-// CreateBlockStarted cleans the local cache map for processed/created intermediate transactions at this round
-func (irp *intermediateResultsProcessor) CreateBlockStarted() {
-	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
-	irp.interResultsForBlock = make(map[string]*txInfo, 0)
-}
-
 func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
 	adrSrc, err := irp.adrConv.CreateAddressFromPublicKeyBytes(sndAddr)
 	if err != nil {
@@ -231,48 +188,6 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 	}
 
 	return shardForSrc, shardForDst, nil
-}
-
-// CreateMarshalizedData creates the marshalized data for broadcasting purposes
-func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
-
-	mrsTxs := make([][]byte, 0)
-	for _, txHash := range txHashes {
-		txInfo := irp.interResultsForBlock[string(txHash)]
-
-		if txInfo == nil || txInfo.tx == nil {
-			continue
-		}
-
-		txMrs, err := irp.marshalizer.Marshal(txInfo.tx)
-		if err != nil {
-			return nil, process.ErrMarshalWithoutSuccess
-		}
-		mrsTxs = append(mrsTxs, txMrs)
-	}
-
-	return mrsTxs, nil
-}
-
-// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
-func (irp *intermediateResultsProcessor) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
-	irp.mutInterResultsForBlock.Lock()
-
-	scrPool := make(map[string]data.TransactionHandler)
-	for txHash, txInfo := range irp.interResultsForBlock {
-		if txInfo.receiverShardID != irp.shardCoordinator.SelfId() {
-			continue
-		}
-		if txInfo.senderShardID != irp.shardCoordinator.SelfId() {
-			continue
-		}
-		scrPool[txHash] = txInfo.tx
-	}
-	irp.mutInterResultsForBlock.Unlock()
-
-	return scrPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
