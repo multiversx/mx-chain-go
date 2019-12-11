@@ -260,7 +260,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -1500,7 +1500,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
-				round,
 				haveTime)
 
 			// all txs processed, add to processed miniblocks
@@ -1595,7 +1594,6 @@ func (sp *shardProcessor) createMiniBlocks(
 	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
-		round,
 		haveTime)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
@@ -1677,7 +1675,7 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -1819,7 +1817,7 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 
 func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 	nonce uint64,
-	shardId uint32,
+	_ uint32,
 ) (data.HeaderHandler, []byte, error) {
 
 	metaHeader, metaHeaderHash, err := process.GetMetaHeaderFromPoolWithNonce(
