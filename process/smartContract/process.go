@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -22,13 +21,6 @@ import (
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-type scExecutionState struct {
-	allLogs       map[string][]*vmcommon.LogEntry
-	allReturnData map[string][]*big.Int
-	returnCodes   map[string]vmcommon.ReturnCode
-	rootHash      []byte
-}
-
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
@@ -39,9 +31,6 @@ type scProcessor struct {
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
 	isCallBack       bool
-
-	mutSCState   sync.Mutex
-	mapExecState map[uint64]scExecutionState
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -120,8 +109,7 @@ func NewSmartContractProcessor(
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
 		txTypeHandler:    txTypeHandler,
-		gasHandler:       gasHandler,
-		mapExecState:     make(map[uint64]scExecutionState)}, nil
+		gasHandler:       gasHandler}, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
