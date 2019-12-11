@@ -20,8 +20,8 @@ type oneMBPostProcessor struct {
 	*basePostProcessor
 }
 
-// NewReceiptsPostProcessor creates a new intermediate results processor
-func NewReceiptsPostProcessor(
+// NewOneMiniBlockPostProcessor creates a new intermediate results processor
+func NewOneMiniBlockPostProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,

@@ -158,7 +158,11 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 	}
 
 	err := txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.TxBlock)
+	if err != nil {
+		return err
+	}
 
+	err = txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.InvalidBlock)
 	return err
 }
 
@@ -222,7 +226,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	// basic validation already done in interceptors
 	for i := 0; i < len(expandedMiniBlocks); i++ {
 		miniBlock := expandedMiniBlocks[i]
-		if miniBlock.Type != block.TxBlock {
+		if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
 			continue
 		}
 
@@ -358,6 +362,17 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 		block.TxBlock,
 		txs.txPool)
 
+	missingBadTxsForShard := txs.computeExistingAndMissing(
+		body,
+		&txs.txsForCurrBlock,
+		txs.chRcvAllTxs,
+		block.InvalidBlock,
+		txs.txPool)
+
+	for key, value := range missingBadTxsForShard {
+		missingTxsForShard[key] = append(missingTxsForShard[key], value...)
+	}
+
 	return missingTxsForShard
 }
 
@@ -375,6 +390,11 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
+	}
+
+	// ignore this error, as it is treated in receipts and bad tx block
+	if err == process.ErrFailedTransaction {
+		return nil
 	}
 
 	if err != nil {
@@ -405,7 +425,7 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 
 // computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
 func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
-	if miniBlock.Type != block.TxBlock {
+	if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
 		return nil
 	}
 
@@ -696,7 +716,6 @@ func (txs *transactions) ProcessMiniBlock(
 	haveTime func() bool,
 	round uint64,
 ) error {
-
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}

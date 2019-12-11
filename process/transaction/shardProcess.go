@@ -184,6 +184,11 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	actualCost := txProc.economicsFee.ComputeFee(tx)
 	refundValue := big.NewInt(0).Sub(totalProvided, actualCost)
 
+	zero := big.NewInt(0)
+	if refundValue.Cmp(zero) == 0 {
+		return nil
+	}
+
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return err
@@ -255,6 +260,11 @@ func (txProc *txProcessor) processMoveBalance(
 		if err != nil {
 			return err
 		}
+	}
+
+	err = txProc.createReceiptWithReturnedGas(tx, acntSrc)
+	if err != nil {
+		return err
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
