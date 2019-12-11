@@ -26,9 +26,8 @@ func (sc *scProcessor) ProcessVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
-	round uint64,
 ) ([]data.TransactionHandler, *big.Int, error) {
-	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	return sc.processVMOutput(vmOutput, tx, acntSnd)
 }
 
 func (sc *scProcessor) CreateSCRForSender(
@@ -50,22 +49,6 @@ func (sc *scProcessor) DeleteAccounts(deletedAccounts [][]byte) error {
 
 func (sc *scProcessor) GetAccountFromAddress(address []byte) (state.AccountHandler, error) {
 	return sc.getAccountFromAddress(address)
-}
-
-func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint64, txHash []byte) error {
-	return sc.saveSCOutputToCurrentState(output, round, txHash)
-}
-
-func (sc *scProcessor) SaveReturnData(returnData [][]byte, round uint64, txHash []byte) error {
-	return sc.saveReturnData(returnData, round, txHash)
-}
-
-func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
-	return sc.saveReturnCode(returnCode, round, txHash)
-}
-
-func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
-	return sc.saveLogsIntoState(logs, round, txHash)
 }
 
 func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
