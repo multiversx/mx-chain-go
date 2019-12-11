@@ -6,5 +6,6 @@ import (
 
 // blockTracker is the interface needed by base block track to deal with shards and meta nodes while they track blocks
 type blockTracker interface {
-	computeFinalizedHeaders(headers []data.HeaderHandler) []data.HeaderHandler
+	computeSelfNotarizedHeaders(headers []data.HeaderHandler) []data.HeaderHandler
+	cleanupHeadersForSelfShard()
 }

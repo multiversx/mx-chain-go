@@ -80,3 +80,7 @@ const MaxNoncesWithoutCrossNotarized = 100
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
+
+// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
+// to be stored in advance in block tracker
+const MaxNonceDifferences = uint64(1000)

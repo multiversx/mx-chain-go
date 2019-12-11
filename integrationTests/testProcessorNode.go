@@ -722,9 +722,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				return nil
 			},
 		},
-		BlockTracker: &mock.BlockTrackerStub{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
-		},
+		BlockTracker: &mock.BlockTrackerStub{},
 		HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
 			CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
 		},

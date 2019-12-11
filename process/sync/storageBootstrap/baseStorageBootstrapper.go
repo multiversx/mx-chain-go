@@ -89,6 +89,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	if err != nil {
+		st.restoreBlockChainToGenesis()
 		_ = st.bootStorer.SaveLastRound(0)
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
@@ -303,4 +304,24 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, notari
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) restoreBlockChainToGenesis() {
+	genesisHeader := st.blkc.GetGenesisHeader()
+	err := st.blkExecutor.RevertStateToBlock(genesisHeader)
+	if err != nil {
+		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
+	}
+
+	err = st.blkc.SetCurrentBlockHeader(nil)
+	if err != nil {
+		log.Debug("cannot set current block header", "error", err.Error())
+	}
+
+	err = st.blkc.SetCurrentBlockBody(nil)
+	if err != nil {
+		log.Debug("cannot set current block body", "error", err.Error())
+	}
+
+	st.blkc.SetCurrentBlockHeaderHash(nil)
 }

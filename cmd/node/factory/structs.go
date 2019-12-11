@@ -605,6 +605,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.data.MetaDatapool,
 		rounder,
 		genesisBlocks,
+		args.data.Store,
 	)
 	if err != nil {
 		return nil, err
@@ -1798,14 +1799,15 @@ func newBlockTracker(
 	metaDatapool dataRetriever.MetaPoolsHolder,
 	rounder consensus.Rounder,
 	genesisBlocks map[uint32]data.HeaderHandler,
+	store dataRetriever.StorageService,
 ) (process.BlockTracker, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return track.NewShardBlockTrack(hasher, marshalizer, datapool, rounder, shardCoordinator, genesisBlocks)
+		return track.NewShardBlockTrack(hasher, marshalizer, datapool, rounder, shardCoordinator, store, genesisBlocks)
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return track.NewMetaBlockTrack(hasher, marshalizer, metaDatapool, rounder, shardCoordinator, genesisBlocks)
+		return track.NewMetaBlockTrack(hasher, marshalizer, metaDatapool, rounder, shardCoordinator, store, genesisBlocks)
 	}
 
 	return nil, errors.New("could not create block tracker")

@@ -628,7 +628,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
-		return nil, 0, 0, process.ErrNotarizedHdrsSliceIsNil
+		return nil, 0, 0, process.ErrCrossNotarizedHdrsSliceIsNil
 	}
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		lastPushedHdr[shardId] = mp.lastNotarizedHdrForShard(shardId)
@@ -1035,7 +1035,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 	defer mp.mutNotarizedHdrs.Unlock()
 
 	if mp.notarizedHdrs == nil {
-		return process.ErrNotarizedHdrsSliceIsNil
+		return process.ErrCrossNotarizedHdrsSliceIsNil
 	}
 
 	tmpLastNotarizedHdrForShard := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
@@ -1078,7 +1078,7 @@ func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHand
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
-		return nil, process.ErrNotarizedHdrsSliceIsNil
+		return nil, process.ErrCrossNotarizedHdrsSliceIsNil
 	}
 
 	tmpLastNotarized := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
@@ -1541,7 +1541,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
-		return nil, nil, nil, process.ErrNotarizedHdrsSliceIsNil
+		return nil, nil, nil, process.ErrCrossNotarizedHdrsSliceIsNil
 	}
 
 	// get keys and arrange them into shards

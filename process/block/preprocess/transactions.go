@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -625,23 +624,25 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				"total txs", len(orderedTxs),
 			)
 
-			log.Debug(fmt.Sprintf("gas limit reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-				gasConsumedByMiniBlockInSenderShard,
-				gasConsumedByMiniBlockInReceiverShard,
-				txs.gasHandler.TotalGasConsumed(),
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
+			log.Debug("mini block info",
+				"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
+				"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
+				"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+				"txs ordered", len(orderedTxs),
+				"txs added", len(miniBlock.TxHashes),
+			)
 
 			return miniBlock, nil
 		}
 	}
 
-	log.Debug(fmt.Sprintf("gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-		gasConsumedByMiniBlockInSenderShard,
-		gasConsumedByMiniBlockInReceiverShard,
-		txs.gasHandler.TotalGasConsumed(),
-		len(miniBlock.TxHashes),
-		len(orderedTxs)))
+	log.Debug("mini block info",
+		"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
+		"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
+		"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+		"txs ordered", len(orderedTxs),
+		"txs added", len(miniBlock.TxHashes),
+	)
 
 	return miniBlock, nil
 }

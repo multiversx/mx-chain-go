@@ -543,8 +543,8 @@ type InterceptedHeaderSigVerifier interface {
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool
-	AddHeader(header data.HeaderHandler, hash []byte)
 	LastHeaderForShard(shardID uint32) data.HeaderHandler
+	RegisterSelfNotarizedHandler(func(headers []data.HeaderHandler))
 	IsInterfaceNil() bool
 }
 

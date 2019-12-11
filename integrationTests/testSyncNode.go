@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -135,9 +134,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker: &mock.BlockTrackerStub{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
-		},
+		BlockTracker: &mock.BlockTrackerStub{},
 		HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
 			CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
 		},

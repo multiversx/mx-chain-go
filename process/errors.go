@@ -301,17 +301,17 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
-// ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrNotarizedHdrsSliceIsNil = errors.New("notarized headers slice is nil")
+// ErrCrossNotarizedHdrsSliceIsNil signals that the slice holding cross notarized headers is nil
+var ErrCrossNotarizedHdrsSliceIsNil = errors.New("cross notarized headers slice is nil")
 
-// ErrNotarizedHdrsSliceForShardIsNil signals that the slice holding last notarized headers for shard is nil
-var ErrNotarizedHdrsSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
+// ErrCrossNotarizedHdrsSliceForShardIsNil signals that the slice holding cross notarized headers for shard is nil
+var ErrCrossNotarizedHdrsSliceForShardIsNil = errors.New("cross notarized headers slice for shard is nil")
 
-// ErrFinalizedHdrsSliceIsNil signals that the slice holding last finalized headers is nil
-var ErrFinalizedHdrsSliceIsNil = errors.New("finalized headers slice is nil")
+// ErrSelfNotarizedHdrsSliceIsNil signals that the slice holding self notarized headers is nil
+var ErrSelfNotarizedHdrsSliceIsNil = errors.New("self notarized headers slice is nil")
 
-// ErrFinalizedHdrsSliceForShardIsNil signals that the slice holding last finalized headers for shard is nil
-var ErrFinalizedHdrsSliceForShardIsNil = errors.New("finalized headers slice for shard is nil")
+// ErrSelfNotarizedHdrsSliceForShardIsNil signals that the slice holding self notarized headers for shard is nil
+var ErrSelfNotarizedHdrsSliceForShardIsNil = errors.New("self notarized headers slice for shard is nil")
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
