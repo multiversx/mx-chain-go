@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -144,7 +146,8 @@ type TestProcessorNode struct {
 	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
-	EpochStartTrigger TestEpochStartTrigger
+	EpochStartTrigger  TestEpochStartTrigger
+	EpochStartNotifier notifier.EpochStartNotifier
 
 	MultiSigner crypto.MultiSigner
 
@@ -658,8 +661,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Rounder:                      &mock.RounderMock{},
 	}
 
-	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+	}
 
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: argumentsBase.Rounder.TimeStamp(),
 			Settings: &config.EpochStartConfig{
@@ -667,7 +673,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				RoundsPerEpoch:         10000,
 			},
 			Epoch:              0,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -710,7 +716,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			Epoch:              0,
 			Validity:           1,
 			Finality:           1,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartNotifier: tpn.EpochStartNotifier,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}

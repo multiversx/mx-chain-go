@@ -103,11 +103,17 @@ func saveMetachainCommitBlockMetrics(
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 
+	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(
 		header.PrevRandSeed,
 		header.Round,
 		core.MetachainShardId,
-		header.Epoch,
+		epoch,
 	)
 	if err != nil {
 		log.Debug("cannot get validators public keys", "error", err.Error())

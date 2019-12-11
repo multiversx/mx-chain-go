@@ -34,11 +34,18 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 		return process.ErrBlockProposerSignatureMissing
 	}
 
+	epoch := header.GetEpoch()
+
+	// todo: remove if the start of epoch block is validated by old epoch nodes
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	consensusPubKeys, err := hsv.nodesCoordinator.GetValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
-		header.GetEpoch(),
+		epoch,
 	)
 	if err != nil {
 		return err
@@ -68,11 +75,18 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 
 func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
 	prevRandSeed := header.GetPrevRandSeed()
+
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(
 		prevRandSeed,
 		header.GetRound(),
 		header.GetShardID(),
-		header.GetEpoch(),
+		epoch,
 	)
 	if err != nil {
 		return err

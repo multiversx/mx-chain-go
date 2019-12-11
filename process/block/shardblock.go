@@ -165,11 +165,16 @@ func (sp *shardProcessor) ProcessBlock(
 	log.Debug("total txs in pool",
 		"num txs", numTxWithDst,
 	)
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := headerHandler.GetEpoch()
+	if headerHandler.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
 	err = sp.specialAddressHandler.SetShardConsensusData(
 		headerHandler.GetPrevRandSeed(),
 		headerHandler.GetRound(),
-		headerHandler.GetEpoch(),
+		epoch,
 		headerHandler.GetShardID(),
 	)
 	if err != nil {
@@ -342,6 +347,12 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 	for _, metaBlock := range finalizedMetaBlocks {
 		round := metaBlock.GetRound()
 		epoch := metaBlock.GetEpoch()
+
+		// TODO: remove if the start of epoch block needs to be validated by the new epoch nodes
+		if metaBlock.IsStartOfEpochBlock() && epoch > 0 {
+			epoch = epoch - 1
+		}
+
 		err := sp.specialAddressHandler.SetMetaConsensusData(metaBlock.GetPrevRandSeed(), round, epoch)
 		if err != nil {
 			return err
@@ -614,10 +625,16 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	initialHdrData.SetEpoch(sp.epochStartTrigger.Epoch())
 	sp.blockChainHook.SetCurrentHeader(initialHdrData)
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := initialHdrData.GetEpoch()
+	if initialHdrData.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	err := sp.specialAddressHandler.SetShardConsensusData(
 		initialHdrData.GetPrevRandSeed(),
 		initialHdrData.GetRound(),
-		initialHdrData.GetEpoch(),
+		epoch,
 		initialHdrData.GetShardID(),
 	)
 	if err != nil {

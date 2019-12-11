@@ -49,7 +49,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		return nil, err
 	}
 
-	nodesConfig := make(map[uint32]*epochNodesConfig)
+	nodesConfig := make(map[uint32]*epochNodesConfig, nodeCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
 		nbShards:     arguments.NbShards,
@@ -138,15 +138,17 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		}
 	}
 
+	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
+	ihgs.nodesConfig[epoch] = nodesConfig
 
 	return nil
 }
 
-// GetNodesPerShard returns the nodes per shard map
+// GetNodesPerShard returns the eligible nodes per shard map
 func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uint32][]Validator, error) {
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
@@ -178,9 +180,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
 	if randomness == nil {
-		return nil, ErrNilRandomness
-	}
-	if ihgs == nil {
 		return nil, ErrNilRandomness
 	}
 
@@ -382,7 +381,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, _ := ihgs.nodesConfig[epoch]
+	nodesConfig := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.RUnlock()
 
 	for _, pubKey := range publicKeys {

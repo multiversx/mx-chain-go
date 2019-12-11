@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -24,6 +26,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
 	initialNodeAddr string,
+	epochStartNotifier notifier.EpochStartNotifier,
 	nodesCoordinator sharding.NodesCoordinator,
 	cp *CryptoParams,
 	keyIndex int,
@@ -61,6 +64,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	}
 
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, accountShardId)
+	tpn.EpochStartNotifier = epochStartNotifier
 	tpn.initDataPools()
 	tpn.initTestNode()
 
@@ -115,6 +119,7 @@ func CreateNodesWithNodesCoordinator(
 				uint32(nbShards),
 				shardId,
 				seedAddress,
+				epochStartSubscriber,
 				nodesCoordinator,
 				cp,
 				i,
@@ -231,9 +236,15 @@ func AllShardsProposeBlock(
 			currentBlockHeader = nodesMap[i][0].BlockChain.GetGenesisHeader()
 		}
 
+		// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+		epoch := currentBlockHeader.GetEpoch()
+		if currentBlockHeader.IsStartOfEpochBlock() && epoch > 0 {
+			epoch = epoch - 1
+		}
+
 		prevRandomness := currentBlockHeader.GetRandSeed()
 		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
-			i, nodesMap, round, nonce, prevRandomness, currentBlockHeader.GetEpoch(),
+			i, nodesMap, round, nonce, prevRandomness, epoch,
 		)
 		newRandomness[i] = header[i].GetRandSeed()
 	}
