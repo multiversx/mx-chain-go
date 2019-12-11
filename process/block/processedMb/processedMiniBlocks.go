@@ -9,16 +9,19 @@ import (
 
 var log = logger.GetOrCreate("process/processedMb")
 
-// ProcessedMiniBlockTracker is used to store all processed mini blocks hashes for a meta block hash
+// MiniBlockHashes will keep a list of miniblock hashes as keys in a map for easy access
+type MiniBlockHashes map[string]struct{}
+
+// ProcessedMiniBlockTracker is used to store all processed mini blocks hashes grouped by a metahash
 type ProcessedMiniBlockTracker struct {
-	processedMiniBlocks    map[string]map[string]struct{}
+	processedMiniBlocks    map[string]MiniBlockHashes
 	mutProcessedMiniBlocks sync.RWMutex
 }
 
 // NewProcessedMiniBlocks will create a complex type of processedMb
 func NewProcessedMiniBlocks() *ProcessedMiniBlockTracker {
 	return &ProcessedMiniBlockTracker{
-		processedMiniBlocks: make(map[string]map[string]struct{}),
+		processedMiniBlocks: make(map[string]MiniBlockHashes),
 	}
 }
 
@@ -29,7 +32,7 @@ func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, min
 
 	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
 	if !ok {
-		miniBlocksProcessed := make(map[string]struct{})
+		miniBlocksProcessed := make(MiniBlockHashes)
 		miniBlocksProcessed[miniBlockHash] = struct{}{}
 		pmb.processedMiniBlocks[metaBlockHash] = miniBlocksProcessed
 
@@ -106,7 +109,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []b
 func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksHashes := make(map[string]struct{})
+		miniBlocksHashes := make(MiniBlockHashes)
 		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
 			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
 		}
