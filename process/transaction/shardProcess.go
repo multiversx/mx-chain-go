@@ -98,7 +98,7 @@ func NewTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint64) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error {
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
@@ -127,9 +127,9 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	case process.MoveBalance:
 		return txProc.processMoveBalance(tx, adrSrc, adrDst)
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
+		return txProc.processSCDeployment(tx, adrSrc)
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
+		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
 	return process.ErrWrongTransaction
@@ -275,7 +275,6 @@ func (txProc *txProcessor) processMoveBalance(
 func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc state.AddressContainer,
-	roundIndex uint64,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -284,14 +283,13 @@ func (txProc *txProcessor) processSCDeployment(
 		return err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc)
 	return err
 }
 
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
-	roundIndex uint64,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -300,7 +298,7 @@ func (txProc *txProcessor) processSCInvoking(
 		return err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	return err
 }
 

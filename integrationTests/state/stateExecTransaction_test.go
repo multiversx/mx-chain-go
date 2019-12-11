@@ -37,7 +37,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		RcvAddr:  address.Bytes(),
 	}
 
-	err := txProcessor.ProcessTransaction(tx, 0)
+	err := txProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	hashAfterExec, _ := accnts.Commit()
@@ -73,7 +73,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 		GasPrice: 2,
 	}
 
-	err := txProcessor.ProcessTransaction(tx, 0)
+	err := txProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_ = accnts.RevertToSnapshot(0)
@@ -132,7 +132,7 @@ func testExecTransactionsMoreTxWithRevert(
 			RcvAddr:  receiver.Bytes(),
 		}
 
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx)
 		assert.Nil(t, err)
 	}
 
