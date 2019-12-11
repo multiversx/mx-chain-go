@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -322,4 +323,57 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, len(trieStorage.snapshots))
+}
+
+func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	err := tr.Snapshot()
+	assert.Nil(t, err)
+	for trieStorage.snapshotsBuffer.len() != 0 {
+		time.Sleep(time.Second)
+	}
+
+	numSnapshots := 10
+	numCheckpoints := 10
+	totalNumSnapshot := numSnapshots + 1
+
+	var snapshotWg sync.WaitGroup
+	var checkpointWg sync.WaitGroup
+	snapshotWg.Add(numSnapshots)
+	checkpointWg.Add(numCheckpoints)
+
+	for i := 0; i < numSnapshots; i++ {
+		go func() {
+			assert.Nil(t, tr.Snapshot())
+			snapshotWg.Done()
+		}()
+	}
+
+	for i := 0; i < numCheckpoints; i++ {
+		go func() {
+			assert.Nil(t, tr.Checkpoint())
+			checkpointWg.Done()
+		}()
+	}
+
+	snapshotWg.Wait()
+	checkpointWg.Wait()
+
+	for trieStorage.snapshotsBuffer.len() != 0 {
+		time.Sleep(time.Second)
+	}
+
+	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)
+
+	lastSnapshot := len(trieStorage.snapshots) - 1
+	val, err := trieStorage.snapshots[lastSnapshot].Get(tr.root.getHash())
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
 }

@@ -36,7 +36,7 @@ func TestSnapshotsQueue_AddConcurrently(t *testing.T) {
 
 	for i := 0; i < numSnapshots; i++ {
 		go func(index int) {
-			sq.add([]byte(strconv.Itoa(i)), true)
+			sq.add([]byte(strconv.Itoa(index)), true)
 			wg.Done()
 		}(i)
 	}
