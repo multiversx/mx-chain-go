@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var connectedPeerId = p2p.PeerID("connected peer id")
+
 //------- NewTxResolver
 
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
@@ -121,7 +123,7 @@ func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		&mock.DataPackerStub{},
 	)
 
-	err := txRes.ProcessReceivedMessage(nil, nil)
+	err := txRes.ProcessReceivedMessage(nil, connectedPeerId)
 
 	assert.Equal(t, dataRetriever.ErrNilMessage, err)
 }
@@ -143,7 +145,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
 }
@@ -165,7 +167,7 @@ func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
@@ -206,7 +208,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
@@ -251,7 +253,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -299,7 +301,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
@@ -340,7 +342,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Equal(t, errExpected, err)
 
@@ -399,7 +401,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.ProcessReceivedMessage(msg, nil)
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
 	assert.Nil(t, err)
 	assert.True(t, sendSliceWasCalled)

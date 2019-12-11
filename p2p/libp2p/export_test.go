@@ -3,6 +3,7 @@ package libp2p
 import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
@@ -18,8 +19,8 @@ func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.ctxProvider.connHost = newHost
 }
 
-func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {
-	return ds.processReceivedDirectMessage(message)
+func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
+	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
 
 func (ds *directSender) SeenMessages() *timecache.TimeCache {

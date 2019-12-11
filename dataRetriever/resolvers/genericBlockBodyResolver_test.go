@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+
 //------- NewBlockBodyResolver
 
 func TestNewGenericBlockBodyResolver_NilSenderResolverShouldErr(t *testing.T) {
@@ -97,7 +99,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), nil)
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -111,7 +113,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), nil)
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrInvalidRequestType, err)
 }
 
@@ -155,7 +157,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
-		nil,
+		fromConnectedPeerId,
 	)
 
 	assert.Nil(t, err)
@@ -206,7 +208,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
-		nil,
+		fromConnectedPeerId,
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -251,7 +253,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 
 	err := gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
-		nil,
+		fromConnectedPeerId,
 	)
 
 	assert.Nil(t, err)
@@ -294,7 +296,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 
 	_ = gbbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.HashType, requestedBuff),
-		nil,
+		fromConnectedPeerId,
 	)
 
 	assert.False(t, wasSent)

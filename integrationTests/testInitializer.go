@@ -89,6 +89,116 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 	return libP2PMes
 }
 
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery(ctx context.Context) p2p.Messenger {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
+		ctx,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
+		discovery.NewNullDiscoverer(),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateFixedNetworkOf8Peers assembles a network as following:
+//
+//                             0------------------- 1
+//                             |                    |
+//        2 ------------------ 3 ------------------ 4
+//        |                    |                    |
+//        5                    6                    7
+func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(8)
+
+	connections := map[int][]int{
+		0: {1, 3},
+		1: {4},
+		2: {5, 3},
+		3: {4, 6},
+		4: {7},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+// CreateFixedNetworkOf14Peers assembles a network as following:
+//
+//                 0
+//                 |
+//                 1
+//                 |
+//  +--+--+--+--+--2--+--+--+--+--+
+//  |  |  |  |  |  |  |  |  |  |  |
+//  3  4  5  6  7  8  9  10 11 12 13
+func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
+	peers := createMessengersWithNoDiscovery(14)
+
+	connections := map[int][]int{
+		0: {1},
+		1: {2},
+		2: {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
+func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
+	peers := make([]p2p.Messenger, numPeers)
+
+	for i := 0; i < numPeers; i++ {
+		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
+	}
+
+	return peers
+}
+
+func createConnections(peers []p2p.Messenger, connections map[int][]int) error {
+	for pid, connectTo := range connections {
+		err := connectPeerToOthers(peers, pid, connectTo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) error {
+	for _, connectToIdx := range connectToIdxes {
+		err := peers[idx].ConnectToPeer(peers[connectToIdx].Addresses()[0])
+		if err != nil {
+			return fmt.Errorf("%w connecting %s to %s", err, peers[idx].ID(), peers[connectToIdx].ID())
+		}
+	}
+
+	return nil
+}
+
+// ClosePeers calls Messenger.Close on the provided peers
+func ClosePeers(peers []p2p.Messenger) {
+	for _, p := range peers {
+		_ = p.Close()
+	}
+}
+
 // CreateTestShardDataPool creates a test data pool for shard nodes
 func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {

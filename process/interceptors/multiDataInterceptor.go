@@ -53,7 +53,7 @@ func NewMultiDataInterceptor(
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	err := preProcessMesage(mdi.throttler, message)
 	if err != nil {
 		return err
@@ -70,7 +70,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return process.ErrNoDataInMessage
 	}
 
-	filteredMultiDataBuff := make([][]byte, 0)
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
@@ -94,8 +93,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			continue
 		}
 
-		//data is validated, add it to filtered out buff
-		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
 		if !interceptedData.IsForCurrentShard() {
 			log.Trace("intercepted data is for other shards")
 			wgProcess.Done()
@@ -103,19 +100,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 
 		go processInterceptedData(mdi.processor, interceptedData, wgProcess)
-	}
-
-	var buffToSend []byte
-	haveDataForBroadcast := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
-	if haveDataForBroadcast {
-		buffToSend, err = mdi.marshalizer.Marshal(filteredMultiDataBuff)
-		if err != nil {
-			return err
-		}
-
-		if broadcastHandler != nil {
-			broadcastHandler(buffToSend)
-		}
 	}
 
 	return lastErrEncountered

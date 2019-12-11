@@ -575,5 +575,8 @@ var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy
 // ErrNotEnoughGas signals that not enough gas has been provided
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")
+
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
