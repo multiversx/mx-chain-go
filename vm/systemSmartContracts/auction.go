@@ -197,7 +197,7 @@ func (s *stakingAuctionSC) verifyIfKeysExist(registeredKeys [][]byte, arguments 
 
 	newKeys := make([][]byte, 0)
 	keysFromArgument := arguments[1:]
-	for i := uint64(0); i < uint64(len(keysFromArgument)) && i < maxNumNodes+1; i++ {
+	for i := uint64(0); i < uint64(len(keysFromArgument)) && i < maxNumNodes; i++ {
 		if _, ok := registeredKeysMap[string(arguments[i])]; ok {
 			continue
 		}
