@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -79,6 +79,7 @@ import (
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -289,10 +290,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 }
 
 type dataComponentsFactoryArgs struct {
-	config           *config.Config
-	shardCoordinator sharding.Coordinator
-	core             *Core
-	uniqueID         string
+	config             *config.Config
+	shardCoordinator   sharding.Coordinator
+	core               *Core
+	uniqueID           string
+	epochStartNotifier EpochStartNotifier
 }
 
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
@@ -301,12 +303,14 @@ func NewDataComponentsFactoryArgs(
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	uniqueID string,
+	epochStartNotifier EpochStartNotifier,
 ) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
-		config:           config,
-		shardCoordinator: shardCoordinator,
-		core:             core,
-		uniqueID:         uniqueID,
+		config:             config,
+		shardCoordinator:   shardCoordinator,
+		core:               core,
+		uniqueID:           uniqueID,
+		epochStartNotifier: epochStartNotifier,
 	}
 }
 
@@ -319,7 +323,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID)
+	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID, args.epochStartNotifier)
 	if err != nil {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
@@ -859,10 +863,12 @@ func getTrie(
 	uniqueID string,
 ) (data.Trie, error) {
 
+	// TODO: the path will be fetched from a path naming component
+	uniqueID = strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(cfg.Cache),
-		getDBFromConfig(cfg.DB, uniqueID),
-		getBloomFromConfig(cfg.Bloom),
+		storageFactory.GetCacherFromConfig(cfg.Cache),
+		storageFactory.GetDBFromConfig(cfg.DB, uniqueID),
+		storageFactory.GetBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
 		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
@@ -917,350 +923,19 @@ func createDataStoreFromConfig(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	uniqueID string,
+	epochStartNotifier EpochStartNotifier,
 ) (dataRetriever.StorageService, error) {
+	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(config, shardCoordinator, uniqueID, epochStartNotifier)
+	if err != nil {
+		return nil, err
+	}
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
+		return storageServiceFactory.CreateForShard()
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID)
+		return storageServiceFactory.CreateForMeta()
 	}
 	return nil, errors.New("can not create data store")
-}
-
-func createShardDataStoreFromConfig(
-	config *config.Config,
-	shardCoordinator sharding.Coordinator,
-	uniqueID string,
-) (dataRetriever.StorageService, error) {
-
-	var headerUnit *storageUnit.Unit
-	var peerBlockUnit *storageUnit.Unit
-	var miniBlockUnit *storageUnit.Unit
-	var txUnit *storageUnit.Unit
-	var metachainHeaderUnit *storageUnit.Unit
-	var unsignedTxUnit *storageUnit.Unit
-	var rewardTxUnit *storageUnit.Unit
-	var metaHdrHashNonceUnit *storageUnit.Unit
-	var shardHdrHashNonceUnit *storageUnit.Unit
-	var bootstrapUnit *storageUnit.Unit
-	var err error
-
-	defer func() {
-		// cleanup
-		if err != nil {
-			if headerUnit != nil {
-				_ = headerUnit.DestroyUnit()
-			}
-			if peerBlockUnit != nil {
-				_ = peerBlockUnit.DestroyUnit()
-			}
-			if miniBlockUnit != nil {
-				_ = miniBlockUnit.DestroyUnit()
-			}
-			if txUnit != nil {
-				_ = txUnit.DestroyUnit()
-			}
-			if unsignedTxUnit != nil {
-				_ = unsignedTxUnit.DestroyUnit()
-			}
-			if rewardTxUnit != nil {
-				_ = rewardTxUnit.DestroyUnit()
-			}
-			if metachainHeaderUnit != nil {
-				_ = metachainHeaderUnit.DestroyUnit()
-			}
-			if metaHdrHashNonceUnit != nil {
-				_ = metaHdrHashNonceUnit.DestroyUnit()
-			}
-			if shardHdrHashNonceUnit != nil {
-				_ = shardHdrHashNonceUnit.DestroyUnit()
-			}
-			if bootstrapUnit != nil {
-				_ = bootstrapUnit.DestroyUnit()
-			}
-		}
-	}()
-
-	txUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.TxStorage.Cache),
-		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
-		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	rewardTxUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.RewardTxStorage.Cache),
-		getDBFromConfig(config.RewardTxStorage.DB, uniqueID),
-		getBloomFromConfig(config.RewardTxStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	peerBlockUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
-		getDBFromConfig(config.PeerBlockBodyStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	headerUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	metachainHeaderUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHdrHashNonceUnit, err = storageUnit.NewShardedStorageUnitFromConf(
-		getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
-		shardCoordinator.SelfId(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BootstrapStorage.Cache),
-		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
-		getBloomFromConfig(config.BootstrapStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
-	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
-	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
-	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
-	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
-	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
-	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
-	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
-	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
-
-	return store, err
-}
-
-func createMetaChainDataStoreFromConfig(
-	config *config.Config,
-	shardCoordinator sharding.Coordinator,
-	uniqueID string,
-) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
-	var txUnit, miniBlockUnit, unsignedTxUnit, miniBlockHeadersUnit *storageUnit.Unit
-	var shardHdrHashNonceUnits []*storageUnit.Unit
-	var bootstrapUnit *storageUnit.Unit
-	var err error
-
-	defer func() {
-		// cleanup
-		if err != nil {
-			if peerDataUnit != nil {
-				_ = peerDataUnit.DestroyUnit()
-			}
-			if shardDataUnit != nil {
-				_ = shardDataUnit.DestroyUnit()
-			}
-			if metaBlockUnit != nil {
-				_ = metaBlockUnit.DestroyUnit()
-			}
-			if headerUnit != nil {
-				_ = headerUnit.DestroyUnit()
-			}
-			if metaHdrHashNonceUnit != nil {
-				_ = metaHdrHashNonceUnit.DestroyUnit()
-			}
-			if shardHdrHashNonceUnits != nil {
-				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					_ = shardHdrHashNonceUnits[i].DestroyUnit()
-				}
-			}
-			if txUnit != nil {
-				_ = txUnit.DestroyUnit()
-			}
-			if unsignedTxUnit != nil {
-				_ = unsignedTxUnit.DestroyUnit()
-			}
-			if miniBlockUnit != nil {
-				_ = miniBlockUnit.DestroyUnit()
-			}
-			if miniBlockHeadersUnit != nil {
-				_ = miniBlockHeadersUnit.DestroyUnit()
-			}
-			if bootstrapUnit != nil {
-				_ = bootstrapUnit.DestroyUnit()
-			}
-		}
-	}()
-
-	metaBlockUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	shardDataUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.ShardDataStorage.Cache),
-		getDBFromConfig(config.ShardDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.ShardDataStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	peerDataUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.PeerDataStorage.Cache),
-		getDBFromConfig(config.PeerDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerDataStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	headerUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHdrHashNonceUnits = make([]*storageUnit.Unit, shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		shardHdrHashNonceUnits[i], err = storageUnit.NewShardedStorageUnitFromConf(
-			getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
-			getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
-			getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
-			i,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	txUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.TxStorage.Cache),
-		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
-		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockHeadersUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MiniBlockHeadersStorage.Cache),
-		getDBFromConfig(config.MiniBlockHeadersStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BootstrapStorage.Cache),
-		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
-		getBloomFromConfig(config.BootstrapStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
-	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
-	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
-	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
-	store.AddStorer(dataRetriever.MiniBlockHeaderUnit, miniBlockHeadersUnit)
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
-		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
-	}
-	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
-	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
-
-	return store, err
 }
 
 func createShardDataPoolFromConfig(
@@ -1270,39 +945,39 @@ func createShardDataPoolFromConfig(
 
 	log.Debug("creatingShardDataPool from config")
 
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
+	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating hdrpool")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating metaBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating hdrNoncesCacher")
@@ -1314,14 +989,14 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
@@ -1350,21 +1025,21 @@ func createMetaDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating metaBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(config.ShardHeadersDataPool)
 	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating shardHeaders")
@@ -1382,13 +1057,13 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
+	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
@@ -2150,23 +1825,23 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          genesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.BlockChainHookImpl(),
-		TxCoordinator:         txCoordinator,
-		Rounder:               rounder,
-		EpochStartTrigger:     epochStartTrigger,
-		HeaderValidator:       headerValidator,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 genesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
+		Rounder:                      rounder,
+		EpochStartTrigger:            epochStartTrigger,
+		HeaderValidator:              headerValidator,
 		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
 	}
@@ -2455,39 +2130,6 @@ func newValidatorStatisticsProcessor(
 	}
 
 	return validatorStatisticsProcessor, nil
-}
-
-func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
-	return storageUnit.CacheConfig{
-		Size:   cfg.Size,
-		Type:   storageUnit.CacheType(cfg.Type),
-		Shards: cfg.Shards,
-	}
-}
-
-func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfig {
-	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(uniquePath, cfg.FilePath),
-		Type:              storageUnit.DBType(cfg.Type),
-		MaxBatchSize:      cfg.MaxBatchSize,
-		BatchDelaySeconds: cfg.BatchDelaySeconds,
-		MaxOpenFiles:      cfg.MaxOpenFiles,
-	}
-}
-
-func getBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
-	var hashFuncs []storageUnit.HasherType
-	if cfg.HashFunc != nil {
-		hashFuncs = make([]storageUnit.HasherType, 0)
-		for _, hf := range cfg.HashFunc {
-			hashFuncs = append(hashFuncs, storageUnit.HasherType(hf))
-		}
-	}
-
-	return storageUnit.BloomConfig{
-		Size:     cfg.Size,
-		HashFunc: hashFuncs,
-	}
 }
 
 func generateInMemoryAccountsAdapter(

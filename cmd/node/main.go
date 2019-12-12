@@ -282,6 +282,23 @@ VERSION:
 		Value: "",
 	}
 
+	isNodefullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "If set, the node won't remove any DB",
+	}
+
+	numEpochsToSave = cli.Uint64Flag{
+		Name:  "num-epochs-to-keep",
+		Usage: "This represents the number of epochs which kept in the databases",
+		Value: uint64(2),
+	}
+
+	numActivePersisters = cli.Uint64Flag{
+		Name:  "num-active-persisters",
+		Usage: "This represents the number of persisters which are kept open at a moment",
+		Value: uint64(2),
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -343,6 +360,9 @@ func main() {
 		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
+		isNodefullArchive,
+		numEpochsToSave,
+		numActivePersisters,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -540,6 +560,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating nodes coordinator")
+	if ctx.IsSet(isNodefullArchive.Name) {
+		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	if ctx.IsSet(numActivePersisters.Name) {
+		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
@@ -628,7 +658,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder, epochStartNotifier)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err

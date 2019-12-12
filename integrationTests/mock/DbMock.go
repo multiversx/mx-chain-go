@@ -31,6 +31,10 @@ func (MockDB) Destroy() error {
 	return nil
 }
 
+func (MockDB) DestroyClosed() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s MockDB) IsInterfaceNil() bool {
 	if &s == nil {

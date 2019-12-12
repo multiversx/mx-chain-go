@@ -1,5 +1,10 @@
 package storage
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+)
+
 // Persister provides storage of data services in a database like construct
 type Persister interface {
 	// Put add the value to the (key, val) persistence medium
@@ -16,6 +21,8 @@ type Persister interface {
 	Remove(key []byte) error
 	// Destroy removes the persistence medium stored data
 	Destroy() error
+	// DestroyClosed removes the already closed persistence medium stored data
+	DestroyClosed() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -88,5 +95,13 @@ type Storer interface {
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	IsInterfaceNil() bool
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler notifier.SubscribeFunctionHandler)
+	UnregisterHandler(handler notifier.SubscribeFunctionHandler)
+	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

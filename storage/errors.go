@@ -39,3 +39,30 @@ var ErrDuplicateKeyToAdd = errors.New("the key can not be added as it already ex
 
 // ErrEmptyKey is raised when a key is empty
 var ErrEmptyKey = errors.New("key is empty")
+
+// ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
+var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persisters")
+
+// ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
+
+// ErrNilPersisterFactory signals that a nil persister factory has been provided
+var ErrNilPersisterFactory = errors.New("nil persister factory")
+
+// ErrDestroyingUnit signals that the destroy unit method did not manage to destroy all the persisters in a pruning storer
+var ErrDestroyingUnit = errors.New("destroy unit didn't remove all the persisters")
+
+// ErrNilConfig signals that a nil configuration has been received
+var ErrNilConfig = errors.New("nil config")
+
+// ErrNilShardCoordinator signals that a nil shard coordinator has been provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrEmptyUniqueIdentifier signals that an empty unique ID has been provided
+var ErrEmptyUniqueIdentifier = errors.New("empty unique identifier")
+
+// ErrInvalidNumberOfEpochsToSave signals that an invalid number of epochs to save has been provided
+var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to save")
+
+// ErrInvalidNumberOfActivePersisters signals that an invalid number of active persisters has been provided
+var ErrInvalidNumberOfActivePersisters = errors.New("invalid number of active persisters")
