@@ -69,7 +69,6 @@ type baseProcessor struct {
 	bootStorer                   process.BootStorer
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
 	blockTracker                 process.BlockTracker
-	headerPoolsCleaner           process.HeaderPoolsCleaner
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -653,9 +652,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
-	if check.IfNil(arguments.HeaderPoolsCleaner) {
-		return process.ErrNilHeaderPoolsCleaner
-	}
 
 	return nil
 }
@@ -867,6 +863,12 @@ func (bp *baseProcessor) cleanupPools(
 	headersPool storage.Cacher,
 	notarizedHeadersPool storage.Cacher,
 ) {
+	bp.blockTracker.CleanupHeadersForShardBehindNonce(
+		bp.shardCoordinator.SelfId(),
+		bp.forkDetector.GetHighestFinalBlockNonce(),
+		0,
+	)
+
 	bp.removeHeadersBehindNonceFromPools(
 		true,
 		headersPool,
@@ -875,10 +877,23 @@ func (bp *baseProcessor) cleanupPools(
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
 	for shardId := range bp.notarizedHdrs {
+		if shardId == bp.shardCoordinator.SelfId() {
+			continue
+		}
+
 		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
 		if check.IfNil(lastNotarizedHdr) {
 			continue
 		}
+
+		// TODO: The second parameter in this call (selfNotarizedNonce), in case of metachain node, could be also the
+		// highest final metachain block nonce in the vision of the given shard. If we need later these info from
+		// block tracker, we should cleanup only below this threshold
+		bp.blockTracker.CleanupHeadersForShardBehindNonce(
+			shardId,
+			bp.forkDetector.GetHighestFinalBlockNonce(),
+			lastNotarizedHdr.GetNonce(),
+		)
 
 		bp.removeHeadersBehindNonceFromPools(
 			false,

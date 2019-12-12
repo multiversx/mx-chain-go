@@ -49,6 +49,8 @@ func NewShardForkDetector(
 		baseForkDetector: bfd,
 	}
 
+	sfd.blockTracker.RegisterSelfNotarizedHeadersHandler(sfd.addSelfNotarizedHeaders)
+
 	return &sfd, nil
 }
 
@@ -88,7 +90,7 @@ func (sfd *shardForkDetector) AddHeader(
 	})
 
 	if state == process.BHProcessed {
-		sfd.AddNotarizedHeaders(notarizedHeaders, notarizedHeadersHashes)
+		//sfd.addSelfNotarizedHeaders(notarizedHeaders, notarizedHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		sfd.removePastOrInvalidRecords()
 	}
@@ -100,9 +102,14 @@ func (sfd *shardForkDetector) AddHeader(
 	return nil
 }
 
-// AddNotarizedHeaders method adds new notarized headers to headers map
-func (sfd *shardForkDetector) AddNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
+func (sfd *shardForkDetector) addSelfNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
 	for i := 0; i < len(notarizedHeaders); i++ {
+		log.Debug("add notarized header",
+			"shard", notarizedHeaders[i].GetShardID(),
+			"round", notarizedHeaders[i].GetRound(),
+			"nonce", notarizedHeaders[i].GetNonce(),
+			"hash", notarizedHeadersHashes[i])
+
 		sfd.append(&headerInfo{
 			nonce: notarizedHeaders[i].GetNonce(),
 			round: notarizedHeaders[i].GetRound(),

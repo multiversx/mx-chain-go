@@ -35,7 +35,6 @@ type ArgBaseProcessor struct {
 	Rounder                      consensus.Rounder
 	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
-	HeaderPoolsCleaner           process.HeaderPoolsCleaner
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

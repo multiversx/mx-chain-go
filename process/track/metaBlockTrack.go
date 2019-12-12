@@ -76,7 +76,7 @@ func NewMetaBlockTrack(
 	mbt.metaBlocksPool.RegisterHandler(mbt.receivedMetaBlock)
 	mbt.shardHeadersPool.RegisterHandler(mbt.receivedShardHeader)
 
-	mbt.selfNotarizedHandlers = make([]func(headers []data.HeaderHandler), 0)
+	mbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	mbt.blockFinality = process.BlockFinality
 
@@ -85,13 +85,13 @@ func NewMetaBlockTrack(
 	return mbt, nil
 }
 
-func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []data.HeaderHandler {
-	selfMetaBlocks := make([]data.HeaderHandler, 0)
+func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
+	selfMetaBlocksInfo := make([]*headerInfo, 0)
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Debug("getSelfMetaBlocks", process.ErrWrongTypeAssertion)
-		return selfMetaBlocks
+		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
+		return selfMetaBlocksInfo
 	}
 
 	for _, metaBlockHash := range header.MetaBlockHashes {
@@ -101,14 +101,8 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []da
 			continue
 		}
 
-		selfMetaBlocks = append(selfMetaBlocks, metaBlock)
+		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &headerInfo{hash: metaBlockHash, header: metaBlock})
 	}
 
-	return selfMetaBlocks
-}
-
-func (mbt *metaBlockTrack) cleanupHeadersForSelfShard() {
-	//TODO: Should be analyzed if this nonce should be calculated differently
-	nonce := mbt.getLastSelfNotarizedHeaderNonce(mbt.shardCoordinator.SelfId())
-	mbt.cleanupHeadersForShardBehindNonce(mbt.shardCoordinator.SelfId(), nonce)
+	return selfMetaBlocksInfo
 }

@@ -2122,16 +2122,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	headerPoolsCleaner, err := poolsCleaner.NewHeaderPoolsCleaner(
-		shardCoordinator,
-		data.Datapool.HeadersNonces(),
-		data.Datapool.Headers(),
-		data.Datapool.MetaBlocks(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2151,7 +2141,6 @@ func newShardBlockProcessor(
 		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
-		HeaderPoolsCleaner:           headerPoolsCleaner,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2352,16 +2341,6 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	headerPoolsCleaner, err := poolsCleaner.NewHeaderPoolsCleaner(
-		shardCoordinator,
-		data.MetaDatapool.HeadersNonces(),
-		data.MetaDatapool.MetaBlocks(),
-		data.MetaDatapool.ShardHeaders(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2381,7 +2360,6 @@ func newMetaBlockProcessor(
 		Rounder:                      rounder,
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
-		HeaderPoolsCleaner:           headerPoolsCleaner,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

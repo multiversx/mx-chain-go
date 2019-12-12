@@ -72,7 +72,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		bootStorer:                    arguments.BootStorer,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 		blockTracker:                  arguments.BlockTracker,
-		headerPoolsCleaner:            arguments.HeaderPoolsCleaner,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -826,7 +825,6 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
-	//go sp.headerPoolsCleaner.Clean(sp.forkDetector.GetHighestFinalBlockNonce(), sp.getLastNotarizedHdrsNonces())
 
 	return nil
 }

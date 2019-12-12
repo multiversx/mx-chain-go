@@ -76,7 +76,7 @@ func NewShardBlockTrack(
 	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
-	sbt.selfNotarizedHandlers = make([]func(headers []data.HeaderHandler), 0)
+	sbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	sbt.blockFinality = process.BlockFinality
 
@@ -85,13 +85,13 @@ func NewShardBlockTrack(
 	return sbt, nil
 }
 
-func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []data.HeaderHandler {
-	selfHeaders := make([]data.HeaderHandler, 0)
+func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
+	selfHeadersInfo := make([]*headerInfo, 0)
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
-		return selfHeaders
+		return selfHeadersInfo
 	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
@@ -105,14 +105,8 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []d
 			continue
 		}
 
-		selfHeaders = append(selfHeaders, header)
+		selfHeadersInfo = append(selfHeadersInfo, &headerInfo{hash: shardInfo.HeaderHash, header: header})
 	}
 
-	return selfHeaders
-}
-
-func (sbt *shardBlockTrack) cleanupHeadersForSelfShard() {
-	//TODO: Should be analyzed if this nonce should be calculated differently
-	nonce := sbt.getLastSelfNotarizedHeaderNonce(sharding.MetachainShardId)
-	sbt.cleanupHeadersForShardBehindNonce(sbt.shardCoordinator.SelfId(), nonce)
+	return selfHeadersInfo
 }

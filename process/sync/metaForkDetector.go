@@ -96,7 +96,3 @@ func (mfd *metaForkDetector) AddHeader(
 
 	return nil
 }
-
-// AddNotarizedHeaders method adds new notarized headers to headers map
-func (mfd *metaForkDetector) AddNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
-}

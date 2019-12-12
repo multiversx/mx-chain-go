@@ -222,3 +222,7 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 	hdrInfo.Nonce = nonce
 	hdrInfo.Hash = hash
 }
+
+func (sfd *shardForkDetector) AddSelfNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
+	sfd.addSelfNotarizedHeaders(notarizedHeaders, notarizedHeadersHashes)
+}

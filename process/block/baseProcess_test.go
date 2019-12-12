@@ -380,9 +380,6 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 				},
 			},
 			BlockTracker: &mock.BlockTrackerStub{},
-			HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
-				CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
-			},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

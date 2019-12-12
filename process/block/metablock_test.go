@@ -48,9 +48,6 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 				},
 			},
 			BlockTracker: &mock.BlockTrackerStub{},
-			HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
-				CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
-			},
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScQueryMock{},

@@ -85,7 +85,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rounder:                       arguments.Rounder,
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
-		headerPoolsCleaner:            arguments.HeaderPoolsCleaner,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -968,7 +967,6 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
-	//go mp.headerPoolsCleaner.Clean(mp.forkDetector.GetHighestFinalBlockNonce(), mp.getLastNotarizedHdrsNonces())
 
 	return nil
 }

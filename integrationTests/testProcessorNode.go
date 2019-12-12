@@ -723,9 +723,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			},
 		},
 		BlockTracker: &mock.BlockTrackerStub{},
-		HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
-			CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
-		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

@@ -263,7 +263,6 @@ type ForkDetector interface {
 	ResetFork()
 	RestoreFinalCheckPointToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
-	AddNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -542,15 +541,10 @@ type InterceptedHeaderSigVerifier interface {
 
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
+	CleanupHeadersForShardBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	ComputeLongestChain(shardID uint32, header data.HeaderHandler) []data.HeaderHandler
 	IsShardStuck(shardID uint32) bool
 	LastHeaderForShard(shardID uint32) data.HeaderHandler
-	RegisterSelfNotarizedHandler(func(headers []data.HeaderHandler))
-	IsInterfaceNil() bool
-}
-
-// HeaderPoolsCleaner defines the functionality that is needed for a header pools cleaner
-type HeaderPoolsCleaner interface {
-	Clean(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64)
-	NumRemovedHeaders() uint64
+	RegisterSelfNotarizedHeadersHandler(func(headers []data.HeaderHandler, headersHashes [][]byte))
 	IsInterfaceNil() bool
 }
