@@ -1,9 +1,6 @@
 package peer
 
-import "sync"
-
 type RatingReader struct {
-	mutReader  sync.Mutex
 	getRating  func(string) uint32
 	getRatings func([]string) map[string]uint32
 }
