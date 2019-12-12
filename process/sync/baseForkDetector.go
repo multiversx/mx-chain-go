@@ -560,7 +560,7 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 			continue
 		}
 
-		preservedHdrInfos := make([]*headerInfo, 0)
+		preservedHdrInfos := make([]*headerInfo, 0, len(hdrInfos))
 
 		for _, hdrInfo := range hdrInfos {
 			if hdrInfo.state != process.BHNotarized {
