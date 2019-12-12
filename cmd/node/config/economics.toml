@@ -12,6 +12,8 @@
 
 [FeeSettings]
     MaxGasLimitPerBlock = "1500000000"
+    GasPerDataByte = "1500"
+    DataLimitForBaseCalc = "10000"
     MinGasPrice = "0"
     MinGasLimit = "100000"
 

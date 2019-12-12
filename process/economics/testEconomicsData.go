@@ -33,3 +33,13 @@ func (ted *TestEconomicsData) SetRewards(value *big.Int) {
 func (ted *TestEconomicsData) GetMinGasPrice() uint64 {
 	return ted.minGasPrice
 }
+
+// SetGasPerDataByte sets gas per data byte for a transaction to be accepted
+func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
+	ted.gasPerDataByte = gasPerDataByte
+}
+
+// SetDataLimitForBaseCalc sets base calc limit for gasLimit calculation
+func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint64) {
+	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
+}

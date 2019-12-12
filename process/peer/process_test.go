@@ -33,9 +33,11 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "10000000",
-				MinGasPrice:         "10",
-				MinGasLimit:         "10",
+				MaxGasLimitPerBlock:  "10000000",
+				MinGasPrice:          "10",
+				MinGasLimit:          "10",
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
@@ -790,7 +792,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(1, 0, []byte("prev"), 0)
 	assert.Nil(t, err)
@@ -823,7 +824,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.ShardCoordinator = shardCoordinatorMock
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
-
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
@@ -890,7 +890,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	}
 	arguments.PeerAdapter = peerAdapter
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, decreaseErr, err)
@@ -932,7 +931,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
-	assert.Equal(t, currentHeaderRound - previousHeaderRound - 1, decreaseCount)
+	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {
@@ -1040,8 +1039,6 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-
 
 	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, &block.MetaBlock{})
 	assert.Nil(t, err)
