@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -562,57 +563,56 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
-	lines := make([]*display.LineData, 0)
-
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Epoch",
-		fmt.Sprintf("%d", headerHandler.GetEpoch())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Round",
-		fmt.Sprintf("%d", headerHandler.GetRound())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"TimeStamp",
-		fmt.Sprintf("%d", headerHandler.GetTimeStamp())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Nonce",
-		fmt.Sprintf("%d", headerHandler.GetNonce())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Prev hash",
-		display.DisplayByteSlice(headerHandler.GetPrevHash())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Prev rand seed",
-		display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Rand seed",
-		display.DisplayByteSlice(headerHandler.GetRandSeed())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Pub keys bitmap",
-		core.ToHex(headerHandler.GetPubKeysBitmap())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Signature",
-		display.DisplayByteSlice(headerHandler.GetSignature())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Leader's Signature",
-		display.DisplayByteSlice(headerHandler.GetLeaderSignature())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Root hash",
-		display.DisplayByteSlice(headerHandler.GetRootHash())}))
-	lines = append(lines, display.NewLineData(true, []string{
-		"",
-		"Validator stats root hash",
-		display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}))
-	return lines
+	return []*display.LineData{
+		display.NewLineData(false, []string{
+			"",
+			"Epoch",
+			fmt.Sprintf("%d", headerHandler.GetEpoch())}),
+		display.NewLineData(false, []string{
+			"",
+			"Round",
+			fmt.Sprintf("%d", headerHandler.GetRound())}),
+		display.NewLineData(false, []string{
+			"",
+			"TimeStamp",
+			fmt.Sprintf("%d", headerHandler.GetTimeStamp())}),
+		display.NewLineData(false, []string{
+			"",
+			"Nonce",
+			fmt.Sprintf("%d", headerHandler.GetNonce())}),
+		display.NewLineData(false, []string{
+			"",
+			"Prev hash",
+			display.DisplayByteSlice(headerHandler.GetPrevHash())}),
+		display.NewLineData(false, []string{
+			"",
+			"Prev rand seed",
+			display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}),
+		display.NewLineData(false, []string{
+			"",
+			"Rand seed",
+			display.DisplayByteSlice(headerHandler.GetRandSeed())}),
+		display.NewLineData(false, []string{
+			"",
+			"Pub keys bitmap",
+			core.ToHex(headerHandler.GetPubKeysBitmap())}),
+		display.NewLineData(false, []string{
+			"",
+			"Signature",
+			display.DisplayByteSlice(headerHandler.GetSignature())}),
+		display.NewLineData(false, []string{
+			"",
+			"Leader's Signature",
+			display.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
+		display.NewLineData(false, []string{
+			"",
+			"Root hash",
+			display.DisplayByteSlice(headerHandler.GetRootHash())}),
+		display.NewLineData(true, []string{
+			"",
+			"Validator stats root hash",
+			display.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+	}
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values
@@ -725,7 +725,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		}
 	}
 
-	hdrsHashesForCurrentBlock := make(map[uint32][][]byte)
+	hdrsHashesForCurrentBlock := make(map[uint32][][]byte, len(hdrsForCurrentBlockInfo))
 	for shardId, hdrsForShard := range hdrsForCurrentBlockInfo {
 		for _, hdrForShard := range hdrsForShard {
 			hdrsHashesForCurrentBlock[shardId] = append(hdrsHashesForCurrentBlock[shardId], hdrForShard.hash)
@@ -1015,11 +1015,12 @@ func (bp *baseProcessor) getHeadersFromPools(
 	nonce uint64,
 ) ([]data.HeaderHandler, [][]byte) {
 
-	headers := make([]data.HeaderHandler, 0)
-	headersHashes := make([][]byte, 0)
+	keys := cacher.Keys()
+	headers := make([]data.HeaderHandler, 0, len(keys)+1)
+	headersHashes := make([][]byte, 0, len(keys)+1)
 
 	//TODO: This for could be deleted when the implementation of the new cache will be done
-	for _, headerHash := range cacher.Keys() {
+	for _, headerHash := range keys {
 		val, _ := cacher.Peek(headerHash)
 		if val == nil {
 			continue
@@ -1044,7 +1045,7 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headers = append(headers, header)
 	headersHashes = append(headersHashes, headerHash)
 
-	return headers, headersHashes
+	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(
@@ -1054,7 +1055,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	lastFinalHashes [][]byte,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
-	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(lastFinalHdrs))
 
 	//TODO add end of epoch stuff
 
@@ -1089,7 +1090,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 }
 
 func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHeaderInfo {
-	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(bp.notarizedHdrs))
 
 	bp.mutNotarizedHdrs.RLock()
 	for shardId := range bp.notarizedHdrs {
@@ -1114,7 +1115,7 @@ func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHead
 	}
 	bp.mutNotarizedHdrs.RUnlock()
 
-	return lastNotarizedHdrs
+	return bootstrapStorage.TrimHeaderInfoSlice(lastNotarizedHdrs)
 }
 
 func (bp *baseProcessor) commitAll() error {

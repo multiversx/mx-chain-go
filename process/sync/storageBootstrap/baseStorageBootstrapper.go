@@ -148,8 +148,7 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 	highestNonce := hdrInfo.LastHeader.Nonce
 
 	lastRound := hdrInfo.LastRound
-	bootInfos := make([]bootstrapStorage.BootstrapData, 0)
-	bootInfos = append(bootInfos, hdrInfo)
+	bootInfos := []bootstrapStorage.BootstrapData{hdrInfo}
 
 	log.Debug("block info from storage",
 		"highest nonce", highestNonce, "lastFinalNone", highestFinalNonce, "last round", lastRound)
@@ -189,7 +188,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"nonce", bootInfos[i].LastHeader.Nonce,
 			"shardId", bootInfos[i].LastHeader.ShardId)
 
-		lastNotarized := make(map[uint32]*sync.HdrInfo)
+		lastNotarized := make(map[uint32]*sync.HdrInfo, len(bootInfos[i].LastNotarizedHeaders))
 		for _, lastNotarizedHeader := range bootInfos[i].LastNotarizedHeaders {
 			log.Debug("added notarized header",
 				"nonce", lastNotarizedHeader.Nonce,
@@ -208,7 +207,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 
-		lastFinalHashes := make([][]byte, 0)
+		lastFinalHashes := make([][]byte, 0, len(bootInfos[i].LastFinals))
 		for _, lastFinal := range bootInfos[i].LastFinals {
 			lastFinalHashes = append(lastFinalHashes, lastFinal.Hash)
 		}
@@ -287,7 +286,7 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalH
 		"nonce", header.GetNonce(),
 		"shardId", header.GetShardID())
 
-	finalHeaders := make([]data.HeaderHandler, 0)
+	finalHeaders := make([]data.HeaderHandler, 0, len(finalHeadersHashes))
 	for _, hash := range finalHeadersHashes {
 		finalHeader, err := st.bootstrapper.getHeader(hash)
 		if err != nil {
