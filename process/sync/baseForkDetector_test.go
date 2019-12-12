@@ -812,20 +812,20 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
-	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.ShardBlockFinality)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -836,13 +836,13 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
 	hdr := &block.Header{Nonce: 1, Round: 1}
 
-	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
-	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality - 1)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
 	sfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
 	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 
@@ -853,20 +853,20 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	mfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
-	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.MetaBlockFinality)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, true)
 
-	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -877,13 +877,13 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	mfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 
-	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
-	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality - 1)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
 	mfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 

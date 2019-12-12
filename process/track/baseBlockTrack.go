@@ -29,6 +29,8 @@ type baseBlockTrack struct {
 	marshalizer       marshal.Marshalizer
 	rounder           consensus.Rounder
 	shardCoordinator  sharding.Coordinator
+	metaBlocksPool    storage.Cacher
+	shardHeadersPool  storage.Cacher
 	headersNoncesPool dataRetriever.Uint64SyncMapCacher
 
 	mutHeaders sync.RWMutex
@@ -46,9 +48,75 @@ type baseBlockTrack struct {
 	mutLongestChainHeadersIndexes sync.RWMutex
 	longestChainHeadersIndexes    []int
 
-	blockFinality uint32
+	blockFinality uint64
 
 	blockTracker blockTracker
+}
+
+func (bbt *baseBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
+	metaBlock, err := process.GetMetaHeaderFromPool(metaBlockHash, bbt.metaBlocksPool)
+	if err != nil {
+		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
+		return
+	}
+
+	log.Debug("received meta block from network in block tracker",
+		"shard", metaBlock.GetShardID(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
+		"hash", metaBlockHash,
+	)
+
+	bbt.processReceivedHeader(metaBlock, metaBlockHash, bbt.getMetaHeaderFromPoolWithNonce)
+}
+
+func (bbt *baseBlockTrack) receivedShardHeader(shardHeaderHash []byte) {
+	shardHeader, err := process.GetShardHeaderFromPool(shardHeaderHash, bbt.shardHeadersPool)
+	if err != nil {
+		log.Trace("GetShardHeaderFromPool", "error", err.Error())
+		return
+	}
+
+	log.Debug("received shard header from network in block tracker",
+		"shard", shardHeader.GetShardID(),
+		"round", shardHeader.GetRound(),
+		"nonce", shardHeader.GetNonce(),
+		"hash", shardHeaderHash,
+	)
+
+	bbt.processReceivedHeader(shardHeader, shardHeaderHash, bbt.getShardHeaderFromPoolWithNonce)
+}
+
+func (bbt *baseBlockTrack) processReceivedHeader(
+	header data.HeaderHandler,
+	headerHash []byte,
+	getHeaderFromPoolWithNonce func(nonce uint64, shardID uint32) (data.HeaderHandler, []byte, error),
+) {
+	isHeaderForSelfShard := header.GetShardID() == bbt.shardCoordinator.SelfId()
+
+	var lastNotarizedHeaderNonce uint64
+
+	if isHeaderForSelfShard {
+		lastNotarizedHeaderNonce = bbt.getLastSelfNotarizedHeaderNonce(header.GetShardID())
+	} else {
+		lastNotarizedHeaderNonce = bbt.getLastCrossNotarizedHeaderNonce(header.GetShardID())
+	}
+
+	if bbt.isHeaderOutOfRange(header.GetNonce(), lastNotarizedHeaderNonce) {
+		log.Debug("received header is out of range",
+			"received nonce", header.GetNonce(),
+			"last notarized nonce", lastNotarizedHeaderNonce,
+		)
+		return
+	}
+
+	bbt.addHeaders(header, headerHash, lastNotarizedHeaderNonce, getHeaderFromPoolWithNonce)
+
+	if isHeaderForSelfShard {
+		bbt.doJobOnReceivedHeader(header.GetShardID())
+	} else {
+		bbt.doJobOnReceivedCrossNotarizedHeader(header.GetShardID())
+	}
 }
 
 // addHeader adds the given header to the received headers list
@@ -267,6 +335,27 @@ func (bbt *baseBlockTrack) addSelfNotarizedHeaders(shardID uint32, selfNotarized
 	}
 }
 
+//func (bbt *baseBlockTrack) getHeadersForShard(shardID uint32) (map[uint64][]*headerInfo, error) {
+//	bbt.mutHeaders.RLock()
+//	defer bbt.mutHeaders.RUnlock()
+//
+//	headers := bbt.headersForShard(shardID)
+//	if len(headers) == 0 {
+//		return nil, process.ErrHdrsSliceForShardIsNil
+//	}
+//
+//	return headers, nil
+//}
+//
+//func (bbt *baseBlockTrack) headersForShard(shardID uint32) map[uint64][]*headerInfo {
+//	headersCount := len(bbt.headers[shardID])
+//	if headersCount > 0 {
+//		return bbt.headers[shardID]
+//	}
+//
+//	return nil
+//}
+
 func (bbt *baseBlockTrack) getLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, error) {
 	bbt.mutCrossNotarizedHeaders.RLock()
 	defer bbt.mutCrossNotarizedHeaders.RUnlock()
@@ -470,7 +559,7 @@ func (bbt *baseBlockTrack) checkHeaderFinality(
 	}
 
 	prevHeader := header
-	numFinalityAttestingHeaders := uint32(0)
+	numFinalityAttestingHeaders := uint64(0)
 
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
@@ -541,9 +630,9 @@ func (bbt *baseBlockTrack) computeLongestChainFromLastSelfNotarized(shardID uint
 	return bbt.ComputeLongestChain(shardID, lastSelfNotarizedHeader)
 }
 
-func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedBlock(shardID uint32) {
+func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	crossNotarizedHeaders := bbt.computeLongestChainFromLastCrossNotarized(shardID)
-	selfNotarizedHeaders := bbt.blockTracker.computeSelfNotarizedHeaders(crossNotarizedHeaders)
+	selfNotarizedHeaders := bbt.computeSelfNotarizedHeaders(crossNotarizedHeaders)
 
 	bbt.addCrossNotarizedHeaders(shardID, crossNotarizedHeaders)
 	bbt.addSelfNotarizedHeaders(shardID, selfNotarizedHeaders)
@@ -562,7 +651,7 @@ func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedBlock(shardID uint32) {
 	bbt.displayHeadersForShard(shardID)
 }
 
-func (bbt *baseBlockTrack) doJobOnReceivedBlock(shardID uint32) {
+func (bbt *baseBlockTrack) doJobOnReceivedHeader(shardID uint32) {
 	selfNotarizedHeaders := bbt.computeLongestChainFromLastSelfNotarized(shardID)
 	bbt.addSelfNotarizedHeaders(shardID, selfNotarizedHeaders)
 
@@ -574,6 +663,21 @@ func (bbt *baseBlockTrack) doJobOnReceivedBlock(shardID uint32) {
 
 	log.Debug("############ display on received block", "shard", shardID)
 	bbt.displayHeadersForShard(shardID)
+}
+
+func (bbt *baseBlockTrack) computeSelfNotarizedHeaders(headers []data.HeaderHandler) []data.HeaderHandler {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+
+	for _, header := range headers {
+		selfMetaBlocks := bbt.blockTracker.getSelfHeaders(header)
+		if len(selfMetaBlocks) > 0 {
+			selfNotarizedHeaders = append(selfNotarizedHeaders, selfMetaBlocks...)
+		}
+	}
+
+	process.SortHeadersByNonce(selfNotarizedHeaders)
+
+	return selfNotarizedHeaders
 }
 
 func (bbt *baseBlockTrack) cleanupHeadersForShardBehindNonce(shardID uint32, nonce uint64) {
@@ -653,6 +757,9 @@ func (bbt *baseBlockTrack) getLastSelfNotarizedHeaderNonce(shardID uint32) uint6
 }
 
 func (bbt *baseBlockTrack) displayHeaders() {
+	bbt.mutHeaders.RLock()
+	defer bbt.mutHeaders.RUnlock()
+
 	for shardID := range bbt.headers {
 		bbt.displayHeadersForShard(shardID)
 	}
@@ -714,19 +821,50 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(receivedNonce uint64, lastNotarize
 	return isHeaderOutOfRange
 }
 
-func (bbt *baseBlockTrack) addMissingShardHeaders(
+func (bbt *baseBlockTrack) addHeaders(
+	header data.HeaderHandler,
+	headerHash []byte,
+	lastNotarizedHeaderNonce uint64,
+	getHeaderFromPoolWithNonce func(nonce uint64, shardID uint32) (data.HeaderHandler, []byte, error),
+) {
+	nextHeaderNonce := lastNotarizedHeaderNonce + bbt.blockFinality + 1
+	headers, headersHashes := bbt.getHeadersIfMissing(
+		header.GetShardID(),
+		nextHeaderNonce,
+		header.GetNonce()-1,
+		getHeaderFromPoolWithNonce)
+
+	for i := 0; i < len(headers); i++ {
+		bbt.addHeader(headers[i], headersHashes[i])
+	}
+
+	bbt.addHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) getHeadersIfMissing(
 	shardID uint32,
 	fromNonce uint64,
 	toNonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-) {
+	getHeaderFromPoolWithNonce func(nonce uint64, shardID uint32) (data.HeaderHandler, []byte, error),
+) ([]data.HeaderHandler, [][]byte) {
+
+	bbt.mutHeaders.RLock()
+	defer bbt.mutHeaders.RUnlock()
+
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	headersForShard, haveHeadersForShard := bbt.headers[shardID]
 
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
-		header, headerHash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardID, cacher, uint64SyncMapCacher)
+		if haveHeadersForShard && len(headersForShard[nonce]) > 0 {
+			continue
+		}
+
+		header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardID)
 		if err != nil {
-			log.Trace("GetShardHeaderFromPoolWithNonce", "error", err.Error())
-			return
+			log.Debug("GetShardHeaderFromPoolWithNonce", "error", err.Error())
+			continue
 		}
 
 		log.Debug("get missing shard header",
@@ -736,31 +874,23 @@ func (bbt *baseBlockTrack) addMissingShardHeaders(
 			"hash", headerHash,
 		)
 
-		bbt.addHeader(header, headerHash)
+		headers = append(headers, header)
+		headersHashes = append(headersHashes, headerHash)
 	}
+
+	return headers, headersHashes
 }
 
-func (bbt *baseBlockTrack) addMissingMetaBlocks(
-	fromNonce uint64,
-	toNonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-) {
+func (bbt *baseBlockTrack) getShardHeaderFromPoolWithNonce(
+	nonce uint64,
+	shardID uint32,
+) (data.HeaderHandler, []byte, error) {
+	return process.GetShardHeaderFromPoolWithNonce(nonce, shardID, bbt.shardHeadersPool, bbt.headersNoncesPool)
+}
 
-	for nonce := fromNonce; nonce <= toNonce; nonce++ {
-		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
-		if err != nil {
-			log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
-			return
-		}
-
-		log.Debug("get missing meta block",
-			"shard", metaBlock.GetShardID(),
-			"round", metaBlock.GetRound(),
-			"nonce", metaBlock.GetNonce(),
-			"hash", metaBlockHash,
-		)
-
-		bbt.addHeader(metaBlock, metaBlockHash)
-	}
+func (bbt *baseBlockTrack) getMetaHeaderFromPoolWithNonce(
+	nonce uint64,
+	_ uint32,
+) (data.HeaderHandler, []byte, error) {
+	return process.GetMetaHeaderFromPoolWithNonce(nonce, bbt.metaBlocksPool, bbt.headersNoncesPool)
 }

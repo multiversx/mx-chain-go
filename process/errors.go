@@ -301,6 +301,9 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
+// ErrHdrsSliceForShardIsNil signals that the slice holding headers for shard is nil
+var ErrHdrsSliceForShardIsNil = errors.New("headers slice for shard is nil")
+
 // ErrCrossNotarizedHdrsSliceIsNil signals that the slice holding cross notarized headers is nil
 var ErrCrossNotarizedHdrsSliceIsNil = errors.New("cross notarized headers slice is nil")
 

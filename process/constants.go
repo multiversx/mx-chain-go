@@ -32,12 +32,9 @@ const (
 	InvalidTransaction
 )
 
-// ShardBlockFinality defines the block finality which is used in shards (the real finality in shards is given
+// BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
 // by meta-chain)
-const ShardBlockFinality = 1
-
-// MetaBlockFinality defines the block finality which is used in meta-chain
-const MetaBlockFinality = 1
+const BlockFinality = 1
 
 // MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
 // in one round, when node processes a received block

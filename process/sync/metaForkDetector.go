@@ -72,7 +72,7 @@ func (mfd *metaForkDetector) AddHeader(
 
 	mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
-	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.MetaBlockFinality)
+	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
 		state = process.BHReceivedTooLate
 	}

@@ -113,7 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.chRcvAllHdrs = make(chan bool)
 
-	mp.shardBlockFinality = process.ShardBlockFinality
+	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
 

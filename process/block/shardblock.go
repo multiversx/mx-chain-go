@@ -112,7 +112,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 	sp.onRequestHeaderHandler = arguments.RequestHandler.RequestHeader
 
-	sp.metaBlockFinality = process.MetaBlockFinality
+	sp.metaBlockFinality = process.BlockFinality
 
 	return &sp, nil
 }

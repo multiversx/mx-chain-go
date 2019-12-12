@@ -10,15 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type shardBlockTrack struct {
 	*baseBlockTrack
-	headersPool       storage.Cacher
-	metaBlocksPool    storage.Cacher
-	headersNoncesPool dataRetriever.Uint64SyncMapCacher
-	store             dataRetriever.StorageService
+	store dataRetriever.StorageService
 }
 
 // NewShardBlockTrack creates an object for tracking the received shard blocks
@@ -51,10 +47,13 @@ func NewShardBlockTrack(
 	}
 
 	bbt := &baseBlockTrack{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		rounder:          rounder,
-		shardCoordinator: shardCoordinator,
+		hasher:            hasher,
+		marshalizer:       marshalizer,
+		rounder:           rounder,
+		shardCoordinator:  shardCoordinator,
+		shardHeadersPool:  poolsHolder.Headers(),
+		metaBlocksPool:    poolsHolder.MetaBlocks(),
+		headersNoncesPool: poolsHolder.HeadersNonces(),
 	}
 
 	err = bbt.setCrossNotarizedHeaders(startHeaders)
@@ -68,124 +67,39 @@ func NewShardBlockTrack(
 	}
 
 	sbt := &shardBlockTrack{
-		baseBlockTrack:    bbt,
-		headersPool:       poolsHolder.Headers(),
-		metaBlocksPool:    poolsHolder.MetaBlocks(),
-		headersNoncesPool: poolsHolder.HeadersNonces(),
-		store:             store,
+		baseBlockTrack: bbt,
+		store:          store,
 	}
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	sbt.longestChainHeadersIndexes = make([]int, 0)
-	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
+	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
 	sbt.selfNotarizedHandlers = make([]func(headers []data.HeaderHandler), 0)
 
-	sbt.blockFinality = process.MetaBlockFinality
+	sbt.blockFinality = process.BlockFinality
 
 	sbt.blockTracker = sbt
 
 	return sbt, nil
 }
 
-func (sbt *shardBlockTrack) receivedHeader(headerHash []byte) {
-	header, err := process.GetShardHeaderFromPool(headerHash, sbt.headersPool)
-	if err != nil {
-		log.Trace("GetShardHeaderFromPool", "error", err.Error())
-		return
-	}
-
-	log.Debug("received shard header from network in block tracker",
-		"shard", header.GetShardID(),
-		"round", header.GetRound(),
-		"nonce", header.GetNonce(),
-		"hash", headerHash,
-	)
-
-	lastSelfNotarizedHeaderNonce := sbt.getLastSelfNotarizedHeaderNonce(header.GetShardID())
-	if sbt.isHeaderOutOfRange(header.GetNonce(), lastSelfNotarizedHeaderNonce) {
-		log.Debug("shard header is out of range",
-			"received nonce", header.GetNonce(),
-			"last self notarized nonce", lastSelfNotarizedHeaderNonce,
-		)
-		return
-	}
-
-	sbt.addMissingShardHeaders(
-		header.GetShardID(),
-		lastSelfNotarizedHeaderNonce+2,
-		header.GetNonce()-1,
-		sbt.headersPool,
-		sbt.headersNoncesPool)
-
-	sbt.addHeader(header, headerHash)
-	sbt.doJobOnReceivedBlock(header.GetShardID())
-}
-
-func (sbt *shardBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
-	metaBlock, err := process.GetMetaHeaderFromPool(metaBlockHash, sbt.metaBlocksPool)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
-		return
-	}
-
-	log.Debug("received meta block from network in block tracker",
-		"shard", metaBlock.GetShardID(),
-		"round", metaBlock.GetRound(),
-		"nonce", metaBlock.GetNonce(),
-		"hash", metaBlockHash,
-	)
-
-	lastCrossNotarizedHeaderNonce := sbt.getLastCrossNotarizedHeaderNonce(metaBlock.GetShardID())
-	if sbt.isHeaderOutOfRange(metaBlock.GetNonce(), lastCrossNotarizedHeaderNonce) {
-		log.Debug("meta block is out of range",
-			"received nonce", metaBlock.GetNonce(),
-			"last cross notarized nonce", lastCrossNotarizedHeaderNonce,
-		)
-		return
-	}
-
-	sbt.addMissingMetaBlocks(
-		lastCrossNotarizedHeaderNonce+2,
-		metaBlock.GetNonce()-1,
-		sbt.metaBlocksPool,
-		sbt.headersNoncesPool)
-
-	sbt.addHeader(metaBlock, metaBlockHash)
-	sbt.doJobOnReceivedCrossNotarizedBlock(metaBlock.GetShardID())
-}
-
-func (sbt *shardBlockTrack) computeSelfNotarizedHeaders(headers []data.HeaderHandler) []data.HeaderHandler {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
-
-	for _, header := range headers {
-		metaBlock, ok := header.(*block.MetaBlock)
-		if !ok {
-			log.Debug("computeSelfNotarizedHeaders", process.ErrWrongTypeAssertion)
-			continue
-		}
-
-		selfHeaders := sbt.getSelfHeaders(metaBlock)
-		if len(selfHeaders) > 0 {
-			selfNotarizedHeaders = append(selfNotarizedHeaders, selfHeaders...)
-		}
-	}
-
-	process.SortHeadersByNonce(selfNotarizedHeaders)
-
-	return selfNotarizedHeaders
-}
-
-func (sbt *shardBlockTrack) getSelfHeaders(metaBlock *block.MetaBlock) []data.HeaderHandler {
+func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []data.HeaderHandler {
 	selfHeaders := make([]data.HeaderHandler, 0)
+
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
+		return selfHeaders
+	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
 		if shardInfo.ShardID != sbt.shardCoordinator.SelfId() {
 			continue
 		}
 
-		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
+		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.shardHeadersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
 			log.Debug("GetShardHeader", err.Error())
 			continue
