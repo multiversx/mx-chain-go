@@ -182,6 +182,7 @@ func (mbc *miniBlocksCompaction) expandMiniBlocks(miniBlocks block.MiniBlockSlic
 		for _, txHash := range miniBlock.TxHashes {
 			tx, ok := mbc.mapHashToTx[string(txHash)]
 			if !ok {
+				log.Debug("missing transaction in expandMiniBlocks ", "type", miniBlock.Type)
 				return nil, process.ErrMissingTransaction
 			}
 
@@ -255,6 +256,7 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 
 		tx, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
+			log.Debug("missing transaction in createMiniBlockForShard ", "type", miniBlock.Type)
 			return nil, process.ErrMissingTransaction
 		}
 

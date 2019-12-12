@@ -139,6 +139,8 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	rtxh.mutGenRewardTxs.Lock()
 
+	log.Debug("total accumulated fees ", "value", rtxh.accumulatedFees)
+
 	rtxh.feeRewards = rtxh.createRewardFromFees()
 	rtxh.addTransactionsToPool(rtxh.feeRewards)
 
@@ -215,7 +217,7 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
-func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
+func (rtxh *rewardsHandler) VerifyInterMiniBlocks(_ block.Body) error {
 	err := rtxh.verifyCreatedRewardsTxs()
 	return err
 }

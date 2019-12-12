@@ -216,6 +216,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			txInfo := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
 			if txInfo == nil || txInfo.tx == nil {
+				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.SmartContractResultBlock)
 				return process.ErrMissingTransaction
 			}
 

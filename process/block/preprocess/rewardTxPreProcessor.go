@@ -218,6 +218,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
 			if txData == nil || txData.tx == nil {
+				log.Debug("missing transaction/missmatch in ProcessBlockTransactions ", "type", block.RewardsBlock)
 				return process.ErrMissingTransaction
 			}
 
@@ -254,6 +255,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 			rTx, ok := tx.(*rewardTx.RewardTx)
 			if !ok {
 				log.Warn("not a reward tx in pool", "error", process.ErrWrongTypeAssertion.Error())
+				continue
 			}
 
 			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()

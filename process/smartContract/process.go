@@ -499,7 +499,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Debug("smart contract processing returned with error",
+		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 		)
@@ -523,10 +523,10 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
-	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
+	log.Trace("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Uint64() > 0 {
-		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
+		log.Trace("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
