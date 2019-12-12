@@ -28,7 +28,6 @@ type persisterData struct {
 type PruningStorer struct {
 	lock                  sync.RWMutex
 	shardCoordinator      sharding.Coordinator
-	startingEpoch         uint32
 	fullArchive           bool
 	activePersisters      []*persisterData
 	persistersMapByEpoch  map[uint32]*persisterData
@@ -111,8 +110,8 @@ func initPruningStorer(
 	})
 
 	persistersMapByEpoch := make(map[uint32]*persisterData)
-	// TODO: get the starting epoch as a parameter
 	persistersMapByEpoch[args.StartingEpoch] = persisters[0]
+
 	pdb := &PruningStorer{
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
