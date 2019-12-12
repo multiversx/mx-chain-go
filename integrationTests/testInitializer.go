@@ -71,16 +71,19 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShardId ...uint32) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
+	shardKadTopic := "test"
+	if len(nodeShardId) > 0 {
+		shardKadTopic = fmt.Sprintf("shard_%d", nodeShardId)
+	}
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(stepDelay, shardKadTopic, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
