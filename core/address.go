@@ -24,11 +24,7 @@ func IsEmptyAddress(rcvAddress []byte) bool {
 	}
 
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
-	if isEmptyAddress {
-		return true
-	}
-
-	return false
+	return isEmptyAddress
 }
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
