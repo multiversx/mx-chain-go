@@ -618,6 +618,12 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
+		gasRefunded := txs.gasHandler.GasRefunded(orderedTxHashes[index])
+		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+		if senderShardId == receiverShardId {
+			gasConsumedByMiniBlockInSenderShard -= gasRefunded
+		}
+
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
 
@@ -750,6 +756,12 @@ func (txs *transactions) ProcessMiniBlock(
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
 			return err
+		}
+
+		gasRefunded := txs.gasHandler.GasRefunded(miniBlockTxHashes[index])
+		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+		if miniBlock.SenderShardID == miniBlock.ReceiverShardID {
+			gasConsumedByMiniBlockInSenderShard -= gasRefunded
 		}
 	}
 

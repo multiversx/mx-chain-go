@@ -257,7 +257,7 @@ func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 	}
 
 	rtxh.mut.Lock()
-	rtxh.accumulatedFees = rtxh.accumulatedFees.Add(rtxh.accumulatedFees, cost)
+	_ = rtxh.accumulatedFees.Add(rtxh.accumulatedFees, cost)
 	rtxh.mut.Unlock()
 }
 

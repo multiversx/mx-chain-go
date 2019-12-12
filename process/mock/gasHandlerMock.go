@@ -36,7 +36,10 @@ func (ghm *GasHandlerMock) GasConsumed(hash []byte) uint64 {
 }
 
 func (ghm *GasHandlerMock) GasRefunded(hash []byte) uint64 {
-	return ghm.GasRefundedCalled(hash)
+	if ghm.GasRefundedCalled != nil {
+		return ghm.GasRefundedCalled(hash)
+	}
+	return 0
 }
 
 func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
