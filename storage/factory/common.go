@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"path/filepath"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -17,9 +15,8 @@ func GetCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 }
 
 // GetDBFromConfig will return the db config needed for storage unit from a config came from the toml file
-func GetDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfig {
+func GetDBFromConfig(cfg config.DBConfig) storageUnit.DBConfig {
 	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(uniquePath, cfg.FilePath),
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,

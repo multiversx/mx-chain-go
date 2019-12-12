@@ -105,3 +105,10 @@ type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
+
+// PathManagerHandler defines which actions should be done for generating paths for databases directories
+type PathManagerHandler interface {
+	PathForEpoch(shardId string, epoch uint32, identifier string) string
+	PathForStatic(shardId string, identifier string) string
+	IsInterfaceNil() bool
+}

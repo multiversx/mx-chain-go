@@ -4,21 +4,18 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"regexp"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("storage/pruning")
-
-// DefaultEpochDirectoryName represents the naming pattern for epoch directories
-const DefaultEpochDirectoryName = "Epoch"
 
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
@@ -30,11 +27,14 @@ type persisterData struct {
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
 	lock                  sync.RWMutex
+	shardCoordinator      sharding.Coordinator
+	startingEpoch         uint32
 	fullArchive           bool
 	activePersisters      []*persisterData
 	persistersMapByEpoch  map[uint32]*persisterData
 	cacher                storage.Cacher
 	bloomFilter           storage.BloomFilter
+	pathManager           storage.PathManagerHandler
 	dbPath                string
 	persisterFactory      DbFactoryHandler
 	numOfEpochsToKeep     uint32
@@ -43,13 +43,13 @@ type PruningStorer struct {
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewPruningStorer(args *PruningStorerArgs) (*PruningStorer, error) {
+func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 	return initPruningStorer(args, "")
 }
 
 // NewShardedPruningStorer will return a new instance of PruningStorer with sharded directories' naming scheme
 func NewShardedPruningStorer(
-	args *PruningStorerArgs,
+	args *StorerArgs,
 	shardId uint32,
 ) (*PruningStorer, error) {
 	shardIdStr := fmt.Sprintf("%d", shardId)
@@ -58,7 +58,7 @@ func NewShardedPruningStorer(
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
-	args *PruningStorerArgs,
+	args *StorerArgs,
 	shardIdStr string,
 ) (*PruningStorer, error) {
 	var cache storage.Cacher
@@ -81,15 +81,22 @@ func initPruningStorer(
 	if check.IfNil(args.PersisterFactory) {
 		return nil, storage.ErrNilPersisterFactory
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, storage.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManager) {
+		return nil, storage.ErrNilPathManager
+	}
 
 	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards)
 	if err != nil {
 		return nil, err
 	}
 
-	filePath := args.DbPath
+	filePath := args.PathManager.PathForEpoch(getShardIdString(args.ShardCoordinator), args.StartingEpoch, args.Identifier)
 	if len(shardIdStr) > 0 {
 		filePath = filePath + shardIdStr
+		args.Identifier += shardIdStr
 	}
 	db, err = args.PersisterFactory.Create(filePath)
 	if err != nil {
@@ -105,16 +112,18 @@ func initPruningStorer(
 
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 	// TODO: get the starting epoch as a parameter
-	persistersMapByEpoch[0] = persisters[0]
+	persistersMapByEpoch[args.StartingEpoch] = persisters[0]
 	pdb := &PruningStorer{
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
 		activePersisters:      persisters,
 		persisterFactory:      args.PersisterFactory,
+		shardCoordinator:      args.ShardCoordinator,
 		persistersMapByEpoch:  persistersMapByEpoch,
 		cacher:                cache,
 		bloomFilter:           nil,
-		dbPath:                filePath,
+		pathManager:           args.PathManager,
+		dbPath:                args.DbPath,
 		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
 		numOfActivePersisters: args.NumOfActivePersisters,
 	}
@@ -357,7 +366,7 @@ func (ps *PruningStorer) DestroyUnit() error {
 
 	var err error
 	numOfPersistersRemoved := 0
-	totalNumOfPersisters := len(ps.activePersisters)
+	totalNumOfPersisters := len(ps.persistersMapByEpoch)
 	for _, persisterData := range ps.persistersMapByEpoch {
 		if persisterData.isClosed {
 			err = persisterData.persister.DestroyClosed()
@@ -401,7 +410,9 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	filePath := ps.getNewFilePath(epoch)
+	shardId := getShardIdString(ps.shardCoordinator)
+	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
+	//filePath := ps.getNewFilePath(epoch)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
 		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
@@ -466,14 +477,13 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	return nil
 }
 
-// getNewFilePath will return the file path for the new epoch. It uses regex to change the default path
-func (ps *PruningStorer) getNewFilePath(epoch uint32) string {
-	// TODO: the path will be provided by a path naming component
-	// using a regex to match the epoch directory name as placeholder followed by at least one digit
-	// in a string which contains Epoch_X it will replace X with the given epoch number
-	rg := regexp.MustCompile(`Epoch_\d+`)
-	newEpochDirectoryName := fmt.Sprintf("%s_%d", DefaultEpochDirectoryName, epoch)
-	return rg.ReplaceAllString(ps.dbPath, newEpochDirectoryName)
+func getShardIdString(coordinator sharding.Coordinator) string {
+	shardIdStr := "metachain"
+	if coordinator.SelfId() < coordinator.NumberOfShards() {
+		shardIdStr = fmt.Sprintf("%d", coordinator.SelfId())
+	}
+
+	return shardIdStr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

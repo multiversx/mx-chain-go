@@ -49,16 +49,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
+	defaultStatsPath      = "stats"
+	defaultDBPath         = "db"
+	defaultEpochString    = "Epoch"
+	defaultStaticDbString = "Static"
+	defaultShardString    = "Shard"
+	metachainShardName    = "metachain"
 )
 
 var (
@@ -310,6 +312,9 @@ var dbIndexer indexer.Indexer
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
 
+// TODO: this will be calculated from storage or fetched from network
+var currentEpoch = uint32(0)
+
 // appVersion should be populated at build time using ldflags
 // Usage examples:
 // linux/mac:
@@ -537,23 +542,39 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
 	}
 
-	uniqueDBFolder := filepath.Join(
+	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		fmt.Sprintf("%s_%d", defaultEpochString, 0),
-		fmt.Sprintf("%s_%s", defaultShardString, shardId))
+		fmt.Sprintf("%s_[E]", defaultEpochString),
+		fmt.Sprintf("%s_[S]", defaultShardString),
+		"[I]")
+
+	pathTemplateForStaticStorer := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		defaultStaticDbString,
+		fmt.Sprintf("%s_[S]", defaultShardString),
+		"[I]")
+
+	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	if err != nil {
+		return err
+	}
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		log.Trace("cleaning storage", "path", uniqueDBFolder)
-		err = os.RemoveAll(uniqueDBFolder)
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err = os.RemoveAll(dbPath)
 		if err != nil {
 			return err
 		}
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -587,7 +608,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisConfig,
 		shardCoordinator,
 		coreComponents,
-		uniqueDBFolder,
+		pathManager,
 	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -658,7 +679,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder, epochStartNotifier)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
