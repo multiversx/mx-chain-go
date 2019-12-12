@@ -10,17 +10,13 @@ type RatingReader struct {
 
 //GetRating returns the Rating for the specified public key
 func (bsr *RatingReader) GetRating(pk string) uint32 {
-	bsr.mutReader.Lock()
 	rating := bsr.getRating(pk)
-	bsr.mutReader.Unlock()
 	return rating
 }
 
 //GetRatings gets all the ratings that the current rater has
 func (bsr *RatingReader) GetRatings(addresses []string) map[string]uint32 {
-	bsr.mutReader.Lock()
 	ratings := bsr.getRatings(addresses)
-	bsr.mutReader.Unlock()
 	return ratings
 }
 
