@@ -97,7 +97,10 @@ const OpGasValueForMockVm = uint64(50)
 var TimeSpanForBadHeaders = time.Second * 30
 
 // roundDuration defines the duration of the round
-const roundDuration = time.Duration(5 * time.Second)
+const roundDuration = 5 * time.Second
+
+// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
+var IntegrationTestsChainID = []byte("integration tests chain ID")
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -206,7 +209,7 @@ func NewTestProcessorNode(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           []byte("integration tests chain ID"),
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -239,6 +242,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

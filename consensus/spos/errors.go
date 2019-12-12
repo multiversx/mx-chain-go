@@ -156,6 +156,3 @@ var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
-
-// ErrInvalidHeader signals that the received header is invalid
-var ErrInvalidHeader = errors.New("invalid header")

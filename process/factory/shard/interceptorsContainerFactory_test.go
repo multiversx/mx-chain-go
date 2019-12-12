@@ -513,6 +513,7 @@ func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		nil,
 	)
 

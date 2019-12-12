@@ -506,12 +506,12 @@ func (wrk *Worker) displaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RUnlock()
 }
 
-//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()

@@ -65,7 +65,7 @@ func initWorker() *spos.Worker {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		&mock.HeaderSigVerifierStub{})
+		&mock.HeaderSigVerifierStub{},
 		chainID,
 	)
 
@@ -600,6 +600,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
 		nil,
 	)
 
@@ -697,7 +698,9 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		headerSigVerifier)
+		headerSigVerifier,
+		chainID,
+	)
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -711,6 +714,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		int(bn.MtBlockHeader),
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
+		chainID,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
@@ -1075,38 +1079,6 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
-	)
-	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
-	time.Sleep(time.Second)
-
-	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
-	assert.Equal(t, spos.ErrInvalidHeader, err)
-}
-
-func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	hdr := block.Header{Nonce: 1, Round: 1}
-	subRoundData, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	blkHeaderHash := mock.HasherMock{}.Compute(string(subRoundData))
-
-	wrk.SetBlockProcessor(
-		&mock.BlockProcessorMock{
-			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &hdr
-			},
-		},
-	)
-
-	cnsMsg := consensus.NewConsensusMessage(
-		blkHeaderHash,
-		subRoundData,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
-		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
