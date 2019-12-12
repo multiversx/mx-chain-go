@@ -27,8 +27,5 @@ func (tnrs *TrieNodesResolverStub) ProcessReceivedMessage(message p2p.MessageP2P
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnrs *TrieNodesResolverStub) IsInterfaceNil() bool {
-	if tnrs == nil {
-		return true
-	}
-	return false
+	return tnrs == nil
 }

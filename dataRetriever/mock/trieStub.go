@@ -97,10 +97,7 @@ func (ts *TrieStub) DeepClone() (data.Trie, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
-	if ts == nil {
-		return true
-	}
-	return false
+	return ts == nil
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
