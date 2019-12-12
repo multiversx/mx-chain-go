@@ -196,7 +196,6 @@ type PreProcessor interface {
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
-	//	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool) (*block.MiniBlock, error)
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler

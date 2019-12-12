@@ -790,7 +790,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -853,7 +853,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -923,7 +923,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))

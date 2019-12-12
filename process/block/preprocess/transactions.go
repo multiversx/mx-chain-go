@@ -477,7 +477,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	newMBAdded := true
 	txSpaceRemained := int(maxTxSpaceRemained)
 
-	miniBlock, err := txs.CreateAndProcessMiniBlock(
+	miniBlock, err := txs.createAndProcessMiniBlock(
 		txs.shardCoordinator.SelfId(),
 		sharding.MetachainShardId,
 		txSpaceRemained,
@@ -504,7 +504,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				break
 			}
 
-			miniBlock, err := txs.CreateAndProcessMiniBlock(
+			miniBlock, err := txs.createAndProcessMiniBlock(
 				txs.shardCoordinator.SelfId(),
 				shardId,
 				txSpaceRemained,
@@ -528,7 +528,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
-func (txs *transactions) CreateAndProcessMiniBlock(
+func (txs *transactions) createAndProcessMiniBlock(
 	senderShardId uint32,
 	receiverShardId uint32,
 	spaceRemained int,

@@ -72,7 +72,7 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	mrsTxs := make([][]byte, 0)
+	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txInfo := bpp.interResultsForBlock[string(txHash)]
 

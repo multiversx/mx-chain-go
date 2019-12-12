@@ -461,16 +461,6 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	return rewardTxs, txHashes, nil
 }
 
-// CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
-func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
-	_, _ uint32,
-	_ int,
-	_ func() bool,
-) (*block.MiniBlock, error) {
-
-	return nil, nil
-}
-
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
