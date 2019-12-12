@@ -482,7 +482,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		block.TxBlock,
 	)
 	txHash := []byte("tx1_hash")
-	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions())
+	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions(), false)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)

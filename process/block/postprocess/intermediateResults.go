@@ -60,6 +60,7 @@ func NewIntermediateResultsProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: coordinator,
 		store:            store,
+		storageType:      dataRetriever.UnsignedTransactionUnit,
 	}
 
 	irp := &intermediateResultsProcessor{

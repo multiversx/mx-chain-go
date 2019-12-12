@@ -298,7 +298,7 @@ func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (txs *transactions) receivedTransaction(txHash []byte) {
-	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.txsForCurrBlock, txs.txPool)
+	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.txsForCurrBlock, txs.txPool, txs.blockType)
 
 	if receivedAllMissing {
 		txs.chRcvAllTxs <- true
@@ -409,13 +409,15 @@ func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBloc
 		return nil
 	}
 
+	searchFirst := txs.blockType == block.InvalidBlock
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			txHash,
-			txs.txPool)
+			txs.txPool,
+			searchFirst)
 
 		if tx == nil || tx.IsInterfaceNil() {
 			missingTransactions = append(missingTransactions, txHash)

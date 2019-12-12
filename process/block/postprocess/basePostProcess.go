@@ -30,6 +30,7 @@ type basePostProcessor struct {
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	storageType      dataRetriever.UnitType
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
@@ -50,7 +51,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 			return err
 		}
 
-		errNotCritical := bpp.store.Put(dataRetriever.UnsignedTransactionUnit, bpp.hasher.Compute(string(buff)), buff)
+		errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
 			log.Debug("UnsignedTransactionUnit.Put", "error", errNotCritical.Error())
 		}

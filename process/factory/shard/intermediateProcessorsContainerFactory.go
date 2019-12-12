@@ -139,6 +139,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createReceiptIntermediatePro
 		ppcm.shardCoordinator,
 		ppcm.store,
 		block.ReceiptBlock,
+		dataRetriever.UnsignedTransactionUnit,
 	)
 
 	return irp, err
@@ -151,6 +152,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		ppcm.shardCoordinator,
 		ppcm.store,
 		block.InvalidBlock,
+		dataRetriever.TransactionUnit,
 	)
 
 	return irp, err

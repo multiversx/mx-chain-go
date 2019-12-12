@@ -27,6 +27,7 @@ func NewOneMiniBlockPostProcessor(
 	coordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 	blockType block.Type,
+	storageType dataRetriever.UnitType,
 ) (*oneMBPostProcessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -46,6 +47,7 @@ func NewOneMiniBlockPostProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: coordinator,
 		store:            store,
+		storageType:      storageType,
 	}
 
 	irp := &oneMBPostProcessor{

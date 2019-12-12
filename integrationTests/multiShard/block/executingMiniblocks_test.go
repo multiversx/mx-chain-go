@@ -232,10 +232,10 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:TRACE")
 
-	numOfShards := 1
-	nodesPerShard := 3
+	numOfShards := 2
+	nodesPerShard := 2
 	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
@@ -287,7 +287,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	time.Sleep(time.Second)
 	nrRoundsToTest := 10
-	for i := 0; i <= nrRoundsToTest; i++ {
+	for i := 0; i < nrRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
