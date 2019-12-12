@@ -47,7 +47,7 @@ type node interface {
 type snapshotsBuffer interface {
 	add([]byte, bool)
 	len() int
-	removeFirst() bool
+	removeFirst()
 	getFirst() *snapshotsQueueEntry
 	clone() snapshotsBuffer
 }

@@ -22,8 +22,8 @@ type TrieStub struct {
 	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier) error
 	ResetOldHashesCalled     func() [][]byte
 	AppendToOldHashesCalled  func([][]byte)
-	SnapshotCalled           func() error
-	CheckpointCalled         func() error
+	TakeSnapshotCalled       func() error
+	SetCheckpointCalled      func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
 }
@@ -140,16 +140,16 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	}
 }
 
-func (ts *TrieStub) Snapshot() error {
-	if ts.SnapshotCalled != nil {
-		return ts.SnapshotCalled()
+func (ts *TrieStub) TakeSnapshot() error {
+	if ts.TakeSnapshotCalled != nil {
+		return ts.TakeSnapshotCalled()
 	}
 	return nil
 }
 
-func (ts *TrieStub) Checkpoint() error {
-	if ts.CheckpointCalled != nil {
-		return ts.CheckpointCalled()
+func (ts *TrieStub) SetCheckpoint() error {
+	if ts.SetCheckpointCalled != nil {
+		return ts.SetCheckpointCalled()
 	}
 	return nil
 }

@@ -764,7 +764,7 @@ func getTrie(
 		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl)
 	if err != nil {
 		return nil, errors.New("error creating trieStorage: " + err.Error())
 	}
@@ -2330,7 +2330,7 @@ func generateInMemoryAccountsAdapter(
 		return nil, err
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), config.DBConfig{}, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, ewl)
 	if err != nil {
 		return nil, err
 	}

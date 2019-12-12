@@ -116,8 +116,8 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	Prune(rootHash []byte, identifier TriePruningIdentifier) error
-	Snapshot() error
-	Checkpoint() error
+	TakeSnapshot() error
+	SetCheckpoint() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	Database() DBWriteCacher
@@ -151,8 +151,8 @@ type TrieSyncer interface {
 type StorageManager interface {
 	Database() DBWriteCacher
 	SetDatabase(cacher DBWriteCacher)
-	Snapshot([]byte, marshal.Marshalizer, hashing.Hasher)
-	Checkpoint([]byte, marshal.Marshalizer, hashing.Hasher)
+	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
+	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error
 	CancelPrune([]byte)
 	MarkForEviction([]byte, [][]byte) error

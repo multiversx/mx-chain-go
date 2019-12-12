@@ -60,3 +60,6 @@ var ErrNilTrieStorage = errors.New("nil trie storage provided")
 
 // ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
 var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
+
+// ErrNilSnapshotDbConfig is raised when a nil snapshot db config is provided
+var ErrNilSnapshotDbConfig = errors.New("nil nil snapshot db config provided")

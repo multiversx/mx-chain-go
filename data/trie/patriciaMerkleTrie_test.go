@@ -35,7 +35,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
-	cfg := config.DBConfig{
+	cfg := &config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -514,7 +514,7 @@ func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
 	tr := initTrie()
 
 	_ = tr.Commit()
-	err := tr.Snapshot()
+	err := tr.TakeSnapshot()
 	assert.Nil(t, err)
 }
 
@@ -524,8 +524,8 @@ func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldNotFail(t *testing.T) {
 	tr, _ := initTrieMultipleValues(1000)
 
 	_ = tr.Commit()
-	_ = tr.Snapshot()
-	err := tr.Snapshot()
+	_ = tr.TakeSnapshot()
+	err := tr.TakeSnapshot()
 	assert.Nil(t, err)
 }
 
@@ -534,7 +534,7 @@ func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
 
 	tr := initTrie()
 
-	err := tr.Snapshot()
+	err := tr.TakeSnapshot()
 	assert.Equal(t, trie.ErrTrieNotCommitted, err)
 }
 
@@ -573,7 +573,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
-	_ = tr.Snapshot()
+	_ = tr.TakeSnapshot()
 	time.Sleep(time.Second)
 	_ = tr.Prune(rootHash, data.NewRoot)
 

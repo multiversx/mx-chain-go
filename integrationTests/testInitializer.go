@@ -228,7 +228,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
@@ -575,7 +575,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }

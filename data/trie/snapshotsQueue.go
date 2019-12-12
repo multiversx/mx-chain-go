@@ -39,7 +39,6 @@ func (sq *snapshotsQueue) len() int {
 
 func (sq *snapshotsQueue) clone() snapshotsBuffer {
 	sq.mut.Lock()
-	defer sq.mut.Unlock()
 
 	newQueue := make([]*snapshotsQueueEntry, len(sq.queue))
 	for i := range newQueue {
@@ -48,6 +47,8 @@ func (sq *snapshotsQueue) clone() snapshotsBuffer {
 			newDb:    sq.queue[i].newDb,
 		}
 	}
+
+	sq.mut.Unlock()
 
 	return &snapshotsQueue{queue: newQueue}
 }
@@ -59,10 +60,12 @@ func (sq *snapshotsQueue) getFirst() *snapshotsQueueEntry {
 	return sq.queue[0]
 }
 
-func (sq *snapshotsQueue) removeFirst() bool {
+func (sq *snapshotsQueue) removeFirst() {
 	sq.mut.Lock()
-	defer sq.mut.Unlock()
 
-	sq.queue = sq.queue[1:]
-	return len(sq.queue) == 0
+	if len(sq.queue) != 0 {
+		sq.queue = sq.queue[1:]
+	}
+
+	sq.mut.Unlock()
 }

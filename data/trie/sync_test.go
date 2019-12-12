@@ -38,7 +38,7 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
-	cfg := config.DBConfig{
+	cfg := &config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,

@@ -238,7 +238,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	store := createMemUnit()
 	evictionWaitListSize := 100
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
-	trieStorage, _ := trie.NewTrieStorageManager(store, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{

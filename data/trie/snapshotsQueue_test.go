@@ -26,8 +26,6 @@ func TestSnapshotsQueue_Add(t *testing.T) {
 }
 
 func TestSnapshotsQueue_AddConcurrently(t *testing.T) {
-	t.Parallel()
-
 	sq := newSnapshotsQueue()
 	numSnapshots := 100
 
@@ -68,6 +66,9 @@ func TestSnapshotsQueue_Clone(t *testing.T) {
 	newSq := sq.clone()
 	assert.Equal(t, sq.len(), newSq.len())
 
+	newSq, _ = newSq.(*snapshotsQueue)
+	assert.True(t, sq != newSq)
+
 	sq.queue[0].newDb = false
 	assert.True(t, newSq.getFirst().newDb)
 
@@ -100,6 +101,8 @@ func TestSnapshotsQueue_RemoveFirst(t *testing.T) {
 		sq.add([]byte(strconv.Itoa(i)), true)
 	}
 
-	assert.False(t, sq.removeFirst())
-	assert.True(t, sq.removeFirst())
+	sq.removeFirst()
+	assert.False(t, sq.len() == 0)
+	sq.removeFirst()
+	assert.True(t, sq.len() == 0)
 }

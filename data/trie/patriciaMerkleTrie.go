@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -41,13 +42,13 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 ) (*patriciaMerkleTrie, error) {
-	if trieStorage == nil || trieStorage.IsInterfaceNil() {
+	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
 	}
-	if msh == nil || msh.IsInterfaceNil() {
+	if check.IfNil(msh) {
 		return nil, ErrNilMarshalizer
 	}
-	if hsh == nil || hsh.IsInterfaceNil() {
+	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
 
@@ -311,16 +312,11 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 
 	if emptyTrie(root) {
 		clonedTrieStorage := tr.trieStorage.Clone()
-		newTr, err := NewTrie(
+		return NewTrie(
 			clonedTrieStorage,
 			tr.marshalizer,
 			tr.hasher,
 		)
-		if err != nil {
-			return nil, err
-		}
-
-		return newTr, nil
 	}
 
 	return tr.recreateFromDb(root)
@@ -416,8 +412,8 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	return oldHashes
 }
 
-// Checkpoint adds the current state of the trie to the snapshot database
-func (tr *patriciaMerkleTrie) Checkpoint() error {
+// SetCheckpoint adds the current state of the trie to the snapshot database
+func (tr *patriciaMerkleTrie) SetCheckpoint() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -426,13 +422,13 @@ func (tr *patriciaMerkleTrie) Checkpoint() error {
 	}
 
 	rootHash := tr.root.getHash()
-	tr.trieStorage.Checkpoint(rootHash, tr.marshalizer, tr.hasher)
+	tr.trieStorage.SetCheckpoint(rootHash, tr.marshalizer, tr.hasher)
 	return nil
 }
 
-// Snapshot creates a new database in which the current state of the trie is saved.
+// TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
-func (tr *patriciaMerkleTrie) Snapshot() error {
+func (tr *patriciaMerkleTrie) TakeSnapshot() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -441,7 +437,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 
 	rootHash := tr.root.getHash()
-	tr.trieStorage.Snapshot(rootHash, tr.marshalizer, tr.hasher)
+	tr.trieStorage.TakeSnapshot(rootHash, tr.marshalizer, tr.hasher)
 	return nil
 }
 
