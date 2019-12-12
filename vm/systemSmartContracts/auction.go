@@ -106,6 +106,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.slash(args)
 	case "get":
 		return s.get(args)
+	case "setConfig":
+		return s.setConfig(args)
 	}
 
 	//TODO: integrated into the protocol the calling the functions select and setConfig at end-of-epoch
