@@ -19,7 +19,6 @@ import (
 
 type intermediateResultsProcessor struct {
 	adrConv   state.AddressConverter
-	store     dataRetriever.StorageService
 	blockType block.Type
 	currTxs   dataRetriever.TransactionCacher
 
@@ -67,7 +66,6 @@ func NewIntermediateResultsProcessor(
 		basePostProcessor: base,
 		adrConv:           adrConv,
 		blockType:         blockType,
-		store:             store,
 		currTxs:           currTxs,
 	}
 

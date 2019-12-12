@@ -50,35 +50,35 @@ func NewOneMiniBlockPostProcessor(
 		storageType:      storageType,
 	}
 
-	irp := &oneMBPostProcessor{
+	opp := &oneMBPostProcessor{
 		basePostProcessor: base,
 		blockType:         blockType,
 	}
 
-	irp.interResultsForBlock = make(map[string]*txInfo, 0)
+	opp.interResultsForBlock = make(map[string]*txInfo)
 
-	return irp, nil
+	return opp, nil
 }
 
 // CreateAllInterMiniBlocks returns the miniblock for the current round created from the receipts/bad transactions
-func (irp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
-	selfId := irp.shardCoordinator.SelfId()
+func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+	selfId := opp.shardCoordinator.SelfId()
 
-	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
-	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
+	miniBlocks := make(map[uint32]*block.MiniBlock)
+	opp.mutInterResultsForBlock.Lock()
+	defer opp.mutInterResultsForBlock.Unlock()
 
-	if len(irp.interResultsForBlock) == 0 {
+	if len(opp.interResultsForBlock) == 0 {
 		return miniBlocks
 	}
 
 	miniBlocks[selfId] = &block.MiniBlock{
-		Type:            irp.blockType,
+		Type:            opp.blockType,
 		ReceiverShardID: selfId,
 		SenderShardID:   selfId,
 	}
 
-	for key := range irp.interResultsForBlock {
+	for key := range opp.interResultsForBlock {
 		miniBlocks[selfId].TxHashes = append(miniBlocks[selfId].TxHashes, []byte(key))
 	}
 
@@ -90,13 +90,13 @@ func (irp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 }
 
 // VerifyInterMiniBlocks verifies if the receipts/bad transactions added to the block are valid
-func (irp *oneMBPostProcessor) VerifyInterMiniBlocks(body block.Body) error {
-	scrMbs := irp.CreateAllInterMiniBlocks()
+func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body block.Body) error {
+	scrMbs := opp.CreateAllInterMiniBlocks()
 
 	verifiedOne := false
 	for i := 0; i < len(body); i++ {
 		mb := body[i]
-		if mb.Type != irp.blockType {
+		if mb.Type != opp.blockType {
 			continue
 		}
 
@@ -104,7 +104,7 @@ func (irp *oneMBPostProcessor) VerifyInterMiniBlocks(body block.Body) error {
 			return process.ErrTooManyReceiptsMiniBlocks
 		}
 
-		err := irp.verifyMiniBlock(scrMbs, mb)
+		err := opp.verifyMiniBlock(scrMbs, mb)
 		if err != nil {
 			return err
 		}
@@ -116,27 +116,27 @@ func (irp *oneMBPostProcessor) VerifyInterMiniBlocks(body block.Body) error {
 }
 
 // AddIntermediateTransactions adds receipts/bad transactions resulting from transaction processor
-func (irp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.TransactionHandler) error {
-	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
+func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+	opp.mutInterResultsForBlock.Lock()
+	defer opp.mutInterResultsForBlock.Unlock()
 
-	selfId := irp.shardCoordinator.SelfId()
+	selfId := opp.shardCoordinator.SelfId()
 
 	for i := 0; i < len(txs); i++ {
-		receiptHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, txs[i])
+		receiptHash, err := core.CalculateHash(opp.marshalizer, opp.hasher, txs[i])
 		if err != nil {
 			return err
 		}
 
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
-		irp.interResultsForBlock[string(receiptHash)] = scrInfo
+		opp.interResultsForBlock[string(receiptHash)] = scrInfo
 	}
 
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (irp *oneMBPostProcessor) IsInterfaceNil() bool {
-	return irp == nil
+func (opp *oneMBPostProcessor) IsInterfaceNil() bool {
+	return opp == nil
 }

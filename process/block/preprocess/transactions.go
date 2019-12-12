@@ -1,7 +1,7 @@
 package preprocess
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 	"sync"
 	"time"
@@ -258,7 +258,7 @@ func (txs *transactions) ProcessBlockTransactions(
 				miniBlock.ReceiverShardID,
 			)
 
-			if err != nil && err != process.ErrFailedTransaction {
+			if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 				return err
 			}
 
@@ -378,7 +378,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.txPool.RemoveData(transactionHash, strCache)
 	}
 
-	if err != nil && err != process.ErrFailedTransaction {
+	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		return err
 	}
 
@@ -606,7 +606,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			miniBlock.ReceiverShardID,
 		)
 
-		if err != nil && err != process.ErrFailedTransaction {
+		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", orderedTxHashes[index],
@@ -626,7 +626,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			continue
 		}
 
-		if err != process.ErrFailedTransaction {
+		if !errors.Is(err, process.ErrFailedTransaction) {
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		}
 		addedTxs++
@@ -637,24 +637,26 @@ func (txs *transactions) createAndProcessMiniBlock(
 				"total txs", len(orderedTxs),
 			)
 
-			log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-				gasConsumedByMiniBlockInSenderShard,
-				gasConsumedByMiniBlockInReceiverShard,
-				txs.gasHandler.TotalGasConsumed(),
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
+			log.Debug("miniblock created",
+				"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
+				"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
+				"total gas in self shard", txs.gasHandler.TotalGasConsumed(), //what is this?
+				"added num txs", len(miniBlock.TxHashes),
+				"total num txs", len(orderedTxs),
+			)
 
 			return miniBlock, nil
 		}
 	}
 
 	if addedTxs > 0 {
-		log.Debug(fmt.Sprintf("gas reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
-			gasConsumedByMiniBlockInSenderShard,
-			gasConsumedByMiniBlockInReceiverShard,
-			txs.gasHandler.TotalGasConsumed(),
-			len(miniBlock.TxHashes),
-			len(orderedTxs)))
+		log.Debug("miniblock created",
+			"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
+			"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
+			"total gas in self shard", txs.gasHandler.TotalGasConsumed(), //what is this?
+			"added num txs", len(miniBlock.TxHashes),
+			"total num txs", len(orderedTxs),
+		)
 	}
 
 	return miniBlock, nil

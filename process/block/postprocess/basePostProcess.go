@@ -63,8 +63,8 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 // CreateBlockStarted cleans the local cache map for processed/created intermediate transactions at this round
 func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
-	defer bpp.mutInterResultsForBlock.Unlock()
-	bpp.interResultsForBlock = make(map[string]*txInfo, 0)
+	bpp.interResultsForBlock = make(map[string]*txInfo)
+	bpp.mutInterResultsForBlock.Unlock()
 }
 
 // CreateMarshalizedData creates the marshalized data for broadcasting purposes
@@ -75,7 +75,6 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txInfo := bpp.interResultsForBlock[string(txHash)]
-
 		if txInfo == nil || txInfo.tx == nil {
 			continue
 		}

@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -115,8 +116,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
-		if err == process.ErrInsufficientFunds {
-			receiptErr := txProc.createReceiptsWhenFail(tx, acntSnd)
+		if errors.Is(err, process.ErrInsufficientFunds) {
+			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return receiptErr
 			}
@@ -141,7 +142,11 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 	return process.ErrWrongTransaction
 }
 
-func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (txProc *txProcessor) executingFailedTransaction(
+	tx *transaction.Transaction,
+	acntSnd state.AccountHandler,
+	txError error,
+) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -180,7 +185,7 @@ func (txProc *txProcessor) createReceiptsWhenFail(tx *transaction.Transaction, a
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(cost),
 		SndAddr: tx.SndAddr,
-		Data:    "invalidTransaction",
+		Data:    txError.Error(),
 		TxHash:  txHash,
 	}
 
@@ -238,7 +243,7 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	err := txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
-		receiptErr := txProc.createReceiptsWhenFail(tx, acntSnd)
+		receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 		if receiptErr != nil {
 			return nil, receiptErr
 		}

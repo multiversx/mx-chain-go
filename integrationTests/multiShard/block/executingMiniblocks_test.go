@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -143,8 +142,6 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
-
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 2
@@ -231,8 +228,6 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	numOfShards := 2
 	nodesPerShard := 2

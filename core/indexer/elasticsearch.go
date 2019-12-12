@@ -620,7 +620,7 @@ func getTransactionByType(
 	}
 
 	currentReceipt, ok := tx.(*receipt.Receipt)
-	if ok && currentReward != nil {
+	if ok && currentReceipt != nil {
 		return buildReceiptTransaction(currentReceipt, txHash, mbHash, blockHash, mb, header)
 	}
 
