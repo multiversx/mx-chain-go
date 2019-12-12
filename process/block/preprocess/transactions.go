@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -409,8 +410,9 @@ func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBloc
 		return nil
 	}
 
+	missingTransactions := make([][]byte, 0, len(miniBlock.TxHashes))
 	searchFirst := txs.blockType == block.InvalidBlock
-	missingTransactions := make([][]byte, 0)
+
 	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
 			miniBlock.SenderShardID,
@@ -424,7 +426,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBloc
 		}
 	}
 
-	return missingTransactions
+	return sliceUtil.TrimSliceSliceByte(missingTransactions)
 }
 
 // getAllTxsFromMiniBlock gets all the transactions from a miniblock into a new structure
@@ -440,8 +442,8 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	}
 
 	// verify if all transaction exists
-	transactions := make([]*transaction.Transaction, 0)
-	txHashes := make([][]byte, 0)
+	transactions := make([]*transaction.Transaction, 0, len(mb.TxHashes))
+	txHashes := make([][]byte, 0, len(mb.TxHashes))
 	for _, txHash := range mb.TxHashes {
 		if !haveTime() {
 			return nil, nil, process.ErrTimeIsOut
@@ -782,15 +784,16 @@ func SortTxByNonce(txShardPool storage.Cacher) ([]*transaction.Transaction, [][]
 		return nil, nil, process.ErrNilTxDataPool
 	}
 
-	transactions := make([]*transaction.Transaction, 0)
-	txHashes := make([][]byte, 0)
+	keys := txShardPool.Keys()
+	transactions := make([]*transaction.Transaction, 0, len(keys))
+	txHashes := make([][]byte, 0, len(keys))
 
-	mTxHashes := make(map[uint64][][]byte)
-	mTransactions := make(map[uint64][]*transaction.Transaction)
+	mTxHashes := make(map[uint64][][]byte, len(keys))
+	mTransactions := make(map[uint64][]*transaction.Transaction, len(keys))
 
-	nonces := make([]uint64, 0)
+	nonces := make([]uint64, 0, len(keys))
 
-	for _, key := range txShardPool.Keys() {
+	for _, key := range keys {
 		val, _ := txShardPool.Peek(key)
 		if val == nil {
 			continue
@@ -824,7 +827,7 @@ func SortTxByNonce(txShardPool storage.Cacher) ([]*transaction.Transaction, [][]
 		}
 	}
 
-	return transactions, txHashes, nil
+	return transaction.TrimSlicePtr(transactions), sliceUtil.TrimSliceSliceByte(txHashes), nil
 }
 
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
@@ -843,10 +846,11 @@ func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Tra
 		return nil, nil, process.ErrNilCacher
 	}
 
-	transactions := make([]*transaction.Transaction, 0)
-	txHashes := make([][]byte, 0)
+	keys := txShardStore.Keys()
+	transactions := make([]*transaction.Transaction, 0, len(keys))
+	txHashes := make([][]byte, 0, len(keys))
 
-	for _, key := range txShardStore.Keys() {
+	for _, key := range keys {
 		val, _ := txShardStore.Peek(key)
 		if val == nil {
 			continue
@@ -861,12 +865,12 @@ func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Tra
 		transactions = append(transactions, tx)
 	}
 
-	return transactions, txHashes, nil
+	return transaction.TrimSlicePtr(transactions), sliceUtil.TrimSliceSliceByte(txHashes), nil
 }
 
 // GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
 func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler)
+	txPool := make(map[string]data.TransactionHandler, len(txs.txsForCurrBlock.txHashAndInfo))
 
 	txs.txsForCurrBlock.mutTxsForBlock.RLock()
 	for txHash, txInfo := range txs.txsForCurrBlock.txHashAndInfo {

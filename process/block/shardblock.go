@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -396,7 +397,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 		return
 	}
 
-	sortedHdrs := make([]data.HeaderHandler, 0)
+	sortedHdrs := make([]data.HeaderHandler, 0, len(orderedMetaBlocks))
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
 		if !ok {
@@ -516,7 +517,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		return process.ErrNilMetaHeadersNoncesDataPool
 	}
 
-	mapMetaHashMiniBlockHashes := make(map[string][][]byte, 0)
+	mapMetaHashMiniBlockHashes := make(map[string][][]byte, len(metaBlockHashes))
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -854,9 +855,9 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	processedHdrs []data.HeaderHandler,
 ) ([]data.HeaderHandler, [][]byte, error) {
 
-	ownShIdHdrs := make([]data.HeaderHandler, 0)
-
 	process.SortHeadersByNonce(processedHdrs)
+
+	ownShIdHdrs := make([]data.HeaderHandler, 0, len(processedHdrs))
 
 	for i := 0; i < len(processedHdrs); i++ {
 		hdr, ok := processedHdrs[i].(*block.MetaBlock)
@@ -884,7 +885,7 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 }
 
 func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
-	ownShIdHdr := make([]data.HeaderHandler, 0)
+	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.ShardInfo))
 
 	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
@@ -913,7 +914,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 		return nil, errFound
 	}
 
-	return ownShIdHdr, nil
+	return data.TrimHeaderHandlerSlice(ownShIdHdr), nil
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
@@ -985,7 +986,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	usedMiniBlocks []*block.MiniBlock,
 ) ([]data.HeaderHandler, error) {
 
-	miniBlockHashes := make(map[int][]byte)
+	miniBlockHashes := make(map[int][]byte, len(usedMiniBlocks))
 	for i := 0; i < len(usedMiniBlocks); i++ {
 		if usedMiniBlocks[i].SenderShardID == sp.shardCoordinator.SelfId() {
 			continue
@@ -1012,8 +1013,8 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 	miniBlockHashes map[int][]byte,
 ) ([]data.HeaderHandler, error) {
 
-	processedMetaHdrs := make([]data.HeaderHandler, 0)
-	processedCrossMiniBlocksHashes := make(map[string]bool)
+	processedMetaHdrs := make([]data.HeaderHandler, 0, len(sp.hdrsForCurrBlock.hdrHashAndInfo))
+	processedCrossMiniBlocksHashes := make(map[string]bool, len(sp.hdrsForCurrBlock.hdrHashAndInfo))
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
@@ -1256,7 +1257,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 }
 
 func (sp *shardProcessor) computeMissingAndExistingMetaHeaders(header *block.Header) [][]byte {
-	missingHeadersHashes := make([][]byte, 0)
+	missingHeadersHashes := make([][]byte, 0, len(header.MetaBlockHashes))
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
@@ -1278,7 +1279,7 @@ func (sp *shardProcessor) computeMissingAndExistingMetaHeaders(header *block.Hea
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return missingHeadersHashes
+	return sliceUtil.TrimSliceSliceByte(missingHeadersHashes)
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header *block.Header) error {
@@ -1696,7 +1697,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte)
+	mrsData := make(map[uint32][]byte, sp.shardCoordinator.NumberOfShards()+1)
 	bodies, mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	for shardId, subsetBlockBody := range bodies {

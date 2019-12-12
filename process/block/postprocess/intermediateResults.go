@@ -78,7 +78,7 @@ func NewIntermediateResultsProcessor(
 
 // CreateAllInterMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
 func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
-	miniBlocks := make(map[uint32]*block.MiniBlock)
+	miniBlocks := make(map[uint32]*block.MiniBlock, int(irp.shardCoordinator.NumberOfShards())+1)
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}

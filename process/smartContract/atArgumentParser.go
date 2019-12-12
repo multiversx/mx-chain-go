@@ -90,7 +90,7 @@ func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageU
 		return nil, process.ErrInvalidDataInput
 	}
 
-	storageUpdates := make([]*vmcommon.StorageUpdate, 0)
+	storageUpdates := make([]*vmcommon.StorageUpdate, 0, len(splitString))
 	for i := 0; i < len(splitString); i += 2 {
 		offset, err := hex.DecodeString(splitString[i])
 		if err != nil {
