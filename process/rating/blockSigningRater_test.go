@@ -1,13 +1,13 @@
 package rating_test
 
 import (
-	config2 "github.com/ElrondNetwork/elrond-go/config"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/stretchr/testify/assert"
-
-	"testing"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 )
 
 func createDefaultRatingsData() *economics.RatingsData {
-	config := config2.RatingSettings{
+	data := config.RatingSettings{
 		StartRating:                 startRating,
 		MaxRating:                   maxRating,
 		MinRating:                   minRating,
@@ -31,7 +31,7 @@ func createDefaultRatingsData() *economics.RatingsData {
 		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
 	}
 
-	ratingsData, _ := economics.NewRatingsData(config)
+	ratingsData, _ := economics.NewRatingsData(data)
 	return ratingsData
 }
 
