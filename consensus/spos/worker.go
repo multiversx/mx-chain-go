@@ -34,6 +34,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
+	headerSigVerifier  RandSeedVerifier
 	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
@@ -64,6 +65,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -80,6 +82,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
+		headerSigVerifier,
 		chainID,
 	)
 	if err != nil {
@@ -100,6 +103,7 @@ func NewWorker(
 		shardCoordinator:   shardCoordinator,
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
+		headerSigVerifier:  headerSigVerifier,
 		chainID:            chainID,
 	}
 
@@ -130,46 +134,50 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	chainID []byte,
 ) error {
-	if consensusService == nil || consensusService.IsInterfaceNil() {
+	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
 	}
-	if blockChain == nil || blockChain.IsInterfaceNil() {
+	if check.IfNil(blockChain) {
 		return ErrNilBlockChain
 	}
-	if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
+	if check.IfNil(blockProcessor) {
 		return ErrNilBlockProcessor
 	}
-	if bootstrapper == nil || bootstrapper.IsInterfaceNil() {
+	if check.IfNil(bootstrapper) {
 		return ErrNilBootstrapper
 	}
-	if broadcastMessenger == nil || broadcastMessenger.IsInterfaceNil() {
+	if check.IfNil(broadcastMessenger) {
 		return ErrNilBroadcastMessenger
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if check.IfNil(forkDetector) {
 		return ErrNilForkDetector
 	}
-	if keyGenerator == nil || keyGenerator.IsInterfaceNil() {
+	if check.IfNil(keyGenerator) {
 		return ErrNilKeyGenerator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return ErrNilMarshalizer
 	}
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return ErrNilRounder
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return ErrNilSingleSigner
 	}
-	if syncTimer == nil || syncTimer.IsInterfaceNil() {
+	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(headerSigVerifier) {
+		return ErrNilHeaderSigVerifier
 	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
@@ -282,10 +290,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
-		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
-		isHeaderValid := !check.IfNil(header) && headerHash != nil
-		if !isHeaderValid {
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			return err
+		}
+
+		isHeaderInvalid := check.IfNil(header) || headerHash == nil
+		if isHeaderInvalid {
 			return ErrInvalidHeader
 		}
 
@@ -299,9 +310,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			)
 		}
 
-		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if errNotCritical != nil {
-			log.Debug("add header in forkdetector", "error", errNotCritical.Error())
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			return err
 		}
 
 		log.Debug("received proposed block",

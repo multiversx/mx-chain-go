@@ -43,6 +43,7 @@ func NewTestSyncNode(
 			},
 		},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
 	}
 
 	kg := &mock.KeyGenMock{}

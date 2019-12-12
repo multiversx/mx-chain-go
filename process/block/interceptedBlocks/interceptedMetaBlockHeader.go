@@ -5,13 +5,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
 	hdr              *block.MetaBlock
-	sigVerifier      *headerSigVerifier
+	sigVerifier      process.InterceptedHeaderSigVerifier
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
 	hash             []byte
@@ -30,25 +31,13 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 
-	sigVerifier := &headerSigVerifier{
-		marshalizer:       arg.Marshalizer,
-		hasher:            arg.Hasher,
-		nodesCoordinator:  arg.NodesCoordinator,
-		singleSigVerifier: arg.SingleSigVerifier,
-		multiSigVerifier:  arg.MultiSigVerifier,
-		keyGen:            arg.KeyGen,
-	}
-
 	inHdr := &InterceptedMetaHeader{
 		hdr:              hdr,
 		hasher:           arg.Hasher,
-		sigVerifier:      sigVerifier,
+		sigVerifier:      arg.HeaderSigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
 		chainID:          arg.ChainID,
 	}
-	//wire-up the "virtual" function
-	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
-	inHdr.sigVerifier.copyHeaderWithoutLeaderSig = inHdr.copyHeaderWithoutLeaderSig
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
@@ -65,28 +54,6 @@ func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Meta
 	}
 
 	return hdr, nil
-}
-
-func (imh *InterceptedMetaHeader) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.MetaBlock)
-
-	headerCopy := *hdr
-	headerCopy.Signature = nil
-	headerCopy.PubKeysBitmap = nil
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
-}
-
-func (imh *InterceptedMetaHeader) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.MetaBlock)
-
-	headerCopy := *hdr
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
 }
 
 func (imh *InterceptedMetaHeader) processFields(txBuff []byte) {
@@ -110,12 +77,12 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	err = imh.sigVerifier.verifyRandSeedAndLeaderSignature(imh.hdr)
+	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
 
-	err = imh.sigVerifier.verifySig(imh.hdr)
+	err = imh.sigVerifier.VerifySignature(imh.hdr)
 	if err != nil {
 		return err
 	}

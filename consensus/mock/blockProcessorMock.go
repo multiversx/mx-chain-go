@@ -25,6 +25,10 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
+func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+
+}
+
 func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
 
 }

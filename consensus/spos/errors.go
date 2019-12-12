@@ -121,6 +121,9 @@ var ErrMessageForPastRound = errors.New("message is for past round")
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
 
+// ErrInvalidHeader is raised when header is invalid
+var ErrInvalidHeader = errors.New("header is invalid")
+
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
 
@@ -147,6 +150,9 @@ var ErrNilExecuteStoredMessages = errors.New("executeStoredMessages is nil")
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
+var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")

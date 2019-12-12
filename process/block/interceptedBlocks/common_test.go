@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -13,18 +12,11 @@ import (
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier: mock.NewMultiSigner(),
-		Hasher:           mock.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		NodesCoordinator: mock.NewNodesCoordinatorMock(),
-		HdrBuff:          []byte("test buffer"),
-		KeyGen: &mock.SingleSignKeyGenMock{
-			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
-				return nil, nil
-			},
-		},
-		SingleSigVerifier: &mock.SignerMock{},
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		Hasher:            mock.HasherMock{},
+		Marshalizer:       &mock.MarshalizerMock{},
+		HdrBuff:           []byte("test buffer"),
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
 	}
 
@@ -97,6 +89,17 @@ func TestCheckBlockHeaderArgument_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestCheckBlockHeaderArgument_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.HeaderSigVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
 func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -108,28 +111,6 @@ func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestCheckBlockHeaderArgument_NilMultiSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultBlockHeaderArgument()
-	arg.MultiSigVerifier = nil
-
-	err := checkBlockHeaderArgument(arg)
-
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestCheckBlockHeaderArgument_NilChronologyValidatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultBlockHeaderArgument()
-	arg.NodesCoordinator = nil
-
-	err := checkBlockHeaderArgument(arg)
-
-	assert.Equal(t, process.ErrNilNodesCoordinator, err)
-}
-
 func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -139,28 +120,6 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestCheckBlockHeaderArgument_NilKeyGenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultBlockHeaderArgument()
-	arg.KeyGen = nil
-
-	err := checkBlockHeaderArgument(arg)
-
-	assert.Equal(t, process.ErrNilKeyGen, err)
-}
-
-func TestCheckBlockHeaderArgument_NilSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultBlockHeaderArgument()
-	arg.SingleSigVerifier = nil
-
-	err := checkBlockHeaderArgument(arg)
-
-	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
 func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {

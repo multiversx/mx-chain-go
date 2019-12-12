@@ -109,6 +109,7 @@ type Node struct {
 	blackListHandler      process.BlackListHandler
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	headerSigVerifier     spos.RandSeedVerifier
 
 	chainID []byte
 }
@@ -281,6 +282,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
+		n.headerSigVerifier,
 		n.chainID,
 	)
 	if err != nil {
