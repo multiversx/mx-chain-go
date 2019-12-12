@@ -884,6 +884,9 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.saveMetricCrossCheckBlockHeight()
 
+	//TODO: Cleanup tracker pool should be called before set of next last notarized
+	mp.cleanupTrackerPool()
+
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err

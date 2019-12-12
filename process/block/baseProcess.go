@@ -863,11 +863,8 @@ func (bp *baseProcessor) cleanupPools(
 	headersPool storage.Cacher,
 	notarizedHeadersPool storage.Cacher,
 ) {
-	bp.blockTracker.CleanupHeadersForShardBehindNonce(
-		bp.shardCoordinator.SelfId(),
-		bp.forkDetector.GetHighestFinalBlockNonce(),
-		0,
-	)
+	bp.mutNotarizedHdrs.RLock()
+	defer bp.mutNotarizedHdrs.RUnlock()
 
 	bp.removeHeadersBehindNonceFromPools(
 		true,
@@ -885,15 +882,6 @@ func (bp *baseProcessor) cleanupPools(
 		if check.IfNil(lastNotarizedHdr) {
 			continue
 		}
-
-		// TODO: The second parameter in this call (selfNotarizedNonce), in case of metachain node, could be also the
-		// highest final metachain block nonce in the vision of the given shard. If we need later these info from
-		// block tracker, we should cleanup only below this threshold
-		bp.blockTracker.CleanupHeadersForShardBehindNonce(
-			shardId,
-			bp.forkDetector.GetHighestFinalBlockNonce(),
-			lastNotarizedHdr.GetNonce(),
-		)
 
 		bp.removeHeadersBehindNonceFromPools(
 			false,
@@ -913,7 +901,6 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	shardId uint32,
 	nonce uint64,
 ) {
-
 	if nonce <= 1 {
 		return
 	}
@@ -1130,4 +1117,35 @@ func (bp *baseProcessor) commitAll() error {
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) cleanupTrackerPool() {
+	bp.mutNotarizedHdrs.RLock()
+	defer bp.mutNotarizedHdrs.RUnlock()
+
+	go bp.blockTracker.CleanupHeadersForShardBehindNonce(
+		bp.shardCoordinator.SelfId(),
+		bp.forkDetector.GetHighestFinalBlockNonce(),
+		0,
+	)
+
+	for shardId := range bp.notarizedHdrs {
+		if shardId == bp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
+		if check.IfNil(lastNotarizedHdr) {
+			continue
+		}
+
+		// TODO: The second parameter in this call (selfNotarizedNonce), in case of metachain node, could be also the
+		// highest final metachain block nonce in the vision of the given shard. If we need later these info from
+		// block tracker, we should cleanup only below this threshold
+		go bp.blockTracker.CleanupHeadersForShardBehindNonce(
+			shardId,
+			bp.forkDetector.GetHighestFinalBlockNonce(),
+			lastNotarizedHdr.GetNonce(),
+		)
+	}
 }

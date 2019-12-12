@@ -887,51 +887,51 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	assert.True(t, receivedTooLate)
 }
 
-//func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
-//	t.Parallel()
-//
-//	rounderMock := &mock.RounderMock{RoundIndex: 10}
-//	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
-//	hdr1 := &block.Header{Nonce: 3, Round: 3}
-//	hash1 := []byte("hash1")
-//	hdr2 := &block.Header{Nonce: 3, Round: 3}
-//	hash2 := []byte("hash2")
-//	hdr3 := &block.Header{Nonce: 4, Round: 5}
-//	hash3 := []byte("hash3")
-//
-//	hdrs := make([]data.HeaderHandler, 0)
-//	hashes := make([][]byte, 0)
-//	hdrs = append(hdrs, hdr1)
-//	hashes = append(hashes, hash1)
-//
-//	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
-//	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
-//
-//	sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
-//	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
-//
-//	hdrs = make([]data.HeaderHandler, 0)
-//	hashes = make([][]byte, 0)
-//	hdrs = append(hdrs, hdr2)
-//	hashes = append(hashes, hash2)
-//
-//	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
-//	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
-//
-//	sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
-//	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
-//
-//	hdrs = make([]data.HeaderHandler, 0)
-//	hashes = make([][]byte, 0)
-//	hdrs = append(hdrs, hdr3)
-//	hashes = append(hashes, hash3)
-//
-//	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
-//	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
-//
-//	sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
-//	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
-//}
+func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
+	hdr1 := &block.Header{Nonce: 3, Round: 3}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 3, Round: 3}
+	hash2 := []byte("hash2")
+	hdr3 := &block.Header{Nonce: 4, Round: 5}
+	hash3 := []byte("hash3")
+
+	hdrs := make([]data.HeaderHandler, 0)
+	hashes := make([][]byte, 0)
+	hdrs = append(hdrs, hdr1)
+	hashes = append(hashes, hash1)
+
+	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
+
+	sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr2)
+	hashes = append(hashes, hash2)
+
+	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
+	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr3)
+	hashes = append(hashes, hash3)
+
+	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
+
+	sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
+	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
+}
 
 func TestBaseForkDetector_ActivateForcedForkIfNeededStateNotProposedShouldNotActivate(t *testing.T) {
 	t.Parallel()
