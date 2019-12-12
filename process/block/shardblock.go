@@ -260,6 +260,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	//TODO: This part of code should be removed, it has been used only for debugging
+	trieRootHashBefore, err := sp.accounts.RootHash()
+	if err != nil {
+		return err
+	}
+
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	elapsedTime := time.Since(startTime)
@@ -269,6 +275,19 @@ func (sp *shardProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+
+	//TODO: This part of code should be removed, it has been used only for debugging
+	trieRootHashAfter, err := sp.accounts.RootHash()
+	if err != nil {
+		return err
+	}
+
+	//TODO: This part of code should be removed, it has been used only for debugging
+	log.Debug("root hash info",
+		"header root hash ", header.RootHash,
+		"trie root hash before", trieRootHashBefore,
+		"trie root hash after", trieRootHashAfter,
+	)
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
 	if err != nil {
@@ -765,10 +784,6 @@ func (sp *shardProcessor) CommitBlock(
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
-
-	log.Debug("validator info on block ",
-		"nonce", header.Nonce,
-		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
 
 	sp.mutProcessedMiniBlocks.RLock()
 	//TODO remove this
