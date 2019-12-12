@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,27 +11,27 @@ import (
 func TestNewAtArgumentParser(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
 	args, err := parser.GetArguments()
 	assert.Nil(t, args)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, vmcommon.ErrNilArguments, err)
 
 	code, err := parser.GetCode()
 	assert.Nil(t, code)
-	assert.Equal(t, process.ErrNilCode, err)
+	assert.Equal(t, vmcommon.ErrNilCode, err)
 
 	function, err := parser.GetFunction()
 	assert.Equal(t, "", function)
-	assert.Equal(t, process.ErrNilFunction, err)
+	assert.Equal(t, vmcommon.ErrNilFunction, err)
 }
 
 func TestAtArgumentParser_GetArguments(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -48,7 +47,7 @@ func TestAtArgumentParser_GetArguments(t *testing.T) {
 func TestAtArgumentParser_GetArgumentsEmpty(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -64,7 +63,7 @@ func TestAtArgumentParser_GetArgumentsEmpty(t *testing.T) {
 func TestAtArgumentParser_GetCode(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -80,22 +79,22 @@ func TestAtArgumentParser_GetCode(t *testing.T) {
 func TestAtArgumentParser_GetCodeEmpty(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
 	err = parser.ParseData("@aaaa")
-	assert.Equal(t, process.ErrStringSplitFailed, err)
+	assert.Equal(t, vmcommon.ErrStringSplitFailed, err)
 
 	code, err := parser.GetCode()
-	assert.Equal(t, process.ErrNilCode, err)
+	assert.Equal(t, vmcommon.ErrNilCode, err)
 	assert.Nil(t, code)
 }
 
 func TestAtArgumentParser_GetFunction(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -111,22 +110,22 @@ func TestAtArgumentParser_GetFunction(t *testing.T) {
 func TestAtArgumentParser_GetFunctionEmpty(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
 	err = parser.ParseData("@a")
-	assert.Equal(t, process.ErrStringSplitFailed, err)
+	assert.Equal(t, vmcommon.ErrStringSplitFailed, err)
 
 	function, err := parser.GetFunction()
-	assert.Equal(t, process.ErrNilFunction, err)
+	assert.Equal(t, vmcommon.ErrNilFunction, err)
 	assert.Equal(t, 0, len(function))
 }
 
 func TestAtArgumentParser_ParseData(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -137,18 +136,18 @@ func TestAtArgumentParser_ParseData(t *testing.T) {
 func TestAtArgumentParser_ParseDataEmpty(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
 	err = parser.ParseData("")
-	assert.Equal(t, process.ErrStringSplitFailed, err)
+	assert.Equal(t, vmcommon.ErrStringSplitFailed, err)
 }
 
 func TestAtArgumentParser_CreateDataFromStorageUpdate(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -181,20 +180,20 @@ func TestAtArgumentParser_CreateDataFromStorageUpdate(t *testing.T) {
 func TestAtArgumentParser_GetStorageUpdatesEmptyData(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
 	stUpdates, err := parser.GetStorageUpdates("")
 
 	assert.Nil(t, stUpdates)
-	assert.Equal(t, process.ErrStringSplitFailed, err)
+	assert.Equal(t, vmcommon.ErrStringSplitFailed, err)
 }
 
 func TestAtArgumentParser_GetStorageUpdatesWrongData(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
@@ -214,13 +213,13 @@ func TestAtArgumentParser_GetStorageUpdatesWrongData(t *testing.T) {
 	stUpdates, err := parser.GetStorageUpdates(result)
 
 	assert.Nil(t, stUpdates)
-	assert.Equal(t, process.ErrInvalidDataInput, err)
+	assert.Equal(t, vmcommon.ErrInvalidDataString, err)
 }
 
 func TestAtArgumentParser_GetStorageUpdates(t *testing.T) {
 	t.Parallel()
 
-	parser, err := NewAtArgumentParser()
+	parser, err := vmcommon.NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
