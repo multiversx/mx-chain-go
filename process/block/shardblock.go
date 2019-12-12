@@ -259,12 +259,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	//TODO: This part of code should be removed, it has been used only for debugging
-	trieRootHashBefore, err := sp.accounts.RootHash()
-	if err != nil {
-		return err
-	}
-
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	elapsedTime := time.Since(startTime)
@@ -274,19 +268,6 @@ func (sp *shardProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
-
-	//TODO: This part of code should be removed, it has been used only for debugging
-	trieRootHashAfter, err := sp.accounts.RootHash()
-	if err != nil {
-		return err
-	}
-
-	//TODO: This part of code should be removed, it has been used only for debugging
-	log.Debug("root hash info",
-		"header root hash ", header.RootHash,
-		"trie root hash before", trieRootHashBefore,
-		"trie root hash after", trieRootHashAfter,
-	)
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
 	if err != nil {
@@ -786,19 +767,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.mutProcessedMiniBlocks.RLock()
-	//TODO remove this
-	log.Debug("processed mini blocks on commit block")
-	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
-		log.Debug("processed",
-			"meta block hash", []byte(metaBlockHash))
-
-		for miniBlockHash := range miniBlocksHashes {
-			log.Debug("processed",
-				"mini block hash", []byte(miniBlockHash))
-
-		}
-	}
-
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 

@@ -377,21 +377,6 @@ func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Unlock()
 }
 
-func (bp *baseProcessor) getLastNotarizedHdrsNonces() map[uint32]uint64 {
-	mapShardNonce := make(map[uint32]uint64)
-
-	bp.mutNotarizedHdrs.Lock()
-	for shardId := range bp.notarizedHdrs {
-		header := bp.lastNotarizedHdrForShard(shardId)
-		if header != nil {
-			mapShardNonce[shardId] = header.GetNonce()
-		}
-	}
-	bp.mutNotarizedHdrs.Unlock()
-
-	return mapShardNonce
-}
-
 func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
 	notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
 	if notarizedHdrsCount > 0 {
@@ -1061,11 +1046,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:           headerInfo,
-		LastNotarizedHeaders: lastNotarizedHdrs,
-		LastFinals:           lastFinals,
-		HighestFinalNonce:    highestFinalNonce,
-		ProcessedMiniBlocks:  processedMiniBlocks,
+		Header:                headerInfo,
+		CrossNotarizedHeaders: lastNotarizedHdrs,
+		SelfNotarizedHeaders:  lastFinals,
+		HighestFinalNonce:     highestFinalNonce,
+		ProcessedMiniBlocks:   processedMiniBlocks,
 	}
 
 	go func() {
