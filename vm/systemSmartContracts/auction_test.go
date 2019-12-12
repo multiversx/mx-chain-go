@@ -17,7 +17,7 @@ import (
 func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint64) AuctionData {
 	data := AuctionData{
 		RewardAddress:   []byte("addr"),
-		StartNonce:      0,
+		RegisterNonce:   0,
 		Epoch:           0,
 		BlsPubKeys:      nil,
 		TotalStakeValue: big.NewInt(0).SetUint64(totalStakeValue),
@@ -172,16 +172,7 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	expectedKeys := [][]byte{bid1.BlsPubKeys[0], bid3.BlsPubKeys[0], bid4.BlsPubKeys[0]}
 
 	data := stakingAuctionSC.selection(bids)
-	for _, expectedKey := range expectedKeys {
-		found := false
-		for _, key := range data {
-			if bytes.Equal(key, expectedKey) {
-				found = true
-				break
-			}
-		}
-		assert.True(t, found)
-	}
+	checkExpectedKeys(t, expectedKeys, data, len(expectedKeys))
 }
 
 func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
@@ -213,17 +204,20 @@ func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
 
 	data := stakingAuctionSC.selection(bids)
 	//check that 50% keys belong to the first bidder
+	checkExpectedKeys(t, bids[0].BlsPubKeys, data, 5)
+}
+
+func checkExpectedKeys(t *testing.T, expectedKeys [][]byte, data [][]byte, expectedNum int) {
 	count := 0
-	firstBidderKeys := bids[0].BlsPubKeys
 	for _, key := range data {
-		for _, expectedKey := range firstBidderKeys {
+		for _, expectedKey := range expectedKeys {
 			if bytes.Equal(key, expectedKey) {
 				count++
 				break
 			}
 		}
 	}
-	assert.Equal(t, 5, count)
+	assert.Equal(t, expectedNum, count)
 }
 
 func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
@@ -255,18 +249,7 @@ func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
 
 	data := stakingAuctionSC.selection(bids)
 	//check that 100% keys belong to the first bidder
-	count := 0
-	firstBidderKeys := bids[0].BlsPubKeys
-	for _, key := range data {
-		for j, expectedKey := range firstBidderKeys {
-			if bytes.Equal(key, expectedKey) {
-				firstBidderKeys = append(firstBidderKeys[:j], firstBidderKeys[j+1:]...)
-				count++
-				break
-			}
-		}
-	}
-	assert.Equal(t, 10, count)
+	checkExpectedKeys(t, bids[0].BlsPubKeys, data, 10)
 }
 
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
@@ -338,8 +321,8 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 			var auctionData AuctionData
 			_ = json.Unmarshal(value, &auctionData)
 			assert.Equal(t, big.NewInt(26000000), auctionData.TotalStakeValue)
-			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[2], key1))
-			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[3], key2))
+			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[3], key1))
+			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[4], key2))
 			assert.True(t, bytes.Equal(auctionData.RewardAddress, rewardAddr))
 			assert.Equal(t, maxStakePerNoce, auctionData.MaxStakePerNode)
 		}
@@ -371,7 +354,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 	auctionDataBytes, _ := json.Marshal(&auctionData)
 
 	stakedData := StakedData{
-		StartNonce:    0,
+		RegisterNonce: 0,
 		Staked:        true,
 		UnStakedNonce: 1,
 		UnStakedEpoch: 0,
@@ -419,7 +402,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	auctionDataBytes, _ := json.Marshal(&auctionData)
 
 	stakedData := StakedData{
-		StartNonce:    0,
+		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 1,
 		UnStakedEpoch: 0,

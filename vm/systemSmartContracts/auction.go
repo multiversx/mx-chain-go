@@ -15,7 +15,7 @@ import (
 // AuctionData represents what is saved for each validator / bid
 type AuctionData struct {
 	RewardAddress   []byte   `json:"RewardAddress"`
-	StartNonce      uint64   `json:"StartNonce"`
+	RegisterNonce   uint64   `json:"RegisterNonce"`
 	Epoch           uint32   `json:"Epoch"`
 	BlsPubKeys      [][]byte `json:"BlsPubKeys"`
 	TotalStakeValue *big.Int `json:"StakeValue"`
@@ -25,7 +25,7 @@ type AuctionData struct {
 
 // StakedData represents the data which is saved for the selected nodes
 type StakedData struct {
-	StartNonce    uint64 `json:"StartNonce"`
+	RegisterNonce uint64 `json:"RegisterNonce"`
 	Staked        bool   `json:"Staked"`
 	UnStakedNonce uint64 `json:"UnStakedNonce"`
 	UnStakedEpoch uint32 `json:"UnStakedEpoch"`
@@ -108,6 +108,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.get(args)
 	}
 
+	//TODO: integrated into the protocol the calling the functions select and setConfig at end-of-epoch
+
 	return vmcommon.UserError
 }
 
@@ -148,6 +150,7 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
+	// argument 5 is equal with epoch
 	s.eei.SetStorage(args.Arguments[5], configData)
 
 	return vmcommon.Ok
@@ -192,7 +195,7 @@ func (s *stakingAuctionSC) verifyIfKeysExist(registeredKeys [][]byte, arguments 
 
 	newKeys := make([][]byte, 0)
 	keysFromArgument := arguments[1:]
-	for i := uint64(1); i < uint64(len(keysFromArgument)) && i < maxNumNodes+1; i++ {
+	for i := uint64(0); i < uint64(len(keysFromArgument)) && i < maxNumNodes+1; i++ {
 		if _, ok := registeredKeysMap[string(arguments[i])]; ok {
 			continue
 		}
@@ -306,7 +309,7 @@ func (s *stakingAuctionSC) getRegistrationData(key []byte) (*AuctionData, error)
 	data := s.eei.GetStorage(key)
 	registrationData := AuctionData{
 		RewardAddress:   nil,
-		StartNonce:      0,
+		RegisterNonce:   0,
 		Epoch:           0,
 		BlsPubKeys:      nil,
 		TotalStakeValue: big.NewInt(0),
@@ -342,7 +345,7 @@ func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionData
 func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 	data := s.eei.GetStorage(key)
 	stakedData := StakedData{
-		StartNonce:    0,
+		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
 		RewardAddress: nil,
@@ -389,12 +392,12 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		stakedData, err := s.getStakedData(blsKey)
 		if err != nil || len(stakedData.RewardAddress) == 0 {
 			log.Debug("bls key was not staked")
-			return vmcommon.UserError
+			continue
 		}
 
 		if !stakedData.Staked {
 			log.Debug("bls key was already unstaked")
-			return vmcommon.UserError
+			continue
 		}
 
 		stakedData.Staked = false
@@ -440,7 +443,7 @@ func (s *stakingAuctionSC) deleteBLSStakedData(blsKey []byte) (*big.Int, error) 
 		return nil, vm.ErrBLSKeyIsNotStaked
 	}
 
-	if stakedData.Staked || stakedData.UnStakedNonce < stakedData.StartNonce {
+	if stakedData.Staked || stakedData.UnStakedNonce < stakedData.RegisterNonce {
 		log.Debug("unBound is not possible for address which is staked or is not in unbound period")
 		return nil, vm.ErrStillInUnBoundPeriod
 	}
@@ -472,11 +475,10 @@ func (s *stakingAuctionSC) unBound(args *vmcommon.ContractCallInput) vmcommon.Re
 	for _, blsKey := range blsKeys {
 		nodePrice, err := s.deleteBLSStakedData(blsKey)
 		if err != nil {
-			return vmcommon.UserError
+			continue
 		}
 
-		ownerAddress := s.eei.GetStorage([]byte(ownerKey))
-		err = s.eei.Transfer(args.CallerAddr, ownerAddress, nodePrice, nil)
+		err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, nodePrice, nil)
 		if err != nil {
 			log.Debug("transfer error on unBound function",
 				"error", err.Error(),
@@ -532,8 +534,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
-	err = s.eei.Transfer(args.CallerAddr, ownerAddress, claimable, nil)
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil)
 	if err != nil {
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
