@@ -771,6 +771,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
 		sp.epochStartTrigger.SetProcessed(header)
 	}
 
@@ -887,6 +888,44 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
+
+	return nil
+}
+
+func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
+	currentHeader := blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return nil
+	}
+
+	shouldRevertChain := false
+	nonce := currentHeader.GetNonce()
+	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod
+
+	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() != sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
+		shouldRevertChain = true
+		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
+			currentHeader.GetNonce()-1,
+			sp.shardCoordinator.SelfId(),
+			sp.store,
+			sp.uint64Converter,
+			sp.marshalizer,
+		)
+		if err != nil {
+			return err
+		}
+
+		nonce = currentHeader.GetNonce()
+		currentHeader = prevHeader
+	}
+
+	if shouldRevertChain {
+		log.Debug("blockchain is wrongly constructed",
+			"reverted to nonce", nonce)
+
+		sp.forkDetector.SetForkNonce(nonce)
+		return process.ErrEpochDoesNotMatch
+	}
 
 	return nil
 }
@@ -1759,7 +1798,7 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -1901,7 +1940,7 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 
 func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 	nonce uint64,
-	shardId uint32,
+	_ uint32,
 ) (data.HeaderHandler, []byte, error) {
 
 	metaHeader, metaHeaderHash, err := process.GetMetaHeaderFromPoolWithNonce(
