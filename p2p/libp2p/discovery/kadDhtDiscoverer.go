@@ -102,6 +102,8 @@ func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
 	return []protocol.ID{
 		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, kdd.randezVous)),
 		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
+		//TODO: to be removed once the seed is updated
+		opts.ProtocolDHT,
 	}
 }
 
