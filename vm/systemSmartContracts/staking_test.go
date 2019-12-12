@@ -289,7 +289,7 @@ func TestStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
