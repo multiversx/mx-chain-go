@@ -410,6 +410,31 @@ func TestKeyBytesToHex(t *testing.T) {
 	}
 }
 
+func TestHexToKeyBytes(t *testing.T) {
+	t.Parallel()
+
+	var test = []struct {
+		key, hex []byte
+	}{
+		{[]byte{6, 4, 6, 15, 6, 5, 16}, []byte("doe")},
+		{[]byte{6, 4, 6, 15, 6, 7, 16}, []byte("dog")},
+	}
+
+	for i := range test {
+		key, err := hexToKeyBytes(test[i].key)
+		assert.Nil(t, err)
+		assert.Equal(t, test[i].hex, key)
+	}
+}
+
+func TestHexToKeyBytesInvalidLength(t *testing.T) {
+	t.Parallel()
+
+	key, err := hexToKeyBytes([]byte{6, 4, 6, 15, 6, 5})
+	assert.Nil(t, key)
+	assert.Equal(t, ErrInvalidLength, err)
+}
+
 func TestPrefixLen(t *testing.T) {
 	t.Parallel()
 	var test = []struct {
@@ -428,4 +453,30 @@ func TestPrefixLen(t *testing.T) {
 	for i := range test {
 		assert.Equal(t, test[i].length, prefixLen(test[i].a, test[i].b))
 	}
+}
+
+func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
+	t.Parallel()
+
+	db, _ := mock.NewMemDbMock()
+	marshalizer, hasher := getTestMarshAndHasher()
+	tr, _ := NewTrie(db, marshalizer, hasher)
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr.Commit()
+
+	root, _ := tr.root.(*extensionNode)
+	root.child = nil
+	tr.root = root
+
+	leafs, err := tr.GetAllLeaves()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(leafs))
+	assert.Equal(t, []byte("reindeer"), leafs[string([]byte("doe"))])
+	assert.Equal(t, []byte("puppy"), leafs[string([]byte("dog"))])
+	assert.Equal(t, []byte("cat"), leafs[string([]byte("dogglesworth"))])
 }

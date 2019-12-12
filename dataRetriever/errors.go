@@ -199,3 +199,6 @@ var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
 // ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
+
+// ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
+var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")

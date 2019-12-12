@@ -75,14 +75,33 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) []byte {
-	address, _ := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
-	account, _ := accnts.GetAccountWithJournal(address)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
+	address, err := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
+	if err != nil {
+		return nil, err
+	}
 
-	hashCreated, _ := accnts.Commit()
-	return hashCreated
+	account, err := accnts.GetAccountWithJournal(address)
+	if err != nil {
+		return nil, err
+	}
+
+	err = account.(*state.Account).SetNonceWithJournal(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	if err != nil {
+		return nil, err
+	}
+
+	hashCreated, err := accnts.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return hashCreated, nil
 }
 
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
@@ -104,6 +123,10 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
 
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -118,15 +141,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.FeeHandlerStub{},
+		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
@@ -206,6 +225,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 ) process.TransactionProcessor {
 	argsParser, _ := smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -218,15 +242,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.FeeHandlerStub{},
+		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
@@ -294,7 +314,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 ) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
 
@@ -313,7 +333,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 ) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
@@ -331,7 +351,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 ) (process.TransactionProcessor, state.AccountsAdapter) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
 	assert.NotNil(t, txProcessor)

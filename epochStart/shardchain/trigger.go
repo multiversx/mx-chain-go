@@ -173,7 +173,7 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(round uint64) error {
+func (t *trigger) ForceEpochStart(_ uint64) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -185,7 +185,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	if t.isEpochStart == true {
+	if t.isEpochStart && header.GetEpoch() == t.epoch {
 		return
 	}
 
@@ -230,19 +230,18 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 	for hash, meta := range t.mapEpochStartHdrs {
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEpochStart && t.epoch+1 == meta.Epoch {
+		if canActivateEpochStart && t.epoch < meta.Epoch {
 			t.epoch = meta.Epoch
 			t.isEpochStart = true
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
-			break
 		}
 	}
 }
 
 // call only if mutex is locked before
-func (t *trigger) isMetaBlockValid(hash string, metaHdr *block.MetaBlock) bool {
+func (t *trigger) isMetaBlockValid(_ string, metaHdr *block.MetaBlock) bool {
 	currHdr := metaHdr
 	for i := metaHdr.Nonce - 1; i >= metaHdr.Nonce-t.validity; i-- {
 		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.PrevHash)
@@ -259,7 +258,7 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr *block.MetaBlock) bool {
 	return true
 }
 
-func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) (bool, uint64) {
+func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.Round
 	currHdr := metaHdr
@@ -475,11 +474,11 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 }
 
 // Update updates the end-of-epoch trigger
-func (t *trigger) Update(round uint64) {
+func (t *trigger) Update(_ uint64) {
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
-func (t *trigger) SetFinalityAttestingRound(round uint64) {
+func (t *trigger) SetFinalityAttestingRound(_ uint64) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -20,6 +20,7 @@ type preProcessorsContainerFactory struct {
 	hasher              hashing.Hasher
 	dataPool            dataRetriever.MetaPoolsHolder
 	txProcessor         process.TransactionProcessor
+	scResultProcessor   process.SmartContractResultProcessor
 	accounts            state.AccountsAdapter
 	requestHandler      process.RequestHandler
 	economicsFee        process.FeeHandler
@@ -37,6 +38,7 @@ func NewPreProcessorsContainerFactory(
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
+	scResultProcessor process.SmartContractResultProcessor,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
@@ -72,6 +74,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(miniBlocksCompacter) {
 		return nil, process.ErrNilMiniBlocksCompacter
 	}
+	if check.IfNil(scResultProcessor) {
+		return nil, process.ErrNilSmartContractResultProcessor
+	}
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
@@ -87,6 +92,7 @@ func NewPreProcessorsContainerFactory(
 		requestHandler:      requestHandler,
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
+		scResultProcessor:   scResultProcessor,
 		gasHandler:          gasHandler,
 	}, nil
 }
@@ -101,6 +107,16 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	}
 
 	err = container.Add(block.TxBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
+	preproc, err = ppcm.createSmartContractResultPreProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.SmartContractResultBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +140,22 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 	)
 
 	return txPreprocessor, err
+}
+
+func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
+	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
+		ppcm.dataPool.UnsignedTransactions(),
+		ppcm.store,
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.scResultProcessor,
+		ppcm.shardCoordinator,
+		ppcm.accounts,
+		ppcm.requestHandler.RequestUnsignedTransactions,
+		ppcm.gasHandler,
+	)
+
+	return scrPreprocessor, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

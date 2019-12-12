@@ -121,7 +121,7 @@
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 250000
+        Size = 75000
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
@@ -132,7 +132,7 @@
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
-        Size = 100000
+        Size = 75000
         Type = "LRU"
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
@@ -143,7 +143,7 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
-        Size = 100000
+        Size = 75000
         Type = "LRU"
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
@@ -176,7 +176,7 @@
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
-        Size = 100000
+        Size = 75000
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
@@ -187,7 +187,7 @@
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
-        Size = 100000
+        Size = 75000
         Type = "LRU"
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
@@ -225,16 +225,16 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 250000
+    Size = 75000
     Type = "FIFOSharded"
     Shards = 16
 
 [UnsignedTransactionDataPool]
-    Size = 100000
+    Size = 75000
     Type = "LRU"
 
 [RewardTransactionDataPool]
-    Size = 100000
+    Size = 75000
     Type = "LRU"
 
 [ShardHeadersDataPool]
