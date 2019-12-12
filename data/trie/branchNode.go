@@ -702,11 +702,7 @@ func (bn *branchNode) isValid() bool {
 		}
 	}
 
-	if nrChildren < 2 {
-		return false
-	}
-
-	return true
+	return nrChildren >= 2
 }
 
 func (bn *branchNode) setDirty(dirty bool) {

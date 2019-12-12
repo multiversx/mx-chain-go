@@ -131,15 +131,15 @@ func trieNode(data interface{}) (node, error) {
 }
 
 func (ts *trieSyncer) requestNode(hash []byte) error {
-	err := ts.resolver.RequestDataFromHash(hash)
-	if err != nil {
-		return err
-	}
-
 	receivedRequestedHashTrigger := append(hash, hash...)
 	ts.requestedHashesMutex.Lock()
 	ts.requestedHashes = append(ts.requestedHashes, receivedRequestedHashTrigger)
 	ts.requestedHashesMutex.Unlock()
+
+	err := ts.resolver.RequestDataFromHash(hash)
+	if err != nil {
+		return err
+	}
 
 	return ts.waitForTrieNode()
 }
