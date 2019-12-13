@@ -6,8 +6,8 @@ import "github.com/stretchr/testify/assert"
 
 func Test_EvictOldestSenders(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:         1,
-		NoOldestSendersToEvict: 2,
+		CountThreshold:            1,
+		CountOldestSendersToEvict: 2,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -16,19 +16,19 @@ func Test_EvictOldestSenders(t *testing.T) {
 	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
-	noTxs, noSenders := cache.evictOldestSenders()
+	nTxs, nSenders := cache.evictOldestSenders()
 
-	assert.Equal(t, uint32(2), noTxs)
-	assert.Equal(t, uint32(2), noSenders)
+	assert.Equal(t, uint32(2), nTxs)
+	assert.Equal(t, uint32(2), nSenders)
 	assert.Equal(t, int64(1), cache.txListBySender.counter.Get())
 	assert.Equal(t, int64(1), cache.txByHash.counter.Get())
 }
 
 func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:                 400,
-		ALotOfTransactionsForASender:   50,
-		NoTxsToEvictForASenderWithALot: 25,
+		CountThreshold:                    400,
+		ALotOfTransactionsForASender:      50,
+		CountTxsToEvictForASenderWithALot: 25,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -46,18 +46,18 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	assert.Equal(t, int64(3), cache.txListBySender.counter.Get())
 	assert.Equal(t, int64(401), cache.txByHash.counter.Get())
 
-	noTxs, noSenders := cache.evictHighNonceTransactions()
+	nTxs, nSenders := cache.evictHighNonceTransactions()
 
-	assert.Equal(t, uint32(50), noTxs)
-	assert.Equal(t, uint32(0), noSenders)
+	assert.Equal(t, uint32(50), nTxs)
+	assert.Equal(t, uint32(0), nSenders)
 	assert.Equal(t, int64(3), cache.txListBySender.counter.Get())
 	assert.Equal(t, int64(351), cache.txByHash.counter.Get())
 }
 
 func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:         100,
-		NoOldestSendersToEvict: 20,
+		CountThreshold:            100,
+		CountOldestSendersToEvict: 20,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -71,11 +71,11 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	assert.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	assert.Equal(t, int64(200), cache.txByHash.counter.Get())
 
-	steps, noTxs, noSenders := cache.evictSendersWhileTooManyTxs()
+	steps, nTxs, nSenders := cache.evictSendersWhileTooManyTxs()
 
 	assert.Equal(t, uint32(6), steps)
-	assert.Equal(t, uint32(100), noTxs)
-	assert.Equal(t, uint32(100), noSenders)
+	assert.Equal(t, uint32(100), nTxs)
+	assert.Equal(t, uint32(100), nSenders)
 	assert.Equal(t, int64(100), cache.txListBySender.counter.Get())
 	assert.Equal(t, int64(100), cache.txByHash.counter.Get())
 }

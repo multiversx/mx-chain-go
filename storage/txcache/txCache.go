@@ -19,12 +19,12 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-// "noChunksHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(noChunksHint uint32) *TxCache {
-	// Note: for simplicity, we use the same "noChunksHint" for both internal concurrent maps
+// "nChunksHint" is used to configure the internal concurrent maps on which the implementation relies
+func NewTxCache(nChunksHint uint32) *TxCache {
+	// Note: for simplicity, we use the same "nChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
-		txListBySender: newTxListBySenderMap(noChunksHint),
-		txByHash:       newTxByHashMap(noChunksHint),
+		txListBySender: newTxListBySenderMap(nChunksHint),
+		txByHash:       newTxByHashMap(nChunksHint),
 		evictionConfig: EvictionConfig{Enabled: false},
 	}
 
@@ -32,8 +32,8 @@ func NewTxCache(noChunksHint uint32) *TxCache {
 }
 
 // NewTxCacheWithEviction creates a new transaction cache with eviction
-func NewTxCacheWithEviction(noChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
-	txCache := NewTxCache(noChunksHint)
+func NewTxCacheWithEviction(nChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
+	txCache := NewTxCache(nChunksHint)
 	txCache.evictionConfig = evictionConfig
 
 	return txCache
@@ -61,10 +61,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 }
 
 // GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "noRequested" transactions
-// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "noRequested" limit is reached before iterating over all senders
-func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) []data.TransactionHandler {
-	result := make([]data.TransactionHandler, noRequested)
+// It returns at most "nRequested" transactions
+// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "nRequested" limit is reached before iterating over all senders
+func (cache *TxCache) GetTransactions(nRequested int, batchSizePerSender int) []data.TransactionHandler {
+	result := make([]data.TransactionHandler, nRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
@@ -78,7 +78,7 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
-			resultIsFull = resultFillIndex == noRequested
+			resultIsFull = resultFillIndex == nRequested
 		})
 
 		nothingCopiedThisPass := copiedInThisPass == 0
@@ -96,14 +96,14 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
-		return errorTxNotFound
+		return ErrTxNotFound
 	}
 
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
 		log.Error("RemoveTxByHash detected maps sync inconsistency", "tx", txHash)
-		return errorMapsSyncInconsistency
+		return ErrMapsSyncInconsistency
 	}
 
 	return nil

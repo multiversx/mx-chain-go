@@ -12,9 +12,9 @@ type txByHashMap struct {
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
-func newTxByHashMap(noChunksHint uint32) txByHashMap {
+func newTxByHashMap(nChunksHint uint32) txByHashMap {
 	// We'll hold at most "size" transactions
-	backingMap := NewConcurrentMap(noChunksHint)
+	backingMap := NewConcurrentMap(nChunksHint)
 
 	return txByHashMap{
 		backingMap: backingMap,
@@ -59,8 +59,8 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 
 	oldCount := uint32(txMap.counter.Get())
 	newCount := uint32(txMap.backingMap.Count())
-	noRemoved := oldCount - newCount
+	nRemoved := oldCount - newCount
 
 	txMap.counter.Set(int64(newCount))
-	return noRemoved
+	return nRemoved
 }

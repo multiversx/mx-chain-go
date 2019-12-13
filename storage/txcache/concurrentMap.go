@@ -11,8 +11,8 @@ import (
 // ConcurrentMap is a thread safe map of type string:Anything.
 // To avoid lock bottlenecks this map is divided to several map chunks.
 type ConcurrentMap struct {
-	noChunks uint32
-	chunks   []*concurrentMapChunk
+	nChunks uint32
+	chunks  []*concurrentMapChunk
 }
 
 // concurrentMapChunk is a thread safe string to anything map.
@@ -22,13 +22,13 @@ type concurrentMapChunk struct {
 }
 
 // NewConcurrentMap creates a new concurrent map.
-func NewConcurrentMap(noChunks uint32) *ConcurrentMap {
+func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
 	m := ConcurrentMap{
-		noChunks: noChunks,
-		chunks:   make([]*concurrentMapChunk, noChunks),
+		nChunks: nChunks,
+		chunks:  make([]*concurrentMapChunk, nChunks),
 	}
 
-	for i := uint32(0); i < noChunks; i++ {
+	for i := uint32(0); i < nChunks; i++ {
 		m.chunks[i] = &concurrentMapChunk{
 			items: make(map[string]interface{}),
 		}
@@ -39,7 +39,7 @@ func NewConcurrentMap(noChunks uint32) *ConcurrentMap {
 
 // getChunk returns the chunk holding the given key.
 func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {
-	return m.chunks[fnv32(key)%m.noChunks]
+	return m.chunks[fnv32(key)%m.nChunks]
 }
 
 // Set sets the given value under the specified key.
@@ -62,7 +62,7 @@ func (m *ConcurrentMap) Get(key string) (interface{}, bool) {
 // Count returns the number of elements within the map.
 func (m *ConcurrentMap) Count() int {
 	count := 0
-	for i := uint32(0); i < m.noChunks; i++ {
+	for i := uint32(0); i < m.nChunks; i++ {
 		chunk := m.chunks[i]
 		chunk.RLock()
 		count += len(chunk.items)
