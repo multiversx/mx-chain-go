@@ -49,6 +49,8 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 
 	headerShardPool := hnc.getShardMap(headerShardId)
 
+	//critical section
+	hnc.mutHeadersMap.Lock()
 	headerListD := headerShardPool.getElement(headerNonce)
 
 	headerDetails := headerDetails{
@@ -57,6 +59,8 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 	}
 	headerListD.headerList = append(headerListD.headerList, headerDetails)
 	headerShardPool.addElement(headerNonce, headerListD)
+	hnc.mutHeadersMap.Unlock()
+	////
 
 	// add header info in second map
 	headerInfo := headerInfo{
@@ -173,6 +177,9 @@ func (hnc *headersNonceCache) lruEviction(shardId uint32) {
 }
 
 func (hnc *headersNonceCache) removeHeaderByHash(hash []byte) {
+	hnc.mutHeadersMap.Lock()
+	defer hnc.mutHeadersMap.Unlock()
+
 	info, ok := hnc.headersByHash.getElement(hash)
 	if !ok {
 		return

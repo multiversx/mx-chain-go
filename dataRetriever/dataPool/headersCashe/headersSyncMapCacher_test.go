@@ -23,6 +23,17 @@ func createASliceOfHeaders(numHeaders int, shardId uint32) ([]block.Header, [][]
 	return headers, headersHashes
 }
 
+func createASliceOfHeadersNonce0(numHeaders int, shardId uint32) ([]block.Header, [][]byte) {
+	headers := make([]block.Header, 0)
+	headersHashes := make([][]byte, 0)
+	for i := 0; i < numHeaders; i++ {
+		headers = append(headers, block.Header{Nonce: 0, ShardId: shardId})
+		headersHashes = append(headersHashes, []byte(fmt.Sprintf("%d_%d", shardId, i)))
+	}
+
+	return headers, headersHashes
+}
+
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
 
@@ -271,20 +282,20 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 99999
-	numHdrsToGenerate := 100000
+	cacheSize := 1001
+	numHdrsToGenerate := 1000
 
-	hdrsShad0, hashesShad0 := createASliceOfHeaders(numHdrsToGenerate, 0)
+	hdrsShad0, hashesShad0 := createASliceOfHeadersNonce0(numHdrsToGenerate, 0)
 	hdrsShad1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
 	hdrsShad2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
-	numElemsToRemove := 50000
+	numElemsToRemove := 500
 
 	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, numElemsToRemove)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()
 	for i := 0; i < numHdrsToGenerate; i++ {
-		waitgroup.Add(3)
+		waitgroup.Add(5)
 		go func(index int) {
 			hdrsCacher.Add(hashesShad0[index], &hdrsShad0[index])
 			waitgroup.Done()
@@ -292,11 +303,29 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 
 		go func(index int) {
 			hdrsCacher.Add(hashesShad1[index], &hdrsShad1[index])
+			go func(index int) {
+				hdrsCacher.RemoveHeaderByHash(hashesShad1[index])
+				waitgroup.Done()
+			}(index)
 			waitgroup.Done()
 		}(i)
 
 		go func(index int) {
 			hdrsCacher.Add(hashesShad2[index], &hdrsShad2[index])
+			go func(index int) {
+				hdrsCacher.RemoveHeaderByHash(hashesShad2[index])
+				waitgroup.Done()
+			}(index)
+			waitgroup.Done()
+		}(i)
+	}
+
+	waitgroup.Wait()
+
+	for i := 0; i < numHdrsToGenerate; i++ {
+		waitgroup.Add(1)
+		go func(index int) {
+			hdrsCacher.RemoveHeaderByHash(hashesShad0[index])
 			waitgroup.Done()
 		}(i)
 	}
@@ -305,8 +334,8 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 	elapsed := time.Since(start)
 	fmt.Printf("time need to add %d in cache %s \n", numHdrsToGenerate, elapsed)
 
-	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(0))
-	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(1))
-	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(2))
+	assert.Equal(t, 0, hdrsCacher.GetNumHeadersFromCacheShard(0))
+	assert.Equal(t, 0, hdrsCacher.GetNumHeadersFromCacheShard(1))
+	assert.Equal(t, 0, hdrsCacher.GetNumHeadersFromCacheShard(2))
 
 }
