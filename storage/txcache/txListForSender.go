@@ -181,6 +181,9 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 }
 
 func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandler {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
 	back := listForSender.items.Back()
 
 	if back == nil {
