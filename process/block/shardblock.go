@@ -767,19 +767,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.mutProcessedMiniBlocks.RLock()
-	//TODO remove this
-	log.Debug("processed mini blocks on commit block")
-	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
-		log.Debug("processed",
-			"meta block hash", []byte(metaBlockHash))
-
-		for miniBlockHash := range miniBlocksHashes {
-			log.Debug("processed",
-				"mini block hash", []byte(miniBlockHash))
-
-		}
-	}
-
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
