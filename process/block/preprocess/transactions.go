@@ -37,7 +37,6 @@ type transactions struct {
 	orderedTxs           map[string][]*transaction.Transaction
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
-	economicsFee         process.FeeHandler
 	miniBlocksCompacter  process.MiniBlocksCompacter
 }
 
@@ -95,6 +94,7 @@ func NewTransactionPreprocessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		gasHandler:       gasHandler,
+		economicsFee:     economicsFee,
 	}
 
 	txs := transactions{
@@ -104,7 +104,6 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
-		economicsFee:         economicsFee,
 		miniBlocksCompacter:  miniBlocksCompacter,
 	}
 
@@ -239,6 +238,7 @@ func (txs *transactions) ProcessBlockTransactions(
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 			if txInfo == nil || txInfo.tx == nil {
+				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.TxBlock, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 
@@ -616,6 +616,12 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
+		gasRefunded := txs.gasHandler.GasRefunded(orderedTxHashes[index])
+		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
+		if senderShardId == receiverShardId {
+			gasConsumedByMiniBlockInSenderShard -= gasRefunded
+		}
+
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
 
@@ -630,20 +636,20 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
 				"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
 				"txs ordered", len(orderedTxs),
-				"txs added", len(miniBlock.TxHashes),
-			)
+				"txs added", len(miniBlock.TxHashes))
 
 			return miniBlock, nil
 		}
 	}
 
-	log.Debug("mini block info",
-		"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
-		"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
-		"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
-		"txs ordered", len(orderedTxs),
-		"txs added", len(miniBlock.TxHashes),
-	)
+	if addedTxs > 0 {
+		log.Debug("mini block info",
+			"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
+			"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
+			"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+			"txs ordered", len(orderedTxs),
+			"txs added", len(miniBlock.TxHashes))
+	}
 
 	return miniBlock, nil
 }
@@ -872,80 +878,4 @@ func (txs *transactions) IsInterfaceNil() bool {
 		return true
 	}
 	return false
-}
-
-func (txs *transactions) computeGasConsumed(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx *transaction.Transaction,
-	txHash []byte,
-	gasConsumedByMiniBlockInSenderShard *uint64,
-	gasConsumedByMiniBlockInReceiverShard *uint64,
-) error {
-
-	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
-		senderShardId,
-		receiverShardId,
-		tx,
-		txHash)
-	if err != nil {
-		return err
-	}
-
-	gasConsumedByTxInSelfShard := uint64(0)
-	if txs.shardCoordinator.SelfId() == senderShardId {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
-
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() {
-			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
-		}
-	} else {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
-
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
-			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
-		}
-	}
-
-	if txs.gasHandler.TotalGasConsumed()+gasConsumedByTxInSelfShard > txs.economicsFee.MaxGasLimitPerBlock() {
-		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
-	}
-
-	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
-	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
-
-	return nil
-}
-
-func (txs *transactions) computeGasConsumedByTx(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx *transaction.Transaction,
-	txHash []byte,
-) (uint64, uint64, error) {
-
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := txs.gasHandler.ComputeGasConsumedByTx(
-		senderShardId,
-		receiverShardId,
-		tx)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
-		txGasRefunded := txs.gasHandler.GasRefunded(txHash)
-
-		if txGasLimitInReceiverShard < txGasRefunded {
-			return 0, 0, process.ErrInsufficientGasLimitInTx
-		}
-
-		txGasLimitInReceiverShard -= txGasRefunded
-
-		if senderShardId == receiverShardId {
-			txGasLimitInSenderShard -= txGasRefunded
-		}
-	}
-
-	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
 }
