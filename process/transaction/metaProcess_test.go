@@ -126,7 +126,7 @@ func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 
 	execTx := createMetaTxProcessor()
 
-	err := execTx.ProcessTransaction(nil, 4)
+	err := execTx.ProcessTransaction(nil)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -145,7 +145,7 @@ func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T)
 
 	addressConv.Fail = true
 
-	err := execTx.ProcessTransaction(&transaction.Transaction{}, 4)
+	err := execTx.ProcessTransaction(&transaction.Transaction{})
 	assert.NotNil(t, err)
 }
 
@@ -168,7 +168,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	err := execTx.ProcessTransaction(&tx, 4)
+	err := execTx.ProcessTransaction(&tx)
 	assert.NotNil(t, err)
 }
 
@@ -197,7 +197,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -237,7 +237,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -279,7 +279,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
 		wasCalled = true
 		return nil
 	}
@@ -296,7 +296,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
@@ -338,7 +338,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -353,7 +353,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		}},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
@@ -404,7 +404,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	scProcessorMock := &mock.SCProcessorMock{}
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -422,7 +422,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		computeType,
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 	assert.False(t, wasCalled)
 }

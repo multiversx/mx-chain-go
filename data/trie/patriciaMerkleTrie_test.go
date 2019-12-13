@@ -387,6 +387,19 @@ func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	assert.Equal(t, originalRoot, clonedTrie)
 }
 
+func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	leaves, err := tr.GetAllLeaves()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(leaves))
+	assert.Equal(t, []byte("reindeer"), leaves[string([]byte("doe"))])
+	assert.Equal(t, []byte("puppy"), leaves[string([]byte("dog"))])
+	assert.Equal(t, []byte("cat"), leaves[string([]byte("dogglesworth"))])
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

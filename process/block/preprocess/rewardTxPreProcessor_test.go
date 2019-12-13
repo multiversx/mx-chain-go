@@ -344,7 +344,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -374,7 +374,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.RewardsBlock,
 	}
 
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue)
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -543,7 +543,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody = append(blockBody, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(blockBody, 0, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(blockBody, haveTimeTrue)
 	assert.Nil(t, err)
 }
 
@@ -690,7 +690,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 		},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, haveTimeTrue)
 	assert.Nil(t, mBlocksSlice)
 	assert.Equal(t, process.ErrNilRewardTransaction, err)
 }
@@ -734,7 +734,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		},
 	)
 
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, haveTimeTrue)
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

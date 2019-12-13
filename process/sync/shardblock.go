@@ -1,8 +1,8 @@
 package sync
 
 import (
+	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -25,14 +25,6 @@ import (
 // ShardBootstrap implements the bootstrap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
-
-	miniBlocks storage.Cacher
-
-	chRcvMiniBlocks  chan bool
-	mutRcvMiniBlocks sync.Mutex
-
-	resolversFinder    dataRetriever.ResolversFinder
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
 }
 
 // NewShardBootstrap creates a new Bootstrap object
@@ -53,6 +45,7 @@ func NewShardBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*ShardBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -81,39 +74,44 @@ func NewShardBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.Headers(),
-		headersNonces:       poolsHolder.HeadersNonces(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
-		bootStorer:          bootStorer,
-		storageBootstrapper: storageBootstrapper,
+		blkc:                  blkc,
+		blkExecutor:           blkExecutor,
+		store:                 store,
+		headers:               poolsHolder.Headers(),
+		headersNonces:         poolsHolder.HeadersNonces(),
+		rounder:               rounder,
+		waitTime:              waitTime,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		forkDetector:          forkDetector,
+		shardCoordinator:      shardCoordinator,
+		accounts:              accounts,
+		blackListHandler:      blackListHandler,
+		networkWatcher:        networkWatcher,
+		bootStorer:            bootStorer,
+		storageBootstrapper:   storageBootstrapper,
+		requestedItemsHandler: requestedItemsHandler,
+		miniBlocks:            poolsHolder.MiniBlocks(),
 	}
 
 	boot := ShardBootstrap{
 		baseBootstrap: base,
-		miniBlocks:    poolsHolder.MiniBlocks(),
 	}
 
 	base.blockBootstrapper = &boot
-	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.getHeaderFromPool = boot.getShardHeaderFromPool
+
+	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
+	//should be then removed from ShardBootstrap
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -201,31 +199,6 @@ func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	boot.processReceivedHeader(header, headerHash)
 }
 
-// setRequestedMiniBlocks method sets the body hash requested by the sync mechanism
-func (boot *ShardBootstrap) setRequestedMiniBlocks(hashes [][]byte) {
-	boot.requestedHashes.SetHashes(hashes)
-}
-
-// receivedBody method is a call back function which is called when a new body is added
-// in the block bodies pool
-func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
-	boot.mutRcvMiniBlocks.Lock()
-	if len(boot.requestedHashes.ExpectedData()) == 0 {
-		boot.mutRcvMiniBlocks.Unlock()
-		return
-	}
-
-	boot.requestedHashes.SetReceivedHash(hash)
-	if boot.requestedHashes.ReceivedAll() {
-		log.Debug("received all the requested mini blocks from network")
-		boot.setRequestedMiniBlocks(nil)
-		boot.mutRcvMiniBlocks.Unlock()
-		boot.chRcvMiniBlocks <- true
-	} else {
-		boot.mutRcvMiniBlocks.Unlock()
-	}
-}
-
 // StartSync method will start SyncBlocks as a go routine
 func (boot *ShardBootstrap) StartSync() {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
@@ -233,6 +206,9 @@ func (boot *ShardBootstrap) StartSync() {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
+	} else {
+		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
+		boot.blkExecutor.SetNumProcessedObj(numTxs)
 	}
 
 	go boot.syncBlocks()
@@ -252,14 +228,17 @@ func (boot *ShardBootstrap) SyncBlock() error {
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
-
-	log.Debug("requested header from network",
-		"nonce", nonce,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
+	err = boot.requestedItemsHandler.Add(key)
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -276,6 +255,14 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	err := boot.hdrRes.RequestDataFromHash(hash)
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	err = boot.requestedItemsHandler.Add(string(hash))
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -331,55 +318,6 @@ func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (d
 	}
 
 	return hdr, nil
-}
-
-// requestMiniBlocks method requests a block body from network when it is not found in the pool
-func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
-	boot.setRequestedMiniBlocks(hashes)
-	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
-	if err != nil {
-		log.Debug("RequestDataFromHashArray", "error", err.Error())
-	}
-
-	log.Debug("requested mini blocks from network",
-		"num miniblocks", len(hashes),
-	)
-}
-
-// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
-// and if not it will be requested from network
-// the func returns interface{} as to match the next implementations for block body fetchers
-// that will be added. The block executor should decide by parsing the header block body type value
-// what kind of block body received.
-func (boot *ShardBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		_ = process.EmptyChannel(boot.chRcvMiniBlocks)
-		boot.requestMiniBlocks(missingMiniBlocksHashes)
-		err := boot.waitForMiniBlocks()
-		if err != nil {
-			return nil, err
-		}
-
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(missingMiniBlocksHashes)
-		if len(unreceivedMiniBlocksHashes) > 0 {
-			return nil, process.ErrMissingBody
-		}
-
-		miniBlocks = append(miniBlocks, receivedMiniBlocks...)
-	}
-
-	return miniBlocks, nil
-}
-
-// waitForMiniBlocks method wait for body with the requested nonce to be received
-func (boot *ShardBootstrap) waitForMiniBlocks() error {
-	select {
-	case <-boot.chRcvMiniBlocks:
-		return nil
-	case <-time.After(boot.waitTime):
-		return process.ErrTimeIsOut
-	}
 }
 
 func (boot *ShardBootstrap) getPrevHeader(
@@ -456,9 +394,15 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		return
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	boot.requestedItemsHandler.Sweep()
+
+	hashes := make([][]byte, 0, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+			continue
+		}
+
+		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
@@ -467,6 +411,13 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
+		}
+
+		for _, hash := range missingMiniBlocksHashes {
+			err = boot.requestedItemsHandler.Add(string(hash))
+			if err != nil {
+				log.Trace("add requested item with error", "error", err.Error())
+			}
 		}
 
 		log.Trace("requested in advance mini blocks",

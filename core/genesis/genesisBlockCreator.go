@@ -36,6 +36,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
+	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -62,14 +63,15 @@ func CreateShardGenesisBlockFromInitialBalances(
 	}
 
 	header := &block.Header{
-		Nonce:         0,
-		ShardId:       shardCoordinator.SelfId(),
-		BlockBodyType: block.StateBlock,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  rootHash,
-		RandSeed:      rootHash,
-		TimeStamp:     genesisTime,
+		Nonce:                  0,
+		ShardId:                shardCoordinator.SelfId(),
+		BlockBodyType:          block.StateBlock,
+		Signature:              rootHash,
+		RootHash:               rootHash,
+		PrevRandSeed:           rootHash,
+		RandSeed:               rootHash,
+		TimeStamp:              genesisTime,
+		ValidatorStatsRootHash: validatorStatsRootHash,
 	}
 
 	return header, err
@@ -89,6 +91,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	MetaDatapool             dataRetriever.MetaPoolsHolder
+	ValidatorStatsRootHash   []byte
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -171,7 +174,9 @@ func CreateMetaGenesisBlock(
 		RandSeed:     rootHash,
 		PrevRandSeed: rootHash,
 	}
+
 	header.SetTimeStamp(args.GenesisTime)
+	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
 	return header, nil
 }
@@ -230,6 +235,11 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -242,13 +252,9 @@ func createProcessorsForMetaGenesisBlock(
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
 		&metachain.TransactionFeeHandler{},
+		txTypeHandler,
 		gasHandler,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -307,7 +313,7 @@ func deploySystemSmartContracts(
 		}
 
 		tx.SndAddr = key
-		err = txProcessor.ProcessTransaction(tx, 0)
+		err = txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
@@ -339,7 +345,7 @@ func setStakingData(
 				Challenge: nil,
 			}
 
-			err := txProcessor.ProcessTransaction(tx, 0)
+			err := txProcessor.ProcessTransaction(tx)
 			if err != nil {
 				return err
 			}
@@ -360,7 +366,7 @@ func setStakingData(
 			Challenge: nil,
 		}
 
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
@@ -147,7 +148,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 
-		data := make([]byte, 0)
+		var data []byte
 		if len(vmOutput.ReturnData) > 0 {
 			data = vmOutput.ReturnData[0]
 		}
@@ -312,11 +313,14 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		if miniBlock.SenderShardID != sharding.MetachainShardId {
+			continue
+		}
 
 		for _, txHash := range miniBlock.TxHashes {
 			tx, err := stp.currTxs.GetTx(txHash)
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			if !bytes.Equal(tx.GetRecvAddress(), factory.StakingSCAddress) {
@@ -345,7 +349,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 // PeerChanges returns peer changes created in current round
 func (stp *stakingToPeer) PeerChanges() []block.PeerData {
 	stp.mutPeerChanges.Lock()
-	peersData := make([]block.PeerData, 0)
+	peersData := make([]block.PeerData, 0, len(stp.peerChanges))
 	for _, peerData := range stp.peerChanges {
 		peersData = append(peersData, peerData)
 	}
