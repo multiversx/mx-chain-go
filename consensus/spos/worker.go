@@ -2,7 +2,6 @@ package spos
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"time"
 
@@ -472,7 +471,7 @@ func (wrk *Worker) displaySignatureStatistic() {
 		)
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))
+			log.Trace(core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey)))
 		}
 
 	}
