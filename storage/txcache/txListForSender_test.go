@@ -110,31 +110,23 @@ func Test_CopyBatchTo(t *testing.T) {
 
 	destination := make([]data.TransactionHandler, 1000)
 
-	// Nothing is copied if copy mode isn't started
-	copied := list.copyBatchTo(destination)
-	assert.Equal(t, 0, copied)
-
-	// Copy in batches of 50
-	list.startBatchCopying(50)
-
 	// First batch
-	copied = list.copyBatchTo(destination)
+	copied := list.copyBatchTo(true, destination, 50)
 	assert.Equal(t, 50, copied)
 	assert.NotNil(t, destination[49])
 	assert.Nil(t, destination[50])
 
 	// Second batch
-	copied = list.copyBatchTo(destination[50:])
+	copied = list.copyBatchTo(false, destination[50:], 50)
 	assert.Equal(t, 50, copied)
 	assert.NotNil(t, destination[99])
 
 	// No third batch
-	copied = list.copyBatchTo(destination)
+	copied = list.copyBatchTo(false, destination, 50)
 	assert.Equal(t, 0, copied)
 
 	// Restart copy
-	list.startBatchCopying(12345)
-	copied = list.copyBatchTo(destination)
+	copied = list.copyBatchTo(true, destination, 12345)
 	assert.Equal(t, 100, copied)
 }
 
@@ -145,15 +137,13 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 		list.AddTx([]byte{byte(index)}, createTx(".", uint64(index)))
 	}
 
-	list.startBatchCopying(10)
-
 	// When empty destination
 	destination := make([]data.TransactionHandler, 0)
-	copied := list.copyBatchTo(destination)
+	copied := list.copyBatchTo(true, destination, 10)
 	assert.Equal(t, 0, copied)
 
 	// When small destination
 	destination = make([]data.TransactionHandler, 5)
-	copied = list.copyBatchTo(destination)
+	copied = list.copyBatchTo(false, destination, 10)
 	assert.Equal(t, 5, copied)
 }

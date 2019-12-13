@@ -72,12 +72,9 @@ func (cache *TxCache) GetTransactions(noRequested int, batchSizePerSender int) [
 		copiedInThisPass := 0
 
 		cache.forEachSender(func(key string, txList *txListForSender) {
-			// Do this on first pass only
-			if pass == 0 {
-				txList.startBatchCopying(batchSizePerSender)
-			}
-
-			copied := txList.copyBatchTo(result[resultFillIndex:])
+			// Reset happens on first pass only
+			shouldResetCopy := pass == 0
+			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], batchSizePerSender)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
