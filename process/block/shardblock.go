@@ -441,11 +441,19 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
+	invalidPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
+	receiptPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 
 	for hash, tx := range scPool {
 		txPool[hash] = tx
 	}
 	for hash, tx := range rewardPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range invalidPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range receiptPool {
 		txPool[hash] = tx
 	}
 

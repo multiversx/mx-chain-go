@@ -2081,7 +2081,10 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	err = tc.VerifyCreatedBlockTransactions(body)
 	assert.Nil(t, err)
 
-	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId()}}
+	body = block.Body{&block.MiniBlock{
+		Type:            block.SmartContractResultBlock,
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   shardCoordinator.SelfId() + 1}}
 	err = tc.VerifyCreatedBlockTransactions(body)
 	assert.Nil(t, err)
 

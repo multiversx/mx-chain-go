@@ -291,7 +291,7 @@ func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body block.Body) error {
 // receivedRewardTransaction is a callback function called when a new reward transaction
 // is added in the reward transactions pool
 func (rtp *rewardTxPreprocessor) receivedRewardTransaction(txHash []byte) {
-	receivedAllMissing := rtp.baseReceivedTransaction(txHash, &rtp.rewardTxsForBlock, rtp.rewardTxPool)
+	receivedAllMissing := rtp.baseReceivedTransaction(txHash, &rtp.rewardTxsForBlock, rtp.rewardTxPool, block.RewardsBlock)
 
 	if receivedAllMissing {
 		rtp.chReceivedAllRewardTxs <- true
@@ -413,6 +413,7 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(miniBlock *
 			miniBlock.ReceiverShardID,
 			txHash,
 			rtp.rewardTxPool,
+			false,
 		)
 
 		if tx == nil {
@@ -458,16 +459,6 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	}
 
 	return rewardTxs, txHashes, nil
-}
-
-// CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
-func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
-	_, _ uint32,
-	_ int,
-	_ func() bool,
-) (*block.MiniBlock, error) {
-
-	return nil, nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

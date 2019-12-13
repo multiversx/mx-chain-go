@@ -36,8 +36,10 @@ const (
 	SmartContractResultBlock Type = 3
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 4
-	// InvalidBlock identifies identifies an invalid miniblock
+	// InvalidBlock identifies a miniblock holding invalid transactions
 	InvalidBlock Type = 5
+	// ReceiptBlock identifies a miniblock holding receipts
+	ReceiptBlock Type = 6
 )
 
 // String returns the string representation of the Type
@@ -55,6 +57,8 @@ func (bType Type) String() string {
 		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
+	case ReceiptBlock:
+		return "ReceiptBlock"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}

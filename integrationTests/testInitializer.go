@@ -556,6 +556,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
@@ -909,6 +911,30 @@ func CreateAndSendTransaction(
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
+	}
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	node.OwnAccount.Nonce++
+}
+
+func CreateAndSendTransactionWithGasLimit(
+	node *TestProcessorNode,
+	txValue *big.Int,
+	gasLimit uint64,
+	rcvAddress []byte,
+	txData string,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    txValue,
+		SndAddr:  node.OwnAccount.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: MinTxGasPrice,
+		GasLimit: gasLimit,
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

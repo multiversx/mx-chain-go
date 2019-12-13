@@ -180,7 +180,6 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
-
 				return
 			}
 
