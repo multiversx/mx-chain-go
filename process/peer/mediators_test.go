@@ -9,7 +9,7 @@ import (
 )
 
 type shardMetaMediatedMock struct {
-	loadPreviousShardHeadersCalled func(header, previousHeader *block.MetaBlock) error
+	loadPreviousShardHeadersCalled     func(header, previousHeader *block.MetaBlock) error
 	loadPreviousShardHeadersMetaCalled func(header *block.MetaBlock) error
 }
 
@@ -72,7 +72,7 @@ func TestMetaMediator(t *testing.T) {
 		},
 	}
 
-	sm.loadPreviousShardHeaders(nil, nil)
+	_ = sm.loadPreviousShardHeaders(nil, nil)
 
 	assert.False(t, loadShardCalled)
 	assert.True(t, loadMetaCalled)
