@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
@@ -72,8 +73,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -127,10 +126,11 @@ type Core struct {
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressConverter  state.AddressConverter
-	PeerAccounts      state.AccountsAdapter
-	AccountsAdapter   state.AccountsAdapter
-	InBalanceForShard map[string]*big.Int
+	AddressConverter     state.AddressConverter
+	BLSAddressConverter  state.AddressConverter
+	PeerAccounts         state.AccountsAdapter
+	AccountsAdapter      state.AccountsAdapter
+	InBalanceForShard    map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -162,6 +162,7 @@ type Process struct {
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
+	HeaderSigVerifier     HeaderSigVerifierHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -235,9 +236,16 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		args.config.Address.Length,
 		args.config.Address.Prefix,
 	)
-
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
+	}
+
+	blsAddressConverter, err := addressConverters.NewPlainAddressConverter(
+		args.config.BLSPublicKey.Length,
+		args.config.BLSPublicKey.Prefix,
+	)
+	if err != nil {
+		return nil, errors.New("could not create bls address converter: " + err.Error())
 	}
 
 	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
@@ -276,10 +284,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	}
 
 	return &State{
-		PeerAccounts:      peerAdapter,
-		AddressConverter:  addressConverter,
-		AccountsAdapter:   accountsAdapter,
-		InBalanceForShard: inBalanceForShard,
+		PeerAccounts:        peerAdapter,
+		AddressConverter:    addressConverter,
+		BLSAddressConverter: blsAddressConverter,
+		AccountsAdapter:     accountsAdapter,
+		InBalanceForShard:   inBalanceForShard,
 	}, nil
 }
 
@@ -507,6 +516,19 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
+	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
+		Marshalizer:       args.core.Marshalizer,
+		Hasher:            args.core.Hasher,
+		NodesCoordinator:  args.nodesCoordinator,
+		MultiSigVerifier:  args.crypto.MultiSigner,
+		SingleSigVerifier: args.crypto.SingleSigner,
+		KeyGen:            args.crypto.BlockSignKeyGen,
+	}
+	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -515,6 +537,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		args.network,
 		args.economicsData,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -607,6 +630,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
+		HeaderSigVerifier:     headerSigVerifier,
 	}, nil
 }
 
@@ -680,35 +704,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
-}
-
-// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
-func CreateStatusHandlerPresenter() view.Presenter {
-	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
-
-	return presenterStatusHandlerFactory.Create()
-}
-
-// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
-	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
-	if err != nil {
-		return nil, err
-	}
-
-	views, err := viewsFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range views {
-		err = v.Start()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return views, nil
 }
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
@@ -838,6 +833,8 @@ func createShardDataStoreFromConfig(
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -872,6 +869,12 @@ func createShardDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -951,7 +954,7 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -963,6 +966,14 @@ func createShardDataStoreFromConfig(
 		getCacherFromConfig(config.BootstrapStorage.Cache),
 		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
 		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -980,6 +991,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -993,6 +1005,9 @@ func createMetaChainDataStoreFromConfig(
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var bootstrapUnit *storageUnit.Unit
+	var heartbeatStorageUnit *storageUnit.Unit
+	var statusMetricsStorageUnit *storageUnit.Unit
+
 	var err error
 
 	defer func() {
@@ -1029,6 +1044,12 @@ func createMetaChainDataStoreFromConfig(
 			}
 			if bootstrapUnit != nil {
 				_ = bootstrapUnit.DestroyUnit()
+			}
+			if heartbeatStorageUnit != nil {
+				_ = heartbeatStorageUnit.DestroyUnit()
+			}
+			if statusMetricsStorageUnit != nil {
+				_ = statusMetricsStorageUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -1087,7 +1108,7 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
 		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
@@ -1127,6 +1148,14 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.StatusMetricsStorage.Cache),
+		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
+		getBloomFromConfig(config.StatusMetricsStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -1142,6 +1171,7 @@ func createMetaChainDataStoreFromConfig(
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -1389,6 +1419,7 @@ func newInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1401,6 +1432,7 @@ func newInterceptorAndResolverContainerFactory(
 			state,
 			network,
 			economics,
+			headerSigVerifier,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1413,6 +1445,7 @@ func newInterceptorAndResolverContainerFactory(
 			network,
 			state,
 			economics,
+			headerSigVerifier,
 		)
 	}
 
@@ -1428,8 +1461,8 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
-
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1449,6 +1482,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1484,8 +1518,8 @@ func newMetaInterceptorAndResolverContainerFactory(
 	network *Network,
 	state *State,
 	economics *economics.EconomicsData,
+	headerSigVerifier HeaderSigVerifierHandler,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
-
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -1505,6 +1539,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -2250,7 +2285,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:     state.AddressConverter,
+		AdrConv:     state.BLSAddressConverter,
 		Hasher:      core.Hasher,
 		Marshalizer: core.Marshalizer,
 		PeerState:   state.PeerAccounts,
@@ -2319,7 +2354,7 @@ func newValidatorStatisticsProcessor(
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
 		PeerAdapter:      processComponents.state.PeerAccounts,
-		AdrConv:          processComponents.state.AddressConverter,
+		AdrConv:          processComponents.state.BLSAddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
 		DataPool:         peerDataPool,

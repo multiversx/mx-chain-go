@@ -84,7 +84,7 @@ var MinTxGasPrice = uint64(10)
 var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(10000000)
+const MaxGasLimitPerBlock = uint64(300000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -161,7 +161,8 @@ type TestProcessorNode struct {
 	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	MultiSigner crypto.MultiSigner
+	MultiSigner       crypto.MultiSigner
+	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -199,9 +200,10 @@ func NewTestProcessorNode(
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -230,9 +232,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	sk, pk := kg.GeneratePair()
 
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -378,6 +381,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.HeaderSigVerifier,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -403,6 +407,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.HeaderSigVerifier,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -723,8 +728,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
+		blsKeyedAddressConverter, _ := addressConverters.NewPlainAddressConverter(
+			128,
+			"0x",
+		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     TestAddressConverter,
+			AdrConv:     blsKeyedAddressConverter,
 			Hasher:      TestHasher,
 			Marshalizer: TestMarshalizer,
 			PeerState:   tpn.PeerState,

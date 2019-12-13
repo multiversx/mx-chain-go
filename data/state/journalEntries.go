@@ -38,3 +38,51 @@ func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+//------- JournalEntryDataTrieUpdates
+
+// JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
+// so it can be reverted in case of rollback
+type JournalEntryDataTrieUpdates struct {
+	trieUpdates map[string][]byte
+	account     AccountHandler
+}
+
+// NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
+func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*JournalEntryDataTrieUpdates, error) {
+	if account == nil || account.IsInterfaceNil() {
+		return nil, ErrNilUpdater
+	}
+	if len(trieUpdates) == 0 {
+		return nil, ErrNilOrEmptyDataTrieUpdates
+	}
+
+	return &JournalEntryDataTrieUpdates{
+		trieUpdates: trieUpdates,
+		account:     account,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jedtu *JournalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
+	for key := range jedtu.trieUpdates {
+		err := jedtu.account.DataTrie().Update([]byte(key), jedtu.trieUpdates[key])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rootHash, err := jedtu.account.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	jedtu.account.SetRootHash(rootHash)
+
+	return jedtu.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
+	return jedtu == nil
+}

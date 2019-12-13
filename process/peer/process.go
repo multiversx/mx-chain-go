@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sync"
@@ -122,11 +123,96 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
+func (p *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
+	if p.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nil
+	}
+
+	metaBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return nil
+	}
+
+	for _, peerChange := range metaBlock.PeerInfo {
+		err := p.updatePeerState(peerChange)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) updatePeerState(
+	peerChange block.PeerData,
+) error {
+	adrSrc, err := p.adrConv.CreateAddressFromPublicKeyBytes(peerChange.Address)
+	if err != nil {
+		return err
+	}
+
+	if peerChange.Action == block.PeerDeregistration {
+		return p.peerAdapter.RemoveAccount(adrSrc)
+	}
+
+	accHandler, err := p.peerAdapter.GetAccountWithJournal(adrSrc)
+	if err != nil {
+		return err
+	}
+
+	account, ok := accHandler.(*state.PeerAccount)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	zero := big.NewInt(0)
+	if peerChange.ValueChange.Cmp(zero) != 0 {
+		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
+		err := account.SetStakeWithJournal(actualValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	if peerChange.Action == block.PeerRegistrantion && peerChange.TimeStamp != account.Nonce {
+		err := account.SetNonceWithJournal(peerChange.TimeStamp)
+		if err != nil {
+			return err
+		}
+
+		err = account.SetNodeInWaitingListWithJournal(true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
+		err := account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return p.peerAdapter.RootHash()
+	}
+
+	err := p.processPeerChanges(header)
+	if err != nil {
+		return nil, err
 	}
 
 	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
@@ -194,7 +280,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].Address())
+		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].PubKey())
 		if err != nil {
 			return err
 		}
@@ -291,7 +377,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 }
 
 func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := p.adrConv.CreateAddressFromHex(node.Address)
+	address, err := p.adrConv.CreateAddressFromHex(node.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +426,7 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
+		peerAcc, err := p.getPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -366,7 +452,7 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 		return nil, err
 	}
 
-	account, err := p.peerAdapter.GetExistingAccount(addressContainer)
+	account, err := p.peerAdapter.GetAccountWithJournal(addressContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -401,8 +487,8 @@ func (p *validatorStatistics) loadExistingPrevShardData(currentHeader, previousH
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
 
-	p.prevShardInfo = make(map[string]block.ShardData)
-	missingPreviousShardData := make(map[string]block.ShardData)
+	p.prevShardInfo = make(map[string]block.ShardData, len(currentHeader.ShardInfo))
+	missingPreviousShardData := make(map[string]block.ShardData, len(currentHeader.ShardInfo))
 
 	for _, currentShardData := range currentHeader.ShardInfo {
 		if currentShardData.Nonce == 1 {
