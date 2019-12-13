@@ -429,7 +429,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.mutHashConsensusMessage.Unlock()
 
-	if wrk.bootstrapper.ShouldSync() {
+	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
 	}
 
@@ -437,7 +437,7 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Trace("account state is reverted to snapshot")
+	log.Debug("account state is reverted to snapshot")
 
 	wrk.blockProcessor.RevertAccountState()
 
