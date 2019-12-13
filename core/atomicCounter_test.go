@@ -1,10 +1,11 @@
 package core_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIncrementAndDecrement(t *testing.T) {

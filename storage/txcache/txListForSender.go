@@ -7,12 +7,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// txListForSender is
+// txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	items          *list.List
 	mutex          sync.Mutex
 	copyBatchIndex *list.Element
-	copyBatchSize  int
 	orderNumber    int64
 	sender         string
 }
@@ -37,6 +36,7 @@ func newTxListForSender(sender string, globalIndex int64) *txListForSender {
 func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHandler) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
 	nonce := tx.GetNonce()
 	mark := listForSender.findTxWithLargerNonce(nonce)
@@ -47,10 +47,9 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 	} else {
 		listForSender.items.InsertBefore(newNode, mark)
 	}
-
-	listForSender.mutex.Unlock()
 }
 
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
@@ -66,23 +65,23 @@ func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.
 func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
-	marker := listForSender.findTx(tx)
+	marker := listForSender.findListElementWithTx(tx)
 	isFound := marker != nil
 	if isFound {
 		listForSender.items.Remove(marker)
 	}
-
-	listForSender.mutex.Unlock()
 
 	return isFound
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
 func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
-	removedTxHashes := make([][]byte, count)
-
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	removedTxHashes := make([][]byte, count)
 
 	index := uint32(0)
 	var previous *list.Element
@@ -98,16 +97,21 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 		index++
 	}
 
-	listForSender.mutex.Unlock()
-
 	return removedTxHashes
 }
 
-func (listForSender *txListForSender) findTx(txToFind data.TransactionHandler) *list.Element {
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) findListElementWithTx(txToFind data.TransactionHandler) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
+
 		if value.tx == txToFind {
 			return element
+		}
+
+		// Optimization: stop search at this point, since the list is sorted by nonce
+		if value.tx.GetNonce() > txToFind.GetNonce() {
+			break
 		}
 	}
 
@@ -124,31 +128,25 @@ func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.items.Len() == 0
 }
 
-// startBatchCopying resets the internal state used for copy operations
-func (listForSender *txListForSender) startBatchCopying(batchSize int) {
-	// We cannot copy or start copy from multiple goroutines at the same time
-	listForSender.mutex.Lock()
-
-	listForSender.copyBatchIndex = listForSender.items.Front()
-	listForSender.copyBatchSize = batchSize
-
-	listForSender.mutex.Unlock()
-}
-
 // copyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) copyBatchTo(destination []data.TransactionHandler) int {
+func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []data.TransactionHandler, batchSize int) int {
+	// We can't read from multiple goroutines at the same time
+	// And we can't mutate the sender's list while reading it
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	// Reset the internal state used for copy operations
+	if withReset {
+		listForSender.copyBatchIndex = listForSender.items.Front()
+	}
+
 	element := listForSender.copyBatchIndex
-	batchSize := listForSender.copyBatchSize
 	availableSpace := len(destination)
 
 	if element == nil {
 		return 0
 	}
-
-	// We can't read from multiple goroutines at the same time
-	// And we can't mutate the sender's list while reading it
-	listForSender.mutex.Lock()
 
 	copied := 0
 	for ; ; copied++ {
@@ -162,13 +160,14 @@ func (listForSender *txListForSender) copyBatchTo(destination []data.Transaction
 	}
 
 	listForSender.copyBatchIndex = element
-
-	listForSender.mutex.Unlock()
 	return copied
 }
 
-// GetTxHashes returns the hashes of transactions in the list
-func (listForSender *txListForSender) GetTxHashes() [][]byte {
+// getTxHashes returns the hashes of transactions in the list
+func (listForSender *txListForSender) getTxHashes() [][]byte {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
 	result := make([][]byte, listForSender.items.Len())
 
 	index := 0
@@ -182,6 +181,9 @@ func (listForSender *txListForSender) GetTxHashes() [][]byte {
 }
 
 func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandler {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
 	back := listForSender.items.Back()
 
 	if back == nil {

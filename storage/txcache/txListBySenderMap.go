@@ -15,9 +15,8 @@ type txListBySenderMap struct {
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(size uint32, noChunksHint uint32) txListBySenderMap {
-	// We'll hold at most "size" lists of at least 1 transaction
-	backingMap := NewConcurrentMap(size, noChunksHint)
+func newTxListBySenderMap(nChunksHint uint32) txListBySenderMap {
+	backingMap := NewConcurrentMap(nChunksHint)
 
 	return txListBySenderMap{
 		backingMap: backingMap,
@@ -98,8 +97,8 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	}
 
 	newCount := uint32(txMap.counter.Get())
-	noRemoved := oldCount - newCount
-	return noRemoved
+	nRemoved := oldCount - newCount
+	return nRemoved
 }
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
