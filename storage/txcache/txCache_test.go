@@ -116,11 +116,11 @@ func Test_GetTransactions(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         10,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         10,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	// 5000 * 100
@@ -136,13 +136,13 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 
 // This seems to be the worst case in terms of eviction complexity
 // Eviction is triggered often and little eviction (only 10 senders) is done
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOldestSendersToEvict_10(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_10(b *testing.B) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         10,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         10,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -150,13 +150,13 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOlde
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
 
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOldestSendersToEvict_100(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_100(b *testing.B) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         100,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         100,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -164,13 +164,13 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOlde
 	assert.Equal(b, int64(240000), cache.CountTx())
 }
 
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOldestSendersToEvict_1000(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_1000(b *testing.B) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -180,11 +180,11 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_CountOlde
 
 func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -194,11 +194,11 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 
 func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 	config := EvictionConfig{
-		Enabled:                           true,
-		CountThreshold:                    240000,
-		CountOldestSendersToEvict:         1000,
-		ALotOfTransactionsForASender:      1000,
-		CountTxsToEvictForASenderWithALot: 250,
+		Enabled:                         true,
+		CountThreshold:                  240000,
+		NumOldestSendersToEvict:         1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)

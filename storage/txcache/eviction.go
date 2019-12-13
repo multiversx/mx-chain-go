@@ -7,12 +7,12 @@ import (
 
 // EvictionConfig is a cache eviction model
 type EvictionConfig struct {
-	Enabled                           bool
-	CountThreshold                    uint32
-	CountJustAFewSenders              uint32
-	CountOldestSendersToEvict         uint32
-	ALotOfTransactionsForASender      uint32
-	CountTxsToEvictForASenderWithALot uint32
+	Enabled                         bool
+	CountThreshold                  uint32
+	CountJustAFewSenders            uint32
+	NumOldestSendersToEvict         uint32
+	ALotOfTransactionsForASender    uint32
+	NumTxsToEvictForASenderWithALot uint32
 }
 
 // doEviction does cache eviction
@@ -63,7 +63,7 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 // evictOldestSenders removes transactions from the cache
 func (cache *TxCache) evictOldestSenders() (uint32, uint32) {
 	listsOrdered := cache.txListBySender.GetListsSortedByOrderNumber()
-	sliceEnd := core.MinUint32(cache.evictionConfig.CountOldestSendersToEvict, uint32(len(listsOrdered)))
+	sliceEnd := core.MinUint32(cache.evictionConfig.NumOldestSendersToEvict, uint32(len(listsOrdered)))
 	listsToEvict := listsOrdered[:sliceEnd]
 
 	return cache.evictSendersAndTheirTxs(listsToEvict)
@@ -88,7 +88,7 @@ func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string)
 }
 
 // evictHighNonceTransactions removes transactions from the cache
-// For senders with many transactions (> "ALotOfTransactionsForASender"), evict "CountTxsToEvictForASenderWithALot" transactions
+// For senders with many transactions (> "ALotOfTransactionsForASender"), evict "NumTxsToEvictForASenderWithALot" transactions
 // Also makes sure that there's no sender with 0 transactions
 func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
@@ -96,7 +96,7 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 
 	cache.forEachSender(func(key string, txList *txListForSender) {
 		aLot := cache.evictionConfig.ALotOfTransactionsForASender
-		toEvictForSenderCount := cache.evictionConfig.CountTxsToEvictForASenderWithALot
+		toEvictForSenderCount := cache.evictionConfig.NumTxsToEvictForASenderWithALot
 
 		if txList.HasMoreThan(aLot) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(toEvictForSenderCount)
@@ -112,11 +112,11 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 }
 
 // evictSendersWhileTooManyTxs removes transactions
-// Eviction happens in ((transaction count) - CountThreshold) / CountOldestSendersToEvict + 1 steps
+// Eviction happens in ((transaction count) - CountThreshold) / NumOldestSendersToEvict + 1 steps
 // One batch of senders is removed in each step
 func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint32, countSenders uint32) {
 	batchesSource := cache.txListBySender.GetListsSortedByOrderNumber()
-	batchSize := cache.evictionConfig.CountOldestSendersToEvict
+	batchSize := cache.evictionConfig.NumOldestSendersToEvict
 	batchStart := uint32(0)
 
 	for step = 1; cache.areThereTooManyTxs(); step++ {

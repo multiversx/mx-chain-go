@@ -6,8 +6,8 @@ import "github.com/stretchr/testify/assert"
 
 func Test_EvictOldestSenders(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:            1,
-		CountOldestSendersToEvict: 2,
+		CountThreshold:          1,
+		NumOldestSendersToEvict: 2,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -26,9 +26,9 @@ func Test_EvictOldestSenders(t *testing.T) {
 
 func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:                    400,
-		ALotOfTransactionsForASender:      50,
-		CountTxsToEvictForASenderWithALot: 25,
+		CountThreshold:                  400,
+		ALotOfTransactionsForASender:    50,
+		NumTxsToEvictForASenderWithALot: 25,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -56,8 +56,8 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 
 func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := EvictionConfig{
-		CountThreshold:            100,
-		CountOldestSendersToEvict: 20,
+		CountThreshold:          100,
+		NumOldestSendersToEvict: 20,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)

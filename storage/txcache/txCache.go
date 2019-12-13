@@ -61,10 +61,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 }
 
 // GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "nRequested" transactions
-// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "nRequested" limit is reached before iterating over all senders
-func (cache *TxCache) GetTransactions(nRequested int, batchSizePerSender int) []data.TransactionHandler {
-	result := make([]data.TransactionHandler, nRequested)
+// It returns at most "numRequested" transactions
+// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
+func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) []data.TransactionHandler {
+	result := make([]data.TransactionHandler, numRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
@@ -78,7 +78,7 @@ func (cache *TxCache) GetTransactions(nRequested int, batchSizePerSender int) []
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
-			resultIsFull = resultFillIndex == nRequested
+			resultIsFull = resultFillIndex == numRequested
 		})
 
 		nothingCopiedThisPass := copiedInThisPass == 0
