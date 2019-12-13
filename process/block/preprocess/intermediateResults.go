@@ -183,6 +183,7 @@ func (irp *intermediateResultsProcessor) SaveCurrentIntermediateTxToStorage() er
 
 	for _, txInfoValue := range irp.interResultsForBlock {
 		if txInfoValue.tx == nil {
+			log.Debug("missing transaction in SaveCurrentIntermediateTxToStorage ", "type", dataRetriever.UnsignedTransactionUnit)
 			return process.ErrMissingTransaction
 		}
 
