@@ -562,7 +562,6 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
-	mp.epochStartTrigger.Update(initialHdrData.GetRound())
 	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
 
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
@@ -1607,12 +1606,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	metaHdr.ValidatorStatsRootHash = rootHash
 
-	epochStart, err := mp.createEpochStartForMetablock(metaHdr)
-	if err != nil {
-		return err
-	}
-	metaHdr.EpochStart = *epochStart
-
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
@@ -1745,8 +1738,17 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
+func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
+	metaHeader := &block.MetaBlock{}
+
+	mp.epochStartTrigger.Update(round)
+
+	epochStart, err := mp.createEpochStartForMetablock(metaHeader)
+	if err == nil {
+		metaHeader.EpochStart = *epochStart
+	}
+
+	return metaHeader
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

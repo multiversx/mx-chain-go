@@ -25,7 +25,7 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
-func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
+func (blProcMock *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 

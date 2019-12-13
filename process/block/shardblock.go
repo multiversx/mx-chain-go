@@ -900,8 +900,14 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
+func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
+	header := &block.Header{}
+
+	if sp.epochStartTrigger.IsEpochStart() {
+		header.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
+	}
+
+	return header
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
@@ -1698,10 +1704,6 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	shardHeader.TxCount = uint32(totalTxCount)
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	shardHeader.MetaBlockHashes = metaBlockHashes[core.MetachainShardId]
-
-	if sp.epochStartTrigger.IsEpochStart() {
-		shardHeader.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
-	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))

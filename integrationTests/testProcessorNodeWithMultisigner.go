@@ -141,6 +141,9 @@ func ProposeBlockWithConsensusSignature(
 	epoch uint32,
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
+	if round >= 11 {
+		fmt.Println("round 11")
+	}
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		fmt.Println("Error getting the validators public keys: ", err)
@@ -238,10 +241,6 @@ func AllShardsProposeBlock(
 
 		// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 		epoch := currentBlockHeader.GetEpoch()
-		if currentBlockHeader.IsStartOfEpochBlock() && epoch > 0 {
-			epoch = epoch - 1
-		}
-
 		prevRandomness := currentBlockHeader.GetRandSeed()
 		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
 			i, nodesMap, round, nonce, prevRandomness, epoch,

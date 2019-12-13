@@ -400,8 +400,8 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
 	randomness := hdr.GetRandSeed()
 	newEpoch := hdr.GetEpoch()
-	epochToRemove := newEpoch - nodeCoordinatorStoredEpochs + 1
-	needToRemove := epochToRemove > 0
+	epochToRemove := int32(newEpoch) - nodeCoordinatorStoredEpochs
+	needToRemove := epochToRemove >= 0
 
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
@@ -426,13 +426,14 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 	err := ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
 	if err != nil {
-
 		return
 	}
 
+	ihgs.currentEpoch = newEpoch
+
 	ihgs.mutNodesConfig.Lock()
 	if needToRemove {
-		delete(ihgs.nodesConfig, epochToRemove)
+		delete(ihgs.nodesConfig, uint32(epochToRemove))
 	}
 	ihgs.mutNodesConfig.Unlock()
 }
