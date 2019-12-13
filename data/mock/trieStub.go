@@ -9,15 +9,16 @@ import (
 var errNotImplemented = errors.New("not implemented")
 
 type TrieStub struct {
-	GetCalled         func(key []byte) ([]byte, error)
-	UpdateCalled      func(key, value []byte) error
-	DeleteCalled      func(key []byte) error
-	RootCalled        func() ([]byte, error)
-	ProveCalled       func(key []byte) ([][]byte, error)
-	VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
-	CommitCalled      func() error
-	RecreateCalled    func(root []byte) (data.Trie, error)
-	DeepCloneCalled   func() (data.Trie, error)
+	GetCalled          func(key []byte) ([]byte, error)
+	UpdateCalled       func(key, value []byte) error
+	DeleteCalled       func(key []byte) error
+	RootCalled         func() ([]byte, error)
+	ProveCalled        func(key []byte) ([][]byte, error)
+	VerifyProofCalled  func(proofs [][]byte, key []byte) (bool, error)
+	CommitCalled       func() error
+	RecreateCalled     func(root []byte) (data.Trie, error)
+	DeepCloneCalled    func() (data.Trie, error)
+	GetAllLeavesCalled func() (map[string][]byte, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -90,6 +91,14 @@ func (ts *TrieStub) String() string {
 
 func (ts *TrieStub) DeepClone() (data.Trie, error) {
 	return ts.DeepCloneCalled()
+}
+
+func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
+	if ts.GetAllLeavesCalled != nil {
+		return ts.GetAllLeavesCalled()
+	}
+
+	return nil, errNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

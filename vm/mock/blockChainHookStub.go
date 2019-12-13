@@ -10,7 +10,7 @@ type BlockChainHookStub struct {
 	GetStorageDataCalled    func(accountsAddress []byte, index []byte) ([]byte, error)
 	IsCodeEmptyCalled       func(address []byte) (bool, error)
 	GetCodeCalled           func(address []byte) ([]byte, error)
-	GetBlockHashCalled      func(offset *big.Int) ([]byte, error)
+	GetBlockHashCalled      func(nonce uint64) ([]byte, error)
 	LastNonceCalled         func() uint64
 	LastRoundCalled         func() uint64
 	LastTimeStampCalled     func() uint64
@@ -73,9 +73,9 @@ func (b *BlockChainHookStub) GetCode(address []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (b *BlockChainHookStub) GetBlockhash(offset *big.Int) ([]byte, error) {
+func (b *BlockChainHookStub) GetBlockhash(nonce uint64) ([]byte, error) {
 	if b.GetBlockHashCalled != nil {
-		return b.GetBlockHashCalled(offset)
+		return b.GetBlockHashCalled(nonce)
 	}
 	return []byte("roothash"), nil
 }

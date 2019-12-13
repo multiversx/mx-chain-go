@@ -11,6 +11,10 @@ func (sbm *StorageBootstrapperMock) LoadFromStorage() error {
 	return sbm.LoadFromStorageCalled()
 }
 
+func (sbm *StorageBootstrapperMock) GetHighestBlockNonce() uint64 {
+	return 0
+}
+
 func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
 	return false
 }

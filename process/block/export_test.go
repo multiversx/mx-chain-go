@@ -111,10 +111,6 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []
 		mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 	}
 
-	if mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs == nil {
-		mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64, mp.shardCoordinator.NumberOfShards())
-	}
-
 	mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
 	mp.hdrsForCurrBlock.missingHdrs++
 }
@@ -270,8 +266,9 @@ func (sp *shardProcessor) DisplayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
+	statusHandler core.AppStatusHandler,
 ) {
-	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler)
 }
 
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {

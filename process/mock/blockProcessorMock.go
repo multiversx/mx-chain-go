@@ -33,6 +33,10 @@ func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 
 }
 
+func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+
+}
+
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
