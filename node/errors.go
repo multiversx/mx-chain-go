@@ -138,3 +138,6 @@ var ErrNilBootStorer = errors.New("nil boot storer")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
+
+// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
+var ErrNilValidatorStatistics = errors.New("nil validator statistics")
