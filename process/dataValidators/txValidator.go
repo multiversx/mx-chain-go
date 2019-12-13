@@ -2,7 +2,6 @@ package dataValidators
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -51,9 +50,9 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
 		sndAddrBytes := sndAddr.Bytes()
-		return errors.New(fmt.Sprintf("transaction's sender address %s does not exist in current shard %d",
+		return fmt.Errorf("transaction's sender address %s does not exist in current shard %d",
 			hex.EncodeToString(sndAddrBytes),
-			shardId))
+			shardId)
 	}
 
 	accountNonce := accountHandler.GetNonce()
@@ -62,19 +61,19 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
-		return errors.New(fmt.Sprintf("Invalid nonce. Wanted %d, got %d", accountNonce, txNonce))
+		return fmt.Errorf("invalid nonce. Wanted %d, got %d", accountNonce, txNonce)
 	}
 
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		return errors.New(fmt.Sprintf("cannot convert account handler in a state.Account %s", hexSenderAddr))
+		return fmt.Errorf("cannot convert account handler in a state.Account %s", hexSenderAddr)
 	}
 
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
-		return errors.New(fmt.Sprintf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance))
+		return fmt.Errorf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance)
 	}
 
 	return nil
@@ -82,8 +81,5 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txv *txValidator) IsInterfaceNil() bool {
-	if txv == nil {
-		return true
-	}
-	return false
+	return txv == nil
 }
