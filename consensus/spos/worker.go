@@ -419,7 +419,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.mutHashConsensusMessage.Unlock()
 
-	if wrk.bootstrapper.ShouldSync() {
+	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
 	}
 

@@ -65,6 +65,8 @@ type ConsensusService interface {
 	IsMessageWithSignature(consensus.MessageType) bool
 	//IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
+	//IsSubroundStartRound returns if the current subround is about start round
+	IsSubroundStartRound(int) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
