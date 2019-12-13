@@ -1096,7 +1096,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 4
+			return time.Second * 2
 		},
 	)
 	if err != nil {
