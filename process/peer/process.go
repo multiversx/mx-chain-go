@@ -487,8 +487,8 @@ func (p *validatorStatistics) loadExistingPrevShardData(currentHeader, previousH
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
 
-	p.prevShardInfo = make(map[string]block.ShardData)
-	missingPreviousShardData := make(map[string]block.ShardData)
+	p.prevShardInfo = make(map[string]block.ShardData, len(currentHeader.ShardInfo))
+	missingPreviousShardData := make(map[string]block.ShardData, len(currentHeader.ShardInfo))
 
 	for _, currentShardData := range currentHeader.ShardInfo {
 		if currentShardData.Nonce == 1 {

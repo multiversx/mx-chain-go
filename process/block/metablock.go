@@ -250,7 +250,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
 		return err
 	}
@@ -300,7 +300,7 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	}
 
 	//if all miniblockshards hashes are in header miniblocks as well
-	mapMetaMiniBlockHdrs := make(map[string]struct{})
+	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
 	for _, metaMiniBlock := range header.MiniBlockHeaders {
 		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
 	}
@@ -355,7 +355,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 // SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+func (mp *metaProcessor) SetConsensusData(_ []byte, _ uint64, _ uint32, _ uint32) {
 	// nothing to do
 }
 
@@ -590,7 +590,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
-		round,
 		haveTime)
 
 	if len(mbFromMe) > 0 {
@@ -696,7 +695,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
-				round,
 				haveTime)
 
 			if !hdrProcessFinished {
@@ -725,7 +723,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
-	arguments := make([]interface{}, 0)
+	arguments := make([]interface{}, 0, len(header.ShardInfo))
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
@@ -975,7 +973,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ map[string]map[string]struct{}) {
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
@@ -1088,9 +1086,9 @@ func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHand
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
-	highestNonceHdrs := make(map[uint32]data.HeaderHandler)
-
 	usedShardHdrs := mp.sortHeadersForCurrentBlockByNonce(true)
+	highestNonceHdrs := make(map[uint32]data.HeaderHandler, len(usedShardHdrs))
+
 	if len(usedShardHdrs) == 0 {
 		return highestNonceHdrs, nil
 	}
@@ -1352,10 +1350,10 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 }
 
 func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
-	headerHash []byte,
-	shardMiniBlockHeader *block.ShardMiniBlockHeader,
-	round uint64,
-	shardId uint32,
+	_ []byte,
+	_ *block.ShardMiniBlockHeader,
+	_ uint64,
+	_ uint32,
 ) error {
 	// TODO: real processing has to be done here, using metachain state
 	return nil
@@ -1365,7 +1363,7 @@ func (mp *metaProcessor) createShardInfo(
 	round uint64,
 ) ([]block.ShardData, error) {
 
-	shardInfo := make([]block.ShardData, 0)
+	shardInfo := make([]block.ShardData, 0, len(mp.hdrsForCurrBlock.hdrHashAndInfo))
 
 	log.Debug("creating shard info has been started")
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -1376,7 +1374,7 @@ func (mp *metaProcessor) createShardInfo(
 		}
 
 		shardData := block.ShardData{}
-		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
+		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
@@ -1502,7 +1500,7 @@ func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -1515,8 +1513,8 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte)
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
+	mrsData := make(map[uint32][]byte, len(bodies))
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(subsetBlockBody)
