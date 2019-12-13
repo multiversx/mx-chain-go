@@ -838,6 +838,29 @@ func TestWithTxFeeHandler_NilTxFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilTxFeeHandler, err)
 }
 
+func TestWithTxFeeHandler_NilBootStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBootStorer(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilBootStorer, err)
+}
+
+func TestWithTxFeeHandler_OkStorerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	bootStorer := &mock.BoostrapStorerMock{}
+	opt := WithBootStorer(bootStorer)
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
 func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -848,5 +871,51 @@ func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.feeHandler == txFeeHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithRequestedItemsHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilRequestedItemsHandler, err)
+}
+
+func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderSigVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
+func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	requestedItemsHeanlder := &mock.RequestedItemsHandlerStub{}
+	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
+	err := opt(node)
+
+	assert.True(t, node.requestedItemsHandler == requestedItemsHeanlder)
 	assert.Nil(t, err)
 }

@@ -3,7 +3,8 @@ package preprocess
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,11 +14,13 @@ import (
 type miniBlocksCompaction struct {
 	economicsFee     process.FeeHandler
 	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 
 	mapHashToTx             map[string]data.TransactionHandler
 	mapMinSenderNonce       map[string]uint64
 	mapUnallocatedTxsHashes map[string]struct{}
-	mapMiniBlockGasConsumed map[int]uint64
+	gasSpentSender          map[int]uint64
+	gasSpentReceiver        map[int]uint64
 
 	mutMiniBlocksCompaction sync.RWMutex
 }
@@ -26,24 +29,30 @@ type miniBlocksCompaction struct {
 func NewMiniBlocksCompaction(
 	economicsFee process.FeeHandler,
 	shardCoordinator sharding.Coordinator,
+	gasHandler process.GasHandler,
 ) (*miniBlocksCompaction, error) {
 
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	mbc := miniBlocksCompaction{
 		economicsFee:     economicsFee,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	mbc.mapHashToTx = make(map[string]data.TransactionHandler)
 	mbc.mapMinSenderNonce = make(map[string]uint64)
 	mbc.mapUnallocatedTxsHashes = make(map[string]struct{})
-	mbc.mapMiniBlockGasConsumed = make(map[int]uint64)
+	mbc.gasSpentSender = make(map[int]uint64)
+	mbc.gasSpentReceiver = make(map[int]uint64)
 
 	return &mbc, nil
 }
@@ -64,10 +73,14 @@ func (mbc *miniBlocksCompaction) Compact(
 	var err error
 
 	mbc.mapHashToTx = mapHashToTx
-	mbc.mapMiniBlockGasConsumed = make(map[int]uint64)
+	mbc.gasSpentSender = make(map[int]uint64)
+	mbc.gasSpentReceiver = make(map[int]uint64)
 
 	for index, miniBlock := range miniBlocks {
-		mbc.mapMiniBlockGasConsumed[index], err = mbc.computeGasConsumedByMiniBlock(miniBlock)
+		mbc.gasSpentSender[index], mbc.gasSpentReceiver[index], err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
+			miniBlock,
+			mapHashToTx)
+
 		if err != nil {
 			log.Debug("computeGasConsumedByMiniBlock", "error", err.Error())
 			return miniBlocks
@@ -118,34 +131,6 @@ func (mbc *miniBlocksCompaction) merge(
 	mergedMiniBlocks = append(mergedMiniBlocks, miniBlock)
 
 	return mergedMiniBlocks
-}
-
-func (mbc *miniBlocksCompaction) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, error) {
-	gasUsedInMiniBlock := uint64(0)
-	for _, txHash := range miniBlock.TxHashes {
-		txGasLimit, err := mbc.computeGasConsumedByTx(txHash)
-		if err != nil {
-			return 0, err
-		}
-
-		gasUsedInMiniBlock += txGasLimit
-	}
-
-	return gasUsedInMiniBlock, nil
-}
-
-func (mbc *miniBlocksCompaction) computeGasConsumedByTx(txHash []byte) (uint64, error) {
-	tx, ok := mbc.mapHashToTx[string(txHash)]
-	if !ok {
-		return 0, process.ErrMissingTransaction
-	}
-
-	txGasLimit := mbc.economicsFee.ComputeGasLimit(tx)
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
-		txGasLimit = tx.GetGasLimit()
-	}
-
-	return txGasLimit, nil
 }
 
 // Expand method tries to expand the given mini blocks to their initial state before compaction
@@ -299,48 +284,83 @@ func (mbc *miniBlocksCompaction) computeMerge(
 	srcIndex int,
 ) bool {
 
-	canBeFullyMerged := mbc.mapMiniBlockGasConsumed[dstIndex]+mbc.mapMiniBlockGasConsumed[srcIndex] <= process.MaxGasLimitPerMiniBlock
+	newGasSpentSender := mbc.gasSpentSender[dstIndex] + mbc.gasSpentSender[srcIndex]
+	newGasSpentReceiver := mbc.gasSpentReceiver[dstIndex] + mbc.gasSpentReceiver[srcIndex]
+	senderGasLimitOK := newGasSpentSender <= mbc.economicsFee.MaxGasLimitPerBlock()
+	receiverGasLimitOK := newGasSpentReceiver <= mbc.economicsFee.MaxGasLimitPerBlock()
+
+	canBeFullyMerged := senderGasLimitOK && receiverGasLimitOK
 	if canBeFullyMerged {
 		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, srcMiniBlock.TxHashes...)
-		mbc.mapMiniBlockGasConsumed[dstIndex] += mbc.mapMiniBlockGasConsumed[srcIndex]
+		mbc.gasSpentSender[dstIndex] += mbc.gasSpentSender[srcIndex]
+		mbc.gasSpentReceiver[dstIndex] += mbc.gasSpentReceiver[srcIndex]
 		return true
 	}
 
-	txHashes := make([][]byte, 0)
-	dstMiniBlockGasConsumed := mbc.mapMiniBlockGasConsumed[dstIndex]
-	for _, txHash := range srcMiniBlock.TxHashes {
-		txGasLimit, err := mbc.computeGasConsumedByTx(txHash)
-		if err != nil {
-			break
-		}
+	mbGasSpentSender := mbc.gasSpentSender[dstIndex]
+	mbGasSpentReceiver := mbc.gasSpentReceiver[dstIndex]
 
-		isDstMiniBlockGasLimitReached := dstMiniBlockGasConsumed+txGasLimit > process.MaxGasLimitPerMiniBlock
-		if isDstMiniBlockGasLimitReached {
-			break
-		}
-
-		txHashes = append(txHashes, txHash)
-		dstMiniBlockGasConsumed += txGasLimit
-	}
-
+	txHashes := mbc.getMaxTxsForMerge(&mbGasSpentSender, &mbGasSpentReceiver, srcMiniBlock)
 	if len(txHashes) > 0 {
-		miniBlockGasTransfered := dstMiniBlockGasConsumed - mbc.mapMiniBlockGasConsumed[dstIndex]
 		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, txHashes...)
 		srcMiniBlock.TxHashes = mbc.removeTxHashesFromMiniBlock(srcMiniBlock, txHashes)
-		mbc.mapMiniBlockGasConsumed[dstIndex] += miniBlockGasTransfered
-		mbc.mapMiniBlockGasConsumed[srcIndex] -= miniBlockGasTransfered
+
+		gasTransferred := mbGasSpentSender - mbc.gasSpentSender[dstIndex]
+		mbc.gasSpentSender[dstIndex] += gasTransferred
+		mbc.gasSpentSender[srcIndex] -= gasTransferred
+
+		gasTransferred = mbGasSpentReceiver - mbc.gasSpentReceiver[dstIndex]
+		mbc.gasSpentReceiver[dstIndex] += gasTransferred
+		mbc.gasSpentReceiver[srcIndex] -= gasTransferred
 	}
 
 	return false
 }
 
+func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
+	gasSpentSender *uint64,
+	gasSpentReceiver *uint64,
+	miniBlock *block.MiniBlock,
+) [][]byte {
+
+	txHashes := make([][]byte, 0, len(miniBlock.TxHashes))
+	for _, txHash := range miniBlock.TxHashes {
+		txHandler, ok := mbc.mapHashToTx[string(txHash)]
+		if !ok {
+			break
+		}
+
+		txGasSpentSender, txGasSpentReceiver, err := mbc.gasHandler.ComputeGasConsumedByTx(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			txHandler,
+		)
+		if err != nil {
+			break
+		}
+
+		newGasSpentSender := *gasSpentSender + txGasSpentSender
+		newGasSpentReceiver := *gasSpentReceiver + txGasSpentReceiver
+		if newGasSpentSender > mbc.economicsFee.MaxGasLimitPerBlock() ||
+			newGasSpentReceiver > mbc.economicsFee.MaxGasLimitPerBlock() {
+			break
+		}
+
+		txHashes = append(txHashes, txHash)
+		*gasSpentSender += txGasSpentSender
+		*gasSpentReceiver += txGasSpentReceiver
+	}
+
+	return sliceUtil.TrimSliceSliceByte(txHashes)
+}
+
 func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.MiniBlock, txHashes [][]byte) [][]byte {
-	mapTxHashesToBeRemoved := make(map[string]struct{})
+	mapTxHashesToBeRemoved := make(map[string]struct{}, len(txHashes))
 	for _, txHash := range txHashes {
 		mapTxHashesToBeRemoved[string(txHash)] = struct{}{}
 	}
 
-	preservedTxHashes := make([][]byte, 0)
+	preservedTxHashes := make([][]byte, 0, len(miniBlock.TxHashes))
 	for _, txHash := range miniBlock.TxHashes {
 		_, ok := mapTxHashesToBeRemoved[string(txHash)]
 		if ok {
@@ -350,5 +370,5 @@ func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.Mi
 		preservedTxHashes = append(preservedTxHashes, txHash)
 	}
 
-	return preservedTxHashes
+	return sliceUtil.TrimSliceSliceByte(preservedTxHashes)
 }

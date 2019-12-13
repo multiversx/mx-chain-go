@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
@@ -27,9 +28,9 @@ type ArgStakingToPeer struct {
 	PeerState   state.AccountsAdapter
 	BaseState   state.AccountsAdapter
 
-	ArgParser    process.ArgumentsParser
-	CurrTxs      dataRetriever.TransactionCacher
-	ScDataGetter external.ScDataGetter
+	ArgParser process.ArgumentsParser
+	CurrTxs   dataRetriever.TransactionCacher
+	ScQuery   external.SCQueryService
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -41,9 +42,9 @@ type stakingToPeer struct {
 	peerState   state.AccountsAdapter
 	baseState   state.AccountsAdapter
 
-	argParser    process.ArgumentsParser
-	currTxs      dataRetriever.TransactionCacher
-	scDataGetter external.ScDataGetter
+	argParser process.ArgumentsParser
+	currTxs   dataRetriever.TransactionCacher
+	scQuery   external.SCQueryService
 
 	mutPeerChanges sync.Mutex
 	peerChanges    map[string]block.PeerData
@@ -64,7 +65,7 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		baseState:      args.BaseState,
 		argParser:      args.ArgParser,
 		currTxs:        args.CurrTxs,
-		scDataGetter:   args.ScDataGetter,
+		scQuery:        args.ScQuery,
 		mutPeerChanges: sync.Mutex{},
 		peerChanges:    make(map[string]block.PeerData),
 	}
@@ -94,7 +95,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if args.CurrTxs == nil || args.CurrTxs.IsInterfaceNil() {
 		return process.ErrNilTxForCurrentBlockHandler
 	}
-	if args.ScDataGetter == nil || args.ScDataGetter.IsInterfaceNil() {
+	if args.ScQuery == nil || args.ScQuery.IsInterfaceNil() {
 		return process.ErrNilSCDataGetter
 	}
 
@@ -137,11 +138,20 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 
-		data, err := stp.scDataGetter.Get(factory.StakingSCAddress, "get", []byte(key))
+		query := process.SCQuery{
+			ScAddress: factory.StakingSCAddress,
+			FuncName:  "get",
+			Arguments: [][]byte{[]byte(key)},
+		}
+		vmOutput, err := stp.scQuery.ExecuteQuery(&query)
 		if err != nil {
 			return err
 		}
 
+		var data []byte
+		if len(vmOutput.ReturnData) > 0 {
+			data = vmOutput.ReturnData[0]
+		}
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			err = stp.peerUnregistered(peerAcc, nonce)
@@ -303,11 +313,14 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		if miniBlock.SenderShardID != sharding.MetachainShardId {
+			continue
+		}
 
 		for _, txHash := range miniBlock.TxHashes {
 			tx, err := stp.currTxs.GetTx(txHash)
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			if !bytes.Equal(tx.GetRecvAddress(), factory.StakingSCAddress) {
@@ -336,7 +349,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 // PeerChanges returns peer changes created in current round
 func (stp *stakingToPeer) PeerChanges() []block.PeerData {
 	stp.mutPeerChanges.Lock()
-	peersData := make([]block.PeerData, 0)
+	peersData := make([]block.PeerData, 0, len(stp.peerChanges))
 	for _, peerData := range stp.peerChanges {
 		peersData = append(peersData, peerData)
 	}

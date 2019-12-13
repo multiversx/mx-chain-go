@@ -19,11 +19,10 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	assert.Equal(t, 0, accnts.JournalLen())
 
 	tx := &transaction.Transaction{
@@ -37,8 +36,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 	}
 
 	// tx is not processed due to the invalid sc code
-	err := txProc.ProcessTransaction(tx, round)
-	assert.NotNil(t, err)
+	_ = txProc.ProcessTransaction(tx)
 
 	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
@@ -51,7 +49,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -71,9 +68,9 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -101,7 +98,6 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	//less than requirement
 	gasLimit := uint64(100)
@@ -122,9 +118,9 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

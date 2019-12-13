@@ -68,6 +68,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.slash(args)
 	case "get":
 		return r.get(args)
+	case "isStaked":
+		return r.isStaked(args)
 	}
 
 	return vmcommon.UserError
@@ -78,7 +80,7 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	value := r.eei.GetStorage(args.Arguments[0].Bytes())
+	value := r.eei.GetStorage(args.Arguments[0])
 	r.eei.Finish(value)
 
 	return vmcommon.Ok
@@ -124,7 +126,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}
@@ -137,7 +139,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	registrationData.StartNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.BlsPubKey = args.Arguments[0].Bytes()
+	registrationData.BlsPubKey = args.Arguments[0]
 	//TODO: verify if blsPubKey is valid
 
 	data, err := json.Marshal(registrationData)
@@ -169,7 +171,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == false {
+	if !registrationData.Staked {
 		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
@@ -244,7 +246,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	var registrationData StakingData
-	stakerAddress := args.Arguments[0].Bytes()
+	stakerAddress := args.Arguments[0]
 	data := r.eei.GetStorage(stakerAddress)
 	if data == nil {
 		return vmcommon.UserError
@@ -263,7 +265,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
-	slashValue := args.Arguments[1]
+	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
 
 	data, err = json.Marshal(registrationData)
@@ -277,6 +279,31 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	data := r.eei.GetStorage(args.Arguments[0])
+	registrationData := StakingData{}
+	if data != nil {
+		err := json.Unmarshal(data, &registrationData)
+		if err != nil {
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
+			return vmcommon.UserError
+		}
+	}
+
+	if registrationData.Staked {
+		log.Debug("account already staked, re-staking is invalid")
+		return vmcommon.Ok
+	}
+
+	return vmcommon.UserError
 }
 
 // ValueOf returns the value of a selected key

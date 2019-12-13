@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -21,14 +22,14 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		AdrConv:      &mock.AddressConverterMock{},
-		Hasher:       &mock.HasherMock{},
-		Marshalizer:  &mock.MarshalizerStub{},
-		PeerState:    &mock.AccountsStub{},
-		BaseState:    &mock.AccountsStub{},
-		ArgParser:    &mock.ArgumentParserMock{},
-		CurrTxs:      &mock.TxForCurrentBlockStub{},
-		ScDataGetter: &mock.ScDataGetterMock{},
+		AdrConv:     &mock.AddressConverterMock{},
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerStub{},
+		PeerState:   &mock.AccountsStub{},
+		BaseState:   &mock.AccountsStub{},
+		ArgParser:   &mock.ArgumentParserMock{},
+		CurrTxs:     &mock.TxForCurrentBlockStub{},
+		ScQuery:     &mock.ScQueryMock{},
 	}
 }
 
@@ -37,7 +38,7 @@ func createBlockBody() block.Body {
 		{
 			TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
 			ReceiverShardID: 0,
-			SenderShardID:   0,
+			SenderShardID:   sharding.MetachainShardId,
 			Type:            block.SmartContractResultBlock,
 		},
 	}
@@ -124,7 +125,7 @@ func TestNewStakingToPeerNilScDataGetterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
-	arguments.ScDataGetter = nil
+	arguments.ScQuery = nil
 
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
@@ -144,9 +145,11 @@ func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 	t.Parallel()
 
+	called := false
 	testError := errors.New("error")
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
+		called = true
 		return nil, testError
 	}
 
@@ -156,7 +159,8 @@ func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, testError, err)
+	assert.Nil(t, err)
+	assert.True(t, called)
 }
 
 func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T) {
@@ -313,9 +317,10 @@ func TestStakingToPeer_UpdateProtocolCannotSetBLSPublicKeyShouldErr(t *testing.T
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -323,7 +328,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetBLSPublicKeyShouldErr(t *testing.T
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -371,9 +376,10 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -381,7 +387,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -430,9 +436,10 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -440,7 +447,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -489,9 +496,10 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -499,7 +507,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -548,9 +556,10 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -558,7 +567,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -607,9 +616,10 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -617,7 +627,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -673,9 +683,10 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	scDataGetter := &mock.ScDataGetterMock{}
-	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
-		return json.Marshal(&stakingData)
+	scDataGetter := &mock.ScQueryMock{}
+	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
+		retData, _ := json.Marshal(&stakingData)
+		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -683,7 +694,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	arguments.ScDataGetter = scDataGetter
+	arguments.ScQuery = scDataGetter
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()

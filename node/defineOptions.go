@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -429,6 +430,39 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 			return ErrNilBlackListHandler
 		}
 		n.blackListHandler = blackListHandler
+		return nil
+	}
+}
+
+// WithBootStorer sets up a boot storer for the Node
+func WithBootStorer(bootStorer process.BootStorer) Option {
+	return func(n *Node) error {
+		if check.IfNil(bootStorer) {
+			return ErrNilBootStorer
+		}
+		n.bootStorer = bootStorer
+		return nil
+	}
+}
+
+// WithRequestedItemsHandler sets up a requested items handler for the Node
+func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItemsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(requestedItemsHandler) {
+			return ErrNilRequestedItemsHandler
+		}
+		n.requestedItemsHandler = requestedItemsHandler
+		return nil
+	}
+}
+
+// WithHeaderSigVerifier sets up a header sig verifier for the Node
+func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
+	return func(n *Node) error {
+		if check.IfNil(headerSigVerifier) {
+			return ErrNilHeaderSigVerifier
+		}
+		n.headerSigVerifier = headerSigVerifier
 		return nil
 	}
 }

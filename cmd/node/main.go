@@ -4,19 +4,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -48,14 +44,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	defaultDBPath      = "db"
 	defaultEpochString = "Epoch"
@@ -134,10 +128,11 @@ VERSION:
 		Usage: "The configuration file for servers confidential data",
 		Value: "./config/server.toml",
 	}
-	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
-	withUI = cli.BoolTFlag{
-		Name:  "with-ui",
-		Usage: "If true, the application will be accompanied by a UI. The node will have to be manually started from the UI",
+	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
+	gasScheduleConfigurationFile = cli.StringFlag{
+		Name:  "gasCostsConfig",
+		Usage: "The configuration file for gas costs used in SmartContract execution",
+		Value: "./config/gasSchedule.toml",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.IntFlag{
@@ -251,6 +246,11 @@ VERSION:
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
 	}
+	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
+	disableAnsiColor = cli.BoolFlag{
+		Name:  "disable-ansi-color",
+		Usage: "This flag specifies that the log output should not use ANSI colors",
+	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.Uint64Flag{
 		Name:  "bootstrap-round-index",
@@ -315,6 +315,7 @@ func main() {
 		configurationEconomicsFile,
 		configurationPreferencesFile,
 		p2pConfigurationFile,
+		gasScheduleConfigurationFile,
 		txSignSk,
 		sk,
 		profileMode,
@@ -330,6 +331,7 @@ func main() {
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
+		disableAnsiColor,
 		logLevel,
 		usePrometheus,
 		useLogView,
@@ -344,10 +346,6 @@ func main() {
 			Email: "contact@elrond.com",
 		},
 	}
-
-	//TODO: The next line should be removed when the write in batches is done
-	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
-	debug.SetMaxThreads(100000)
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log, app.Version)
@@ -372,19 +370,34 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 }
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
+	log.Trace("startNode called")
 	logLevel := ctx.GlobalString(logLevel.Name)
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
 		return err
 	}
+	noAnsiColor := ctx.GlobalBool(disableAnsiColor.Name)
+	if noAnsiColor {
+		err = logger.RemoveLogObserver(os.Stdout)
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error removing log observer: " + err.Error())
+			return err
+		}
+
+		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error setting log observer: " + err.Error())
+			return err
+		}
+	}
+	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
-	stop := make(chan bool, 1)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
 	log.Info("starting node", "version", version, "pid", os.Getpid())
+	log.Trace("reading configs")
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
 	generalConfig, err := loadMainConfig(configurationFileName)
@@ -448,6 +461,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 
+	log.Trace("getting suite")
 	suite, err := getSuite(generalConfig)
 	if err != nil {
 		return err
@@ -492,6 +506,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			workingDir = ""
 		}
 	}
+	log.Trace("working directory", "path", workingDir)
 
 	var shardId = "metachain"
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -506,25 +521,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
+		log.Trace("cleaning storage", "path", uniqueDBFolder)
 		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
 		}
 	}
 
-	logDirectory := filepath.Join(workingDir, defaultLogPath)
-
-	err = os.MkdirAll(logDirectory, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
+	log.Trace("creating core components")
 	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("creating nodes coordinator")
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
@@ -534,6 +545,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Trace("creating state components")
 	stateArgs := factory.NewStateComponentsFactoryArgs(
 		generalConfig,
 		genesisConfig,
@@ -546,72 +558,36 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
+	log.Trace("initializing stats file")
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
 	}
 
-	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
-
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
-	if usePrometheusBool {
-		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
 	}
 
-	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
-	useTermui := !ctx.GlobalBool(useLogView.Name)
-	if useTermui {
-
-		views, err = factory.CreateViews(presenterStatusHandler)
-		if err != nil {
-			return err
-		}
-
-		writer, ok := presenterStatusHandler.(io.Writer)
-		if ok {
-			logger.ClearLogObservers()
-			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-			if err != nil {
-				return err
-			}
-		}
-
-		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
-		if ok {
-			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
-		}
-	}
-
-	if views == nil {
-		log.Warn("no views for current node")
-	}
-
-	statusMetrics := statusHandler.NewStatusMetrics()
-	appStatusHandlers = append(appStatusHandlers, statusMetrics)
-
-	if len(appStatusHandlers) > 0 {
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
-		if err != nil {
-			log.Debug("cannot init AppStatusFacade",
-				"error", err.Error(),
-			)
-		}
-	} else {
-		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
-		log.Debug("no AppStatusHandler used, started with NilStatusHandler")
-	}
-
+	log.Trace("initializing metrics")
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
+	log.Trace("creating data components")
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
 	}
 
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
+	if err != nil {
+		return err
+	}
+
+	log.Trace("creating crypto components")
 	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
 		ctx,
 		generalConfig,
@@ -649,20 +625,24 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(sessionInfoFileOutput), os.ModePerm)
+	statsFile := filepath.Join(workingDir, defaultStatsPath, "session.info")
+	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
+	log.Trace("creating network components")
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("creating tps benchmark components")
 	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
 	if err != nil {
 		return err
 	}
 
 	if generalConfig.Explorer.Enabled {
+		log.Trace("creating elastic search components")
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = createElasticIndexer(
 			ctx,
@@ -682,16 +662,28 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
+	log.Trace("creating economics data components")
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
 	if err != nil {
 		return err
 	}
 
+	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
+	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("creating time cache for requested items components")
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
+
+	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
 		genesisConfig,
 		economicsData,
 		nodesConfig,
+		gasSchedule,
 		syncer,
 		shardCoordinator,
 		nodesCoordinator,
@@ -701,6 +693,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
+		requestedItemsHandler,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -714,6 +707,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer = coreServiceContainer.Indexer()
 	}
 
+	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
 		preferencesConfig,
@@ -734,11 +728,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("creating software checker structure")
 	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler)
 	if err != nil {
 		log.Debug("nil software version checker", "error", err.Error())
@@ -747,9 +743,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		log.Trace("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
+	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
@@ -758,13 +756,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Marshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
-		statusMetrics,
+		statusHandlersInfo.StatusMetrics,
+		gasSchedule,
 		economicsData,
 	)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("starting status pooling components")
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
 		generalConfig.GeneralSettings.StatusPollingIntervalSec,
@@ -781,14 +781,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
 		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        usePrometheusBool,
-		PrometheusJoinURL: prometheusJoinUrl,
+		Prometheus:        statusHandlersInfo.UsePrometheus,
+		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
@@ -796,27 +797,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.SetTpsBenchmark(tpsBenchmark)
 	ef.SetConfig(efConfig)
 
-	wg := sync.WaitGroup{}
-	go ef.StartBackgroundServices(&wg)
-	wg.Wait()
+	log.Trace("starting background services")
+	ef.StartBackgroundServices()
 
-	if !ctx.Bool(withUI.Name) {
-		log.Debug("bootstrapping node...")
-		err = ef.StartNode()
-		if err != nil {
-			log.Error("starting node failed", err.Error())
-			return err
-		}
+	log.Debug("bootstrapping node...")
+	err = ef.StartNode()
+	if err != nil {
+		log.Error("starting node failed", err.Error())
+		return err
 	}
 
-	go func() {
-		<-sigs
-		log.Info("terminating at user's signal...")
-		stop <- true
-	}()
-
 	log.Info("application is now running")
-	<-stop
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+	log.Info("terminating at user's signal...")
 
 	if rm != nil {
 		err = rm.Close()
@@ -837,35 +832,6 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	}
 }
 
-func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
-
-	return prometheusJoinUrl, usePrometheusBool
-}
-
-func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return "", err
-	}
-	baseURL := serversConfig.Prometheus.PrometheusBaseURL
-	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
-	resp, err := http.Get(statusURL)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("prometheus URL not available")
-	}
-	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
-	return joinURL, nil
-}
-
 func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	var gopsEnabled bool
 	if ctx.IsSet(gopsEn.Name) {
@@ -877,6 +843,8 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 			log.Error("failure to init gops", "error", err.Error())
 		}
 	}
+
+	log.Trace("gops", "enabled", gopsEnabled)
 }
 
 func loadMainConfig(filepath string) (*config.Config, error) {
@@ -1095,6 +1063,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1138,6 +1107,9 @@ func createNode(
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithBootStorer(process.BootStorer),
+		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1170,7 +1142,7 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
+func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
 	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -1245,6 +1217,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
+	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
@@ -1266,7 +1239,7 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 		if err != nil {
 			return nil, err
 		}
@@ -1277,10 +1250,10 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(addrConv, vmContainer)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
+	return external.NewNodeApiResolver(scQueryService, statusMetrics)
 }

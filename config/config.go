@@ -64,8 +64,10 @@ type Config struct {
 	RewardTxStorage            StorageConfig
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
+	StatusMetricsStorage       StorageConfig
 
 	ShardDataStorage StorageConfig
+	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 

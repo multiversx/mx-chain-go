@@ -60,6 +60,10 @@ func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 }
 
 func TestDB_RemoveBeforeTimeoutOK(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	key, val := []byte("key"), []byte("value")
 	ldb := createBadgerDb(t, 1, 100)
 

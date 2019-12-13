@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,8 @@ import (
 )
 
 // TODO: increase code coverage with unit tests
+
+const initialTxHashesSliceLen = 10
 
 type txShardInfo struct {
 	senderShardID   uint32
@@ -41,6 +44,7 @@ type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -72,7 +76,7 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
-	mrsTxs := make([][]byte, 0)
+	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
 		txInfo := forBlock.txHashAndInfo[string(txHash)]
@@ -167,8 +171,8 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {
 
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
-
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
+	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -177,7 +181,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		txHashes := make([][]byte, 0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
@@ -197,12 +200,15 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID],
-				&txsHashesInfo{txHashes: txHashes, receiverShardID: miniBlock.ReceiverShardID})
+			tmp := &txsHashesInfo{
+				txHashes:        sliceUtil.TrimSliceSliceByte(txHashes),
+				receiverShardID: miniBlock.ReceiverShardID,
+			}
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], tmp)
 		}
+		txHashes = txHashes[:0]
 	}
 	forBlock.mutTxsForBlock.Unlock()
-
 	return missingTxsForShard
 }
 
