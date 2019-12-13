@@ -9,53 +9,53 @@ type PoolsHolderStub struct {
 	HeadersCalled              func() storage.Cacher
 	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
 	PeerChangesBlocksCalled    func() storage.Cacher
-	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
+	TransactionsCalled         func() dataRetriever.TxPool
+	UnsignedTransactionsCalled func() dataRetriever.TxPool
+	RewardTransactionsCalled   func() dataRetriever.TxPool
 	MiniBlocksCalled           func() storage.Cacher
 	MetaBlocksCalled           func() storage.Cacher
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 }
 
-func (phs *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
-	return phs.CurrBlockTxsCalled()
+func (stub *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return stub.CurrBlockTxsCalled()
 }
 
-func (phs *PoolsHolderStub) Headers() storage.Cacher {
-	return phs.HeadersCalled()
+func (stub *PoolsHolderStub) Headers() storage.Cacher {
+	return stub.HeadersCalled()
 }
 
-func (phs *PoolsHolderStub) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phs.HeadersNoncesCalled()
+func (stub *PoolsHolderStub) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return stub.HeadersNoncesCalled()
 }
 
-func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
-	return phs.PeerChangesBlocksCalled()
+func (stub *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
+	return stub.PeerChangesBlocksCalled()
 }
 
-func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.TransactionsCalled()
+func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
+	return stub.TransactionsCalled()
 }
 
-func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
-	return phs.MiniBlocksCalled()
+func (stub *PoolsHolderStub) MiniBlocks() storage.Cacher {
+	return stub.MiniBlocksCalled()
 }
 
-func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
-	return phs.MetaBlocksCalled()
+func (stub *PoolsHolderStub) MetaBlocks() storage.Cacher {
+	return stub.MetaBlocksCalled()
 }
 
-func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.UnsignedTransactionsCalled()
+func (stub *PoolsHolderStub) UnsignedTransactions() dataRetriever.TxPool {
+	return stub.UnsignedTransactionsCalled()
 }
 
-func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.RewardTransactionsCalled()
+func (stub *PoolsHolderStub) RewardTransactions() dataRetriever.TxPool {
+	return stub.RewardTransactionsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (phs *PoolsHolderStub) IsInterfaceNil() bool {
-	if phs == nil {
+func (stub *PoolsHolderStub) IsInterfaceNil() bool {
+	if stub == nil {
 		return true
 	}
 	return false
