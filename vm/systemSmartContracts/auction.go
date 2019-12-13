@@ -351,6 +351,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 		Staked:        false,
 		UnStakedNonce: 0,
 		RewardAddress: nil,
+		StakeValue:    big.NewInt(0),
 	}
 
 	if data != nil {

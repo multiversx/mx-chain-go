@@ -21,7 +21,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 		Epoch:           0,
 		BlsPubKeys:      nil,
 		TotalStakeValue: big.NewInt(0).SetUint64(totalStakeValue),
-		LockedStake:     big.NewInt(100000000),
+		LockedStake:     big.NewInt(0).SetUint64(totalStakeValue),
 		MaxStakePerNode: big.NewInt(0).SetUint64(maxStakePerNode),
 	}
 
@@ -359,6 +359,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 		UnStakedNonce: 1,
 		UnStakedEpoch: 0,
 		RewardAddress: []byte("tralala1"),
+		StakeValue:    big.NewInt(0),
 	}
 	stakedDataBytes, _ := json.Marshal(&stakedData)
 
@@ -397,8 +398,9 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	unBondPeriod := uint64(100000)
 	numNodes := uint32(5)
 	arguments := CreateVmContractCallInput()
+	totalStake := uint64(25000000)
 
-	auctionData := createABid(25000000, 2, 12500000)
+	auctionData := createABid(totalStake, 2, 12500000)
 	auctionDataBytes, _ := json.Marshal(&auctionData)
 
 	stakedData := StakedData{
@@ -407,6 +409,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 		UnStakedNonce: 1,
 		UnStakedEpoch: 0,
 		RewardAddress: []byte("tralala1"),
+		StakeValue:    big.NewInt(12500000),
 	}
 	stakedDataBytes, _ := json.Marshal(&stakedData)
 
@@ -428,8 +431,8 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 			var regData AuctionData
 			_ = json.Unmarshal(value, &regData)
 
-			assert.Equal(t, big.NewInt(90000000), regData.LockedStake)
-			assert.Equal(t, big.NewInt(15000000), regData.TotalStakeValue)
+			assert.Equal(t, big.NewInt(0).Sub(big.NewInt(0).SetUint64(totalStake), minStakeValue), regData.LockedStake)
+			assert.Equal(t, big.NewInt(0).Sub(big.NewInt(0).SetUint64(totalStake), minStakeValue), regData.TotalStakeValue)
 		}
 	}
 
