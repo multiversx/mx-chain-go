@@ -707,7 +707,9 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		headerSigVerifier)
+		headerSigVerifier,
+		createMockNetworkShardingCollector(),
+	)
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1

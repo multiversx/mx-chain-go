@@ -5,6 +5,10 @@ type BlackListHandlerStub struct {
 	HasCalled func(key string) bool
 }
 
+func (blhs *BlackListHandlerStub) Sweep() {
+	panic("implement me")
+}
+
 func (blhs *BlackListHandlerStub) Add(key string) error {
 	return blhs.AddCalled(key)
 }

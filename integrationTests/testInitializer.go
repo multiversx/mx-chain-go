@@ -1451,7 +1451,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
