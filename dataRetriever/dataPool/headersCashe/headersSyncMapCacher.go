@@ -14,8 +14,6 @@ type headerDetails struct {
 
 type headersCacher struct {
 	headersCacheByShardIdNonce *headersNonceCache
-	maxHeadersPerShard         int
-	canDoEviction              chan struct{}
 }
 
 func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*headersCacher, error) {
@@ -23,32 +21,12 @@ func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*heade
 		return nil, errors.New("invalid cache parameters")
 	}
 	return &headersCacher{
-		headersCacheByShardIdNonce: NewHeadersNonceCache(numElementsToRemove),
-		maxHeadersPerShard:         numMaxHeaderPerShard,
-		canDoEviction:              make(chan struct{}, 1),
+		headersCacheByShardIdNonce: NewHeadersNonceCache(numElementsToRemove, numMaxHeaderPerShard),
 	}, nil
 }
 
 func (hc *headersCacher) Add(headerHash []byte, header data.HeaderHandler) {
 	hc.headersCacheByShardIdNonce.addHeaderInNonceCache(headerHash, header)
-
-	hc.tryToDoEviction(header.GetShardID())
-}
-
-func (hc *headersCacher) tryToDoEviction(hdrShardId uint32) {
-	hc.canDoEviction <- struct{}{}
-	numHeaders := hc.headersCacheByShardIdNonce.getNumHeaderFromCache(hdrShardId)
-	if int(numHeaders) > hc.maxHeadersPerShard {
-		hc.doEviction(hdrShardId)
-	}
-
-	<-hc.canDoEviction
-
-	return
-}
-
-func (hc *headersCacher) doEviction(shardId uint32) {
-	hc.headersCacheByShardIdNonce.lruEviction(shardId)
 }
 
 func (hc *headersCacher) RemoveHeaderByHash(headerHash []byte) {

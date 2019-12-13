@@ -25,19 +25,25 @@ type headersNonceCache struct {
 
 	mutHeadersMap      sync.RWMutex
 	numHeadersToRemove int
+
+	maxHeadersPerShard int
+	canDoEviction      map[uint32]chan struct{}
 }
 
-func NewHeadersNonceCache(numHeadersToRemove int) *headersNonceCache {
+func NewHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersNonceCache {
 	return &headersNonceCache{
 		hdrNonceCache:      make(map[uint32]*headersMap),
 		hdrsCounter:        newHeadersCounter(),
 		headersByHash:      newHeadersHashMap(),
 		mutHeadersMap:      sync.RWMutex{},
 		numHeadersToRemove: numHeadersToRemove,
+		canDoEviction:      make(map[uint32]chan struct{}),
+		maxHeadersPerShard: numMaxHeaderPerShard,
 	}
 }
 
 func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header data.HeaderHandler) {
+
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
@@ -60,7 +66,10 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 	hnc.headersByHash.addElement(headerHash, headerInfo)
 
 	hnc.hdrsCounter.increment(headerShardId)
+
+	hnc.tryToDoEviction(headerShardId)
 	return
+
 }
 
 func (hnc *headersNonceCache) getShardMap(shardId uint32) *headersMap {
@@ -69,6 +78,7 @@ func (hnc *headersNonceCache) getShardMap(shardId uint32) *headersMap {
 
 	if _, ok := hnc.hdrNonceCache[shardId]; !ok {
 		hnc.hdrNonceCache[shardId] = newHeadersMap()
+		hnc.canDoEviction[shardId] = make(chan struct{}, 1)
 	}
 
 	return hnc.hdrNonceCache[shardId]
@@ -192,4 +202,20 @@ func (hnc *headersNonceCache) getHeaderByHash(hash []byte) (data.HeaderHandler, 
 	}
 
 	return nil, ErrHeaderNotFound
+}
+
+func (hnc *headersNonceCache) tryToDoEviction(hdrShardId uint32) {
+	hnc.mutHeadersMap.Lock()
+	c := hnc.canDoEviction[hdrShardId]
+	hnc.mutHeadersMap.Unlock()
+
+	c <- struct{}{}
+	numHeaders := hnc.getNumHeaderFromCache(hdrShardId)
+	if int(numHeaders) > hnc.maxHeadersPerShard {
+		hnc.lruEviction(hdrShardId)
+	}
+
+	<-c
+
+	return
 }

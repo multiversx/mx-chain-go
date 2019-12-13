@@ -2,12 +2,14 @@ package headersCashe_test
 
 import (
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCashe"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func createASliceOfHeaders(numHeaders int, shardId uint32) ([]block.Header, [][]byte) {
@@ -15,7 +17,7 @@ func createASliceOfHeaders(numHeaders int, shardId uint32) ([]block.Header, [][]
 	headersHashes := make([][]byte, 0)
 	for i := 0; i < numHeaders; i++ {
 		headers = append(headers, block.Header{Nonce: uint64(i), ShardId: shardId})
-		headersHashes = append(headersHashes, []byte(fmt.Sprintf("%d", i)))
+		headersHashes = append(headersHashes, []byte(fmt.Sprintf("%d_%d", shardId, i)))
 	}
 
 	return headers, headersHashes
@@ -149,12 +151,15 @@ func TestHeadersCacher_ConcurrentRequestsShouldWorkWithEviction(t *testing.T) {
 	hdrs, hdrsHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 1)
 
+	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
+		waitgroup.Add(1)
 		go func(index int) {
 			hdrsCacher.Add(hdrsHashes[index], &hdrs[index])
+			waitgroup.Done()
 		}(i)
 	}
-	time.Sleep(time.Second)
+	waitgroup.Wait()
 	// cache size after all eviction is finish should be 2
 	assert.Equal(t, 2, hdrsCacher.GetNumHeadersFromCacheShard(shardId))
 
@@ -163,7 +168,6 @@ func TestHeadersCacher_ConcurrentRequestsShouldWorkWithEviction(t *testing.T) {
 	for i := 0; i < numHeadersToGenerate; i++ {
 		hdrsCacher.Add(hdrsHashes[i], &hdrs[i])
 	}
-	time.Sleep(time.Second)
 
 	assert.Equal(t, 2, hdrsCacher.GetNumHeadersFromCacheShard(shardId))
 	hdr1, err := hdrsCacher.GetHeaderByHash(hdrsHashes[1])
@@ -189,7 +193,6 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 	hdrsCacher.Add(hash2, hdr2)
 	hdrsCacher.Add(hash3, hdr3)
 
-	time.Sleep(time.Second)
 	assert.Equal(t, 1, hdrsCacher.GetNumHeadersFromCacheShard(shardId))
 
 	hdr, err := hdrsCacher.GetHeaderByHash(hash3)
@@ -206,13 +209,16 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	hdrs, hdrsHash := createASliceOfHeaders(numHeaders, shardId)
 	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 50)
 
+	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeaders; i++ {
+		waitgroup.Add(1)
 		go func(index int) {
 			hdrsCacher.Add(hdrsHash[index], &hdrs[index])
+			waitgroup.Done()
 		}(i)
 	}
 
-	time.Sleep(time.Second)
+	waitgroup.Wait()
 	assert.Equal(t, 100, hdrsCacher.GetNumHeadersFromCacheShard(shardId))
 }
 
@@ -260,4 +266,47 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 
 	hdr, err = hdrsCacher.GetHeaderByHash(hdrsHash[2012])
 	assert.Error(t, headersCashe.ErrHeaderNotFound, err)
+}
+
+func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
+	t.Parallel()
+
+	cacheSize := 99999
+	numHdrsToGenerate := 100000
+
+	hdrsShad0, hashesShad0 := createASliceOfHeaders(numHdrsToGenerate, 0)
+	hdrsShad1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
+	hdrsShad2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
+	numElemsToRemove := 50000
+
+	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, numElemsToRemove)
+
+	var waitgroup sync.WaitGroup
+	start := time.Now()
+	for i := 0; i < numHdrsToGenerate; i++ {
+		waitgroup.Add(3)
+		go func(index int) {
+			hdrsCacher.Add(hashesShad0[index], &hdrsShad0[index])
+			waitgroup.Done()
+		}(i)
+
+		go func(index int) {
+			hdrsCacher.Add(hashesShad1[index], &hdrsShad1[index])
+			waitgroup.Done()
+		}(i)
+
+		go func(index int) {
+			hdrsCacher.Add(hashesShad2[index], &hdrsShad2[index])
+			waitgroup.Done()
+		}(i)
+	}
+	waitgroup.Wait()
+
+	elapsed := time.Since(start)
+	fmt.Printf("time need to add %d in cache %s \n", numHdrsToGenerate, elapsed)
+
+	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(0))
+	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(1))
+	assert.Equal(t, numElemsToRemove, hdrsCacher.GetNumHeadersFromCacheShard(2))
+
 }
