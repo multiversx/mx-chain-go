@@ -860,7 +860,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	assert.True(t, receivedTooLate)
 
 	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
-	assert.True(t, true)
+	assert.True(t, receivedTooLate)
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality)
 	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
@@ -907,7 +907,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
-	sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	hdrs = make([]data.HeaderHandler, 0)
@@ -918,7 +918,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
-	sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	hdrs = make([]data.HeaderHandler, 0)
@@ -929,7 +929,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
-	sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
 }
 

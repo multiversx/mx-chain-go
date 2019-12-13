@@ -28,9 +28,7 @@ func (bbt *baseBlockTrack) addCrossNotarizedHeaders(shardID uint32, crossNotariz
 	bbt.mutCrossNotarizedHeaders.Lock()
 	defer bbt.mutCrossNotarizedHeaders.Unlock()
 
-	for _, crossNotarizedHeader := range crossNotarizedHeaders {
-		bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], crossNotarizedHeader)
-	}
+	bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], crossNotarizedHeaders...)
 }
 
 func (bbt *baseBlockTrack) getLastCrossNotarizedHeaderNonce(shardID uint32) uint64 {
@@ -89,9 +87,7 @@ func (bbt *baseBlockTrack) addSelfNotarizedHeaders(shardID uint32, selfNotarized
 	bbt.mutSelfNotarizedHeaders.Lock()
 	defer bbt.mutSelfNotarizedHeaders.Unlock()
 
-	for _, selfNotarizedHeader := range selfNotarizedHeaders {
-		bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], selfNotarizedHeader)
-	}
+	bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], selfNotarizedHeaders...)
 }
 
 func (bbt *baseBlockTrack) getLastSelfNotarizedHeaderNonce(shardID uint32) uint64 {
