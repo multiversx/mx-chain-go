@@ -21,7 +21,7 @@ type EconomicsData struct {
 	communityAddress    string
 	burnAddress         string
 	stakeValue          *big.Int
-	unBoundPeriod       uint64
+	unBondPeriod        uint64
 }
 
 const float64EqualityThreshold = 1e-9
@@ -59,7 +59,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
 		stakeValue:          data.stakeValue,
-		unBoundPeriod:       data.unBoundPeriod,
+		unBondPeriod:        data.unBondPeriod,
 	}, nil
 }
 
@@ -89,7 +89,7 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidRewardsValue
 	}
 
-	unBoundPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
+	unBondPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, process.ErrInvalidUnboundPeriod
 	}
@@ -104,7 +104,7 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		minGasPrice:         minGasPrice,
 		minGasLimit:         minGasLimit,
 		stakeValue:          stakeValue,
-		unBoundPeriod:       unBoundPeriod,
+		unBondPeriod:        unBondPeriod,
 		maxGasLimitPerBlock: maxGasLimitPerBlock,
 	}, nil
 }
@@ -214,9 +214,9 @@ func (ed *EconomicsData) StakeValue() *big.Int {
 	return ed.stakeValue
 }
 
-// UnBoundPeriod will return the unbound period
+// UnBoundPeriod will return the unbond period
 func (ed *EconomicsData) UnBoundPeriod() uint64 {
-	return ed.unBoundPeriod
+	return ed.unBondPeriod
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

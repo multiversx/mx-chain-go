@@ -93,11 +93,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	/////////----- wait for unbound period
+	/////////----- wait for unbond period
 	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
 
-	////////----- send unBound
-	txData = "unBound"
+	////////----- send unBond
+	txData = "unBond"
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)

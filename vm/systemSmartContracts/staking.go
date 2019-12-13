@@ -24,13 +24,13 @@ type StakingData struct {
 }
 
 type stakingSC struct {
-	eei           vm.SystemEI
-	stakeValue    *big.Int
-	unBoundPeriod uint64
+	eei          vm.SystemEI
+	stakeValue   *big.Int
+	unBondPeriod uint64
 }
 
 // NewStakingSmartContract creates a staking smart contract
-func NewStakingSmartContract(stakeValue *big.Int, unBoundPeriod uint64, eei vm.SystemEI) (*stakingSC, error) {
+func NewStakingSmartContract(stakeValue *big.Int, unBondPeriod uint64, eei vm.SystemEI) (*stakingSC, error) {
 	if stakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
@@ -42,9 +42,9 @@ func NewStakingSmartContract(stakeValue *big.Int, unBoundPeriod uint64, eei vm.S
 	}
 
 	reg := &stakingSC{
-		stakeValue:    big.NewInt(0).Set(stakeValue),
-		eei:           eei,
-		unBoundPeriod: unBoundPeriod,
+		stakeValue:   big.NewInt(0).Set(stakeValue),
+		eei:          eei,
+		unBondPeriod: unBondPeriod,
 	}
 	return reg, nil
 }
@@ -62,8 +62,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.stake(args)
 	case "unStake":
 		return r.unStake(args)
-	case "unBound":
-		return r.unBound(args)
+	case "unBond":
+		return r.unBond(args)
 	case "slash":
 		return r.slash(args)
 	case "get":
@@ -192,11 +192,11 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	var registrationData StakingData
 	data := r.eei.GetStorage(args.CallerAddr)
 	if data == nil {
-		log.Error("unBound is not possible for address which is not staked")
+		log.Error("unBond is not possible for address which is not staked")
 		return vmcommon.UserError
 	}
 
@@ -209,13 +209,13 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.StartNonce {
-		log.Debug("unBound is not possible for address which is staked or is not in unbound period")
+		log.Debug("unBond is not possible for address which is staked or is not in unbond period")
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
-	if currentNonce-registrationData.UnStakedNonce < r.unBoundPeriod {
-		log.Debug("unBound is not possible for address because unbound period did not pass")
+	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
+		log.Debug("unBond is not possible for address because unbond period did not pass")
 		return vmcommon.UserError
 	}
 

@@ -65,5 +65,5 @@ var ErrBLSKeyIsNotStaked = errors.New("bls key is not staked")
 // ErrNotEnoughArgumentsToStake signals that the arguments provided are not enough
 var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
 
-// ErrStillInUnBoundPeriod signals that bls key is in unbound period
-var ErrStillInUnBoundPeriod = errors.New("bls key is in unbound period")
+// ErrStillInUnBoundPeriod signals that bls key is in unbond period
+var ErrStillInUnBoundPeriod = errors.New("bls key is in unbond period")
