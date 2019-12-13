@@ -17,6 +17,7 @@ type HeaderHandler interface {
 	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetLeaderSignature() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
@@ -31,6 +32,7 @@ type HeaderHandler interface {
 	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
+	SetLeaderSignature(sg []byte)
 	SetTxCount(txCount uint32)
 
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
@@ -38,6 +40,7 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
+	Clone() HeaderHandler
 }
 
 // BodyHandler interface for a block body
@@ -99,6 +102,7 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

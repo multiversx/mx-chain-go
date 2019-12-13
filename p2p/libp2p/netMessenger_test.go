@@ -651,7 +651,7 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
 	if testing.Short() {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
@@ -1251,6 +1251,11 @@ func generateConnWithRemotePeer(pid p2p.PeerID) network.Conn {
 }
 
 func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	port := 4000
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -1330,6 +1335,10 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 }
 
 func TestLibp2pMessenger_SendDirectShouldNotBroadcastIfMessageIsPartiallyInvalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfPeers := 4
 	_, peers := createMockNetwork(numOfPeers)
 	connectPeersFullMesh(peers)
@@ -1429,6 +1438,11 @@ func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testi
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	msg := []byte("test message")
 
 	_, sk1 := createLibP2PCredentialsMessenger()

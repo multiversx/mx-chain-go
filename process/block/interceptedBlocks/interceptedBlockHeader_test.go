@@ -1,9 +1,13 @@
 package interceptedBlocks_test
 
 import (
+	"bytes"
+	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -22,10 +26,25 @@ var hdrEpoch = uint32(78)
 func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		SingleSigVerifier: &mock.SignerMock{
+			VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
 		MultiSigVerifier: mock.NewMultiSigner(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
+		NodesCoordinator: &mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("pubKey"), []byte("pubKey"))
+				return []sharding.Validator{validator}, nil
+			},
+		},
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return nil, nil
+			},
+		},
 	}
 
 	hdr := createMockShardHeader()
@@ -155,6 +174,54 @@ func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
+}
+
+func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedErr := errors.New("expected err")
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.SingleSigVerifier = &mock.SignerMock{
+		SignStub: nil,
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return expectedErr
+		},
+	}
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedSignature := []byte("ran")
+	hdr.LeaderSignature = expectedSignature
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.SingleSigVerifier = &mock.SignerMock{
+		SignStub: nil,
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			// skip this for signature check. only leader's signature is relevant for this test
+			if !bytes.Equal(sig, []byte("rand seed")) {
+				isSignOk := bytes.Equal(sig, expectedSignature)
+				assert.True(t, isSignOk)
+			}
+			return nil
+		},
+	}
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Nil(t, err)
 }
 
 func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {

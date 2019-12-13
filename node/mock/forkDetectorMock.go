@@ -17,6 +17,10 @@ type ForkDetectorMock struct {
 	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
 }
 
+func (f *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
+
+}
+
 // AddHeader is a mock implementation for AddHeader
 func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 	return f.AddHeaderCalled(header, hash, state, finalHeaders, finalHeadersHashes, isNotarizedShardStuck)

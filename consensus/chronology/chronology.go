@@ -7,12 +7,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("consensus/chronology")
 
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
@@ -133,7 +134,7 @@ func (chr *chronology) startRound() {
 	}
 
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
-	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
+	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
 	if !sr.DoWork(chr.rounder) {
 		chr.subroundId = srBeforeStartRound
@@ -150,7 +151,7 @@ func (chr *chronology) updateRound() {
 
 	if oldRoundIndex != chr.rounder.Index() {
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.rounder.Index(), chr.rounder.TimeStamp().Unix())
-		log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
+		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 
 		chr.initRound()
 	}

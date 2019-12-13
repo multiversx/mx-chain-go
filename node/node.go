@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -47,7 +48,7 @@ const SendTransactionsPipe = "send transactions pipe"
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("node")
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -104,8 +105,10 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer          indexer.Indexer
-	blackListHandler process.BlackListHandler
+	indexer               indexer.Indexer
+	blackListHandler      process.BlackListHandler
+	bootStorer            process.BootStorer
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -216,7 +219,7 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-// StartConsensus will start the consesus service for the current node
+// StartConsensus will start the consensus service for the current node
 func (n *Node) StartConsensus() error {
 	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
 		n.blkc.GetGenesisHeader() == nil
@@ -236,7 +239,7 @@ func (n *Node) StartConsensus() error {
 
 	err = bootstrapper.SetStatusHandler(n.GetAppStatusHandler())
 	if err != nil {
-		log.Warn("cannot set app status handler for shard bootstrapper")
+		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
 	bootstrapper.StartSync()
@@ -381,6 +384,24 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -394,9 +415,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		shardStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -406,6 +429,24 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -419,9 +460,11 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		metaStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 
 	if err != nil {
@@ -587,7 +630,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	for shardId, txs := range transactionsByShards {
 		err := n.sendBulkTransactionsFromShard(txs, shardId)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
 		} else {
 			numOfSentTxs += uint64(len(txs))
 		}
@@ -652,7 +695,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 				bufferToSend,
 			)
 			if err != nil {
-				log.Error(err.Error())
+				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
@@ -877,7 +920,9 @@ func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
 		time.Sleep(timeToWait)
 
 		err := n.heartbeatSender.SendHeartbeat()
-		log.LogIfError(err)
+		if err != nil {
+			log.Debug("SendHeartbeat", "error", err.Error())
+		}
 	}
 }
 

@@ -1,23 +1,22 @@
 package process
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process")
 
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) int {
@@ -592,12 +591,14 @@ func IsInProperRound(index int64) bool {
 
 // AddHeaderToBlackList adds a hash to black list handler. Logs if the operation did not succeed
 func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
+	blackListHandler.Sweep()
 	err := blackListHandler.Add(string(hash))
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("blackListHandler.Add", "error", err.Error())
 	}
 
-	log.Info(fmt.Sprintf("header with hash %s has been added to blacklist\n", core.ToB64(hash)))
+	log.Debug("header has been added to blacklist",
+		"hash", hash)
 }
 
 // ForkInfo hold the data related to a detected fork
@@ -611,4 +612,34 @@ type ForkInfo struct {
 // NewForkInfo creates a new ForkInfo object
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
+}
+
+// ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
+func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
+	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+
+	for metaHash, miniBlocksHashes := range processedMiniBlocks {
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlocksHashes: make([][]byte, 0)}
+		for miniBlockHash := range miniBlocksHashes {
+			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
+		}
+		miniBlocksInMetaBlocks = append(miniBlocksInMetaBlocks, miniBlocksInMeta)
+	}
+
+	return miniBlocksInMetaBlocks
+}
+
+// ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
+func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
+	processedMiniBlocks := make(map[string]map[string]struct{})
+
+	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
+		miniBlocksHashes := make(map[string]struct{})
+		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
+			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
+		}
+		processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
+	}
+
+	return processedMiniBlocks
 }

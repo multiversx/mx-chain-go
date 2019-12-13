@@ -8,15 +8,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/pelletier/go-toml"
 )
 
 // OpenFile method opens the file from given path - does not close the file
-func OpenFile(relativePath string, log *logger.Logger) (*os.File, error) {
+func OpenFile(relativePath string) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
 	if err != nil {
-		log.Error("cannot create absolute path for the provided file", err.Error())
+		log.Warn("cannot create absolute path for the provided file", "error", err.Error())
 		return nil, err
 	}
 	f, err := os.Open(path)
@@ -28,10 +27,42 @@ func OpenFile(relativePath string, log *logger.Logger) (*os.File, error) {
 }
 
 // LoadTomlFile method to open and decode toml file
-func LoadTomlFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	f, err := OpenFile(relativePath, log)
+func LoadTomlFile(dest interface{}, relativePath string) error {
+	f, err := OpenFile(relativePath)
 	if err != nil {
 		return err
+	}
+
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Warn("cannot close file", "error", err.Error())
+		}
+	}()
+
+	return toml.NewDecoder(f).Decode(dest)
+}
+
+// LoadTomlFileToMap opens and decodes a toml file as a map[string]interface{}
+func LoadTomlFileToMap(relativePath string) (map[string]interface{}, error) {
+	f, err := OpenFile(relativePath)
+	if err != nil {
+		return nil, err
+	}
+
+	fileinfo, err := f.Stat()
+	if err != nil {
+		log.Error("cannot stat file:", err.Error())
+		return nil, err
+	}
+
+	filesize := fileinfo.Size()
+	buffer := make([]byte, filesize)
+
+	_, err = f.Read(buffer)
+	if err != nil {
+		log.Error("cannot read from file:", err.Error())
+		return nil, err
 	}
 
 	defer func() {
@@ -41,12 +72,20 @@ func LoadTomlFile(dest interface{}, relativePath string, log *logger.Logger) err
 		}
 	}()
 
-	return toml.NewDecoder(f).Decode(dest)
+	loadedTree, err := toml.Load(string(buffer))
+	if err != nil {
+		log.Error("cannot interpret file contents as toml:", err.Error())
+		return nil, err
+	}
+
+	loadedMap := loadedTree.ToMap()
+
+	return loadedMap, nil
 }
 
 // LoadJsonFile method to open and decode json file
-func LoadJsonFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	f, err := OpenFile(relativePath, log)
+func LoadJsonFile(dest interface{}, relativePath string) error {
+	f, err := OpenFile(relativePath)
 	if err != nil {
 		return err
 	}
@@ -54,7 +93,7 @@ func LoadJsonFile(dest interface{}, relativePath string, log *logger.Logger) err
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("cannot close file: ", err.Error())
+			log.Warn("cannot close file", "error", err.Error())
 		}
 	}()
 
@@ -85,12 +124,12 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 }
 
 // LoadSkFromPemFile loads the secret key bytes stored in the file
-func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]byte, error) {
+func LoadSkFromPemFile(relativePath string, skIndex int) ([]byte, error) {
 	if skIndex < 0 {
 		return nil, ErrInvalidIndex
 	}
 
-	file, err := OpenFile(relativePath, log)
+	file, err := OpenFile(relativePath)
 	if err != nil {
 		return nil, err
 	}

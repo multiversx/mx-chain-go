@@ -1,5 +1,9 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 type HeaderHandlerStub struct {
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
 	GetPubKeysBitmapCalled           func() []byte
@@ -8,6 +12,11 @@ type HeaderHandlerStub struct {
 	GetRandSeedCalled                func() []byte
 	GetPrevRandSeedCalled            func() []byte
 	GetPrevHashCalled                func() []byte
+	CloneCalled                      func() data.HeaderHandler
+}
+
+func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
+	return hhs.CloneCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
@@ -54,6 +63,10 @@ func (hhs *HeaderHandlerStub) GetSignature() []byte {
 	return hhs.GetSignatureCalled()
 }
 
+func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
+	return hhs.GetSignatureCalled()
+}
+
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
@@ -95,6 +108,10 @@ func (hhs *HeaderHandlerStub) SetPubKeysBitmap(pkbm []byte) {
 }
 
 func (hhs *HeaderHandlerStub) SetSignature(sg []byte) {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) SetLeaderSignature(sg []byte) {
 	panic("implement me")
 }
 

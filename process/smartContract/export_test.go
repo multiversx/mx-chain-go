@@ -31,13 +31,13 @@ func (sc *scProcessor) ProcessVMOutput(
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 
-func (sc *scProcessor) RefundGasToSender(
-	gasRefund *big.Int,
+func (sc *scProcessor) CreateSCRForSender(
+	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
 	txHash []byte,
 	acntSnd state.AccountHandler,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
-	return sc.refundGasToSender(gasRefund, tx, txHash, acntSnd)
+	return sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 }
 
 func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
@@ -56,7 +56,7 @@ func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 	return sc.saveSCOutputToCurrentState(output, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
+func (sc *scProcessor) SaveReturnData(returnData [][]byte, round uint64, txHash []byte) error {
 	return sc.saveReturnData(returnData, round, txHash)
 }
 

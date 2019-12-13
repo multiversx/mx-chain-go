@@ -41,6 +41,7 @@ type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -117,7 +118,10 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 		errNotCritical := store.Put(dataUnit, txHash, buff)
 		if errNotCritical != nil {
-			log.LogIfError(errNotCritical)
+			log.Debug("store.Put",
+				"error", errNotCritical.Error(),
+				"dataUnit", dataUnit,
+			)
 		}
 	}
 

@@ -2,7 +2,6 @@ package smartContract
 
 import (
 	"encoding/hex"
-	"math/big"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -10,12 +9,12 @@ import (
 )
 
 type atArgumentParser struct {
-	arguments []*big.Int
+	arguments [][]byte
 	code      []byte
 }
 
 const atSep = "@"
-const base = 16
+const atSepChar = '@'
 
 // NewAtArgumentParser creates a new argument parser implementation that splits arguments by @ character
 func NewAtArgumentParser() (process.ArgumentsParser, error) {
@@ -32,16 +31,14 @@ func (at *atArgumentParser) ParseData(data string) error {
 		return process.ErrStringSplitFailed
 	}
 
+	var err error
 	code := []byte(splitString[0])
-	arguments := make([]*big.Int, 0)
+	arguments := make([][]byte, len(splitString)-1)
 	for i := 1; i < len(splitString); i++ {
-		currArg := new(big.Int)
-		currArg, ok := currArg.SetString(splitString[i], base)
-		if !ok {
-			continue
+		arguments[i-1], err = hex.DecodeString(splitString[i])
+		if err != nil {
+			return err
 		}
-
-		arguments = append(arguments, currArg)
 	}
 
 	at.code = code
@@ -50,7 +47,7 @@ func (at *atArgumentParser) ParseData(data string) error {
 }
 
 // GetArguments returns the arguments from the parsed data
-func (at *atArgumentParser) GetArguments() ([]*big.Int, error) {
+func (at *atArgumentParser) GetArguments() ([][]byte, error) {
 	if at.arguments == nil {
 		return nil, process.ErrNilArguments
 	}
@@ -80,6 +77,10 @@ func (at *atArgumentParser) GetSeparator() string {
 
 // GetStorageUpdates parse data into storage updates
 func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
+	if len(data) > 0 && data[0] == atSepChar {
+		data = data[1:]
+	}
+
 	splitString := strings.Split(data, atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return nil, process.ErrStringSplitFailed

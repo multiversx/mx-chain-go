@@ -7,20 +7,21 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process/block/preprocess")
 
 // TODO: increase code coverage with unit tests
 
@@ -52,43 +53,48 @@ func NewTransactionPreprocessor(
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*transactions, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if txDataPool == nil || txDataPool.IsInterfaceNil() {
+	if check.IfNil(txDataPool) {
 		return nil, process.ErrNilTransactionPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilTxStorage
 	}
-	if txProcessor == nil || txProcessor.IsInterfaceNil() {
+	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+	if check.IfNil(miniBlocksCompacter) {
 		return nil, process.ErrNilMiniBlocksCompacter
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	txs := transactions{
@@ -125,13 +131,15 @@ func (txs *transactions) waitForTxHashes(waitTime time.Duration) error {
 // IsDataPrepared returns non error if all the requested transactions arrived and were saved into the pool
 func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error {
 	if requestedTxs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
+		log.Debug("requested missing txs",
+			"num txs", requestedTxs)
 		err := txs.waitForTxHashes(haveTime())
 		txs.txsForCurrBlock.mutTxsForBlock.Lock()
 		missingTxs := txs.txsForCurrBlock.missingTxs
 		txs.txsForCurrBlock.missingTxs = 0
 		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-missingTxs))
+		log.Debug("received missing txs",
+			"num txs", requestedTxs-missingTxs)
 		if err != nil {
 			return err
 		}
@@ -166,10 +174,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			log.Info(fmt.Sprintf("tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in TransactionUnit\n",
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				len(miniBlock.TxHashes)))
+			log.Debug("tx from mini block was not found in TransactionUnit",
+				"sender shard ID", miniBlock.SenderShardID,
+				"receiver shard ID", miniBlock.ReceiverShardID,
+				"num txs", len(miniBlock.TxHashes),
+			)
 
 			return txsRestored, err
 		}
@@ -198,7 +207,12 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+func (txs *transactions) ProcessBlockTransactions(
+	body block.Body,
+	round uint64,
+	haveTime func() bool,
+) error {
+
 	mapHashesAndTxs := txs.GetAllCurrentUsedTxs()
 	expandedMiniBlocks, err := txs.miniBlocksCompacter.Expand(block.MiniBlockSlice(body), mapHashesAndTxs)
 	if err != nil {
@@ -211,6 +225,9 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 		if miniBlock.Type != block.TxBlock {
 			continue
 		}
+
+		gasConsumedByMiniBlockInSenderShard := uint64(0)
+		gasConsumedByMiniBlockInReceiverShard := uint64(0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
@@ -226,14 +243,14 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 				return process.ErrMissingTransaction
 			}
 
-			currTx, ok := txInfo.tx.(*transaction.Transaction)
+			tx, ok := txInfo.tx.(*transaction.Transaction)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
 
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				currTx,
+				tx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -242,8 +259,21 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 			if err != nil {
 				return err
 			}
+
+			err = txs.computeGasConsumed(
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				tx,
+				txHash,
+				&gasConsumedByMiniBlockInSenderShard,
+				&gasConsumedByMiniBlockInReceiverShard)
+
+			if err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -459,6 +489,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	for newMBAdded {
 		newMBAdded = false
 		for shardId := uint32(0); shardId < txs.shardCoordinator.NumberOfShards(); shardId++ {
+			if !haveTime() {
+				break
+			}
+
 			if maxTxSpaceRemained <= 0 {
 				break
 			}
@@ -494,8 +528,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
 func (txs *transactions) CreateAndProcessMiniBlock(
-	sndShardId uint32,
-	dstShardId uint32,
+	senderShardId uint32,
+	receiverShardId uint32,
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
@@ -505,29 +539,37 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	var orderedTxHashes [][]byte
 
 	timeBefore := time.Now()
-	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(sndShardId, dstShardId)
+	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(senderShardId, receiverShardId)
 	timeAfter := time.Now()
 
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("computeOrderedTxs", "error", err.Error())
 		return nil, err
 	}
 
 	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
+		log.Debug("time is up ordering txs",
+			"num txs", len(orderedTxs),
+			"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+		)
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
+	log.Trace("time elapsed to ordered txs,"+
+		"num txs", len(orderedTxs),
+		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+	)
 
 	miniBlock := &block.MiniBlock{}
-	miniBlock.SenderShardID = sndShardId
-	miniBlock.ReceiverShardID = dstShardId
+	miniBlock.SenderShardID = senderShardId
+	miniBlock.ReceiverShardID = receiverShardId
 	miniBlock.TxHashes = make([][]byte, 0)
 	miniBlock.Type = block.TxBlock
 
 	addedTxs := 0
-	addedGasLimitPerCrossShardMiniblock := uint64(0)
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -537,23 +579,31 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
-		if core.IsSmartContractAddress(orderedTxs[index].RcvAddr) {
-			currTxGasLimit = orderedTxs[index].GasLimit
-		}
+		snapshot := txs.accounts.JournalLen()
+		oldGasConsumedByMiniBlockInSenderShard := gasConsumedByMiniBlockInSenderShard
+		oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
 
-		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
-		if isGasLimitReached {
-			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+		err = txs.computeGasConsumed(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			orderedTxs[index],
+			orderedTxHashes[index],
+			&gasConsumedByMiniBlockInSenderShard,
+			&gasConsumedByMiniBlockInReceiverShard)
+
+		if err != nil {
+			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+				gasConsumedByMiniBlockInSenderShard,
+				gasConsumedByMiniBlockInReceiverShard,
+				txs.gasHandler.TotalGasConsumed(),
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
+
 			continue
 		}
 
-		snapshot := txs.accounts.JournalLen()
-
 		// execute transaction to change the trie root hash
-		err := txs.processAndRemoveBadTransaction(
+		err = txs.processAndRemoveBadTransaction(
 			orderedTxHashes[index],
 			orderedTxs[index],
 			round,
@@ -562,22 +612,33 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		)
 
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("bad tx",
+				"error", err.Error(),
+				"hash", orderedTxHashes[index],
+			)
+
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
-				log.Error(err.Error())
+				log.Debug("revert to snapshot", "error", err.Error())
 			}
+
+			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
+			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
+
+			gasConsumedByMiniBlockInSenderShard = oldGasConsumedByMiniBlockInSenderShard
+			gasConsumedByMiniBlockInReceiverShard = oldGasConsumedByMiniBlockInReceiverShard
+
 			continue
 		}
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
-		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
-			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
+			log.Debug("max txs accepted in one block is reached",
+				"num added txs", len(miniBlock.TxHashes),
+				"total txs", len(orderedTxs),
+			)
 			return miniBlock, nil
 		}
 	}
@@ -614,10 +675,11 @@ func (txs *transactions) computeOrderedTxs(
 			return nil, nil, err
 		}
 
-		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard %d from shard %d\n",
-			len(orderedTxs),
-			dstShardId,
-			sndShardId))
+		log.Debug("creating mini blocks has been started",
+			"have num txs", len(orderedTxs),
+			"snd shard", sndShardId,
+			"dest shard", dstShardId,
+		)
 
 		txs.mutOrderedTxs.Lock()
 		txs.orderedTxs[strCache] = orderedTxs
@@ -629,20 +691,58 @@ func (txs *transactions) computeOrderedTxs(
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (txs *transactions) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+) error {
+
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
+
+	var err error
 
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
 
+	processedTxHashes := make([][]byte, 0)
+
+	defer func() {
+		if err != nil {
+			txs.gasHandler.RemoveGasConsumed(processedTxHashes)
+			txs.gasHandler.RemoveGasRefunded(processedTxHashes)
+		}
+	}()
+
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+
 	for index := range miniBlockTxs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
+			return process.ErrTimeIsOut
+		}
+
+		err = txs.computeGasConsumed(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			miniBlockTxs[index],
+			miniBlockTxHashes[index],
+			&gasConsumedByMiniBlockInSenderShard,
+			&gasConsumedByMiniBlockInReceiverShard)
+
+		if err != nil {
 			return err
+		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+	}
+
+	for index := range miniBlockTxs {
+		if !haveTime() {
+			return process.ErrTimeIsOut
 		}
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
@@ -769,4 +869,80 @@ func (txs *transactions) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (txs *transactions) computeGasConsumed(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx *transaction.Transaction,
+	txHash []byte,
+	gasConsumedByMiniBlockInSenderShard *uint64,
+	gasConsumedByMiniBlockInReceiverShard *uint64,
+) error {
+
+	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
+		senderShardId,
+		receiverShardId,
+		tx,
+		txHash)
+	if err != nil {
+		return err
+	}
+
+	gasConsumedByTxInSelfShard := uint64(0)
+	if txs.shardCoordinator.SelfId() == senderShardId {
+		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
+
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+		}
+	} else {
+		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
+
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+		}
+	}
+
+	if txs.gasHandler.TotalGasConsumed()+gasConsumedByTxInSelfShard > txs.economicsFee.MaxGasLimitPerBlock() {
+		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
+	}
+
+	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
+	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+
+	return nil
+}
+
+func (txs *transactions) computeGasConsumedByTx(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx *transaction.Transaction,
+	txHash []byte,
+) (uint64, uint64, error) {
+
+	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := txs.gasHandler.ComputeGasConsumedByTx(
+		senderShardId,
+		receiverShardId,
+		tx)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+		txGasRefunded := txs.gasHandler.GasRefunded(txHash)
+
+		if txGasLimitInReceiverShard < txGasRefunded {
+			return 0, 0, process.ErrInsufficientGasLimitInTx
+		}
+
+		txGasLimitInReceiverShard -= txGasRefunded
+
+		if senderShardId == receiverShardId {
+			txGasLimitInSenderShard -= txGasRefunded
+		}
+	}
+
+	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
 }

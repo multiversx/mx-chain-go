@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
@@ -14,7 +14,7 @@ import (
 // read + write + execute for owner only
 const rwxOwner = 0700
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("storage/badgerdb")
 
 // DB holds a pointer to the badger database and the path to where it is stored.
 type DB struct {
@@ -69,7 +69,7 @@ func (s *DB) batchTimeoutHandle() {
 			s.mutBatch.Lock()
 			err := s.putBatch(s.batch)
 			if err != nil {
-				log.Error(err.Error())
+				log.Warn("badger putBatch", "error", err.Error())
 				s.mutBatch.Unlock()
 				continue
 			}
@@ -100,7 +100,7 @@ func (s *DB) Put(key, val []byte) error {
 
 	err = s.putBatch(s.batch)
 	if err != nil {
-		log.Error(err.Error())
+		log.Warn("badger putBatch", "error", err.Error())
 		return err
 	}
 

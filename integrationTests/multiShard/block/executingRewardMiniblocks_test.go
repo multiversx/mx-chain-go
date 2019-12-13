@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -52,6 +51,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		seedAddress,
 	)
 
+	maxGasLimitPerBlock := uint64(100000)
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 	valToTransfer := big.NewInt(100)
@@ -59,7 +59,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	mintValue := big.NewInt(1000000)
 
 	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 	}
 
@@ -110,6 +110,86 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 
 	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, gasPrice, gasLimit)
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
+}
+
+func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodesPerShard := 2
+	nbMetaNodes := 2
+	nbShards := 1
+	consensusGroupSize := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(99990)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(2)
+	mintValue := big.NewInt(1000000)
+
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+
+	round := uint64(1)
+	nonce := uint64(1)
+	nbBlocksProduced := 2
+
+	randomness := generateInitialRandomness(uint32(nbShards))
+	var headers map[uint32]data.HeaderHandler
+	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
+	mapRewardsForShardAddresses := make(map[string]uint32)
+	nbTxsForLeaderAddress := make(map[string]uint32)
+
+	for i := 0; i < nbBlocksProduced; i++ {
+		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+		for shardId, consensusGroup := range consensusNodes {
+			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
+			addrRewards := shardRewardData.Addresses
+			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
+			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
+			if len(addrRewards) > 0 {
+				updateNumberTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
+			}
+		}
+
+		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		round++
+		nonce++
+	}
+
+	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, gasPrice, gasLimit)
 }
 
 func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
@@ -364,7 +444,7 @@ func verifyRewardsForShards(
 			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
 			expectedBalance.Add(expectedBalance, totalFees)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
+			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressContainer().Bytes(), expectedBalance))
 			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}

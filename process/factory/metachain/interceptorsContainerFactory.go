@@ -17,6 +17,7 @@ import (
 	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -57,7 +58,9 @@ func NewInterceptorsContainerFactory(
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
+	blockSingleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
+	blockKeyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
@@ -105,6 +108,12 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(blackList) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if check.IfNil(blockKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(blockSingleSigner) {
+		return nil, process.ErrNilSingleSigner
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -113,7 +122,9 @@ func NewInterceptorsContainerFactory(
 		NodesCoordinator: nodesCoordinator,
 		MultiSigVerifier: multiSigner,
 		KeyGen:           keyGen,
+		BlockKeyGen:      blockKeyGen,
 		Signer:           singleSigner,
+		BlockSigner:      blockSingleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
 	}
@@ -168,6 +179,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, interceptorSlice, err = icf.generateUnsignedTxsInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -355,6 +376,65 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 	}
 
 	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(icf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
+		icf.marshalizer,
+		txFactory,
+		txProcessor,
+		icf.globalThrottler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+//------- Unsigned transactions interceptors
+
+func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := icf.createOneUnsignedTxInterceptor(identifierScr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys[int(idx)] = identifierScr
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	return keys, interceptorSlice, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+	//TODO replace the nil tx validator with white list validator
+	txValidator, err := mock.NewNilTxValidator()
+	if err != nil {
+		return nil, err
+	}
+
+	argProcessor := &processor.ArgTxInterceptorProcessor{
+		ShardedDataCache: icf.dataPool.UnsignedTransactions(),
+		TxValidator:      txValidator,
+	}
+	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	txFactory, err := interceptorFactory.NewInterceptedUnsignedTxDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -43,6 +42,7 @@ type baseForkDetector struct {
 	mutFork    sync.RWMutex
 
 	blackListHandler process.BlackListHandler
+	genesisTime      int64
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -61,12 +61,17 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
+	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
 
+	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
-		// which is bound to a previous black listed header.
-		bfd.blackListHandler.Add(string(headerHash))
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return process.ErrHeaderIsBlackListed
+	}
+	//TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
+	if genesisTimeFromHeader != bfd.genesisTime {
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
+		return ErrGenesisTimeMissmatch
 	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
@@ -159,10 +164,6 @@ func (bfd *baseForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 // computeProbableHighestNonce computes the probable highest nonce from the valid received/processed headers
 func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	probableHighestNonce := bfd.finalCheckpoint().nonce
-	lastProposedBlockNonce := bfd.lastProposedBlockNonce()
-	if lastProposedBlockNonce > 0 {
-		probableHighestNonce = core.MaxUint64(bfd.finalCheckpoint().nonce, lastProposedBlockNonce-1)
-	}
 
 	bfd.mutHeaders.RLock()
 	for nonce := range bfd.headers {
@@ -288,6 +289,13 @@ func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo) {
 	bfd.mutFork.Lock()
 	bfd.fork.finalCheckpoint = finalCheckpoint
+	bfd.mutFork.Unlock()
+}
+
+// RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
+func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
+	bfd.mutFork.Lock()
+	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0}
 	bfd.mutFork.Unlock()
 }
 
@@ -592,4 +600,9 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		bfd.headers[hdrNonce] = preservedHdrInfos
 	}
 	bfd.mutHeaders.Unlock()
+}
+
+func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+	genesisTime := int64(headerHandler.GetTimeStamp() - headerHandler.GetRound()*uint64(bfd.rounder.TimeDuration().Seconds()))
+	return genesisTime
 }

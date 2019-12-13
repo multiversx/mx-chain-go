@@ -325,7 +325,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 
 	senderShardId := uint32(0)
 	recvShardId := uint32(1)
-	balanceValue := big.NewInt(10000)
+	balanceValue := big.NewInt(100000)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), senderShardId)
 	dPool, txHashesGenerated, txsSndAddr := integrationTests.CreateResolversDataPool(t, txGenerated, senderShardId, recvShardId, shardCoordinator)
 

@@ -33,7 +33,7 @@ func NewErrorWrongSize(exp int, got int) *ErrorWrongSize {
 
 // Error returns the error as string
 func (e *ErrorWrongSize) Error() string {
-	return fmt.Sprintf("wrong size! expected: %d, got %d", e.Exp, e.Got)
+	return fmt.Sprintf("wrong size, expected: %d, got %d", e.Exp, e.Got)
 }
 
 //------- ErrorTrieNotNormalized
@@ -142,3 +142,6 @@ var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
 // ErrUnknownAccountType signals that the provided account type is unknown
 var ErrUnknownAccountType = errors.New("account type is unknown")
+
+// ErrNilOrEmptyDataTrieUpdates signals that there are no data trie updates
+var ErrNilOrEmptyDataTrieUpdates = errors.New("no data trie updates")

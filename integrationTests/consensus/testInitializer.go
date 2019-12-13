@@ -188,6 +188,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	return store
 }
 
@@ -368,7 +369,7 @@ func createConsensusOnlyNode(
 		time.Millisecond*time.Duration(uint64(roundTime)),
 		syncer)
 
-	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second))
+	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second), 0)
 
 	hdrResolver := &mock.HeaderResolverMock{}
 	mbResolver := &mock.MiniBlocksResolverMock{}
@@ -424,6 +425,8 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 	)
 
 	if err != nil {
@@ -491,7 +494,6 @@ func createNodes(
 		testNode.pk = kp.pk
 		testNode.blkProcessor = blkProcessor
 		testNode.blkc = blkc
-
 		nodesList[i] = testNode
 	}
 	nodes[0] = nodesList
