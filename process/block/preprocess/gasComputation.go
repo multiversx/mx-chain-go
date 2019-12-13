@@ -132,7 +132,7 @@ func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
-			log.Debug("missing transaction in ComputeGasConsumedByMiniBlock ", "type", miniBlock.Type)
+			log.Debug("missing transaction in ComputeGasConsumedByMiniBlock ", "type", miniBlock.Type, "txHash", txHash)
 			return 0, 0, process.ErrMissingTransaction
 		}
 
@@ -157,6 +157,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	txReceiverShardId uint32,
 	txHandler data.TransactionHandler,
 ) (uint64, uint64, error) {
+
 	if check.IfNil(txHandler) {
 		return 0, 0, process.ErrNilTransaction
 	}

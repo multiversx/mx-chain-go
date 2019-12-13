@@ -218,7 +218,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
 			if txData == nil || txData.tx == nil {
-				log.Debug("missing transaction/missmatch in ProcessBlockTransactions ", "type", block.RewardsBlock)
+				log.Debug("missing transaction/missmatch in ProcessBlockTransactions ", "type", block.RewardsBlock, "hash", txHash)
 				return process.ErrMissingTransaction
 			}
 

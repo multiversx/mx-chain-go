@@ -239,7 +239,7 @@ func (txs *transactions) ProcessBlockTransactions(
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 			if txInfo == nil || txInfo.tx == nil {
-				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.TxBlock)
+				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.TxBlock, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 

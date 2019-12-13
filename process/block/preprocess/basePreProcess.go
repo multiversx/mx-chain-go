@@ -112,7 +112,7 @@ func (bpp *basePreProcess) saveTxsToStorage(
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfo == nil || txInfo.tx == nil {
-			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit)
+			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
