@@ -2,9 +2,11 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -378,4 +380,18 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 	assert.Equal(t, 0, len(mbDst0))
 	mbDst1 := metaHdr.GetMiniBlockHeadersWithDst(1)
 	assert.Equal(t, len(shardMBHeader), len(mbDst1))
+}
+
+func TestMetaBlock_IsChainIDValid(t *testing.T) {
+	t.Parallel()
+
+	chainID := []byte("chainID")
+	okChainID := []byte("chainID")
+	wrongChainID := []byte("wrong chain ID")
+	metablock := &block.MetaBlock{
+		ChainID: chainID,
+	}
+
+	assert.Nil(t, metablock.CheckChainID(okChainID))
+	assert.True(t, errors.Is(metablock.CheckChainID(wrongChainID), data.ErrInvalidChainID))
 }

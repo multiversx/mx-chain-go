@@ -87,10 +87,10 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
-		pubkey := ns.InitialNodes[i].PubKey
-		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubkey)
+		pubKey := ns.InitialNodes[i].PubKey
+		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubKey)
 		if err != nil {
-			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubkey)
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
 		}
 
 		address := ns.InitialNodes[i].Address

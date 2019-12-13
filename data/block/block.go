@@ -1,6 +1,8 @@
 package block
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -578,4 +580,19 @@ func (h *Header) ItemsInHeader() uint32 {
 // ItemsInBody gets the number of items(hashes) added in block body
 func (h *Header) ItemsInBody() uint32 {
 	return h.TxCount
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (h *Header) CheckChainID(reference []byte) error {
+	if !bytes.Equal(h.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(h.ChainID),
+		)
+	}
+
+	return nil
 }

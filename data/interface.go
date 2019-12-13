@@ -43,6 +43,7 @@ type HeaderHandler interface {
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
 	Clone() HeaderHandler
+	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body

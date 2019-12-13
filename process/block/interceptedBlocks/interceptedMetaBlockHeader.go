@@ -87,7 +87,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	return checkChainID(imh.hdr, imh.chainID)
+	return imh.hdr.CheckChainID(imh.chainID)
 }
 
 // integrity checks the integrity of the meta header block wrapper

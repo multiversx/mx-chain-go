@@ -529,7 +529,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder, nodesConfig.ChainID)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err

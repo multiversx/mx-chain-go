@@ -14,6 +14,7 @@ type HeaderHandlerStub struct {
 	GetPrevHashCalled                func() []byte
 	CloneCalled                      func() data.HeaderHandler
 	GetChainIDCalled                 func() []byte
+	CheckChainIDCalled               func(reference []byte) error
 }
 
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
@@ -76,55 +77,55 @@ func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetNonce(n uint64) {
+func (hhs *HeaderHandlerStub) SetNonce(_ uint64) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetEpoch(e uint32) {
+func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetRound(r uint64) {
+func (hhs *HeaderHandlerStub) SetRound(_ uint64) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetTimeStamp(ts uint64) {
+func (hhs *HeaderHandlerStub) SetTimeStamp(_ uint64) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetRootHash(rHash []byte) {
+func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetPrevHash(pvHash []byte) {
+func (hhs *HeaderHandlerStub) SetPrevHash(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetPrevRandSeed(pvRandSeed []byte) {
+func (hhs *HeaderHandlerStub) SetPrevRandSeed(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetRandSeed(randSeed []byte) {
+func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetPubKeysBitmap(pkbm []byte) {
+func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetSignature(sg []byte) {
+func (hhs *HeaderHandlerStub) SetSignature(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetLeaderSignature(sg []byte) {
+func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetChainID(chainID []byte) {
+func (hhs *HeaderHandlerStub) SetChainID(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetTxCount(txCount uint32) {
+func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) {
 	panic("implement me")
 }
 
@@ -136,15 +137,15 @@ func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(vrh []byte) {
+func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(hash []byte) bool {
+func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(_ []byte) bool {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte, processed bool) {
+func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(_ []byte, _ bool) {
 	panic("implement me")
 }
 
@@ -159,4 +160,8 @@ func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {
 
 func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
 	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
+	return hhs.CheckChainIDCalled(reference)
 }

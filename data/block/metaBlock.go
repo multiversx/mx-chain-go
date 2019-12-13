@@ -1,6 +1,8 @@
 package block
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
@@ -555,4 +557,19 @@ func (m *MetaBlock) ItemsInBody() uint32 {
 func (m *MetaBlock) Clone() data.HeaderHandler {
 	metaBlockCopy := *m
 	return &metaBlockCopy
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (m *MetaBlock) CheckChainID(reference []byte) error {
+	if !bytes.Equal(m.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(m.ChainID),
+		)
+	}
+
+	return nil
 }

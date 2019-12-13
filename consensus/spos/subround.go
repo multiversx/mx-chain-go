@@ -56,20 +56,20 @@ func NewSubround(
 	}
 
 	sr := Subround{
-		container,
-		consensusState,
-		previous,
-		current,
-		next,
-		startTime,
-		endTime,
-		name,
-		chainID,
-		consensusStateChangedChannel,
-		executeStoredMessages,
-		nil,
-		nil,
-		nil,
+		ConsensusCoreHandler:         container,
+		ConsensusState:               consensusState,
+		previous:                     previous,
+		current:                      current,
+		next:                         next,
+		startTime:                    startTime,
+		endTime:                      endTime,
+		name:                         name,
+		chainID:                      chainID,
+		consensusStateChangedChannel: consensusStateChangedChannel,
+		executeStoredMessages:        executeStoredMessages,
+		Job:                          nil,
+		Check:                        nil,
+		Extend:                       nil,
 	}
 
 	return &sr, nil

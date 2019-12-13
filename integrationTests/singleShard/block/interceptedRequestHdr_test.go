@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -53,47 +53,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	//Step 1. Generate 2 headers, one will be stored in datapool, the other one in storage
-	hdr1 := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          nResolver.ChainID,
-	}
-
-	hdr2 := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          nResolver.ChainID,
-	}
-
-	hdrBuff1, _ := marshalizer.Marshal(&hdr1)
+	hdr1, hdr2 := generateTwoHeaders(integrationTests.IntegrationTestsChainID)
+	hdrBuff1, _ := marshalizer.Marshal(hdr1)
 	hdrHash1 := hasher.Compute(string(hdrBuff1))
-	hdrBuff2, _ := marshalizer.Marshal(&hdr2)
+	hdrBuff2, _ := marshalizer.Marshal(hdr2)
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
-	//Step 2. resolver has the headers
+	//resolver has the headers
 	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
 
 	syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -102,45 +68,18 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
-	//Step 3. wire up a received handler
-	chanDone := make(chan struct{})
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
-	go func() {
-		wg.Wait()
-		chanDone <- struct{}{}
-	}()
-
-	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
-		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
-
-		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
-			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			wg.Done()
-		}
-
-		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
-			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			wg.Done()
-		}
-	})
-
-	//Step 4. request header from pool
+	//request header from pool
 	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
 
-	//Step 5. request header that is stored
+	//request header that is stored
 	_ = hdrResolver.RequestDataFromNonce(1)
 
-	select {
-	case <-chanDone:
-	case <-time.After(durationTimeout):
-		assert.Fail(t, "timeout")
-	}
+	testChansShouldReadBoth(t, chanDone1, chanDone2)
 }
 
 func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
@@ -177,47 +116,13 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	time.Sleep(time.Second)
 
 	wrongChainID := []byte("wrong chain ID")
-	//Step 1. Generate 2 headers, one will be stored in datapool, the other one in storage, each with wrong chainID
-	hdr1 := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          wrongChainID,
-	}
-
-	hdr2 := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          0,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		ChainID:          wrongChainID,
-	}
-
+	hdr1, hdr2 := generateTwoHeaders(wrongChainID)
 	hdrBuff1, _ := marshalizer.Marshal(&hdr1)
 	hdrHash1 := hasher.Compute(string(hdrBuff1))
 	hdrBuff2, _ := marshalizer.Marshal(&hdr2)
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
-	//Step 2. resolver has the headers
+	//resolver has the headers
 	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
 
 	syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -226,30 +131,107 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
-	//Step 3. wire up a received handler
-	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
-		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
+	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
-		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
-			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			assert.Fail(t, "should have not received header with wrong chain ID")
-		}
-
-		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
-			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			assert.Fail(t, "should have not received header with wrong chain ID")
-		}
-	})
-
-	//Step 4. request header from pool
+	//request header from pool
 	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
 
-	//Step 5. request header that is stored
+	//request header that is stored
 	_ = hdrResolver.RequestDataFromNonce(1)
 
-	time.Sleep(durationTimeout)
+	testChansShouldReadNone(t, chanDone1, chanDone2)
+}
+
+func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler) {
+	hdr1 := &block.Header{
+		Nonce:            0,
+		PubKeysBitmap:    []byte{255, 0},
+		Signature:        []byte("signature"),
+		PrevHash:         []byte("prev hash"),
+		TimeStamp:        uint64(time.Now().Unix()),
+		Round:            1,
+		Epoch:            2,
+		ShardId:          0,
+		BlockBodyType:    block.TxBlock,
+		RootHash:         []byte{255, 255},
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		ChainID:          chainID,
+	}
+
+	hdr2 := &block.Header{
+		Nonce:            1,
+		PubKeysBitmap:    []byte{255, 0},
+		Signature:        []byte("signature"),
+		PrevHash:         []byte("prev hash"),
+		TimeStamp:        uint64(time.Now().Unix()),
+		Round:            1,
+		Epoch:            2,
+		ShardId:          0,
+		BlockBodyType:    block.TxBlock,
+		RootHash:         []byte{255, 255},
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		ChainID:          chainID,
+	}
+
+	return hdr1, hdr2
+}
+
+func wireUpHandler(
+	nRequester *integrationTests.TestProcessorNode,
+	hdr1 data.HeaderHandler,
+	hdr2 data.HeaderHandler,
+) (chan struct{}, chan struct{}) {
+
+	//wire up a received handler
+	chanDone1 := make(chan struct{}, 1)
+	chanDone2 := make(chan struct{}, 1)
+	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
+		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
+		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
+
+		if reflect.DeepEqual(hdrStored, hdr1) && hdr1.GetSignature() != nil {
+			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+			chanDone1 <- struct{}{}
+		}
+
+		if reflect.DeepEqual(hdrStored, hdr2) && hdr2.GetSignature() != nil {
+			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+			chanDone2 <- struct{}{}
+		}
+	})
+
+	return chanDone1, chanDone2
+}
+
+func testChansShouldReadBoth(t *testing.T, chanDone1 chan struct{}, chanDone2 chan struct{}) {
+	select {
+	case <-chanDone1:
+	case <-time.After(durationTimeout):
+		assert.Fail(t, "timeout")
+		return
+	}
+
+	select {
+	case <-chanDone2:
+	case <-time.After(durationTimeout):
+		assert.Fail(t, "timeout")
+		return
+	}
+}
+
+func testChansShouldReadNone(t *testing.T, chanDone1 chan struct{}, chanDone2 chan struct{}) {
+	select {
+	case <-chanDone1:
+	case <-chanDone2:
+	case <-time.After(durationTimeout):
+		return
+	}
+	assert.Fail(t, "should have not received header with wrong chain ID")
 }

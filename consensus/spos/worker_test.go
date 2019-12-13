@@ -1017,8 +1017,8 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 				return &mock.HeaderHandlerStub{
-					GetChainIDCalled: func() []byte {
-						return []byte("wrong chain ID")
+					CheckChainIDCalled: func(reference []byte) error {
+						return spos.ErrInvalidChainID
 					},
 					GetPrevHashCalled: func() []byte {
 						return make([]byte, 0)
@@ -1055,8 +1055,8 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 				return &mock.HeaderHandlerStub{
-					GetChainIDCalled: func() []byte {
-						return chainID
+					CheckChainIDCalled: func(reference []byte) error {
+						return nil
 					},
 					GetPrevHashCalled: func() []byte {
 						return make([]byte, 0)

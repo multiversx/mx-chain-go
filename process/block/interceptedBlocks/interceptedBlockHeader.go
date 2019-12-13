@@ -83,7 +83,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	return checkChainID(inHdr.hdr, inHdr.chainID)
+	return inHdr.hdr.CheckChainID(inHdr.chainID)
 }
 
 // integrity checks the integrity of the header block wrapper

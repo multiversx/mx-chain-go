@@ -168,11 +168,11 @@ type Process struct {
 type coreComponentsFactoryArgs struct {
 	config   *config.Config
 	uniqueID string
-	chainID  string
+	chainID  []byte
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, chainID string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, chainID []byte) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
@@ -204,7 +204,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  []byte(args.chainID),
+		ChainID:                  args.chainID,
 	}, nil
 }
 

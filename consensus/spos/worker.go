@@ -252,7 +252,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			hex.EncodeToString(cnsDta.ChainID),
 			hex.EncodeToString(wrk.chainID),
 		)
-
 		return err
 	}
 
@@ -300,14 +299,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			return ErrInvalidHeader
 		}
 
-		isChainIdOk := bytes.Equal(header.GetChainID(), wrk.chainID)
-		if !isChainIdOk {
-			return fmt.Errorf(
-				"%w, received: %s, wanted: %s",
-				ErrInvalidChainID,
-				hex.EncodeToString(header.GetChainID()),
-				hex.EncodeToString(wrk.chainID),
-			)
+		err := header.CheckChainID(wrk.chainID)
+		if err != nil {
+			return err
 		}
 
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)

@@ -927,7 +927,6 @@ func TestWithChainID_InvalidShouldErr(t *testing.T) {
 	opt := WithChainID(nil)
 
 	err := opt(node)
-
 	assert.Equal(t, ErrInvalidChainID, err)
 }
 
@@ -939,7 +938,6 @@ func TestWithChainID_OkValueShouldWork(t *testing.T) {
 	opt := WithChainID(chainId)
 
 	err := opt(node)
-
 	assert.Equal(t, node.chainID, chainId)
 	assert.Nil(t, err)
 }

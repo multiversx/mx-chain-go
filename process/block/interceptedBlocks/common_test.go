@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -462,33 +461,6 @@ func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
 	}
 
 	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
-
-	assert.Nil(t, err)
-}
-
-func TestCheckChainID_WrongChainShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := createDefaultHeaderHandler()
-	hdr.GetChainIDCalled = func() []byte {
-		return []byte("chain ID 1")
-	}
-
-	err := checkChainID(hdr, []byte("chain ID 2"))
-
-	assert.True(t, errors.Is(err, process.ErrInvalidChainID))
-}
-
-func TestCheckChainID_SameChainShouldWork(t *testing.T) {
-	t.Parallel()
-
-	chainID := []byte("chain ID")
-	hdr := createDefaultHeaderHandler()
-	hdr.GetChainIDCalled = func() []byte {
-		return chainID
-	}
-
-	err := checkChainID(hdr, chainID)
 
 	assert.Nil(t, err)
 }
