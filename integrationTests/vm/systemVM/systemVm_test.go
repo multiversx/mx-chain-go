@@ -2,8 +2,9 @@ package systemVM
 
 import (
 	"context"
-	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,9 +63,9 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	///////////------- send stake tx and check sender's balance
 	var txData string
-	for _, node := range nodes {
-		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
-		txData = "stake" + "@" + hex.EncodeToString(pubKey)
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "stake" + "@" + pubKey
 		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.StakingSCAddress, txData)
 	}
 
@@ -81,13 +82,14 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	checkAccountsAfterStaking(t, nodes, initialVal, consumedBalance)
 
 	/////////------ send unStake tx
-	txData = "unStake"
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "unStake" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
 	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
-	for _, node := range nodes {
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
-	}
 
 	time.Sleep(time.Second)
 
@@ -97,13 +99,14 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
-	txData = "unBound"
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "unBound" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
-	for _, node := range nodes {
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
-	}
 
 	time.Sleep(time.Second)
 
@@ -175,4 +178,10 @@ func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *st
 	sndAccSt, _ := sndrAcc.(*state.Account)
 
 	return sndAccSt
+}
+
+func generateUniqueKey(identifier int) string {
+	neededLength := 256
+	uniqueIdentifier := fmt.Sprintf("%d", identifier)
+	return strings.Repeat("0", neededLength - len(uniqueIdentifier)) + uniqueIdentifier
 }
