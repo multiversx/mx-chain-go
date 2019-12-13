@@ -42,7 +42,7 @@ import (
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -1174,26 +1174,10 @@ func createShardDataPoolFromConfig(
 
 	log.Debug("creatingShardDataPool from config")
 
-	// TODO-TXCACHE
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
-	// TODO-TXCACHE
-	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
-	if err != nil {
-		log.Error("error creating smart contract result pool")
-		return nil, err
-	}
-
-	// TODO-TXCACHE
-	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
-	if err != nil {
-		log.Error("error creating reward transaction pool")
-		return nil, err
-	}
+	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
+	txPoolUnsigned := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
+	txPoolRewards := txpool.NewShardedTxPool(getCacherFromConfig(config.RewardTransactionDataPool))
+	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, txPoolRewards)
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -1241,9 +1225,7 @@ func createShardDataPoolFromConfig(
 	}
 
 	return dataPool.NewShardedDataPool(
-		txPool,
-		uTxPool,
-		rewardTxPool,
+		txPoolsHolder,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -1289,19 +1271,9 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	// TODO-TXCACHE
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
-	// TODO-TXCACHE
-	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
-	if err != nil {
-		log.Error("error creating smart contract result pool")
-		return nil, err
-	}
+	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
+	txPoolUnsigned := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
+	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, nil)
 
 	currBlockTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
@@ -1313,8 +1285,7 @@ func createMetaDataPoolFromConfig(
 		txBlockBody,
 		shardHeaders,
 		headersNonces,
-		txPool,
-		uTxPool,
+		txPoolsHolder,
 		currBlockTxs,
 	)
 }
@@ -2470,15 +2441,9 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	if err != nil {
-		return nil, err
-	}
-
-	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	if err != nil {
-		return nil, err
-	}
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	txPoolUnsigned := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, nil)
 
 	currTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
@@ -2490,8 +2455,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		txBlockBody,
 		shardHeaders,
 		shardHeadersNonces,
-		txPool,
-		uTxPool,
+		txPoolsHolder,
 		currTxs,
 	)
 	if err != nil {

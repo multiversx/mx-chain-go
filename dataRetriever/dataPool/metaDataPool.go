@@ -1,6 +1,7 @@
 package dataPool
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -11,7 +12,7 @@ type metaDataPool struct {
 	miniBlocks    storage.Cacher
 	shardHeaders  storage.Cacher
 	headersNonces dataRetriever.Uint64SyncMapCacher
-	TxPoolsHolder txpool.TxPoolsHolder
+	TxPoolsHolder *txpool.TxPoolsHolder
 	currBlockTxs  dataRetriever.TransactionCacher
 }
 
@@ -21,7 +22,7 @@ func NewMetaDataPool(
 	miniBlocks storage.Cacher,
 	shardHeaders storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
-	TxPoolsHolder txpool.TxPoolsHolder,
+	TxPoolsHolder *txpool.TxPoolsHolder,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*metaDataPool, error) {
 
@@ -37,7 +38,7 @@ func NewMetaDataPool(
 	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
-	//check.HardAssertNotNil(TxPoolsHolder, "TxPoolsHolder")
+	check.AssertNotNil(TxPoolsHolder, "TxPoolsHolder")
 	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}

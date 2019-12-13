@@ -32,7 +32,7 @@ func NewTxResolver(
 	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	check.HardAssertNotNil(txPool, "txPool")
+	check.AssertNotNil(txPool, "txPool")
 	if txStorage == nil || txStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxStorage
 	}

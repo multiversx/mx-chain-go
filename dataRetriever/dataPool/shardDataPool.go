@@ -1,13 +1,14 @@
 package dataPool
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type shardedDataPool struct {
-	TxPoolsHolder     txpool.TxPoolsHolder
+	TxPoolsHolder     *txpool.TxPoolsHolder
 	headers           storage.Cacher
 	metaBlocks        storage.Cacher
 	headersNonces     dataRetriever.Uint64SyncMapCacher
@@ -18,7 +19,7 @@ type shardedDataPool struct {
 
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
-	TxPoolsHolder txpool.TxPoolsHolder,
+	TxPoolsHolder *txpool.TxPoolsHolder,
 	headers storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
 	miniBlocks storage.Cacher,
@@ -26,7 +27,7 @@ func NewShardedDataPool(
 	metaBlocks storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
-	//check.HardAssertNotNil(TxPoolsHolder, "TxPoolsHolder")
+	check.AssertNotNil(TxPoolsHolder, "TxPoolsHolder")
 
 	if headers == nil || headers.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersDataPool

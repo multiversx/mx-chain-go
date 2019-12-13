@@ -24,8 +24,8 @@ func IfNilReflect(i interface{}) bool {
 	return true
 }
 
-// HardAssertNotNil throws a programmer error (go panic) if the object is nil
-func HardAssertNotNil(object NilInterfaceChecker, objectName string) {
+// AssertNotNil throws a programmer error (go panic) if the object is nil
+func AssertNotNil(object NilInterfaceChecker, objectName string) {
 	if object == nil || object.IsInterfaceNil() {
 		panic(fmt.Sprintf("ProgrammerError: %s is NIL", objectName))
 	}

@@ -22,19 +22,19 @@ func NewTxPoolsHolder(transactions dataRetriever.TxPool, unsignedTransactions da
 
 // TransactionsPool gets the transaction pool from the group
 func (group *TxPoolsHolder) TransactionsPool() dataRetriever.TxPool {
-	check.HardAssertNotNil(group.transactions, "transactions pool")
+	check.AssertNotNil(group.transactions, "transactions pool")
 	return group.transactions
 }
 
 // UnsignedTransactions gets the unsigned transaction pool from the group
 func (group *TxPoolsHolder) UnsignedTransactions() dataRetriever.TxPool {
-	check.HardAssertNotNil(group.unsignedTransactions, "unsigned transactions pool")
+	check.AssertNotNil(group.unsignedTransactions, "unsigned transactions pool")
 	return group.unsignedTransactions
 }
 
 // RewardTransactions gets the unsigned transaction pool from the group
 func (group *TxPoolsHolder) RewardTransactions() dataRetriever.TxPool {
-	check.HardAssertNotNil(group.rewardTransactions, "reward transactions pool")
+	check.AssertNotNil(group.rewardTransactions, "reward transactions pool")
 	return group.rewardTransactions
 }
 
