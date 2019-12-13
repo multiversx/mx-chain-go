@@ -9,7 +9,7 @@ import (
 type EvictionConfig struct {
 	Enabled                         bool
 	CountThreshold                  uint32
-	CountJustAFewSenders            uint32
+	ThresholdEvictSenders           uint32
 	NumOldestSendersToEvict         uint32
 	ALotOfTransactionsForASender    uint32
 	NumTxsToEvictForASenderWithALot uint32
@@ -50,7 +50,7 @@ func (cache *TxCache) areThereTooManySenders() bool {
 
 func (cache *TxCache) areThereJustAFewSenders() bool {
 	nSenders := cache.CountSenders()
-	justAFewSenders := nSenders < int64(cache.evictionConfig.CountJustAFewSenders)
+	justAFewSenders := nSenders < int64(cache.evictionConfig.ThresholdEvictSenders)
 	return justAFewSenders
 }
 
