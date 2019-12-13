@@ -33,6 +33,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
+	headerSigVerifier  RandSeedVerifier
 
 	networkShardingCollector consensus.NetworkShardingCollector
 	checkSigChan             chan struct{}
@@ -65,6 +66,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	networkShardingCollector consensus.NetworkShardingCollector,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -81,6 +83,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
+		headerSigVerifier,
 		networkShardingCollector,
 	)
 	if err != nil {
@@ -88,19 +91,20 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		consensusService:         consensusService,
-		blockChain:               blockChain,
-		blockProcessor:           blockProcessor,
-		bootstrapper:             bootstrapper,
-		broadcastMessenger:       broadcastMessenger,
-		consensusState:           consensusState,
-		forkDetector:             forkDetector,
-		keyGenerator:             keyGenerator,
-		marshalizer:              marshalizer,
-		rounder:                  rounder,
-		shardCoordinator:         shardCoordinator,
-		singleSigner:             singleSigner,
-		syncTimer:                syncTimer,
+		consensusService:   consensusService,
+		blockChain:         blockChain,
+		blockProcessor:     blockProcessor,
+		bootstrapper:       bootstrapper,
+		broadcastMessenger: broadcastMessenger,
+		consensusState:     consensusState,
+		forkDetector:       forkDetector,
+		keyGenerator:       keyGenerator,
+		marshalizer:        marshalizer,
+		rounder:            rounder,
+		shardCoordinator:   shardCoordinator,
+		singleSigner:       singleSigner,
+		syncTimer:          syncTimer,
+		headerSigVerifier:  headerSigVerifier,
 		networkShardingCollector: networkShardingCollector,
 		checkSigChan:             make(chan struct{}, 1),
 	}
@@ -132,6 +136,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
+	headerSigVerifier RandSeedVerifier,
 	networkShardingCollector consensus.NetworkShardingCollector,
 ) error {
 	if check.IfNil(consensusService) {
@@ -172,6 +177,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(headerSigVerifier) {
+		return ErrNilHeaderSigVerifier
 	}
 	if check.IfNil(networkShardingCollector) {
 		return ErrNilNetworkShardingCollector
@@ -278,23 +286,29 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
-		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
-		isHeaderValid := !check.IfNil(header) && headerHash != nil
-		if isHeaderValid {
-			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-			if errNotCritical != nil {
-				log.Debug("add header in forkdetector", "error", errNotCritical.Error())
-			}
-
-			log.Debug("received proposed block",
-				"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-				"header hash", cnsDta.BlockHeaderHash,
-				"round", header.GetRound(),
-				"nonce", header.GetNonce(),
-				"prev hash", header.GetPrevHash(),
-			)
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			return err
 		}
+
+		isHeaderInvalid := check.IfNil(header) || headerHash == nil
+		if isHeaderInvalid {
+			return ErrInvalidHeader
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			return err
+		}
+
+		log.Debug("received proposed block",
+			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+			"header hash", cnsDta.BlockHeaderHash,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"prev hash", header.GetPrevHash(),
+		)
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

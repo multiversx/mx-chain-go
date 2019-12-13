@@ -59,7 +59,6 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")},
 	}
 	body = append(body, &miniblock)
-
 	transactionCounter := NewTransactionCounter()
 	lines := transactionCounter.displayTxBlockBody(
 		shardLines,

@@ -7,11 +7,48 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
+
+var gasPriceForGameSC = uint64(0)
+
+// ScCallTxWithParams creates and sends a SC tx call or deploy with all major parameters provided
+func ScCallTxWithParams(
+	senderNode *TestProcessorNode,
+	sk crypto.PrivateKey,
+	nonce uint64,
+	data string,
+	value *big.Int,
+	gasLimit uint64,
+	gasPrice uint64,
+) {
+
+	fmt.Println("Deploying SC...")
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+	txArgs := &txArgs{
+		nonce:    nonce,
+		value:    value,
+		rcvAddr:  make([]byte, 32),
+		sndAddr:  pkBuff,
+		data:     data,
+		gasLimit: gasLimit,
+		gasPrice: gasPrice,
+	}
+
+	txDeploy := generateTx(
+		sk,
+		senderNode.OwnAccount.SingleSigner,
+		txArgs,
+	)
+
+	_, _ = senderNode.SendTransaction(txDeploy)
+	fmt.Println("Delaying for disseminating the deploy tx...")
+	time.Sleep(stepDelay)
+}
 
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
@@ -26,7 +63,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     data,
-			gasLimit: MaxGasLimitPerBlock - MinTxGasLimit - uint64(len(data)),
+			gasLimit: MaxGasLimitPerBlock - 1,
 			gasPrice: MinTxGasPrice,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
@@ -57,7 +94,7 @@ func PlayerJoinsGame(
 			sndAddr:  player.Address.Bytes(),
 			data:     fmt.Sprintf("joinGame@00%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes())),
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: gasPriceForGameSC,
 		})
 	player.Nonce++
 	newBalance := big.NewInt(0)
@@ -89,7 +126,7 @@ func NodeCallsRewardAndSend(
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("rewardAndSendToWallet@%X@%s@%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes()), hex.EncodeToString(winnerAddress), hex.EncodeToString(prize.Bytes())),
 			gasLimit: 30000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNodeOwner].OwnAccount.Nonce++
 
@@ -125,7 +162,7 @@ func NodeDoesWithdraw(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("withdraw@00%s", hex.EncodeToString(withdrawValue.Bytes())),
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
@@ -153,7 +190,7 @@ func NodeDoesTopUp(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     "topUp",
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)

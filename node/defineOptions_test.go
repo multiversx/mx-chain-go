@@ -874,6 +874,52 @@ func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithRequestedItemsHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilRequestedItemsHandler, err)
+}
+
+func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderSigVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
+func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	requestedItemsHeanlder := &mock.RequestedItemsHandlerStub{}
+	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
+	err := opt(node)
+
+	assert.True(t, node.requestedItemsHandler == requestedItemsHeanlder)
+	assert.Nil(t, err)
+}
+
 func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
