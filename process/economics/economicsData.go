@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -210,13 +209,13 @@ func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
-
-	if dataLen < ed.dataLimitForBaseCalc || core.IsEmptyAddress(tx.GetRecvAddress()) {
+	//TODO reevaluate the formula or delete
+	/* if dataLen < ed.dataLimitForBaseCalc || core.IsEmptyAddress(tx.GetRecvAddress()) {
 		return gasLimit
 	}
 
 	overDataLimit := dataLen - ed.dataLimitForBaseCalc
-	gasLimit += overDataLimit * overDataLimit * ed.gasPerDataByte
+	gasLimit += overDataLimit * overDataLimit * ed.gasPerDataByte */
 
 	return gasLimit
 }
