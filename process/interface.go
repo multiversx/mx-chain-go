@@ -541,6 +541,7 @@ type InterceptedHeaderSigVerifier interface {
 
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
+	AddNotarizedHeaders(selfNotarizedHeaders map[uint32]data.HeaderHandler, crossNotarizedHeaders map[uint32]data.HeaderHandler)
 	CleanupHeadersForShardBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) []data.HeaderHandler
 	IsShardStuck(shardID uint32) bool

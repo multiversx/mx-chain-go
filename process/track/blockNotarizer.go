@@ -6,6 +6,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+func (bbt *baseBlockTrack) AddNotarizedHeaders(
+	selfNotarizedHeaders map[uint32]data.HeaderHandler,
+	crossNotarizedHeaders map[uint32]data.HeaderHandler,
+) {
+	bbt.setSelfNotarizedHeaders(selfNotarizedHeaders)
+	bbt.setCrossNotarizedHeaders(crossNotarizedHeaders)
+	//for _, selfNotarizedHeader := range selfNotarizedHeaders {
+	//	bbt.addSelfNotarizedHeaders(selfNotarizedHeader.GetShardID(), []data.HeaderHandler{selfNotarizedHeader})
+	//}
+	//
+	//for _, crossNotarizedHeader := range crossNotarizedHeaders {
+	//	bbt.addCrossNotarizedHeaders(crossNotarizedHeader.GetShardID(), []data.HeaderHandler{crossNotarizedHeader})
+	//}
+}
+
 func (bbt *baseBlockTrack) setCrossNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
 	bbt.mutCrossNotarizedHeaders.Lock()
 	defer bbt.mutCrossNotarizedHeaders.Unlock()

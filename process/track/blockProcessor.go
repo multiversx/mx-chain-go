@@ -190,7 +190,9 @@ func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	bbt.addCrossNotarizedHeaders(shardID, crossNotarizedHeaders)
 	bbt.addSelfNotarizedHeaders(shardID, selfNotarizedHeaders)
 
-	bbt.callSelfNotarizedHeadersHandlers(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if len(selfNotarizedHeaders) > 0 {
+		bbt.callSelfNotarizedHeadersHandlers(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
 
 	log.Trace("display on received cross notarized header", "shard", shardID)
 	bbt.displayHeadersForShard(shardID)
