@@ -26,6 +26,28 @@ func Test_AddTx_Sorts(t *testing.T) {
 	assert.Equal(t, []byte("d"), txHashes[3])
 }
 
+func Test_findTx(t *testing.T) {
+	list := newTxListForSender(".", 0)
+
+	txA := createTx(".", 41)
+	txANewer := createTx(".", 41)
+	txB := createTx(".", 42)
+	txD := createTx(".", 43)
+	list.AddTx([]byte("A"), txA)
+	list.AddTx([]byte("ANewer"), txANewer)
+	list.AddTx([]byte("B"), txB)
+
+	elementWithA := list.findListElementWithTx(txA)
+	elementWithANewer := list.findListElementWithTx(txANewer)
+	elementWithB := list.findListElementWithTx(txB)
+	noElementWithD := list.findListElementWithTx(txD)
+
+	assert.Equal(t, txA, elementWithA.Value.(txListForSenderNode).tx)
+	assert.Equal(t, txANewer, elementWithANewer.Value.(txListForSenderNode).tx)
+	assert.Equal(t, txB, elementWithB.Value.(txListForSenderNode).tx)
+	assert.Nil(t, noElementWithD)
+}
+
 func Test_RemoveTransaction(t *testing.T) {
 	list := newTxListForSender(".", 0)
 	tx := createTx(".", 1)

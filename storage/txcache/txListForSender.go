@@ -67,7 +67,7 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 
-	marker := listForSender.findTx(tx)
+	marker := listForSender.findListElementWithTx(tx)
 	isFound := marker != nil
 	if isFound {
 		listForSender.items.Remove(marker)
@@ -103,7 +103,7 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 	return removedTxHashes
 }
 
-func (listForSender *txListForSender) findTx(txToFind data.TransactionHandler) *list.Element {
+func (listForSender *txListForSender) findListElementWithTx(txToFind data.TransactionHandler) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
 
