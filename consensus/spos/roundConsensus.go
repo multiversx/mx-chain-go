@@ -11,7 +11,7 @@ type roundConsensus struct {
 	consensusGroupSize   int
 	selfPubKey           string
 	validatorRoundStates map[string]*roundState
-	mut                  sync.RWMutex
+	mut                  *sync.RWMutex
 }
 
 // NewRoundConsensus creates a new roundConsensus object
@@ -25,6 +25,7 @@ func NewRoundConsensus(
 		eligibleList:       eligibleList,
 		consensusGroupSize: consensusGroupSize,
 		selfPubKey:         selfId,
+		mut:                &sync.RWMutex{},
 	}
 
 	rcns.validatorRoundStates = make(map[string]*roundState)

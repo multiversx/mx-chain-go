@@ -1,6 +1,9 @@
 package heartbeat
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages
@@ -10,7 +13,7 @@ func (m *Monitor) SetMessages(messages map[string]*heartbeatMessageInfo) {
 	m.heartbeatMessages = messages
 }
 
-func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
+func (m *Monitor) GetHbmi() *heartbeatMessageInfo {
 	return &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: 0,
 		maxInactiveTime:             Duration{},
@@ -26,6 +29,7 @@ func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
 		isValidator:                 false,
 		lastUptimeDowntime:          time.Time{},
 		genesisTime:                 time.Time{},
+		updateMutex:                 &sync.Mutex{},
 	}
 }
 

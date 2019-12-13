@@ -28,7 +28,7 @@ type TestStorage struct {
 	sndAddr        []byte
 	sig            []byte
 	nbTxs          int
-	mapRemovedKeys sync.Map
+	mapRemovedKeys *sync.Map
 	maxWritten     *uint64
 }
 
@@ -39,6 +39,7 @@ func NewTestStorage() TestStorage {
 	testStorage.rcvAddr = make([]byte, 32)
 	testStorage.sndAddr = make([]byte, 32)
 	testStorage.sig = make([]byte, 64)
+	testStorage.mapRemovedKeys = &sync.Map{}
 
 	_, _ = rand.Reader.Read(testStorage.rcvAddr)
 	_, _ = rand.Reader.Read(testStorage.sndAddr)
@@ -48,7 +49,7 @@ func NewTestStorage() TestStorage {
 }
 
 // InitAdditionalFieldsForStorageOperations init additional structure fields to can do storage operations
-func (ts *TestStorage) InitAdditionalFieldsForStorageOperations(nbTxsWrite int, mapRemovedKeys sync.Map, maxWritten *uint64) {
+func (ts *TestStorage) InitAdditionalFieldsForStorageOperations(nbTxsWrite int, mapRemovedKeys *sync.Map, maxWritten *uint64) {
 	if ts == nil {
 		return
 	}

@@ -22,7 +22,7 @@ type heartbeatMessageInfo struct {
 	isValidator        bool
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
-	updateMutex        sync.Mutex
+	updateMutex        *sync.Mutex
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -54,6 +54,7 @@ func newHeartbeatMessageInfo(
 		isValidator:                 isValidator,
 		genesisTime:                 genesisTime,
 		getTimeHandler:              timer.Now,
+		updateMutex:                 &sync.Mutex{},
 	}
 
 	return hbmi, nil
