@@ -214,3 +214,98 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 		}
 	}
 }
+
+func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodesPerShard := 4
+	nbMetaNodes := 2
+	nbShards := 2
+	consensusGroupSize := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+	roundsPerEpoch := uint64(5)
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes)
+
+		for _, node := range nodes {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	nonce := uint64(1)
+	nbBlocksProduced := 2 * roundsPerEpoch
+
+	randomness := generateInitialRandomness(uint32(nbShards))
+	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
+
+	for i := uint64(0); i < nbBlocksProduced; i++ {
+		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		round++
+		nonce++
+	}
+
+	time.Sleep(5 * time.Second)
+}
+
+func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
+	randomness := make(map[uint32][]byte)
+
+	for i := uint32(0); i < nbShards; i++ {
+		randomness[i] = []byte("root hash")
+	}
+
+	randomness[sharding.MetachainShardId] = []byte("root hash")
+
+	return randomness
+}
+
+func getBlockProposersIndexes(
+	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+) map[uint32]int {
+
+	indexProposer := make(map[uint32]int)
+
+	for sh, testNodeList := range nodesMap {
+		for k, testNode := range testNodeList {
+			if consensusMap[sh][0] == testNode {
+				indexProposer[sh] = k
+			}
+		}
+	}
+
+	return indexProposer
+}

@@ -39,6 +39,9 @@ func (err ErrSignedBlock) Error() string {
 // ErrRollBackBehindFinalHeader signals that a roll back behind final header has been attempted
 var ErrRollBackBehindFinalHeader = errors.New("roll back behind final header is not permitted")
 
+// ErrRollBackBehindForkNonce signals that a roll back behind fork nonce is not permitted
+var ErrRollBackBehindForkNonce = errors.New("roll back behind fork nonce is not permitted")
+
 // ErrRandomSeedNotValid signals that the random seed is not valid
 var ErrRandomSeedNotValid = errors.New("random seed is not valid")
 
@@ -47,3 +50,6 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 
 // ErrNilNotarizedHeader signals that an nil notarized header has been provided
 var ErrNilNotarizedHeader = errors.New("nil notarized header")
+
+// ErrGenesisTimeMissmatch signals that a received header has a genesis time missmatch
+var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")

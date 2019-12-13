@@ -104,6 +104,7 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

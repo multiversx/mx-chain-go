@@ -80,7 +80,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
 	userBalance := big.NewInt(100000000)
-	_ = vm.CreateAccount(accnts, userAddress, userNonce, userBalance)
+	_, _ = vm.CreateAccount(accnts, userAddress, userNonce, userBalance)
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
@@ -139,7 +139,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
 	userBalance := big.NewInt(100000000)
-	_ = vm.CreateAccount(accnts, userAddress, userNonce, userBalance)
+	_, _ = vm.CreateAccount(accnts, userAddress, userNonce, userBalance)
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
@@ -237,7 +237,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		_, _ = rand.Reader.Read(userAddress)
 		fmt.Printf("Generated user account: %v\n", hex.EncodeToString(userAddress))
 
-		_ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
+		_, _ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
 		_, _ = accnts.Commit()
 
 		usersAddresses[i] = userAddress
@@ -364,7 +364,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		b.StopTimer()
 		userAddress := make([]byte, 32)
 		_, _ = rand.Reader.Read(userAddress)
-		_ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
+		_, _ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
 		_, _ = accnts.Commit()
 
 		data := "joinGame@aaaa"

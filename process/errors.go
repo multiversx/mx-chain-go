@@ -337,9 +337,6 @@ var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
-// ErrNilBalanceFromSC signals that balance is nil
-var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
-
 // ErrNilValueFromRewardTransaction signals that the transfered value is nil
 var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in reward transaction")
 
@@ -503,7 +500,7 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrHigherGasLimitRequiredInTx signals that a higher gas limit is required in tx
+// ErrHigherGasLimitRequiredInTx signals that a higher gas limit was required in tx
 var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
 
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
@@ -575,9 +572,6 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
-
 // ErrMissingPrevShardData signals that a required shard data information is missing
 var ErrMissingPrevShardData = errors.New("shard data is missing")
 
@@ -589,3 +583,12 @@ var ErrNilMediator = errors.New("nil mediator")
 
 // ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
 var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
+
+// ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
+var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
+
+// ErrNotEnoughGas signals that not enough gas has been provided
+var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
+
+// ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
+var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")

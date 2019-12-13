@@ -70,7 +70,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, nil
 	}
 
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
+	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 && len(tx.GetData()) > 0 {
 		return process.SCInvoking, nil
 	}
 

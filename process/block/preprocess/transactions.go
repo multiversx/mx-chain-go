@@ -489,6 +489,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	for newMBAdded {
 		newMBAdded = false
 		for shardId := uint32(0); shardId < txs.shardCoordinator.NumberOfShards(); shardId++ {
+			if !haveTime() {
+				break
+			}
+
 			if maxTxSpaceRemained <= 0 {
 				break
 			}

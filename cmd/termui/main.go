@@ -105,12 +105,12 @@ func startTermuiViewer() error {
 
 	statusMetricsProvider.StartUpdatingData()
 
-	err = termuiConsole.Start()
+	err = provider.InitLogHandler(nodeAddress, logLevel, argsConfig.useWss)
 	if err != nil {
 		return err
 	}
 
-	err = provider.InitLogHandler(nodeAddress, logLevel, argsConfig.useWss)
+	err = termuiConsole.Start()
 	if err != nil {
 		return err
 	}
