@@ -108,6 +108,7 @@ func (m *ConcurrentMap) IterCb(fn IterCb) {
 	}
 }
 
+// fnv32 implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
 func fnv32(key string) uint32 {
 	hash := uint32(2166136261)
 	const prime32 = uint32(16777619)
