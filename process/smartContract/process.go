@@ -654,7 +654,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
+	refundErd = refundErd.Mul(gasRefund, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddress()

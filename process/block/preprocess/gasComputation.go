@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -158,26 +157,21 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	txReceiverShardId uint32,
 	txHandler data.TransactionHandler,
 ) (uint64, uint64, error) {
-
-	tx, ok := txHandler.(*transaction.Transaction)
-	if !ok {
-		return 0, 0, process.ErrWrongTypeAssertion
+	if check.IfNil(txHandler) {
+		return 0, 0, process.ErrNilTransaction
 	}
 
-	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(tx)
-	if tx.GasLimit < txGasLimitConsumption {
-		return 0, 0, process.ErrInsufficientGasLimitInTx
-	}
+	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	if core.IsSmartContractAddress(tx.RcvAddr) {
+	if core.IsSmartContractAddress(txHandler.GetRecvAddress()) {
 		if txSenderShardId != txReceiverShardId {
 			gasConsumedByTxInSenderShard := txGasLimitConsumption
-			gasConsumedByTxInReceiverShard := tx.GasLimit - txGasLimitConsumption
+			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - txGasLimitConsumption
 
 			return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
 		}
 
-		return tx.GasLimit, tx.GasLimit, nil
+		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
 	return txGasLimitConsumption, txGasLimitConsumption, nil
