@@ -84,11 +84,9 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	//cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
-	//pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
-	//waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
-
-	waitingMap := make(map[uint32][]sharding.Validator)
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
