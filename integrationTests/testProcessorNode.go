@@ -728,8 +728,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
+		blsKeyedAddressConverter, _ := addressConverters.NewPlainAddressConverter(
+			128,
+			"0x",
+		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     TestAddressConverter,
+			AdrConv:     blsKeyedAddressConverter,
 			Hasher:      TestHasher,
 			Marshalizer: TestMarshalizer,
 			PeerState:   tpn.PeerState,
