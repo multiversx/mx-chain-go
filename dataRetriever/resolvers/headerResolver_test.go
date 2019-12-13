@@ -182,7 +182,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 func TestHeaderResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("expected error")
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
 		&mock.CacherStub{},
@@ -193,13 +193,13 @@ func TestHeaderResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 		&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return errExpected
+				return expectedErr
 			},
 		},
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId)
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {

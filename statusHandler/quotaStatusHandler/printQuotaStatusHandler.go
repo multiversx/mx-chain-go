@@ -40,7 +40,7 @@ func (pqsh *printQuotaStatusHandler) ResetStatistics() {
 		numProcessedMessages:  math.MaxUint32,
 		sizeProcessedMessages: math.MaxUint64,
 	}
-	avgQuota := &quota{}
+	sumQuota := &quota{}
 	maxQuota := &quota{}
 
 	pqsh.mutStatistics.Lock()
@@ -54,20 +54,20 @@ func (pqsh *printQuotaStatusHandler) ResetStatistics() {
 	}
 
 	for name, q := range pqsh.statistics {
-		avgQuota.numReceivedMessages += q.numReceivedMessages
-		avgQuota.sizeReceivedMessages += q.sizeReceivedMessages
-		avgQuota.numProcessedMessages += q.numProcessedMessages
-		avgQuota.sizeProcessedMessages += q.sizeProcessedMessages
+		sumQuota.numReceivedMessages += q.numReceivedMessages
+		sumQuota.sizeReceivedMessages += q.sizeReceivedMessages
+		sumQuota.numProcessedMessages += q.numProcessedMessages
+		sumQuota.sizeProcessedMessages += q.sizeProcessedMessages
 
-		minQuota.numReceivedMessages = pickMinUint32(minQuota.numReceivedMessages, q.numReceivedMessages)
-		minQuota.sizeReceivedMessages = pickMinUint64(minQuota.sizeReceivedMessages, q.sizeReceivedMessages)
-		minQuota.numProcessedMessages = pickMinUint32(minQuota.numProcessedMessages, q.numProcessedMessages)
-		minQuota.sizeProcessedMessages = pickMinUint64(minQuota.sizeProcessedMessages, q.sizeProcessedMessages)
+		minQuota.numReceivedMessages = core.MinUint32(minQuota.numReceivedMessages, q.numReceivedMessages)
+		minQuota.sizeReceivedMessages = core.MinUint64(minQuota.sizeReceivedMessages, q.sizeReceivedMessages)
+		minQuota.numProcessedMessages = core.MinUint32(minQuota.numProcessedMessages, q.numProcessedMessages)
+		minQuota.sizeProcessedMessages = core.MinUint64(minQuota.sizeProcessedMessages, q.sizeProcessedMessages)
 
-		maxQuota.numReceivedMessages = pickMaxUint32(maxQuota.numReceivedMessages, q.numReceivedMessages)
-		maxQuota.sizeReceivedMessages = pickMaxUint64(maxQuota.sizeReceivedMessages, q.sizeReceivedMessages)
-		maxQuota.numProcessedMessages = pickMaxUint32(maxQuota.numProcessedMessages, q.numProcessedMessages)
-		maxQuota.sizeProcessedMessages = pickMaxUint64(maxQuota.sizeProcessedMessages, q.sizeProcessedMessages)
+		maxQuota.numReceivedMessages = core.MaxUint32(maxQuota.numReceivedMessages, q.numReceivedMessages)
+		maxQuota.sizeReceivedMessages = core.MaxUint64(maxQuota.sizeReceivedMessages, q.sizeReceivedMessages)
+		maxQuota.numProcessedMessages = core.MaxUint32(maxQuota.numProcessedMessages, q.numProcessedMessages)
+		maxQuota.sizeProcessedMessages = core.MaxUint64(maxQuota.sizeProcessedMessages, q.sizeProcessedMessages)
 		log.Trace("peer quota statistics",
 			"peer", name,
 			"num received msg", q.numReceivedMessages,
@@ -85,10 +85,10 @@ func (pqsh *printQuotaStatusHandler) ResetStatistics() {
 		"size processed", core.ConvertBytes(minQuota.sizeProcessedMessages),
 	)
 	log.Trace("avg quota statistics / peer",
-		"num received msg", avgQuota.numReceivedMessages/uint32(numStatistics),
-		"size received", core.ConvertBytes(avgQuota.sizeReceivedMessages/uint64(numStatistics)),
-		"num processed msg", avgQuota.numProcessedMessages/uint32(numStatistics),
-		"size processed", core.ConvertBytes(avgQuota.sizeProcessedMessages/uint64(numStatistics)),
+		"num received msg", sumQuota.numReceivedMessages/uint32(numStatistics),
+		"size received", core.ConvertBytes(sumQuota.sizeReceivedMessages/uint64(numStatistics)),
+		"num processed msg", sumQuota.numProcessedMessages/uint32(numStatistics),
+		"size processed", core.ConvertBytes(sumQuota.sizeProcessedMessages/uint64(numStatistics)),
 	)
 	log.Trace("max quota statistics / peer",
 		"num received msg", maxQuota.numReceivedMessages,
@@ -97,43 +97,11 @@ func (pqsh *printQuotaStatusHandler) ResetStatistics() {
 		"size processed", core.ConvertBytes(maxQuota.sizeProcessedMessages),
 	)
 	log.Trace("total quota statistics / network",
-		"num received msg", avgQuota.numReceivedMessages,
-		"size received", core.ConvertBytes(avgQuota.sizeReceivedMessages),
-		"num processed msg", avgQuota.numProcessedMessages,
-		"size processed", core.ConvertBytes(avgQuota.sizeProcessedMessages),
+		"num received msg", sumQuota.numReceivedMessages,
+		"size received", core.ConvertBytes(sumQuota.sizeReceivedMessages),
+		"num processed msg", sumQuota.numProcessedMessages,
+		"size processed", core.ConvertBytes(sumQuota.sizeProcessedMessages),
 	)
-}
-
-func pickMinUint32(val1 uint32, val2 uint32) uint32 {
-	if val1 > val2 {
-		return val2
-	}
-
-	return val1
-}
-
-func pickMinUint64(val1 uint64, val2 uint64) uint64 {
-	if val1 > val2 {
-		return val2
-	}
-
-	return val1
-}
-
-func pickMaxUint32(val1 uint32, val2 uint32) uint32 {
-	if val1 < val2 {
-		return val2
-	}
-
-	return val1
-}
-
-func pickMaxUint64(val1 uint64, val2 uint64) uint64 {
-	if val1 < val2 {
-		return val2
-	}
-
-	return val1
 }
 
 // AddQuota adds a quota statistics

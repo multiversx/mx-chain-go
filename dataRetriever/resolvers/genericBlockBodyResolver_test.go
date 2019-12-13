@@ -120,7 +120,7 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 func TestNewGenericBlockBodyResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("expected error")
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
 		&mock.TopicResolverSenderStub{},
 		&mock.CacherStub{},
@@ -128,13 +128,13 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedAntifloodErrorsShouldErr(t *
 		&mock.MarshalizerMock{},
 		&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return errExpected
+				return expectedErr
 			},
 		},
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {

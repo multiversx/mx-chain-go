@@ -184,7 +184,7 @@ type FacadeConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Cache                        CacheConfig
-	MaxMessagesPerPeerPerSecond  uint32
-	MaxTotalSizePerPeerPerSecond uint64
+	Cache                     CacheConfig
+	PeerMaxMessagesPerSecond  uint32
+	PeerMaxTotalSizePerSecond uint64
 }

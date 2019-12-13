@@ -8,8 +8,7 @@ func (nqsh *nilQuotaStatusHandler) ResetStatistics() {
 }
 
 // AddQuota is not implemented
-func (nqsh *nilQuotaStatusHandler) AddQuota(identifier string, numReceivedMessages uint32, sizeReceivedMessages uint64,
-	numProcessedMessages uint32, sizeProcessedMessages uint64) {
+func (nqsh *nilQuotaStatusHandler) AddQuota(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -508,6 +508,7 @@ func TestNewInterceptorsContainerFactory_NilAntifloodHandlerShouldErr(t *testing
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
 		nil,
 	)
 

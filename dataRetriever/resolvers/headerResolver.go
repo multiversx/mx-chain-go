@@ -45,7 +45,7 @@ func NewHeaderResolver(
 	if check.IfNil(headersNonces) {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
-	if hdrStorage == nil || hdrStorage.IsInterfaceNil() {
+	if check.IfNil(hdrStorage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
 	if check.IfNil(headersNoncesStorage) {

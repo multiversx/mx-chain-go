@@ -44,16 +44,16 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 			return false
 		},
 	}
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-			return errExpected
+			return expectedErr
 		},
 	}
 
 	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer)
 
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {

@@ -15,7 +15,6 @@ func TestNewP2pAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	afm, err := antiflood.NewP2pAntiflood(nil)
-
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, p2p.ErrNilFloodPreventer))
 }
@@ -33,8 +32,8 @@ func TestP2pAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 	t.Parallel()
 
 	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
-	afm.FloodPreventer = nil
 
+	afm.FloodPreventer = nil
 	assert.True(t, check.IfNil(afm))
 }
 
@@ -47,7 +46,6 @@ func TestP2pAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T
 	afm.FloodPreventer = nil
 
 	err := afm.CanProcessMessage(&mock.P2PMessageMock{}, "connected peer")
-
 	assert.Equal(t, p2p.ErrNilFloodPreventer, err)
 }
 
@@ -57,7 +55,6 @@ func TestP2pAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
 
 	err := afm.CanProcessMessage(nil, "connected peer")
-
 	assert.Equal(t, p2p.ErrNilMessage, err)
 }
 
@@ -81,7 +78,6 @@ func TestP2pAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 	})
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
-
 	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
 }
 
@@ -109,7 +105,6 @@ func TestP2pAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 	})
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
-
 	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
 }
 
@@ -129,6 +124,5 @@ func TestP2pAntiflood_ShouldWork(t *testing.T) {
 	})
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
-
 	assert.Nil(t, err)
 }

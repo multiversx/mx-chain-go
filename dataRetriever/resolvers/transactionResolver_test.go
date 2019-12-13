@@ -140,7 +140,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 func TestTxResolver_ProcessReceivedMessageAntifloodHandlerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("expected error")
 	txRes, _ := resolvers.NewTxResolver(
 		&mock.TopicResolverSenderStub{},
 		&mock.ShardedDataStub{},
@@ -149,14 +149,14 @@ func TestTxResolver_ProcessReceivedMessageAntifloodHandlerErrorsShouldErr(t *tes
 		&mock.DataPackerStub{},
 		&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return errExpected
+				return expectedErr
 			},
 		},
 	)
 
 	err := txRes.ProcessReceivedMessage(nil, connectedPeerId)
 
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {

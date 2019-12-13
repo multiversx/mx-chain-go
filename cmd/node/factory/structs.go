@@ -71,7 +71,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
-	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	antifloodThrottle "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -436,7 +436,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, config *config.Config, log logger.Logger, core *Core) (*Network, error) {
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Config, log logger.Logger, core *Core) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
 		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
@@ -449,7 +449,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, config *config.Config
 		return nil, err
 	}
 
-	antifloodHandler, err := createAntifloodComponent(config)
+	antifloodHandler, err := createAntifloodComponent(mainConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -460,17 +460,17 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, config *config.Config
 	}, nil
 }
 
-func createAntifloodComponent(config *config.Config) (consensus.P2PAntifloodHandler, error) {
-	cacheConfig := getCacherFromConfig(config.Antiflood.Cache)
+func createAntifloodComponent(mainConfig *config.Config) (consensus.P2PAntifloodHandler, error) {
+	cacheConfig := getCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {
 		return nil, err
 	}
 
-	maxMessagesPerPeer := config.Antiflood.MaxMessagesPerPeerPerSecond
-	maxTotalSizePerPeer := config.Antiflood.MaxTotalSizePerPeerPerSecond
+	maxMessagesPerPeer := mainConfig.Antiflood.PeerMaxMessagesPerSecond
+	maxTotalSizePerPeer := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
 
-	floodPreventer, err := antiflood2.NewQuotaFloodPreventer(
+	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
 		antifloodCache,
 		quotaStatusHandler.NewPrintQuotaStatusHandler(),
 		maxMessagesPerPeer,
