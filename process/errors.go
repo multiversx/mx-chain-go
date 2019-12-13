@@ -566,11 +566,26 @@ var ErrHeaderIsBlackListed = errors.New("header is black listed")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
+// ErrNilRater signals that nil rater has been provided
+var ErrNilRater = errors.New("nil rater")
+
+// ErrNilRatingReader signals that nil rating reader has been provided
+var ErrNilRatingReader = errors.New("nil rating reader")
+
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
+
+// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
+var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
+
+// ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
+var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")
+
+// ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
+var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
 
 // ErrMissingPrevShardData signals that a required shard data information is missing
 var ErrMissingPrevShardData = errors.New("shard data is missing")

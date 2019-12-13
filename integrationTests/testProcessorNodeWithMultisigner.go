@@ -37,8 +37,8 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
 	}
-	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 
+	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
 

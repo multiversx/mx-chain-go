@@ -474,6 +474,7 @@ type processComponentsFactoryArgs struct {
 	epochStartNotifier    EpochStartNotifier
 	epochStart            *config.EpochStartConfig
 	startEpochNum         uint32
+	rater                 sharding.RaterHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -496,6 +497,7 @@ func NewProcessComponentsFactoryArgs(
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
+	rater sharding.RaterHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:        coreComponents,
@@ -516,6 +518,7 @@ func NewProcessComponentsFactoryArgs(
 		epochStartNotifier:    epochStartNotifier,
 		epochStart:            epochStart,
 		startEpochNum:         startEpochNum,
+		rater:                 rater,
 	}
 }
 
@@ -2477,7 +2480,8 @@ func newValidatorStatisticsProcessor(
 		DataPool:         peerDataPool,
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
-		Economics:        processComponents.economicsData,
+		StakeValue:       processComponents.economicsData.StakeValue(),
+		Rater:            processComponents.rater,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

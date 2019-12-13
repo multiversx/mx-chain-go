@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -540,6 +541,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating nodes coordinator")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	// TODO: use epochStartNotifier in nodes coordinator
@@ -547,7 +559,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
-		coreComponents.Hasher)
+		coreComponents.Hasher,
+		rater)
 	if err != nil {
 		return err
 	}
@@ -710,12 +723,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
-	}
-
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -745,6 +752,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		0,
+		rater,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1014,6 +1022,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
+	rater sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1057,7 +1066,13 @@ func createNodesCoordinator(
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 	if err != nil {
 		return nil, err
 	}
