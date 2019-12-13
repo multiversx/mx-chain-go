@@ -22,7 +22,7 @@ type quota struct {
 
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
-	mutOperation  sync.RWMutex
+	mutOperation  *sync.RWMutex
 	cacher        storage.Cacher
 	statusHandler QuotaStatusHandler
 	maxMessages   uint32
@@ -59,6 +59,7 @@ func NewQuotaFloodPreventer(
 	}
 
 	return &quotaFloodPreventer{
+		mutOperation:  &sync.RWMutex{},
 		cacher:        cacher,
 		statusHandler: statusHandler,
 		maxMessages:   maxMessagesPerPeer,
@@ -76,14 +77,14 @@ func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
 
 	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
 	if !ok {
-		qfp.putDefaultQuota(qfp.cacher, identifier, size)
+		qfp.putDefaultQuota(identifier, size)
 
 		return true
 	}
 
 	q, isQuota := valueQuota.(*quota)
 	if !isQuota {
-		qfp.putDefaultQuota(qfp.cacher, identifier, size)
+		qfp.putDefaultQuota(identifier, size)
 
 		return true
 	}
@@ -102,7 +103,7 @@ func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
 	return false
 }
 
-func (qfp *quotaFloodPreventer) putDefaultQuota(cacher storage.Cacher, identifier string, size uint64) {
+func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) {
 	q := &quota{
 		numReceivedMessages:   initNumMessages,
 		sizeReceivedMessages:  size,
