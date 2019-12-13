@@ -36,6 +36,7 @@ func newTxListForSender(sender string, globalIndex int64) *txListForSender {
 func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHandler) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
 	nonce := tx.GetNonce()
 	mark := listForSender.findTxWithLargerNonce(nonce)
@@ -46,10 +47,9 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 	} else {
 		listForSender.items.InsertBefore(newNode, mark)
 	}
-
-	listForSender.mutex.Unlock()
 }
 
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
@@ -65,6 +65,7 @@ func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.
 func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
 	marker := listForSender.findListElementWithTx(tx)
 	isFound := marker != nil
@@ -72,16 +73,15 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 		listForSender.items.Remove(marker)
 	}
 
-	listForSender.mutex.Unlock()
-
 	return isFound
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
 func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
-	removedTxHashes := make([][]byte, count)
-
 	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	removedTxHashes := make([][]byte, count)
 
 	index := uint32(0)
 	var previous *list.Element
@@ -97,11 +97,10 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 		index++
 	}
 
-	listForSender.mutex.Unlock()
-
 	return removedTxHashes
 }
 
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findListElementWithTx(txToFind data.TransactionHandler) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
@@ -164,8 +163,11 @@ func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []
 	return copied
 }
 
-// GetTxHashes returns the hashes of transactions in the list
-func (listForSender *txListForSender) GetTxHashes() [][]byte {
+// getTxHashes returns the hashes of transactions in the list
+func (listForSender *txListForSender) getTxHashes() [][]byte {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
 	result := make([][]byte, listForSender.items.Len())
 
 	index := 0

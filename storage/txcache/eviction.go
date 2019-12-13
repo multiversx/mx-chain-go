@@ -75,7 +75,7 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 
 	for _, txList := range listsToEvict {
 		sendersToEvict = append(sendersToEvict, txList.sender)
-		txsToEvict = append(txsToEvict, txList.GetTxHashes()...)
+		txsToEvict = append(txsToEvict, txList.getTxHashes()...)
 	}
 
 	return cache.doEvictItems(txsToEvict, sendersToEvict)

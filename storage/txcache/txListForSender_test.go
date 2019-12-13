@@ -15,7 +15,7 @@ func Test_AddTx_Sorts(t *testing.T) {
 	list.AddTx([]byte("d"), createTx(".", 4))
 	list.AddTx([]byte("b"), createTx(".", 2))
 
-	txHashes := list.GetTxHashes()
+	txHashes := list.getTxHashes()
 
 	assert.Equal(t, 4, list.items.Len())
 	assert.Equal(t, 4, len(txHashes))
