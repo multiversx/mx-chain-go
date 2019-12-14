@@ -1,10 +1,14 @@
 package memp2p
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"encoding/binary"
+
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 // Message represents a message to be sent through the in-memory network
 // simulated by the Network struct.
-type Message struct {
+type message struct {
 	// sending PeerID, converted to []byte
 	from []byte
 
@@ -28,59 +32,58 @@ type Message struct {
 }
 
 // NewMessage constructs a new Message instance from arguments
-func NewMessage(topic string, data []byte, peerID p2p.PeerID) (*Message, error) {
-	var empty []byte
-	message := Message{
+func newMessage(topic string, data []byte, peerID p2p.PeerID, seqNo uint64) *message {
+	empty := make([]byte, 0)
+	seqNoBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(seqNoBytes, seqNo)
+
+	return &message{
 		from:      []byte(string(peerID)),
 		data:      data,
-		seqNo:     empty,
+		seqNo:     seqNoBytes,
 		topicIds:  []string{topic},
 		signature: empty,
 		key:       []byte(string(peerID)),
 		peer:      peerID,
 	}
-	return &message, nil
 }
 
 // From returns the message originator's peer ID
-func (message *Message) From() []byte {
-	return message.from
+func (msg *message) From() []byte {
+	return msg.from
 }
 
 // Data returns the message payload
-func (message *Message) Data() []byte {
-	return message.data
+func (msg *message) Data() []byte {
+	return msg.data
 }
 
 // SeqNo returns the message sequence number
-func (message *Message) SeqNo() []byte {
-	return message.seqNo
+func (msg *message) SeqNo() []byte {
+	return msg.seqNo
 }
 
 // TopicIDs returns the topic on which the message was sent
-func (message *Message) TopicIDs() []string {
-	return message.topicIds
+func (msg *message) TopicIDs() []string {
+	return msg.topicIds
 }
 
 // Signature returns the message signature
-func (message *Message) Signature() []byte {
-	return message.signature
+func (msg *message) Signature() []byte {
+	return msg.signature
 }
 
 // Key returns the message public key (if it can not be recovered from From field)
-func (message *Message) Key() []byte {
-	return message.key
+func (msg *message) Key() []byte {
+	return msg.key
 }
 
 // Peer returns the peer that originated the message
-func (message *Message) Peer() p2p.PeerID {
-	return message.peer
+func (msg *message) Peer() p2p.PeerID {
+	return msg.peer
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (message *Message) IsInterfaceNil() bool {
-	if message == nil {
-		return true
-	}
-	return false
+func (msg *message) IsInterfaceNil() bool {
+	return msg == nil
 }
