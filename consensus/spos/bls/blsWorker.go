@@ -51,6 +51,11 @@ func (wrk *worker) IsSubroundSignature(subroundId int) bool {
 	return subroundId == SrSignature
 }
 
+//IsSubroundStartRound returns if the current subround is about start round
+func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
+	return subroundId == SrStartRound
+}
+
 //GetMessageRange provides the MessageType range used in checks by the consensus
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType

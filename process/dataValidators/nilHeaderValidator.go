@@ -14,14 +14,11 @@ func NewNilHeaderValidator() (*nilHeaderValidator, error) {
 }
 
 // HeaderValidForProcessing is a nil implementation that will return true
-func (nhv *nilHeaderValidator) HeaderValidForProcessing(headerHandler process.HdrValidatorHandler) error {
+func (nhv *nilHeaderValidator) HeaderValidForProcessing(process.HdrValidatorHandler) error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nhv *nilHeaderValidator) IsInterfaceNil() bool {
-	if nhv == nil {
-		return true
-	}
-	return false
+	return nhv == nil
 }
