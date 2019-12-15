@@ -13,7 +13,6 @@ type txByHashMap struct {
 
 // newTxByHashMap creates a new TxByHashMap instance
 func newTxByHashMap(nChunksHint uint32) txByHashMap {
-	// We'll hold at most "size" transactions
 	backingMap := NewConcurrentMap(nChunksHint)
 
 	return txByHashMap{
