@@ -3,6 +3,7 @@ package spos
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
