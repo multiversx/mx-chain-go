@@ -391,7 +391,7 @@ func CreateDeployTx(
 	value *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
-	scCodeAndVMType string,
+	scCodeAndVMType []byte,
 ) *dataTransaction.Transaction {
 
 	return &dataTransaction.Transaction{
@@ -465,7 +465,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "topUp@00",
+		Data:     []byte("topUp@00"),
 	}
 }
 
@@ -483,7 +483,7 @@ func CreateTransferTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
+		Data:     []byte("transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
 }
 
@@ -501,6 +501,6 @@ func CreateTransferTokenTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
+		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
 }

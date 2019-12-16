@@ -340,7 +340,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
-		Data:     "1",
+		Data:     []byte("1"),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)

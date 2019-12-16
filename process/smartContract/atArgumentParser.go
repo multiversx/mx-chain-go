@@ -76,13 +76,11 @@ func (at *atArgumentParser) GetSeparator() string {
 }
 
 // GetStorageUpdates parse data into storage updates
-func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
+func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
 	if len(data) > 0 && data[0] == atSepChar {
 		data = data[1:]
 	}
 
-	splitString := strings.Split(data, atSep)
-func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
 	splitString := strings.Split(string(data), atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return nil, process.ErrStringSplitFailed

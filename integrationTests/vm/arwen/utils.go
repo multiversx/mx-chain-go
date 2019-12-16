@@ -115,7 +115,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 		SndAddr:  owner.Address,
 		GasPrice: 1,
 		GasLimit: math.MaxInt32,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)
@@ -150,7 +150,7 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 		SndAddr:  sender.Address,
 		GasPrice: 1,
 		GasLimit: math.MaxInt32,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)

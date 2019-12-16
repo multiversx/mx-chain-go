@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const mintingValue = "100000000"
+
 func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
 	value := big.NewInt(0)
-	value.SetString("999", 10)
+	value.SetString("777", 10)
 
 	fmt.Println(value.Text(10))
 	fmt.Println(value.Text(16))
@@ -23,12 +25,12 @@ func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
 		t,
 		0,
 		value,
-		"7b721aef93e06b5b549706f735969f1512a9cae9185e9b93e155c154a965f7e6",
-		"a4bdd89193f8523565777206f4c27254357fe86b146c9e8b00c7902bf5a223f2",
-		"f0dcfec18e4eca5adadb780d0c4127d6072127a29747443c8b2da6f6e4f3ec266c2a08847ce0fdd9d177d5ac90b80ae47406588c3fb366b08bb00af7cc36770f",
-		1,
+		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
+		"2d7aa683fbb37eafc2426bfe63e1c20aa5872ee4627c51b6789f41bfb8d31fdb",
+		"a18a6c6647d10a579acd7e39258f38cee4cd36998ae12edf4e884066231b00e18d792cc14ece72d3ac6fb26281c5419b1ec9736291d1c9fbb312ee2a730c8103",
 		10,
-		[]byte("!!!!!"),
+		100000,
+		[]byte("a@b@c!!$%^<>#!"),
 	)
 }
 
@@ -55,8 +57,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	nodeShardId := uint32(0)
 	txSignPrivKeyShardId := uint32(0)
 	initialNodeAddr := "nodeAddr"
-	valMinting := big.NewInt(0).Set(frontendValue)
-	valMinting.Mul(valMinting, big.NewInt(2))
+	valMinting, _ := big.NewInt(0).SetString(mintingValue, 10)
+	valMinting.Mul(valMinting, big.NewInt(5))
 
 	node := integrationTests.NewTestProcessorNode(
 		maxShards,
