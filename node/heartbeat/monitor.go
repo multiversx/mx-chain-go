@@ -372,7 +372,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 }
 
 func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time.Duration) heartbeatMessageInfo {
-	hbmi := heartbeatMessageInfo{
+	return heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDuration,
 		maxInactiveTime:             hbDTO.MaxInactiveTime,
 		timeStamp:                   hbDTO.TimeStamp,
@@ -387,6 +387,4 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
 		genesisTime:                 hbDTO.GenesisTime,
 	}
-
-	return hbmi
 }
