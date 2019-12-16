@@ -1,4 +1,4 @@
-package headersCashe
+package headersCache
 
 import (
 	"bytes"
@@ -42,10 +42,20 @@ func NewHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *hea
 	}
 }
 
-func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header data.HeaderHandler) {
+func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header data.HeaderHandler) bool {
 
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
+
+	// add header info in second map
+	headerInfo := headerInfo{
+		headerNonce:   header.GetNonce(),
+		headerShardId: header.GetShardID(),
+	}
+	alreadyExits := hnc.headersByHash.addElement(headerHash, headerInfo)
+	if alreadyExits {
+		return true
+	}
 
 	headerShardPool := hnc.getShardMap(headerShardId)
 
@@ -62,17 +72,11 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 	hnc.mutHeadersMap.Unlock()
 	////
 
-	// add header info in second map
-	headerInfo := headerInfo{
-		headerNonce:   header.GetNonce(),
-		headerShardId: header.GetShardID(),
-	}
-	hnc.headersByHash.addElement(headerHash, headerInfo)
-
 	hnc.hdrsCounter.increment(headerShardId)
 
 	hnc.tryToDoEviction(headerShardId)
-	return
+
+	return false
 
 }
 
@@ -211,6 +215,12 @@ func (hnc *headersNonceCache) getHeaderByHash(hash []byte) (data.HeaderHandler, 
 	return nil, ErrHeaderNotFound
 }
 
+func (hnc *headersNonceCache) keys(shardId uint32) []uint64 {
+	shardMap := hnc.getShardMap(shardId)
+
+	return shardMap.keys()
+}
+
 func (hnc *headersNonceCache) tryToDoEviction(hdrShardId uint32) {
 	hnc.mutHeadersMap.Lock()
 	c := hnc.canDoEviction[hdrShardId]
@@ -225,4 +235,8 @@ func (hnc *headersNonceCache) tryToDoEviction(hdrShardId uint32) {
 	<-c
 
 	return
+}
+
+func (hnc *headersNonceCache) totalHeaders() int {
+	return hnc.hdrsCounter.totalHeaders()
 }

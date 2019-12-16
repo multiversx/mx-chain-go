@@ -1,4 +1,4 @@
-package headersCashe_test
+package headersCache_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCashe"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func createASliceOfHeadersNonce0(numHeaders int, shardId uint32) ([]block.Header
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
 
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(1000, 100)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(1000, 100)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -59,7 +59,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	assert.Equal(t, testHdr2, hdr)
 
 	expectedHeaders := []data.HeaderHandler{testHdr1, testHdr2}
-	hdrs, err := hdrsCacher.GetHeaderByNonceAndShardId(nonce, shardId)
+	hdrs, _, err := hdrsCacher.GetHeaderByNonceAndShardId(nonce, shardId)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHeaders, hdrs)
 }
@@ -67,7 +67,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByHash(t *testing.T) {
 	t.Parallel()
 
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(1000, 100)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(1000, 100)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -83,18 +83,18 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByHash(t *testing.T) {
 	hdrsCacher.RemoveHeaderByHash(hdrHash1)
 	hdr, err := hdrsCacher.GetHeaderByHash(hdrHash1)
 	assert.Nil(t, hdr)
-	assert.Equal(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Equal(t, headersCache.ErrHeaderNotFound, err)
 
 	hdrsCacher.RemoveHeaderByHash(hdrHash2)
 	hdr, err = hdrsCacher.GetHeaderByHash(hdrHash2)
 	assert.Nil(t, hdr)
-	assert.Equal(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Equal(t, headersCache.ErrHeaderNotFound, err)
 }
 
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShadId(t *testing.T) {
 	t.Parallel()
 
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(1000, 100)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(1000, 100)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -110,18 +110,18 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShadId(t *testing.T) 
 	hdrsCacher.RemoveHeaderByNonceAndShardId(nonce, shardId)
 	hdr, err := hdrsCacher.GetHeaderByHash(hdrHash1)
 	assert.Nil(t, hdr)
-	assert.Equal(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Equal(t, headersCache.ErrHeaderNotFound, err)
 
 	hdr, err = hdrsCacher.GetHeaderByHash(hdrHash2)
 	assert.Nil(t, hdr)
-	assert.Equal(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Equal(t, headersCache.ErrHeaderNotFound, err)
 }
 
 func TestHeadersCacher_EvictionShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hdrs, hdrsHashes := createASliceOfHeaders(1000, 0)
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(900, 100)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(900, 100)
 
 	for i := 0; i < 1000; i++ {
 		hdrsCacher.Add(hdrsHashes[i], &hdrs[i])
@@ -141,7 +141,7 @@ func TestHeadersCacher_ConcurrentRequestsShouldWorkNoEviction(t *testing.T) {
 	numHeadersToGenerate := 500
 
 	hdrs, hdrsHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(numHeadersToGenerate+1, 10)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(numHeadersToGenerate+1, 10)
 
 	for i := 0; i < numHeadersToGenerate; i++ {
 		go func(index int) {
@@ -160,7 +160,7 @@ func TestHeadersCacher_ConcurrentRequestsShouldWorkWithEviction(t *testing.T) {
 	numHeadersToGenerate := 500
 
 	hdrs, hdrsHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 1)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(cacheSize, 1)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -199,7 +199,7 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 	hash1, hash2, hash3 := []byte("hash1"), []byte("hash2"), []byte("hash3")
 	hdr1, hdr2, hdr3 := &block.Header{Nonce: 0}, &block.Header{Nonce: 0}, &block.Header{Nonce: 1}
 
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 1)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(cacheSize, 1)
 	hdrsCacher.Add(hash1, hdr1)
 	hdrsCacher.Add(hash2, hdr2)
 	hdrsCacher.Add(hash3, hdr3)
@@ -218,7 +218,7 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	numHeaders := 500
 	shardId := uint32(0)
 	hdrs, hdrsHash := createASliceOfHeaders(numHeaders, shardId)
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 50)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(cacheSize, 50)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeaders; i++ {
@@ -241,7 +241,7 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 	shardId := uint32(0)
 
 	hdrs, hdrsHash := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, 50)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(cacheSize, 50)
 
 	start := time.Now()
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -257,7 +257,7 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 	fmt.Printf("get header by hash took %s \n", elapsed)
 
 	start = time.Now()
-	d, _ := hdrsCacher.GetHeaderByNonceAndShardId(uint64(100), shardId)
+	d, _, _ := hdrsCacher.GetHeaderByNonceAndShardId(uint64(100), shardId)
 	elapsed = time.Since(start)
 	fmt.Printf("get header by shard id and nonce took %s \n", elapsed)
 	assert.Equal(t, &hdrs[100], d[0])
@@ -268,7 +268,7 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 	fmt.Printf("remove header by shard id and nonce took %s \n", elapsed)
 
 	hdr, err := hdrsCacher.GetHeaderByHash(hdrsHash[500])
-	assert.Error(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Error(t, headersCache.ErrHeaderNotFound, err)
 
 	start = time.Now()
 	hdrsCacher.RemoveHeaderByHash(hdrsHash[2012])
@@ -276,7 +276,7 @@ func TestHeadersCacher_BigCacheALotOfHeadersShouldWork(t *testing.T) {
 	fmt.Printf("remove header by hash took %s \n", elapsed)
 
 	hdr, err = hdrsCacher.GetHeaderByHash(hdrsHash[2012])
-	assert.Error(t, headersCashe.ErrHeaderNotFound, err)
+	assert.Error(t, headersCache.ErrHeaderNotFound, err)
 }
 
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
@@ -290,7 +290,7 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 	hdrsShad2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
 	numElemsToRemove := 500
 
-	hdrsCacher, _ := headersCashe.NewHeadersCacher(cacheSize, numElemsToRemove)
+	hdrsCacher, _ := headersCache.NewHeadersCacher(cacheSize, numElemsToRemove)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()

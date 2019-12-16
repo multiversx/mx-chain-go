@@ -1,4 +1,4 @@
-package headersCashe
+package headersCache
 
 import "sync"
 
@@ -14,11 +14,17 @@ func newHeadersHashMap() *headersHashMap {
 	}
 }
 
-func (hh *headersHashMap) addElement(hash []byte, info headerInfo) {
+func (hh *headersHashMap) addElement(hash []byte, info headerInfo) bool {
 	hh.mutHdrsHash.Lock()
 	defer hh.mutHdrsHash.Unlock()
 
+	_, ok := hh.hdrsHash[string(hash)]
+	if ok {
+		return true
+	}
+
 	hh.hdrsHash[string(hash)] = info
+	return false
 }
 
 func (hh *headersHashMap) deleteElement(hash []byte) {

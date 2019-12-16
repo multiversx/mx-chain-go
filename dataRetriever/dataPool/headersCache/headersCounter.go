@@ -1,4 +1,4 @@
-package headersCashe
+package headersCache
 
 import "sync"
 
@@ -48,4 +48,16 @@ func (hdc *headersCounter) getNumHeaderFromCache(shardId uint32) int64 {
 	}
 
 	return int64(numShardHeaders)
+}
+
+func (hdc *headersCounter) totalHeaders() int {
+	hdc.mutHdrsCounter.RLock()
+	defer hdc.mutHdrsCounter.RUnlock()
+
+	total := 0
+	for _, value := range hdc.hdrsCounter {
+		total += int(value)
+	}
+
+	return total
 }

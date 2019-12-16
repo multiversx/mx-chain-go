@@ -1,4 +1,4 @@
-package headersCashe
+package headersCache
 
 import (
 	"sort"
@@ -68,4 +68,17 @@ func (h *headersMap) getNoncesTimestampSorted() []uint64 {
 	}
 
 	return nonceSlice
+}
+
+func (h *headersMap) keys() []uint64 {
+	h.mutHdrsMap.RLock()
+	defer h.mutHdrsMap.RUnlock()
+
+	nonces := make([]uint64, 0)
+
+	for key := range h.hdrsMap {
+		nonces = append(nonces, key)
+	}
+
+	return nonces
 }
