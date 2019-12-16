@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -28,6 +29,7 @@ type preProcessorsContainerFactory struct {
 	rewardsProducer     process.InternalTransactionProducer
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -47,52 +49,56 @@ func NewPreProcessorsContainerFactory(
 	rewardsProducer process.InternalTransactionProducer,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*preProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStore
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if txProcessor == nil || txProcessor.IsInterfaceNil() {
+	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if scProcessor == nil || scProcessor.IsInterfaceNil() {
+	if check.IfNil(scProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if scResultProcessor == nil || scResultProcessor.IsInterfaceNil() {
+	if check.IfNil(scResultProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
-	if rewardsTxProcessor == nil || rewardsTxProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardsTxProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
+	if check.IfNil(rewardsProducer) {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+	if check.IfNil(miniBlocksCompacter) {
 		return nil, process.ErrNilMiniBlocksCompacter
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	return &preProcessorsContainerFactory{
@@ -111,6 +117,7 @@ func NewPreProcessorsContainerFactory(
 		rewardsProducer:     rewardsProducer,
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -163,6 +170,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
+		ppcm.gasHandler,
 	)
 
 	return txPreprocessor, err
@@ -178,6 +186,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
+		ppcm.gasHandler,
 	)
 
 	return scrPreprocessor, err
@@ -194,6 +203,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
+		ppcm.gasHandler,
 	)
 
 	return rewardTxPreprocessor, err

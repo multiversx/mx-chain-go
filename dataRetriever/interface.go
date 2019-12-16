@@ -37,6 +37,8 @@ const (
 	HeartbeatUnit UnitType = 10
 	// MiniBlockHeaderUnit is the miniblock header data unit identifier
 	MiniBlockHeaderUnit = 11
+	// BootstrapUnit is the bootstrap storage unit identifier
+	BootstrapUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -258,5 +260,13 @@ type StorageService interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// RequestedItemsHandler can determine if a certain key has or not been requested
+type RequestedItemsHandler interface {
+	Add(key string) error
+	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

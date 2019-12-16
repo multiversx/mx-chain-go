@@ -50,6 +50,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		seedAddress,
 	)
 
+	maxGasLimitPerBlock := uint64(100000)
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 	valToTransfer := big.NewInt(100)
@@ -57,7 +58,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	mintValue := big.NewInt(1000000)
 
 	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 	}
 

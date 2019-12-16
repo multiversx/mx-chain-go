@@ -42,6 +42,7 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
+	Clone() HeaderHandler
 }
 
 // BodyHandler interface for a block body
@@ -103,6 +104,7 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

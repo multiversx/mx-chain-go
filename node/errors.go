@@ -121,6 +121,9 @@ var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
 
+// ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
+var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
+
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
 
@@ -132,3 +135,6 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer")

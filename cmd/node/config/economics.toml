@@ -11,9 +11,19 @@
     DenominationCoefficientForView = "0.0001"
 
 [FeeSettings]
+    MaxGasLimitPerBlock = "1500000000"
     MinGasPrice = "0"
-    MinGasLimit = "5"
+    MinGasLimit = "100000"
 
 [ValidatorSettings]
     StakeValue = "500000000000000000000000"
     UnBoundPeriod = "100000"
+
+[RatingSettings]
+    StartRating = 50
+    MaxRating = 100
+    MinRating = 0
+    ProposerIncreaseRatingStep = 2
+    ProposerDecreaseRatingStep = 4
+    ValidatorIncreaseRatingStep = 1
+    ValidatorDecreaseRatingStep = 2

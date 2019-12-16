@@ -15,12 +15,14 @@ type EconomicsData struct {
 	communityPercentage float64
 	leaderPercentage    float64
 	burnPercentage      float64
+	maxGasLimitPerBlock uint64
 	minGasPrice         uint64
 	minGasLimit         uint64
 	communityAddress    string
 	burnAddress         string
 	stakeValue          *big.Int
 	unBoundPeriod       uint64
+	ratingsData         *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -43,17 +45,28 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	rd, err := NewRatingsData(economics.RatingSettings)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.maxGasLimitPerBlock < data.minGasLimit {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
 	return &EconomicsData{
 		rewardsValue:        data.rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
+		maxGasLimitPerBlock: data.maxGasLimitPerBlock,
 		minGasPrice:         data.minGasPrice,
 		minGasLimit:         data.minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
 		stakeValue:          data.stakeValue,
 		unBoundPeriod:       data.unBoundPeriod,
+		ratingsData:         rd,
 	}, nil
 }
 
@@ -88,12 +101,18 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidUnboundPeriod
 	}
 
+	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
 	return &EconomicsData{
-		rewardsValue:  rewardsValue,
-		minGasPrice:   minGasPrice,
-		minGasLimit:   minGasLimit,
-		stakeValue:    stakeValue,
-		unBoundPeriod: unBoundPeriod,
+		rewardsValue:        rewardsValue,
+		minGasPrice:         minGasPrice,
+		minGasLimit:         minGasLimit,
+		stakeValue:          stakeValue,
+		unBoundPeriod:       unBoundPeriod,
+		maxGasLimitPerBlock: maxGasLimitPerBlock,
 	}, nil
 }
 
@@ -163,7 +182,16 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 		return process.ErrInsufficientGasLimitInTx
 	}
 
+	if requiredGasLimit > ed.maxGasLimitPerBlock {
+		return process.ErrHigherGasLimitRequiredInTx
+	}
+
 	return nil
+}
+
+// MaxGasLimitPerBlock will return maximum gas limit allowed per block
+func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
+	return ed.maxGasLimitPerBlock
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
@@ -204,4 +232,9 @@ func (ed *EconomicsData) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// RatingsData will return the ratingsDataObject
+func (ed *EconomicsData) RatingsData() *RatingsData {
+	return ed.ratingsData
 }

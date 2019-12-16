@@ -31,6 +31,7 @@ type EpochStartSubscriber interface {
 }
 
 type indexHashedNodesCoordinator struct {
+	doExpandEligibleList    func(uint32) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
@@ -69,6 +70,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 	}
+
+	ihgs.doExpandEligibleList = ihgs.expandEligibleList
 
 	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
@@ -202,7 +205,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList, _ := ihgs.expandEligibleList(shardId, epoch)
+	expandedList, _ := ihgs.doExpandEligibleList(shardId, epoch)
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,9 +19,8 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			CallerAddr:  []byte("tralala1"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
-			GasPrice:    big.NewInt(0),
-			GasProvided: big.NewInt(0),
-			Header:      &vmcommon.SCCallHeader{},
+			GasPrice:    0,
+			GasProvided: 0,
 		},
 		RecipientAddr: []byte("tralala2"),
 		Function:      "something",
@@ -73,7 +73,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
@@ -93,7 +93,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 
 func TestStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
@@ -111,7 +111,7 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
@@ -197,7 +197,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		}
 	}
 
-	eei, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 
 	stakerAddress := big.NewInt(100)
@@ -205,7 +205,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
-	arguments.Arguments = []*big.Int{stakerAddress, slashValue}
+	arguments.Arguments = [][]byte{stakerAddress.Bytes(), slashValue.Bytes()}
 	arguments.CallValue = big.NewInt(100)
 
 	retCode := stakingSmartContract.Execute(arguments)
@@ -259,14 +259,13 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
-	arguments.Header = &vmcommon.SCCallHeader{Number: big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
 
@@ -294,13 +293,13 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
 
@@ -326,7 +325,7 @@ func TestStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "unBound"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -355,7 +354,7 @@ func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "unBound"
-	arguments.Arguments = []*big.Int{big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -379,7 +378,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + 1
 		},
-	}, &mock.CryptoHookStub{})
+	}, hooks.NewVMCryptoHook())
 	eei.SetSCAddress([]byte("addr"))
 	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
@@ -387,7 +386,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "finalizeUnStake"
-	arguments.Arguments = []*big.Int{blsPubKey}
+	arguments.Arguments = [][]byte{blsPubKey.Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -412,7 +411,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + unBoundPeriod + 1
 		},
-	}, &mock.CryptoHookStub{})
+	}, hooks.NewVMCryptoHook())
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
 	eei.SetStorage([]byte(ownerKey), scAddress)
@@ -479,7 +478,7 @@ func TestStakingSC_ExecuteSlashUnmarhsalErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -504,7 +503,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -529,7 +528,7 @@ func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -543,7 +542,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	valueStakedByTheCaller := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
 
 	smartcontractAddress := "smartcontractAddress"
 	eei.SetSCAddress([]byte(smartcontractAddress))
@@ -608,7 +607,7 @@ func TestStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	err := stakingSmartContract.Execute(arguments)
 
@@ -621,9 +620,8 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
-	arguments.Arguments = []*big.Int{callerAddress}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	arguments.Arguments = [][]byte{arguments.CallerAddr}
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	err := stakingSmartContract.Execute(arguments)
 
@@ -634,7 +632,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
 
 	stakedRegistrationData := StakingData{
 		StartNonce:    50,
@@ -652,9 +650,8 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedStakedData)
 	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
 
-	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
 	slashValue := big.NewInt(70)
-	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
@@ -666,7 +663,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	expectedStake := big.NewInt(0).Sub(stakeValue, slashValue)
 	assert.Equal(t, expectedStake, registrationData.StakeValue)
 
-	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 

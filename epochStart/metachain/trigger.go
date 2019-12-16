@@ -132,6 +132,10 @@ func (t *trigger) Update(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	if t.isEpochStart {
+		return
+	}
+
 	if round <= t.currentRound {
 		return
 	}
@@ -191,7 +195,7 @@ func (t *trigger) Epoch() uint32 {
 }
 
 // ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
-func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
+func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch

@@ -184,6 +184,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -202,6 +203,8 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
+
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -364,6 +367,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
+		ValidatorStatsRootHash:   []byte("validator stats root hash"),
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -826,9 +830,10 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	time.Sleep(p2pBootstrapStepDelay)
 }
 
-// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
-func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+// SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, maxGasLimitPerBlock uint64, minGasPrice uint64, minGasLimit uint64) {
 	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock)
 		n.EconomicsData.SetMinGasPrice(minGasPrice)
 		n.EconomicsData.SetMinGasLimit(minGasLimit)
 	}
@@ -856,6 +861,35 @@ func GenerateAndDisseminateTxs(
 	}
 }
 
+// CreateSendersWithInitialBalances creates a map of 1 sender per shard with an initial balance
+func CreateSendersWithInitialBalances(
+	nodesMap map[uint32][]*TestProcessorNode,
+	mintValue *big.Int,
+) map[uint32][]crypto.PrivateKey {
+
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	for shardId, nodes := range nodesMap {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		sendersPrivateKeys[shardId], _ = CreateSendersAndReceiversInShard(
+			nodes[0],
+			1,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
+	}
+
+	return sendersPrivateKeys
+}
+
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -869,7 +903,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

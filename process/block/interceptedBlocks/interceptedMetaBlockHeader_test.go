@@ -1,6 +1,8 @@
 package interceptedBlocks_test
 
 import (
+	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -163,6 +165,54 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inHdr.Hash())
 	assert.True(t, inHdr.IsForCurrentShard())
+}
+
+func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedErr := errors.New("expected err")
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.SingleSigVerifier = &mock.SignerMock{
+		SignStub: nil,
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return expectedErr
+		},
+	}
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedSignature := []byte("ran")
+	hdr.LeaderSignature = expectedSignature
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.SingleSigVerifier = &mock.SignerMock{
+		SignStub: nil,
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			// skip this for signature check. only leader's signature is relevant for this test
+			if !bytes.Equal(sig, []byte("rand seed")) {
+				isSignOk := bytes.Equal(sig, expectedSignature)
+				assert.True(t, isSignOk)
+			}
+			return nil
+		},
+	}
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Nil(t, err)
 }
 
 //------- IsInterfaceNil

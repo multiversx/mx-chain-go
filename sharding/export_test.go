@@ -36,3 +36,7 @@ func (ihgs *indexHashedNodesCoordinator) EligibleList(epoch uint32) []Validator 
 	nodesConfig := ihgs.nodesConfig[epoch]
 	return nodesConfig.eligibleMap[nodesConfig.shardId]
 }
+
+func (ihgs *indexHashedNodesCoordinatorWithRater) ExpandEligibleList(shardId uint32) []Validator {
+	return ihgs.expandEligibleList(shardId)
+}

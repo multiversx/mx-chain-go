@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -51,9 +52,14 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
+			BootStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:           mdp,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
@@ -2557,10 +2563,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *testing
 	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, err)
 
 	emptyEpochStart := block.EpochStart{}
@@ -2587,11 +2591,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockHashComputeIssueShouldErr(t 
 
 	mp, err := blproc.NewMetaProcessor(arguments)
 	assert.Nil(t, err)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, epStart)
 	assert.Equal(t, expectedErr, err)
 }
@@ -2658,11 +2659,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 		},
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	round := uint64(10)
 
-	metaHdr := &block.MetaBlock{Round: round}
-
-	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	epStart, err := mp.CreateEpochStartForMetablock()
 	assert.Nil(t, err)
 	assert.NotNil(t, epStart)
 	assert.Equal(t, hash1, epStart.LastFinalizedHeaders[0].LastFinishedMetaBlock)
@@ -2686,7 +2684,7 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardMetaHashNotFoundShouldEr
 	last, lastFinal, err := mp.GetLastFinalizedMetaHashForShard(shardHdr)
 	assert.Nil(t, last)
 	assert.Nil(t, lastFinal)
-	assert.Equal(t, process.ErrLastFinalizedMetaHashForShardNotFound, err)
+	assert.Equal(t, nil, err)
 }
 
 func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T) {

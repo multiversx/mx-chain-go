@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -187,6 +188,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			return cs
 		},
 	}
+
 	return sdp
 }
 
@@ -381,6 +383,11 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
+			BootStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -515,11 +522,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	}
 	_, err := bp.ComputeHeaderHash(hdr)
 	assert.Nil(t, err)
-}
-
-func TestBlockPorcessor_DisplayHeaderShouldWork(t *testing.T) {
-	lines := blproc.DisplayHeader(&block.Header{})
-	assert.Equal(t, 10, len(lines))
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
@@ -957,7 +959,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch:    1,
+				Epoch:    3,
 				RandSeed: randSeed,
 			}
 		},
