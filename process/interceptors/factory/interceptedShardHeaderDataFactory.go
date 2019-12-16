@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,16 +13,13 @@ type interceptedShardHeaderDataFactory struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
-	singleSigVerifier crypto.SingleSigner
-	multiSigVerifier  crypto.MultiSigVerifier
-	nodesCoordinator  sharding.NodesCoordinator
-	keyGen            crypto.KeyGenerator
+	headerSigVerifier process.InterceptedHeaderSigVerifier
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
 func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedShardHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -34,27 +30,15 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(argument.MultiSigVerifier) {
-		return nil, process.ErrNilMultiSigVerifier
-	}
-	if check.IfNil(argument.NodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
-	}
-	if check.IfNil(argument.BlockSigner) {
-		return nil, process.ErrNilSingleSigner
-	}
-	if check.IfNil(argument.BlockKeyGen) {
-		return nil, process.ErrNilKeyGen
+	if check.IfNil(argument.HeaderSigVerifier) {
+		return nil, process.ErrNilHeaderSigVerifier
 	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
-		multiSigVerifier:  argument.MultiSigVerifier,
-		nodesCoordinator:  argument.NodesCoordinator,
-		singleSigVerifier: argument.BlockSigner,
-		keyGen:            argument.BlockKeyGen,
+		headerSigVerifier: argument.HeaderSigVerifier,
 	}, nil
 }
 
@@ -64,11 +48,8 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		HdrBuff:           buff,
 		Marshalizer:       ishdf.marshalizer,
 		Hasher:            ishdf.hasher,
-		SingleSigVerifier: ishdf.singleSigVerifier,
-		MultiSigVerifier:  ishdf.multiSigVerifier,
-		NodesCoordinator:  ishdf.nodesCoordinator,
 		ShardCoordinator:  ishdf.shardCoordinator,
-		KeyGen:            ishdf.keyGen,
+		HeaderSigVerifier: ishdf.headerSigVerifier,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

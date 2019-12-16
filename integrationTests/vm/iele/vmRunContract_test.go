@@ -17,7 +17,6 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -36,7 +35,6 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		round,
 		txProc,
 		accnts,
 	)
@@ -56,7 +54,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun, round)
+	err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -85,7 +83,6 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -103,8 +100,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
-		round,
+		scCode,
 		txProc,
 		accnts,
 	)
@@ -125,7 +121,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun, round)
+	err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -159,7 +155,6 @@ func deployContract(
 	gasPrice uint64,
 	gasLimit uint64,
 	scCode string,
-	round uint64,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
 ) {
@@ -176,7 +171,7 @@ func deployContract(
 		scCode,
 	)
 
-	err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx)
 	assert.Nil(tb, err)
 
 	_, err = accnts.Commit()

@@ -1109,6 +1109,8 @@ func createNode(
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
