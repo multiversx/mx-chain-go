@@ -12,8 +12,9 @@ func (p *validatorStatistics) CheckForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
-	return p.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId)
+	return p.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId, epoch)
 }
 
 func (p *validatorStatistics) SaveInitialState(in []*sharding.InitialNode, stakeValue *big.Int, initialRating uint32) error {

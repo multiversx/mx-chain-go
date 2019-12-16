@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -187,7 +186,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{

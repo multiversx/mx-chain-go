@@ -869,7 +869,7 @@ func CreateSendersWithInitialBalances(
 
 	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
 	for shardId, nodes := range nodesMap {
-		if shardId == sharding.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			continue
 		}
 

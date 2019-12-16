@@ -273,7 +273,9 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
-	assert.Equal(t, eligibleMap[0], ihgs.EligibleList(arguments.Epoch))
+
+	readEligible, _ := ihgs.EligibleList(arguments.Epoch)
+	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
 //------- ComputeValidatorsGroup

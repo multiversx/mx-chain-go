@@ -154,7 +154,7 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 }
 
 func (p *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
-	if p.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if p.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}
 
@@ -276,6 +276,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
+		previousHeader.Epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -313,13 +314,14 @@ func (p *validatorStatistics) checkForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
 	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
 	}
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId, previousHeader.GetEpoch())
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId, epoch)
 		if err != nil {
 			return err
 		}
@@ -372,7 +374,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 
 	for _, h := range metaHeader.ShardInfo {
 
-		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID, h.GetEpoch())
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID, metaHeader.Epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -399,6 +401,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
+			metaHeader.Epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -665,7 +668,7 @@ func (p *validatorStatistics) buildShardDataKey(sh block.ShardData) string {
 }
 
 func (p *validatorStatistics) createMediator() shardMetaMediator {
-	if p.shardCoordinator.SelfId() < sharding.MetachainShardId {
+	if p.shardCoordinator.SelfId() < core.MetachainShardId {
 		return &shardMediator{p}
 	}
 	return &metaMediator{p}

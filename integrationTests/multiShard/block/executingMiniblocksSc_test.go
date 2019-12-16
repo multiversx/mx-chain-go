@@ -472,8 +472,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasPrice,
 	)
 
-	randomness := generateInitialRandomness(uint32(maxShards))
-	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	_, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 	leaderPkBytes := nodeShard0.SpecialAddressHandler.LeaderAddress()
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
 

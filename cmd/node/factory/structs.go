@@ -473,11 +473,12 @@ type processComponentsFactoryArgs struct {
 	shardCoordinator      sharding.Coordinator
 	nodesCoordinator      sharding.NodesCoordinator
 	data                  *Data
-	coreData             *Core
-	crypto               *Crypto
-	state                *State
-	network              *Network
-	coreServiceContainer serviceContainer.CorerequestedItemsHandler dataRetriever.RequestedItemsHandler
+	coreData              *Core
+	crypto                *Crypto
+	state                 *State
+	network               *Network
+	coreServiceContainer  serviceContainer.Core
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epochStartNotifier    EpochStartNotifier
 	epochStart            *config.EpochStartConfig
 	startEpochNum         uint32
@@ -516,7 +517,7 @@ func NewProcessComponentsFactoryArgs(
 		shardCoordinator:      shardCoordinator,
 		nodesCoordinator:      nodesCoordinator,
 		data:                  data,
-		coreData:             coreData,
+		coreData:              coreData,
 		crypto:                crypto,
 		state:                 state,
 		network:               network,
@@ -616,7 +617,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.core.Marshalizer, bootStr)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.coreData.Marshalizer, bootStr)
 	if err != nil {
 		return nil, err
 	}

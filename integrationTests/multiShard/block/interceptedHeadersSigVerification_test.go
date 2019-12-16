@@ -216,7 +216,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
@@ -226,7 +226,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, ok := metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
 		assert.True(t, ok)
 		assert.Equal(t, header, v)
@@ -287,7 +287,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepte
 	wrongRandomness := []byte("wrong randomness")
 	round := uint64(2)
 	nonce := uint64(2)
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
@@ -297,7 +297,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepte
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		_, ok := metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
 		assert.False(t, ok)
 	}

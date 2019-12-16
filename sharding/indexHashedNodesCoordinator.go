@@ -31,7 +31,7 @@ type EpochStartSubscriber interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	doExpandEligibleList    func(uint32) []Validator
+	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
@@ -182,12 +182,18 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
+	var eligibleShardList []Validator
+	var mut *sync.RWMutex
+
 	if randomness == nil {
 		return nil, ErrNilRandomness
 	}
-
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
+	if ok {
+		eligibleShardList = nodesConfig.eligibleMap[shardId]
+		mut = &nodesConfig.mutNodesMaps
+	}
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -201,11 +207,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
-
-	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList, _ := ihgs.doExpandEligibleList(shardId, epoch)
+	// TODO: pre-compute eligible list and update only on epoch/checkpoint change.
+	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -441,17 +444,9 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	ihgs.mutNodesConfig.Unlock()
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32, epoch uint32) ([]Validator, error) {
-	ihgs.mutNodesConfig.RLock()
-	defer ihgs.mutNodesConfig.RUnlock()
-
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	if !ok {
-		return nil, ErrEpochNodesConfigDesNotExist
-	}
-
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
 	//TODO implement an expand eligible list variant
-	return nodesConfig.eligibleMap[shardId], nil
+	return validators
 }
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {

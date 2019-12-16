@@ -147,9 +147,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 }
 
 func TestEpochChangeWithNodesShuffling(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	//	if testing.Short() {
+	t.Skip("this is not a short test")
+	//	}
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
@@ -157,6 +157,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	nbMetaNodes := 2
 	nbShards := 2
 	consensusGroupSize := 2
+	maxGasLimitPerBlock := uint64(100000)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -190,7 +191,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	roundsPerEpoch := uint64(10)
 	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 		for _, node := range nodes {
 			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
@@ -365,11 +366,10 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nonce := uint64(1)
 	nbBlocksProduced := 2 * roundsPerEpoch
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksProduced; i++ {
-		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
@@ -387,25 +387,7 @@ func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
 		randomness[i] = []byte("root hash")
 	}
 
-	randomness[sharding.MetachainShardId] = []byte("root hash")
+	randomness[core.MetachainShardId] = []byte("root hash")
 
 	return randomness
-}
-
-func getBlockProposersIndexes(
-	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
-	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
-) map[uint32]int {
-
-	indexProposer := make(map[uint32]int)
-
-	for sh, testNodeList := range nodesMap {
-		for k, testNode := range testNodeList {
-			if consensusMap[sh][0] == testNode {
-				indexProposer[sh] = k
-			}
-		}
-	}
-
-	return indexProposer
 }

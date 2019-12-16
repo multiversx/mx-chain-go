@@ -447,7 +447,6 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
 	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes)
 
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
@@ -1799,7 +1798,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 
 	mp.epochStartTrigger.Update(round)
 
-	epochStart, err := mp.createEpochStartForMetablock(metaHeader)
+	epochStart, err := mp.createEpochStartForMetablock()
 	if err == nil {
 		metaHeader.EpochStart = *epochStart
 	}
