@@ -281,7 +281,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() (*state.AccountsDB, data.Trie) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	evictionWaitListSize := 100
+	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), testMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 

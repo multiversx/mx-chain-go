@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -285,6 +286,44 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
+}
+
+func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	nrInserts := 100
+	wg := &sync.WaitGroup{}
+	wg.Add(nrInserts)
+
+	for i := 0; i < nrInserts; i++ {
+		go func(index int) {
+			err := tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
+			assert.Nil(t, err)
+
+			val, err := tr.Get([]byte(strconv.Itoa(index)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte(strconv.Itoa(index)), val)
+
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	rootHash, _ := tr.Root()
+	assert.NotEqual(t, emptyTrieHash, rootHash)
+
+	wg.Add(nrInserts)
+	for i := 0; i < nrInserts; i++ {
+		go func(index int) {
+			assert.Nil(t, tr.Delete([]byte(strconv.Itoa(index))))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	rootHash, _ = tr.Root()
+	assert.Equal(t, emptyTrieHash, rootHash)
 }
 
 func TestPatriciaMerkleTree_Commit(t *testing.T) {

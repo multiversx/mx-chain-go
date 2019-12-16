@@ -137,7 +137,7 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
-	GetSize() int
+	GetSize() uint
 	IsInterfaceNil() bool
 }
 

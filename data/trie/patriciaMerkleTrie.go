@@ -388,26 +388,29 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
 func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tr.mutOperation.Lock()
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	rootHash = append(rootHash, byte(identifier))
 	tr.trieStorage.CancelPrune(rootHash)
-	tr.mutOperation.Unlock()
 }
 
 // AppendToOldHashes appends the given hashes to the trie's oldHashes variable
 func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
-	tr.mutOperation.Lock()
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	tr.oldHashes = append(tr.oldHashes, hashes...)
-	tr.mutOperation.Unlock()
 }
 
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
-	tr.mutOperation.Lock()
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	oldHashes := tr.oldHashes
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
-	tr.mutOperation.Unlock()
 
 	return oldHashes
 }

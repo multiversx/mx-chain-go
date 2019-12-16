@@ -759,7 +759,7 @@ func getTrie(
 
 	snapshotDbCfg.FilePath = filepath.Join(uniqueID, cfg.DB.FilePath, snapshotDbCfg.FilePath)
 
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(int(evictionWaitingListCfg.Size), evictionDb, marshalizer)
+	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
 	if err != nil {
 		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
 	}
@@ -2324,7 +2324,7 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
-	cacheSize := 100
+	cacheSize := uint(100)
 	ewl, err := evictionWaitingList.NewEvictionWaitingList(cacheSize, memorydb.New(), marshalizer)
 	if err != nil {
 		return nil, err

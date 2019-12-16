@@ -49,7 +49,7 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWaitingList) {
 	db := memorydb.New()
 	marsh, hsh := getTestMarshAndHasher()
-	evictionWaitListSize := 100
+	evictionWaitListSize := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), marsh)
 
 	// TODO change this initialization of the persister  (and everywhere in this package)

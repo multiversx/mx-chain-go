@@ -299,11 +299,9 @@ func newSnapshotTrie(
 
 func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 	snapshotPath := path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
-	_, err := os.Stat(snapshotPath)
-	for !os.IsNotExist(err) {
+	for directoryExists(snapshotPath) {
 		tsm.snapshotId++
 		snapshotPath = path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
-		_, err = os.Stat(snapshotPath)
 	}
 
 	db, err := storageUnit.NewDB(
@@ -321,6 +319,11 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 	tsm.snapshots = append(tsm.snapshots, db)
 
 	return db, nil
+}
+
+func directoryExists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

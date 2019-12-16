@@ -63,7 +63,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	msh, hsh := getTestMarshAndHasher()
-	size := 1
+	size := uint(1)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 	trieStorage, _ := NewTrieStorageManager(db, &config.DBConfig{}, evictionWaitList)
 
@@ -203,7 +203,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	msh, hsh := getTestMarshAndHasher()
-	evictionWaitListSize := 100
+	evictionWaitListSize := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
