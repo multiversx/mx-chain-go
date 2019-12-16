@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // EvictionConfig is a cache eviction model
@@ -17,7 +16,7 @@ type EvictionConfig struct {
 
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction(incomingTx data.TransactionHandler) {
+func (cache *TxCache) doEviction() {
 	if !cache.areThereTooManyTxs() {
 		return
 	}
@@ -96,10 +95,10 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 
 	cache.forEachSender(func(key string, txList *txListForSender) {
 		aLot := cache.evictionConfig.ALotOfTransactionsForASender
-		toEvictForSenderCount := cache.evictionConfig.NumTxsToEvictForASenderWithALot
+		numTxsToEvict := cache.evictionConfig.NumTxsToEvictForASenderWithALot
 
 		if txList.HasMoreThan(aLot) {
-			txsToEvictForSender := txList.RemoveHighNonceTxs(toEvictForSenderCount)
+			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
@@ -123,18 +122,14 @@ func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint3
 		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
 		batch := batchesSource[batchStart:batchEnd]
 
-		stepCountTxs, stepCountSenders := cache.evictSendersAndTheirTxs(batch)
+		countTxsEvictedInStep, countSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
 
-		countTxs += stepCountTxs
-		countSenders += stepCountSenders
+		countTxs += countTxsEvictedInStep
+		countSenders += countSendersEvictedInStep
 		batchStart += batchSize
 
-		// Infinite loop otherwise
-		if stepCountTxs == 0 {
-			break
-		}
-
-		if stepCountSenders < batchSize {
+		shouldBreak := countTxsEvictedInStep == 0 || countSendersEvictedInStep < batchSize
+		if shouldBreak {
 			break
 		}
 	}

@@ -10,7 +10,7 @@ import (
 
 var log = logger.GetOrCreate("txcache")
 
-// TxCache is
+// TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	txListBySender txListBySenderMap
 	txByHash       txByHashMap
@@ -47,7 +47,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
 	}
 
 	if cache.evictionConfig.Enabled {
-		cache.doEviction(tx)
+		cache.doEviction()
 	}
 
 	cache.txByHash.addTx(txHash, tx)
