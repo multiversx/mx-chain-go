@@ -27,6 +27,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.HeaderSigVerifier) {
 		return process.ErrNilHeaderSigVerifier
 	}
+	if len(arg.ChainID) == 0 {
+		return process.ErrInvalidChainID
+	}
 
 	return nil
 }

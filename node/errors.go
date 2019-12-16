@@ -144,3 +144,6 @@ var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
 // ErrCannotConvertToPeerAccount signals that the given account cannot be converted to a peer account
 var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
+
+// ErrInvalidChainID signals that an invalid chain ID has been provided
+var ErrInvalidChainID = errors.New("invalid chain ID in Node")
