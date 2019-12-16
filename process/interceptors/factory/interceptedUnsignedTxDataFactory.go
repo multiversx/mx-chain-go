@@ -20,7 +20,7 @@ type interceptedUnsignedTxDataFactory struct {
 // NewInterceptedUnsignedTxDataFactory creates an instance of interceptedUnsignedTxDataFactory
 func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*interceptedUnsignedTxDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
