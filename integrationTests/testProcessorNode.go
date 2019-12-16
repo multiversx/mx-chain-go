@@ -97,7 +97,7 @@ const OpGasValueForMockVm = uint64(50)
 var TimeSpanForBadHeaders = time.Second * 30
 
 // roundDuration defines the duration of the round
-const roundDuration = time.Duration(5 * time.Second)
+const roundDuration = 5 * time.Second
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {

@@ -1,0 +1,26 @@
+package core
+
+//TODO comment these
+
+const MetricP2pSumNumReceivedMessages = "erd_p2p_sum_num_received_messages"
+const MetricP2pSumSizeReceivedMessages = "erd_p2p_sum_size_received_messages"
+const MetricP2pSumNumProcessedMessages = "erd_p2p_sum_num_processed_messages"
+const MetricP2pSumSizeProcessedMessages = "erd_p2p_sum_size_processed_messages"
+
+const MetricP2pTopSumNumReceivedMessages = "erd_p2p_top_sum_num_received_messages"
+const MetricP2pTopSumSizeReceivedMessages = "erd_p2p_top_sum_size_received_messages"
+const MetricP2pTopSumNumProcessedMessages = "erd_p2p_top_sum_num_processed_messages"
+const MetricP2pTopSumSizeProcessedMessages = "erd_p2p_top_sum_size_processed_messages"
+
+const MetricP2pMaxNumReceivedMessages = "erd_p2p_max_num_received_messages"
+const MetricP2pMaxSizeReceivedMessages = "erd_p2p_max_size_received_messages"
+const MetricP2pMaxNumProcessedMessages = "erd_p2p_max_num_processed_messages"
+const MetricP2pMaxSizeProcessedMessages = "erd_p2p_max_size_processed_messages"
+
+const MetricP2pTopMaxNumReceivedMessages = "erd_p2p_top_max_num_received_messages"
+const MetricP2pTopMaxSizeReceivedMessages = "erd_p2p_top_max_size_received_messages"
+const MetricP2pTopMaxNumProcessedMessages = "erd_p2p_top_max_num_processed_messages"
+const MetricP2pTopMaxSizeProcessedMessages = "erd_p2p_top_max_size_processed_messages"
+
+const MetricP2pNumReceiverPeers = "erd_p2p_num_receiver_peers"
+const MetricP2pTopNumReceiverPeers = "erd_p2p_top_num_receiver_peers"

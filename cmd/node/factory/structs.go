@@ -75,7 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/quotaStatusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -449,7 +449,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 		return nil, err
 	}
 
-	antifloodHandler, err := createAntifloodComponent(mainConfig)
+	antifloodHandler, err := createAntifloodComponent(mainConfig, core.StatusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +460,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 	}, nil
 }
 
-func createAntifloodComponent(mainConfig *config.Config) (consensus.P2PAntifloodHandler, error) {
+func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHandler) (consensus.P2PAntifloodHandler, error) {
 	cacheConfig := getCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {
@@ -470,9 +470,14 @@ func createAntifloodComponent(mainConfig *config.Config) (consensus.P2PAntiflood
 	maxMessagesPerPeer := mainConfig.Antiflood.PeerMaxMessagesPerSecond
 	maxTotalSizePerPeer := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
 
+	quotaProcessor, err := p2pQuota.NewP2pQuotaProcessor(status)
+	if err != nil {
+		return nil, err
+	}
+
 	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
 		antifloodCache,
-		quotaStatusHandler.NewPrintQuotaStatusHandler(),
+		quotaProcessor,
 		maxMessagesPerPeer,
 		maxTotalSizePerPeer,
 	)
