@@ -23,8 +23,14 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
-// GenesisBlockNonce is the nonce of the genesis block
-const GenesisBlockNonce = 0
+// PathShardPlaceholder represents the placeholder for the shard ID in paths
+const PathShardPlaceholder = "[S]"
+
+// PathEpochPlaceholder represents the placeholder for the epoch number in paths
+const PathEpochPlaceholder = "[E]"
+
+// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
+const PathIdentifierPlaceholder = "[I]"
 
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"

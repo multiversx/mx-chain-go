@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -154,7 +154,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnit)
 
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
-	shardId := getShardIdString(psf.shardCoordinator)
+	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
 	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
@@ -262,7 +262,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnits[i])
 	}
 
-	shardId := getShardIdString(psf.shardCoordinator)
+	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
 	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
@@ -334,7 +334,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
-	shardId := getShardIdString(psf.shardCoordinator)
+	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
 	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, 0, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
 		Identifier:            storageConfig.DB.FilePath,
@@ -351,13 +351,4 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	}
 
 	return args
-}
-
-func getShardIdString(coordinator sharding.Coordinator) string {
-	shardIdStr := "metachain"
-	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		shardIdStr = fmt.Sprintf("%d", coordinator.SelfId())
-	}
-
-	return shardIdStr
 }

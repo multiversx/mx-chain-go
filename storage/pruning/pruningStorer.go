@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -92,7 +93,7 @@ func initPruningStorer(
 		return nil, err
 	}
 
-	filePath := args.PathManager.PathForEpoch(getShardIdString(args.ShardCoordinator), args.StartingEpoch, args.Identifier)
+	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), args.StartingEpoch, args.Identifier)
 	if len(shardIdStr) > 0 {
 		filePath = filePath + shardIdStr
 		args.Identifier += shardIdStr
@@ -409,7 +410,7 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	shardId := getShardIdString(ps.shardCoordinator)
+	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
 	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
 	//filePath := ps.getNewFilePath(epoch)
 	db, err := ps.persisterFactory.Create(filePath)
@@ -474,15 +475,6 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	}
 
 	return nil
-}
-
-func getShardIdString(coordinator sharding.Coordinator) string {
-	shardIdStr := "metachain"
-	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		shardIdStr = fmt.Sprintf("%d", coordinator.SelfId())
-	}
-
-	return shardIdStr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

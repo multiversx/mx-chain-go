@@ -81,7 +81,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/btcsuite/btcd/btcec"
@@ -173,12 +172,12 @@ type Process struct {
 
 type coreComponentsFactoryArgs struct {
 	config      *config.Config
-	pathManager *pathmanager.PathManager
+	pathManager storage.PathManagerHandler
 	shardId     string
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, pathManager *pathmanager.PathManager, shardId string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.PathManagerHandler, shardId string) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:      config,
 		pathManager: pathManager,
@@ -218,7 +217,7 @@ type stateComponentsFactoryArgs struct {
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
-	pathManager      *pathmanager.PathManager
+	pathManager      storage.PathManagerHandler
 }
 
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
@@ -227,7 +226,7 @@ func NewStateComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
-	pathManager *pathmanager.PathManager,
+	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
@@ -898,12 +897,9 @@ func getTrie(
 	cfg config.StorageConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	pathManager *pathmanager.PathManager,
+	pathManager storage.PathManagerHandler,
 	shardId string,
 ) (data.Trie, error) {
-
-	// TODO: the path will be fetched from a path naming component
-	//	uniqueID = strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 
 	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
 	dbConfig.FilePath = pathManager.PathForStatic(shardId, cfg.DB.FilePath)

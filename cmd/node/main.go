@@ -538,24 +538,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Trace("working directory", "path", workingDir)
 
-	var shardId = "metachain"
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
-	}
+	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		fmt.Sprintf("%s_[E]", defaultEpochString),
-		fmt.Sprintf("%s_[S]", defaultShardString),
-		"[I]")
+		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
 		defaultStaticDbString,
-		fmt.Sprintf("%s_[S]", defaultShardString),
-		"[I]")
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
 
 	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
 	if err != nil {
