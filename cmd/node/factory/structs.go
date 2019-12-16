@@ -77,6 +77,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -1895,7 +1896,7 @@ func newShardBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
@@ -2152,7 +2153,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
