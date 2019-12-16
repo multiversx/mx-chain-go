@@ -19,7 +19,7 @@ type interceptedMetaHeaderDataFactory struct {
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
 func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
