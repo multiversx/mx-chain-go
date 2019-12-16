@@ -111,6 +111,8 @@ type Node struct {
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
+
+	chainID []byte
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -282,6 +284,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSigner,
 		n.syncTimer,
 		n.headerSigVerifier,
+		n.chainID,
 	)
 	if err != nil {
 		return err
@@ -312,7 +315,15 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler, n.indexer)
+	fct, err := sposFactory.GetSubroundsFactory(
+		consensusDataContainer,
+		consensusState,
+		worker,
+		n.consensusType,
+		n.appStatusHandler,
+		n.indexer,
+		n.chainID,
+	)
 	if err != nil {
 		return err
 	}
@@ -768,7 +779,7 @@ func (n *Node) CreateTransaction(
 }
 
 //GetTransaction gets the transaction
-func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
