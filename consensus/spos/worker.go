@@ -2,7 +2,6 @@ package spos
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"time"
 
@@ -463,7 +462,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.mutHashConsensusMessage.Unlock()
 
-	if wrk.bootstrapper.ShouldSync() {
+	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
 	}
 
@@ -471,7 +470,7 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Trace("account state is reverted to snapshot")
+	log.Debug("account state is reverted to snapshot")
 
 	wrk.blockProcessor.RevertAccountState()
 
@@ -505,7 +504,7 @@ func (wrk *Worker) displaySignatureStatistic() {
 		)
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))
+			log.Trace(core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey)))
 		}
 
 	}
