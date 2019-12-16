@@ -43,7 +43,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(p2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)

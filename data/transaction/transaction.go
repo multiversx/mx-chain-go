@@ -216,3 +216,13 @@ func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
 
 	return nil
 }
+
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
+func TrimSlicePtr(in []*Transaction) []*Transaction {
+	if len(in) == 0 {
+		return []*Transaction{}
+	}
+	ret := make([]*Transaction, len(in))
+	copy(ret, in)
+	return ret
+}

@@ -71,16 +71,19 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShardId ...uint32) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
+	shardKadTopic := "test"
+	if len(nodeShardId) > 0 {
+		shardKadTopic = fmt.Sprintf("shard_%d", nodeShardId)
+	}
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(stepDelay, shardKadTopic, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -185,6 +188,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -205,6 +209,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
@@ -368,6 +373,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
+		ValidatorStatsRootHash:   []byte("validator stats root hash"),
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -865,6 +871,35 @@ func GenerateAndDisseminateTxs(
 	}
 }
 
+// CreateSendersWithInitialBalances creates a map of 1 sender per shard with an initial balance
+func CreateSendersWithInitialBalances(
+	nodesMap map[uint32][]*TestProcessorNode,
+	mintValue *big.Int,
+) map[uint32][]crypto.PrivateKey {
+
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	for shardId, nodes := range nodesMap {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		sendersPrivateKeys[shardId], _ = CreateSendersAndReceiversInShard(
+			nodes[0],
+			1,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
+	}
+
+	return sendersPrivateKeys
+}
+
 // CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
 // node's tx sign private key and send it on the transaction topic
 func CreateAndSendTransaction(
@@ -880,7 +915,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

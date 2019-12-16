@@ -100,6 +100,12 @@ var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already s
 // ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
 var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
 
+// ErrContextDone signals that an operation was canceled by context done
+var ErrContextDone = errors.New("context done")
+
+// ErrTimeout signals a timeout
+var ErrTimeout = errors.New("timeout")
+
 // ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
 

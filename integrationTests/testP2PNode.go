@@ -88,7 +88,7 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = createCustomMessenger(context.Background(), initialNodeAddr, targetConnectedPeers)
+	tP2pNode.Messenger = createCustomMessenger(context.Background(), initialNodeAddr, targetConnectedPeers, nodeShardId)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
@@ -104,7 +104,7 @@ func NewTestP2PNode(
 	return tP2pNode
 }
 
-func createCustomMessenger(ctx context.Context, initialAddr string, targetConnections int) p2p.Messenger {
+func createCustomMessenger(ctx context.Context, initialAddr string, targetConnections int, nodeShardId uint32) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
@@ -114,7 +114,7 @@ func createCustomMessenger(ctx context.Context, initialAddr string, targetConnec
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(stepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		targetConnections,
 	)

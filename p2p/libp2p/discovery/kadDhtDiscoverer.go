@@ -102,6 +102,8 @@ func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
 	return []protocol.ID{
 		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, kdd.randezVous)),
 		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
+		//TODO: to be removed once the seed is updated
+		opts.ProtocolDHT,
 	}
 }
 
@@ -109,12 +111,19 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(kdd.protocols()...))
+	ctxrun, cancel := context.WithCancel(ctx)
+	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
 	if err != nil {
+		cancel()
 		return err
 	}
 
-	ctxrun, cancel := context.WithCancel(ctx)
+	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...))
+	if err != nil {
+		cancel()
+		return err
+	}
+
 	go kdd.connectToInitialAndBootstrap(ctxrun)
 
 	kdd.kadDHT = kademliaDHT

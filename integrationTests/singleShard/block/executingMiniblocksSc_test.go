@@ -16,6 +16,7 @@ import (
 
 var agarioFile = "../../agarioV3.hex"
 var stepDelay = time.Second
+var p2pBootstrapDelay = time.Second * 12
 
 func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	if testing.Short() {
@@ -39,6 +40,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 			0,
 			advertiserAddr,
 		)
+		nodes[i].EconomicsData.SetMinGasPrice(0)
 	}
 
 	idxProposer := 0
@@ -71,7 +73,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)

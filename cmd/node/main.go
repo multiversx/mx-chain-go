@@ -4,11 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -47,10 +45,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -570,59 +567,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
-
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
-	if usePrometheusBool {
-		log.Warn("using prometheus", "status", "DEPRECATED")
-		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
 	}
 
-	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
-
-	useTermui := !ctx.GlobalBool(useLogView.Name)
-	if useTermui {
-		log.Trace("using termui mode")
-		views, err = factory.CreateViews(presenterStatusHandler)
-		if err != nil {
-			return err
-		}
-
-		writer, ok := presenterStatusHandler.(io.Writer)
-		if ok {
-			logger.ClearLogObservers()
-			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-			if err != nil {
-				return err
-			}
-		}
-
-		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
-		if ok {
-			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
-		}
-	}
-
-	if views == nil {
-		log.Info("using log view mode")
-	}
-
-	statusMetrics := statusHandler.NewStatusMetrics()
-	appStatusHandlers = append(appStatusHandlers, statusMetrics)
-
-	if len(appStatusHandlers) > 0 {
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
-		if err != nil {
-			log.Debug("cannot init AppStatusFacade",
-				"error", err.Error(),
-			)
-		}
-	} else {
-		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
-		log.Debug("no AppStatusHandler used, started with NilStatusHandler")
-	}
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("initializing metrics")
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
@@ -630,6 +581,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating data components")
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
 		return err
 	}
@@ -720,6 +676,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Trace("creating time cache for requested items components")
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
@@ -736,6 +696,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
+		requestedItemsHandler,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -770,6 +731,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		requestedItemsHandler,
 		p2pConfig,
 	)
 	if err != nil {
@@ -798,7 +760,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Marshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
-		statusMetrics,
+		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
 	)
@@ -830,8 +792,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	efConfig := &config.FacadeConfig{
 		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        usePrometheusBool,
-		PrometheusJoinURL: prometheusJoinUrl,
+		Prometheus:        statusHandlersInfo.UsePrometheus,
+		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
@@ -872,35 +834,6 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
-}
-
-func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
-
-	return prometheusJoinUrl, usePrometheusBool
-}
-
-func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return "", err
-	}
-	baseURL := serversConfig.Prometheus.PrometheusBaseURL
-	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
-	resp, err := http.Get(statusURL)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("prometheus URL not available")
-	}
-	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
-	return joinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
@@ -1134,6 +1067,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	p2pConfig *config.P2PConfig,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
@@ -1191,6 +1125,8 @@ func createNode(
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
+		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
