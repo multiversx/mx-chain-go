@@ -213,13 +213,13 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 
 // VerifyProof checks Merkle proofs.
 func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
 	wantHash, err := tr.Root()
 	if err != nil {
 		return false, err
 	}
+
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	key = keyBytesToHex(key)
 	for i := range proofs {
