@@ -66,7 +66,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	round, nonce = createAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
 
 	nrRoundsToPropagateMultiShard := uint64(5)
-	_, nonce = createAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, idxProposers)
+	_, _ = createAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, idxProposers)
 
 	epoch := uint32(1)
 	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
@@ -153,7 +153,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	nodesPerShard := 4
+	nodesPerShard := 3
 	nbMetaNodes := 2
 	nbShards := 2
 	consensusGroupSize := 2
@@ -209,13 +209,12 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		//integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
-		time.Sleep(time.Second)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
-	}
 
-	time.Sleep(5 * time.Second)
+		time.Sleep(5 * time.Second)
+	}
 
 	for _, nodes := range nodesMap {
 		verifyIfNodesHasCorrectEpoch(t, expectedLastEpoch, nodes)
