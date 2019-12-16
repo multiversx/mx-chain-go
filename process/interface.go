@@ -19,7 +19,7 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+	ProcessTransaction(transaction *transaction.Transaction) error
 	IsInterfaceNil() bool
 }
 
@@ -112,11 +112,11 @@ type TransactionCoordinator interface {
 	RestoreBlockDataFromStorage(body block.Body) (int, error)
 	RemoveBlockDataFromPool(body block.Body) error
 
-	ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 
@@ -128,8 +128,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler, round uint64) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler, round uint64) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -189,15 +189,15 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error
+	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
-	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
-	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool) (*block.MiniBlock, error)
+	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -229,6 +229,7 @@ type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
+	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)

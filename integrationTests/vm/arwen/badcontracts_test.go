@@ -23,6 +23,8 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 	context.executeSC(&context.Owner, "badGetBlockHash1")
 	context.executeSC(&context.Owner, "badGetBlockHash2")
 	context.executeSC(&context.Owner, "badGetBlockHash3")
+
+	context.executeSC(&context.Owner, "badRecursive")
 }
 
 func Test_Empty_C_NoPanic(t *testing.T) {

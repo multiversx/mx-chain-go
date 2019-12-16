@@ -62,7 +62,7 @@ func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
 
 	err := checkBlockHeaderArgument(nil)
 
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestCheckBlockHeaderArgument_NilHdrShouldErr(t *testing.T) {
@@ -137,7 +137,7 @@ func TestCheckTxBlockBodyArgument_NilArgumentShouldErr(t *testing.T) {
 
 	err := checkTxBlockBodyArgument(nil)
 
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestCheckTxBlockBodyArgument_NilHdrShouldErr(t *testing.T) {

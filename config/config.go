@@ -91,6 +91,7 @@ type Config struct {
 
 	Logger         LoggerConfig
 	Address        AddressConfig
+	BLSPublicKey   AddressConfig
 	Hasher         TypeConfig
 	MultisigHasher TypeConfig
 	Marshalizer    TypeConfig

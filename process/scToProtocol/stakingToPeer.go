@@ -133,7 +133,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	}
 
 	for key := range affectedStates {
-		peerAcc, err := stp.getPeerAccount([]byte(key))
+		blsPubKey := []byte(key)
+		peerAcc, err := stp.getPeerAccount(blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -141,14 +142,14 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
 			FuncName:  "get",
-			Arguments: [][]byte{[]byte(key)},
+			Arguments: [][]byte{blsPubKey},
 		}
 		vmOutput, err := stp.scQuery.ExecuteQuery(&query)
 		if err != nil {
 			return err
 		}
 
-		data := make([]byte, 0)
+		var data []byte
 		if len(vmOutput.ReturnData) > 0 {
 			data = vmOutput.ReturnData[0]
 		}
@@ -159,7 +160,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 				return err
 			}
 
-			adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+			adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes(blsPubKey)
 			if err != nil {
 				return err
 			}
@@ -212,8 +213,8 @@ func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
 ) error {
-	if !bytes.Equal(stakingData.BlsPubKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(stakingData.BlsPubKey)
+	if !bytes.Equal(stakingData.Address, account.Address) {
+		err := account.SetSchnorrPublicKeyWithJournal(stakingData.Address)
 		if err != nil {
 			return err
 		}
@@ -349,7 +350,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 // PeerChanges returns peer changes created in current round
 func (stp *stakingToPeer) PeerChanges() []block.PeerData {
 	stp.mutPeerChanges.Lock()
-	peersData := make([]block.PeerData, 0)
+	peersData := make([]block.PeerData, 0, len(stp.peerChanges))
 	for _, peerData := range stp.peerChanges {
 		peersData = append(peersData, peerData)
 	}
