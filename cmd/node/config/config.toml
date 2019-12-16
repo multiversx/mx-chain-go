@@ -252,6 +252,10 @@
     Length = 32
     Prefix = "0x"
 
+[BLSPublicKey]
+    Length = 128
+    Prefix = "0x"
+
 [Hasher]
    Type = "blake2b"
 
