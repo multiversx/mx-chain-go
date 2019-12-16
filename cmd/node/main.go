@@ -1110,6 +1110,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
 	)
 	if err != nil {

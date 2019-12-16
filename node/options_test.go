@@ -920,6 +920,28 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 	assert.Nil(t, err)
 }
 
+func TestWithValidatorStatistics_NilValidatorStatisticsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorStatistics(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilValidatorStatistics, err)
+}
+
+func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
 func TestWithChainID_InvalidShouldErr(t *testing.T) {
 	t.Parallel()
 

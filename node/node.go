@@ -78,6 +78,7 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
+	validatorStatistics      process.ValidatorStatisticsProcessor
 
 	txSignPrivKey     crypto.PrivateKey
 	txSignPubKey      crypto.PublicKey
@@ -945,6 +946,36 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 		return nil
 	}
 	return n.heartbeatMonitor.GetHeartbeats()
+}
+
+// ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
+func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	mapToReturn := make(map[string]*state.ValidatorApiResponse)
+	for _, pubKeyInShards := range n.initialNodesPubkeys {
+		for _, pubKey := range pubKeyInShards {
+			acc, err := n.validatorStatistics.GetPeerAccount([]byte(pubKey))
+			if err != nil {
+				log.Debug("validator api: get peer account", "error", err.Error())
+				continue
+			}
+
+			peerAcc, ok := acc.(*state.PeerAccount)
+			if !ok {
+				log.Debug("validator api: convert to peer account", "error", ErrCannotConvertToPeerAccount)
+				continue
+			}
+
+			strKey := hex.EncodeToString([]byte(pubKey))
+			mapToReturn[strKey] = &state.ValidatorApiResponse{
+				NrLeaderSuccess:    peerAcc.LeaderSuccessRate.NrSuccess,
+				NrLeaderFailure:    peerAcc.LeaderSuccessRate.NrFailure,
+				NrValidatorSuccess: peerAcc.ValidatorSuccessRate.NrSuccess,
+				NrValidatorFailure: peerAcc.ValidatorSuccessRate.NrFailure,
+			}
+		}
+	}
+
+	return mapToReturn, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
