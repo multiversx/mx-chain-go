@@ -68,15 +68,15 @@ func TestTransaction_GetValue(t *testing.T) {
 	assert.Equal(t, value, tx.Value)
 }
 
-//func TestTransaction_SetData(t *testing.T) {
-//	t.Parallel()
-//
-//	data := "data"
-//	tx := &transaction.Transaction{}
-//	tx.SetData(data)
-//
-//	assert.Equal(t, data, tx.Data)
-//}
+func TestTransaction_SetData(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{}
+	tx.SetData(data)
+
+	assert.Equal(t, data, tx.Data)
+}
 
 func TestTransaction_SetRecvAddr(t *testing.T) {
 	t.Parallel()
