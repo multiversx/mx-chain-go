@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -16,6 +18,7 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -28,12 +31,14 @@ func NewMetaForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+	bfd.fork.nonce = math.MaxUint64
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,
@@ -47,8 +52,8 @@ func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeaders []data.HeaderHandler,
-	finalHeadersHashes [][]byte,
+	_ []data.HeaderHandler,
+	_ [][]byte,
 	isNotarizedShardStuck bool,
 ) error {
 

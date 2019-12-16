@@ -75,6 +75,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	)
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
+	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
@@ -143,7 +144,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, 0)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
@@ -159,7 +160,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -195,6 +196,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.RequestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -223,6 +225,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.RequestedItemsHandler,
 	)
 
 	if err != nil {

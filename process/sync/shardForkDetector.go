@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -16,6 +18,7 @@ type shardForkDetector struct {
 func NewShardForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	genesisTime int64,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -28,12 +31,14 @@ func NewShardForkDetector(
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		genesisTime:      genesisTime,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+	bfd.fork.nonce = math.MaxUint64
 
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,

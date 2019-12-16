@@ -50,6 +50,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
+	hip.blackList.Sweep()
 	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
 	if isBlackListed {
 		return process.ErrHeaderIsBlackListed

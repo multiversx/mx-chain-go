@@ -32,6 +32,7 @@ type forkInfo struct {
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
 	isNotarizedShardStuck  bool
+	nonce                  uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -44,6 +45,22 @@ type baseForkDetector struct {
 	mutFork    sync.RWMutex
 
 	blackListHandler process.BlackListHandler
+	genesisTime      int64
+}
+
+// SetForkNonce sets the nonce where the chain should roll back
+func (bfd *baseForkDetector) SetForkNonce(nonce uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.nonce = nonce
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) getForcedForkNonce() uint64 {
+	bfd.mutFork.RLock()
+	nonce := bfd.fork.nonce
+	bfd.mutFork.RUnlock()
+
+	return nonce
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -62,12 +79,17 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
+	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
 
+	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
-		// which is bound to a previous black listed header.
-		_ = bfd.blackListHandler.Add(string(headerHash))
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return process.ErrHeaderIsBlackListed
+	}
+	//TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
+	if genesisTimeFromHeader != bfd.genesisTime {
+		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
+		return ErrGenesisTimeMissmatch
 	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
@@ -178,7 +200,7 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
-func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
+func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
 	var preservedHdrInfos []*headerInfo
@@ -392,9 +414,15 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	)
 
 	forkInfo := process.NewForkInfo()
-
 	if bfd.shouldForceFork() {
 		forkInfo.IsDetected = true
+		return forkInfo
+	}
+
+	if bfd.getForcedForkNonce() < math.MaxUint64 {
+		forkInfo.IsDetected = true
+		forkInfo.Nonce = bfd.getForcedForkNonce()
+		bfd.SetForkNonce(math.MaxUint64)
 		return forkInfo
 	}
 
@@ -637,4 +665,9 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		bfd.headers[hdrNonce] = preservedHdrInfos
 	}
 	bfd.mutHeaders.Unlock()
+}
+
+func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
+	genesisTime := int64(headerHandler.GetTimeStamp() - headerHandler.GetRound()*uint64(bfd.rounder.TimeDuration().Seconds()))
+	return genesisTime
 }

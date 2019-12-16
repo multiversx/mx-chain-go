@@ -107,9 +107,10 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer          indexer.Indexer
-	blackListHandler process.BlackListHandler
-	bootStorer       process.BootStorer
+	indexer               indexer.Indexer
+	blackListHandler      process.BlackListHandler
+	bootStorer            process.BootStorer
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -421,6 +422,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.messenger,
 		n.bootStorer,
 		shardStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -465,6 +467,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.messenger,
 		n.bootStorer,
 		metaStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 
 	if err != nil {

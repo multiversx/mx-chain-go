@@ -12,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -130,8 +130,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler, round uint64) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler, round uint64) error
 	IsInterfaceNil() bool
 }
 
@@ -288,6 +288,7 @@ type ForkDetector interface {
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonce()
 	ResetFork()
+	SetForkNonce(nonce uint64)
 	RestoreFinalCheckPointToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	IsInterfaceNil() bool
@@ -528,6 +529,7 @@ type MiniBlocksCompacter interface {
 type BlackListHandler interface {
 	Add(key string) error
 	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }
 
@@ -561,7 +563,6 @@ type GasHandler interface {
 	IsInterfaceNil() bool
 }
 
-
 // BootStorer is the interface needed by bootstrapper to read/write data in storage
 type BootStorer interface {
 	SaveLastRound(round int64) error
@@ -575,4 +576,9 @@ type BootStorer interface {
 type BootstrapperFromStorage interface {
 	LoadFromStorage() error
 	IsInterfaceNil() bool
+}
+
+// RequestBlockBodyHandler is the interface needed by process block
+type RequestBlockBodyHandler interface {
+	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
