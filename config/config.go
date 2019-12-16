@@ -187,4 +187,6 @@ type AntifloodConfig struct {
 	Cache                     CacheConfig
 	PeerMaxMessagesPerSecond  uint32
 	PeerMaxTotalSizePerSecond uint64
+	MaxMessagesPerSecond      uint32
+	MaxTotalSizePerSecond     uint64
 }
