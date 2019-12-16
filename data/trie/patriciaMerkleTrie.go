@@ -64,8 +64,8 @@ func NewTrie(
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
 		return nil, nil
@@ -157,8 +157,8 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 
 // Root returns the hash of the root node
 func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
 		return emptyTrieHash, nil
@@ -177,8 +177,8 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 
 // Prove returns the Merkle proof for the given key
 func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
 		return nil, ErrNilNode
@@ -213,8 +213,8 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 
 // VerifyProof checks Merkle proofs.
 func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	wantHash, err := tr.Root()
 	if err != nil {
@@ -388,29 +388,26 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
 func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
-
+	tr.mutOperation.Lock()
 	rootHash = append(rootHash, byte(identifier))
 	tr.trieStorage.CancelPrune(rootHash)
+	tr.mutOperation.Unlock()
 }
 
 // AppendToOldHashes appends the given hashes to the trie's oldHashes variable
 func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
-
+	tr.mutOperation.Lock()
 	tr.oldHashes = append(tr.oldHashes, hashes...)
+	tr.mutOperation.Unlock()
 }
 
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
-
+	tr.mutOperation.Lock()
 	oldHashes := tr.oldHashes
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
+	tr.mutOperation.Unlock()
 
 	return oldHashes
 }
