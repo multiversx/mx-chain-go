@@ -17,9 +17,9 @@ func initSubroundCommitment() bn.SubroundCommitment {
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -27,6 +27,7 @@ func initSubroundCommitment() bn.SubroundCommitment {
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 
 	srCommitment, _ := bn.NewSubroundCommitment(
@@ -57,9 +58,9 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -67,6 +68,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 
 	sr.ConsensusState = nil
@@ -88,9 +90,9 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -98,6 +100,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 	container.SetMultiSigner(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
@@ -118,9 +121,9 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -128,6 +131,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 	container.SetRounder(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
@@ -148,9 +152,9 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -158,6 +162,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 	container.SetSyncTimer(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
@@ -178,9 +183,9 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
+		bn.SrBitmap,
+		bn.SrCommitment,
+		bn.SrSignature,
 		int64(55*roundTimeDuration/100),
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
@@ -188,6 +193,7 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 		ch,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
@@ -214,17 +220,17 @@ func TestSubroundCommitment_DoCommitmentJob(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetStatus(bn.SrCommitment, spos.SsNotFinished)
-	sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, true)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, true)
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, false)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, false)
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.SetJobDone(sr.SelfPubKey(), bn.SrBitmap, true)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bn.SrBitmap, true)
 	sr.Data = nil
 
 	r = sr.DoCommitmentJob()
@@ -250,7 +256,9 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 		[]byte("sig"),
 		int(bn.MtCommitment),
 		uint64(sr.Rounder().TimeStamp().Unix()),
-		0)
+		0,
+		chainID,
+	)
 
 	sr.Data = nil
 	r := sr.ReceivedCommitment(cnsMsg)
@@ -262,7 +270,7 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 	r = sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
 	sr.SetStatus(bn.SrCommitment, spos.SsFinished)
 
 	r = sr.ReceivedCommitment(cnsMsg)
@@ -298,8 +306,8 @@ func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenCommit
 	sr := *initSubroundCommitment()
 
 	for i := 0; i < sr.Threshold(bn.SrBitmap); i++ {
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, true)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, true)
 	}
 
 	assert.True(t, sr.DoCommitmentConsensusCheck())
@@ -318,36 +326,36 @@ func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
 	sr := *initSubroundCommitment()
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrSignature, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
 	ok := sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrBitmap, true)
-	sr.SetJobDone("C", bn.SrBitmap, true)
+	_ = sr.SetJobDone("A", bn.SrBitmap, true)
+	_ = sr.SetJobDone("C", bn.SrBitmap, true)
 	isJobDone, _ := sr.JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("B", bn.SrCommitment, true)
+	_ = sr.SetJobDone("B", bn.SrCommitment, true)
 	isJobDone, _ = sr.JobDone("B", bn.SrCommitment)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("C", bn.SrCommitment, true)
+	_ = sr.SetJobDone("C", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrCommitment, true)
+	_ = sr.SetJobDone("A", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.True(t, ok)
 }
@@ -364,9 +372,11 @@ func TestSubroundCommitment_ReceivedCommitmentReturnFalseWhenConsensusDataIsNotE
 		[]byte("sig"),
 		int(bn.MtCommitment),
 		uint64(sr.Rounder().TimeStamp().Unix()),
-		0)
+		0,
+		chainID,
+	)
 
-	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
 
 	assert.False(t, sr.ReceivedCommitment(cnsMsg))
 }
