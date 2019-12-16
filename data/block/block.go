@@ -107,8 +107,9 @@ type Header struct {
 	PeerChanges            []PeerChange      `capid:"13"`
 	RootHash               []byte            `capid:"14"`
 	ValidatorStatsRootHash []byte            `capid:"15"`
-	MetaBlockHashes        [][]byte          `capid:"16"`
-	TxCount                uint32            `capid:"17"`
+	MetaBlockHashes        [][]byte          `capid:"17"`
+	TxCount                uint32            `capid:"18"`
+	ReceiptsHash           []byte            `capid:"16"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -438,6 +439,11 @@ func (h *Header) GetTxCount() uint32 {
 	return h.TxCount
 }
 
+// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
+func (h *Header) GetReceiptsHash() []byte {
+	return h.ReceiptsHash
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -546,10 +552,7 @@ func (b Body) IntegrityAndValidity() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b Body) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+	return b == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

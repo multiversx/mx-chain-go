@@ -106,6 +106,8 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		}
 	}
 
+	irp.intraShardMiniBlock = miniBlocks[irp.shardCoordinator.SelfId()]
+
 	irp.mutInterResultsForBlock.Unlock()
 
 	return finalMBs
@@ -115,20 +117,37 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
 
+	countedCrossShard := 0
 	for i := 0; i < len(body); i++ {
 		mb := body[i]
 		if mb.Type != irp.blockType {
 			continue
 		}
-		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() &&
-			mb.SenderShardID != irp.shardCoordinator.SelfId() {
+		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
 			continue
 		}
 
+		countedCrossShard++
 		err := irp.verifyMiniBlock(scrMbs, mb)
 		if err != nil {
 			return err
 		}
+	}
+
+	createCrossShard := 0
+	for _, mb := range scrMbs {
+		if mb.Type != irp.blockType {
+			continue
+		}
+		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		createCrossShard++
+	}
+
+	if createCrossShard != countedCrossShard {
+		return process.ErrMiniBlockNumMissMatch
 	}
 
 	return nil

@@ -30,10 +30,11 @@ type rewardsHandler struct {
 	protocolRewardsMeta []data.TransactionHandler
 	feeRewards          []data.TransactionHandler
 
-	mut               sync.Mutex
-	accumulatedFees   *big.Int
-	rewardTxsForBlock map[string]*rewardTx.RewardTx
-	economicsRewards  process.RewardsHandler
+	mut                 sync.Mutex
+	accumulatedFees     *big.Int
+	rewardTxsForBlock   map[string]*rewardTx.RewardTx
+	economicsRewards    process.RewardsHandler
+	intraShardMiniBlock *block.MiniBlock
 }
 
 // NewRewardTxHandler constructor for the reward transaction handler
@@ -212,6 +213,10 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	}
 
 	return miniBlocks
+}
+
+func (rtxh *rewardsHandler) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	return rtxh.intraShardMiniBlock
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block

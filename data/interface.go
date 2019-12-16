@@ -20,6 +20,7 @@ type HeaderHandler interface {
 	GetLeaderSignature() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
+	GetReceiptsHash() []byte
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)

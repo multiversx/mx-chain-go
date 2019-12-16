@@ -1131,3 +1131,26 @@ func (bp *baseProcessor) commitAll() error {
 
 	return nil
 }
+
+func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
+	for i := 0; i < len(body); {
+		mb := body[i]
+		if mb.ReceiverShardID != mb.SenderShardID {
+			i++
+			continue
+		}
+
+		if mb.Type != block.ReceiptBlock && mb.Type != block.SmartContractResultBlock {
+			i++
+			continue
+		}
+
+		body[i] = body[len(body)-1]
+		body = body[:len(body)-1]
+		if i == len(body)-1 {
+			break
+		}
+	}
+
+	return body
+}
