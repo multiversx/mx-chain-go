@@ -65,6 +65,8 @@ type ConsensusService interface {
 	IsMessageWithSignature(consensus.MessageType) bool
 	//IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
+	//IsSubroundStartRound returns if the current subround is about start round
+	IsSubroundStartRound(int) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -91,5 +93,11 @@ type WorkerHandler interface {
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
+type RandSeedVerifier interface {
+	VerifyRandSeed(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

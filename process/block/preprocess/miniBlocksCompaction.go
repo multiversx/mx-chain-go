@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -181,6 +182,7 @@ func (mbc *miniBlocksCompaction) expandMiniBlocks(miniBlocks block.MiniBlockSlic
 		for _, txHash := range miniBlock.TxHashes {
 			tx, ok := mbc.mapHashToTx[string(txHash)]
 			if !ok {
+				log.Debug("missing transaction in expandMiniBlocks ", "type", miniBlock.Type, "txHash", txHash)
 				return nil, process.ErrMissingTransaction
 			}
 
@@ -254,6 +256,7 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 
 		tx, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
+			log.Debug("missing transaction in createMiniBlockForShard ", "type", miniBlock.Type, "txHash", txHash)
 			return nil, process.ErrMissingTransaction
 		}
 
@@ -322,7 +325,7 @@ func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
 	miniBlock *block.MiniBlock,
 ) [][]byte {
 
-	txHashes := make([][]byte, 0)
+	txHashes := make([][]byte, 0, len(miniBlock.TxHashes))
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
@@ -350,16 +353,16 @@ func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
 		*gasSpentReceiver += txGasSpentReceiver
 	}
 
-	return txHashes
+	return sliceUtil.TrimSliceSliceByte(txHashes)
 }
 
 func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.MiniBlock, txHashes [][]byte) [][]byte {
-	mapTxHashesToBeRemoved := make(map[string]struct{})
+	mapTxHashesToBeRemoved := make(map[string]struct{}, len(txHashes))
 	for _, txHash := range txHashes {
 		mapTxHashesToBeRemoved[string(txHash)] = struct{}{}
 	}
 
-	preservedTxHashes := make([][]byte, 0)
+	preservedTxHashes := make([][]byte, 0, len(miniBlock.TxHashes))
 	for _, txHash := range miniBlock.TxHashes {
 		_, ok := mapTxHashesToBeRemoved[string(txHash)]
 		if ok {
@@ -369,5 +372,5 @@ func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.Mi
 		preservedTxHashes = append(preservedTxHashes, txHash)
 	}
 
-	return preservedTxHashes
+	return sliceUtil.TrimSliceSliceByte(preservedTxHashes)
 }

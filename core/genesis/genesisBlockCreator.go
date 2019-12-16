@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/genesis")
@@ -198,7 +199,7 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -313,7 +314,7 @@ func deploySystemSmartContracts(
 		}
 
 		tx.SndAddr = key
-		err = txProcessor.ProcessTransaction(tx, 0)
+		err = txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
@@ -345,7 +346,7 @@ func setStakingData(
 				Challenge: nil,
 			}
 
-			err := txProcessor.ProcessTransaction(tx, 0)
+			err := txProcessor.ProcessTransaction(tx)
 			if err != nil {
 				return err
 			}
@@ -366,7 +367,7 @@ func setStakingData(
 			Challenge: nil,
 		}
 
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}

@@ -89,6 +89,23 @@ void badBigIntStorageStore1()
   bigIntStorageStore("test", number + 42);
 }
 
+i64 doStackoverflow(i64 a) {
+  if (a % 2 == 0) {
+    return 42;
+  }
+
+  i64 x = doStackoverflow(a*8+1);
+  i64 y = doStackoverflow(a*2+1);
+  return x + y + a;
+}
+
+void badRecursive()
+{
+  i64 result = doStackoverflow(1);
+  bigInt resultBig = bigIntNew(result);
+  bigIntFinish(resultBig);
+}
+
 void _main(void)
 {
 }
