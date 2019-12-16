@@ -70,8 +70,6 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 }
 
 func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
-	ct, _ := context.WithCancel(ctx)
-
 	for {
 		select {
 		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
@@ -80,7 +78,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 				log.Warn("leveldb serial putBatch", "error", err.Error())
 				continue
 			}
-		case <-ct.Done():
+		case <-ctx.Done():
 			log.Debug("closing the timed batch handler")
 			return
 		}
@@ -259,13 +257,11 @@ func (s *SerialDB) Destroy() error {
 }
 
 func (s *SerialDB) processLoop(ctx context.Context) {
-	ct, _ := context.WithCancel(ctx)
-
 	for {
 		select {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
-		case <-ct.Done():
+		case <-ctx.Done():
 			log.Debug("closing the leveldb process loop")
 			return
 		}
