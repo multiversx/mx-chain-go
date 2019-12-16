@@ -149,6 +149,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
+		log.Debug("process sc payment error", "error", err.Error())
 		return err
 	}
 
@@ -163,31 +164,37 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		log.Debug("prepare smart contract call error", "error", err.Error())
 		return nil
 	}
 
 	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
+		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
 	vm, err := sc.getVMFromRecvAddress(tx)
 	if err != nil {
+		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
 
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
+		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
 	if err != nil {
+		log.Trace("process vm output error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
 	}
 
@@ -201,7 +208,7 @@ func (sc *scProcessor) processIfError(
 	tx data.TransactionHandler,
 	returnCode string,
 ) error {
-	consumedFee := big.NewInt(0).SetUint64(tx.GetGasLimit() * tx.GetGasPrice())
+	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	scrIfError, err := sc.createSCRsWhenError(tx, returnCode)
 	if err != nil {
 		return err
@@ -222,7 +229,7 @@ func (sc *scProcessor) processIfError(
 
 	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
@@ -343,7 +350,7 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
-		log.Debug("Processing error", "error", err.Error())
+		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return nil
 	}
 
@@ -499,7 +506,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Debug("smart contract processing returned with error",
+		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 		)
@@ -523,13 +530,12 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
-	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
+	log.Trace("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Uint64() > 0 {
-		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
+		log.Trace("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
-	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
@@ -549,8 +555,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	//TODO: think about if merge is needed between the resulted SCRs and if whether it does not complicates stuff
-	// when smart contract processes in the second shard
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
 }
@@ -649,7 +654,7 @@ func (sc *scProcessor) createSCRForSender(
 	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
+	refundErd = refundErd.Mul(gasRefund, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	rcvAddress := tx.GetSndAddress()
