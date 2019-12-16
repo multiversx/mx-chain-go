@@ -472,6 +472,13 @@ func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHa
 	maxMessages := mainConfig.Antiflood.MaxMessagesPerSecond
 	maxTotalSize := mainConfig.Antiflood.MaxTotalSizePerSecond
 
+	log.Debug("started antiflood component",
+		"maxMessagesPerPeer", maxMessagesPerPeer,
+		"maxTotalSizePerPeer", core.ConvertBytes(maxTotalSizePerPeer),
+		"maxMessages", maxMessages,
+		"maxTotalSize", core.ConvertBytes(maxTotalSize),
+	)
+
 	quotaProcessor, err := p2pQuota.NewP2pQuotaProcessor(status)
 	if err != nil {
 		return nil, err

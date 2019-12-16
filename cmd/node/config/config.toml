@@ -234,9 +234,9 @@
 
 [Antiflood]
     PeerMaxMessagesPerSecond = 68
-    PeerMaxTotalSizePerSecond = 2000000
+    PeerMaxTotalSizePerSecond = 2097152
     MaxMessagesPerSecond = 400
-    MaxTotalSizePerSecond = 9000000
+    MaxTotalSizePerSecond = 9437184
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
