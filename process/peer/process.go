@@ -280,7 +280,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].PubKey())
+		leaderPeerAcc, err := p.GetPeerAccount(consensusGroup[0].PubKey())
 		if err != nil {
 			return err
 		}
@@ -426,7 +426,7 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].PubKey())
+		peerAcc, err := p.GetPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,8 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 	return nil
 }
 
-func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+// GetPeerAccount will return a PeerAccountHandler for a given address
+func (p *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	addressContainer, err := p.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err

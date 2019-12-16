@@ -127,11 +127,11 @@ type Core struct {
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressConverter     state.AddressConverter
-	BLSAddressConverter  state.AddressConverter
-	PeerAccounts         state.AccountsAdapter
-	AccountsAdapter      state.AccountsAdapter
-	InBalanceForShard    map[string]*big.Int
+	AddressConverter    state.AddressConverter
+	BLSAddressConverter state.AddressConverter
+	PeerAccounts        state.AccountsAdapter
+	AccountsAdapter     state.AccountsAdapter
+	InBalanceForShard   map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -164,6 +164,7 @@ type Process struct {
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
 	HeaderSigVerifier     HeaderSigVerifierHandler
+	ValidatorsStatistics  process.ValidatorStatisticsProcessor
 }
 
 type coreComponentsFactoryArgs struct {
@@ -632,6 +633,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
 		HeaderSigVerifier:     headerSigVerifier,
+		ValidatorsStatistics:  validatorStatisticsProcessor,
 	}, nil
 }
 
