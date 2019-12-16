@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -13,10 +14,11 @@ var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool      dataRetriever.ShardedDataCacherNotifier
-	txStorage   storage.Storer
-	marshalizer marshal.Marshalizer
-	dataPacker  dataRetriever.DataPacker
+	txPool           dataRetriever.ShardedDataCacherNotifier
+	txStorage        storage.Storer
+	marshalizer      marshal.Marshalizer
+	dataPacker       dataRetriever.DataPacker
+	antifloodHandler dataRetriever.P2PAntifloodHandler
 }
 
 // NewTxResolver creates a new transaction resolver
@@ -26,22 +28,26 @@ func NewTxResolver(
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	dataPacker dataRetriever.DataPacker,
+	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*TxResolver, error) {
 
-	if senderResolver == nil || senderResolver.IsInterfaceNil() {
+	if check.IfNil(senderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if txPool == nil || txPool.IsInterfaceNil() {
+	if check.IfNil(txPool) {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if txStorage == nil || txStorage.IsInterfaceNil() {
+	if check.IfNil(txStorage) {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
+	}
+	if check.IfNil(antifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
 
 	txResolver := &TxResolver{
@@ -50,6 +56,7 @@ func NewTxResolver(
 		txStorage:           txStorage,
 		marshalizer:         marshalizer,
 		dataPacker:          dataPacker,
+		antifloodHandler:    antifloodHandler,
 	}
 
 	return txResolver, nil
@@ -58,8 +65,13 @@ func NewTxResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := txRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(txRes.marshalizer, message)
+	err = rd.Unmarshal(txRes.marshalizer, message)
 	if err != nil {
 		return err
 	}
@@ -170,8 +182,5 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txRes *TxResolver) IsInterfaceNil() bool {
-	if txRes == nil {
-		return true
-	}
-	return false
+	return txRes == nil
 }

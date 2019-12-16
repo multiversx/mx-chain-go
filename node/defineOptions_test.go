@@ -919,3 +919,27 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 	assert.True(t, node.requestedItemsHandler == requestedItemsHeanlder)
 	assert.Nil(t, err)
 }
+
+func TestWithAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithAntifloodHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilAntifloodHandler, err)
+}
+
+func TestWithAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	opt := WithAntifloodHandler(antifloodHandler)
+	err := opt(node)
+
+	assert.True(t, node.antifloodHandler == antifloodHandler)
+	assert.Nil(t, err)
+}

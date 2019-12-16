@@ -14,10 +14,11 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	marshalizer marshal.Marshalizer
-	factory     process.InterceptedDataFactory
-	processor   process.InterceptorProcessor
-	throttler   process.InterceptorThrottler
+	marshalizer      marshal.Marshalizer
+	factory          process.InterceptedDataFactory
+	processor        process.InterceptorProcessor
+	throttler        process.InterceptorThrottler
+	antifloodHandler process.P2PAntifloodHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -26,6 +27,7 @@ func NewMultiDataInterceptor(
 	factory process.InterceptedDataFactory,
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
+	antifloodHandler process.P2PAntifloodHandler,
 ) (*MultiDataInterceptor, error) {
 
 	if check.IfNil(marshalizer) {
@@ -40,12 +42,16 @@ func NewMultiDataInterceptor(
 	if check.IfNil(throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, process.ErrNilAntifloodHandler
+	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		marshalizer: marshalizer,
-		factory:     factory,
-		processor:   processor,
-		throttler:   throttler,
+		marshalizer:      marshalizer,
+		factory:          factory,
+		processor:        processor,
+		throttler:        throttler,
+		antifloodHandler: antifloodHandler,
 	}
 
 	return multiDataIntercept, nil
@@ -54,7 +60,7 @@ func NewMultiDataInterceptor(
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	err := preProcessMesage(mdi.throttler, message)
+	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
@@ -107,8 +113,5 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

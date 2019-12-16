@@ -630,7 +630,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
+	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, generalConfig, log, coreComponents)
 	if err != nil {
 		return err
 	}
@@ -1110,6 +1110,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithAntifloodHandler(network.AntifloodHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

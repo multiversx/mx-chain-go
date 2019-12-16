@@ -110,6 +110,8 @@ type Node struct {
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
+
+	antifloodHandler P2PAntifloodHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -281,6 +283,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSigner,
 		n.syncTimer,
 		n.headerSigVerifier,
+		n.antifloodHandler,
 	)
 	if err != nil {
 		return err
@@ -642,6 +645,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 }
 
 func (n *Node) validateTx(tx *transaction.Transaction) error {
+	//TODO remove the dependency with /cmd/node
 	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil
@@ -870,6 +874,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		heartBeatMsgProcessor,
 		heartbeatStorer,
 		timer,
+		n.antifloodHandler,
 	)
 	if err != nil {
 		return err

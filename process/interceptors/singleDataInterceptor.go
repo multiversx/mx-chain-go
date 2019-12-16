@@ -10,9 +10,10 @@ import (
 
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
-	factory   process.InterceptedDataFactory
-	processor process.InterceptorProcessor
-	throttler process.InterceptorThrottler
+	factory          process.InterceptedDataFactory
+	processor        process.InterceptorProcessor
+	throttler        process.InterceptorThrottler
+	antifloodHandler process.P2PAntifloodHandler
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -20,6 +21,7 @@ func NewSingleDataInterceptor(
 	factory process.InterceptedDataFactory,
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
+	antifloodHandler process.P2PAntifloodHandler,
 ) (*SingleDataInterceptor, error) {
 
 	if check.IfNil(factory) {
@@ -31,11 +33,15 @@ func NewSingleDataInterceptor(
 	if check.IfNil(throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, process.ErrNilAntifloodHandler
+	}
 
 	singleDataIntercept := &SingleDataInterceptor{
-		factory:   factory,
-		processor: processor,
-		throttler: throttler,
+		factory:          factory,
+		processor:        processor,
+		throttler:        throttler,
+		antifloodHandler: antifloodHandler,
 	}
 
 	return singleDataIntercept, nil
@@ -44,7 +50,7 @@ func NewSingleDataInterceptor(
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	err := preProcessMesage(sdi.throttler, message)
+	err := preProcessMesage(sdi.throttler, sdi.antifloodHandler, message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
@@ -81,8 +87,5 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
-	if sdi == nil {
-		return true
-	}
-	return false
+	return sdi == nil
 }

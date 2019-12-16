@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/antiflood"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
@@ -70,9 +71,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	antifloodThrottle "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/quotaStatusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -112,7 +115,8 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
-	NetMessenger p2p.Messenger
+	NetMessenger     p2p.Messenger
+	AntifloodHandler consensus.P2PAntifloodHandler
 }
 
 // Core struct holds the core components of the Elrond protocol
@@ -432,7 +436,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, core *Core) (*Network, error) {
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Config, log logger.Logger, core *Core) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
 		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
@@ -445,9 +449,49 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 		return nil, err
 	}
 
+	antifloodHandler, err := createAntifloodComponent(mainConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Network{
-		NetMessenger: netMessenger,
+		NetMessenger:     netMessenger,
+		AntifloodHandler: antifloodHandler,
 	}, nil
+}
+
+func createAntifloodComponent(mainConfig *config.Config) (consensus.P2PAntifloodHandler, error) {
+	cacheConfig := getCacherFromConfig(mainConfig.Antiflood.Cache)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	maxMessagesPerPeer := mainConfig.Antiflood.PeerMaxMessagesPerSecond
+	maxTotalSizePerPeer := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
+
+	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
+		antifloodCache,
+		quotaStatusHandler.NewPrintQuotaStatusHandler(),
+		maxMessagesPerPeer,
+		maxTotalSizePerPeer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	startResetingFloodPreventer(floodPreventer)
+
+	return antiflood.NewP2pAntiflood(floodPreventer)
+}
+
+func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			floodPreventer.Reset()
+		}
+	}()
 }
 
 type processComponentsFactoryArgs struct {
@@ -1474,6 +1518,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		network.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1492,6 +1537,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		network.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1531,6 +1577,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		network.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1549,6 +1596,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		network.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err

@@ -1181,6 +1181,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1243,6 +1244,11 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+				return nil
+			},
+		}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1301,6 +1307,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1360,6 +1367,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1422,6 +1430,11 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return mock.NewStorerMock()
+			},
+		}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+				return nil
 			},
 		}),
 	)

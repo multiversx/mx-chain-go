@@ -87,3 +87,9 @@ var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilFloodPreventer signals that a nil flood preventer has been provided
+var ErrNilFloodPreventer = errors.New("nil flood preventer")
+
+// ErrSystemBusy signals that the system is busy
+var ErrSystemBusy = errors.New("system busy")

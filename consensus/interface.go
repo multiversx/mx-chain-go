@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // Rounder defines the actions which should be handled by a round implementation
@@ -66,5 +67,12 @@ type BroadcastMessenger interface {
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	IsInterfaceNil() bool
 }

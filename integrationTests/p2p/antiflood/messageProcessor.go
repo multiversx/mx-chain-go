@@ -1,11 +1,11 @@
 package antiflood
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -33,18 +33,10 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 
 	if mp.floodPreventer != nil {
-		//protect from directly connected peer
-		ok := mp.floodPreventer.Increment(string(fromConnectedPeer), uint64(len(message.Data())))
-		if !ok {
-			return fmt.Errorf("system flooded")
-		}
-
-		if fromConnectedPeer != message.Peer() {
-			//protect from the flooding messages that originate from the same source but come from different peers
-			ok = mp.floodPreventer.Increment(string(message.Peer()), uint64(len(message.Data())))
-			if !ok {
-				return fmt.Errorf("system flooded")
-			}
+		af, _ := antiflood.NewP2pAntiflood(mp.floodPreventer)
+		err := af.CanProcessMessage(message, fromConnectedPeer)
+		if err != nil {
+			return err
 		}
 	}
 

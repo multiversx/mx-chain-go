@@ -546,3 +546,16 @@ type FloodPreventer interface {
 	Reset()
 	IsInterfaceNil() bool
 }
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	IsInterfaceNil() bool
+}
+
+// SCQueryService defines how data should be get from a SC account
+type SCQueryService interface {
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	IsInterfaceNil() bool
+}

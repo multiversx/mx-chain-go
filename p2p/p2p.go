@@ -191,3 +191,11 @@ type PeerDiscoveryFactory interface {
 	CreatePeerDiscoverer() (PeerDiscoverer, error)
 	IsInterfaceNil() bool
 }
+
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type FloodPreventer interface {
+	Increment(identifier string, size uint64) bool
+	Reset()
+	IsInterfaceNil() bool
+}

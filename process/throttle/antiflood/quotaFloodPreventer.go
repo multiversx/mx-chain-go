@@ -14,27 +14,34 @@ const minTotalSize = 1 //1Byte
 const initNumMessages = 1
 
 type quota struct {
-	numMessages uint32
-	totalSize   uint64
+	numReceivedMessages   uint32
+	sizeReceivedMessages  uint64
+	numProcessedMessages  uint32
+	sizeProcessedMessages uint64
 }
 
-// qoutaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
+// quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
-	mutOperation sync.RWMutex
-	cacher       storage.Cacher
-	maxMessages  uint32
-	maxSize      uint64
+	mutOperation  *sync.RWMutex
+	cacher        storage.Cacher
+	statusHandler QuotaStatusHandler
+	maxMessages   uint32
+	maxSize       uint64
 }
 
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
 func NewQuotaFloodPreventer(
 	cacher storage.Cacher,
+	statusHandler QuotaStatusHandler,
 	maxMessagesPerPeer uint32,
 	maxTotalSizePerPeer uint64,
 ) (*quotaFloodPreventer, error) {
 
 	if check.IfNil(cacher) {
 		return nil, process.ErrNilCacher
+	}
+	if check.IfNil(statusHandler) {
+		return nil, process.ErrNilQuotaStatusHandler
 	}
 	if maxMessagesPerPeer < minMessages {
 		return nil, fmt.Errorf("%w raised in NewCountersMap, maxMessages: provided %d, minimum %d",
@@ -52,9 +59,11 @@ func NewQuotaFloodPreventer(
 	}
 
 	return &quotaFloodPreventer{
-		cacher:      cacher,
-		maxMessages: maxMessagesPerPeer,
-		maxSize:     maxTotalSizePerPeer,
+		mutOperation:  &sync.RWMutex{},
+		cacher:        cacher,
+		statusHandler: statusHandler,
+		maxMessages:   maxMessagesPerPeer,
+		maxSize:       maxTotalSizePerPeer,
 	}, nil
 }
 
@@ -68,23 +77,25 @@ func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
 
 	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
 	if !ok {
-		qfp.putDefaultQuota(qfp.cacher, identifier, size)
+		qfp.putDefaultQuota(identifier, size)
 
 		return true
 	}
 
 	q, isQuota := valueQuota.(*quota)
 	if !isQuota {
-		qfp.putDefaultQuota(qfp.cacher, identifier, size)
+		qfp.putDefaultQuota(identifier, size)
 
 		return true
 	}
 
-	q.numMessages++
-	q.totalSize += size
-	isQuotaReached := q.numMessages > qfp.maxMessages || q.totalSize > qfp.maxSize
+	q.numReceivedMessages++
+	q.sizeReceivedMessages += size
+	isQuotaReached := q.numReceivedMessages > qfp.maxMessages || q.sizeReceivedMessages > qfp.maxSize
 	if !isQuotaReached {
 		qfp.cacher.Put([]byte(identifier), q)
+		q.numProcessedMessages++
+		q.sizeProcessedMessages += size
 
 		return true
 	}
@@ -92,10 +103,12 @@ func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
 	return false
 }
 
-func (qfp *quotaFloodPreventer) putDefaultQuota(cacher storage.Cacher, identifier string, size uint64) {
+func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) {
 	q := &quota{
-		numMessages: initNumMessages,
-		totalSize:   size,
+		numReceivedMessages:   initNumMessages,
+		sizeReceivedMessages:  size,
+		numProcessedMessages:  initNumMessages,
+		sizeProcessedMessages: size,
 	}
 	qfp.cacher.Put([]byte(identifier), q)
 }
@@ -105,8 +118,36 @@ func (qfp *quotaFloodPreventer) Reset() {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
+	qfp.createStatistics()
+
 	//TODO change this if cacher.Clear() is time consuming
 	qfp.cacher.Clear()
+}
+
+// createStatistics is useful to benchmark the system when running
+func (qfp quotaFloodPreventer) createStatistics() {
+	qfp.statusHandler.ResetStatistics()
+
+	keys := qfp.cacher.Keys()
+	for _, k := range keys {
+		val, ok := qfp.cacher.Get(k)
+		if !ok {
+			continue
+		}
+
+		q, isQuota := val.(*quota)
+		if !isQuota {
+			continue
+		}
+
+		qfp.statusHandler.AddQuota(
+			string(k),
+			q.numReceivedMessages,
+			q.sizeReceivedMessages,
+			q.numProcessedMessages,
+			q.sizeProcessedMessages,
+		)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

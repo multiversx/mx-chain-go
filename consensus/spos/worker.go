@@ -46,6 +46,8 @@ type Worker struct {
 
 	mapHashConsensusMessage map[string][]*consensus.Message
 	mutHashConsensusMessage sync.RWMutex
+
+	antifloodHandler consensus.P2PAntifloodHandler
 }
 
 // NewWorker creates a new Worker object
@@ -64,6 +66,7 @@ func NewWorker(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -80,6 +83,7 @@ func NewWorker(
 		singleSigner,
 		syncTimer,
 		headerSigVerifier,
+		antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -100,6 +104,7 @@ func NewWorker(
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
+		antifloodHandler:   antifloodHandler,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -130,6 +135,7 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
@@ -172,6 +178,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(headerSigVerifier) {
 		return ErrNilHeaderSigVerifier
+	}
+	if check.IfNil(antifloodHandler) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil
@@ -225,16 +234,20 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
 
+	err := wrk.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
 	cnsDta := &consensus.Message{}
-	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
 		return err
 	}

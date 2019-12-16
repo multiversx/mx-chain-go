@@ -380,6 +380,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -406,6 +407,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -427,6 +429,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -450,6 +453,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
