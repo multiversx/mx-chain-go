@@ -1595,7 +1595,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 		}
 		wrk.ConsensusState().SetProcessingBlock(false)
 	}()
-	wrk.Extend(0)
+	wrk.Extend(1)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
 	assert.Equal(t, 0, n)
@@ -1611,7 +1611,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 		},
 	}
 	wrk.SetBlockProcessor(blockProcessor)
-	wrk.Extend(0)
+	wrk.Extend(1)
 	time.Sleep(1000 * time.Millisecond)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
