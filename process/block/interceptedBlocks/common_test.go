@@ -16,6 +16,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Marshalizer:       &mock.MarshalizerMock{},
 		HdrBuff:           []byte("test buffer"),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           []byte("chain ID"),
 	}
 
 	return arg
@@ -118,6 +119,17 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.ChainID = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
