@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -15,7 +14,7 @@ type ValidatorsStatisticsApiHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Routes defines transaction related routes
+// Routes defines validators' related routes
 func Routes(router *gin.RouterGroup) {
 	router.GET("/statistics", Statistics)
 }
@@ -30,7 +29,7 @@ func Statistics(c *gin.Context) {
 
 	valStats, err := ef.ValidatorStatisticsApi()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s", err.Error())})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

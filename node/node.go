@@ -937,6 +937,7 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return n.heartbeatMonitor.GetHeartbeats()
 }
 
+// ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
 	for _, pubKeyInShards := range n.initialNodesPubkeys {
@@ -949,7 +950,7 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 			peerAcc, ok := acc.(*state.PeerAccount)
 			if !ok {
-				log.Debug("validator api: convert to peer account", "error", "nu merge")
+				log.Debug("validator api: convert to peer account", "error", ErrCannotConvertToPeerAccount)
 				continue
 			}
 
