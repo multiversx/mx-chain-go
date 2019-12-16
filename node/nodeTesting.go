@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"

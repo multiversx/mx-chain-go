@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/stretchr/testify/assert"
 )
 

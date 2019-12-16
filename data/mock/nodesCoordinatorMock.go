@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 

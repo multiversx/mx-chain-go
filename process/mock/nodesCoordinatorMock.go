@@ -6,11 +6,10 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// NodesCoordinator defines the behaviour of a struct able to do validator group selection
+// NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
 	Validators                          map[uint32][]sharding.Validator
 	ShardConsensusSize                  uint32

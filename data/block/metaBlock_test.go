@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
 )

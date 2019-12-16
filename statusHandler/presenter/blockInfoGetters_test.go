@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/stretchr/testify/assert"
 )
 

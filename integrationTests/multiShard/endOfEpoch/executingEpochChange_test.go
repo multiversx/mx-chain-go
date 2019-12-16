@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -222,24 +221,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	}
 }
 
-func getBlockProposersIndexes(
-	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
-	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
-) map[uint32]int {
-
-	indexProposer := make(map[uint32]int)
-
-	for sh, testNodeList := range nodesMap {
-		for k, testNode := range testNodeList {
-			if consensusMap[sh][0] == testNode {
-				indexProposer[sh] = k
-			}
-		}
-	}
-
-	return indexProposer
-}
-
 func createAndPropagateBlocks(
 	t *testing.T,
 	nbRounds uint64,
@@ -390,4 +371,22 @@ func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
 	randomness[core.MetachainShardId] = []byte("root hash")
 
 	return randomness
+}
+
+func getBlockProposersIndexes(
+	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+) map[uint32]int {
+
+	indexProposer := make(map[uint32]int)
+
+	for sh, testNodeList := range nodesMap {
+		for k, testNode := range testNodeList {
+			if consensusMap[sh][0] == testNode {
+				indexProposer[sh] = k
+			}
+		}
+	}
+
+	return indexProposer
 }

@@ -3,9 +3,8 @@ package notifier
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events

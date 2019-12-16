@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
