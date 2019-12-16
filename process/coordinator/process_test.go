@@ -222,6 +222,44 @@ func initAccountsMock() *mock.AccountsStub {
 	}
 }
 
+func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		nil,
+		&mock.MarshalizerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		nil,
+		mock.NewMultipleShardsCoordinatorMock(),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
 func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
