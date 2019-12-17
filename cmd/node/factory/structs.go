@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -758,13 +759,20 @@ func getTrie(
 
 	snapshotDbCfg.FilePath = filepath.Join(uniqueID, cfg.DB.FilePath, snapshotDbCfg.FilePath)
 
+	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
+	if err != nil {
+		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
+	}
+
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl)
+	if err != nil {
+		return nil, errors.New("error creating trieStorage: " + err.Error())
+	}
+
 	return trie.NewTrie(
-		accountsTrieStorage,
+		trieStorage,
 		marshalizer,
 		hasher,
-		evictionDb,
-		int(evictionWaitingListCfg.Size),
-		snapshotDbCfg,
 	)
 }
 
@@ -2316,8 +2324,18 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
-	cacheSize := 100
-	tr, err := trie.NewTrie(createMemUnit(), marshalizer, hasher, memorydb.New(), cacheSize, config.DBConfig{})
+	cacheSize := uint(100)
+	ewl, err := evictionWaitingList.NewEvictionWaitingList(cacheSize, memorydb.New(), marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, ewl)
+	if err != nil {
+		return nil, err
+	}
+
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}

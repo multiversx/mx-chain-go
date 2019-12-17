@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -23,7 +22,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &mock.ProtobufMarshalizerMock{}
+	marsh := &mock.MarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }
@@ -47,15 +46,16 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 	return bn, collapsedBn
 }
 
-func newEmptyTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkleTrie {
+func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWaitingList) {
 	db := memorydb.New()
-	evictionWaitListSize := 100
+	marsh, hsh := getTestMarshAndHasher()
+	evictionWaitListSize := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), marsh)
 
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := config.DBConfig{
+	cfg := &config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -63,18 +63,20 @@ func newEmptyTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkle
 		MaxOpenFiles:      10,
 	}
 
-	return &patriciaMerkleTrie{
-		db:                    db,
-		snapshots:             make([]storage.Persister, 0),
-		snapshotDbCfg:         cfg,
-		dbEvictionWaitingList: evictionWaitList,
-		marshalizer:           marsh,
-		hasher:                hsh,
+	trieStorage, _ := NewTrieStorageManager(db, cfg, evictionWaitList)
+	tr := &patriciaMerkleTrie{
+		trieStorage: trieStorage,
+		marshalizer: marsh,
+		hasher:      hsh,
+		oldHashes:   make([][]byte, 0),
+		oldRoot:     make([]byte, 0),
 	}
+
+	return tr, trieStorage, evictionWaitList
 }
 
 func initTrie() *patriciaMerkleTrie {
-	tr := newEmptyTrie(getTestMarshAndHasher())
+	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -177,13 +179,13 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.DBConfig{}
+	cfg := &config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	cacheSize := 100
+	trieStorage, _ := NewTrieStorageManager(db, cfg, &mock.EvictionWaitingList{})
 
-	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, cfg)
-	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, cfg)
+	tr1, _ := NewTrie(trieStorage, marsh, hsh)
+	tr2, _ := NewTrie(trieStorage, marsh, hsh)
 
 	for i := 0; i < 100000; i++ {
 		val := hsh.Compute(string(i))
@@ -907,8 +909,8 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr := newEmptyTrie(getTestMarshAndHasher())
-	expectedTr := newEmptyTrie(getTestMarshAndHasher())
+	tr, _, _ := newEmptyTrie()
+	expectedTr, _, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("dog"), []byte("dog"))
 	_ = expectedTr.Update([]byte("doll"), []byte("doll"))
@@ -926,8 +928,8 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr := newEmptyTrie(getTestMarshAndHasher())
-	expectedTr := newEmptyTrie(getTestMarshAndHasher())
+	tr, _, _ := newEmptyTrie()
+	expectedTr, _, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
 	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -945,8 +947,8 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr := newEmptyTrie(getTestMarshAndHasher())
-	expectedTr := newEmptyTrie(getTestMarshAndHasher())
+	tr, _, _ := newEmptyTrie()
+	expectedTr, _, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
 	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -964,8 +966,8 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr := newEmptyTrie(getTestMarshAndHasher())
-	expectedTr := newEmptyTrie(getTestMarshAndHasher())
+	tr, _, _ := newEmptyTrie()
+	expectedTr, _, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
 	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
@@ -1167,7 +1169,7 @@ func getBranchNodeContents(bn *branchNode) string {
 
 func BenchmarkDecodeBranchNode(b *testing.B) {
 	marsh, hsh := getTestMarshAndHasher()
-	tr := newEmptyTrie(marsh, hsh)
+	tr, _, _ := newEmptyTrie()
 
 	nrValuesInTrie := 100000
 	values := make([][]byte, nrValuesInTrie)

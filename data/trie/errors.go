@@ -37,9 +37,6 @@ var ErrNilNode = errors.New("the node is nil")
 // ErrWrongTypeAssertion signals that wrong type was provided
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrSnapshotInProgress is raised when we try to take a snapshot, but another snapshot is already in progress
-var ErrSnapshotInProgress = errors.New("another snapshot is already in progress")
-
 // ErrNilTrie is raised when the trie is nil
 var ErrNilTrie = errors.New("the trie is nil")
 
@@ -57,3 +54,12 @@ var ErrTrieNotCommitted = errors.New("trie is not committed")
 
 // ErrHashNotFound signals that the given hash was not found in db or snapshots
 var ErrHashNotFound = errors.New("hash not found")
+
+// ErrNilTrieStorage is raised when a nil trie storage is provided
+var ErrNilTrieStorage = errors.New("nil trie storage provided")
+
+// ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
+var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
+
+// ErrNilSnapshotDbConfig is raised when a nil snapshot db config is provided
+var ErrNilSnapshotDbConfig = errors.New("nil snapshot db config provided")

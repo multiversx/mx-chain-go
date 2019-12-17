@@ -11,13 +11,13 @@ import (
 // cacher and db will overwrite the previous values. This structure is not concurrent safe.
 type evictionWaitingList struct {
 	cache       map[string][][]byte
-	cacheSize   int
+	cacheSize   uint
 	db          storage.Persister
 	marshalizer marshal.Marshalizer
 }
 
 // NewEvictionWaitingList creates a new instance of evictionWaitingList
-func NewEvictionWaitingList(size int, db storage.Persister, marshalizer marshal.Marshalizer) (*evictionWaitingList, error) {
+func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal.Marshalizer) (*evictionWaitingList, error) {
 	if size < 1 {
 		return nil, data.ErrInvalidCacheSize
 	}
@@ -38,7 +38,7 @@ func NewEvictionWaitingList(size int, db storage.Persister, marshalizer marshal.
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
 func (ewl *evictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
-	if len(ewl.cache) < ewl.cacheSize {
+	if uint(len(ewl.cache)) < ewl.cacheSize {
 		ewl.cache[string(rootHash)] = hashes
 		return nil
 	}
@@ -91,6 +91,6 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 }
 
 // GetSize returns the size of the cache
-func (ewl *evictionWaitingList) GetSize() int {
+func (ewl *evictionWaitingList) GetSize() uint {
 	return ewl.cacheSize
 }

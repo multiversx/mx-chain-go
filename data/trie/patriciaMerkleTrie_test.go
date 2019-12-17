@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,14 +29,14 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister, int, config.DBConfig) {
+func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashing.Hasher) {
 	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
-	cfg := config.DBConfig{
+	cfg := &config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
@@ -44,7 +44,10 @@ func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashin
 		MaxOpenFiles:      10,
 	}
 
-	return db, marshalizer, hasher, mock.NewMemDbMock(), 100, cfg
+	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
+
+	return trieStorageManager, marshalizer, hasher
 }
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
@@ -70,21 +73,21 @@ func initTrie() data.Trie {
 	return tr
 }
 
-func TestNewTrieWithNilDB(t *testing.T) {
+func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionWaitListSize, cfg)
+	_, marshalizer, hasher := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher)
 
 	assert.Nil(t, tr)
-	assert.Equal(t, trie.ErrNilDatabase, err)
+	assert.Equal(t, trie.ErrNilTrieStorage, err)
 }
 
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	db, _, hasher, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionWaitListSize, cfg)
+	trieStorage, _, hasher := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -93,21 +96,11 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	db, marshalizer, _, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionWaitListSize, cfg)
+	trieStorage, marshalizer, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
-}
-
-func TestNewTrieWithNilEvictionDB(t *testing.T) {
-	t.Parallel()
-
-	db, marshalizer, hasher, _, evictionWaitListSize, cfg := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionWaitListSize, cfg)
-
-	assert.Nil(t, tr)
-	assert.Equal(t, trie.ErrNilDatabase, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -293,6 +286,44 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
+}
+
+func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	nrInserts := 100
+	wg := &sync.WaitGroup{}
+	wg.Add(nrInserts)
+
+	for i := 0; i < nrInserts; i++ {
+		go func(index int) {
+			err := tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
+			assert.Nil(t, err)
+
+			val, err := tr.Get([]byte(strconv.Itoa(index)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte(strconv.Itoa(index)), val)
+
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	rootHash, _ := tr.Root()
+	assert.NotEqual(t, emptyTrieHash, rootHash)
+
+	wg.Add(nrInserts)
+	for i := 0; i < nrInserts; i++ {
+		go func(index int) {
+			assert.Nil(t, tr.Delete([]byte(strconv.Itoa(index))))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	rootHash, _ = tr.Root()
+	assert.Equal(t, emptyTrieHash, rootHash)
 }
 
 func TestPatriciaMerkleTree_Commit(t *testing.T) {
@@ -497,8 +528,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hashser, evictionDb, evictionWaitListSize, cfg := getDefaultTrieParameters()
-	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionWaitListSize, cfg)
+	tr, _ := trie.NewTrie(getDefaultTrieParameters())
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -512,7 +542,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Prune(rootHash, data.OldRoot)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
-	val, err := db.Get(rootHash)
+	val, err := tr.Database().Get(rootHash)
 	assert.Nil(t, val)
 	assert.Equal(t, expectedErr, err)
 }
@@ -523,19 +553,19 @@ func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
 	tr := initTrie()
 
 	_ = tr.Commit()
-	err := tr.Snapshot()
+	err := tr.TakeSnapshot()
 	assert.Nil(t, err)
 }
 
-func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldFail(t *testing.T) {
+func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldNotFail(t *testing.T) {
 	t.Parallel()
 
 	tr, _ := initTrieMultipleValues(1000)
 
 	_ = tr.Commit()
-	_ = tr.Snapshot()
-	err := tr.Snapshot()
-	assert.Equal(t, trie.ErrSnapshotInProgress, err)
+	_ = tr.TakeSnapshot()
+	err := tr.TakeSnapshot()
+	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
@@ -543,7 +573,7 @@ func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
 
 	tr := initTrie()
 
-	err := tr.Snapshot()
+	err := tr.TakeSnapshot()
 	assert.Equal(t, trie.ErrTrieNotCommitted, err)
 }
 
@@ -582,7 +612,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
-	_ = tr.Snapshot()
+	_ = tr.TakeSnapshot()
 	time.Sleep(time.Second)
 	_ = tr.Prune(rootHash, data.NewRoot)
 

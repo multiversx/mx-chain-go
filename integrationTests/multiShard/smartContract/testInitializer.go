@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -280,9 +281,11 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() (*state.AccountsDB, data.Trie) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	evictionWaitListSize := 100
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), testMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, testMarshalizer, hasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr, _ := trie.NewTrie(trieStorage, testMarshalizer, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -63,9 +64,10 @@ func CreateMemUnit() storage.Storer {
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
-	evictionWaitListSize := 100
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, marsh, testHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb

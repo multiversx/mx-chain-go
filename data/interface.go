@@ -2,6 +2,9 @@ package data
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // TriePruningIdentifier is the type for trie pruning identifiers
@@ -113,7 +116,8 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	Prune(rootHash []byte, identifier TriePruningIdentifier) error
-	Snapshot() error
+	TakeSnapshot() error
+	SetCheckpoint() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	Database() DBWriteCacher
@@ -133,12 +137,26 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
-	GetSize() int
+	GetSize() uint
 	IsInterfaceNil() bool
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StorageManager manages all trie storage operations
+type StorageManager interface {
+	Database() DBWriteCacher
+	SetDatabase(cacher DBWriteCacher)
+	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
+	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
+	Prune([]byte) error
+	CancelPrune([]byte)
+	MarkForEviction([]byte, [][]byte) error
+	GetDbThatContainsHash([]byte) DBWriteCacher
+	Clone() StorageManager
 	IsInterfaceNil() bool
 }

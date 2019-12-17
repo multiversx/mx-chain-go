@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -269,9 +270,11 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	evictionWaitListSize := 100
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
-	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -327,7 +330,9 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
-	tr, _ := trie.NewTrie(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), 100, config.DBConfig{})
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
@@ -1013,8 +1018,11 @@ func createAccounts(
 ) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
-	evictionWaitListSize := 100
-	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	evictionWaitListSize := uint(100)
+
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([]state.AddressContainer, nrOfAccounts)
@@ -1086,8 +1094,10 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	evictionWaitListSize := 100
-	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1121,8 +1131,10 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	evictionWaitListSize := 100
-	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1265,7 +1277,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, trie.ErrHashNotFound, err)
 }
 
 func TestTriePruningWhenBlockIsFinal(t *testing.T) {
@@ -1331,5 +1343,5 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, trie.ErrHashNotFound, err)
 }

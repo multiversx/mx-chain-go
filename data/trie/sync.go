@@ -91,7 +91,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 		}
 
 		var children []node
-		children, err = currentNode.getChildren(ts.trie.db)
+		children, err = currentNode.getChildren(ts.trie.Database())
 		if err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultParameters() (int, storage.Persister, marshal.Marshalizer) {
+func getDefaultParameters() (uint, storage.Persister, marshal.Marshalizer) {
 	return 10, memorydb.New(), &mock.MarshalizerMock{}
 }
 
@@ -71,7 +71,7 @@ func TestEvictionWaitingList_Put(t *testing.T) {
 func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 2
+	cacheSize := uint(2)
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
@@ -92,10 +92,10 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, len(ec.cache))
-	for i := 0; i < cacheSize; i++ {
+	for i := uint(0); i < cacheSize; i++ {
 		assert.Equal(t, hashes, ec.cache[string(roots[i])])
 	}
-	for i := cacheSize; i < len(roots); i++ {
+	for i := cacheSize; i < uint(len(roots)); i++ {
 		val := make([][]byte, 0)
 		encVal, err := ec.db.Get(roots[i])
 		assert.Nil(t, err)
@@ -130,7 +130,7 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 2
+	cacheSize := uint(2)
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 

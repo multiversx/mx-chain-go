@@ -38,14 +38,17 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
-	cfg := config.DBConfig{
+	cfg := &config.DBConfig{
 		FilePath:          tempDir,
 		Type:              string(storageUnit.LvlDbSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
-	tr, _ := trie.NewTrie(db, marshalizer, hasher, memorydb.New(), 100, cfg)
+
+	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, memorydb.New(), marshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
+	tr, _ := trie.NewTrie(trieStorage, marshalizer, hasher)
 
 	syncTrie := initTrie()
 	interceptedNodesCacher, _ := lrucache.NewCache(100)
