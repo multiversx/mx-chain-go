@@ -35,7 +35,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(shardId uin
 	validatorList := make([]Validator, 0)
 
 	for _, validator := range ihgs.nodesMap[shardId] {
-		pk := validator.Address()
+		pk := validator.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		for i := uint32(0); i < rating; i++ {
 			validatorList = append(validatorList, validator)
