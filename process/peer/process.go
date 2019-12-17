@@ -675,7 +675,7 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 }
 
 func (vs *validatorStatistics) getRating(s string) uint32 {
-	peer, err := vs.getPeerAccount([]byte(s))
+	peer, err := vs.GetPeerAccount([]byte(s))
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
 		return vs.rater.GetStartRating()
@@ -685,7 +685,7 @@ func (vs *validatorStatistics) getRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {
-	peer, err := vs.getPeerAccount([]byte(s))
+	peer, err := vs.GetPeerAccount([]byte(s))
 
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)

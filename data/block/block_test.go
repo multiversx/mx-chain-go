@@ -44,7 +44,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		TxCount:            uint32(10),
 		EpochStartMetaHash: []byte("epochStart"),
 		LeaderSignature:    []byte("leader_sig"),
-		ChainID:          []byte("chain ID"),
+		ChainID:            []byte("chain ID"),
 	}
 
 	var b bytes.Buffer

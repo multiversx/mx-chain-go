@@ -24,7 +24,7 @@ struct HeaderCapn {
   metaHdrHashes          @16:  List(Data);
   epochStartMetaHash     @17:  Data;
   txCount                @18:  UInt32;
-  chainid                @18:  Data;
+  chainid                @19:  Data;
 }
 
 struct MiniBlockHeaderCapn {
