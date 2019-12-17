@@ -57,3 +57,9 @@ require (
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/ElrondNetwork/arwen-wasm-vm v0.3.2 => ../arwen-wasm-vm
+
+replace github.com/ElrondNetwork/elrond-vm-common v0.1.6 => ../elrond-vm-common
+
+replace github.com/ElrondNetwork/go-ext-wasm v0.1.1 => ../vm-development/go-ext-wasm
