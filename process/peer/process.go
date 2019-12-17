@@ -288,8 +288,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 
 func (p *validatorStatistics) displayRatings() {
 	for _, node := range p.initialNodes {
-		address, _ := p.adrConv.CreateAddressFromHex(node.Address)
-		log.Trace("ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
+		log.Trace("ratings", "pk", node.Address, "tempRating", p.getTempRating(node.PubKey))
 	}
 }
 
