@@ -703,13 +703,13 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 
 	poolsHolder := initPoolsHolder()
 
-	poolsHolder.TransactionsCalled = func() dataRetriever.TxPool {
-		return &mock.ShardedTxPoolStub{
-			GetTxCacheCalled: func(cacheID string) *txcache.TxCache {
-				return txcache.NewTxCache(16)
-			},
-		}
-	}
+	// poolsHolder.TransactionsCalled = func() dataRetriever.TxPool {
+	// 	return &mock.ShardedTxPoolStub{
+	// 		GetTxCacheCalled: func(cacheID string) *txcache.TxCache {
+	// 			return txcache.NewTxCache(16)
+	// 		},
+	// 	}
+	// }
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 

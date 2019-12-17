@@ -25,9 +25,9 @@ type PoolsHolderMock struct {
 func NewPoolsHolderMock() *PoolsHolderMock {
 	holder := &PoolsHolderMock{}
 
-	holder.transactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	holder.unsignedTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	holder.rewardTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+	holder.transactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 16})
+	holder.unsignedTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 16})
+	holder.rewardTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Shards: 16})
 
 	holder.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	holder.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)

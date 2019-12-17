@@ -62,7 +62,7 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	if !ok {
 		nChunksHint := txPool.cacheConfig.Shards
 		cache := txcache.NewTxCache(nChunksHint)
-		shard := &txPoolShard{
+		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
 		}

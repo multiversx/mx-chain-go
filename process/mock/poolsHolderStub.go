@@ -1,20 +1,22 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type PoolsHolderStub struct {
-	HeadersCalled              func() storage.Cacher
-	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
-	PeerChangesBlocksCalled    func() storage.Cacher
-	TransactionsCalled         func() dataRetriever.TxPool
-	UnsignedTransactionsCalled func() dataRetriever.TxPool
-	RewardTransactionsCalled   func() dataRetriever.TxPool
-	MiniBlocksCalled           func() storage.Cacher
-	MetaBlocksCalled           func() storage.Cacher
-	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
+	HeadersCalled           func() storage.Cacher
+	HeadersNoncesCalled     func() dataRetriever.Uint64SyncMapCacher
+	PeerChangesBlocksCalled func() storage.Cacher
+	MiniBlocksCalled        func() storage.Cacher
+	MetaBlocksCalled        func() storage.Cacher
+	CurrBlockTxsCalled      func() dataRetriever.TransactionCacher
+
+	TransactionsTxPool         dataRetriever.TxPool
+	UnsignedTransactionsTxPool dataRetriever.TxPool
+	RewardTransactionsTxPool   dataRetriever.TxPool
 }
 
 func (stub *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
@@ -33,10 +35,6 @@ func (stub *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 	return stub.PeerChangesBlocksCalled()
 }
 
-func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
-	return stub.TransactionsCalled()
-}
-
 func (stub *PoolsHolderStub) MiniBlocks() storage.Cacher {
 	return stub.MiniBlocksCalled()
 }
@@ -45,12 +43,19 @@ func (stub *PoolsHolderStub) MetaBlocks() storage.Cacher {
 	return stub.MetaBlocksCalled()
 }
 
+func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
+	check.AssertNotNil(stub.TransactionsTxPool, "stub.TransactionsTxPool")
+	return stub.TransactionsTxPool
+}
+
 func (stub *PoolsHolderStub) UnsignedTransactions() dataRetriever.TxPool {
-	return stub.UnsignedTransactionsCalled()
+	check.AssertNotNil(stub.UnsignedTransactionsTxPool, "stub.UnsignedTransactionsTxPool")
+	return stub.UnsignedTransactionsTxPool
 }
 
 func (stub *PoolsHolderStub) RewardTransactions() dataRetriever.TxPool {
-	return stub.RewardTransactionsCalled()
+	check.AssertNotNil(stub.RewardTransactionsTxPool, "stub.RewardTransactionsTxPool")
+	return stub.RewardTransactionsTxPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

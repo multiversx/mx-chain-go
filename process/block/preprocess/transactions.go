@@ -527,12 +527,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 ) (*block.MiniBlock, error) {
-
-	var orderedTxs []*transaction.Transaction
-	var orderedTxHashes [][]byte
-
 	timeBefore := time.Now()
-	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(senderShardId, receiverShardId)
+	orderedTxs, orderedTxHashes, err := txs.getSortedTxs(senderShardId, receiverShardId)
 	timeAfter := time.Now()
 
 	if err != nil {
@@ -564,11 +560,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 
 	for index := range orderedTxs {
+		tx := orderedTxs[index].(*transaction.Transaction)
+		txHash := orderedTxHashes[index]
+
 		if !haveTime() {
 			break
 		}
 
-		if txs.isTxAlreadyProcessed(orderedTxHashes[index], &txs.txsForCurrBlock) {
+		if txs.isTxAlreadyProcessed(txHash, &txs.txsForCurrBlock) {
 			continue
 		}
 
@@ -579,8 +578,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		err = txs.computeGasConsumed(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
-			orderedTxs[index],
-			orderedTxHashes[index],
+			tx,
+			txHash,
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 
@@ -590,8 +589,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		// execute transaction to change the trie root hash
 		err = txs.processAndRemoveBadTransaction(
-			orderedTxHashes[index],
-			orderedTxs[index],
+			txHash,
+			tx,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 		)
@@ -599,7 +598,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		if err != nil {
 			log.Trace("bad tx",
 				"error", err.Error(),
-				"hash", orderedTxHashes[index],
+				"hash", txHash,
 			)
 
 			err = txs.accounts.RevertToSnapshot(snapshot)
@@ -607,8 +606,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				log.Debug("revert to snapshot", "error", err.Error())
 			}
 
-			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
-			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
+			txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
+			txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 
 			gasConsumedByMiniBlockInSenderShard = oldGasConsumedByMiniBlockInSenderShard
 			gasConsumedByMiniBlockInReceiverShard = oldGasConsumedByMiniBlockInReceiverShard
@@ -616,13 +615,13 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		gasRefunded := txs.gasHandler.GasRefunded(orderedTxHashes[index])
+		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		gasConsumedByMiniBlockInReceiverShard -= gasRefunded
 		if senderShardId == receiverShardId {
 			gasConsumedByMiniBlockInSenderShard -= gasRefunded
 		}
 
-		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		addedTxs++
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
@@ -653,20 +652,18 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	return miniBlock, nil
 }
 
-// TODO-TXCACHE
-func (txs *transactions) computeOrderedTxs(sndShardId uint32, dstShardId uint32) ([]*transaction.Transaction, [][]byte, error) {
-	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+func (txs *transactions) getSortedTxs(senderShardID uint32, destinationShardID uint32) ([]data.TransactionHandler, [][]byte, error) {
+	strCache := process.ShardCacherIdentifier(senderShardID, destinationShardID)
 	txCache := txs.txPool.GetTxCache(strCache)
 
-	if txCache == nil {
-		return nil, nil, process.ErrNilTxDataPool
-	}
 	if txCache.Len() == 0 {
 		return nil, nil, process.ErrEmptyTxDataPool
 	}
 
-	// TODO-TXCACHE fix return
-	return nil, nil, nil
+	// TODO-TXCACHE
+	sortedTxs, hashes := txCache.GetTransactions(15000, 2)
+
+	return sortedTxs, hashes, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock

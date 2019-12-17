@@ -24,6 +24,11 @@ type concurrentMapChunk struct {
 
 // NewConcurrentMap creates a new concurrent map.
 func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
+	// We cannot have a map with no chunks
+	if nChunks == 0 {
+		nChunks = 1
+	}
+
 	m := ConcurrentMap{
 		nChunks: nChunks,
 		chunks:  make([]*concurrentMapChunk, nChunks),
