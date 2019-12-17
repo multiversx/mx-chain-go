@@ -737,58 +737,6 @@ func (txs *transactions) ProcessMiniBlock(
 	return nil
 }
 
-// // SortTxByNonce sort transactions according to nonces
-// func SortTxByNonce(txShardPool storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-// 	if txShardPool == nil {
-// 		return nil, nil, process.ErrNilTxDataPool
-// 	}
-
-// 	keys := txShardPool.Keys()
-// 	transactions := make([]*transaction.Transaction, 0, len(keys))
-// 	txHashes := make([][]byte, 0, len(keys))
-
-// 	mTxHashes := make(map[uint64][][]byte, len(keys))
-// 	mTransactions := make(map[uint64][]*transaction.Transaction, len(keys))
-
-// 	nonces := make([]uint64, 0, len(keys))
-
-// 	for _, key := range keys {
-// 		val, _ := txShardPool.Peek(key)
-// 		if val == nil {
-// 			continue
-// 		}
-
-// 		tx, ok := val.(*transaction.Transaction)
-// 		if !ok {
-// 			continue
-// 		}
-
-// 		if mTxHashes[tx.Nonce] == nil {
-// 			nonces = append(nonces, tx.Nonce)
-// 			mTxHashes[tx.Nonce] = make([][]byte, 0)
-// 			mTransactions[tx.Nonce] = make([]*transaction.Transaction, 0)
-// 		}
-
-// 		mTxHashes[tx.Nonce] = append(mTxHashes[tx.Nonce], key)
-// 		mTransactions[tx.Nonce] = append(mTransactions[tx.Nonce], tx)
-// 	}
-
-// 	sort.Slice(nonces, func(i, j int) bool {
-// 		return nonces[i] < nonces[j]
-// 	})
-
-// 	for _, nonce := range nonces {
-// 		keys := mTxHashes[nonce]
-
-// 		for idx, key := range keys {
-// 			txHashes = append(txHashes, key)
-// 			transactions = append(transactions, mTransactions[nonce][idx])
-// 		}
-// 	}
-
-// 	return transaction.TrimSlicePtr(transactions), sliceUtil.TrimSliceSliceByte(txHashes), nil
-// }
-
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
 func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
 	mrsScrs, err := txs.createMarshalizedData(txHashes, &txs.txsForCurrBlock)
