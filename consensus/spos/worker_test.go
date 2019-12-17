@@ -627,6 +627,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, wrk)
@@ -664,6 +665,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		nil,
 	)
 
@@ -977,7 +979,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 		[]byte("inconsistent chain ID"),
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
 
 	assert.True(t, errors.Is(err, spos.ErrInvalidChainID))
 }

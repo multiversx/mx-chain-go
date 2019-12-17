@@ -525,6 +525,7 @@ func TestNewInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -553,6 +554,7 @@ func TestNewInterceptorsContainerFactory_NilAntifloodHandlerShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		nil,
 	)
 
