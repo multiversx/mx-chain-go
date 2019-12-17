@@ -123,15 +123,16 @@ type Core struct {
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
+	ChainID                  []byte
 }
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressConverter     state.AddressConverter
-	BLSAddressConverter  state.AddressConverter
-	PeerAccounts         state.AccountsAdapter
-	AccountsAdapter      state.AccountsAdapter
-	InBalanceForShard    map[string]*big.Int
+	AddressConverter    state.AddressConverter
+	BLSAddressConverter state.AddressConverter
+	PeerAccounts        state.AccountsAdapter
+	AccountsAdapter     state.AccountsAdapter
+	InBalanceForShard   map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -164,18 +165,21 @@ type Process struct {
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
 	HeaderSigVerifier     HeaderSigVerifierHandler
+	ValidatorsStatistics  process.ValidatorStatisticsProcessor
 }
 
 type coreComponentsFactoryArgs struct {
 	config   *config.Config
 	uniqueID string
+	chainID  []byte
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, chainID []byte) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
+		chainID:  chainID,
 	}
 }
 
@@ -203,6 +207,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
+		ChainID:                  args.chainID,
 	}, nil
 }
 
@@ -632,6 +637,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
 		HeaderSigVerifier:     headerSigVerifier,
+		ValidatorsStatistics:  validatorStatisticsProcessor,
 	}, nil
 }
 
@@ -1484,6 +1490,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1541,6 +1548,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err

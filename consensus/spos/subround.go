@@ -20,6 +20,7 @@ type Subround struct {
 	startTime int64
 	endTime   int64
 	name      string
+	chainID   []byte
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -41,31 +42,34 @@ func NewSubround(
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
+	chainID []byte,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
 		consensusStateChangedChannel,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	sr := Subround{
-		container,
-		consensusState,
-		previous,
-		current,
-		next,
-		startTime,
-		endTime,
-		name,
-		consensusStateChangedChannel,
-		executeStoredMessages,
-		nil,
-		nil,
-		nil,
+		ConsensusCoreHandler:         container,
+		ConsensusState:               consensusState,
+		previous:                     previous,
+		current:                      current,
+		next:                         next,
+		startTime:                    startTime,
+		endTime:                      endTime,
+		name:                         name,
+		chainID:                      chainID,
+		consensusStateChangedChannel: consensusStateChangedChannel,
+		executeStoredMessages:        executeStoredMessages,
+		Job:                          nil,
+		Check:                        nil,
+		Extend:                       nil,
 	}
 
 	return &sr, nil
@@ -76,6 +80,7 @@ func checkNewSubroundParams(
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
+	chainID []byte,
 ) error {
 	err := ValidateConsensusCore(container)
 	if err != nil {
@@ -89,6 +94,9 @@ func checkNewSubroundParams(
 	}
 	if executeStoredMessages == nil {
 		return ErrNilExecuteStoredMessages
+	}
+	if len(chainID) == 0 {
+		return ErrInvalidChainID
 	}
 
 	return nil
@@ -158,6 +166,11 @@ func (sr *Subround) EndTime() int64 {
 // Name method returns the name of the Subround
 func (sr *Subround) Name() string {
 	return sr.name
+}
+
+// ChainID method returns the current chain ID
+func (sr *Subround) ChainID() []byte {
+	return sr.chainID
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

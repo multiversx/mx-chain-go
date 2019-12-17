@@ -18,6 +18,7 @@ type InterceptedHeader struct {
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
 	isForCurrentShard bool
+	chainID           []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -37,6 +38,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		hasher:           arg.Hasher,
 		sigVerifier:      arg.HeaderSigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
+		chainID:          arg.ChainID,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -76,7 +78,12 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
+	return inHdr.hdr.CheckChainID(inHdr.chainID)
 }
 
 // integrity checks the integrity of the header block wrapper
