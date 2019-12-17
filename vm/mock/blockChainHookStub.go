@@ -147,7 +147,7 @@ func (b *BlockChainHookStub) CurrentRandomSeed() []byte {
 	if b.CurrentRandomSeedCalled != nil {
 		return b.CurrentRandomSeedCalled()
 	}
-	return []byte("seed")
+	return []byte("seedseed")
 }
 
 func (b *BlockChainHookStub) CurrentEpoch() uint32 {

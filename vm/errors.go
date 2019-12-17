@@ -46,3 +46,24 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
 var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+
+// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
+var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
+
+// ErrBLSPublicKeyMissmatch signals that public keys do not match
+var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+
+// ErrKeyAlreadyRegistered signals that bls key is already registered
+var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
+
+// ErrBLSKeyIsNotValid signals that bls key is invalid
+var ErrBLSKeyIsNotValid = errors.New("bls key is invalid")
+
+// ErrBLSKeyIsNotStaked signals that bls key is not staked
+var ErrBLSKeyIsNotStaked = errors.New("bls key is not staked")
+
+// ErrNotEnoughArgumentsToStake signals that the arguments provided are not enough
+var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
+
+// ErrStillInUnBoundPeriod signals that bls key is in unbond period
+var ErrStillInUnBoundPeriod = errors.New("bls key is in unbond period")
