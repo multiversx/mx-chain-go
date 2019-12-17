@@ -35,6 +35,10 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	// BootstrapUnit is the bootstrap storage unit identifier
+	BootstrapUnit UnitType = 11
+	//StatusMetricsUnit is the status metrics storage unit identifier
+	StatusMetricsUnit UnitType = 12
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -264,5 +268,13 @@ type DataPacker interface {
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// RequestedItemsHandler can determine if a certain key has or not been requested
+type RequestedItemsHandler interface {
+	Add(key string) error
+	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

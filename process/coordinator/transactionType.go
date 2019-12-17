@@ -70,7 +70,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, nil
 	}
 
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
+	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 && len(tx.GetData()) > 0 {
 		return process.SCInvoking, nil
 	}
 
@@ -117,8 +117,5 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tth *txTypeHandler) IsInterfaceNil() bool {
-	if tth == nil {
-		return true
-	}
-	return false
+	return tth == nil
 }

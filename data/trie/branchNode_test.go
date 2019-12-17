@@ -187,7 +187,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	tr1, _ := NewTrie(trieStorage, marsh, hsh)
 	tr2, _ := NewTrie(trieStorage, marsh, hsh)
 
-	for i := 0; i < 100000; i++ {
+	maxIterations := 10000
+	for i := 0; i < maxIterations; i++ {
 		val := hsh.Compute(string(i))
 		_ = tr1.Update(val, val)
 		_ = tr2.Update(val, val)

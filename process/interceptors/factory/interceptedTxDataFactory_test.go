@@ -17,7 +17,7 @@ func TestNewInterceptedTxDataFactory_NilArgumentShouldErr(t *testing.T) {
 	imh, err := NewInterceptedTxDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {

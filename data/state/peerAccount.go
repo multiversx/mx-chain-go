@@ -24,6 +24,14 @@ type SignRate struct {
 	NrFailure uint32
 }
 
+// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
+type ValidatorApiResponse struct {
+	NrLeaderSuccess    uint32 `json:"nrLeaderSuccess"`
+	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
+	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
+	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
+}
+
 // PeerAccount is the struct used in serialization/deserialization
 type PeerAccount struct {
 	BLSPublicKey     []byte
@@ -151,19 +159,6 @@ func (a *PeerAccount) GetRootHash() []byte {
 // SetRootHash sets the root hash associated with the account
 func (a *PeerAccount) SetRootHash(roothash []byte) {
 	a.RootHash = roothash
-}
-
-// SetRootHashWithJournal sets the account's root hash, saving the old root hash before changing
-func (a *PeerAccount) SetRootHashWithJournal(rootHash []byte) error {
-	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash, a.DataTrie())
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.RootHash = rootHash
-
-	return a.accountTracker.SaveAccount(a)
 }
 
 // DataTrie returns the trie that holds the current account's data

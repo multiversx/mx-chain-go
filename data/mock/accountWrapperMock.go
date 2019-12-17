@@ -18,7 +18,6 @@ type AccountWrapMock struct {
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
-	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
 }
 
@@ -59,10 +58,6 @@ func (awm *AccountWrapMock) GetRootHash() []byte {
 
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.rootHash = rootHash
-}
-
-func (awm *AccountWrapMock) SetRootHashWithJournal(rootHash []byte) error {
-	return awm.SetRootHashWithJournalCalled(rootHash)
 }
 
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {

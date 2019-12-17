@@ -10,13 +10,15 @@ import (
 
 // SmartContractResult holds all the data needed for a value transfer
 type SmartContractResult struct {
-	Nonce   uint64   `capid:"0" json:"nonce"`
-	Value   *big.Int `capid:"1" json:"value"`
-	RcvAddr []byte   `capid:"2" json:"receiver"`
-	SndAddr []byte   `capid:"3" json:"sender"`
-	Code    []byte   `capid:"4" json:"code,omitempty"`
-	Data    string   `capid:"5" json:"data,omitempty"`
-	TxHash  []byte   `capid:"6" json:"txHash"`
+	Nonce    uint64   `capid:"0" json:"nonce"`
+	Value    *big.Int `capid:"1" json:"value"`
+	RcvAddr  []byte   `capid:"2" json:"receiver"`
+	SndAddr  []byte   `capid:"3" json:"sender"`
+	Code     []byte   `capid:"4" json:"code,omitempty"`
+	Data     string   `capid:"5" json:"data,omitempty"`
+	TxHash   []byte   `capid:"6" json:"txHash"`
+	GasLimit uint64   `capid:"7" json:"gasLimit"`
+	GasPrice uint64   `capid:"8" json:"gasPrice"`
 }
 
 // Save saves the serialized data of a SmartContractResult into a stream through Capnp protocol
@@ -113,12 +115,12 @@ func (scr *SmartContractResult) GetSndAddress() []byte {
 
 // GetGasLimit returns the gas limit of the smart contract result
 func (scr *SmartContractResult) GetGasLimit() uint64 {
-	return 0
+	return scr.GasLimit
 }
 
 // GetGasPrice returns the gas price of the smart contract result
 func (scr *SmartContractResult) GetGasPrice() uint64 {
-	return 0
+	return scr.GasPrice
 }
 
 // SetValue sets the value of the smart contract result
@@ -139,4 +141,14 @@ func (scr *SmartContractResult) SetRecvAddress(addr []byte) {
 // SetSndAddress sets the sender address of the smart contract result
 func (scr *SmartContractResult) SetSndAddress(addr []byte) {
 	scr.SndAddr = addr
+}
+
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
+func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
+	if len(in) == 0 {
+		return []*SmartContractResult{}
+	}
+	ret := make([]*SmartContractResult, len(in))
+	copy(ret, in)
+	return ret
 }

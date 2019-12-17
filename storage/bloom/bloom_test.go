@@ -66,7 +66,7 @@ func TestConcurrency(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	maxIterations := 10000
+	maxIterations := 1000
 
 	addValues := func(base string) {
 		for i := 0; i < maxIterations; i++ {

@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 //NodeWrapper contains all functions that a node should contain.
@@ -48,11 +50,14 @@ type NodeWrapper interface {
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+
+	// ValidatorStatisticsApi return the statistics for all the validators
+	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }

@@ -34,6 +34,9 @@ var ErrEmptyNode = errors.New("the node is empty")
 // ErrNilNode is raised when we reach a nil node
 var ErrNilNode = errors.New("the node is nil")
 
+// ErrInvalidLength signals that length of the array is invalid
+var ErrInvalidLength = errors.New("invalid array length")
+
 // ErrWrongTypeAssertion signals that wrong type was provided
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 

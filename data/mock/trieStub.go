@@ -26,6 +26,7 @@ type TrieStub struct {
 	SetCheckpointCalled      func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
+	GetAllLeavesCalled func() (map[string][]byte, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -98,6 +99,14 @@ func (ts *TrieStub) String() string {
 
 func (ts *TrieStub) DeepClone() (data.Trie, error) {
 	return ts.DeepCloneCalled()
+}
+
+func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
+	if ts.GetAllLeavesCalled != nil {
+		return ts.GetAllLeavesCalled()
+	}
+
+	return nil, errNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

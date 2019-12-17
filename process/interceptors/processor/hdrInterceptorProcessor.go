@@ -20,7 +20,7 @@ type HdrInterceptorProcessor struct {
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
 func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInterceptorProcessor, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Headers) {
 		return nil, process.ErrNilCacher
@@ -50,6 +50,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
+	hip.blackList.Sweep()
 	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
 	if isBlackListed {
 		return process.ErrHeaderIsBlackListed

@@ -20,6 +20,7 @@ type MetaPoolsHolderFake struct {
 	currTxs       dataRetriever.TransactionCacher
 
 	MetaBlocksCalled func() storage.Cacher
+	ShardHeadersCalled func() storage.Cacher
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
@@ -65,6 +66,9 @@ func (mphf *MetaPoolsHolderFake) MiniBlocks() storage.Cacher {
 }
 
 func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
+	if mphf.ShardHeadersCalled != nil {
+		return mphf.ShardHeadersCalled()
+	}
 	return mphf.shardHeaders
 }
 

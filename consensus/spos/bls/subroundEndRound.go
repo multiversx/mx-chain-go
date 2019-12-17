@@ -87,16 +87,24 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
 
-	timeBefore := time.Now()
-	// Commit the block (commits also the account state)
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	// Header is complete so the leader can sign it
+	leaderSignature, err := sr.signBlockHeader()
 	if err != nil {
-		debugError("commit block", err)
+		log.Error(err.Error())
 		return false
 	}
-	timeAfter := time.Now()
+	sr.Header.SetLeaderSignature(leaderSignature)
 
-	log.Debug("commit block", "type", "spos/bls", "time elapsed [s]", timeAfter.Sub(timeBefore).Seconds())
+	startTime := time.Now()
+	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to commit block",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		debugError("CommitBlock", err)
+		return false
+	}
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
@@ -129,6 +137,18 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
+	headerClone := sr.Header.Clone()
+	headerClone.SetLeaderSignature(nil)
+
+	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
+	if err != nil {
+		return nil, err
+	}
+
+	return sr.SingleSigner().Sign(sr.PrivateKey(), marshalizedHdr)
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

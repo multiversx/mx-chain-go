@@ -7,59 +7,54 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestVMCrypto_Sha256ReturnsASha256Hash(t *testing.T) {
+func TestVMCrypto_Sha256(t *testing.T) {
 	t.Parallel()
 
-	vmch := hooks.NewVMCryptoHook()
+	cryptoHook := hooks.NewVMCryptoHook()
 
-	inputString := "input string for hashing"
-	expectedHash := hex.EncodeToString(sha256.Sha256{}.Compute(inputString))
-	resultedHash, err := vmch.Sha256(inputString)
+	input := "input string for hashing"
+	expected := sha256.Sha256{}.Compute(input)
+	result, err := cryptoHook.Sha256([]byte(input))
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, resultedHash)
+	assert.Equal(t, expected, result)
 }
 
-func TestVMCrypto_Keccak256ReturnsAKeccak256Hash(t *testing.T) {
+func TestVMCrypto_Keccak256(t *testing.T) {
 	t.Parallel()
 
-	vmch := hooks.NewVMCryptoHook()
+	cryptoHook := hooks.NewVMCryptoHook()
 
-	inputString := "input string for hashing"
-	expectedHash := hex.EncodeToString(keccak.Keccak{}.Compute(inputString))
-	resultedHash, err := vmch.Keccak256(inputString)
+	input := "input string for hashing"
+	expected := keccak.Keccak{}.Compute(input)
+	result, err := cryptoHook.Keccak256([]byte(input))
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, resultedHash)
+	assert.Equal(t, expected, result)
 }
 
-func TestVMCrypto_DeprecatedFuncsReturnErr(t *testing.T) {
+func TestVMCrypto_Ripemd160(t *testing.T) {
 	t.Parallel()
 
-	vmch := hooks.NewVMCryptoHook()
+	cryptoHook := hooks.NewVMCryptoHook()
 
-	_, err := vmch.Ripemd160("")
-	assert.Equal(t, hooks.ErrNotImplemented, err)
+	// See https://en.wikipedia.org/wiki/RIPEMD#RIPEMD-160_hashes
+	input := []byte("The quick brown fox jumps over the lazy dog")
+	expected, _ := hex.DecodeString("37f332f68db77bd9d7edd4969571ad671cf9dd3b")
+	result, err := cryptoHook.Ripemd160(input)
 
-	_, err = vmch.EcdsaRecover("", nil, "", "")
-	assert.Equal(t, hooks.ErrNotImplemented, err)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, result)
+}
 
-	_, err = vmch.Bn128valid(vmcommon.Bn128Point{})
-	assert.Equal(t, hooks.ErrNotImplemented, err)
+func TestVMCrypto_Ecrecover_ReturnsNotImplemented(t *testing.T) {
+	t.Parallel()
 
-	_, err = vmch.Bn128g2valid(vmcommon.Bn128G2Point{})
-	assert.Equal(t, hooks.ErrNotImplemented, err)
+	cryptoHook := hooks.NewVMCryptoHook()
 
-	_, err = vmch.Bn128add(vmcommon.Bn128Point{}, vmcommon.Bn128Point{})
-	assert.Equal(t, hooks.ErrNotImplemented, err)
-
-	_, err = vmch.Bn128mul(nil, vmcommon.Bn128Point{})
-	assert.Equal(t, hooks.ErrNotImplemented, err)
-
-	_, err = vmch.Bn128ate(nil, nil)
+	_, err := cryptoHook.Ecrecover(nil, nil, nil, nil)
 	assert.Equal(t, hooks.ErrNotImplemented, err)
 }

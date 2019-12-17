@@ -1,0 +1,12 @@
+memoryFault
+divideByZero
+badGetOwner1
+badGetBlockHash1
+badGetBlockHash2
+badGetBlockHash3
+badWriteLog1
+badWriteLog2
+badWriteLog3
+badWriteLog4
+badBigIntStorageStore1
+badRecursive

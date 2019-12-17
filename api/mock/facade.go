@@ -9,27 +9,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
-	Running                                        bool
-	ShouldErrorStart                               bool
-	ShouldErrorStop                                bool
-	GetCurrentPublicKeyHandler                     func() string
-	TpsBenchmarkHandler                            func() *statistics.TpsBenchmark
-	GetHeartbeatsHandler                           func() ([]heartbeat.PubKeyHeartbeat, error)
-	BalanceHandler                                 func(string) (*big.Int, error)
-	GetAccountHandler                              func(address string) (*state.Account, error)
-	GenerateTransactionHandler                     func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
-	CreateTransactionHandler                       func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
-	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
-	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
-	StatusMetricsHandler                           func() external.StatusMetricsHandler
+	Running                     bool
+	ShouldErrorStart            bool
+	ShouldErrorStop             bool
+	GetCurrentPublicKeyHandler  func() string
+	TpsBenchmarkHandler         func() *statistics.TpsBenchmark
+	GetHeartbeatsHandler        func() ([]heartbeat.PubKeyHeartbeat, error)
+	BalanceHandler              func(string) (*big.Int, error)
+	GetAccountHandler           func(address string) (*state.Account, error)
+	GenerateTransactionHandler  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler       func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler      func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	CreateTransactionHandler    func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendBulkTransactionsHandler func(txs []*transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler        func() external.StatusMetricsHandler
+	ValidatorStatisticsHandler  func() (map[string]*state.ValidatorApiResponse, error)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -118,18 +119,14 @@ func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, e
 	return f.SendBulkTransactionsHandler(txs)
 }
 
-// GenerateAndSendBulkTransactions is the mock implementation of a handler's GenerateAndSendBulkTransactions method
-func (f *Facade) GenerateAndSendBulkTransactions(destination string, value *big.Int, nrTransactions uint64) error {
-	return f.GenerateAndSendBulkTransactionsHandler(destination, value, nrTransactions)
+// ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
+func (f *Facade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	return f.ValidatorStatisticsHandler()
 }
 
-// GenerateAndSendBulkTransactionsOneByOne is the mock implementation of a handler's GenerateAndSendBulkTransactionsOneByOne method
-func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, value *big.Int, nrTransactions uint64) error {
-	return f.GenerateAndSendBulkTransactionsOneByOneHandler(destination, value, nrTransactions)
-}
-
-func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return f.GetDataValueHandler(address, funcName, argsBuff...)
+// ExecuteSCQuery is a mock implementation.
+func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+	return f.ExecuteSCQueryHandler(query)
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
