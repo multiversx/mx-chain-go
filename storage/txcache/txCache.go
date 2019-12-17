@@ -124,7 +124,18 @@ func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
 }
 
-// forEachSender iterates over the senders
+// forEachSender iterates over the senders in the cache
 func (cache *TxCache) forEachSender(function ForEachSender) {
 	cache.txListBySender.forEach(function)
+}
+
+// ForEachTransaction iterates over the transactions in the cache
+func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
+	cache.txByHash.forEach(function)
+}
+
+// Clear clears the cache
+func (cache *TxCache) Clear() {
+	cache.txListBySender.clear()
+	cache.txByHash.clear()
 }

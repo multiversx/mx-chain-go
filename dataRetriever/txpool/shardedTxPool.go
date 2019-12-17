@@ -16,7 +16,7 @@ var log = logger.GetOrCreate("dataretriever/txpool")
 type shardedTxPool struct {
 	mutex             sync.RWMutex
 	backingMap        map[string]*txPoolShard
-	cacherConfig      storageUnit.CacheConfig
+	cacheConfig       storageUnit.CacheConfig
 	mutexAddCallbacks sync.RWMutex
 	onAddCallbacks    []func(key []byte)
 }
@@ -30,7 +30,7 @@ type txPoolShard struct {
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.TxPool {
 	return &shardedTxPool{
-		cacherConfig:      cacherConfig,
+		cacheConfig:       config,
 		mutex:             sync.RWMutex{},
 		backingMap:        make(map[string]*txPoolShard),
 		mutexAddCallbacks: sync.RWMutex{},
@@ -40,26 +40,27 @@ func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.TxPool {
 
 // GetTxCache returns the requested cache
 func (txPool *shardedTxPool) GetTxCache(cacheID string) *txcache.TxCache {
-	cache := txPool.getOrCreateCache(cacheID)
-	return cache
+	shard := txPool.getOrCreateShard(cacheID)
+	return shard.Cache
 }
 
-func (txPool *shardedTxPool) getOrCreateCache(cacheID string) *txcache.TxCache {
+func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	txPool.mutex.RLock()
 	shard, ok := txPool.backingMap[cacheID]
 	txPool.mutex.RUnlock()
 
 	if ok {
-		return shard.Cache
+		return shard
 	}
 
 	// The cache not yet created, we'll create in a critical section
 	txPool.mutex.Lock()
+	defer txPool.mutex.Unlock()
 
 	// We have to check again if not created (concurrency issue)
 	shard, ok = txPool.backingMap[cacheID]
 	if !ok {
-		nChunksHint := txPool.cacherConfig.Shards
+		nChunksHint := txPool.cacheConfig.Shards
 		cache := txcache.NewTxCache(nChunksHint)
 		shard := &txPoolShard{
 			CacheID: cacheID,
@@ -69,14 +70,13 @@ func (txPool *shardedTxPool) getOrCreateCache(cacheID string) *txcache.TxCache {
 		txPool.backingMap[cacheID] = shard
 	}
 
-	txPool.mutex.Unlock()
-
-	return shard.Cache
+	return shard
 }
 
 // AddTx will add the transaction to the cache
 func (txPool *shardedTxPool) AddTx(txHash []byte, tx data.TransactionHandler, cacheID string) {
-	cache := txPool.getOrCreateCache(cacheID)
+	shard := txPool.getOrCreateShard(cacheID)
+	cache := shard.Cache
 	// TODO: HasOrAdd()
 	cache.AddTx(txHash, tx)
 
@@ -109,101 +109,94 @@ func (txPool *shardedTxPool) SearchFirstTx(txHash []byte) (tx data.TransactionHa
 	return nil, false
 }
 
-// RemoveTx will remove data hash from the corresponding shard store
+// RemoveTx removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveTx(txHash []byte, cacheID string) {
-	cache := txPool.getOrCreateCache(cacheID)
-	cache.RemoveTxByHash(txHash)
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.RemoveTxByHash(txHash)
 }
 
-// RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
-func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
-	for _, key := range keys {
-		sd.RemoveData(key, cacheId)
+// RemoveTxBulk removes a bunch of transactions from the pool
+func (txPool *shardedTxPool) RemoveTxBulk(txHashes [][]byte, cacheID string) {
+	for _, key := range txHashes {
+		txPool.RemoveTx(key, cacheID)
 	}
 }
 
-// RemoveDataFromAllShards will remove data from the store given only
-//  the data hash. It will iterate over all shard store map and will remove it everywhere
-func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
-	sd.mutShardedDataStore.RLock()
-	for k := range sd.shardedDataStore {
-		m := sd.shardedDataStore[k]
-		if m == nil || m.DataStore == nil {
-			continue
-		}
+// RemoveTxFromAllShards will remove the transaction from the pool (searches for it in all shards)
+func (txPool *shardedTxPool) RemoveTxFromAllShards(txHash []byte) {
+	txPool.mutex.RLock()
+	defer txPool.mutex.RUnlock()
 
-		if m.DataStore.Has(key) {
-			m.DataStore.Remove(key)
-		}
+	for _, shard := range txPool.backingMap {
+		cache := shard.Cache
+		cache.RemoveTxByHash(txHash)
 	}
-	sd.mutShardedDataStore.RUnlock()
 }
 
-// MergeShardStores will take all data associated with the sourceCacheId and move them
-// to the destCacheId. It will then remove the sourceCacheId key from the store map
-func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
-	sourceStore := sd.ShardDataStore(sourceCacheId)
+// MergeShardStores merges two shards of the pool
+func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
+	sourceShard := txPool.getOrCreateShard(sourceCacheID)
+	sourceCache := sourceShard.Cache
 
-	if sourceStore != nil {
-		for _, key := range sourceStore.Keys() {
-			val, _ := sourceStore.Get(key)
-			sd.AddData(key, val, destCacheId)
-		}
-	}
+	sourceCache.ForEachTransaction(func(txHash []byte, tx data.TransactionHandler) {
+		txPool.AddTx(txHash, tx, destCacheID)
+	})
 
-	sd.mutShardedDataStore.Lock()
-	delete(sd.shardedDataStore, sourceCacheId)
-	sd.mutShardedDataStore.Unlock()
+	txPool.mutex.Lock()
+	delete(txPool.backingMap, sourceCacheID)
+	txPool.mutex.Unlock()
 }
 
-// MoveData will move all given data associated with the sourceCacheId to the destCacheId
-func (sd *shardedData) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
-	sourceStore := sd.ShardDataStore(sourceCacheId)
+// MoveData moves the transactions between two caches
+func (txPool *shardedTxPool) MoveTxs(sourceCacheID string, destCacheID string, txHashes [][]byte) {
+	sourceShard := txPool.getOrCreateShard(sourceCacheID)
+	sourceCache := sourceShard.Cache
 
-	if sourceStore != nil {
-		for _, key := range key {
-			val, ok := sourceStore.Get(key)
-			if ok {
-				sd.AddData(key, val, destCacheId)
-				sd.RemoveData(key, sourceCacheId)
-			}
+	for _, txHash := range txHashes {
+		tx, ok := sourceCache.GetByTxHash(txHash)
+		if ok {
+			txPool.AddTx(txHash, tx, destCacheID)
+			txPool.RemoveTx(txHash, sourceCacheID)
 		}
 	}
 }
 
-// Clear will delete all shard stores and associated data
-func (sd *shardedData) Clear() {
-	sd.mutShardedDataStore.Lock()
-	for m := range sd.shardedDataStore {
-		delete(sd.shardedDataStore, m)
+// Clear clears everything in the pool
+func (txPool *shardedTxPool) Clear() {
+	txPool.mutex.Lock()
+	for key := range txPool.backingMap {
+		delete(txPool.backingMap, key)
 	}
-	sd.mutShardedDataStore.Unlock()
+	txPool.mutex.Unlock()
 }
 
-// ClearShardStore will delete all data associated with a given destination cacheId
-func (sd *shardedData) ClearShardStore(cacheId string) {
-	mp := sd.ShardDataStore(cacheId)
-	if mp == nil {
-		return
-	}
-	mp.Clear()
+// ClearShardStore clears a specific cache
+func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.Clear()
 }
 
-// RegisterHandler registers a new handler to be called when a new data is added
-func (sd *shardedData) RegisterHandler(handler func(key []byte)) {
+// CreateShardStore is a ShardedData method that is responsible for creating
+//  a new shardStore with cacheId index in the shardedDataStore map
+func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
+	panic("shardedTxPool.CreateShardStore() is not implemented (not needed; shard creation is managed internally)")
+}
+
+// RegisterHandler registers a new handler to be called when a new transaction is added
+func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	if handler == nil {
-		log.Error("attempt to register a nil handler to a ShardedData object")
+		log.Error("attempt to register a nil handler")
 		return
 	}
 
-	sd.mutAddedDataHandlers.Lock()
-	sd.addedDataHandlers = append(sd.addedDataHandlers, handler)
-	sd.mutAddedDataHandlers.Unlock()
+	txPool.mutexAddCallbacks.Lock()
+	txPool.onAddCallbacks = append(txPool.onAddCallbacks, handler)
+	txPool.mutexAddCallbacks.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sd *shardedData) IsInterfaceNil() bool {
-	if sd == nil {
+func (txPool *shardedTxPool) IsInterfaceNil() bool {
+	if txPool == nil {
 		return true
 	}
 	return false
