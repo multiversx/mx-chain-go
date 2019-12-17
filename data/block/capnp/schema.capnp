@@ -23,7 +23,7 @@ struct HeaderCapn {
   validatorStatsRootHash @15:  Data;
   metaHdrHashes          @16:  List(Data);
   txCount                @17:  UInt32;
-
+  chainid                @18:  Data;
 }
 
 struct MiniBlockHeaderCapn {

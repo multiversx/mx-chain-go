@@ -1047,7 +1047,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 			Round:      90,
 			Hash:       []byte("hash"),
 		}
-
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}

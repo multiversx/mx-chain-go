@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -34,6 +35,7 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 	headerSigVerifier  RandSeedVerifier
+	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -66,6 +68,7 @@ func NewWorker(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	chainID []byte,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -83,6 +86,7 @@ func NewWorker(
 		singleSigner,
 		syncTimer,
 		headerSigVerifier,
+		chainID,
 		antifloodHandler,
 	)
 	if err != nil {
@@ -104,6 +108,7 @@ func NewWorker(
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
+		chainID:            chainID,
 		antifloodHandler:   antifloodHandler,
 	}
 
@@ -135,6 +140,7 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	chainID []byte,
 	antifloodHandler consensus.P2PAntifloodHandler,
 ) error {
 	if check.IfNil(consensusService) {
@@ -178,6 +184,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(headerSigVerifier) {
 		return ErrNilHeaderSigVerifier
+	}
+	if len(chainID) == 0 {
+		return ErrInvalidChainID
 	}
 	if check.IfNil(antifloodHandler) {
 		return ErrNilAntifloodHandler
@@ -233,7 +242,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -249,6 +258,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	cnsDta := &consensus.Message{}
 	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
+		return err
+	}
+	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
+		err := fmt.Errorf("%w received: %s, wanted %s",
+			ErrInvalidChainID,
+			hex.EncodeToString(cnsDta.ChainID),
+			hex.EncodeToString(wrk.chainID),
+		)
 		return err
 	}
 
@@ -294,6 +311,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
 			return ErrInvalidHeader
+		}
+
+		err := header.CheckChainID(wrk.chainID)
+		if err != nil {
+			return err
 		}
 
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
@@ -443,7 +465,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.mutHashConsensusMessage.Unlock()
 
-	if wrk.bootstrapper.ShouldSync() {
+	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
 	}
 
@@ -451,7 +473,7 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Trace("account state is reverted to snapshot")
+	log.Debug("account state is reverted to snapshot")
 
 	wrk.blockProcessor.RevertAccountState()
 
@@ -485,19 +507,19 @@ func (wrk *Worker) displaySignatureStatistic() {
 		)
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))
+			log.Trace(core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey)))
 		}
 
 	}
 	wrk.mutHashConsensusMessage.RUnlock()
 }
 
-//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()

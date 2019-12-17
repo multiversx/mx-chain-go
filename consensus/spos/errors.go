@@ -156,3 +156,6 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
+
+// ErrInvalidChainID signals that an invalid chain ID has been provided
+var ErrInvalidChainID = errors.New("invalid chain ID in consensus")

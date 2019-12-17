@@ -12,9 +12,9 @@ import (
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 11)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 11)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 11)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 12)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 12)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 12)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
 func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
 func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
@@ -60,6 +60,8 @@ func (s HeaderCapn) MetaHdrHashes() C.DataList     { return C.DataList(C.Struct(
 func (s HeaderCapn) SetMetaHdrHashes(v C.DataList) { C.Struct(s).SetObject(10, C.Object(v)) }
 func (s HeaderCapn) TxCount() uint32               { return C.Struct(s).Get32(36) }
 func (s HeaderCapn) SetTxCount(v uint32)           { C.Struct(s).Set32(36, v) }
+func (s HeaderCapn) Chainid() []byte               { return C.Struct(s).GetObject(11).ToData() }
+func (s HeaderCapn) SetChainid(v []byte)           { C.Struct(s).SetObject(11, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -444,6 +446,25 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"chainid\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -858,6 +879,25 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("chainid = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -874,7 +914,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(40, 11, sz))
+	return HeaderCapn_List(s.NewCompositeList(40, 12, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }

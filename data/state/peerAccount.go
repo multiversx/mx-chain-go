@@ -24,6 +24,14 @@ type SignRate struct {
 	NrFailure uint32
 }
 
+// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
+type ValidatorApiResponse struct {
+	NrLeaderSuccess    uint32 `json:"nrLeaderSuccess"`
+	NrLeaderFailure    uint32 `json:"nrLeaderFailure"`
+	NrValidatorSuccess uint32 `json:"nrValidatorSuccess"`
+	NrValidatorFailure uint32 `json:"nrValidatorFailure"`
+}
+
 // PeerAccount is the struct used in serialization/deserialization
 type PeerAccount struct {
 	BLSPublicKey     []byte

@@ -26,7 +26,7 @@ func TestNewTxInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	txip, err := processor.NewTxInterceptorProcessor(nil)
 
 	assert.Nil(t, txip)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
