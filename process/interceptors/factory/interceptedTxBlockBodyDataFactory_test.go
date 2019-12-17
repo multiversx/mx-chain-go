@@ -16,7 +16,7 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilArgumentsShouldErr(t *testing.T
 	imh, err := NewInterceptedTxBlockBodyDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedTxBlockBodyDataFactory_NilMarshalizerShouldErr(t *testing.T) {

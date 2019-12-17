@@ -92,6 +92,7 @@ type Config struct {
 	Antiflood      AntifloodConfig
 	Logger         LoggerConfig
 	Address        AddressConfig
+	BLSPublicKey   AddressConfig
 	Hasher         TypeConfig
 	MultisigHasher TypeConfig
 	Marshalizer    TypeConfig

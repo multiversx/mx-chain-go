@@ -23,8 +23,6 @@ import (
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
 
-var streamTimeout = time.Second * 5
-
 type directSender struct {
 	counter        uint64
 	ctx            context.Context
@@ -223,8 +221,7 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	var err error
 
 	if foundStream == nil {
-		ctx, _ := context.WithTimeout(ds.ctx, streamTimeout)
-		foundStream, err = ds.hostP2P.NewStream(ctx, conn.RemotePeer(), DirectSendID)
+		foundStream, err = ds.hostP2P.NewStream(ds.ctx, conn.RemotePeer(), DirectSendID)
 		if err != nil {
 			return nil, err
 		}

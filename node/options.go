@@ -467,6 +467,29 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
+// WithValidatorStatistics sets up the validator statistics fro the node
+func WithValidatorStatistics(validatorStatistics process.ValidatorStatisticsProcessor) Option {
+	return func(n *Node) error {
+		if check.IfNil(validatorStatistics) {
+			return ErrNilValidatorStatistics
+		}
+		n.validatorStatistics = validatorStatistics
+		return nil
+	}
+}
+
+// WithChainID sets up the chain ID on which the current node is supposed to work on
+func WithChainID(chainID []byte) Option {
+	return func(n *Node) error {
+		if len(chainID) == 0 {
+			return ErrInvalidChainID
+		}
+		n.chainID = chainID
+
+		return nil
+	}
+}
+
 // WithAntifloodHandler sets up an antiflood handler for the Node
 func WithAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
 	return func(n *Node) error {
