@@ -1,9 +1,9 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -12,9 +12,7 @@ type ArgInterceptedBlockHeader struct {
 	HdrBuff           []byte
 	Marshalizer       marshal.Marshalizer
 	Hasher            hashing.Hasher
-	SingleSigVerifier crypto.SingleSigner
-	MultiSigVerifier  crypto.MultiSigVerifier
-	NodesCoordinator  sharding.NodesCoordinator
 	ShardCoordinator  sharding.Coordinator
-	KeyGen            crypto.KeyGenerator
+	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+	ChainID           []byte
 }

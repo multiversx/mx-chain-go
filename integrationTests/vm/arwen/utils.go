@@ -66,22 +66,22 @@ func (context *testContext) initAccounts() {
 	initialNonce := uint64(1)
 
 	context.Owner = testParticipant{}
-	context.Owner.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}
+	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")
 	context.Owner.Nonce = initialNonce
 	context.Owner.Balance = big.NewInt(math.MaxInt64)
 
 	context.Alice = testParticipant{}
-	context.Alice.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}
+	context.Alice.Address, _ = hex.DecodeString("0f36a982b79d3c1fda9b82a646a2b423cb3e7223cffbae73a4e3d2c1ea62ee5e")
 	context.Alice.Nonce = initialNonce
 	context.Alice.Balance = big.NewInt(math.MaxInt64)
 
 	context.Bob = testParticipant{}
-	context.Bob.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b'}
+	context.Bob.Address, _ = hex.DecodeString("afb051dc3a1dfb029866730243c2cbc51d8b8ef15951e4da3929f9c8391f307a")
 	context.Bob.Nonce = initialNonce
 	context.Bob.Balance = big.NewInt(math.MaxInt64)
 
 	context.Carol = testParticipant{}
-	context.Carol.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c'}
+	context.Carol.Address, _ = hex.DecodeString("5bdf4c81489bea69ba29cd3eea2670c1bb6cb5d922fa8cb6e17bca71dfdd49f0")
 	context.Carol.Nonce = initialNonce
 	context.Carol.Balance = big.NewInt(math.MaxInt64)
 
@@ -118,7 +118,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 		Data:     txData,
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx, context.Round)
+	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
 	}
@@ -153,7 +153,7 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 		Data:     txData,
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx, context.Round)
+	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
 	}

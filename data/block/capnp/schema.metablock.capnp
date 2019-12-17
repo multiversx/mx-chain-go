@@ -63,6 +63,7 @@ struct MetaBlockCapn {
     txCount                @14: UInt32;
     miniBlockHeaders       @15: List(MiniBlockHeaderCapn);
     epochStart             @16: EpochStartCapn;
+    chainid                @17: Data;
 }
 
 ##compile with:

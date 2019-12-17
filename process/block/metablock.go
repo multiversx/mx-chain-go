@@ -269,7 +269,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
 		return err
 	}
@@ -309,6 +309,11 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+// SetNumProcessedObj will set the num of processed headers
+func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
+	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
+}
+
 func (mp *metaProcessor) checkEpochCorrectness(
 	headerHandler data.HeaderHandler,
 	chainHandler data.ChainHandler,
@@ -342,7 +347,7 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	}
 
 	//if all miniblockshards hashes are in header miniblocks as well
-	mapMetaMiniBlockHdrs := make(map[string]struct{})
+	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
 	for _, metaMiniBlock := range header.MiniBlockHeaders {
 		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
 	}
@@ -643,7 +648,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
-		round,
 		haveTime)
 
 	if len(mbFromMe) > 0 {
@@ -749,7 +753,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 				nil,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
-				round,
 				haveTime)
 
 			if !hdrProcessFinished {
@@ -778,7 +781,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
-	arguments := make([]interface{}, 0)
+	arguments := make([]interface{}, 0, len(header.ShardInfo))
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
@@ -1198,9 +1201,9 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
-	highestNonceHdrs := make(map[uint32]data.HeaderHandler)
-
 	usedShardHdrs := mp.sortHeadersForCurrentBlockByNonce(true)
+	highestNonceHdrs := make(map[uint32]data.HeaderHandler, len(usedShardHdrs))
+
 	if len(usedShardHdrs) == 0 {
 		return highestNonceHdrs, nil
 	}
@@ -1526,7 +1529,7 @@ func (mp *metaProcessor) createShardInfo(
 		}
 
 		shardData := block.ShardData{}
-		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
+		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
@@ -1819,8 +1822,8 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte)
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
+	mrsData := make(map[uint32][]byte, len(bodies))
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(subsetBlockBody)

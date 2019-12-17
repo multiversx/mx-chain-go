@@ -38,6 +38,7 @@ func testMarshalUnmarshal(t *testing.T, marshName string, marsh marshal.Marshali
 
 	llwRecovered := &logger.LogLineWrapper{}
 	err = marsh.Unmarshal(llwRecovered, buff)
+	assert.Nil(t, err)
 
 	assert.Equal(t, &llwCopyForAssert, llwRecovered, fmt.Sprintf("for marshalizer %v", marshName))
 }

@@ -1,6 +1,8 @@
 package block
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
@@ -113,11 +115,9 @@ type MetaBlock struct {
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
 	EpochStart             EpochStart        `capid:"15"`
+	ChainID                []byte            `capid:"16"`
 }
 
-// MetaBlockBody hold the data for metablock body
-type MetaBlockBody struct {
-}
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
 func (p *PeerData) Save(w io.Writer) error {
@@ -426,6 +426,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetTimeStamp(src.TimeStamp)
 	dest.SetEpochStart(EpochStartGoToCapn(seg, src.EpochStart))
 	dest.SetLeaderSignature(src.LeaderSignature)
+	dest.SetChainid(src.ChainID)
 
 	return dest
 }
@@ -467,6 +468,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.Round = src.Round()
 	dest.TimeStamp = src.TimeStamp()
 	dest.EpochStart = *EpochStartCapnToGo(src.EpochStart(), nil)
+	dest.ChainID = src.Chainid()
 
 	return dest
 }
@@ -536,6 +538,11 @@ func (m *MetaBlock) GetLeaderSignature() []byte {
 	return m.LeaderSignature
 }
 
+// GetChainID gets the chain ID on which this block is valid on
+func (m *MetaBlock) GetChainID() []byte {
+	return m.ChainID
+}
+
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
@@ -598,6 +605,11 @@ func (m *MetaBlock) SetSignature(sg []byte) {
 // SetLeaderSignature will set the leader's signature
 func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 	m.LeaderSignature = sg
+}
+
+// SetChainID sets the chain ID on which this block is valid on
+func (m *MetaBlock) SetChainID(chainID []byte) {
+	m.ChainID = chainID
 }
 
 // SetTimeStamp sets header timestamp
@@ -669,4 +681,19 @@ func (m *MetaBlock) ItemsInBody() uint32 {
 func (m *MetaBlock) Clone() data.HeaderHandler {
 	metaBlockCopy := *m
 	return &metaBlockCopy
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (m *MetaBlock) CheckChainID(reference []byte) error {
+	if !bytes.Equal(m.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(m.ChainID),
+		)
+	}
+
+	return nil
 }

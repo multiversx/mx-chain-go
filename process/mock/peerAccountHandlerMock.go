@@ -55,10 +55,6 @@ func (pahm *PeerAccountHandlerMock) SetRootHash(rootHash []byte) {
 	pahm.rootHash = rootHash
 }
 
-func (pahm *PeerAccountHandlerMock) SetRootHashWithJournal(rootHash []byte) error {
-	return pahm.SetRootHashWithJournalCalled(rootHash)
-}
-
 func (pahm *PeerAccountHandlerMock) SetNonceWithJournal(nonce uint64) error {
 	return pahm.SetNonceWithJournalCalled(nonce)
 }

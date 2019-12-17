@@ -33,7 +33,7 @@ type BootstrapHeaderInfo struct {
 
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
-	HeaderInfo           BootstrapHeaderInfo
+	LastHeader           BootstrapHeaderInfo
 	LastNotarizedHeaders []BootstrapHeaderInfo
 	LastFinals           []BootstrapHeaderInfo
 	ProcessedMiniBlocks  []MiniBlocksInMeta
@@ -154,4 +154,15 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bs *bootstrapStorer) IsInterfaceNil() bool {
 	return bs == nil
+}
+
+// TrimHeaderInfoSlice creates a copy of the provided slice without the excess capacity
+func TrimHeaderInfoSlice(in []BootstrapHeaderInfo) []BootstrapHeaderInfo {
+	if len(in) == 0 {
+		return []BootstrapHeaderInfo{}
+	}
+
+	ret := make([]BootstrapHeaderInfo, len(in))
+	copy(ret, in)
+	return ret
 }
