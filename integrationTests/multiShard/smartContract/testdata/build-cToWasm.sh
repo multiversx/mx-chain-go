@@ -62,7 +62,6 @@ done < $SOURCE_EXPORT
 
 # Now perform the actual building.
 $CLANG -cc1 -O0 -emit-llvm -triple=wasm32-unknown-unknown-wasm $SOURCE_C
-
 SOURCE_LL=$SOURCE".ll"
 SOURCE_O=$SOURCE".o"
 SOURCE_WASM=$SOURCE".wasm"
