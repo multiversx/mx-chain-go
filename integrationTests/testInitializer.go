@@ -795,7 +795,6 @@ func CreateNodes(
 	numMetaChainNodes int,
 	serviceID string,
 ) []*TestProcessorNode {
-	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
@@ -824,7 +823,6 @@ func CreateNodesWithMemP2P(
 	numMetaChainNodes int,
 	network *memp2p.Network,
 ) []*TestProcessorNode {
-	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0

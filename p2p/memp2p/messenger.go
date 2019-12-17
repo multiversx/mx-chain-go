@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
 const maxQueueSize = 1000
@@ -39,7 +37,6 @@ type Messenger struct {
 	topicValidators map[string]p2p.MessageProcessor
 	topicsMutex     *sync.RWMutex
 	seqNo           uint64
-	seenMessages    *timecache.TimeCache
 	processQueue    chan p2p.MessageP2P
 	numReceived     uint64
 }
@@ -63,7 +60,6 @@ func NewMessenger(network *Network) (*Messenger, error) {
 		topics:          make(map[string]struct{}),
 		topicValidators: make(map[string]p2p.MessageProcessor),
 		topicsMutex:     &sync.RWMutex{},
-		seenMessages:    timecache.NewTimeCache(time.Minute),
 		processQueue:    make(chan p2p.MessageP2P, maxQueueSize),
 	}
 	network.RegisterPeer(messenger)
@@ -316,14 +312,6 @@ func (messenger *Messenger) processFromQueue() {
 		message := <-messenger.processQueue
 		if check.IfNil(message) {
 			continue
-		}
-
-		identifier := string(message.Peer()) + string(message.SeqNo())
-		messenger.seenMessages.Sweep()
-		err := messenger.seenMessages.Add(identifier)
-		if err != nil {
-			log.Warn("reply back")
-			return
 		}
 
 		topic := message.TopicIDs()[0]
