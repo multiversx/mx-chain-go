@@ -277,10 +277,6 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 // Note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
 // is not automatically called
 func (boot *baseBootstrap) ShouldSync() bool {
-	if !boot.networkWatcher.IsConnectedToTheNetwork() {
-		return true
-	}
-
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
@@ -297,7 +293,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
 
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock
+	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
+
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -659,7 +657,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+		_, _ = updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
+
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {
 			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))

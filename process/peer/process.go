@@ -319,7 +319,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].Address())
+		leaderPeerAcc, err := p.GetPeerAccount(consensusGroup[0].PubKey())
 		if err != nil {
 			return err
 		}
@@ -423,7 +423,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 }
 
 func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := p.adrConv.CreateAddressFromHex(node.Address)
+	address, err := p.adrConv.CreateAddressFromHex(node.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -483,8 +483,7 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		address := validatorList[i].Address()
-		peerAcc, err := p.getPeerAccount(address)
+		peerAcc, err := p.GetPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -508,7 +507,8 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 	return nil
 }
 
-func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+// GetPeerAccount will return a PeerAccountHandler for a given address
+func (p *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	addressContainer, err := p.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
@@ -549,8 +549,8 @@ func (p *validatorStatistics) loadExistingPrevShardData(currentHeader, previousH
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
 
-	p.prevShardInfo = make(map[string]block.ShardData)
-	missingPreviousShardData := make(map[string]block.ShardData)
+	p.prevShardInfo = make(map[string]block.ShardData, len(currentHeader.ShardInfo))
+	missingPreviousShardData := make(map[string]block.ShardData, len(currentHeader.ShardInfo))
 
 	for _, currentShardData := range currentHeader.ShardInfo {
 		if currentShardData.Nonce == 1 {

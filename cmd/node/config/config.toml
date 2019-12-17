@@ -135,6 +135,17 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[StatusMetricsStorage]
+    [StatusMetricsStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [StatusMetricsStorage.DB]
+        FilePath = "StatusMetricsStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Size = 1000
@@ -238,6 +249,10 @@
 
 [Address]
     Length = 32
+    Prefix = "0x"
+
+[BLSPublicKey]
+    Length = 128
     Prefix = "0x"
 
 [Hasher]

@@ -885,6 +885,28 @@ func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.
 	assert.Equal(t, ErrNilRequestedItemsHandler, err)
 }
 
+func TestWithHeaderSigVerifier_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderSigVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -895,5 +917,49 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 	err := opt(node)
 
 	assert.True(t, node.requestedItemsHandler == requestedItemsHeanlder)
+	assert.Nil(t, err)
+}
+
+func TestWithValidatorStatistics_NilValidatorStatisticsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorStatistics(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilValidatorStatistics, err)
+}
+
+func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{})
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
+func TestWithChainID_InvalidShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithChainID(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrInvalidChainID, err)
+}
+
+func TestWithChainID_OkValueShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	chainId := []byte("chain ID")
+	opt := WithChainID(chainId)
+
+	err := opt(node)
+	assert.Equal(t, node.chainID, chainId)
 	assert.Nil(t, err)
 }

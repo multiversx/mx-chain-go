@@ -2,22 +2,17 @@ package dataValidators
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
-	rejectedTxs          uint64
 	maxNonceDeltaAllowed int
 }
 
@@ -38,7 +33,6 @@ func NewTxValidator(
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
-		rejectedTxs:          uint64(0),
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 	}, nil
 }
@@ -56,9 +50,9 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
 		sndAddrBytes := sndAddr.Bytes()
-		return errors.New(fmt.Sprintf("transaction's sender address %s does not exist in current shard %d",
+		return fmt.Errorf("transaction's sender address %s does not exist in current shard %d",
 			hex.EncodeToString(sndAddrBytes),
-			shardId))
+			shardId)
 	}
 
 	accountNonce := accountHandler.GetNonce()
@@ -67,35 +61,25 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
-		txv.rejectedTxs++
-		return errors.New(fmt.Sprintf("Invalid nonce. Wanted %d, got %d", accountNonce, txNonce))
+		return fmt.Errorf("invalid nonce. Wanted %d, got %d", accountNonce, txNonce)
 	}
 
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		return errors.New(fmt.Sprintf("cannot convert account handler in a state.Account %s", hexSenderAddr))
+		return fmt.Errorf("cannot convert account handler in a state.Account %s", hexSenderAddr)
 	}
 
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
-		txv.rejectedTxs++
-		return errors.New(fmt.Sprintf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance))
+		return fmt.Errorf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance)
 	}
 
 	return nil
 }
 
-// NumRejectedTxs will return number of rejected transaction
-func (txv *txValidator) NumRejectedTxs() uint64 {
-	return txv.rejectedTxs
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (txv *txValidator) IsInterfaceNil() bool {
-	if txv == nil {
-		return true
-	}
-	return false
+	return txv == nil
 }

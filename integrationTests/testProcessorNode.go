@@ -86,7 +86,7 @@ var MinTxGasPrice = uint64(10)
 var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(10000000)
+const MaxGasLimitPerBlock = uint64(300000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -99,7 +99,10 @@ const OpGasValueForMockVm = uint64(50)
 var TimeSpanForBadHeaders = time.Second * 30
 
 // roundDuration defines the duration of the round
-const roundDuration = time.Duration(5 * time.Second)
+const roundDuration = 5 * time.Second
+
+// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
+var IntegrationTestsChainID = []byte("integration tests chain ID")
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -165,7 +168,8 @@ type TestProcessorNode struct {
 
 	EpochStartTrigger TestEpochStartTrigger
 
-	MultiSigner crypto.MultiSigner
+	MultiSigner       crypto.MultiSigner
+	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -175,6 +179,8 @@ type TestProcessorNode struct {
 	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
+
+	ChainID []byte
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance
@@ -203,9 +209,11 @@ func NewTestProcessorNode(
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -234,9 +242,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	sk, pk := kg.GeneratePair()
 
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -380,6 +390,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.HeaderSigVerifier,
+			tpn.ChainID,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -405,6 +417,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
+			tpn.HeaderSigVerifier,
+			tpn.ChainID,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -527,7 +541,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	mockVM.GasForOperation = OpGasValueForMockVm
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
-	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
@@ -622,7 +636,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -747,8 +761,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
+		blsKeyedAddressConverter, _ := addressConverters.NewPlainAddressConverter(
+			128,
+			"0x",
+		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     TestAddressConverter,
+			AdrConv:     blsKeyedAddressConverter,
 			Hasher:      TestHasher,
 			Marshalizer: TestMarshalizer,
 			PeerState:   tpn.PeerState,
@@ -949,6 +967,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
+	blockHeader.SetChainID(tpn.ChainID)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {

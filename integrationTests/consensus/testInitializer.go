@@ -55,6 +55,7 @@ const blsConsensusType = "bls"
 const bnConsensusType = "bn"
 
 var r *rand.Rand
+var consensusChainID = []byte("consensus chain ID")
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -440,6 +441,8 @@ func createConsensusOnlyNode(
 		node.WithEpochStartTrigger(epochStartTrigger),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
+		node.WithChainID(consensusChainID),
 	)
 
 	if err != nil {

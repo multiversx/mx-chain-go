@@ -87,24 +87,7 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	)
 
 	_, _, err := gc.ComputeGasConsumedByTx(0, 1, nil)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestComputeGasConsumedByTx_ShouldErrInsufficientGasLimitInTx(t *testing.T) {
-	t.Parallel()
-
-	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
-			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-				return 6
-			},
-		},
-	)
-
-	tx := transaction.Transaction{GasLimit: 5}
-
-	_, _, err := gc.ComputeGasConsumedByTx(0, 1, &tx)
-	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
+	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
 func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContract(t *testing.T) {

@@ -64,6 +64,8 @@ func NewInterceptorsContainerFactory(
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	chainID []byte,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -114,19 +116,27 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(blockSingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
+	if check.IfNil(headerSigVerifier) {
+		return nil, process.ErrNilHeaderSigVerifier
+	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:      marshalizer,
-		Hasher:           hasher,
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nodesCoordinator,
-		MultiSigVerifier: multiSigner,
-		KeyGen:           keyGen,
-		BlockKeyGen:      blockKeyGen,
-		Signer:           singleSigner,
-		BlockSigner:      blockSingleSigner,
-		AddrConv:         addrConverter,
-		FeeHandler:       txFeeHandler,
+		Marshalizer:       marshalizer,
+		Hasher:            hasher,
+		ShardCoordinator:  shardCoordinator,
+		NodesCoordinator:  nodesCoordinator,
+		MultiSigVerifier:  multiSigner,
+		KeyGen:            keyGen,
+		BlockKeyGen:       blockKeyGen,
+		Signer:            singleSigner,
+		BlockSigner:       blockSingleSigner,
+		AddrConv:          addrConverter,
+		FeeHandler:        txFeeHandler,
+		HeaderSigVerifier: headerSigVerifier,
+		ChainID:           chainID,
 	}
 
 	icf := &interceptorsContainerFactory{

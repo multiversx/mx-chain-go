@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,16 +13,14 @@ type interceptedMetaHeaderDataFactory struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
-	singleSigVerifier crypto.SingleSigner
-	multiSigVerifier  crypto.MultiSigVerifier
-	nodesCoordinator  sharding.NodesCoordinator
-	keyGen            crypto.KeyGenerator
+	headerSigVerifier process.InterceptedHeaderSigVerifier
+	chainID           []byte
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
 func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -34,27 +31,19 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(argument.MultiSigVerifier) {
-		return nil, process.ErrNilMultiSigVerifier
+	if check.IfNil(argument.HeaderSigVerifier) {
+		return nil, process.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(argument.NodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
-	}
-	if check.IfNil(argument.BlockKeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(argument.BlockSigner) {
-		return nil, process.ErrNilSingleSigner
+	if len(argument.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
 	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
-		multiSigVerifier:  argument.MultiSigVerifier,
-		nodesCoordinator:  argument.NodesCoordinator,
-		keyGen:            argument.BlockKeyGen,
-		singleSigVerifier: argument.BlockSigner,
+		headerSigVerifier: argument.HeaderSigVerifier,
+		chainID:           argument.ChainID,
 	}, nil
 }
 
@@ -64,11 +53,9 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		HdrBuff:           buff,
 		Marshalizer:       imhdf.marshalizer,
 		Hasher:            imhdf.hasher,
-		SingleSigVerifier: imhdf.singleSigVerifier,
-		MultiSigVerifier:  imhdf.multiSigVerifier,
-		NodesCoordinator:  imhdf.nodesCoordinator,
 		ShardCoordinator:  imhdf.shardCoordinator,
-		KeyGen:            imhdf.keyGen,
+		HeaderSigVerifier: imhdf.headerSigVerifier,
+		ChainID:           imhdf.chainID,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

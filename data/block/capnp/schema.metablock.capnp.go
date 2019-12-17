@@ -1518,6 +1518,8 @@ func (s MetaBlockCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
 func (s MetaBlockCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
 	C.Struct(s).SetObject(10, C.Object(v))
 }
+func (s MetaBlockCapn) Chainid() []byte     { return C.Struct(s).GetObject(11).ToData() }
+func (s MetaBlockCapn) SetChainid(v []byte) { C.Struct(s).SetObject(11, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) EpochStart() EpochStartCapn {
 	return EpochStartCapn(C.Struct(s).GetObject(11).ToStruct())
 }
@@ -1869,6 +1871,25 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"chainid\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -2247,6 +2268,25 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("chainid = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}

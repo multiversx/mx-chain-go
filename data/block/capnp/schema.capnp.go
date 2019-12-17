@@ -62,6 +62,8 @@ func (s HeaderCapn) EpochStartMetaHash() []byte     { return C.Struct(s).GetObje
 func (s HeaderCapn) SetEpochStartMetaHash(v []byte) { C.Struct(s).SetObject(11, s.Segment.NewData(v)) }
 func (s HeaderCapn) TxCount() uint32                { return C.Struct(s).Get32(36) }
 func (s HeaderCapn) SetTxCount(v uint32)            { C.Struct(s).Set32(36, v) }
+func (s HeaderCapn) Chainid() []byte               { return C.Struct(s).GetObject(11).ToData() }
+func (s HeaderCapn) SetChainid(v []byte)           { C.Struct(s).SetObject(11, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -465,6 +467,25 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"chainid\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -889,6 +910,25 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("chainid = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
