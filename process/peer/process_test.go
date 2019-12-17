@@ -671,6 +671,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
+	header.PubKeysBitmap = []byte{255, 0}
 
 	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
 		switch v := obj.(type) {

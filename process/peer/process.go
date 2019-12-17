@@ -16,6 +16,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+type validatorActionType uint8
+
+const (
+	unknownAction validatorActionType = 0
+	leaderSuccess validatorActionType = 1
+	leaderFail validatorActionType = 2
+	validatorSuccess validatorActionType = 3
+	validatorFail validatorActionType = 4
+)
+
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
@@ -220,7 +230,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	err = p.updateValidatorInfo(consensusGroup, header.GetShardID())
+	err = p.updateValidatorInfo(consensusGroup, header.GetPubKeysBitmap(), header.GetShardID())
 	if err != nil {
 		return nil, err
 	}
@@ -289,6 +299,18 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		if err != nil {
 			return err
 		}
+
+		for j := 1; j < len(consensusGroup); j++ {
+			validatorPeerAccount, verr := p.GetPeerAccount(consensusGroup[i].PubKey())
+			if verr != nil {
+				return verr
+			}
+
+			verr = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal()
+			if verr != nil {
+				return verr
+			}
+		}
 	}
 
 	return nil
@@ -327,7 +349,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			return shardInfoErr
 		}
 
-		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardID)
+		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.ShardID)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -423,7 +445,7 @@ func (p *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
+func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte,shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := p.GetPeerAccount(validatorList[i].PubKey())
@@ -432,10 +454,18 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		isLeader := i == 0
-		if isLeader {
+		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
+		actionType :=  p.computeValidatorActionType(isLeader, validatorSigned)
+
+		switch actionType {
+		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-		} else {
+		case leaderFail:
+			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
+		case validatorSuccess:
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+		case validatorFail:
+			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
 		}
 
 		if err != nil {
@@ -603,6 +633,23 @@ func (p *validatorStatistics) createMediator() shardMetaMediator {
 		return &shardMediator{p}
 	}
 	return &metaMediator{p}
+}
+
+func (p *validatorStatistics) computeValidatorActionType(isLeader, validatorSigned bool) validatorActionType {
+	if isLeader && validatorSigned {
+		return leaderSuccess
+	}
+	if isLeader && !validatorSigned {
+		return leaderFail
+	}
+	if !isLeader && validatorSigned {
+		return validatorSuccess
+	}
+	if !isLeader && !validatorSigned {
+		return validatorFail
+	}
+
+	return unknownAction
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
