@@ -32,7 +32,7 @@ func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	hip, err := processor.NewHdrInterceptorProcessor(nil)
 
 	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {

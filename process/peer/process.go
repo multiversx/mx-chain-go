@@ -81,7 +81,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[string]block.ShardData, 0),
+		prevShardInfo:    make(map[string]block.ShardData),
 	}
 	vs.mediator = vs.createMediator()
 
@@ -280,7 +280,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].Address())
+		leaderPeerAcc, err := p.GetPeerAccount(consensusGroup[0].PubKey())
 		if err != nil {
 			return err
 		}
@@ -377,7 +377,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 }
 
 func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := p.adrConv.CreateAddressFromHex(node.Address)
+	address, err := p.adrConv.CreateAddressFromHex(node.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
+		peerAcc, err := p.GetPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,8 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 	return nil
 }
 
-func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+// GetPeerAccount will return a PeerAccountHandler for a given address
+func (p *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	addressContainer, err := p.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err

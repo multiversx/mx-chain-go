@@ -14,12 +14,13 @@ type interceptedMetaHeaderDataFactory struct {
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
+	chainID           []byte
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
 func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -33,12 +34,16 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if len(argument.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
+		chainID:           argument.ChainID,
 	}, nil
 }
 
@@ -50,6 +55,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		Hasher:            imhdf.hasher,
 		ShardCoordinator:  imhdf.shardCoordinator,
 		HeaderSigVerifier: imhdf.headerSigVerifier,
+		ChainID:           imhdf.chainID,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

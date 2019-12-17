@@ -77,6 +77,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -122,14 +123,16 @@ type Core struct {
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
+	ChainID                  []byte
 }
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressConverter  state.AddressConverter
-	PeerAccounts      state.AccountsAdapter
-	AccountsAdapter   state.AccountsAdapter
-	InBalanceForShard map[string]*big.Int
+	AddressConverter    state.AddressConverter
+	BLSAddressConverter state.AddressConverter
+	PeerAccounts        state.AccountsAdapter
+	AccountsAdapter     state.AccountsAdapter
+	InBalanceForShard   map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -162,18 +165,21 @@ type Process struct {
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
 	HeaderSigVerifier     HeaderSigVerifierHandler
+	ValidatorsStatistics  process.ValidatorStatisticsProcessor
 }
 
 type coreComponentsFactoryArgs struct {
 	config   *config.Config
 	uniqueID string
+	chainID  []byte
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, chainID []byte) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
+		chainID:  chainID,
 	}
 }
 
@@ -201,6 +207,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
+		ChainID:                  args.chainID,
 	}, nil
 }
 
@@ -235,9 +242,16 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		args.config.Address.Length,
 		args.config.Address.Prefix,
 	)
-
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
+	}
+
+	blsAddressConverter, err := addressConverters.NewPlainAddressConverter(
+		args.config.BLSPublicKey.Length,
+		args.config.BLSPublicKey.Prefix,
+	)
+	if err != nil {
+		return nil, errors.New("could not create bls address converter: " + err.Error())
 	}
 
 	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
@@ -276,10 +290,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	}
 
 	return &State{
-		PeerAccounts:      peerAdapter,
-		AddressConverter:  addressConverter,
-		AccountsAdapter:   accountsAdapter,
-		InBalanceForShard: inBalanceForShard,
+		PeerAccounts:        peerAdapter,
+		AddressConverter:    addressConverter,
+		BLSAddressConverter: blsAddressConverter,
+		AccountsAdapter:     accountsAdapter,
+		InBalanceForShard:   inBalanceForShard,
 	}, nil
 }
 
@@ -622,6 +637,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
 		HeaderSigVerifier:     headerSigVerifier,
+		ValidatorsStatistics:  validatorStatisticsProcessor,
 	}, nil
 }
 
@@ -1450,6 +1466,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1507,6 +1524,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1862,7 +1880,7 @@ func newShardBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
@@ -2119,7 +2137,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
@@ -2252,7 +2270,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:     state.AddressConverter,
+		AdrConv:     state.BLSAddressConverter,
 		Hasher:      core.Hasher,
 		Marshalizer: core.Marshalizer,
 		PeerState:   state.PeerAccounts,
@@ -2321,7 +2339,7 @@ func newValidatorStatisticsProcessor(
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
 		PeerAdapter:      processComponents.state.PeerAccounts,
-		AdrConv:          processComponents.state.AddressConverter,
+		AdrConv:          processComponents.state.BLSAddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
 		DataPool:         peerDataPool,
