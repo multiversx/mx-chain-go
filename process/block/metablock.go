@@ -299,7 +299,7 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	}
 
 	//if all miniblockshards hashes are in header miniblocks as well
-	mapMetaMiniBlockHdrs := make(map[string]struct{})
+	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
 	for _, metaMiniBlock := range header.MiniBlockHeaders {
 		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
 	}
@@ -722,7 +722,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
-	arguments := make([]interface{}, 0)
+	arguments := make([]interface{}, 0, len(header.ShardInfo))
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
@@ -1085,9 +1085,9 @@ func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHand
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
-	highestNonceHdrs := make(map[uint32]data.HeaderHandler)
-
 	usedShardHdrs := mp.sortHeadersForCurrentBlockByNonce(true)
+	highestNonceHdrs := make(map[uint32]data.HeaderHandler, len(usedShardHdrs))
+
 	if len(usedShardHdrs) == 0 {
 		return highestNonceHdrs, nil
 	}
@@ -1362,7 +1362,7 @@ func (mp *metaProcessor) createShardInfo(
 	round uint64,
 ) ([]block.ShardData, error) {
 
-	shardInfo := make([]block.ShardData, 0)
+	shardInfo := make([]block.ShardData, 0, len(mp.hdrsForCurrBlock.hdrHashAndInfo))
 
 	log.Debug("creating shard info has been started")
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -1373,7 +1373,7 @@ func (mp *metaProcessor) createShardInfo(
 		}
 
 		shardData := block.ShardData{}
-		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
+		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
@@ -1512,8 +1512,8 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte)
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
+	mrsData := make(map[uint32][]byte, len(bodies))
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(subsetBlockBody)

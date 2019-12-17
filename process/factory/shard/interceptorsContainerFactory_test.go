@@ -16,6 +16,7 @@ import (
 )
 
 var errExpected = errors.New("expected error")
+var chainID = []byte("chain ID")
 
 const maxTxNonceDeltaAllowed = 100
 
@@ -107,6 +108,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -136,6 +138,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -165,6 +168,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -194,6 +198,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -223,6 +228,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -252,6 +258,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -281,6 +288,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -310,6 +318,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -339,6 +348,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -368,6 +378,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -397,6 +408,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -426,6 +438,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -455,6 +468,7 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		nil,
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -484,11 +498,42 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		nil,
+		&mock.P2PAntifloodHandlerStub{},
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewInterceptorsContainerFactory_NilAntifloodHandlerShouldErr(t *testing.T) {
@@ -513,6 +558,7 @@ func TestNewInterceptorsContainerFactory_NilAntifloodHandlerShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		nil,
 	)
 
@@ -542,6 +588,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -573,6 +620,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -604,6 +652,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -635,6 +684,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -666,6 +716,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -697,6 +748,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -728,6 +780,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -759,6 +812,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -790,6 +844,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -828,6 +883,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -879,6 +935,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 

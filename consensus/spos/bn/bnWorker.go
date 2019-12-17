@@ -82,6 +82,11 @@ func (wrk *worker) IsSubroundSignature(subroundId int) bool {
 	return subroundId == SrSignature
 }
 
+//IsSubroundStartRound returns if the current subround is about start round
+func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
+	return subroundId == SrStartRound
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *worker) IsInterfaceNil() bool {
 	if wrk == nil {

@@ -516,6 +516,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	uniqueDBFolder := filepath.Join(
 		workingDir,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
 		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
@@ -529,7 +530,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -1110,6 +1111,8 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithChainID(core.ChainID),
 		node.WithAntifloodHandler(network.AntifloodHandler),
 	)
 	if err != nil {

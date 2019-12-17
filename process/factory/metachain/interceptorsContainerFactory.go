@@ -66,6 +66,7 @@ func NewInterceptorsContainerFactory(
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	chainID []byte,
 	antifloodHandler process.P2PAntifloodHandler,
 ) (*interceptorsContainerFactory, error) {
 
@@ -120,6 +121,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(headerSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
@@ -137,6 +141,7 @@ func NewInterceptorsContainerFactory(
 		AddrConv:          addrConverter,
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
+		ChainID:           chainID,
 	}
 
 	icf := &interceptorsContainerFactory{
