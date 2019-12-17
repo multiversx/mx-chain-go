@@ -49,7 +49,7 @@ func NewMetaForkDetector(
 	return &mfd, nil
 }
 
-// AddHeader method adds a new header to headers map
+// AddTrackedHeader method adds a new header to headers map
 func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,

@@ -72,11 +72,11 @@ func NewShardBlockTrack(
 	}
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	sbt.longestChainHeadersIndexes = make([]int, 0)
 	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
 	sbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	sbt.crossNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	sbt.blockFinality = process.BlockFinality
 
@@ -109,4 +109,14 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 	}
 
 	return selfHeadersInfo
+}
+
+func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeader, err := sbt.getLastSelfNotarizedHeader(sharding.MetachainShardId)
+	if err != nil {
+		return nil, nil, nil
+	}
+
+	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
+	return lastSelfNotarizedHeader, headers, hashes
 }

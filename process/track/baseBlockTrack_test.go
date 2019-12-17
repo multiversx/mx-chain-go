@@ -218,7 +218,7 @@ func TestNewBlockTrack_AddHeaderForShardShouldNotUpdateIfHeaderIsNil(t *testing.
 		initStore(),
 		genesisBlocks,
 	)
-	bt.AddHeader(nil, nil)
+	bt.AddTrackedHeader(nil, nil)
 	lastHeader := bt.LastHeaderForShard(0)
 	assert.Nil(t, lastHeader)
 }
@@ -240,15 +240,15 @@ func TestNewBlockTrack_AddHeaderShouldNotUpdateIfRoundIsLowerOrEqual(t *testing.
 	header2 := &block.Header{Round: 1}
 	header3 := &block.Header{Round: 2}
 
-	bt.AddHeader(header1, []byte("hash1"))
+	bt.AddTrackedHeader(header1, []byte("hash1"))
 	lastHeader := bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 
-	bt.AddHeader(header2, []byte("hash2"))
+	bt.AddTrackedHeader(header2, []byte("hash2"))
 	lastHeader = bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 
-	bt.AddHeader(header3, []byte("hash3"))
+	bt.AddTrackedHeader(header3, []byte("hash3"))
 	lastHeader = bt.LastHeaderForShard(0)
 	assert.Equal(t, header1, lastHeader)
 }
@@ -274,22 +274,22 @@ func TestNewBlockTrack_AddHeaderShouldUpdate(t *testing.T) {
 	header5 := &block.MetaBlock{Round: 3}
 	header6 := &block.MetaBlock{Round: 4}
 
-	bt.AddHeader(header1, []byte("hash1"))
-	bt.AddHeader(header4, []byte("hash4"))
+	bt.AddTrackedHeader(header1, []byte("hash1"))
+	bt.AddTrackedHeader(header4, []byte("hash4"))
 	lastHeader := bt.LastHeaderForShard(0)
 	lastHeaderMeta := bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header1, lastHeader)
 	assert.Equal(t, header4, lastHeaderMeta)
 
-	bt.AddHeader(header2, []byte("hash2"))
-	bt.AddHeader(header5, []byte("hash5"))
+	bt.AddTrackedHeader(header2, []byte("hash2"))
+	bt.AddTrackedHeader(header5, []byte("hash5"))
 	lastHeader = bt.LastHeaderForShard(0)
 	lastHeaderMeta = bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header2, lastHeader)
 	assert.Equal(t, header5, lastHeaderMeta)
 
-	bt.AddHeader(header3, []byte("hash3"))
-	bt.AddHeader(header6, []byte("hash6"))
+	bt.AddTrackedHeader(header3, []byte("hash3"))
+	bt.AddTrackedHeader(header6, []byte("hash6"))
 	lastHeader = bt.LastHeaderForShard(0)
 	lastHeaderMeta = bt.LastHeaderForShard(sharding.MetachainShardId)
 	assert.Equal(t, header3, lastHeader)
@@ -313,9 +313,9 @@ func TestNewBlockTrack_LastHeaderForShardShouldWork(t *testing.T) {
 	header2 := &block.Header{ShardId: 1, Round: 2}
 	header3 := &block.MetaBlock{Round: 2}
 
-	bt.AddHeader(header1, []byte("hash1"))
-	bt.AddHeader(header2, []byte("hash2"))
-	bt.AddHeader(header3, []byte("hash3"))
+	bt.AddTrackedHeader(header1, []byte("hash1"))
+	bt.AddTrackedHeader(header2, []byte("hash2"))
+	bt.AddTrackedHeader(header3, []byte("hash3"))
 
 	lastHeader := bt.LastHeaderForShard(header1.GetShardID())
 	assert.Equal(t, header1, lastHeader)
@@ -357,7 +357,7 @@ func TestNewBlockTrack_IsShardStuckShoudReturnFalse(t *testing.T) {
 		genesisBlocks,
 	)
 
-	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
+	bt.AddTrackedHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	isShardStuck := bt.IsShardStuck(0)
 	assert.False(t, isShardStuck)
 }
@@ -376,7 +376,7 @@ func TestNewBlockTrack_IsShardStuckShoudReturnTrue(t *testing.T) {
 		genesisBlocks,
 	)
 
-	bt.AddHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
+	bt.AddTrackedHeader(&block.Header{Round: 1, Nonce: 1}, []byte("hash1"))
 	rounderMock.RoundIndex = process.MaxRoundsWithoutCommittedBlock + 1
 	isShardStuck := bt.IsShardStuck(0)
 	assert.True(t, isShardStuck)

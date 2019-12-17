@@ -72,11 +72,11 @@ func NewMetaBlockTrack(
 	}
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	mbt.longestChainHeadersIndexes = make([]int, 0)
 	mbt.metaBlocksPool.RegisterHandler(mbt.receivedMetaBlock)
 	mbt.shardHeadersPool.RegisterHandler(mbt.receivedShardHeader)
 
 	mbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	mbt.crossNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	mbt.blockFinality = process.BlockFinality
 
@@ -105,4 +105,14 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 	}
 
 	return selfMetaBlocksInfo
+}
+
+func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeader, err := mbt.getLastSelfNotarizedHeader(mbt.shardCoordinator.SelfId())
+	if err != nil {
+		return nil, nil, nil
+	}
+
+	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
+	return lastSelfNotarizedHeader, headers, hashes
 }

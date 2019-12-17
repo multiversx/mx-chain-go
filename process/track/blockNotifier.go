@@ -23,3 +23,23 @@ func (bbt *baseBlockTrack) callSelfNotarizedHeadersHandlers(headers []data.Heade
 	}
 	bbt.mutSelfNotarizedHeadersHandlers.RUnlock()
 }
+
+// RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
+func (bbt *baseBlockTrack) RegisterCrossNotarizedHeadersHandler(handler func(headers []data.HeaderHandler, headersHashes [][]byte)) {
+	if handler == nil {
+		log.Debug("attempt to register a nil handler to a tracker object")
+		return
+	}
+
+	bbt.mutCrossNotarizedHeadersHandlers.Lock()
+	bbt.crossNotarizedHeadersHandlers = append(bbt.crossNotarizedHeadersHandlers, handler)
+	bbt.mutCrossNotarizedHeadersHandlers.Unlock()
+}
+
+func (bbt *baseBlockTrack) callCrossNotarizedHeadersHandlers(headers []data.HeaderHandler, headersHashes [][]byte) {
+	bbt.mutCrossNotarizedHeadersHandlers.RLock()
+	for _, handler := range bbt.crossNotarizedHeadersHandlers {
+		go handler(headers, headersHashes)
+	}
+	bbt.mutCrossNotarizedHeadersHandlers.RUnlock()
+}

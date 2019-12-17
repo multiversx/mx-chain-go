@@ -1,5 +1,9 @@
 package track
 
+import (
+	"github.com/ElrondNetwork/elrond-go/process"
+)
+
 func (bbt *baseBlockTrack) displayHeaders() {
 	bbt.mutHeaders.RLock()
 	defer bbt.mutHeaders.RUnlock()
@@ -16,25 +20,27 @@ func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
 }
 
 func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32) {
-	log.Trace("tracked headers", "shard", shardID)
+	log.Debug("tracked headers", "shard", shardID)
 
-	headers := bbt.sortHeadersForShardFromNonce(shardID, 0)
-	for _, header := range headers {
-		log.Trace("traked header info",
+	headers, hashes := bbt.sortHeadersForShardFromNonce(shardID, 0)
+	for index, header := range headers {
+		log.Debug("tracked header info",
 			"round", header.GetRound(),
-			"nonce", header.GetNonce())
+			"nonce", header.GetNonce(),
+			"hash", hashes[index])
 	}
 }
 
 func (bbt *baseBlockTrack) displayCrossNotarizedHeadersForShard(shardID uint32) {
-	log.Trace("cross notarized headers", "shard", shardID)
+	log.Debug("cross notarized headers", "shard", shardID)
 
 	bbt.mutCrossNotarizedHeaders.RLock()
 
 	crossNotarizedHeadersForShard, ok := bbt.crossNotarizedHeaders[shardID]
 	if ok {
+		process.SortHeadersByNonce(crossNotarizedHeadersForShard)
 		for _, header := range crossNotarizedHeadersForShard {
-			log.Trace("cross notarized header info",
+			log.Debug("cross notarized header info",
 				"round", header.GetRound(),
 				"nonce", header.GetNonce())
 		}
@@ -50,6 +56,7 @@ func (bbt *baseBlockTrack) displaySelfNotarizedHeadersForShard(shardID uint32) {
 
 	selfNotarizedHeadersForShard, ok := bbt.selfNotarizedHeaders[shardID]
 	if ok {
+		process.SortHeadersByNonce(selfNotarizedHeadersForShard)
 		for _, header := range selfNotarizedHeadersForShard {
 			log.Debug("self notarized header info",
 				"round", header.GetRound(),

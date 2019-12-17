@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -28,6 +27,7 @@ type ArgsStorageBootstrapper struct {
 	BootstrapRoundIndex uint64
 	ShardCoordinator    sharding.Coordinator
 	ResolversFinder     dataRetriever.ResolversFinder
+	BlockTracker        process.BlockTracker
 }
 
 type storageBootstrapper struct {
@@ -39,6 +39,7 @@ type storageBootstrapper struct {
 	store            dataRetriever.StorageService
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
 	shardCoordinator sharding.Coordinator
+	blockTracker     process.BlockTracker
 
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
@@ -181,45 +182,64 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		if err != nil {
 			st.blkExecutor.RestoreLastNotarizedHrdsToGenesis()
 			st.forkDetector.RestoreFinalCheckPointToGenesis()
+			st.blockTracker.RestoreHeadersToGenesis()
 		}
 	}()
 
 	for i := len(bootInfos) - 1; i >= 0; i-- {
-		log.Debug("apply block",
-			"nonce", bootInfos[i].Header.Nonce,
-			"shardId", bootInfos[i].Header.ShardId)
+		log.Debug("apply header",
+			"shard", bootInfos[i].Header.ShardId,
+			"nonce", bootInfos[i].Header.Nonce)
 
-		crossNotarizedHeaders := make(map[uint32]*sync.HdrInfo, len(bootInfos[i].CrossNotarizedHeaders))
-		crossNotarizedHashes := make(map[uint32][]byte, len(bootInfos[i].CrossNotarizedHeaders))
+		crossNotarizedHeadersHashes := make(map[uint32][]byte, len(bootInfos[i].CrossNotarizedHeaders))
 		for _, crossNotarizedHeader := range bootInfos[i].CrossNotarizedHeaders {
-			log.Debug("added notarized header",
-				"nonce", crossNotarizedHeader.Nonce,
-				"shardId", crossNotarizedHeader.ShardId)
-
-			crossNotarizedHeaders[crossNotarizedHeader.ShardId] = &sync.HdrInfo{
-				Nonce: crossNotarizedHeader.Nonce,
-				Hash:  crossNotarizedHeader.Hash,
-			}
-			crossNotarizedHashes[crossNotarizedHeader.ShardId] = crossNotarizedHeader.Hash
+			crossNotarizedHeadersHashes[crossNotarizedHeader.ShardId] = crossNotarizedHeader.Hash
 		}
 
-		err = st.bootstrapper.applyNotarizedBlocks(crossNotarizedHeaders)
+		err = st.bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeadersHashes)
 		if err != nil {
-			log.Debug("cannot apply notarized block", "error", err.Error())
-
+			log.Debug("cannot apply cross notarized headers", "error", err.Error())
 			return err
 		}
 
-		selfNotarizedHeadersHashes := make([][]byte, 0, len(bootInfos[i].SelfNotarizedHeaders))
-		for _, slefNotarizedHeader := range bootInfos[i].SelfNotarizedHeaders {
-			selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, slefNotarizedHeader.Hash)
+		selfNotarizedHeadersHashes := make([][]byte, len(bootInfos[i].SelfNotarizedHeaders))
+		for index, selfNotarizedHeader := range bootInfos[i].SelfNotarizedHeaders {
+			selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
 		}
 
-		err = st.addHeaderToForkDetector(bootInfos[i].Header.Hash, selfNotarizedHeadersHashes)
+		selfNotarizedHeaders, err := st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
 		if err != nil {
-			log.Debug("cannot apply final block", "error", err.Error())
+			log.Debug("cannot apply self notarized headers", "error", err.Error())
 			return err
 		}
+
+		header, err := st.bootstrapper.getHeader(bootInfos[i].Header.Hash)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("add header to fork detector",
+			"shard", header.GetShardID(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", bootInfos[i].Header.Hash)
+
+		err = st.forkDetector.AddHeader(header, bootInfos[i].Header.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("add self notarized header",
+			"shard", header.GetShardID(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", bootInfos[i].Header.Hash)
+
+		if i > 0 {
+			st.blockTracker.AddSelfNotarizedHeader(header.GetShardID(), header)
+		}
+
+		st.blockTracker.AddTrackedHeader(header, bootInfos[i].Header.Hash)
 	}
 
 	return nil
@@ -275,34 +295,6 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-
-	return nil
-}
-
-func (st *storageBootstrapper) addHeaderToForkDetector(hash []byte, selfNotarizedHeadersHashes [][]byte) error {
-	header, err := st.bootstrapper.getHeader(hash)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("added header to fork detector",
-		"nonce", header.GetNonce(),
-		"shardId", header.GetShardID())
-
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
-	for _, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
-		selfNotarizedHeader, err := st.bootstrapper.getHeader(selfNotarizedHeaderHash)
-		if err != nil {
-			return err
-		}
-		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
-		log.Debug("added notarized header", "nonce", selfNotarizedHeader.GetNonce())
-	}
-
-	err = st.forkDetector.AddHeader(header, hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

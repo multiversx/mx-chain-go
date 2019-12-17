@@ -2,6 +2,7 @@ package track
 
 import (
 	"bytes"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -42,15 +43,30 @@ type baseBlockTrack struct {
 	mutSelfNotarizedHeaders sync.RWMutex
 	selfNotarizedHeaders    map[uint32][]data.HeaderHandler
 
-	mutLongestChainHeadersIndexes sync.RWMutex
-	longestChainHeadersIndexes    []int
-
 	mutSelfNotarizedHeadersHandlers sync.RWMutex
 	selfNotarizedHeadersHandlers    []func(headers []data.HeaderHandler, headersHashes [][]byte)
+
+	mutCrossNotarizedHeadersHandlers sync.RWMutex
+	crossNotarizedHeadersHandlers    []func(headers []data.HeaderHandler, headersHashes [][]byte)
 
 	blockFinality uint64
 
 	blockTracker blockTracker
+}
+
+// AddTrackedHeader adds header to the tracker lists
+func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
+	bbt.addHeader(header, hash)
+}
+
+// AddCrossNotarizedHeaders adds cross notarized header to the tracker lists
+func (bbt *baseBlockTrack) AddCrossNotarizedHeader(shardID uint32, crossNotarizedHeader data.HeaderHandler) {
+	bbt.addCrossNotarizedHeaders(crossNotarizedHeader.GetShardID(), []data.HeaderHandler{crossNotarizedHeader})
+}
+
+// AddSelfNotarizedHeader adds self notarized header to the tracker lists
+func (bbt *baseBlockTrack) AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler) {
+	bbt.addSelfNotarizedHeaders(selfNotarizedHeader.GetShardID(), []data.HeaderHandler{selfNotarizedHeader})
 }
 
 // CleanupHeadersForShardBehindNonce removes from local pools old headers for a given shard
@@ -59,10 +75,14 @@ func (bbt *baseBlockTrack) CleanupHeadersForShardBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
+	lastSelfNotarizedNonce := bbt.getLastSelfNotarizedHeaderNonce(shardID)
+	selfNotarizedNonce = core.MinUint64(selfNotarizedNonce, lastSelfNotarizedNonce)
 	bbt.cleanupSelfNotarizedBlocksForShardBehindNonce(shardID, selfNotarizedNonce)
-
 	nonce := selfNotarizedNonce
+
 	if shardID != bbt.shardCoordinator.SelfId() {
+		lastCrossNotarizedNonce := bbt.getLastCrossNotarizedHeaderNonce(shardID)
+		crossNotarizedNonce = core.MinUint64(crossNotarizedNonce, lastCrossNotarizedNonce)
 		bbt.cleanupCrossNotarizedBlocksForShardBehindNonce(shardID, crossNotarizedNonce)
 		nonce = crossNotarizedNonce
 	}
@@ -141,80 +161,73 @@ func (bbt *baseBlockTrack) cleanupHeadersForShardBehindNonce(shardID uint32, non
 }
 
 // ComputeLongestChain returns the longest valid chain for a given shard from a given header
-func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler) []data.HeaderHandler {
+func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
 
-	sortedHeaders := bbt.sortHeadersForShardFromNonce(shardID, header.GetNonce()+1)
+	sortedHeaders, sortedHeadersHashes := bbt.sortHeadersForShardFromNonce(shardID, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
-		return headers
+		return headers, headersHashes
 	}
 
-	bbt.initLongestChainHeadersIndexes()
+	longestChainHeadersIndexes := make([]int, 0)
 	headersIndexes := make([]int, 0)
-	bbt.getNextHeader(headersIndexes, header, sortedHeaders, 0)
+	bbt.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
 
-	longestChainHeadersIndexes := bbt.getLongestChainHeadersIndexes()
 	for _, index := range longestChainHeadersIndexes {
 		headers = append(headers, sortedHeaders[index])
+		headersHashes = append(headersHashes, sortedHeadersHashes[index])
 	}
 
-	return headers
+	return headers, headersHashes
 }
 
-func (bbt *baseBlockTrack) initLongestChainHeadersIndexes() {
-	bbt.mutLongestChainHeadersIndexes.Lock()
-	bbt.longestChainHeadersIndexes = make([]int, 0)
-	bbt.mutLongestChainHeadersIndexes.Unlock()
-}
-
-func (bbt *baseBlockTrack) getLongestChainHeadersIndexes() []int {
-	bbt.mutLongestChainHeadersIndexes.RLock()
-	longestChainHeadersIndexes := bbt.longestChainHeadersIndexes
-	bbt.mutLongestChainHeadersIndexes.RUnlock()
-
-	return longestChainHeadersIndexes
-}
-
-func (bbt *baseBlockTrack) setLongestChainHeadersIndexes(longestChainHeadersIndexes []int) {
-	bbt.mutLongestChainHeadersIndexes.Lock()
-	bbt.longestChainHeadersIndexes = longestChainHeadersIndexes
-	bbt.mutLongestChainHeadersIndexes.Unlock()
-}
-
-func (bbt *baseBlockTrack) sortHeadersForShardFromNonce(shardID uint32, nonce uint64) []data.HeaderHandler {
+func (bbt *baseBlockTrack) sortHeadersForShardFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	bbt.mutHeaders.RLock()
 	defer bbt.mutHeaders.RUnlock()
 
+	sortedHeadersInfo := make([]*headerInfo, 0)
+
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
-	headers := make([]data.HeaderHandler, 0)
 	for headersNonce, headersInfo := range headersForShard {
 		if headersNonce < nonce {
 			continue
 		}
 
-		for _, headerInfo := range headersInfo {
-			headers = append(headers, headerInfo.header)
-		}
+		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
 	}
 
-	process.SortHeadersByNonce(headers)
+	if len(sortedHeadersInfo) > 1 {
+		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
+			return sortedHeadersInfo[i].header.GetNonce() < sortedHeadersInfo[j].header.GetNonce()
+		})
+	}
 
-	return headers
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	for _, headerInfo := range sortedHeadersInfo {
+		headers = append(headers, headerInfo.header)
+		headersHashes = append(headersHashes, headerInfo.hash)
+	}
+
+	return headers, headersHashes
 }
 
 func (bbt *baseBlockTrack) getNextHeader(
+	longestChainHeadersIndexes *[]int,
 	headersIndexes []int,
 	prevHeader data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
 	index int,
 ) {
 	defer func() {
-		if len(headersIndexes) > len(bbt.getLongestChainHeadersIndexes()) {
-			bbt.setLongestChainHeadersIndexes(headersIndexes)
+		if len(headersIndexes) > len(*longestChainHeadersIndexes) {
+			*longestChainHeadersIndexes = headersIndexes
 		}
 	}()
 
@@ -240,7 +253,7 @@ func (bbt *baseBlockTrack) getNextHeader(
 			}
 
 			headersIndexes = append(headersIndexes, i)
-			bbt.getNextHeader(headersIndexes, currHeader, sortedHeaders, i+1)
+			bbt.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
 			headersIndexes = headersIndexes[:len(headersIndexes)-1]
 		}
 	}
@@ -367,6 +380,13 @@ func (bbt *baseBlockTrack) LastHeaderForShard(shardID uint32) data.HeaderHandler
 	}
 
 	return lastHeaderForShard
+}
+
+// RestoreHeadersToGenesis restores notarized tracker lists to genesis
+func (bbt *baseBlockTrack) RestoreHeadersToGenesis() {
+	bbt.restoreCrossNotarizedHeadersToGenesis()
+	bbt.restoreSelfNotarizedHeadersToGenesis()
+	bbt.restoreTrackedHeadersToGenesis()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

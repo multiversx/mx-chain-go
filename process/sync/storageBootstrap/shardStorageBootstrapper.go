@@ -25,6 +25,7 @@ func NewShardStorageBootstrapper(arguments ArgsStorageBootstrapper) (*shardStora
 		marshalizer:      arguments.Marshalizer,
 		store:            arguments.Store,
 		shardCoordinator: arguments.ShardCoordinator,
+		blockTracker:     arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -85,26 +86,30 @@ func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandl
 	return block.Body(miniBlocks), nil
 }
 
-func (ssb *shardStorageBootstrapper) applyNotarizedBlocks(
-	lastNotarized map[uint32]*sync.HdrInfo,
-) error {
-	if len(lastNotarized) == 0 {
-		return nil
-	}
+func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeadersHashes map[uint32][]byte) error {
+	//if len(crossNotarizedHeadersHashes) == 0 {
+	//	return nil
+	//}
 
-	if lastNotarized[sharding.MetachainShardId] == nil {
+	hash, ok := crossNotarizedHeadersHashes[sharding.MetachainShardId]
+	if !ok {
 		return sync.ErrNilNotarizedHeader
 	}
-	if lastNotarized[sharding.MetachainShardId].Hash == nil {
-		return sync.ErrNilHash
-	}
 
-	metaBlock, err := process.GetMetaHeaderFromStorage(lastNotarized[sharding.MetachainShardId].Hash, ssb.marshalizer, ssb.store)
+	metaBlock, err := process.GetMetaHeaderFromStorage(hash, ssb.marshalizer, ssb.store)
 	if err != nil {
 		return err
 	}
 
+	log.Debug("apply cross notarized header",
+		"shard", sharding.MetachainShardId,
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
+		"hash", hash)
+
 	ssb.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
+	ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock)
+	ssb.blockTracker.AddTrackedHeader(metaBlock, hash)
 
 	return nil
 }
@@ -151,4 +156,26 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 				"error", err.Error())
 		}
 	}
+}
+
+func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
+	for _, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
+		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
+		if err != nil {
+			return nil, err
+		}
+
+		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
+
+		log.Debug("add self notarized header",
+			"shard", sharding.MetachainShardId,
+			"round", selfNotarizedHeader.GetRound(),
+			"nonce", selfNotarizedHeader.GetNonce(),
+			"hash", selfNotarizedHeaderHash)
+
+		ssb.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader)
+	}
+
+	return selfNotarizedHeaders, nil
 }

@@ -1110,6 +1110,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithBlockTracker(process.BlockTracker),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

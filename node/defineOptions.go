@@ -466,3 +466,14 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 		return nil
 	}
 }
+
+// WithBlockTracker sets up the block tracker for the Node
+func WithBlockTracker(blockTracker process.BlockTracker) Option {
+	return func(n *Node) error {
+		if check.IfNil(blockTracker) {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
+		return nil
+	}
+}

@@ -690,9 +690,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	//TODO: Cleanup tracker pool should be called before set of next last notarized
-	sp.cleanupTrackerPool()
-
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
@@ -721,7 +718,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
+		log.Debug("forkDetector.AddTrackedHeader", "error", errNotCritical.Error())
 	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()

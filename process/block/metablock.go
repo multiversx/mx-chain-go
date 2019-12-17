@@ -884,9 +884,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.saveMetricCrossCheckBlockHeight()
 
-	//TODO: Cleanup tracker pool should be called before set of next last notarized
-	mp.cleanupTrackerPool()
-
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err
@@ -914,7 +911,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
+		log.Debug("forkDetector.AddTrackedHeader", "error", errNotCritical.Error())
 	}
 
 	log.Debug("highest final meta block",

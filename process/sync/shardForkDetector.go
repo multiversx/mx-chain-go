@@ -54,7 +54,7 @@ func NewShardForkDetector(
 	return &sfd, nil
 }
 
-// AddHeader method adds a new header to headers map
+// AddTrackedHeader method adds a new header to headers map
 func (sfd *shardForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,

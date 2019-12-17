@@ -22,7 +22,7 @@ func (fdm *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
 	fdm.RestoreFinalCheckPointToGenesisCalled()
 }
 
-// AddHeader is a mock implementation for AddHeader
+// AddTrackedHeader is a mock implementation for AddTrackedHeader
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error {
 	return fdm.AddHeaderCalled(header, hash, state, notarizedHeaders, notarizedHeadersHashes)
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 )
 
 type metaStorageBootstrapper struct {
@@ -22,6 +21,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 		marshalizer:      arguments.Marshalizer,
 		store:            arguments.Store,
 		shardCoordinator: arguments.ShardCoordinator,
+		blockTracker:     arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -47,23 +47,27 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 	return msb == nil
 }
 
-func (msb *metaStorageBootstrapper) applyNotarizedBlocks(
-	lastNotarized map[uint32]*sync.HdrInfo,
-) error {
+func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeadersHashes map[uint32][]byte) error {
 	for i := uint32(0); i < msb.shardCoordinator.NumberOfShards(); i++ {
-		if lastNotarized[i] == nil {
+		hash, ok := crossNotarizedHeadersHashes[i]
+		if !ok {
 			continue
 		}
-		if lastNotarized[i].Hash == nil {
-			return sync.ErrNilHash
-		}
 
-		headerHandler, err := process.GetShardHeaderFromStorage(lastNotarized[i].Hash, msb.marshalizer, msb.store)
+		header, err := process.GetShardHeaderFromStorage(hash, msb.marshalizer, msb.store)
 		if err != nil {
 			return err
 		}
 
-		msb.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
+		log.Debug("apply cross notarized header",
+			"shard", i,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", hash)
+
+		msb.blkExecutor.AddLastNotarizedHdr(i, header)
+		msb.blockTracker.AddCrossNotarizedHeader(i, header)
+		msb.blockTracker.AddTrackedHeader(header, hash)
 	}
 
 	return nil
@@ -117,4 +121,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 				"error", err.Error())
 		}
 	}
+}
+
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
+	return selfNotarizedHeaders, nil
 }
