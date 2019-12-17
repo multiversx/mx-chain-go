@@ -97,6 +97,7 @@ type MetaBlock struct {
 	ValidatorStatsRootHash []byte            `capid:"13"`
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
+	ReceiptsHash           []byte            `capid:"16"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -421,6 +422,11 @@ func (m *MetaBlock) GetLeaderSignature() []byte {
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
+}
+
+// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
+func (m *MetaBlock) GetReceiptsHash() []byte {
+	return m.ReceiptsHash
 }
 
 // SetNonce sets header nonce

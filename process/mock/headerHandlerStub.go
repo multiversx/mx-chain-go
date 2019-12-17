@@ -15,6 +15,10 @@ type HeaderHandlerStub struct {
 	CloneCalled                      func() data.HeaderHandler
 }
 
+func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
+	return []byte("hash")
+}
+
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
 	return hhs.CloneCalled()
 }

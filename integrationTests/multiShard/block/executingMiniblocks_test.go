@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -280,9 +281,30 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		}
 	}
 
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+			continue
+		}
+
+		bodyHandler := node.BlockChain.GetCurrentBlockBody()
+		body, _ := bodyHandler.(block.Body)
+		numInvalid := 0
+		for _, mb := range body {
+			if mb.Type == block.InvalidBlock {
+				numInvalid++
+			}
+		}
+		assert.Equal(t, 1, numInvalid)
+	}
+
 	time.Sleep(time.Second)
-	nrRoundsToTest := 10
-	for i := 0; i < nrRoundsToTest; i++ {
+	numRoundsToTest := 6
+	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

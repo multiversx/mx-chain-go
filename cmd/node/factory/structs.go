@@ -2063,6 +2063,8 @@ func newShardBlockProcessor(
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		core.Hasher,
+		core.Marshalizer,
 		shardCoordinator,
 		state.AccountsAdapter,
 		data.Datapool.MiniBlocks(),
@@ -2270,6 +2272,8 @@ func newMetaBlockProcessor(
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		core.Hasher,
+		core.Marshalizer,
 		shardCoordinator,
 		state.AccountsAdapter,
 		data.MetaDatapool.MiniBlocks(),

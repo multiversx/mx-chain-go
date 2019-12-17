@@ -589,3 +589,9 @@ var ErrNilReceiptHandler = errors.New("nil receipt handler")
 
 // ErrTooManyReceiptsMiniBlocks signals that there were too many receipts miniblocks created
 var ErrTooManyReceiptsMiniBlocks = errors.New("too many receipts miniblocks")
+
+// ErrReceiptsHashMissmatch signals that overall receipts has does not match
+var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
+
+// ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
+var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")

@@ -34,6 +34,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
+	intraShardMiniBlock     *block.MiniBlock
 }
 
 // SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
@@ -53,7 +54,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 
 		errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
-			log.Debug("UnsignedTransactionUnit.Put", "error", errNotCritical.Error())
+			log.Debug("SaveCurrentIntermediateTxToStorage put", "type", bpp.storageType, "error", errNotCritical.Error())
 		}
 	}
 
@@ -129,4 +130,11 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	}
 
 	return nil
+}
+
+func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	bpp.mutInterResultsForBlock.Lock()
+	defer bpp.mutInterResultsForBlock.Unlock()
+
+	return bpp.intraShardMiniBlock
 }

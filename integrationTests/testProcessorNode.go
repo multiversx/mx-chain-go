@@ -586,6 +586,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.ShardDataPool.MiniBlocks(),
@@ -672,6 +674,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.MetaDataPool.MiniBlocks(),
@@ -917,7 +921,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
