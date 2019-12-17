@@ -516,6 +516,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	uniqueDBFolder := filepath.Join(
 		workingDir,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
 		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
