@@ -119,16 +119,16 @@ func checkSumMetrics(
 	sizeProcessed uint64,
 ) {
 
-	value := status.GetUint64(core.MetricP2pSumNumReceivedMessages)
+	value := status.GetUint64(core.MetricP2pNetworkNumReceivedMessages)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2pSumSizeReceivedMessages)
+	value = status.GetUint64(core.MetricP2pNetworkSizeReceivedMessages)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2pSumNumProcessedMessages)
+	value = status.GetUint64(core.MetricP2pNetworkNumProcessedMessages)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2pSumSizeProcessedMessages)
+	value = status.GetUint64(core.MetricP2pNetworkSizeProcessedMessages)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -141,16 +141,16 @@ func checkTopSumMetrics(
 	sizeProcessed uint64,
 ) {
 
-	value := status.GetUint64(core.MetricP2pTopSumNumReceivedMessages)
+	value := status.GetUint64(core.MetricP2pPeakNetworkNumReceivedMessages)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2pTopSumSizeReceivedMessages)
+	value = status.GetUint64(core.MetricP2pPeakNetworkSizeReceivedMessages)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2pTopSumNumProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeakNetworkNumProcessedMessages)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2pTopSumSizeProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeakNetworkSizeProcessedMessages)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -163,16 +163,16 @@ func checkMaxMetrics(
 	sizeProcessed uint64,
 ) {
 
-	value := status.GetUint64(core.MetricP2pMaxNumReceivedMessages)
+	value := status.GetUint64(core.MetricP2pPeerNumReceivedMessages)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2pMaxSizeReceivedMessages)
+	value = status.GetUint64(core.MetricP2pPeerSizeReceivedMessages)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2pMaxNumProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeerNumProcessedMessages)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2pMaxSizeProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeerSizeProcessedMessages)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -185,16 +185,16 @@ func checkTopMaxMetrics(
 	sizeProcessed uint64,
 ) {
 
-	value := status.GetUint64(core.MetricP2pTopMaxNumReceivedMessages)
+	value := status.GetUint64(core.MetricP2pPeakPeerNumReceivedMessages)
 	assert.Equal(t, value, numReceived)
 
-	value = status.GetUint64(core.MetricP2pTopMaxSizeReceivedMessages)
+	value = status.GetUint64(core.MetricP2pPeakPeerSizeReceivedMessages)
 	assert.Equal(t, value, sizeReceived)
 
-	value = status.GetUint64(core.MetricP2pTopMaxNumProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeakPeerxNumProcessedMessages)
 	assert.Equal(t, value, numProcessed)
 
-	value = status.GetUint64(core.MetricP2pTopMaxSizeProcessedMessages)
+	value = status.GetUint64(core.MetricP2pPeakPeerSizeProcessedMessages)
 	assert.Equal(t, value, sizeProcessed)
 }
 
@@ -207,6 +207,6 @@ func checkNumReceivers(
 	value := status.GetUint64(core.MetricP2pNumReceiverPeers)
 	assert.Equal(t, value, numReceiverPeers)
 
-	value = status.GetUint64(core.MetricP2pTopNumReceiverPeers)
+	value = status.GetUint64(core.MetricP2pPeakNumReceiverPeers)
 	assert.Equal(t, value, topNumReceiverPeers)
 }

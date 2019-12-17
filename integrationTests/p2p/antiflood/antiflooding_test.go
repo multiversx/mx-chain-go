@@ -2,6 +2,7 @@ package antiflood
 
 import (
 	"fmt"
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -36,9 +37,17 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := uint32(5)
+	peerMaxMumProcessMessages := uint32(5)
+	maxMumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
-	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
+	interceptors, err := createTopicsAndMockInterceptors(
+		peers,
+		topic,
+		peerMaxMumProcessMessages,
+		maxMessageSize,
+		maxMumProcessMessages,
+		maxMessageSize,
+	)
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
@@ -67,7 +76,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 
 	isFlooding.Store(false)
 
-	checkMessagesOnPeers(t, peers, interceptors, maxMumProcessMessages, floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, peerMaxMumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 // TestAntifloodWithMessagesFromOtherPeers tests what happens if a peer decide to send a number of messages
@@ -90,9 +99,17 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	// (check integrationTests.CreateFixedNetworkOf14Peers function)
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := uint32(5)
+	peerMaxMumProcessMessages := uint32(5)
+	maxMumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
-	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
+	interceptors, err := createTopicsAndMockInterceptors(
+		peers,
+		topic,
+		peerMaxMumProcessMessages,
+		maxMessageSize,
+		maxMumProcessMessages,
+		maxMessageSize,
+	)
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
@@ -114,7 +131,7 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	}
 	time.Sleep(broadcastMessageDuration)
 
-	checkMessagesOnPeers(t, peers, interceptors, maxMumProcessMessages, floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, peerMaxMumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 // TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send large messages
@@ -137,9 +154,17 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := uint32(100000)
-	maxMessageSize := uint64(1 << 10) //1KB
-	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages, maxMessageSize)
+	maxMumProcessMessages := uint32(math.MaxUint32)
+	maxMessageSize := uint64(math.MaxUint64)
+	peerMaxMessageSize := uint64(1 << 10) //1KB
+	interceptors, err := createTopicsAndMockInterceptors(
+		peers,
+		topic,
+		maxMumProcessMessages,
+		peerMaxMessageSize,
+		maxMumProcessMessages,
+		maxMessageSize,
+	)
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
@@ -157,7 +182,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	isFlooding.Store(true)
 	go func() {
 		for {
-			peers[flooderIdx].Broadcast(topic, make([]byte, maxMessageSize+1))
+			peers[flooderIdx].Broadcast(topic, make([]byte, peerMaxMessageSize+1))
 
 			if !isFlooding.Load().(bool) {
 				return
@@ -195,7 +220,15 @@ func checkMessagesOnPeers(
 	checkPeers(peers, interceptors, protectedIdexes, checkFunctionForProtectedPeers)
 }
 
-func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNumMessages uint32, maxSize uint64) ([]*messageProcessor, error) {
+func createTopicsAndMockInterceptors(
+	peers []p2p.Messenger,
+	topic string,
+	peerMaxNumMessages uint32,
+	peerMaxSize uint64,
+	maxNumMessages uint32,
+	maxSize uint64,
+) ([]*messageProcessor, error) {
+
 	interceptors := make([]*messageProcessor, len(peers))
 
 	for idx, p := range peers {
@@ -211,6 +244,8 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
 			antifloodPool,
 			&nilQuotaStatusHandler{},
+			peerMaxNumMessages,
+			peerMaxSize,
 			maxNumMessages,
 			maxSize,
 		)

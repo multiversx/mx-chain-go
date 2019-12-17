@@ -18,12 +18,12 @@ type quota struct {
 // p2pQuotaProcessor implements process.QuotaStatusHandler and is able to periodically sends to a
 // statusHandler the processed p2p quota information
 type p2pQuotaProcessor struct {
-	mutStatistics   sync.Mutex
-	statistics      map[string]*quota
-	topSumQuota     *quota
-	topMaxQuota     *quota
-	topNumReceivers uint64
-	handler         core.AppStatusHandler
+	mutStatistics    sync.Mutex
+	statistics       map[string]*quota
+	peakNetworkQuota *quota
+	peakPeerQuota    *quota
+	peakNumReceivers uint64
+	handler          core.AppStatusHandler
 }
 
 // NewP2pQuotaProcessor creates a new p2pQuotaProcessor instance
@@ -33,80 +33,80 @@ func NewP2pQuotaProcessor(handler core.AppStatusHandler) (*p2pQuotaProcessor, er
 	}
 
 	return &p2pQuotaProcessor{
-		statistics:  make(map[string]*quota),
-		topSumQuota: &quota{},
-		topMaxQuota: &quota{},
-		handler:     handler,
+		statistics:       make(map[string]*quota),
+		peakNetworkQuota: &quota{},
+		peakPeerQuota:    &quota{},
+		handler:          handler,
 	}, nil
 }
 
 // ResetStatistics output gathered statistics, process and prints them. After that it empties the statistics map
 func (pqp *p2pQuotaProcessor) ResetStatistics() {
-	sumQuota := &quota{}
-	maxQuota := &quota{}
+	networkQuota := &quota{}
+	peakPeerQuota := &quota{}
 
 	pqp.mutStatistics.Lock()
 	defer pqp.mutStatistics.Unlock()
 
 	for _, q := range pqp.statistics {
-		sumQuota.numReceivedMessages += q.numReceivedMessages
-		sumQuota.sizeReceivedMessages += q.sizeReceivedMessages
-		sumQuota.numProcessedMessages += q.numProcessedMessages
-		sumQuota.sizeProcessedMessages += q.sizeProcessedMessages
+		networkQuota.numReceivedMessages += q.numReceivedMessages
+		networkQuota.sizeReceivedMessages += q.sizeReceivedMessages
+		networkQuota.numProcessedMessages += q.numProcessedMessages
+		networkQuota.sizeProcessedMessages += q.sizeProcessedMessages
 
-		maxQuota.numReceivedMessages = core.MaxUint32(maxQuota.numReceivedMessages, q.numReceivedMessages)
-		maxQuota.sizeReceivedMessages = core.MaxUint64(maxQuota.sizeReceivedMessages, q.sizeReceivedMessages)
-		maxQuota.numProcessedMessages = core.MaxUint32(maxQuota.numProcessedMessages, q.numProcessedMessages)
-		maxQuota.sizeProcessedMessages = core.MaxUint64(maxQuota.sizeProcessedMessages, q.sizeProcessedMessages)
+		peakPeerQuota.numReceivedMessages = core.MaxUint32(peakPeerQuota.numReceivedMessages, q.numReceivedMessages)
+		peakPeerQuota.sizeReceivedMessages = core.MaxUint64(peakPeerQuota.sizeReceivedMessages, q.sizeReceivedMessages)
+		peakPeerQuota.numProcessedMessages = core.MaxUint32(peakPeerQuota.numProcessedMessages, q.numProcessedMessages)
+		peakPeerQuota.sizeProcessedMessages = core.MaxUint64(peakPeerQuota.sizeProcessedMessages, q.sizeProcessedMessages)
 	}
 
-	pqp.topMaxQuota.numReceivedMessages = core.MaxUint32(maxQuota.numReceivedMessages, pqp.topMaxQuota.numReceivedMessages)
-	pqp.topMaxQuota.sizeReceivedMessages = core.MaxUint64(maxQuota.sizeReceivedMessages, pqp.topMaxQuota.sizeReceivedMessages)
-	pqp.topMaxQuota.numProcessedMessages = core.MaxUint32(maxQuota.numProcessedMessages, pqp.topMaxQuota.numProcessedMessages)
-	pqp.topMaxQuota.sizeProcessedMessages = core.MaxUint64(maxQuota.sizeProcessedMessages, pqp.topMaxQuota.sizeProcessedMessages)
+	pqp.peakPeerQuota.numReceivedMessages = core.MaxUint32(peakPeerQuota.numReceivedMessages, pqp.peakPeerQuota.numReceivedMessages)
+	pqp.peakPeerQuota.sizeReceivedMessages = core.MaxUint64(peakPeerQuota.sizeReceivedMessages, pqp.peakPeerQuota.sizeReceivedMessages)
+	pqp.peakPeerQuota.numProcessedMessages = core.MaxUint32(peakPeerQuota.numProcessedMessages, pqp.peakPeerQuota.numProcessedMessages)
+	pqp.peakPeerQuota.sizeProcessedMessages = core.MaxUint64(peakPeerQuota.sizeProcessedMessages, pqp.peakPeerQuota.sizeProcessedMessages)
 
-	pqp.topSumQuota.numReceivedMessages = core.MaxUint32(sumQuota.numReceivedMessages, pqp.topSumQuota.numReceivedMessages)
-	pqp.topSumQuota.sizeReceivedMessages = core.MaxUint64(sumQuota.sizeReceivedMessages, pqp.topSumQuota.sizeReceivedMessages)
-	pqp.topSumQuota.numProcessedMessages = core.MaxUint32(sumQuota.numProcessedMessages, pqp.topSumQuota.numProcessedMessages)
-	pqp.topSumQuota.sizeProcessedMessages = core.MaxUint64(sumQuota.sizeProcessedMessages, pqp.topSumQuota.sizeProcessedMessages)
+	pqp.peakNetworkQuota.numReceivedMessages = core.MaxUint32(networkQuota.numReceivedMessages, pqp.peakNetworkQuota.numReceivedMessages)
+	pqp.peakNetworkQuota.sizeReceivedMessages = core.MaxUint64(networkQuota.sizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
+	pqp.peakNetworkQuota.numProcessedMessages = core.MaxUint32(networkQuota.numProcessedMessages, pqp.peakNetworkQuota.numProcessedMessages)
+	pqp.peakNetworkQuota.sizeProcessedMessages = core.MaxUint64(networkQuota.sizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
 
 	numPeers := uint64(len(pqp.statistics))
-	pqp.topNumReceivers = core.MaxUint64(numPeers, pqp.topNumReceivers)
+	pqp.peakNumReceivers = core.MaxUint64(numPeers, pqp.peakNumReceivers)
 
-	pqp.moveStatisticsInAppStatusHandler(maxQuota, sumQuota, numPeers, pqp.topNumReceivers)
+	pqp.moveStatisticsInAppStatusHandler(peakPeerQuota, networkQuota, numPeers, pqp.peakNumReceivers)
 
 	pqp.statistics = make(map[string]*quota)
 }
 
 func (pqp *p2pQuotaProcessor) moveStatisticsInAppStatusHandler(
-	maxQuota *quota,
-	sumQuota *quota,
+	peerQuota *quota,
+	networkQuota *quota,
 	numReceiverPeers uint64,
-	topNumReceiverPeers uint64,
+	peakNumReceiverPeers uint64,
 ) {
 
-	pqp.handler.SetUInt64Value(core.MetricP2pSumNumReceivedMessages, uint64(sumQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pSumSizeReceivedMessages, sumQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pSumNumProcessedMessages, uint64(sumQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pSumSizeProcessedMessages, sumQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pNetworkNumReceivedMessages, uint64(networkQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pNetworkSizeReceivedMessages, networkQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pNetworkNumProcessedMessages, uint64(networkQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pNetworkSizeProcessedMessages, networkQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pTopSumNumReceivedMessages, uint64(pqp.topSumQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pTopSumSizeReceivedMessages, pqp.topSumQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pTopSumNumProcessedMessages, uint64(pqp.topSumQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pTopSumSizeProcessedMessages, pqp.topSumQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkNumReceivedMessages, uint64(pqp.peakNetworkQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkSizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkNumProcessedMessages, uint64(pqp.peakNetworkQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkSizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pMaxNumReceivedMessages, uint64(maxQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pMaxSizeReceivedMessages, maxQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pMaxNumProcessedMessages, uint64(maxQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pMaxSizeProcessedMessages, maxQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeerNumReceivedMessages, uint64(peerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeerSizeReceivedMessages, peerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeerNumProcessedMessages, uint64(peerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeerSizeProcessedMessages, peerQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pTopMaxNumReceivedMessages, uint64(pqp.topMaxQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pTopMaxSizeReceivedMessages, pqp.topMaxQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pTopMaxNumProcessedMessages, uint64(pqp.topMaxQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pTopMaxSizeProcessedMessages, pqp.topMaxQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerNumReceivedMessages, uint64(pqp.peakPeerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerSizeReceivedMessages, pqp.peakPeerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerxNumProcessedMessages, uint64(pqp.peakPeerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerSizeProcessedMessages, pqp.peakPeerQuota.sizeProcessedMessages)
 
 	pqp.handler.SetUInt64Value(core.MetricP2pNumReceiverPeers, numReceiverPeers)
-	pqp.handler.SetUInt64Value(core.MetricP2pTopNumReceiverPeers, topNumReceiverPeers)
+	pqp.handler.SetUInt64Value(core.MetricP2pPeakNumReceiverPeers, peakNumReceiverPeers)
 }
 
 // AddQuota adds a quota statistics
