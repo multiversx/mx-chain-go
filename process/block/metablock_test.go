@@ -839,7 +839,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := &block.MetaBlock{}
-	_, err := mp.ApplyBodyToHeader(hdr, nil)
+	_, err := mp.ApplyBodyToHeader(hdr, block.Body{})
 	assert.Nil(t, err)
 }
 

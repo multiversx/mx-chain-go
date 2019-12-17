@@ -303,8 +303,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	}
 
 	time.Sleep(time.Second)
-	nrRoundsToTest := 6
-	for i := 0; i < nrRoundsToTest; i++ {
+	numRoundsToTest := 6
+	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

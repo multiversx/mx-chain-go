@@ -54,7 +54,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 
 		errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
-			log.Debug("UnsignedTransactionUnit.Put", "error", errNotCritical.Error())
+			log.Debug("SaveCurrentIntermediateTxToStorage put", "type", bpp.storageType, "error", errNotCritical.Error())
 		}
 	}
 

@@ -2308,13 +2308,23 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler)
 }
 
-func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
+func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 	t.Parallel()
 	arguments := CreateMockArgumentsMultiShard()
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
 	_, err := bp.ApplyBodyToHeader(hdr, nil)
+	assert.Equal(t, process.ErrNilBlockBody, err)
+}
+
+func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
+	t.Parallel()
+	arguments := CreateMockArgumentsMultiShard()
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+	hdr := &block.Header{}
+	_, err := bp.ApplyBodyToHeader(hdr, block.Body{})
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }

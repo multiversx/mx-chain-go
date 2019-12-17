@@ -1638,7 +1638,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	}()
 
 	if check.IfNil(bodyHandler) {
-		return bodyHandler, nil
+		return nil, process.ErrNilBlockBody
 	}
 
 	body, ok := bodyHandler.(block.Body)

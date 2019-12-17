@@ -640,7 +640,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 			log.Debug("miniblock created",
 				"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
 				"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
-				"total gas in self shard", txs.gasHandler.TotalGasConsumed(), //what is this?
+				"total gas in self shard", txs.gasHandler.TotalGasConsumed(),
 				"added num txs", len(miniBlock.TxHashes),
 				"total num txs", len(orderedTxs),
 			)
@@ -653,7 +653,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 		log.Debug("miniblock created",
 			"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
 			"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
-			"total gas in self shard", txs.gasHandler.TotalGasConsumed(), //what is this?
+			"total gas in self shard", txs.gasHandler.TotalGasConsumed(),
 			"added num txs", len(miniBlock.TxHashes),
 			"total num txs", len(orderedTxs),
 		)
