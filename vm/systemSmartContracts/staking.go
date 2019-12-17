@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -27,24 +29,34 @@ type stakingSC struct {
 	eei           vm.SystemEI
 	stakeValue    *big.Int
 	unBoundPeriod uint64
+	kg            crypto.KeyGenerator
 }
 
 // NewStakingSmartContract creates a staking smart contract
-func NewStakingSmartContract(stakeValue *big.Int, unBoundPeriod uint64, eei vm.SystemEI) (*stakingSC, error) {
+func NewStakingSmartContract(
+	stakeValue *big.Int,
+	unBoundPeriod uint64,
+	eei vm.SystemEI,
+	kg crypto.KeyGenerator,
+) (*stakingSC, error) {
 	if stakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
 	if stakeValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
-	if eei == nil || eei.IsInterfaceNil() {
+	if check.IfNil(eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
+	}
+	if check.IfNil(kg) {
+		return nil, vm.ErrNilKeyGenerator
 	}
 
 	reg := &stakingSC{
 		stakeValue:    big.NewInt(0).Set(stakeValue),
 		eei:           eei,
 		unBoundPeriod: unBoundPeriod,
+		kg:            kg,
 	}
 	return reg, nil
 }
@@ -140,9 +152,14 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	registrationData.StartNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.Address = args.CallerAddr
-	//TODO: verify if blsPubKey is valid
 
-	data, err := json.Marshal(registrationData)
+	_, err := r.kg.PublicKeyFromByteArray(args.Arguments[0])
+	if err != nil {
+		log.Debug("bls key is not valid")
+		return vmcommon.UserError
+	}
+
+	data, err = json.Marshal(registrationData)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),
@@ -173,8 +190,8 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	if !bytes.Equal(args.CallerAddr, registrationData.Address) {
 		log.Debug("unStake possible only from staker",
-				"caller", args.CallerAddr,
-				"staker", registrationData.Address,
+			"caller", args.CallerAddr,
+			"staker", registrationData.Address,
 		)
 		return vmcommon.UserError
 	}
@@ -314,15 +331,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-// ValueOf returns the value of a selected key
-func (r *stakingSC) ValueOf(key interface{}) interface{} {
-	return nil
-}
-
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
-	if r == nil {
-		return true
-	}
-	return false
+	return r == nil
 }

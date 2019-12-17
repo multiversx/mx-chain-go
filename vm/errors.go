@@ -46,3 +46,6 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
 var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+
+// ErrNilKeyGenerator signals that key generator is nil
+var ErrNilKeyGenerator = errors.New("nil key generator")
