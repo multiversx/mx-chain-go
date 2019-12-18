@@ -8,6 +8,6 @@ import (
 // ArgTxInterceptorProcessor is the argument for the interceptor processor used for transactions
 // (balance txs, smart contract results, reward and so on)
 type ArgTxInterceptorProcessor struct {
-	TxPool      dataRetriever.TxPool
-	TxValidator process.TxValidator
+	ShardedDataCache dataRetriever.ShardedDataCacherNotifier
+	TxValidator      process.TxValidator
 }

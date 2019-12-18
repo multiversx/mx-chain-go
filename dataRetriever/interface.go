@@ -214,7 +214,7 @@ type TransactionCacher interface {
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
 	Transactions() TxPool
-	UnsignedTransactions() TxPool
+	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
@@ -232,7 +232,7 @@ type MetaPoolsHolder interface {
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	Transactions() TxPool
-	UnsignedTransactions() TxPool
+	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

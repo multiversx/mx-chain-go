@@ -9,8 +9,8 @@ import (
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	txPool      dataRetriever.TxPool
-	txValidator process.TxValidator
+	shardedDataCache dataRetriever.ShardedDataCacherNotifier
+	txValidator      process.TxValidator
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -18,7 +18,7 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.TxPool) {
+	if check.IfNil(argument.ShardedDataCache) {
 		return nil, process.ErrNilDataPoolHolder
 	}
 	if check.IfNil(argument.TxValidator) {
@@ -26,8 +26,8 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	}
 
 	return &TxInterceptorProcessor{
-		txPool:      argument.TxPool,
-		txValidator: argument.TxValidator,
+		shardedDataCache: argument.ShardedDataCache,
+		txValidator:      argument.TxValidator,
 	}, nil
 }
 
@@ -53,9 +53,8 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 		return process.ErrWrongTypeAssertion
 	}
 
-	// TODO-TXCACHE
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
-	txip.txPool.AddTx(
+	txip.shardedDataCache.AddData(
 		data.Hash(),
 		interceptedTx.Transaction(),
 		cacherIdentifier,

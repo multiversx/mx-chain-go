@@ -1,14 +1,13 @@
 package dataPool
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type shardedDataPool struct {
 	transactions         dataRetriever.TxPool
-	unsignedTransactions dataRetriever.TxPool
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
@@ -21,7 +20,7 @@ type shardedDataPool struct {
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
 	transactions dataRetriever.TxPool,
-	unsignedTransactions dataRetriever.TxPool,
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	rewardTransactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
@@ -30,8 +29,13 @@ func NewShardedDataPool(
 	metaBlocks storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
-	check.AssertNotNil(transactions, "transactions pool")
-	check.AssertNotNil(unsignedTransactions, "unsignedTransactions pool")
+
+	if transactions == nil || transactions.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilTxDataPool
+	}
+	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilUnsignedTransactionPool
+	}
 	if rewardTransactions == nil || rewardTransactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilRewardTransactionPool
 	}
@@ -78,7 +82,7 @@ func (tdp *shardedDataPool) Transactions() dataRetriever.TxPool {
 }
 
 // UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)
-func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.TxPool {
+func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return tdp.unsignedTransactions
 }
 

@@ -1,7 +1,6 @@
 package resolvers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -14,7 +13,7 @@ var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool      dataRetriever.TxPool
+	txPool      dataRetriever.ShardedDataCacherNotifier
 	txStorage   storage.Storer
 	marshalizer marshal.Marshalizer
 	dataPacker  dataRetriever.DataPacker
@@ -23,7 +22,7 @@ type TxResolver struct {
 // NewTxResolver creates a new transaction resolver
 func NewTxResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	txPool dataRetriever.TxPool,
+	txPool dataRetriever.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	dataPacker dataRetriever.DataPacker,
@@ -32,7 +31,9 @@ func NewTxResolver(
 	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	check.AssertNotNil(txPool, "txPool")
+	if txPool == nil || txPool.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilTxDataPool
+	}
 	if txStorage == nil || txStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
@@ -100,7 +101,7 @@ func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
 }
 
 func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
-	value, ok := txRes.txPool.SearchFirstTx(hash)
+	value, ok := txRes.txPool.SearchFirstData(hash)
 	if ok {
 		txBuff, err := txRes.marshalizer.Marshal(value)
 		if err != nil {

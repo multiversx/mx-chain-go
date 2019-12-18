@@ -58,6 +58,9 @@ var ErrNilRounder = errors.New("nil Rounder")
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
+// ErrNilTxDataPool signals that a nil transaction pool has been provided
+var ErrNilTxDataPool = errors.New("nil transaction data pool")
+
 // ErrNilUnsignedTransactionPool signals that a nil unsigned transactions pool has been provided
 var ErrNilUnsignedTransactionPool = errors.New("nil unsigned transactions data pool")
 
