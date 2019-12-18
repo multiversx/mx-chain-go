@@ -6,7 +6,7 @@ import (
 )
 
 type shardedDataPool struct {
-	transactions         dataRetriever.ShardedDataCacherNotifier
+	transactions         dataRetriever.TxPool
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
@@ -19,7 +19,7 @@ type shardedDataPool struct {
 
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
-	transactions dataRetriever.ShardedDataCacherNotifier,
+	transactions dataRetriever.TxPool,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	rewardTransactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
@@ -77,7 +77,7 @@ func (tdp *shardedDataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
 }
 
 // Transactions returns the holder for transactions
-func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
+func (tdp *shardedDataPool) Transactions() dataRetriever.TxPool {
 	return tdp.transactions
 }
 

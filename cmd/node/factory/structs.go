@@ -1329,12 +1329,7 @@ func createShardDataPoolFromConfig(
 
 	log.Debug("creatingShardDataPool from config")
 
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
+	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
@@ -1441,12 +1436,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
+	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
@@ -2639,11 +2629,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	if err != nil {
-		return nil, err
-	}
-
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
 	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
 	if err != nil {
 		return nil, err

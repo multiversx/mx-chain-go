@@ -10,7 +10,7 @@ type metaDataPool struct {
 	miniBlocks           storage.Cacher
 	shardHeaders         storage.Cacher
 	headersNonces        dataRetriever.Uint64SyncMapCacher
-	transactions         dataRetriever.ShardedDataCacherNotifier
+	transactions         dataRetriever.TxPool
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	currBlockTxs         dataRetriever.TransactionCacher
 }
@@ -21,7 +21,7 @@ func NewMetaDataPool(
 	miniBlocks storage.Cacher,
 	shardHeaders storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
-	transactions dataRetriever.ShardedDataCacherNotifier,
+	transactions dataRetriever.TxPool,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*metaDataPool, error) {
@@ -86,7 +86,7 @@ func (mdp *metaDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 }
 
 // Transactions returns the holder for transactions which interact with the metachain
-func (mdp *metaDataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
+func (mdp *metaDataPool) Transactions() dataRetriever.TxPool {
 	return mdp.transactions
 }
 

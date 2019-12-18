@@ -128,3 +128,7 @@ func (txMap *txListBySenderMap) forEach(function ForEachSender) {
 		function(key, txList)
 	})
 }
+
+func (txMap *txListBySenderMap) clear() {
+	txMap.backingMap.Clear()
+}

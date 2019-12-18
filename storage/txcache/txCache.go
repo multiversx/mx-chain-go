@@ -63,8 +63,9 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 // GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) []data.TransactionHandler {
+func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
 	result := make([]data.TransactionHandler, numRequested)
+	resultHashes := make([][]byte, numRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
@@ -74,7 +75,8 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 		cache.forEachSender(func(key string, txList *txListForSender) {
 			// Reset happens on first pass only
 			shouldResetCopy := pass == 0
-			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], batchSizePerSender)
+			// todo - make a structure for destination...
+			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizePerSender)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -89,7 +91,7 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 		}
 	}
 
-	return result[:resultFillIndex]
+	return result[:resultFillIndex], resultHashes
 }
 
 // RemoveTxByHash removes
@@ -114,12 +116,28 @@ func (cache *TxCache) CountTx() int64 {
 	return cache.txByHash.counter.Get()
 }
 
+// Len is an alias for CountTx
+func (cache *TxCache) Len() int {
+	return int(cache.CountTx())
+}
+
 // CountSenders gets the number of senders in the cache
 func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
 }
 
-// forEachSender iterates over the senders
+// forEachSender iterates over the senders in the cache
 func (cache *TxCache) forEachSender(function ForEachSender) {
 	cache.txListBySender.forEach(function)
+}
+
+// ForEachTransaction iterates over the transactions in the cache
+func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
+	cache.txByHash.forEach(function)
+}
+
+// Clear clears the cache
+func (cache *TxCache) Clear() {
+	cache.txListBySender.clear()
+	cache.txByHash.clear()
 }

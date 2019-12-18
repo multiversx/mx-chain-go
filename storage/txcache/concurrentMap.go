@@ -11,6 +11,7 @@ import (
 // ConcurrentMap is a thread safe map of type string:Anything.
 // To avoid lock bottlenecks this map is divided to several map chunks.
 type ConcurrentMap struct {
+	mutex   sync.Mutex
 	nChunks uint32
 	chunks  []*concurrentMapChunk
 }
@@ -23,6 +24,11 @@ type concurrentMapChunk struct {
 
 // NewConcurrentMap creates a new concurrent map.
 func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
+	// We cannot have a map with no chunks
+	if nChunks == 0 {
+		nChunks = 1
+	}
+
 	m := ConcurrentMap{
 		nChunks: nChunks,
 		chunks:  make([]*concurrentMapChunk, nChunks),
@@ -117,4 +123,15 @@ func fnv32(key string) uint32 {
 		hash ^= uint32(key[i])
 	}
 	return hash
+}
+
+// Clear clears the map
+func (m *ConcurrentMap) Clear() {
+	// There is no need to explicitly remove each item for each shard
+	// The garbage collector will remove the data from memory
+
+	// Assignment is not an atomic operation, so we have to wrap this in a critical section
+	m.mutex.Lock()
+	m.chunks = make([]*concurrentMapChunk, m.nChunks)
+	m.mutex.Unlock()
 }

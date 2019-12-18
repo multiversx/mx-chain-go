@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 // UnitType is the type for Storage unit identifiers
@@ -214,7 +215,7 @@ type TransactionCacher interface {
 
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
-	Transactions() ShardedDataCacherNotifier
+	Transactions() TxPool
 	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
@@ -232,7 +233,7 @@ type MetaPoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
-	Transactions() ShardedDataCacherNotifier
+	Transactions() TxPool
 	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
@@ -271,4 +272,17 @@ type RequestedItemsHandler interface {
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
+}
+
+// TxPool defines an interface for the transaction pool
+type TxPool interface {
+	ShardedDataCacherNotifier
+
+	GetTxCache(cacheID string) *txcache.TxCache
+	AddTx(txHash []byte, tx data.TransactionHandler, cacheID string)
+	SearchFirstTx(txHash []byte) (tx data.TransactionHandler, ok bool)
+	RemoveTx(txHash []byte, cacheID string)
+	RemoveTxBulk(txHashes [][]byte, cacheID string)
+	RemoveTxFromAllShards(txHash []byte)
+	MoveTxs(sourceCacheID string, destCacheID string, txHashes [][]byte)
 }

@@ -4,15 +4,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 type PoolsHolderMock struct {
-	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
+	transactions         dataRetriever.TxPool
+	unsignedTransactions dataRetriever.TxPool
+	rewardTransactions   dataRetriever.TxPool
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
 	hdrNonces            dataRetriever.Uint64SyncMapCacher
@@ -23,75 +23,77 @@ type PoolsHolderMock struct {
 }
 
 func NewPoolsHolderMock() *PoolsHolderMock {
-	phf := &PoolsHolderMock{}
-	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
-	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	holder := &PoolsHolderMock{}
+
+	holder.transactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 16})
+	holder.unsignedTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 16})
+	holder.rewardTransactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Shards: 16})
+
+	holder.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	holder.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.hdrNonces, _ = dataPool.NewNonceSyncMapCacher(
+	holder.hdrNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
 	cacheMetaHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.metaHdrNonces, _ = dataPool.NewNonceSyncMapCacher(
+	holder.metaHdrNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheMetaHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
-	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.currBlockTxs, _ = dataPool.NewCurrentBlockPool()
+	holder.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	holder.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	holder.currBlockTxs, _ = dataPool.NewCurrentBlockPool()
 
-	return phf
+	return holder
 }
 
-func (phm *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
-	return phm.currBlockTxs
+func (holder *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return holder.currBlockTxs
 }
 
-func (phm *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return phm.transactions
+func (holder *PoolsHolderMock) Transactions() dataRetriever.TxPool {
+	return holder.transactions
 }
 
-func (phm *PoolsHolderMock) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phm.unsignedTransactions
+func (holder *PoolsHolderMock) UnsignedTransactions() dataRetriever.TxPool {
+	return holder.unsignedTransactions
 }
 
-func (phm *PoolsHolderMock) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phm.rewardTransactions
+func (holder *PoolsHolderMock) RewardTransactions() dataRetriever.TxPool {
+	return holder.rewardTransactions
 }
 
-func (phm *PoolsHolderMock) Headers() storage.Cacher {
-	return phm.headers
+func (holder *PoolsHolderMock) Headers() storage.Cacher {
+	return holder.headers
 }
 
-func (phm *PoolsHolderMock) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phm.hdrNonces
+func (holder *PoolsHolderMock) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return holder.hdrNonces
 }
 
-func (phm *PoolsHolderMock) MiniBlocks() storage.Cacher {
-	return phm.miniBlocks
+func (holder *PoolsHolderMock) MiniBlocks() storage.Cacher {
+	return holder.miniBlocks
 }
 
-func (phm *PoolsHolderMock) PeerChangesBlocks() storage.Cacher {
-	return phm.peerChangesBlocks
+func (holder *PoolsHolderMock) PeerChangesBlocks() storage.Cacher {
+	return holder.peerChangesBlocks
 }
 
-func (phm *PoolsHolderMock) MetaBlocks() storage.Cacher {
-	return phm.metaBlocks
+func (holder *PoolsHolderMock) MetaBlocks() storage.Cacher {
+	return holder.metaBlocks
 }
 
-func (phm *PoolsHolderMock) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phm.metaHdrNonces
+func (holder *PoolsHolderMock) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return holder.metaHdrNonces
 }
 
-func (phm *PoolsHolderMock) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
-	phm.transactions = transactions
+func (holder *PoolsHolderMock) SetTransactions(txPool dataRetriever.TxPool) {
+	holder.transactions = txPool
 }
 
-func (phm *PoolsHolderMock) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
-	phm.unsignedTransactions = scrs
+func (holder *PoolsHolderMock) SetUnsignedTransactions(txPool dataRetriever.TxPool) {
+	holder.unsignedTransactions = txPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
