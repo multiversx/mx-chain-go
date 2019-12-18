@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -52,11 +53,7 @@ func miniBlocksCompacterMock() *mock.MiniBlocksCompacterMock {
 }
 
 func initDataPool() *mock.PoolsHolderStub {
-	sdp := &mock.PoolsHolderStub{
-		TransactionsTxPool:         txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16}),
-		UnsignedTransactionsTxPool: txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16}),
-		RewardTransactionsTxPool:   txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16}),
-
+	poolsHolderStub := &mock.PoolsHolderStub{
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{}
 		},
@@ -112,7 +109,12 @@ func initDataPool() *mock.PoolsHolderStub {
 			return cs
 		},
 	}
-	return sdp
+
+	poolsHolderStub.TransactionsTxPool = txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16})
+	poolsHolderStub.UnsignedTransactionsTxPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 16})
+	poolsHolderStub.RewardTransactionsTxPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 16})
+
+	return poolsHolderStub
 }
 
 // TODO: remove non-test
@@ -678,7 +680,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
 	t.Parallel()
 
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -740,7 +742,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCall(t *testing.T) {
 	t.Parallel()
 
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -848,7 +850,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 	t.Parallel()
 
 	totalGasConsumed := uint64(0)
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewTransactionPreprocessor(
 		txPool,

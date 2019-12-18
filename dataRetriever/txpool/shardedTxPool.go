@@ -197,7 +197,8 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 
 // ShardDataStore is not implemented for this pool
 func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
-	panic("shardedTxPool.ShardDataStore is not implemented")
+	cache := txPool.GetTxCache(cacheID)
+	return cache
 }
 
 // AddData is not implemented for this pool
@@ -217,7 +218,7 @@ func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
 
 // RemoveSetOfDataFromPool is not implemented for this pool
 func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
-	panic("shardedTxPool.RemoveSetOfDataFromPool is not implemented")
+	txPool.RemoveTxBulk(keys, cacheID)
 }
 
 // RemoveDataFromAllShards is not implemented for this pool

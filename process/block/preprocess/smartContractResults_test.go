@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -708,22 +707,6 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
-			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &mock.CacherStub{
-					PeekCalled: func(key []byte) (value interface{}, ok bool) {
-						if reflect.DeepEqual(key, []byte("tx1_hash")) {
-							return &smartContractResult.SmartContractResult{Nonce: 10}, true
-						}
-						return nil, false
-					},
-				}
-			},
-		}
-	}
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 

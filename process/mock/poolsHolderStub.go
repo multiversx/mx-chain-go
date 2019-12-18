@@ -15,8 +15,8 @@ type PoolsHolderStub struct {
 	CurrBlockTxsCalled      func() dataRetriever.TransactionCacher
 
 	TransactionsTxPool         dataRetriever.TxPool
-	UnsignedTransactionsTxPool dataRetriever.TxPool
-	RewardTransactionsTxPool   dataRetriever.TxPool
+	UnsignedTransactionsTxPool dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsTxPool   dataRetriever.ShardedDataCacherNotifier
 }
 
 func (stub *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
@@ -48,12 +48,12 @@ func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
 	return stub.TransactionsTxPool
 }
 
-func (stub *PoolsHolderStub) UnsignedTransactions() dataRetriever.TxPool {
+func (stub *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	check.AssertNotNil(stub.UnsignedTransactionsTxPool, "stub.UnsignedTransactionsTxPool")
 	return stub.UnsignedTransactionsTxPool
 }
 
-func (stub *PoolsHolderStub) RewardTransactions() dataRetriever.TxPool {
+func (stub *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
 	check.AssertNotNil(stub.RewardTransactionsTxPool, "stub.RewardTransactionsTxPool")
 	return stub.RewardTransactionsTxPool
 }
