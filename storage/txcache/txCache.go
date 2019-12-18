@@ -75,6 +75,7 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 		cache.forEachSender(func(key string, txList *txListForSender) {
 			// Reset happens on first pass only
 			shouldResetCopy := pass == 0
+			// todo - make a structure for destination...
 			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizePerSender)
 
 			resultFillIndex += copied
