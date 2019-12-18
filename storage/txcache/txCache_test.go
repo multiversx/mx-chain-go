@@ -73,7 +73,7 @@ func Test_GetTransactions_Dummy(t *testing.T) {
 	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
 	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted := cache.GetTransactions(10, 2)
+	sorted, _ := cache.GetTransactions(10, 2)
 	assert.Len(t, sorted, 8)
 }
 
@@ -98,7 +98,7 @@ func Test_GetTransactions(t *testing.T) {
 
 	assert.Equal(t, int64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.GetTransactions(nRequestedTransactions, 2)
+	sorted, _ := cache.GetTransactions(nRequestedTransactions, 2)
 
 	assert.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 

@@ -235,7 +235,9 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsTxPool = nil
+	tdp.TransactionsCalled = func() dataRetriever.TxPool {
+		return nil
+	}
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, err := blproc.NewShardProcessor(arguments)
