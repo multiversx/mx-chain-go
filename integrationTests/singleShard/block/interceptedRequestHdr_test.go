@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -69,7 +68,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	}
 
 	hdr2 := block.Header{
-		Nonce:            0,
+		Nonce:            1,
 		PubKeysBitmap:    []byte{255, 0},
 		Signature:        []byte("signature"),
 		PrevHash:         []byte("prev hash"),
@@ -90,11 +89,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//Step 2. resolver has the headers
-	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
+	nResolver.ShardDataPool.Headers().Add(hdrHash1, &hdr1)
 
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(0, hdrHash1)
-	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
@@ -108,8 +104,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		chanDone <- struct{}{}
 	}()
 
-	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
+	regFunc := func(key []byte) {
+		hdrStored, _ := nRequester.ShardDataPool.Headers().GetHeaderByHash(key)
 		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
 
 		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
@@ -121,7 +117,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			wg.Done()
 		}
-	})
+	}
+	nRequester.ShardDataPool.Headers().RegisterHandler(regFunc)
 
 	//Step 4. request header from pool
 	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)

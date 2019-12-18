@@ -107,14 +107,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{
-				MergeCalled: func(u uint64, hashMap dataRetriever.ShardIdHashMap) {},
-				HasCalled: func(nonce uint64, shardId uint32) bool {
-					return true
-				},
-			}
-		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -163,8 +155,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		HeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
 			return cs

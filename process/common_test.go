@@ -90,7 +90,7 @@ func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
 func TestGetShardHeaderShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 
 	header, err := process.GetShardHeader(hash, cacher, nil, storageService)
@@ -101,7 +101,7 @@ func TestGetShardHeaderShouldErrNilMarshalizer(t *testing.T) {
 func TestGetShardHeaderShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
 	header, err := process.GetShardHeader(hash, cacher, marshalizer, nil)
@@ -113,9 +113,9 @@ func TestGetShardHeaderShouldGetHeaderFromPool(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 1}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return hdr, nil
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -129,9 +129,9 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 1}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -166,7 +166,7 @@ func TestGetMetaHeaderShouldErrNilCacher(t *testing.T) {
 func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 
 	header, err := process.GetMetaHeader(hash, cacher, nil, storageService)
@@ -177,7 +177,7 @@ func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
 func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
 	header, err := process.GetMetaHeader(hash, cacher, marshalizer, nil)
@@ -189,9 +189,9 @@ func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 1}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return hdr, nil
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -205,9 +205,9 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 1}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -239,9 +239,9 @@ func TestGetShardHeaderFromPoolShouldErrNilCacher(t *testing.T) {
 func TestGetShardHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 
@@ -253,9 +253,9 @@ func TestGetShardHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 func TestGetShardHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return &block.MetaBlock{}, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return &block.MetaBlock{}, nil
 		},
 	}
 
@@ -268,9 +268,9 @@ func TestGetShardHeaderFromPoolShouldWork(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 10}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return hdr, nil
 		},
 	}
 
@@ -290,9 +290,9 @@ func TestGetMetaHeaderFromPoolShouldErrNilCacher(t *testing.T) {
 func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 
@@ -303,10 +303,9 @@ func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 
 func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
-
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return &block.Header{}, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return &block.Header{}, nil
 		},
 	}
 
@@ -319,9 +318,9 @@ func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 10}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return hdr, nil
 		},
 	}
 
@@ -604,7 +603,6 @@ func TestGetShardHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -613,7 +611,6 @@ func TestGetShardHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 		nonce,
 		shardId,
 		nil,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -623,35 +620,11 @@ func TestGetShardHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 	assert.Equal(t, process.ErrNilCacher, err)
 }
 
-func TestGetShardHeaderWithNonceShouldErrNilUint64SyncMapCacher(t *testing.T) {
-	nonce := uint64(1)
-	shardId := uint32(0)
-
-	cacher := &mock.CacherStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
-	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
-
-	header, hash, err := process.GetShardHeaderWithNonce(
-		nonce,
-		shardId,
-		cacher,
-		nil,
-		marshalizer,
-		storageService,
-		uint64Converter)
-
-	assert.Nil(t, header)
-	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
-}
-
 func TestGetShardHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
@@ -659,7 +632,6 @@ func TestGetShardHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 		nonce,
 		shardId,
 		cacher,
-		uint64SyncMapCacher,
 		nil,
 		storageService,
 		uint64Converter)
@@ -673,8 +645,7 @@ func TestGetShardHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
@@ -682,7 +653,6 @@ func TestGetShardHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 		nonce,
 		shardId,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		nil,
 		uint64Converter)
@@ -696,8 +666,7 @@ func TestGetShardHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 
@@ -705,7 +674,6 @@ func TestGetShardHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 		nonce,
 		shardId,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		nil)
@@ -721,26 +689,9 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 	shardId := uint32(0)
 	hdr := &block.Header{Nonce: nonce}
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -751,7 +702,6 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 		nonce,
 		shardId,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -766,12 +716,12 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	shardId := uint32(0)
 	hdr := &block.Header{Nonce: nonce}
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
+
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
 	storageService := &mock.ChainStorerMock{
@@ -803,7 +753,6 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 		nonce,
 		shardId,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -814,7 +763,6 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 	nonce := uint64(1)
 
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -822,7 +770,6 @@ func TestGetMetaHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 	header, hash, err := process.GetMetaHeaderWithNonce(
 		nonce,
 		nil,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -832,39 +779,16 @@ func TestGetMetaHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 	assert.Equal(t, process.ErrNilCacher, err)
 }
 
-func TestGetMetaHeaderWithNonceShouldErrNilUint64SyncMapCacher(t *testing.T) {
-	nonce := uint64(1)
-
-	cacher := &mock.CacherStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
-	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
-
-	header, hash, err := process.GetMetaHeaderWithNonce(
-		nonce,
-		cacher,
-		nil,
-		marshalizer,
-		storageService,
-		uint64Converter)
-
-	assert.Nil(t, header)
-	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
-}
-
 func TestGetMetaHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 	nonce := uint64(1)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
 		nonce,
 		cacher,
-		uint64SyncMapCacher,
 		nil,
 		storageService,
 		uint64Converter)
@@ -877,15 +801,13 @@ func TestGetMetaHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 	nonce := uint64(1)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
 		nonce,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		nil,
 		uint64Converter)
@@ -898,15 +820,13 @@ func TestGetMetaHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 	nonce := uint64(1)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
+	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
 		nonce,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		nil)
@@ -919,29 +839,11 @@ func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -951,7 +853,6 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 	header, _, _ := process.GetMetaHeaderWithNonce(
 		nonce,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -965,10 +866,9 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	nonceToByte := []byte("1")
 
 	hdr := &block.MetaBlock{Nonce: nonce}
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1001,7 +901,6 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	header, _, _ := process.GetMetaHeaderWithNonce(
 		nonce,
 		cacher,
-		uint64SyncMapCacher,
 		marshalizer,
 		storageService,
 		uint64Converter)
@@ -1013,41 +912,22 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
-
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, nil, uint64SyncMapCacher)
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, nil)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrNilCacher, err)
-}
-
-func TestGetShardHeaderFromPoolWithNonceShouldErrNilUint64SyncMapCacher(t *testing.T) {
-	nonce := uint64(1)
-	shardId := uint32(0)
-
-	cacher := &mock.CacherStub{}
-
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, nil)
-	assert.Nil(t, header)
-	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenShardIdHashMapIsNil(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
-			return nil, false
-		},
-	}
+	cacher := &mock.HeadersCacherStub{}
 
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHashForHeaderNonce, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
@@ -1055,25 +935,12 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLo
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						return nil, false
-					},
-				}, true
-			}
+	cacher := &mock.HeadersCacherStub{}
 
-			return nil, false
-		},
-	}
-
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHashForHeaderNonce, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
@@ -1081,30 +948,13 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrMissingHeader, err)
@@ -1115,33 +965,16 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return &block.MetaBlock{}, true
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return &block.MetaBlock{}, nil
 		},
 	}
 
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
@@ -1150,30 +983,13 @@ func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	shardId := uint32(0)
 
 	hdr := &block.Header{Nonce: nonce}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 
-	header, headerHash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	header, headerHash, err := process.GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)
@@ -1182,95 +998,47 @@ func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 func TestGetMetaHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
 	nonce := uint64(1)
 
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{}
-
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, nil, uint64SyncMapCacher)
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, nil)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrNilCacher, err)
 }
 
-func TestGetMetaHeaderFromPoolWithNonceShouldErrNilUint64SyncMapCacher(t *testing.T) {
-	nonce := uint64(1)
-
-	cacher := &mock.CacherStub{}
-
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, nil)
-	assert.Nil(t, header)
-	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
-}
-
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenShardIdHashMapIsNil(t *testing.T) {
 	nonce := uint64(1)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
-			return nil, false
-		},
-	}
+	cacher := &mock.HeadersCacherStub{}
 
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHashForHeaderNonce, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
 
-	cacher := &mock.CacherStub{}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						return nil, false
-					},
-				}, true
-			}
+	cacher := &mock.HeadersCacherStub{}
 
-			return nil, false
-		},
-	}
-
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrMissingHashForHeaderNonce, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	//shardId := sharding.MetachainShardId
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		},
 	}
 
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrMissingHeader, err)
@@ -1279,32 +1047,15 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	//shardId := sharding.MetachainShardId
 
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return &block.Header{}, true
-		},
-	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
-
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{&block.Header{}}, [][]byte{hash}, nil
 		},
 	}
 
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
@@ -1313,32 +1064,16 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	//shardId := sharding.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
-	cacher := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return hdr, true
+	cacher := &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
-	uint64SyncMapCacher := &mock.Uint64SyncMapCacherStub{
-		GetCalled: func(n uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if n == nonce {
-				return &mock.ShardIdHasMapMock{
-					LoadCalled: func(s uint32) ([]byte, bool) {
-						if s == shardId {
-							return hash, true
-						}
 
-						return nil, false
-					},
-				}, true
-			}
-
-			return nil, false
-		},
-	}
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)

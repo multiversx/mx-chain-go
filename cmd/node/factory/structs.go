@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
-	factorySoftawareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
+	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
@@ -320,13 +321,13 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	}
 
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
-		datapool, err = createShardDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+		datapool, err = createShardDataPoolFromConfig(args.config)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+		metaDatapool, err = createMetaDataPoolFromConfig(args.config)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
@@ -700,7 +701,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
 func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftawareVersion.NewSoftwareVersionFactory(statusHandler)
+	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1169,7 +1170,6 @@ func createMetaChainDataStoreFromConfig(
 
 func createShardDataPoolFromConfig(
 	config *config.Config,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
 	log.Debug("creatingShardDataPool from config")
@@ -1193,28 +1193,9 @@ func createShardDataPoolFromConfig(
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrPool, err := headersCache.NewHeadersCacher(1000, 500)
 	if err != nil {
 		log.Error("error creating hdrpool")
-		return nil, err
-	}
-
-	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating metaBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating hdrNoncesCacher")
-		return nil, err
-	}
-	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		log.Error("error creating hdrNonces")
 		return nil, err
 	}
 
@@ -1242,26 +1223,18 @@ func createShardDataPoolFromConfig(
 		uTxPool,
 		rewardTxPool,
 		hdrPool,
-		hdrNonces,
+		//hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		metaBlockBody,
+		//metaBlockBody,
 		currBlockTxs,
 	)
 }
 
 func createMetaDataPoolFromConfig(
 	config *config.Config,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating metaBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := getCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
@@ -1269,20 +1242,9 @@ func createMetaDataPoolFromConfig(
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeaders, err := headersCache.NewHeadersCacher(1000, 500)
 	if err != nil {
 		log.Error("error creating shardHeaders")
-		return nil, err
-	}
-
-	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
-		return nil, err
-	}
-	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
 		return nil, err
 	}
 
@@ -1304,10 +1266,10 @@ func createMetaDataPoolFromConfig(
 	}
 
 	return dataPool.NewMetaDataPool(
-		metaBlockBody,
+		//metaBlockBody,
 		txBlockBody,
 		shardHeaders,
-		headersNonces,
+		//headersNonces,
 		txPool,
 		uTxPool,
 		currBlockTxs,
@@ -2437,30 +2399,14 @@ func createMemUnit() storage.Storer {
 }
 
 func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	metaBlocks, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1}
+	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		return nil, err
 	}
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHeadersNonces, err := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	shardHeaders, err := headersCache.NewHeadersCacher(1000, 500)
 	if err != nil {
 		return nil, err
 	}
@@ -2481,10 +2427,8 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 	}
 
 	dPool, err := dataPool.NewMetaDataPool(
-		metaBlocks,
 		txBlockBody,
 		shardHeaders,
-		shardHeadersNonces,
 		txPool,
 		uTxPool,
 		currTxs,

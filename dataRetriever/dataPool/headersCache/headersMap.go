@@ -70,6 +70,19 @@ func (h *headersMap) getNoncesTimestampSorted() []uint64 {
 	return nonceSlice
 }
 
+func (h *headersMap) getHeadersDetailsListFromSMap(hdrNonce uint64) (headerListDetails, bool) {
+	headersListD := h.getElement(hdrNonce)
+	if len(headersListD.headerList) == 0 {
+		return headerListDetails{}, false
+	}
+
+	//update timestamp
+	headersListD.timestamp = time.Now()
+	h.addElement(hdrNonce, headersListD)
+
+	return headersListD, true
+}
+
 func (h *headersMap) keys() []uint64 {
 	h.mutHdrsMap.RLock()
 	defer h.mutHdrsMap.RUnlock()

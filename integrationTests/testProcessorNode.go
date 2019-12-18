@@ -836,16 +836,12 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
-	metaHandlers := func(key []byte) {
-		atomic.AddInt32(&tpn.CounterMetaRcv, 1)
-	}
 	hdrHandlers := func(key []byte) {
 		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.MetaDataPool.ShardHeaders().RegisterHandler(hdrHandlers)
-		tpn.MetaDataPool.MetaBlocks().RegisterHandler(metaHandlers)
+		tpn.MetaDataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
 		txHandler := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
@@ -858,7 +854,6 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.ShardDataPool.Transactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.ShardDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
 }
@@ -952,29 +947,22 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
-	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.Headers() == nil || tpn.ShardDataPool.HeadersNonces() == nil
+	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	syncMapHashNonce, ok := tpn.ShardDataPool.HeadersNonces().Get(nonce)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce link in HeadersNonces for nonce %d", nonce))
+	headerObjects, _, err := tpn.ShardDataPool.Headers().GetHeaderByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("no header found for hash %s", err.Error()))
 	}
 
-	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
-	}
-
-	headerObject, ok := tpn.ShardDataPool.Headers().Get(headerHash)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
-	}
+	//TODO what should we do if there are more headers
+	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.Header)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for hash %s", hex.EncodeToString(headerHash)))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for hash"))
 	}
 
 	return header, nil
@@ -1036,29 +1024,22 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dat
 
 // GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
-	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
+	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	syncMapHashNonce, ok := tpn.MetaDataPool.HeadersNonces().Get(nonce)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce link in HeadersNonces for nonce %d", nonce))
+	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeaderByNonceAndShardId(nonce, sharding.MetachainShardId)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("no header found for hash %s", err.Error()))
 	}
 
-	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
-	}
-
-	headerObject, ok := tpn.MetaDataPool.MetaBlocks().Get(headerHash)
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
-	}
+	//TODO what should we do if there are more headers
+	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.MetaBlock)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for hash %s", hex.EncodeToString(headerHash)))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for hash"))
 	}
 
 	return header, nil

@@ -3,6 +3,7 @@ package peer_test
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"testing"
 
@@ -515,12 +516,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	arguments := CreateMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -572,12 +569,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	arguments := CreateMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -639,12 +632,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	arguments.InitialNodes = nil
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -713,12 +702,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 
 	arguments := CreateMockArguments()
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -1027,10 +1012,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 
 	arguments := CreateMockArguments()
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		ShardHeadersCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return prevHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return prevHeader, nil
 				},
 			}
 		},
@@ -1059,10 +1044,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersLoadsMissingFromSt
 	storageHeader := &block.MetaBlock{Nonce: 2, ShardInfo: []block.ShardData{sd1}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return storageHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return storageHeader, nil
 				},
 			}
 		},
@@ -1088,12 +1073,8 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrForStorage(t *t
 	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 
@@ -1126,10 +1107,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrIfStillMissing(
 	storageHeader := &block.MetaBlock{Nonce: 1, ShardInfo: []block.ShardData{}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return storageHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return storageHeader, nil
 				},
 			}
 		},

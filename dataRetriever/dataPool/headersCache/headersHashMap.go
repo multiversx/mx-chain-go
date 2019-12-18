@@ -1,6 +1,8 @@
 package headersCache
 
-import "sync"
+import (
+	"sync"
+)
 
 type headersHashMap struct {
 	hdrsHash    map[string]headerInfo
@@ -18,8 +20,7 @@ func (hh *headersHashMap) addElement(hash []byte, info headerInfo) bool {
 	hh.mutHdrsHash.Lock()
 	defer hh.mutHdrsHash.Unlock()
 
-	_, ok := hh.hdrsHash[string(hash)]
-	if ok {
+	if _, ok := hh.hdrsHash[string(hash)]; ok {
 		return true
 	}
 

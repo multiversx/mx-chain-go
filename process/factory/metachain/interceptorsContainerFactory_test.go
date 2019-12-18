@@ -48,17 +48,11 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 
 func createDataPools() dataRetriever.MetaPoolsHolder {
 	pools := &mock.MetaPoolsHolderStub{
-		ShardHeadersCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
-		},
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}

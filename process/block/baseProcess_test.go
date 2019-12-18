@@ -105,15 +105,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{
-				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
-				HasCalled: func(nonce uint64, shardId uint32) bool {
-					return true
-				},
-				RemoveCalled: func(nonce uint64, shardId uint32) {},
-			}
-		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -169,11 +160,11 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		HeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
-			cs.RemoveCalled = func(key []byte) {
+			cs.RemoveHeaderByHashCalled = func(key []byte) {
 			}
 			cs.LenCalled = func() int {
 				return 0
@@ -181,7 +172,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
-			cs.KeysCalled = func() [][]byte {
+			cs.KeysCalled = func(shardId uint32) []uint64 {
 				return nil
 			}
 			return cs
@@ -193,33 +184,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				KeysCalled: func() [][]byte {
-					return nil
-				},
-				LenCalled: func() int {
-					return 0
-				},
-				MaxSizeCalled: func() int {
-					return 1000
-				},
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				RemoveCalled:          func(key []byte) {},
-			}
-		},
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
@@ -242,15 +206,15 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			}
 			return cs
 		},
-		ShardHeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("hdr_hash1"), key) {
-					return &block.Header{Nonce: 1}, true
+			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+				if bytes.Equal([]byte("hdr_hash1"), hash) {
+					return &block.Header{Nonce: 1}, nil
 				}
-				return nil, false
+				return nil, errors.New("err")
 			}
 			cs.LenCalled = func() int {
 				return 0
@@ -258,16 +222,10 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
-			cs.RemoveCalled = func(key []byte) {}
-			cs.KeysCalled = func() [][]byte {
+			cs.RemoveHeaderByHashCalled = func(key []byte) {}
+			cs.KeysCalled = func(shardId uint32) []uint64 {
 				return nil
 			}
-			return cs
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			cs := &mock.Uint64SyncMapCacherStub{}
-			cs.MergeCalled = func(u uint64, syncMap dataRetriever.ShardIdHashMap) {}
-			cs.RemoveCalled = func(nonce uint64, shardId uint32) {}
 			return cs
 		},
 	}

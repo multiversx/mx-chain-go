@@ -43,7 +43,6 @@ func NewHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *hea
 }
 
 func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header data.HeaderHandler) bool {
-
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
@@ -93,7 +92,12 @@ func (hnc *headersNonceCache) getShardMap(shardId uint32) *headersMap {
 }
 
 func (hnc *headersNonceCache) removeHeaderNonceCache(hdrInfo headerInfo, headerHash []byte) {
-	hdrListD, ok := hnc.getHeadersDetailsListFromSMap(hdrInfo.headerNonce, hdrInfo.headerShardId)
+	_, ok := hnc.hdrNonceCache[hdrInfo.headerShardId]
+	if !ok {
+		return
+	}
+
+	hdrListD, ok := hnc.hdrNonceCache[hdrInfo.headerShardId].getHeadersDetailsListFromSMap(hdrInfo.headerNonce)
 	if !ok {
 		return
 	}
@@ -118,7 +122,12 @@ func (hnc *headersNonceCache) removeHeaderNonceCache(hdrInfo headerInfo, headerH
 }
 
 func (hnc *headersNonceCache) removeHeaderNonceByNonceAndShardId(hdrNonce uint64, shardId uint32) int {
-	hdrListD, ok := hnc.getHeadersDetailsListFromSMap(hdrNonce, shardId)
+	_, ok := hnc.hdrNonceCache[shardId]
+	if !ok {
+		return 0
+	}
+
+	hdrListD, ok := hnc.hdrNonceCache[shardId].getHeadersDetailsListFromSMap(hdrNonce)
 	if !ok {
 		return 0
 	}
@@ -140,27 +149,20 @@ func (hnc *headersNonceCache) removeHeaderNonceByNonceAndShardId(hdrNonce uint64
 }
 
 func (hnc *headersNonceCache) getHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]headerDetails, bool) {
-	headersList, ok := hnc.getHeadersDetailsListFromSMap(hdrNonce, shardId)
+	hnc.mutHeadersMap.RLock()
+	defer hnc.mutHeadersMap.RUnlock()
+
+	_, ok := hnc.hdrNonceCache[shardId]
+	if !ok {
+		return nil, false
+	}
+
+	headersList, ok := hnc.hdrNonceCache[shardId].getHeadersDetailsListFromSMap(hdrNonce)
 	if !ok {
 		return nil, false
 	}
 
 	return headersList.headerList, true
-}
-
-func (hnc *headersNonceCache) getHeadersDetailsListFromSMap(hdrNonce uint64, shardId uint32) (headerListDetails, bool) {
-	headersShardPool, ok := hnc.hdrNonceCache[shardId]
-	if !ok {
-		return headerListDetails{}, false
-	}
-
-	headersListD := headersShardPool.getElement(hdrNonce)
-
-	//update timestamp
-	headersListD.timestamp = time.Now()
-	hnc.hdrNonceCache[shardId].addElement(hdrNonce, headersListD)
-
-	return headersListD, true
 }
 
 func (hnc *headersNonceCache) getNumHeaderFromCache(shardId uint32) int64 {

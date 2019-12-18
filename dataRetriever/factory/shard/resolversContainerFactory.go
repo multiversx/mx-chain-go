@@ -281,7 +281,6 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
-		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -452,7 +451,6 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
-		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -507,8 +505,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.MetaBlocks(),
-		rcf.dataPools.HeadersNonces(),
+		rcf.dataPools.Headers(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,

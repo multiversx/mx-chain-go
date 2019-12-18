@@ -146,20 +146,16 @@ func emptyNodeDataPool(node *integrationTests.TestProcessorNode) {
 }
 
 func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
-	sdp.HeadersNonces().Clear()
 	sdp.Headers().Clear()
 	sdp.UnsignedTransactions().Clear()
 	sdp.Transactions().Clear()
-	sdp.MetaBlocks().Clear()
 	sdp.MiniBlocks().Clear()
 	sdp.PeerChangesBlocks().Clear()
 }
 
 func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
-	holder.HeadersNonces().Clear()
-	holder.MetaBlocks().Clear()
 	holder.MiniBlocks().Clear()
-	holder.ShardHeaders().Clear()
+	holder.Headers().Clear()
 }
 
 func resetHighestProbableNonce(nodes []*integrationTests.TestProcessorNode, shardId uint32, targetNonce uint64) {

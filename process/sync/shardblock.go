@@ -54,9 +54,6 @@ func NewShardBootstrap(
 	if check.IfNil(poolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(poolsHolder.HeadersNonces()) {
-		return nil, process.ErrNilHeadersNoncesDataPool
-	}
 	if check.IfNil(poolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
 	}
@@ -85,7 +82,6 @@ func NewShardBootstrap(
 		blkExecutor:           blkExecutor,
 		store:                 store,
 		headers:               poolsHolder.Headers(),
-		headersNonces:         poolsHolder.HeadersNonces(),
 		rounder:               rounder,
 		waitTime:              waitTime,
 		hasher:                hasher,
@@ -153,7 +149,6 @@ func NewShardBootstrap(
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 	boot.headers.RegisterHandler(boot.receivedHeaders)
 
@@ -276,8 +271,7 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 	hdr, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 	if err != nil {
 		_ = process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -289,8 +283,7 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 		hdr, _, err = process.GetShardHeaderFromPoolWithNonce(
 			nonce,
 			boot.shardCoordinator.SelfId(),
-			boot.headers,
-			boot.headersNonces)
+			boot.headers)
 		if err != nil {
 			return nil, err
 		}
@@ -366,8 +359,7 @@ func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 
 	return err == nil
 }
@@ -386,8 +378,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 	header, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		shardId,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 
 	if err != nil {
 		log.Trace("GetShardHeaderFromPoolWithNonce", "error", err.Error())

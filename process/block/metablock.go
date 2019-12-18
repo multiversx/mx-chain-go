@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -47,7 +46,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
+	if arguments.DataPool.Headers() == nil || arguments.DataPool.Headers().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
 	if arguments.SCDataGetter == nil || arguments.SCDataGetter.IsInterfaceNil() {
@@ -106,7 +105,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 
-	headerPool := mp.dataPool.ShardHeaders()
+	headerPool := mp.dataPool.Headers()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
 
 	mp.chRcvAllHdrs = make(chan bool)
@@ -169,7 +168,7 @@ func (mp *metaProcessor) ProcessBlock(
 		header,
 		mp.marshalizer,
 		mp.appStatusHandler,
-		mp.dataPool.ShardHeaders().Len(),
+		mp.dataPool.Headers().Len(),
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
@@ -373,7 +372,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 			sortedHdrs[j] = sortedHdrPerShard[i][j]
 		}
 
-		err := mp.requestHeadersIfMissing(sortedHdrs, i, round, mp.dataPool.ShardHeaders())
+		err := mp.requestHeadersIfMissing(sortedHdrs, i, round, mp.dataPool.Headers())
 		if err != nil {
 			log.Trace("requestHeadersIfMissing", "error", err.Error())
 			continue
@@ -421,33 +420,16 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		return process.ErrNilMetaBlockHeader
 	}
 
-	headerPool := mp.dataPool.ShardHeaders()
+	headerPool := mp.dataPool.Headers()
 	if headerPool == nil || headerPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
-	}
-
-	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
-		return process.ErrNilHeadersNoncesDataPool
 	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardHeaderHash := header.ShardInfo[i].HeaderHash
-		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
-		if !ok {
-			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrMissingHeader
-		}
 
-		shardBlock, ok := headerInfo.hdr.(*block.Header)
-		if !ok {
-			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return process.ErrWrongTypeAssertion
-		}
-
-		headerPool.Remove(shardHeaderHash)
-		headerNoncesPool.Remove(shardBlock.Nonce, shardBlock.ShardId)
+		headerPool.RemoveHeaderByHash(shardHeaderHash)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -473,14 +455,9 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrWrongTypeAssertion
 	}
 
-	headerPool := mp.dataPool.ShardHeaders()
+	headerPool := mp.dataPool.Headers()
 	if check.IfNil(headerPool) {
 		return process.ErrNilHeadersDataPool
-	}
-
-	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if check.IfNil(headerNoncesPool) {
-		return process.ErrNilHeadersNoncesDataPool
 	}
 
 	hdrHashes := make([][]byte, len(metaBlock.ShardInfo))
@@ -497,10 +474,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		headerPool.Put(hdrHash, shardHeader)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(shardHeader.GetShardID(), hdrHash)
-		headerNoncesPool.Merge(shardHeader.GetNonce(), syncMap)
+		headerPool.Add(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
@@ -809,20 +783,13 @@ func (mp *metaProcessor) CommitBlock(
 		log.Trace("MetaBlockUnit store.Put", "error", errNotCritical.Error())
 	}
 
-	headersNoncesPool := mp.dataPool.HeadersNonces()
-	if headersNoncesPool == nil {
-		err = process.ErrNilHeadersNoncesDataPool
-		return err
-	}
-
-	metaBlocksPool := mp.dataPool.MetaBlocks()
+	metaBlocksPool := mp.dataPool.Headers()
 	if metaBlocksPool == nil {
 		err = process.ErrNilMetaBlocksPool
 		return err
 	}
 
-	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
-	metaBlocksPool.Remove(headerHash)
+	metaBlocksPool.RemoveHeaderByHash(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -950,7 +917,7 @@ func (mp *metaProcessor) CommitBlock(
 		header,
 		body,
 		headerHash,
-		mp.dataPool.ShardHeaders().Len(),
+		mp.dataPool.Headers().Len(),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -963,13 +930,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
-		"metablocks", mp.dataPool.MetaBlocks().Len(),
-		"metablocks capacity", mp.dataPool.MetaBlocks().MaxSize(),
-		"shard headers", mp.dataPool.ShardHeaders().Len(),
-		"shard headers capacity", mp.dataPool.ShardHeaders().MaxSize(),
+		"headers pool", mp.dataPool.Headers().Len(),
+		"headers pool capacity", mp.dataPool.Headers().MaxSize(),
 	)
 
-	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	go mp.cleanupPools(mp.dataPool.Headers())
 
 	return nil
 }
@@ -1135,7 +1100,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
+					go mp.removeHeaderFromPools(shardHdr, mp.dataPool.Headers())
 					log.Debug("isHdrConstructionValid", "error", err.Error())
 					continue
 				}
@@ -1204,13 +1169,13 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
-	shardHeaderPool := mp.dataPool.ShardHeaders()
+	shardHeaderPool := mp.dataPool.Headers()
 	if shardHeaderPool == nil {
 		return
 	}
 
-	obj, ok := shardHeaderPool.Peek(shardHeaderHash)
-	if !ok {
+	obj, err := shardHeaderPool.GetHeaderByHash(shardHeaderHash)
+	if err != nil {
 		return
 	}
 
@@ -1263,12 +1228,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
-		shardHeaderPool.Remove(shardHeaderHash)
-
-		headersNoncesPool := mp.dataPool.HeadersNonces()
-		if headersNoncesPool != nil {
-			headersNoncesPool.Remove(shardHeader.GetNonce(), shardHeader.GetShardID())
-		}
+		shardHeaderPool.RemoveHeaderByHash(shardHeaderHash)
 
 		return
 	}
@@ -1287,7 +1247,7 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 			shardId,
 			mp.shardBlockFinality,
 			mp.getShardHeaderFromPoolWithNonce,
-			mp.dataPool.ShardHeaders(),
+			mp.dataPool.Headers(),
 		)
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
@@ -1332,7 +1292,7 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 		shardData := metaBlock.ShardInfo[i]
 		hdr, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
-			mp.dataPool.ShardHeaders())
+			mp.dataPool.Headers())
 
 		if err != nil {
 			missingHeadersHashes[shardData.ShardID] = append(missingHeadersHashes[shardData.ShardID], shardData.HeaderHash)
@@ -1531,7 +1491,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 }
 
 func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
-	shardBlocksPool := mp.dataPool.ShardHeaders()
+	shardBlocksPool := mp.dataPool.Headers()
 	if shardBlocksPool == nil {
 		return nil, nil, nil, process.ErrNilShardBlockPool
 	}
@@ -1548,36 +1508,43 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 	}
 
 	// get keys and arrange them into shards
-	for _, key := range shardBlocksPool.Keys() {
-		val, _ := shardBlocksPool.Peek(key)
-		if val == nil {
-			continue
-		}
+	numShards := mp.shardCoordinator.NumberOfShards()
 
-		hdr, ok := val.(*block.Header)
-		if !ok {
-			continue
-		}
+	for shardId := uint32(0); shardId < numShards; shardId++ {
+		noncesKeys := shardBlocksPool.Keys(shardId)
+		for _, nonce := range noncesKeys {
+			headers, hashes, err := shardBlocksPool.GetHeaderByNonceAndShardId(nonce, shardId)
+			if err != nil {
+				continue
+			}
 
-		if hdr.GetRound() > round {
-			continue
-		}
+			//TODO what should i go if a got more than one header
+			hdrHandler, hash := headers[len(headers)-1], hashes[len(hashes)-1]
 
-		currShardId := hdr.ShardId
-		if mp.lastNotarizedHdrForShard(currShardId) == nil {
-			continue
-		}
+			hdr, ok := hdrHandler.(*block.Header)
+			if !ok {
+				continue
+			}
+			if hdr.GetRound() > round {
+				continue
+			}
 
-		if hdr.GetRound() <= mp.lastNotarizedHdrForShard(currShardId).GetRound() {
-			continue
-		}
+			currShardId := hdr.ShardId
+			if mp.lastNotarizedHdrForShard(currShardId) == nil {
+				continue
+			}
 
-		if hdr.GetNonce() <= mp.lastNotarizedHdrForShard(currShardId).GetNonce() {
-			continue
-		}
+			if hdr.GetRound() <= mp.lastNotarizedHdrForShard(currShardId).GetRound() {
+				continue
+			}
 
-		hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
-			&hashAndHdr{hdr: hdr, hash: key})
+			if hdr.GetNonce() <= mp.lastNotarizedHdrForShard(currShardId).GetNonce() {
+				continue
+			}
+
+			hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
+				&hashAndHdr{hdr: hdr, hash: hash})
+		}
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
@@ -1682,8 +1649,7 @@ func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
 	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		shardId,
-		mp.dataPool.ShardHeaders(),
-		mp.dataPool.HeadersNonces())
+		mp.dataPool.Headers())
 
 	return shardHeader, shardHeaderHash, err
 }

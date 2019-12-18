@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
@@ -196,21 +196,14 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
-	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	hdrPool, _ := headersCache.NewHeadersCacher(1000, 100)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
@@ -219,10 +212,8 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		uTxPool,
 		rewardsTxPool,
 		hdrPool,
-		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		metaBlocks,
 		currTxs,
 	)
 

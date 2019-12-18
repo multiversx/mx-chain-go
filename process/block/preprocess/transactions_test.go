@@ -143,9 +143,6 @@ func initDataPool() *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{}
-		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -191,8 +188,8 @@ func initDataPool() *mock.PoolsHolderStub {
 			cs.RemoveCalled = func(key []byte) {}
 			return cs
 		},
-		HeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
 			return cs

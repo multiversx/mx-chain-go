@@ -51,10 +51,7 @@ func NewMetaBootstrap(
 	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.HeadersNonces()) {
-		return nil, process.ErrNilHeadersNoncesDataPool
-	}
-	if check.IfNil(poolsHolder.MetaBlocks()) {
+	if check.IfNil(poolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 
@@ -81,8 +78,7 @@ func NewMetaBootstrap(
 		blkc:                  blkc,
 		blkExecutor:           blkExecutor,
 		store:                 store,
-		headers:               poolsHolder.MetaBlocks(),
-		headersNonces:         poolsHolder.HeadersNonces(),
+		headers:               poolsHolder.Headers(),
 		rounder:               rounder,
 		waitTime:              waitTime,
 		hasher:                hasher,
@@ -149,7 +145,6 @@ func NewMetaBootstrap(
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.headers.RegisterHandler(boot.receivedHeader)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 
@@ -270,8 +265,7 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
 	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 	if err != nil {
 		_ = process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -282,8 +276,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 		hdr, _, err = process.GetMetaHeaderFromPoolWithNonce(
 			nonce,
-			boot.headers,
-			boot.headersNonces)
+			boot.headers)
 		if err != nil {
 			return nil, err
 		}
@@ -358,8 +351,7 @@ func (boot *MetaBootstrap) IsInterfaceNil() bool {
 func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 
 	return err == nil
 }
@@ -400,8 +392,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 
 	header, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 
 	if err != nil {
 		log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
