@@ -142,10 +142,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		nil,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -166,10 +166,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -190,10 +190,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		nil,
@@ -214,10 +214,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -238,10 +238,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -262,10 +262,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -286,9 +286,9 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -309,10 +309,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -333,10 +333,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 func TestTxsPreprocessor_NewTransactionPreprocessorNilMiniBlocksCompacter(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -357,10 +357,10 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMiniBlocksCompacter(t *tes
 func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	poolsHolder := initPoolsHolder()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, err := NewTransactionPreprocessor(
-		tdp.Transactions(),
+		poolsHolder.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
