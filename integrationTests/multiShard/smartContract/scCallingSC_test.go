@@ -3,7 +3,6 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -19,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +27,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -102,21 +101,15 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	// verify how many times was shard 0 and shard 1 called
-  address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
-  shId := nodes[0].ShardCoordinator.ComputeId(address)
+	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
 		}
 
-		_, _ = vm.GetIntValueFromSCWithError(nil, node.AccntState, firstSCAddress, "numCalled", nil)
-    // assert.Nil(t, err)
-    // assert.NotNil(t, numCalled)
-		// if err == nil && numCalled != nil {
-		// 	assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
-    // } else {
-		// 	fmt.Println(err.Error())
-		// }
+		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
+		assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
 	}
 }
 
@@ -220,10 +213,7 @@ func putDeploySCToDataPool(
 	transferOnDeploy *big.Int,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
-	scCode, err := ioutil.ReadFile(fileName)
-  if err != nil {
-    fmt.Println("putDeploySCToDataPool:", err.Error())
-  }
+	scCode, _ := ioutil.ReadFile(fileName)
 	scCodeString := hex.EncodeToString(scCode)
 
 	blockChainHook := nodes[0].BlockchainHook
