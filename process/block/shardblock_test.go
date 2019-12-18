@@ -405,6 +405,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsTxPool.AddTx([]byte("tx_hash1"), &transaction.Transaction{Nonce: 10}, "0")
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{}
 
@@ -604,6 +605,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsTxPool.AddTx([]byte("tx_hash1"), &transaction.Transaction{Nonce: 10}, "0")
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	blkc := &blockchain.BlockChain{
@@ -1796,6 +1798,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsTxPool.AddTx([]byte("tx_hash1"), &transaction.Transaction{Nonce: 10}, "0")
 
 	txHash := []byte("txHash")
 	rootHash := []byte("root hash")
