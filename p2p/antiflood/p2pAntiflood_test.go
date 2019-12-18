@@ -93,18 +93,10 @@ func TestP2pAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 	}
 	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{
 		IncrementAddingToSumCalled: func(identifier string, size uint64) bool {
-			if identifier == fromConnectedPeer.Pretty() {
-				return true
-			}
-
-			return false
+			return identifier == fromConnectedPeer.Pretty()
 		},
 		IncrementCalled: func(identifier string, size uint64) bool {
-			if identifier == message.PeerField.Pretty() {
-				return false
-			}
-
-			return true
+			return identifier != message.PeerField.Pretty()
 		},
 	})
 
