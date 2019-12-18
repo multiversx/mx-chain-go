@@ -2,7 +2,6 @@ package rewardTransaction_test
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -124,9 +123,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -155,9 +154,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -183,9 +182,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -209,9 +208,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotAddIntermediateTxsShoul
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -236,9 +235,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -275,9 +274,9 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)

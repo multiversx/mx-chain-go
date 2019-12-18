@@ -174,7 +174,7 @@ func (p *validatorStatistics) updatePeerState(
 
 	zero := big.NewInt(0)
 	if peerChange.ValueChange.Cmp(zero) != 0 {
-		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
+		actualValue := zero.Add(account.Stake, &peerChange.ValueChange.Int)
 		err := account.SetStakeWithJournal(actualValue)
 		if err != nil {
 			return err
@@ -570,7 +570,7 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 
 		sdKey := p.buildShardDataKey(shardData)
 		p.prevShardInfo[sdKey] = block.ShardData{
-			ShardID:      previousHeader.ShardId,
+			ShardID:      previousHeader.ShardID,
 			Nonce:        previousHeader.Nonce,
 			Round:        previousHeader.Round,
 			PrevRandSeed: previousHeader.PrevRandSeed,

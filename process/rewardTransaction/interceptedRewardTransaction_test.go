@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -92,9 +93,9 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -117,9 +118,9 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardId: shardId,
+		ShardID: shardId,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -154,9 +155,9 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: nil,
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -178,9 +179,9 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   data.NewProtoBigInt(100),
 		RcvAddr: nil,
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -203,9 +204,9 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   value,
+		Value:   data.NewProtoBigIntFromBigInt(value),
 		RcvAddr: nil,
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -224,13 +225,13 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := data.NewProtoBigInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -249,13 +250,13 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := data.NewProtoBigInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -279,7 +280,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 		Epoch:   0,
 		Value:   nil,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -298,13 +299,13 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(-100)
+	value := data.NewProtoBigInt(-100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -323,13 +324,13 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := data.NewProtoBigInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}

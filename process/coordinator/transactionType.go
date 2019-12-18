@@ -61,7 +61,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
-	acntDst, err := tth.getAccountFromAddress(tx.GetRecvAddress())
+	acntDst, err := tth.getAccountFromAddress(tx.GetRcvAddr())
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
@@ -78,7 +78,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, tth.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
@@ -107,7 +107,7 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}

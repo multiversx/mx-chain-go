@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -123,7 +122,7 @@ func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHd
 		PrevRandSeed:     prevRandSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -361,7 +360,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 		PrevRandSeed:  []byte("rand seed"),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
-		ShardId:       0,
+		ShardID:       0,
 		RootHash:      []byte("rootHash"),
 	}
 	body := make(block.Body, 0)
@@ -436,7 +435,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		PrevRandSeed:     []byte("rand seed"),
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -641,7 +640,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		PrevRandSeed:     randSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -792,7 +791,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		PrevRandSeed:     randSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -874,7 +873,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		PrevRandSeed:     randSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -951,7 +950,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 		PrevRandSeed:     randSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -1103,7 +1102,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 		PrevRandSeed:     randSeed,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -2237,7 +2236,7 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 	hasher := mock.HasherMock{}
 	hdr := &block.Header{
 		Nonce:         1,
-		ShardId:       2,
+		ShardID:       2,
 		Epoch:         3,
 		Round:         4,
 		TimeStamp:     uint64(11223344),
@@ -3157,7 +3156,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	body := make(block.Body, 0)
 	tx := &transaction.Transaction{
 		Nonce: 1,
-		Value: big.NewInt(0),
+		Value: data.NewProtoBigInt(0),
 	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
@@ -3856,7 +3855,7 @@ func createOneHeaderOneBody() (*block.Header, block.Body) {
 		PrevHash:         []byte(""),
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
-		ShardId:          0,
+		ShardID:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
@@ -4071,7 +4070,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
-	_ = datapool.Headers().Put([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
+	_ = datapool.Headers().Put([]byte("hash"), &block.Header{ShardID: 0, Nonce: 1})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)

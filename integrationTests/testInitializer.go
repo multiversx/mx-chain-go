@@ -274,7 +274,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       shardId,
+		ShardID:       shardId,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
@@ -903,7 +903,7 @@ func CreateAndSendTransaction(
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
-		Value:    txValue,
+		Value:    data.NewProtoBigIntFromBigInt(txValue),
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
 		Data:     txData,
@@ -940,7 +940,7 @@ func generateTransferTx(
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    valToTransfer,
+		Value:    data.NewProtoBigIntFromBigInt(valToTransfer),
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
 		Data:     "",
@@ -961,7 +961,7 @@ func generateTx(
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    args.nonce,
-		Value:    args.value,
+		Value:    data.NewProtoBigIntFromBigInt(args.value),
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,

@@ -120,7 +120,7 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 			return process.ErrWrongTypeAssertion
 		}
 
-		if addedRewardTx.ShardId != rtxh.shardCoordinator.SelfId() {
+		if addedRewardTx.ShardID != rtxh.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -162,7 +162,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 
 func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHandler) {
 	for _, rTx := range rewardTxs {
-		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
+		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRcvAddr())
 		if err != nil {
 			log.Trace("ShardIdForAddress", "error", err.Error())
 		}
@@ -184,7 +184,7 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
 
 	for _, rTx := range rewardTxs {
-		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
+		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRcvAddr())
 		if err != nil {
 			log.Trace("ShardIdForAddress", "error", err.Error())
 			continue
@@ -287,9 +287,9 @@ func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.LeaderPercentage())
+	currTx.Value = data.NewProtoBigIntFromBigInt(getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.LeaderPercentage()))
 	currTx.RcvAddr = rtxh.address.LeaderAddress()
-	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.ShardID = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
 
@@ -299,9 +299,9 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.BurnPercentage())
+	currTx.Value = data.NewProtoBigIntFromBigInt(getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.BurnPercentage()))
 	currTx.RcvAddr = rtxh.address.BurnAddress()
-	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.ShardID = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
 
@@ -311,9 +311,9 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.CommunityPercentage())
+	currTx.Value = data.NewProtoBigIntFromBigInt(getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.CommunityPercentage()))
 	currTx.RcvAddr = rtxh.address.ElrondCommunityAddress()
-	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.ShardID = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
 
@@ -354,9 +354,9 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 
 	for _, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
-		rTx.Value = rtxh.economicsRewards.RewardsValue()
+		rTx.Value = data.NewProtoBigIntFromBigInt(rtxh.economicsRewards.RewardsValue())
 		rTx.RcvAddr = []byte(address)
-		rTx.ShardId = rtxh.shardCoordinator.SelfId()
+		rTx.ShardID = rtxh.shardCoordinator.SelfId()
 		rTx.Epoch = consensusRewardData.Epoch
 		rTx.Round = consensusRewardData.Round
 
@@ -389,9 +389,9 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 			}
 
 			rTx := &rewardTx.RewardTx{}
-			rTx.Value = rtxh.economicsRewards.RewardsValue()
+			rTx.Value = data.NewProtoBigIntFromBigInt(rtxh.economicsRewards.RewardsValue())
 			rTx.RcvAddr = []byte(address)
-			rTx.ShardId = rtxh.shardCoordinator.SelfId()
+			rTx.ShardID = rtxh.shardCoordinator.SelfId()
 			rTx.Epoch = metaConsensusSet.Epoch
 			rTx.Round = metaConsensusSet.Round
 
@@ -416,7 +416,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
-		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue())
+		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, &rTx.GetValue().Int)
 	}
 
 	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
@@ -425,7 +425,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	totalCalculatedFees := big.NewInt(0)
 	for _, value := range calculatedRewardTxs {
-		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
+		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, &value.GetValue().Int)
 
 		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, value)
 		if err != nil {
@@ -436,7 +436,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 		if !ok {
 			return process.ErrRewardTxNotFound
 		}
-		if txFromBlock.GetValue().Cmp(value.GetValue()) != 0 {
+		if txFromBlock.GetValue().Cmp(&value.GetValue().Int) != 0 {
 			return process.ErrRewardTxsDoNotMatch
 		}
 	}
@@ -451,7 +451,7 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 	rewardTxPool := make(map[string]data.TransactionHandler)
 	for txHash, info := range rtxh.rewardTxsForBlock {
 
-		senderShard := info.ShardId
+		senderShard := info.ShardID
 		receiverShard, err := rtxh.address.ShardIdForAddress(info.RcvAddr)
 		if err != nil {
 			continue

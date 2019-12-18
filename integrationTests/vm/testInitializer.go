@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -373,7 +374,7 @@ func CreateTx(
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    data.NewProtoBigIntFromBigInt(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
 		Data:     txData,
@@ -396,7 +397,7 @@ func CreateDeployTx(
 
 	return &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    data.NewProtoBigIntFromBigInt(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  CreateEmptyAddress().Bytes(),
 		Data:     scCodeAndVMType,
@@ -460,7 +461,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    value,
+		Value:    data.NewProtoBigIntFromBigInt(value),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
@@ -478,7 +479,7 @@ func CreateTransferTx(
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    big.NewInt(0),
+		Value:    data.NewProtoBigInt(0),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
@@ -496,7 +497,7 @@ func CreateTransferTokenTx(
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    big.NewInt(0),
+		Value:    data.NewProtoBigInt(0),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,

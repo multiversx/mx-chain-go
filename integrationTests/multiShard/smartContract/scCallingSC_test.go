@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -217,7 +218,7 @@ func putDeploySCToDataPool(
 
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    transferOnDeploy,
+		Value:    data.NewProtoBigIntFromBigInt(transferOnDeploy),
 		RcvAddr:  make([]byte, 32),
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),

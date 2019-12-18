@@ -165,7 +165,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
+	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardID, sp.dataPool, sp.shardCoordinator.NumberOfShards())
 	go getMetricsFromHeader(header, uint64(numTxWithDst), sp.marshalizer, sp.appStatusHandler)
 
 	log.Debug("total txs in pool",
@@ -622,11 +622,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(buff))
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardID)
 
 	errNotCritical := sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		log.Debug(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", header.ShardId),
+		log.Debug(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", header.ShardID),
 			"error", errNotCritical.Error(),
 		)
 	}
@@ -1622,7 +1622,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 
 	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
 	shardHeader.RootHash = sp.getRootHash()
-	shardHeader.ShardId = sp.shardCoordinator.SelfId()
+	shardHeader.ShardID = sp.shardCoordinator.SelfId()
 
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing(hdr.GetRound())

@@ -60,11 +60,11 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
 		Epoch:            2,
-		ShardId:          0,
+		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
+		PrevRandSeed:     []byte{1, 2},
+		RandSeed:         []byte{3, 4},
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 
@@ -76,11 +76,11 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
 		Epoch:            2,
-		ShardId:          0,
+		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
+		PrevRandSeed:     []byte{1, 2},
+		RandSeed:         []byte{3, 4},
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 

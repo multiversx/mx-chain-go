@@ -929,7 +929,7 @@ func (txs *transactions) computeGasConsumedByTx(
 		return 0, 0, err
 	}
 
-	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		txGasRefunded := txs.gasHandler.GasRefunded(txHash)
 
 		if txGasLimitInReceiverShard < txGasRefunded {

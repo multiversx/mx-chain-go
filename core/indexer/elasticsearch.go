@@ -687,7 +687,7 @@ func buildRewardTransaction(
 	header data.HeaderHandler,
 ) *Transaction {
 
-	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
+	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardID)
 
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),

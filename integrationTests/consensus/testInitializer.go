@@ -343,7 +343,7 @@ func createConsensusOnlyNode(
 
 	header := &dataBlock.Header{
 		Nonce:         0,
-		ShardId:       shardId,
+		ShardID:       shardId,
 		BlockBodyType: dataBlock.StateBlock,
 		Signature:     rootHash,
 		RootHash:      rootHash,

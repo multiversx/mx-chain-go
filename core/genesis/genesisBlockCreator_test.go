@@ -229,7 +229,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 	assert.Equal(t,
 		&dataBlock.Header{
 			Nonce:                  0,
-			ShardId:                mock.NewOneShardCoordinatorMock().SelfId(),
+			ShardID:                mock.NewOneShardCoordinatorMock().SelfId(),
 			BlockBodyType:          dataBlock.StateBlock,
 			Signature:              rootHash,
 			RootHash:               rootHash,

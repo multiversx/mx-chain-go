@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -110,7 +111,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 
 	tx := &transaction.Transaction{
 		Nonce:    owner.Nonce,
-		Value:    big.NewInt(0),
+		Value:    data.NewProtoBigInt(0),
 		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
 		SndAddr:  owner.Address,
 		GasPrice: 1,
@@ -145,7 +146,7 @@ func (context *testContext) executeSC(sender *testParticipant, txData string) {
 func (context *testContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
-		Value:    value,
+		Value:    data.NewProtoBigIntFromBigInt(value),
 		RcvAddr:  context.ScAddress,
 		SndAddr:  sender.Address,
 		GasPrice: 1,

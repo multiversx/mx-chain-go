@@ -81,7 +81,7 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 	}
 
 	inRTx.rcvShard = inRTx.coordinator.ComputeId(rcvAddr)
-	inRTx.sndShard = inRTx.rTx.ShardId
+	inRTx.sndShard = inRTx.rTx.ShardID
 
 	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
 	isForCurrentShardSender := inRTx.sndShard == inRTx.coordinator.SelfId()
@@ -115,7 +115,7 @@ func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
 // TotalValue returns the maximum cost of transaction
 // totalValue = txValue + gasPrice*gasLimit
 func (inRTx *InterceptedRewardTransaction) TotalValue() *big.Int {
-	copiedVal := big.NewInt(0).Set(inRTx.rTx.Value)
+	copiedVal := big.NewInt(0).Set(&inRTx.rTx.GetValue().Int)
 	return copiedVal
 }
 

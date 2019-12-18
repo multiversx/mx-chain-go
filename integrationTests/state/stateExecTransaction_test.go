@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -30,7 +31,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    big.NewInt(1),
+		Value:    data.NewProtoBigInt(1),
 		GasLimit: 2,
 		GasPrice: 1,
 		SndAddr:  address.Bytes(),
@@ -66,7 +67,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    big.NewInt(1),
+		Value:    data.NewProtoBigInt(1),
 		SndAddr:  address.Bytes(),
 		RcvAddr:  address.Bytes(),
 		GasLimit: 2,
@@ -125,7 +126,7 @@ func testExecTransactionsMoreTxWithRevert(
 	for i := 0; i < txToGenerate; i++ {
 		tx := &transaction.Transaction{
 			Nonce:    initialNonce + uint64(i),
-			Value:    big.NewInt(int64(value)),
+			Value:    data.NewProtoBigInt(int64(value)),
 			GasPrice: gasPrice,
 			GasLimit: gasLimit,
 			SndAddr:  sender.Bytes(),

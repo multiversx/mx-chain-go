@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -180,7 +181,7 @@ func (n *Node) generateAndSignSingleTx(
 	value *big.Int,
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
-	data string,
+	dataField string,
 ) (*transaction.Transaction, []byte, error) {
 
 	if n.marshalizer == nil {
@@ -192,12 +193,12 @@ func (n *Node) generateAndSignSingleTx(
 
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    value,
+		Value:    data.NewProtoBigIntFromBigInt(value),
 		GasLimit: minTxGasLimit,
 		GasPrice: minTxGasPrice,
 		RcvAddr:  rcvAddrBytes,
 		SndAddr:  sndAddrBytes,
-		Data:     data,
+		Data:     dataField,
 	}
 
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)

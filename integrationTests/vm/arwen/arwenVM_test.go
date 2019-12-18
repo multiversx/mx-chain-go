@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -163,7 +164,7 @@ func runWASMVMBenchmark(
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     data.NewProtoBigIntFromBigInt(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -188,7 +189,7 @@ func runWASMVMBenchmark(
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     data.NewProtoBigIntFromBigInt(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  0,
@@ -325,7 +326,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     data.NewProtoBigIntFromBigInt(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -355,7 +356,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     data.NewProtoBigIntFromBigInt(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
@@ -385,7 +386,7 @@ func TestWASMMetering(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
+		Value:     data.NewProtoBigIntFromBigInt(transferOnCalls),
 		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
@@ -415,7 +416,7 @@ func TestWASMMetering(t *testing.T) {
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(0).SetUint64(testingValue),
+		Value:     data.NewProtoBigIntFromBigInt(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  gasPrice,

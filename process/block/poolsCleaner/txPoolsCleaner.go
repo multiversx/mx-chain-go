@@ -108,7 +108,7 @@ func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
 				continue
 			}
 
-			sndAddr := tx.GetSndAddress()
+			sndAddr := tx.GetSndAddr()
 			addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
 			if err != nil {
 				txsPool.Remove(key)
