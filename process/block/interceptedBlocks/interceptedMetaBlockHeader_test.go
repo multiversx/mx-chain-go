@@ -19,6 +19,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID: 		   []byte("chain ID"),
 	}
 
 	hdr := createMockMetaHeader()
@@ -42,6 +43,7 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 		TxCount:       0,
 		PeerInfo:      nil,
 		ShardInfo:     nil,
+		ChainID:       []byte("chain ID"),
 	}
 }
 

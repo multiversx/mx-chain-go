@@ -42,7 +42,7 @@ func TestWriteReadDeleteLevelDB(t *testing.T) {
 	t.Skip("this is a long test")
 
 	maxWritten := uint64(0)
-	mapRemovedKeys := sync.Map{}
+	mapRemovedKeys := &sync.Map{}
 
 	wg := &sync.WaitGroup{}
 	errors := int32(0)
@@ -70,7 +70,7 @@ func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
 	t.Skip("this is a long test")
 
 	maxWritten := uint64(0)
-	mapRemovedKeys := sync.Map{}
+	mapRemovedKeys := &sync.Map{}
 
 	wg := &sync.WaitGroup{}
 	errors := int32(0)
