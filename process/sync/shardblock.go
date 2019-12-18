@@ -206,6 +206,9 @@ func (boot *ShardBootstrap) StartSync() {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
+	} else {
+		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
+		boot.blkExecutor.SetNumProcessedObj(numTxs)
 	}
 
 	go boot.syncBlocks()
@@ -393,7 +396,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 
 	boot.requestedItemsHandler.Sweep()
 
-	hashes := make([][]byte, 0)
+	hashes := make([][]byte, 0, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
 		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
 			continue

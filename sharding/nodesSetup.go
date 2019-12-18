@@ -43,6 +43,7 @@ type NodesSetup struct {
 	RoundDuration      uint64 `json:"roundDuration"`
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+	ChainID            string `json:"chainID"`
 
 	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
@@ -90,11 +91,20 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
-		ns.InitialNodes[i].pubKey, err = hex.DecodeString(ns.InitialNodes[i].PubKey)
-		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
+		pubKey := ns.InitialNodes[i].PubKey
+		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubKey)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
+		}
+
+		address := ns.InitialNodes[i].Address
+		ns.InitialNodes[i].address, err = hex.DecodeString(address)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParseAddress, err.Error(), address)
+		}
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
-		if ns.InitialNodes[i].PubKey == "" || err != nil {
+		if ns.InitialNodes[i].PubKey == "" {
 			ns.InitialNodes[i].pubKey = nil
 			return ErrCouldNotParsePubKey
 		}
@@ -135,7 +145,6 @@ func (ns *NodesSetup) processConfig() error {
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-
 	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
 			ns.InitialNodes[id].assignedShard = core.MetachainShardId

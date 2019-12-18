@@ -7,6 +7,7 @@
   "metaChainMinNodes": 1,
   "hysteresis": 0.2,
   "adaptivity": false,
+  "chainID": "undefined",
   "initialNodes": [
     {
       "pubkey": "13e7e5d82c8019757c24831009f6e949efc7e62f3281c5e190c2804fb3f8dfff04073762cd91417b7e87ca666c9ed97f625439732931f734979cba54fdf597a416622c61d2068346e2fb45c8f8d0493f57bec04e937c4157a2b558370a4cb6ad24f2b4e1d37470409951416783f032b6d9a70f6c482c0a34eac4c44823f5aeaa",

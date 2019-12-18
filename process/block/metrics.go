@@ -64,7 +64,6 @@ func getMetricsFromBlockBody(
 func getMetricsFromHeader(
 	header *block.Header,
 	numTxWithDst uint64,
-	totalTx int,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 ) {
@@ -76,7 +75,6 @@ func getMetricsFromHeader(
 
 	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(totalTx))
 }
 
 func saveMetricsForACommittedBlock(

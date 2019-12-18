@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -157,6 +158,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// mint smart contract holders
 	delegateSCOwner := []byte("12345678901234567890123456789002")
+	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 256))
 
 	mintPubKey(delegateSCOwner, initialVal, nodes)
 
@@ -192,11 +194,14 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		scQuery := &process.SCQuery{
 			ScAddress: factory2.StakingSCAddress,
 			FuncName:  "isStaked",
-			Arguments: [][]byte{delegateSCAddress},
+			Arguments: [][]byte{stakerBLSKey},
 		}
 		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+
 		assert.NotNil(t, vmOutput)
-		assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+		if vmOutput != nil {
+			assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+		}
 	}
 }
 

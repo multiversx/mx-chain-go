@@ -616,10 +616,13 @@ func NewForkInfo() *ForkInfo {
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
 func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
-	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0, len(processedMiniBlocks))
 
 	for metaHash, miniBlocksHashes := range processedMiniBlocks {
-		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlocksHashes: make([][]byte, 0)}
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
+			MetaHash:         []byte(metaHash),
+			MiniBlocksHashes: make([][]byte, 0, len(miniBlocksHashes)),
+		}
 		for miniBlockHash := range miniBlocksHashes {
 			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
 		}
@@ -631,10 +634,10 @@ func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[str
 
 // ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
 func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
-	processedMiniBlocks := make(map[string]map[string]struct{})
+	processedMiniBlocks := make(map[string]map[string]struct{}, len(miniBlocksInMetaBlocks))
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksHashes := make(map[string]struct{})
+		miniBlocksHashes := make(map[string]struct{}, len(miniBlocksInMeta.MiniBlocksHashes))
 		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
 			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
 		}

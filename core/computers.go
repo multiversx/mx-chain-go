@@ -8,6 +8,14 @@ func MaxInt32(a int32, b int32) int32 {
 	return b
 }
 
+// MinInt returns the minimum of two given numbers
+func MinInt(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // MinInt32 returns the minimum of two given numbers
 func MinInt32(a int32, b int32) int32 {
 	if a < b {

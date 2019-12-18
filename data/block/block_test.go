@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -43,6 +44,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		TxCount:            uint32(10),
 		EpochStartMetaHash: []byte("epochStart"),
 		LeaderSignature:    []byte("leader_sig"),
+		ChainID:            []byte("chain ID"),
 	}
 
 	var b bytes.Buffer
@@ -380,7 +382,7 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 	mb0 := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
+		TxHashes:        [][]byte{txHash0},
 	}
 
 	body := make(block.Body, 0)
@@ -390,38 +392,52 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 }
 
 func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
-	hash_0_0 := []byte("hash_0_0")
-	hash_0_1 := []byte("hash_0_1")
-	hash1_0_2 := []byte("hash_0_2")
-	hash2_0_2 := []byte("hash2_0_2")
+	hashS0R0 := []byte("hash_0_0")
+	hashS0R1 := []byte("hash_0_1")
+	hash1S0R2 := []byte("hash_0_2")
+	hash2S0R2 := []byte("hash2_0_2")
 
 	hdr := &block.Header{
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
 				SenderShardID:   0,
 				ReceiverShardID: 0,
-				Hash:            hash_0_0,
+				Hash:            hashS0R0,
 			},
 			{
 				SenderShardID:   0,
 				ReceiverShardID: 1,
-				Hash:            hash_0_1,
+				Hash:            hashS0R1,
 			},
 			{
 				SenderShardID:   0,
 				ReceiverShardID: 2,
-				Hash:            hash1_0_2,
+				Hash:            hash1S0R2,
 			},
 			{
 				SenderShardID:   0,
 				ReceiverShardID: 2,
-				Hash:            hash2_0_2,
+				Hash:            hash2S0R2,
 			},
 		},
 	}
 
 	hashesWithDest2 := hdr.GetMiniBlockHeadersWithDst(2)
 
-	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1_0_2)])
-	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2_0_2)])
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1S0R2)])
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2S0R2)])
+}
+
+func TestHeader_CheckChainID(t *testing.T) {
+	t.Parallel()
+
+	chainID := []byte("chainID")
+	okChainID := []byte("chainID")
+	wrongChainID := []byte("wrong chain ID")
+	hdr := &block.Header{
+		ChainID: chainID,
+	}
+
+	assert.Nil(t, hdr.CheckChainID(okChainID))
+	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
 }

@@ -779,7 +779,12 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{true, 90, 90, []byte("hash")}
+		return &process.ForkInfo{
+			IsDetected: true,
+			Nonce:      90,
+			Round:      90,
+			Hash:       []byte("hash"),
+		}
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
@@ -2113,6 +2118,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
+				_, ok := obj.(*block.MetaBlock)
+				if !ok {
+					return nil
+				}
+
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
 				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
@@ -2280,6 +2290,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
+				_, ok := obj.(*block.Header)
+				if !ok {
+					return nil
+				}
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature

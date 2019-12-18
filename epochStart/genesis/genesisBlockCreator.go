@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/genesis")
@@ -205,7 +206,7 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
 		return nil, nil, err
 	}

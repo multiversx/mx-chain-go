@@ -2,7 +2,6 @@ package commonSubround
 
 import (
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -255,7 +254,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		"round", roundIndex)
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
+		log.Trace(core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i]))))
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)

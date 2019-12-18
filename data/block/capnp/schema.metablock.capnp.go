@@ -1472,9 +1472,9 @@ func (s EpochStartCapn_List) Set(i int, item EpochStartCapn) { C.PointerList(s).
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 12)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 12)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 12)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 13)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 13)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 13)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -1522,6 +1522,8 @@ func (s MetaBlockCapn) EpochStart() EpochStartCapn {
 	return EpochStartCapn(C.Struct(s).GetObject(11).ToStruct())
 }
 func (s MetaBlockCapn) SetEpochStart(v EpochStartCapn) { C.Struct(s).SetObject(11, C.Object(v)) }
+func (s MetaBlockCapn) Chainid() []byte                { return C.Struct(s).GetObject(12).ToData() }
+func (s MetaBlockCapn) SetChainid(v []byte)            { C.Struct(s).SetObject(12, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -1884,6 +1886,25 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	{
 		s := s.EpochStart()
 		err = s.WriteJSON(b)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"chainid\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -2266,6 +2287,25 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("chainid = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Chainid()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -2282,7 +2322,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(32, 12, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(32, 13, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {

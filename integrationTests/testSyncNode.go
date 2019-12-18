@@ -44,6 +44,8 @@ func NewTestSyncNode(
 			},
 		},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
+		ChainID:             IntegrationTestsChainID,
 	}
 
 	kg := &mock.KeyGenMock{}

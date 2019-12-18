@@ -130,6 +130,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		RandSeed:      []byte("rand seed"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
+		ChainID:       integrationTests.IntegrationTestsChainID,
 	}
 	metaHdrHashFromMetachain, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromMetachain)
 
@@ -145,6 +146,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		RandSeed:      []byte("rand seed"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
+		ChainID:       integrationTests.IntegrationTestsChainID,
 	}
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 

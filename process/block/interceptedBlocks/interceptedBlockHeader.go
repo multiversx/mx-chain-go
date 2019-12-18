@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -13,11 +14,12 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	hdr               *block.Header
-	sigVerifier       *headerSigVerifier
+	sigVerifier       process.InterceptedHeaderSigVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
 	isForCurrentShard bool
+	chainID           []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -32,24 +34,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		return nil, err
 	}
 
-	sigVerifier := &headerSigVerifier{
-		marshalizer:       arg.Marshalizer,
-		hasher:            arg.Hasher,
-		nodesCoordinator:  arg.NodesCoordinator,
-		multiSigVerifier:  arg.MultiSigVerifier,
-		singleSigVerifier: arg.SingleSigVerifier,
-		keyGen:            arg.KeyGen,
-	}
-
 	inHdr := &InterceptedHeader{
 		hdr:              hdr,
 		hasher:           arg.Hasher,
-		sigVerifier:      sigVerifier,
+		sigVerifier:      arg.HeaderSigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
+		chainID:          arg.ChainID,
 	}
-	//wire-up the "virtual" function
-	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
-	inHdr.sigVerifier.copyHeaderWithoutLeaderSig = inHdr.copyHeaderWithoutLeaderSig
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
@@ -68,28 +59,6 @@ func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Hea
 	return hdr, nil
 }
 
-func (inHdr *InterceptedHeader) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.Header)
-
-	headerCopy := *hdr
-	headerCopy.Signature = nil
-	headerCopy.PubKeysBitmap = nil
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
-}
-
-func (inHdr *InterceptedHeader) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	hdr := header.(*block.Header)
-
-	headerCopy := *hdr
-	headerCopy.LeaderSignature = nil
-
-	return &headerCopy
-}
-
 func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
@@ -105,12 +74,17 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.sigVerifier.verifyRandSeedAndLeaderSignature(inHdr.hdr)
+	err = inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err
 	}
 
-	return inHdr.sigVerifier.verifySig(inHdr.hdr)
+	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
+	return inHdr.hdr.CheckChainID(inHdr.chainID)
 }
 
 // integrity checks the integrity of the header block wrapper

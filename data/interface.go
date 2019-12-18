@@ -18,6 +18,7 @@ type HeaderHandler interface {
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 	GetLeaderSignature() []byte
+	GetChainID() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
@@ -34,6 +35,7 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
+	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
 	IsStartOfEpochBlock() bool
@@ -43,6 +45,7 @@ type HeaderHandler interface {
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
 	Clone() HeaderHandler
+	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body

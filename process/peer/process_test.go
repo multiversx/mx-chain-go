@@ -1152,6 +1152,34 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrIfStillMissing(
 	assert.Equal(t, process.ErrMissingShardDataInStorage, err)
 }
 
+func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *testing.T) {
+	pubKeyCalled := false
+	addressCalled := false
+	arguments := CreateMockArguments()
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+			return []sharding.Validator{&mock.ValidatorMock{
+				PubKeyCalled: func() []byte {
+					pubKeyCalled = true
+					return make([]byte, 0)
+				},
+				AddressCalled: func() []byte {
+					addressCalled = true
+					return make([]byte, 0)
+				},
+			}, &mock.ValidatorMock{}}, nil
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	header := getMetaHeaderHandler([]byte("header"))
+
+	_, _ = validatorStatistics.UpdatePeerState(header)
+
+	assert.True(t, pubKeyCalled)
+	assert.False(t, addressCalled)
+}
+
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
 		Nonce:         1,
