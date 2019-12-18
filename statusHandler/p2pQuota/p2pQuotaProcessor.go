@@ -21,6 +21,7 @@ type p2pQuotaProcessor struct {
 	mutStatistics    sync.Mutex
 	statistics       map[string]*quota
 	peakNetworkQuota *quota
+	networkQuota     *quota
 	peakPeerQuota    *quota
 	peakNumReceivers uint64
 	handler          core.AppStatusHandler
@@ -35,6 +36,7 @@ func NewP2pQuotaProcessor(handler core.AppStatusHandler) (*p2pQuotaProcessor, er
 	return &p2pQuotaProcessor{
 		statistics:       make(map[string]*quota),
 		peakNetworkQuota: &quota{},
+		networkQuota:     &quota{},
 		peakPeerQuota:    &quota{},
 		handler:          handler,
 	}, nil
@@ -42,40 +44,43 @@ func NewP2pQuotaProcessor(handler core.AppStatusHandler) (*p2pQuotaProcessor, er
 
 // ResetStatistics output gathered statistics, process and prints them. After that it empties the statistics map
 func (pqp *p2pQuotaProcessor) ResetStatistics() {
-	networkQuota := &quota{}
-	peakPeerQuota := &quota{}
-
 	pqp.mutStatistics.Lock()
 	defer pqp.mutStatistics.Unlock()
 
-	for _, q := range pqp.statistics {
-		networkQuota.numReceivedMessages += q.numReceivedMessages
-		networkQuota.sizeReceivedMessages += q.sizeReceivedMessages
-		networkQuota.numProcessedMessages += q.numProcessedMessages
-		networkQuota.sizeProcessedMessages += q.sizeProcessedMessages
+	peakPeerQuota := pqp.computePeerStatistics()
+	numPeers := uint64(len(pqp.statistics))
+	pqp.setPeakStatistics(peakPeerQuota, numPeers)
 
+	pqp.moveStatisticsInAppStatusHandler(peakPeerQuota, pqp.networkQuota, numPeers, pqp.peakNumReceivers)
+
+	pqp.statistics = make(map[string]*quota)
+}
+
+func (pqp *p2pQuotaProcessor) computePeerStatistics() *quota {
+	peakPeerQuota := &quota{}
+
+	for _, q := range pqp.statistics {
 		peakPeerQuota.numReceivedMessages = core.MaxUint32(peakPeerQuota.numReceivedMessages, q.numReceivedMessages)
 		peakPeerQuota.sizeReceivedMessages = core.MaxUint64(peakPeerQuota.sizeReceivedMessages, q.sizeReceivedMessages)
 		peakPeerQuota.numProcessedMessages = core.MaxUint32(peakPeerQuota.numProcessedMessages, q.numProcessedMessages)
 		peakPeerQuota.sizeProcessedMessages = core.MaxUint64(peakPeerQuota.sizeProcessedMessages, q.sizeProcessedMessages)
 	}
 
+	return peakPeerQuota
+}
+
+func (pqp *p2pQuotaProcessor) setPeakStatistics(peakPeerQuota *quota, numPeers uint64) {
 	pqp.peakPeerQuota.numReceivedMessages = core.MaxUint32(peakPeerQuota.numReceivedMessages, pqp.peakPeerQuota.numReceivedMessages)
 	pqp.peakPeerQuota.sizeReceivedMessages = core.MaxUint64(peakPeerQuota.sizeReceivedMessages, pqp.peakPeerQuota.sizeReceivedMessages)
 	pqp.peakPeerQuota.numProcessedMessages = core.MaxUint32(peakPeerQuota.numProcessedMessages, pqp.peakPeerQuota.numProcessedMessages)
 	pqp.peakPeerQuota.sizeProcessedMessages = core.MaxUint64(peakPeerQuota.sizeProcessedMessages, pqp.peakPeerQuota.sizeProcessedMessages)
 
-	pqp.peakNetworkQuota.numReceivedMessages = core.MaxUint32(networkQuota.numReceivedMessages, pqp.peakNetworkQuota.numReceivedMessages)
-	pqp.peakNetworkQuota.sizeReceivedMessages = core.MaxUint64(networkQuota.sizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
-	pqp.peakNetworkQuota.numProcessedMessages = core.MaxUint32(networkQuota.numProcessedMessages, pqp.peakNetworkQuota.numProcessedMessages)
-	pqp.peakNetworkQuota.sizeProcessedMessages = core.MaxUint64(networkQuota.sizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
+	pqp.peakNetworkQuota.numReceivedMessages = core.MaxUint32(pqp.networkQuota.numReceivedMessages, pqp.peakNetworkQuota.numReceivedMessages)
+	pqp.peakNetworkQuota.sizeReceivedMessages = core.MaxUint64(pqp.networkQuota.sizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
+	pqp.peakNetworkQuota.numProcessedMessages = core.MaxUint32(pqp.networkQuota.numProcessedMessages, pqp.peakNetworkQuota.numProcessedMessages)
+	pqp.peakNetworkQuota.sizeProcessedMessages = core.MaxUint64(pqp.networkQuota.sizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
 
-	numPeers := uint64(len(pqp.statistics))
 	pqp.peakNumReceivers = core.MaxUint64(numPeers, pqp.peakNumReceivers)
-
-	pqp.moveStatisticsInAppStatusHandler(peakPeerQuota, networkQuota, numPeers, pqp.peakNumReceivers)
-
-	pqp.statistics = make(map[string]*quota)
 }
 
 func (pqp *p2pQuotaProcessor) moveStatisticsInAppStatusHandler(
@@ -126,6 +131,23 @@ func (pqp *p2pQuotaProcessor) AddQuota(
 
 	pqp.mutStatistics.Lock()
 	pqp.statistics[identifier] = q
+	pqp.mutStatistics.Unlock()
+}
+
+// SetGlobalQuota sets the global quota statistics
+func (pqp *p2pQuotaProcessor) SetGlobalQuota(
+	numReceived uint32,
+	sizeReceived uint64,
+	numProcessed uint32,
+	sizeProcessed uint64,
+) {
+	pqp.mutStatistics.Lock()
+	pqp.networkQuota = &quota{
+		numReceivedMessages:   numReceived,
+		sizeReceivedMessages:  sizeReceived,
+		numProcessedMessages:  numProcessed,
+		sizeProcessedMessages: sizeProcessed,
+	}
 	pqp.mutStatistics.Unlock()
 }
 

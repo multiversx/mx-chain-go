@@ -89,17 +89,40 @@ func NewQuotaFloodPreventer(
 	}, nil
 }
 
-// Increment tries to increment the counter values held at "identifier" position
+// IncrementAddingToSum tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
-func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
+// This method also checks the global sum quota and increment its values
+func (qfp *quotaFloodPreventer) IncrementAddingToSum(identifier string, size uint64) bool {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
 	qfp.globalQuota.numReceivedMessages++
 	qfp.globalQuota.sizeReceivedMessages += size
 
+	result := qfp.increment(identifier, size)
+	if result {
+		qfp.globalQuota.numProcessedMessages++
+		qfp.globalQuota.sizeProcessedMessages += size
+	}
+
+	return result
+}
+
+// Increment tries to increment the counter values held at "identifier" position
+// It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
+// We need the mutOperation here as the get and put should be done atomically.
+// Otherwise we might yield a slightly higher number of false valid increments
+// This method also checks the global sum quota but does not increment its values
+func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
+	qfp.mutOperation.Lock()
+	defer qfp.mutOperation.Unlock()
+
+	return qfp.increment(identifier, size)
+}
+
+func (qfp *quotaFloodPreventer) increment(identifier string, size uint64) bool {
 	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
 		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
 	if isGlobalQuotaReached {
@@ -182,6 +205,13 @@ func (qfp quotaFloodPreventer) createStatistics() {
 			q.sizeProcessedMessages,
 		)
 	}
+
+	qfp.statusHandler.SetGlobalQuota(
+		qfp.globalQuota.numReceivedMessages,
+		qfp.globalQuota.sizeReceivedMessages,
+		qfp.globalQuota.numProcessedMessages,
+		qfp.globalQuota.sizeProcessedMessages,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

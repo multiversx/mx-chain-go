@@ -16,6 +16,7 @@ func createMockQuotaStatusHandler() *mock.QuotaStatusHandlerStub {
 	return &mock.QuotaStatusHandlerStub{
 		ResetStatisticsCalled: func() {},
 		AddQuotaCalled:        func(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {},
+		SetGlobalQuotaCalled:  func(_ uint32, _ uint64, _ uint32, _ uint64) {},
 	}
 }
 
@@ -244,6 +245,65 @@ func TestNewQuotaFloodPreventer_IncrementUnderMaxValuesShouldIncrementAndReturnT
 
 	assert.True(t, ok)
 	assert.True(t, putWasCalled)
+}
+
+func TestNewQuotaFloodPreventer_IncrementAddingSumWithResetShouldWork(t *testing.T) {
+	t.Parallel()
+
+	putWasCalled := 0
+	addedGlobalQuotaCalled := false
+	existingSize := uint64(0)
+	existingMessages := uint32(0)
+	existingQuota := &quota{
+		numReceivedMessages:  existingMessages,
+		sizeReceivedMessages: existingSize,
+	}
+	identifier := "identifier"
+	size := uint64(minTotalSize * 2)
+	qfp, _ := NewQuotaFloodPreventer(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return existingQuota, true
+			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				if string(key) == identifier {
+					putWasCalled++
+				}
+
+				return
+			},
+			KeysCalled: func() [][]byte {
+				return make([][]byte, 0)
+			},
+			ClearCalled: func() {},
+		},
+		&mock.QuotaStatusHandlerStub{
+			AddQuotaCalled: func(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {},
+			SetGlobalQuotaCalled: func(numReceived uint32, sizeReceived uint64, numProcessed uint32, sizeProcessed uint64) {
+				addedGlobalQuotaCalled = true
+				assert.Equal(t, uint32(2), numReceived)
+				assert.Equal(t, size+size+1, sizeReceived)
+				assert.Equal(t, uint32(2), numProcessed)
+				assert.Equal(t, size+size+1, sizeProcessed)
+			},
+			ResetStatisticsCalled: func() {},
+		},
+		minMessages*4,
+		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
+	)
+
+	ok := qfp.IncrementAddingToSum(identifier, size)
+	assert.True(t, ok)
+
+	ok = qfp.IncrementAddingToSum(identifier, size+1)
+	assert.True(t, ok)
+
+	qfp.Reset()
+
+	assert.Equal(t, 2, putWasCalled)
+	assert.True(t, addedGlobalQuotaCalled)
 }
 
 //------- Increment per peer
@@ -477,6 +537,7 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 
 				assert.Equal(t, quotaToCompare, quotaProvided)
 			},
+			SetGlobalQuotaCalled: func(_ uint32, _ uint64, _ uint32, _ uint64) {},
 		},
 		minTotalSize,
 		minMessages,
