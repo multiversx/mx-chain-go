@@ -23,7 +23,7 @@ type rewardsHandler struct {
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
 	store            dataRetriever.StorageService
-	rewardTxPool     dataRetriever.TxPool
+	rewardTxPool     dataRetriever.ShardedDataCacherNotifier
 
 	mutGenRewardTxs     sync.RWMutex
 	protocolRewards     []data.TransactionHandler
@@ -44,7 +44,7 @@ func NewRewardTxHandler(
 	shardCoordinator sharding.Coordinator,
 	adrConv state.AddressConverter,
 	store dataRetriever.StorageService,
-	rewardTxPool dataRetriever.TxPool,
+	rewardTxPool dataRetriever.ShardedDataCacherNotifier,
 	economicsRewards process.RewardsHandler,
 ) (*rewardsHandler, error) {
 	if address == nil || address.IsInterfaceNil() {
@@ -177,7 +177,7 @@ func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHa
 
 		// add the reward transaction to the the pool so that the processor can find it
 		cacheId := process.ShardCacherIdentifier(rtxh.shardCoordinator.SelfId(), dstShId)
-		rtxh.rewardTxPool.AddTx(txHash, rTx, cacheId)
+		rtxh.rewardTxPool.AddData(txHash, rTx, cacheId)
 	}
 }
 

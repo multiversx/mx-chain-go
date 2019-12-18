@@ -42,6 +42,7 @@ import (
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -77,7 +78,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -1191,9 +1192,13 @@ func createShardDataPoolFromConfig(
 	log.Debug("creatingShardDataPool from config")
 
 	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
-	txPoolUnsigned := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
-	txPoolRewards := txpool.NewShardedTxPool(getCacherFromConfig(config.RewardTransactionDataPool))
-	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, txPoolRewards)
+	uTxPool := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
+
+	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
+	if err != nil {
+		log.Error("error creating reward transaction pool")
+		return nil, err
+	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -1241,7 +1246,9 @@ func createShardDataPoolFromConfig(
 	}
 
 	return dataPool.NewShardedDataPool(
-		txPoolsHolder,
+		txPool,
+		uTxPool,
+		rewardTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -1288,9 +1295,7 @@ func createMetaDataPoolFromConfig(
 	}
 
 	txPool := txpool.NewShardedTxPool(getCacherFromConfig(config.TxDataPool))
-	txPoolUnsigned := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
-	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, nil)
-
+	uTxPool := txpool.NewShardedTxPool(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	currBlockTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
@@ -1301,7 +1306,8 @@ func createMetaDataPoolFromConfig(
 		txBlockBody,
 		shardHeaders,
 		headersNonces,
-		txPoolsHolder,
+		txPool,
+		uTxPool,
 		currBlockTxs,
 	)
 }
@@ -2460,8 +2466,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 	}
 
 	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	txPoolUnsigned := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	txPoolsHolder := txpool.NewTxPoolsHolder(txPool, txPoolUnsigned, nil)
+	uTxPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
 
 	currTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
@@ -2473,7 +2478,8 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		txBlockBody,
 		shardHeaders,
 		shardHeadersNonces,
-		txPoolsHolder,
+		txPool,
+		uTxPool,
 		currTxs,
 	)
 	if err != nil {

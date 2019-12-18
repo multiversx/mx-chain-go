@@ -35,7 +35,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.Transactions(),
 		nil,
@@ -56,7 +56,7 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
@@ -77,7 +77,7 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -98,7 +98,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -119,7 +119,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilRewardProducerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -140,7 +140,7 @@ func TestNewRewardTxPreprocessor_NilRewardProducerShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -161,7 +161,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -182,7 +182,7 @@ func TestNewRewardTxPreprocessor_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -203,7 +203,7 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -224,7 +224,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -246,7 +246,7 @@ func TestRewardTxPreprocessor_AddComputedRewardMiniBlocksShouldAddMiniBlock(t *t
 
 	txHash := "tx1_hash"
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -287,7 +287,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -322,7 +322,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -352,7 +352,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -387,7 +387,7 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -431,7 +431,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -477,7 +477,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -507,7 +507,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	t.Parallel()
 
 	txHash := "tx1_hash"
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -550,7 +550,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -572,7 +572,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -599,7 +599,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	storer := mock.ChainStorerMock{
 		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 			retMap := map[string][]byte{
@@ -650,7 +650,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 	t.Parallel()
 
 	totalGasConsumed := uint64(0)
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -699,7 +699,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 	t.Parallel()
 
 	totalGasConsumed := uint64(0)
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},
@@ -742,7 +742,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&mock.ChainStorerMock{},

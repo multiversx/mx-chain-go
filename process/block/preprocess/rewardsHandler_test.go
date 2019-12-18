@@ -35,7 +35,7 @@ func RewandsHandlerMock() *mock.RewardsHandlerMock {
 func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		nil,
 		&mock.HasherMock{},
@@ -54,7 +54,7 @@ func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {
 func TestNewRewardTxHandler_NilHasher(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		nil,
@@ -73,7 +73,7 @@ func TestNewRewardTxHandler_NilHasher(t *testing.T) {
 func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -92,7 +92,7 @@ func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -111,7 +111,7 @@ func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
 func TestNewRewardTxHandler_NilAddressConverter(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -130,7 +130,7 @@ func TestNewRewardTxHandler_NilAddressConverter(t *testing.T) {
 func TestNewRewardTxHandler_NilChainStorer(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -167,7 +167,7 @@ func TestNewRewardTxHandler_NilRewardsPool(t *testing.T) {
 func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -186,7 +186,7 @@ func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 func TestRewardsHandler_AddIntermediateTransactions(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -208,7 +208,7 @@ func TestRewardsHandler_AddIntermediateTransactions(t *testing.T) {
 func TestRewardsHandler_ProcessTransactionFee(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -236,7 +236,7 @@ func TestRewardsHandler_ProcessTransactionFee(t *testing.T) {
 func TestRewardsHandler_cleanCachedData(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -264,7 +264,7 @@ func TestRewardsHandler_cleanCachedData(t *testing.T) {
 func TestRewardsHandler_CreateRewardsFromFees(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -298,7 +298,7 @@ func TestRewardsHandler_CreateRewardsFromFees(t *testing.T) {
 func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
@@ -333,7 +333,7 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
@@ -370,7 +370,7 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing
 func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
@@ -404,7 +404,7 @@ func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		mock.NewSpecialAddressHandlerMock(
 			&mock.AddressConverterMock{},
@@ -438,7 +438,7 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	specialAddress := &mock.SpecialAddressHandlerMock{
 		AdrConv:          &mock.AddressConverterMock{},
 		ShardCoordinator: shardCoordinator,
@@ -496,7 +496,7 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, _ := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -548,7 +548,7 @@ func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
 func TestRewardsHandler_CreateBlockStartedShouldCreateProtocolReward(t *testing.T) {
 	t.Parallel()
 
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, _ := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
@@ -570,7 +570,7 @@ func TestRewardsHandler_SaveCurrentIntermediateTxToStorageShouldWork(t *testing.
 	t.Parallel()
 
 	putWasCalled := false
-	tdp := initPoolsHolder()
+	tdp := initDataPool()
 	th, _ := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},

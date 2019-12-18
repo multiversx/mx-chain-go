@@ -215,7 +215,7 @@ type TransactionCacher interface {
 type PoolsHolder interface {
 	Transactions() TxPool
 	UnsignedTransactions() TxPool
-	RewardTransactions() TxPool
+	RewardTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher
