@@ -679,7 +679,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
-	assert.Equal(t, value, tx.Value)
+	assert.Equal(t, value, &tx.Value.Int)
 	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
 }
 
@@ -746,7 +746,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 
 	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
 		Nonce:     nonce,
-		Value:     value,
+		Value:     data.NewProtoBigIntFromBigInt(value),
 		SndAddr:   senderBuff.Bytes(),
 		RcvAddr:   receiverBuff.Bytes(),
 		Data:      txData,
@@ -1717,7 +1717,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	var txsToSend []*transaction.Transaction
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     10,
-		Value:     new(big.Int).SetInt64(15),
+		Value:     data.NewProtoBigInt(15),
 		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
@@ -1729,7 +1729,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     11,
-		Value:     new(big.Int).SetInt64(25),
+		Value:     data.NewProtoBigInt(25),
 		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
@@ -1741,7 +1741,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     12,
-		Value:     new(big.Int).SetInt64(35),
+		Value:     data.NewProtoBigInt(35),
 		RcvAddr:   []byte("receiverShard0"),
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,

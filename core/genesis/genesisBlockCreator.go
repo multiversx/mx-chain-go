@@ -64,7 +64,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 
 	header := &block.Header{
 		Nonce:                  0,
-		ShardId:                shardCoordinator.SelfId(),
+		ShardID:                shardCoordinator.SelfId(),
 		BlockBodyType:          block.StateBlock,
 		Signature:              rootHash,
 		RootHash:               rootHash,
@@ -282,7 +282,7 @@ func deploySystemSmartContracts(
 ) error {
 	tx := &transaction.Transaction{
 		Nonce:     0,
-		Value:     big.NewInt(0),
+		Value:     data.NewProtoBigInt(0),
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
 		GasLimit:  0,
@@ -335,7 +335,7 @@ func setStakingData(
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
-				Value:     big.NewInt(0).Set(stakeValue),
+				Value:     data.NewProtoBigIntFromBigInt(stakeValue),
 				RcvAddr:   vmFactory.StakingSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
@@ -356,7 +356,7 @@ func setStakingData(
 	for _, nodeInfo := range nodeInfoList {
 		tx := &transaction.Transaction{
 			Nonce:     0,
-			Value:     big.NewInt(0).Set(stakeValue),
+			Value:     data.NewProtoBigIntFromBigInt(stakeValue),
 			RcvAddr:   vmFactory.StakingSCAddress,
 			SndAddr:   nodeInfo.Address(),
 			GasPrice:  0,

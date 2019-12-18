@@ -323,9 +323,9 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
 	_ = th.CreateAllInterMiniBlocks()
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.LeaderAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(5), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(5), RcvAddr: addr.BurnAddress()}})
 	err = th.verifyCreatedRewardsTxs()
 	assert.Equal(t, process.ErrRewardTxNotFound, err)
 }
@@ -358,10 +358,10 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
 	extraVal := big.NewInt(100)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.LeaderAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.BurnAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: extraVal, RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(25), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(20), RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigIntFromBigInt(extraVal), RcvAddr: addr.BurnAddress()}})
 	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
 	assert.Equal(t, process.ErrRewardTxsMismatchCreatedReceived, err)
@@ -391,9 +391,9 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.LeaderAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(25), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: data.NewProtoBigInt(20), RcvAddr: addr.BurnAddress()}})
 	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
 	assert.Nil(t, err)
@@ -467,9 +467,9 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 		txs[i] = &rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
-			Value:   big.NewInt(1),
+			Value:   data.NewProtoBigInt(1),
 			RcvAddr: []byte(rewardData.Addresses[i]),
-			ShardId: 0,
+			ShardID: 0,
 		}
 
 	}
@@ -512,16 +512,16 @@ func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
 		&rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
-			Value:   big.NewInt(1),
+			Value:   data.NewProtoBigInt(1),
 			RcvAddr: []byte("rcvr1"),
-			ShardId: 0,
+			ShardID: 0,
 		},
 		&rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
-			Value:   big.NewInt(1),
+			Value:   data.NewProtoBigInt(1),
 			RcvAddr: []byte("rcvr2"),
-			ShardId: 0,
+			ShardID: 0,
 		},
 	}
 
@@ -591,16 +591,16 @@ func TestRewardsHandler_SaveCurrentIntermediateTxToStorageShouldWork(t *testing.
 		&rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
-			Value:   big.NewInt(1),
+			Value:   data.NewProtoBigInt(1),
 			RcvAddr: []byte("rcvr1"),
-			ShardId: 0,
+			ShardID: 0,
 		},
 		&rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
-			Value:   big.NewInt(1),
+			Value:   data.NewProtoBigInt(1),
 			RcvAddr: []byte("rcvr2"),
-			ShardId: 0,
+			ShardID: 0,
 		},
 	}
 

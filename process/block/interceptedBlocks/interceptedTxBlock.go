@@ -97,9 +97,6 @@ func (inTxBody *InterceptedTxBlockBody) IsForCurrentShard() bool {
 // integrity checks the integrity of the tx block body
 func (inTxBody *InterceptedTxBlockBody) integrity() error {
 	for _, miniBlock := range inTxBody.txBlockBody {
-		if miniBlock.TxHashes == nil {
-			return process.ErrNilTxHashes
-		}
 
 		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
 			miniBlock.ReceiverShardID != sharding.MetachainShardId {

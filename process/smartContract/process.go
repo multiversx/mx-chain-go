@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -117,7 +117,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -126,7 +126,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, sc.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
@@ -214,7 +214,7 @@ func (sc *scProcessor) processIfError(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, &tx.GetValue().Int))
 		if err != nil {
 			return err
 		}
@@ -251,8 +251,8 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		nonce = acntSnd.GetNonce()
 	}
 
-	txValue := big.NewInt(0).Set(tx.GetValue())
-	sc.tempAccounts.AddTempAccount(tx.GetSndAddress(), txValue, nonce)
+	txValue := big.NewInt(0).Set(&tx.GetValue().Int)
+	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
 
 	return nil
 }
@@ -270,7 +270,7 @@ func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.GetRecvAddress())
+	vmType := core.GetVMType(tx.GetRcvAddr())
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -366,7 +366,7 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 		return nil, err
 	}
 
-	vmCallInput.RecipientAddr = tx.GetRecvAddress()
+	vmCallInput.RecipientAddr = tx.GetRcvAddr()
 
 	return vmCallInput, nil
 }
@@ -410,13 +410,13 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	var err error
 	vmInput := &vmcommon.VMInput{}
 
-	vmInput.CallerAddr = tx.GetSndAddress()
+	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.Arguments, err = sc.argsParser.GetArguments()
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput.CallValue = tx.GetValue()
+	vmInput.CallValue = &tx.GetValue().Int
 	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
 
@@ -448,7 +448,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
-	cost = cost.Add(cost, tx.GetValue())
+	cost = cost.Add(cost, &tx.GetValue().Int)
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -564,16 +564,16 @@ func (sc *scProcessor) createSCRsWhenError(
 		return nil, err
 	}
 
-	rcvAddress := tx.GetSndAddress()
+	rcvAddress := tx.GetSndAddr()
 	if sc.isCallBack {
-		rcvAddress = tx.GetRecvAddress()
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   tx.GetNonce(),
 		Value:   tx.GetValue(),
 		RcvAddr: rcvAddress,
-		SndAddr: tx.GetRecvAddress(),
+		SndAddr: tx.GetRcvAddr(),
 		Code:    nil,
 		Data:    "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash),
 		TxHash:  txHash,
@@ -608,10 +608,10 @@ func (sc *scProcessor) createSmartContractResult(
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
-	result.Value = outAcc.BalanceDelta
+	result.Value = data.NewProtoBigIntFromBigInt(outAcc.BalanceDelta)
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
-	result.SndAddr = tx.GetRecvAddress()
+	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
 	result.Data = string(outAcc.Data) + sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
 	result.GasLimit = outAcc.GasLimit
@@ -653,15 +653,15 @@ func (sc *scProcessor) createSCRForSender(
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
-	rcvAddress := tx.GetSndAddress()
+	rcvAddress := tx.GetSndAddr()
 	if sc.isCallBack {
-		rcvAddress = tx.GetRecvAddress()
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
-	scTx.Value = refundErd
+	scTx.Value = data.NewProtoBigIntFromBigInt(refundErd)
 	scTx.RcvAddr = rcvAddress
-	scTx.SndAddr = tx.GetRecvAddress()
+	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
 	scTx.TxHash = txHash
 	scTx.GasLimit = vmOutput.GasRemaining
@@ -693,7 +693,7 @@ func (sc *scProcessor) createSCRForSender(
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx data.TransactionHandler) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, &tx.GetValue().Int)
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
@@ -907,7 +907,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	operation := big.NewInt(0)
-	operation = operation.Add(scr.Value, stAcc.Balance)
+	operation = operation.Add(&scr.GetValue().Int, stAcc.Balance)
 	err := stAcc.SetBalanceWithJournal(operation)
 	if err != nil {
 		return err

@@ -184,9 +184,9 @@ func (mbc *miniBlocksCompaction) expandMiniBlocks(miniBlocks block.MiniBlockSlic
 				return nil, process.ErrMissingTransaction
 			}
 
-			nonce, ok := mbc.mapMinSenderNonce[string(tx.GetSndAddress())]
+			nonce, ok := mbc.mapMinSenderNonce[string(tx.GetSndAddr())]
 			if !ok || nonce > tx.GetNonce() {
-				mbc.mapMinSenderNonce[string(tx.GetSndAddress())] = tx.GetNonce()
+				mbc.mapMinSenderNonce[string(tx.GetSndAddr())] = tx.GetNonce()
 			}
 
 			mbc.mapUnallocatedTxsHashes[string(txHash)] = struct{}{}
@@ -257,9 +257,9 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 			return nil, process.ErrMissingTransaction
 		}
 
-		nonce := mbc.mapMinSenderNonce[string(tx.GetSndAddress())]
+		nonce := mbc.mapMinSenderNonce[string(tx.GetSndAddr())]
 		if tx.GetNonce() == nonce {
-			mbc.mapMinSenderNonce[string(tx.GetSndAddress())] = nonce + 1
+			mbc.mapMinSenderNonce[string(tx.GetSndAddr())] = nonce + 1
 			miniBlockForShard.TxHashes = append(miniBlockForShard.TxHashes, txHash)
 			delete(mbc.mapUnallocatedTxsHashes, string(txHash))
 		}

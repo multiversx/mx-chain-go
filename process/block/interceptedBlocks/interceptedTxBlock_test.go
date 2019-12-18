@@ -79,22 +79,6 @@ func TestNewInterceptedTxBlockBody_ShouldWork(t *testing.T) {
 
 //------- CheckValidity
 
-func TestInterceptedTxBlockBody_CheckValidityNilTxHashesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txBody := createMockTxBlockBody()
-	txBody[0].TxHashes = nil
-	buff, _ := testMarshalizer.Marshal(txBody)
-
-	arg := createDefaultTxBodyArgument()
-	arg.TxBlockBodyBuff = buff
-	inTxBody, _ := interceptedBlocks.NewInterceptedTxBlockBody(arg)
-
-	err := inTxBody.CheckValidity()
-
-	assert.Equal(t, process.ErrNilTxHashes, err)
-}
-
 func TestInterceptedTxBlockBody_InvalidReceiverShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 

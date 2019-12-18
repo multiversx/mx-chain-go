@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -196,7 +197,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
-		ValueChange: big.NewInt(0).Set(account.Stake),
+		ValueChange: &data.ProtoBigInt{*big.NewInt(0).Set(account.Stake)},
 	}
 
 	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
@@ -261,7 +262,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 		PublicKey:   account.BLSPublicKey,
 		Action:      0,
 		TimeStamp:   nonce,
-		ValueChange: big.NewInt(0),
+		ValueChange: &data.ProtoBigInt{},
 	}
 
 	if len(account.BLSPublicKey) == 0 {
@@ -323,7 +324,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 				continue
 			}
 
-			if !bytes.Equal(tx.GetRecvAddress(), factory.StakingSCAddress) {
+			if !bytes.Equal(tx.GetRcvAddr(), factory.StakingSCAddress) {
 				continue
 			}
 

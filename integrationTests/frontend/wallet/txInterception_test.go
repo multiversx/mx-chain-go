@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +81,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		assert.True(t, ok)
 
 		assert.Equal(t, frontendNonce, txRecovered.Nonce)
-		assert.Equal(t, frontendValue, txRecovered.Value)
+		assert.Equal(t, frontendValue, &txRecovered.Value.Int)
 
 		sender, _ := hex.DecodeString(frontendSenderHex)
 		assert.Equal(t, sender, txRecovered.SndAddr)
@@ -110,7 +111,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		Data:      frontendData,
 		Signature: signatureBytes,
 	}
-	tx.SetValue(frontendValue)
+	tx.SetValue(data.NewProtoBigIntFromBigInt(frontendValue))
 	txHexHash, err = node.SendTransaction(tx)
 
 	assert.Nil(t, err)

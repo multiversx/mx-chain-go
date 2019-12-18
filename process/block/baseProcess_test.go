@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -93,9 +92,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
-		Value:   big.NewInt(10),
+		Value:   data.NewProtoBigInt(10),
 		RcvAddr: []byte("receiver"),
-		ShardId: 0,
+		ShardID: 0,
 	}
 	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)

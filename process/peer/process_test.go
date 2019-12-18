@@ -1023,7 +1023,7 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
 
 	currentHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{sd3, sd2}}
-	prevHeader := &block.Header{Nonce: sd1.Nonce, ShardId: sd1.ShardID}
+	prevHeader := &block.Header{Nonce: sd1.Nonce, ShardID: sd1.ShardID}
 
 	arguments := CreateMockArguments()
 	arguments.DataPool = &mock.MetaPoolsHolderFake{

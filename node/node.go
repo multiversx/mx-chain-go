@@ -562,7 +562,7 @@ func (n *Node) SendTransaction(
 
 	tx := transaction.Transaction{
 		Nonce:     nonce,
-		Value:     valAsBigInt,
+		Value:     data.NewProtoBigIntFromBigInt(valAsBigInt),
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
@@ -715,7 +715,7 @@ func (n *Node) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	dataField string,
 	signatureHex string,
 	challenge string,
 ) (*transaction.Transaction, error) {
@@ -755,12 +755,12 @@ func (n *Node) CreateTransaction(
 
 	return &transaction.Transaction{
 		Nonce:     nonce,
-		Value:     valAsBigInt,
+		Value:     data.NewProtoBigIntFromBigInt(valAsBigInt),
 		RcvAddr:   receiverAddress.Bytes(),
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      data,
+		Data:      dataField,
 		Signature: signatureBytes,
 		Challenge: challengeBytes,
 	}, nil

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -38,7 +37,7 @@ func newTestBlockHeader() *block.Header {
 		PrevRandSeed:     []byte("prev rand seed"),
 		RandSeed:         []byte("rand seed"),
 		PubKeysBitmap:    []byte("pub keys bitmap"),
-		ShardId:          5,
+		ShardID:          5,
 		TimeStamp:        1024,
 		Round:            6,
 		Epoch:            4,
@@ -89,7 +88,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 
 	txPool["tx1"] = &transaction.Transaction{
 		Nonce:     uint64(1),
-		Value:     big.NewInt(1),
+		Value:     data.NewProtoBigInt(1),
 		RcvAddr:   []byte("receiver_address1"),
 		SndAddr:   []byte("sender_address1"),
 		GasPrice:  uint64(10000),
@@ -101,7 +100,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 
 	txPool["tx2"] = &transaction.Transaction{
 		Nonce:     uint64(2),
-		Value:     big.NewInt(2),
+		Value:     data.NewProtoBigInt(2),
 		RcvAddr:   []byte("receiver_address2"),
 		SndAddr:   []byte("sender_address2"),
 		GasPrice:  uint64(10000),
@@ -113,7 +112,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 
 	txPool["tx3"] = &transaction.Transaction{
 		Nonce:     uint64(3),
-		Value:     big.NewInt(3),
+		Value:     data.NewProtoBigInt(3),
 		RcvAddr:   []byte("receiver_address3"),
 		SndAddr:   []byte("sender_address3"),
 		GasPrice:  uint64(10000),
@@ -270,7 +269,7 @@ func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
 	elasticBlock := indexer.Block{
 		Nonce:         header.Nonce,
 		Round:         header.Round,
-		ShardID:       header.ShardId,
+		ShardID:       header.ShardID,
 		Hash:          hex.EncodeToString(headerHash),
 		Proposer:      signersIndexes[0],
 		Validators:    signersIndexes,

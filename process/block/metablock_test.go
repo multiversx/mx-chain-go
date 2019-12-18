@@ -114,7 +114,7 @@ func createGenesisBlock(ShardID uint32) *block.Header {
 		Signature:     rootHash,
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
-		ShardId:       ShardID,
+		ShardID:       ShardID,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
@@ -145,7 +145,7 @@ func setLastNotarizedHdr(
 		lastHdr := &block.Header{Round: round,
 			Nonce:    nonce,
 			RandSeed: randSeed,
-			ShardId:  i}
+			ShardID:  i}
 		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
 		if lastNotarizedHdrsCount > 0 {
 			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
@@ -946,17 +946,17 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	pool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            1,
 		Nonce:            45,
-		ShardId:          0,
+		ShardID:          0,
 		MiniBlockHeaders: miniBlockHeaders1})
 	pool.ShardHeaders().Put(hdrHash2, &block.Header{
 		Round:            2,
 		Nonce:            45,
-		ShardId:          1,
+		ShardID:          1,
 		MiniBlockHeaders: miniBlockHeaders2})
 	pool.ShardHeaders().Put(hdrHash3, &block.Header{
 		Round:            3,
 		Nonce:            45,
-		ShardId:          2,
+		ShardID:          2,
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	noOfShards := uint32(5)
@@ -1047,7 +1047,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	pool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          0,
+		ShardID:          0,
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
@@ -1056,7 +1056,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	pool.ShardHeaders().Put(hdrHash2, &block.Header{
 		Round:            20,
 		Nonce:            45,
-		ShardId:          1,
+		ShardID:          1,
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
@@ -1065,7 +1065,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	pool.ShardHeaders().Put(hdrHash3, &block.Header{
 		Round:            30,
 		Nonce:            45,
-		ShardId:          2,
+		ShardID:          2,
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
@@ -1149,7 +1149,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          0,
+		ShardID:          0,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1159,7 +1159,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          0,
+		ShardID:          0,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1173,7 +1173,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          1,
+		ShardID:          1,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1183,7 +1183,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          1,
+		ShardID:          1,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1197,7 +1197,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          2,
+		ShardID:          2,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1207,7 +1207,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          2,
+		ShardID:          2,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1295,7 +1295,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          0,
+		ShardID:          0,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1305,7 +1305,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          0,
+		ShardID:          0,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1319,7 +1319,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          1,
+		ShardID:          1,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1329,7 +1329,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          1,
+		ShardID:          1,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1343,7 +1343,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            10,
 		Nonce:            45,
-		ShardId:          2,
+		ShardID:          2,
 		PrevRandSeed:     prevRandSeed,
 		RandSeed:         currRandSeed,
 		PrevHash:         prevHash,
@@ -1353,7 +1353,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	headers = append(headers, &block.Header{
 		Round:            11,
 		Nonce:            46,
-		ShardId:          2,
+		ShardID:          2,
 		PrevRandSeed:     currRandSeed,
 		RandSeed:         []byte("nextrand"),
 		PrevHash:         prevHash,
@@ -1459,7 +1459,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	prevHdr := &block.Header{
 		Round:        10,
 		Nonce:        45,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1469,7 +1469,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1488,7 +1488,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	err := mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrMissingHeader, err)
 	notarizedHdrs = mp.NotarizedHdrs()
-	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
+	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardID).GetNonce())
 
 	// wrong header type in pool and defer called
 	pool.ShardHeaders().Put(currHash, metaHdr)
@@ -1499,7 +1499,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	notarizedHdrs = mp.NotarizedHdrs()
-	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
+	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardID).GetNonce())
 
 	// put headers in pool
 	pool.ShardHeaders().Put(currHash, currHdr)
@@ -1511,7 +1511,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
 	notarizedHdrs = mp.NotarizedHdrs()
-	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))
+	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardID))
 }
 
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
@@ -1548,7 +1548,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	prevHdr := &block.Header{
 		Round:        10,
 		Nonce:        45,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1558,7 +1558,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1570,7 +1570,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	wrongCurrHdr := &block.Header{
 		Round:        11,
 		Nonce:        48,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1604,7 +1604,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity()
 	assert.Nil(t, err)
 	assert.NotNil(t, highestNonceHdrs)
-	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardId].GetNonce())
+	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardID].GetNonce())
 }
 
 func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testing.T) {
@@ -1637,7 +1637,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     []byte("prevhash"),
@@ -1688,7 +1688,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	currHdr := &block.Header{
 		Round:        0,
 		Nonce:        0,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     []byte("prevhash"),
@@ -1709,7 +1709,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	highestNonceHdrs, err = mp.CheckShardHeadersValidity()
 	assert.NotNil(t, highestNonceHdrs)
 	assert.Nil(t, err)
-	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardId].GetNonce())
+	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardID].GetNonce())
 }
 
 func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
@@ -1745,7 +1745,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	prevHdr := &block.Header{
 		Round:        10,
 		Nonce:        45,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1755,7 +1755,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1764,7 +1764,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	nextWrongHdr := &block.Header{
 		Round:        11,
 		Nonce:        44,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1805,7 +1805,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	nextHdr := &block.Header{
 		Round:        12,
 		Nonce:        47,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: []byte("nextrand"),
 		RandSeed:     []byte("nextnextrand"),
 		PrevHash:     prevHash,
@@ -1853,7 +1853,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr := &block.Header{
 		Round:        10,
 		Nonce:        45,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1863,7 +1863,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -1952,7 +1952,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	prevHdr := &block.Header{
 		Round:        10,
 		Nonce:        45,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1961,7 +1961,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	wrongPrevHdr := &block.Header{
 		Round:        10,
 		Nonce:        50,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: prevRandSeed,
 		RandSeed:     currRandSeed,
 		PrevHash:     prevHash,
@@ -1971,7 +1971,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	currHdr := &block.Header{
 		Round:        11,
 		Nonce:        46,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -2004,7 +2004,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	nextWrongHdr := &block.Header{
 		Round:        12,
 		Nonce:        44,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: currRandSeed,
 		RandSeed:     []byte("nextrand"),
 		PrevHash:     prevHash,
@@ -2019,7 +2019,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	nextHdr := &block.Header{
 		Round:        12,
 		Nonce:        47,
-		ShardId:      0,
+		ShardID:      0,
 		PrevRandSeed: []byte("nextrand"),
 		RandSeed:     []byte("nextnextrand"),
 		PrevHash:     prevHash,

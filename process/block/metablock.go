@@ -447,7 +447,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		}
 
 		headerPool.Remove(shardHeaderHash)
-		headerNoncesPool.Remove(shardBlock.Nonce, shardBlock.ShardId)
+		headerNoncesPool.Remove(shardBlock.Nonce, shardBlock.ShardID)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -660,12 +660,12 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		hdr := orderedHdrs[i]
-		lastHdr, ok := lastPushedHdr[hdr.ShardId].(*block.Header)
+		lastHdr, ok := lastPushedHdr[hdr.ShardID].(*block.Header)
 		if !ok {
 			continue
 		}
 
-		isFinal, _ := mp.isShardHeaderValidFinal(hdr, lastHdr, sortedHdrPerShard[hdr.ShardId])
+		isFinal, _ := mp.isShardHeaderValidFinal(hdr, lastHdr, sortedHdrPerShard[hdr.ShardID])
 		if !isFinal {
 			continue
 		}
@@ -673,7 +673,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		if len(hdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
 			hdrsAdded++
-			lastPushedHdr[hdr.ShardId] = hdr
+			lastPushedHdr[hdr.ShardID] = hdr
 			continue
 		}
 
@@ -714,7 +714,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
 			hdrsAdded++
 
-			lastPushedHdr[hdr.ShardId] = hdr
+			lastPushedHdr[hdr.ShardID] = hdr
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
@@ -859,7 +859,7 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrWrongTypeAssertion
 		}
 
-		mp.updateShardHeadersNonce(shardBlock.ShardId, shardBlock.Nonce)
+		mp.updateShardHeadersNonce(shardBlock.ShardID, shardBlock.Nonce)
 
 		buff, err = mp.marshalizer.Marshal(shardBlock)
 		if err != nil {
@@ -868,10 +868,10 @@ func (mp *metaProcessor) CommitBlock(
 		}
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardBlock.Nonce)
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardBlock.ShardId)
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardBlock.ShardID)
 		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, shardHeaderHash)
 		if errNotCritical != nil {
-			log.Trace(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", shardBlock.ShardId),
+			log.Trace(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", shardBlock.ShardID),
 				"error", errNotCritical.Error(),
 			)
 		}
@@ -1057,8 +1057,8 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 			return process.ErrWrongTypeAssertion
 		}
 
-		if tmpLastNotarizedHdrForShard[shardHdr.ShardId].GetNonce() < shardHdr.Nonce {
-			tmpLastNotarizedHdrForShard[shardHdr.ShardId] = shardHdr
+		if tmpLastNotarizedHdrForShard[shardHdr.ShardID].GetNonce() < shardHdr.Nonce {
+			tmpLastNotarizedHdrForShard[shardHdr.ShardID] = shardHdr
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -1218,7 +1218,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	}
 
 	log.Debug("received shard block from network",
-		"shard", shardHeader.ShardId,
+		"shard", shardHeader.ShardID,
 		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,
 		"hash", shardHeaderHash,
@@ -1234,8 +1234,8 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 			hdrInfoForHash.hdr = shardHeader
 			mp.hdrsForCurrBlock.missingHdrs--
 
-			if shardHeader.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardId] {
-				mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardId] = shardHeader.Nonce
+			if shardHeader.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardID] {
+				mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.ShardID] = shardHeader.Nonce
 			}
 		}
 
@@ -1376,7 +1376,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
 		shardData.TxCount = shardHdr.TxCount
-		shardData.ShardID = shardHdr.ShardId
+		shardData.ShardID = shardHdr.ShardID
 		shardData.HeaderHash = []byte(hdrHash)
 		shardData.Round = shardHdr.Round
 		shardData.PrevHash = shardHdr.PrevHash
@@ -1561,7 +1561,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 			continue
 		}
 
-		currShardId := hdr.ShardId
+		currShardId := hdr.ShardID
 		if mp.lastNotarizedHdrForShard(currShardId) == nil {
 			continue
 		}

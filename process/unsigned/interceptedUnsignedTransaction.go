@@ -170,7 +170,7 @@ func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandl
 
 // TotalValue returns the value of the unsigned transaction
 func (inUTx *InterceptedUnsignedTransaction) TotalValue() *big.Int {
-	copiedVal := big.NewInt(0).Set(inUTx.uTx.Value)
+	copiedVal := big.NewInt(0).Set(&inUTx.uTx.Value.Int)
 	return copiedVal
 }
 

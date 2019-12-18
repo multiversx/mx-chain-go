@@ -42,7 +42,7 @@ func createMockShardHeader() *dataBlock.Header {
 		PrevRandSeed:     []byte("prev rand seed"),
 		RandSeed:         []byte("rand seed"),
 		PubKeysBitmap:    []byte{1},
-		ShardId:          hdrShardId,
+		ShardID:          hdrShardId,
 		TimeStamp:        0,
 		Round:            hdrRound,
 		Epoch:            hdrEpoch,
