@@ -274,7 +274,7 @@ type RequestedItemsHandler interface {
 
 // TxPool defines an interface for the transaction pool
 type TxPool interface {
-	Notifier
+	ShardedDataCacherNotifier
 
 	GetTxCache(cacheID string) *txcache.TxCache
 	AddTx(txHash []byte, tx data.TransactionHandler, cacheID string)
@@ -282,9 +282,5 @@ type TxPool interface {
 	RemoveTx(txHash []byte, cacheID string)
 	RemoveTxBulk(txHashes [][]byte, cacheID string)
 	RemoveTxFromAllShards(txHash []byte)
-	MergeShardStores(sourceCacheID string, destCacheID string)
 	MoveTxs(sourceCacheID string, destCacheID string, txHashes [][]byte)
-	Clear()
-	ClearShardStore(cacheID string)
-	CreateShardStore(cacheID string)
 }

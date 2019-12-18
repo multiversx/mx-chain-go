@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -80,58 +81,57 @@ func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 }
 
 func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
-	// TODO-TXCACHE
-	// atomic.StoreUint64(&tpc.numRemovedTxs, 0)
+	atomic.StoreUint64(&tpc.numRemovedTxs, 0)
 
-	// shardId := tpc.shardCoordinator.SelfId()
-	// transactions := tpc.dataPool.Transactions()
-	// numOfShards := tpc.shardCoordinator.NumberOfShards()
+	shardId := tpc.shardCoordinator.SelfId()
+	transactions := tpc.dataPool.Transactions()
+	numOfShards := tpc.shardCoordinator.NumberOfShards()
 
-	// for destShardId := uint32(0); destShardId < numOfShards; destShardId++ {
-	// 	cacherId := process.ShardCacherIdentifier(shardId, destShardId)
-	// 	txsPool := transactions.ShardDataStore(cacherId)
+	for destShardId := uint32(0); destShardId < numOfShards; destShardId++ {
+		cacherId := process.ShardCacherIdentifier(shardId, destShardId)
+		txsPool := transactions.ShardDataStore(cacherId)
 
-	// 	for _, key := range txsPool.Keys() {
-	// 		if !haveTime() {
-	// 			return
-	// 		}
+		for _, key := range txsPool.Keys() {
+			if !haveTime() {
+				return
+			}
 
-	// 		obj, ok := txsPool.Peek(key)
-	// 		if !ok {
-	// 			continue
-	// 		}
+			obj, ok := txsPool.Peek(key)
+			if !ok {
+				continue
+			}
 
-	// 		tx, ok := obj.(*transaction.Transaction)
-	// 		if !ok {
-	// 			atomic.AddUint64(&tpc.numRemovedTxs, 1)
-	// 			txsPool.Remove(key)
-	// 			continue
-	// 		}
+			tx, ok := obj.(*transaction.Transaction)
+			if !ok {
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+				txsPool.Remove(key)
+				continue
+			}
 
-	// 		sndAddr := tx.GetSndAddress()
-	// 		addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
-	// 		if err != nil {
-	// 			txsPool.Remove(key)
-	// 			atomic.AddUint64(&tpc.numRemovedTxs, 1)
-	// 			continue
-	// 		}
+			sndAddr := tx.GetSndAddress()
+			addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
+			if err != nil {
+				txsPool.Remove(key)
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+				continue
+			}
 
-	// 		accountHandler, err := tpc.accounts.GetExistingAccount(addr)
-	// 		if err != nil {
-	// 			txsPool.Remove(key)
-	// 			atomic.AddUint64(&tpc.numRemovedTxs, 1)
-	// 			continue
-	// 		}
+			accountHandler, err := tpc.accounts.GetExistingAccount(addr)
+			if err != nil {
+				txsPool.Remove(key)
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+				continue
+			}
 
-	// 		accountNonce := accountHandler.GetNonce()
-	// 		txNonce := tx.Nonce
-	// 		lowerNonceInTx := txNonce < accountNonce
-	// 		if lowerNonceInTx {
-	// 			txsPool.Remove(key)
-	// 			atomic.AddUint64(&tpc.numRemovedTxs, 1)
-	// 		}
-	// 	}
-	// }
+			accountNonce := accountHandler.GetNonce()
+			txNonce := tx.Nonce
+			lowerNonceInTx := txNonce < accountNonce
+			if lowerNonceInTx {
+				txsPool.Remove(key)
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+			}
+		}
+	}
 }
 
 // NumRemovedTxs will return the number of removed txs from pools

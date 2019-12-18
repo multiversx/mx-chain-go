@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -192,6 +193,41 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	txPool.mutexAddCallbacks.Lock()
 	txPool.onAddCallbacks = append(txPool.onAddCallbacks, handler)
 	txPool.mutexAddCallbacks.Unlock()
+}
+
+// ShardDataStore is not implemented for this pool
+func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
+	panic("shardedTxPool.ShardDataStore is not implemented")
+}
+
+// AddData is not implemented for this pool
+func (txPool *shardedTxPool) AddData(key []byte, data interface{}, cacheID string) {
+	panic("shardedTxPool.AddData is not implemented")
+}
+
+// SearchFirstData is not implemented for this pool
+func (txPool *shardedTxPool) SearchFirstData(key []byte) (interface{}, bool) {
+	panic("shardedTxPool.SearchFirstData is not implemented")
+}
+
+// RemoveData is not implemented for this pool
+func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
+	panic("shardedTxPool.RemoveData is not implemented")
+}
+
+// RemoveSetOfDataFromPool is not implemented for this pool
+func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
+	panic("shardedTxPool.RemoveSetOfDataFromPool is not implemented")
+}
+
+// RemoveDataFromAllShards is not implemented for this pool
+func (txPool *shardedTxPool) RemoveDataFromAllShards(key []byte) {
+	panic("shardedTxPool.RemoveDataFromAllShards is not implemented")
+}
+
+// MoveData is not implemented for this pool
+func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, key [][]byte) {
+	panic("shardedTxPool.MoveData is not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
