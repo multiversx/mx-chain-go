@@ -2,9 +2,10 @@ package headersCache
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 type headerListDetails struct {
@@ -30,7 +31,7 @@ type headersNonceCache struct {
 	canDoEviction      map[uint32]chan struct{}
 }
 
-func NewHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersNonceCache {
+func newHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersNonceCache {
 	return &headersNonceCache{
 		hdrNonceCache:      make(map[uint32]*headersMap),
 		hdrsCounter:        newHeadersCounter(),
@@ -43,14 +44,13 @@ func NewHeadersNonceCache(numHeadersToRemove int, numMaxHeaderPerShard int) *hea
 }
 
 func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header data.HeaderHandler) bool {
-
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
 	// add header info in second map
 	headerInfo := headerInfo{
-		headerNonce:   header.GetNonce(),
-		headerShardId: header.GetShardID(),
+		headerNonce:   headerNonce,
+		headerShardId: headerShardId,
 	}
 	alreadyExits := hnc.headersByHash.addElement(headerHash, headerInfo)
 	if alreadyExits {
@@ -59,7 +59,6 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 
 	headerShardPool := hnc.getShardMap(headerShardId)
 
-	//critical section
 	hnc.mutHeadersMap.Lock()
 	headerListD := headerShardPool.getElement(headerNonce)
 
@@ -70,7 +69,6 @@ func (hnc *headersNonceCache) addHeaderInNonceCache(headerHash []byte, header da
 	headerListD.headerList = append(headerListD.headerList, headerDetails)
 	headerShardPool.addElement(headerNonce, headerListD)
 	hnc.mutHeadersMap.Unlock()
-	////
 
 	hnc.hdrsCounter.increment(headerShardId)
 
@@ -93,7 +91,12 @@ func (hnc *headersNonceCache) getShardMap(shardId uint32) *headersMap {
 }
 
 func (hnc *headersNonceCache) removeHeaderNonceCache(hdrInfo headerInfo, headerHash []byte) {
-	hdrListD, ok := hnc.getHeadersDetailsListFromSMap(hdrInfo.headerNonce, hdrInfo.headerShardId)
+	_, ok := hnc.hdrNonceCache[hdrInfo.headerShardId]
+	if !ok {
+		return
+	}
+
+	hdrListD, ok := hnc.hdrNonceCache[hdrInfo.headerShardId].getHeadersDetailsListFromSMap(hdrInfo.headerNonce)
 	if !ok {
 		return
 	}
@@ -118,7 +121,12 @@ func (hnc *headersNonceCache) removeHeaderNonceCache(hdrInfo headerInfo, headerH
 }
 
 func (hnc *headersNonceCache) removeHeaderNonceByNonceAndShardId(hdrNonce uint64, shardId uint32) int {
-	hdrListD, ok := hnc.getHeadersDetailsListFromSMap(hdrNonce, shardId)
+	_, ok := hnc.hdrNonceCache[shardId]
+	if !ok {
+		return 0
+	}
+
+	hdrListD, ok := hnc.hdrNonceCache[shardId].getHeadersDetailsListFromSMap(hdrNonce)
 	if !ok {
 		return 0
 	}
@@ -140,27 +148,20 @@ func (hnc *headersNonceCache) removeHeaderNonceByNonceAndShardId(hdrNonce uint64
 }
 
 func (hnc *headersNonceCache) getHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]headerDetails, bool) {
-	headersList, ok := hnc.getHeadersDetailsListFromSMap(hdrNonce, shardId)
+	hnc.mutHeadersMap.RLock()
+	defer hnc.mutHeadersMap.RUnlock()
+
+	_, ok := hnc.hdrNonceCache[shardId]
+	if !ok {
+		return nil, false
+	}
+
+	headersList, ok := hnc.hdrNonceCache[shardId].getHeadersDetailsListFromSMap(hdrNonce)
 	if !ok {
 		return nil, false
 	}
 
 	return headersList.headerList, true
-}
-
-func (hnc *headersNonceCache) getHeadersDetailsListFromSMap(hdrNonce uint64, shardId uint32) (headerListDetails, bool) {
-	headersShardPool, ok := hnc.hdrNonceCache[shardId]
-	if !ok {
-		return headerListDetails{}, false
-	}
-
-	headersListD := headersShardPool.getElement(hdrNonce)
-
-	//update timestamp
-	headersListD.timestamp = time.Now()
-	hnc.hdrNonceCache[shardId].addElement(hdrNonce, headersListD)
-
-	return headersListD, true
 }
 
 func (hnc *headersNonceCache) getNumHeaderFromCache(shardId uint32) int64 {
@@ -239,4 +240,13 @@ func (hnc *headersNonceCache) tryToDoEviction(hdrShardId uint32) {
 
 func (hnc *headersNonceCache) totalHeaders() int {
 	return hnc.hdrsCounter.totalHeaders()
+}
+
+func (hnc *headersNonceCache) clear() {
+	hnc.mutHeadersMap.Lock()
+	defer hnc.mutHeadersMap.Unlock()
+
+	hnc.hdrNonceCache = make(map[uint32]*headersMap)
+	hnc.hdrsCounter = newHeadersCounter()
+	hnc.headersByHash = newHeadersHashMap()
 }

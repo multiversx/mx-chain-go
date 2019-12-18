@@ -1,13 +1,11 @@
 package headersCache
 
 import (
-	"errors"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"sync"
 )
-
-var ErrHeaderNotFound = errors.New("cannot find header")
 
 var log = logger.GetOrCreate("dataRetriever/headersCache")
 
@@ -17,24 +15,28 @@ type headerDetails struct {
 }
 
 type headersCacher struct {
-	headersCacheByShardIdNonce *headersNonceCache
-	mutAddedDataHandlers       sync.RWMutex
-	addedDataHandlers          []func(shardHeaderHash []byte)
+	hdrsCache            *headersNonceCache
+	mutAddedDataHandlers sync.RWMutex
+	addedDataHandlers    []func(shardHeaderHash []byte)
 }
 
 func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*headersCacher, error) {
 	if numMaxHeaderPerShard < numElementsToRemove {
-		return nil, errors.New("invalid cache parameters")
+		return nil, ErrInvalidHeadersCacheParameter
 	}
+
+	headersCache := newHeadersNonceCache(numElementsToRemove, numMaxHeaderPerShard)
+
 	return &headersCacher{
-		headersCacheByShardIdNonce: NewHeadersNonceCache(numElementsToRemove, numMaxHeaderPerShard),
-		mutAddedDataHandlers:       sync.RWMutex{},
-		addedDataHandlers:          make([]func(shardHeaderHash []byte), 0),
+		hdrsCache:            headersCache,
+		mutAddedDataHandlers: sync.RWMutex{},
+		addedDataHandlers:    make([]func(shardHeaderHash []byte), 0),
 	}, nil
 }
 
+// Add is used to add a header in pool
 func (hc *headersCacher) Add(headerHash []byte, header data.HeaderHandler) {
-	alreadyExits := hc.headersCacheByShardIdNonce.addHeaderInNonceCache(headerHash, header)
+	alreadyExits := hc.hdrsCache.addHeaderInNonceCache(headerHash, header)
 
 	if !alreadyExits {
 		hc.callAddedDataHandlers(headerHash)
@@ -49,16 +51,19 @@ func (hc *headersCacher) callAddedDataHandlers(key []byte) {
 	hc.mutAddedDataHandlers.RUnlock()
 }
 
+// RemoveHeaderByHash will remove a header with a specific hash from pool
 func (hc *headersCacher) RemoveHeaderByHash(headerHash []byte) {
-	hc.headersCacheByShardIdNonce.removeHeaderByHash(headerHash)
+	hc.hdrsCache.removeHeaderByHash(headerHash)
 }
 
+// RemoveHeaderByNonceAndShardId will remove a header with a nonce and shard id from pool
 func (hc *headersCacher) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) {
-	_ = hc.headersCacheByShardIdNonce.removeHeaderNonceByNonceAndShardId(hdrNonce, shardId)
+	_ = hc.hdrsCache.removeHeaderNonceByNonceAndShardId(hdrNonce, shardId)
 }
 
+// GetHeaderByNonceAndShardId will return a list of headers from pool
 func (hc *headersCacher) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-	headersList, ok := hc.headersCacheByShardIdNonce.getHeadersByNonceAndShardId(hdrNonce, shardId)
+	headersList, ok := hc.hdrsCache.getHeadersByNonceAndShardId(hdrNonce, shardId)
 	if !ok {
 		return nil, nil, ErrHeaderNotFound
 	}
@@ -77,18 +82,22 @@ func (hc *headersCacher) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uin
 	return headers, hashes, nil
 }
 
+// GetHeaderByHash will return a header handler from pool with a specific hash
 func (hc *headersCacher) GetHeaderByHash(hash []byte) (data.HeaderHandler, error) {
-	return hc.headersCacheByShardIdNonce.getHeaderByHash(hash)
+	return hc.hdrsCache.getHeaderByHash(hash)
 }
 
+// GetNumHeadersFromCacheShard will return how many header are in pool for a specific shard
 func (hc *headersCacher) GetNumHeadersFromCacheShard(shardId uint32) int {
-	return int(hc.headersCacheByShardIdNonce.getNumHeaderFromCache(shardId))
+	return int(hc.hdrsCache.getNumHeaderFromCache(shardId))
 }
 
+// Clear will clear headers pool
 func (hc *headersCacher) Clear() {
-
+	hc.hdrsCache.clear()
 }
 
+// RegisterHandler registers a new handler to be called when a new data is added
 func (hc *headersCacher) RegisterHandler(handler func(shardHeaderHash []byte)) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
@@ -100,18 +109,22 @@ func (hc *headersCacher) RegisterHandler(handler func(shardHeaderHash []byte)) {
 	hc.mutAddedDataHandlers.Unlock()
 }
 
+// Keys will return a slice of all headers nonce that are in pool
 func (hc *headersCacher) Keys(shardId uint32) []uint64 {
-	return hc.headersCacheByShardIdNonce.keys(shardId)
+	return hc.hdrsCache.keys(shardId)
 }
 
+// Len will return how many headers are in pool
 func (hc *headersCacher) Len() int {
-	return hc.headersCacheByShardIdNonce.totalHeaders()
+	return hc.hdrsCache.totalHeaders()
 }
 
+// MaxSize will return how many header can be added in a pool ( per shard)
 func (hc *headersCacher) MaxSize() int {
-	return hc.headersCacheByShardIdNonce.maxHeadersPerShard
+	return hc.hdrsCache.maxHeadersPerShard
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (hc *headersCacher) IsInterfaceNil() bool {
 	return hc == nil
 }

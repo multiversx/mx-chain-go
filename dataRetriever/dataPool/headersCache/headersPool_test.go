@@ -178,6 +178,7 @@ func TestHeadersCacher_ConcurrentRequestsShouldWorkWithEviction(t *testing.T) {
 	hdrs, hdrsHashes = createASliceOfHeaders(3, shardId)
 	for i := 0; i < numHeadersToGenerate; i++ {
 		hdrsCacher.Add(hdrsHashes[i], &hdrs[i])
+		time.Sleep(time.Microsecond)
 	}
 
 	assert.Equal(t, 2, hdrsCacher.GetNumHeadersFromCacheShard(shardId))

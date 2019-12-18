@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type nonceTimestamp struct {
+	nonce     uint64
+	timestamp time.Time
+}
+
 type headersMap struct {
 	hdrsMap    map[uint64]headerListDetails
 	mutHdrsMap sync.RWMutex
@@ -46,11 +51,6 @@ func (h *headersMap) removeElement(nonce uint64) {
 }
 
 func (h *headersMap) getNoncesTimestampSorted() []uint64 {
-	type nonceTimestamp struct {
-		nonce     uint64
-		timestamp time.Time
-	}
-
 	noncesTimestampsSlice := make([]nonceTimestamp, 0)
 	h.mutHdrsMap.RLock()
 	for key, value := range h.hdrsMap {
@@ -70,11 +70,24 @@ func (h *headersMap) getNoncesTimestampSorted() []uint64 {
 	return nonceSlice
 }
 
+func (h *headersMap) getHeadersDetailsListFromSMap(hdrNonce uint64) (headerListDetails, bool) {
+	headersListD := h.getElement(hdrNonce)
+	if len(headersListD.headerList) == 0 {
+		return headerListDetails{}, false
+	}
+
+	//update timestamp
+	headersListD.timestamp = time.Now()
+	h.addElement(hdrNonce, headersListD)
+
+	return headersListD, true
+}
+
 func (h *headersMap) keys() []uint64 {
 	h.mutHdrsMap.RLock()
 	defer h.mutHdrsMap.RUnlock()
 
-	nonces := make([]uint64, 0)
+	nonces := make([]uint64, len(h.hdrsMap))
 
 	for key := range h.hdrsMap {
 		nonces = append(nonces, key)
