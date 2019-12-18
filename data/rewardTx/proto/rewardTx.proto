@@ -1,0 +1,17 @@
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "rewardTx";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// Transaction holds all the data needed for a value transfer or SC call
+message RewardTx {
+	uint64   Round     = 1 [(gogoproto.jsontag) = "round"];
+	uint32   Epoch     = 2 [(gogoproto.jsontag) = "epoch"];
+	bytes    Value     = 3 [(gogoproto.jsontag) = "value", (gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+	bytes    RcvAddr   = 4 [(gogoproto.jsontag) = "receiver"];
+	uint32   ShardID   = 5 [(gogoproto.jsontag) = "shardId"];
+}

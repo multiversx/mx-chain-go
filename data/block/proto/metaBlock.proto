@@ -1,0 +1,75 @@
+// This file holds the data structures related with the functionality of a meta block
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "block";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "block.proto";
+
+// PeerAction type represents the possible events that a node can trigger for the metachain to notarize
+enum  PeerAction {
+	InvalidAction      = 0;
+	PeerRegistrantion  = 1;
+	PeerUnstaking      = 2;
+	PeerDeregistration = 3;
+	PeerJailed         = 4;
+	PeerUnJailed       = 5;
+	PeerSlashed        = 6;
+	PeerReStake        = 7;
+}
+
+// PeerData holds information about actions taken by a peer:
+//  - a peer can register with an amount to become a validator
+//  - a peer can choose to deregister and get back the deposited value
+message PeerData {
+	bytes      Address      = 1 ;
+	bytes      PublicKey   = 2 ;
+	PeerAction Action      = 3 ;
+	uint64     TimeStamp   = 4 ;
+	bytes  ValueChange = 5 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+}
+
+// ShardMiniBlockHeader holds data for one shard miniblock header
+message ShardMiniBlockHeader {
+	bytes  Hash            = 1;
+	uint32 ReceiverShardID = 2;
+	uint32 SenderShardID   = 3;
+	uint32 TxCount         = 4;
+}
+
+// ShardData holds the block information sent by the shards to the metachain
+message ShardData {
+	uint32                 ShardID               = 1;
+	bytes                  HeaderHash            = 2;
+	repeated ShardMiniBlockHeader ShardMiniBlockHeaders = 3 [(gogoproto.nullable) = false];
+	bytes                  PrevRandSeed          = 4;
+	bytes                  PubKeysBitmap         = 5;
+	bytes                  Signature             = 6;
+	uint32                 TxCount               = 7;
+	uint64                 Round                 = 8;
+	bytes                  PrevHash              = 9;
+	uint64                 Nonce                 = 10;
+}
+
+// MetaBlock holds the data that will be saved to the metachain each round
+message MetaBlock {
+	 uint64            Nonce                 = 1;
+	 uint32            Epoch                 = 2;
+	 uint64            Round                 = 3;
+	 uint64            TimeStamp             = 4;
+	 repeated ShardData       ShardInfo             = 5 [(gogoproto.nullable) = false];
+	 repeated PeerData        PeerInfo              = 6 [(gogoproto.nullable) = false];
+	 bytes             Signature             = 7;
+	 bytes             LeaderSignature       = 8;
+	 bytes             PubKeysBitmap         = 9;
+	 bytes             PrevHash              = 10;
+	 bytes             PrevRandSeed          = 11;
+	 bytes             RandSeed              = 12;
+	 bytes             RootHash              = 13;
+	 bytes             ValidatorStatsRootHash = 14;
+	 uint32            TxCount               = 15;
+	 repeated MiniBlockHeader MiniBlockHeaders      = 16 [(gogoproto.nullable) = false];
+}

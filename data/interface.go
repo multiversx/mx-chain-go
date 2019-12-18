@@ -1,9 +1,5 @@
 package data
 
-import (
-	"math/big"
-)
-
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -76,18 +72,18 @@ type ChainHandler interface {
 type TransactionHandler interface {
 	IsInterfaceNil() bool
 
-	GetValue() *big.Int
+	GetValue() *ProtoBigInt
 	GetNonce() uint64
 	GetData() string
-	GetRecvAddress() []byte
-	GetSndAddress() []byte
+	GetRcvAddr() []byte
+	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
-	SetValue(*big.Int)
+	SetValue(*ProtoBigInt)
 	SetData(string)
-	SetRecvAddress([]byte)
-	SetSndAddress([]byte)
+	SetRcvAddr([]byte)
+	SetSndAddr([]byte)
 }
 
 //Trie is an interface for Merkle Trees implementations

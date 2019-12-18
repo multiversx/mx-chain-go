@@ -1,144 +1,30 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. transaction.proto
 package transaction
 
 import (
-	"encoding/json"
-	"io"
-	"math/big"
+	io "io"
+	"io/ioutil"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction/capnp"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Transaction holds all the data needed for a value transfer or SC call
-type Transaction struct {
-	Nonce     uint64   `capid:"0" json:"nonce"`
-	Value     *big.Int `capid:"1" json:"value"`
-	RcvAddr   []byte   `capid:"2" json:"receiver"`
-	SndAddr   []byte   `capid:"3" json:"sender"`
-	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
-	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
-	Data      string   `capid:"6" json:"data,omitempty"`
-	Signature []byte   `capid:"7" json:"signature,omitempty"`
-	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
-}
-
-// Save saves the serialized data of a Transaction into a stream through Capnp protocol
-func (tx *Transaction) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	TransactionGoToCapn(seg, tx)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a Transaction object through Capnp protocol
-func (tx *Transaction) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootTransactionCapn(capMsg)
-	TransactionCapnToGo(z, tx)
-	return nil
-}
-
-// TransactionCapnToGo is a helper function to copy fields from a TransactionCapn object to a Transaction object
-func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transaction {
-	if dest == nil {
-		dest = &Transaction{}
-	}
-
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
-	}
-
-	// Nonce
-	dest.Nonce = src.Nonce()
-	// Value
-	err := dest.Value.GobDecode(src.Value())
-
-	if err != nil {
-		return nil
-	}
-
-	// RcvAddr
-	dest.RcvAddr = src.RcvAddr()
-	// SndAddr
-	dest.SndAddr = src.SndAddr()
-	// GasPrice
-	dest.GasPrice = src.GasPrice()
-	// GasLimit
-	dest.GasLimit = src.GasLimit()
-	// Data
-	dest.Data = src.Data()
-	// Signature
-	dest.Signature = src.Signature()
-	// Challenge
-	dest.Challenge = src.Challenge()
-
-	return dest
-}
-
-// TransactionGoToCapn is a helper function to copy fields from a Transaction object to a TransactionCapn object
-func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionCapn {
-	dest := capnp.AutoNewTransactionCapn(seg)
-
-	value, _ := src.Value.GobEncode()
-	dest.SetNonce(src.Nonce)
-	dest.SetValue(value)
-	dest.SetRcvAddr(src.RcvAddr)
-	dest.SetSndAddr(src.SndAddr)
-	dest.SetGasPrice(src.GasPrice)
-	dest.SetGasLimit(src.GasLimit)
-	dest.SetData(src.Data)
-	dest.SetSignature(src.Signature)
-	dest.SetChallenge(src.Challenge)
-
-	return dest
-}
+var _ = data.TransactionHandler(&Transaction{})
 
 // IsInterfaceNil verifies if underlying object is nil
 func (tx *Transaction) IsInterfaceNil() bool {
 	return tx == nil
 }
 
-// GetValue returns the value of the transaction
-func (tx *Transaction) GetValue() *big.Int {
+// SetValue sets the value of the transaction
+func (tx *Transaction) GetValue() *data.ProtoBigInt {
+	if tx == nil {
+		return nil
+	}
 	return tx.Value
 }
 
-// GetNonce returns the transaction nonce
-func (tx *Transaction) GetNonce() uint64 {
-	return tx.Nonce
-}
-
-// GetData returns the data of the transaction
-func (tx *Transaction) GetData() string {
-	return tx.Data
-}
-
-// GetRecvAddress returns the receiver address from the transaction
-func (tx *Transaction) GetRecvAddress() []byte {
-	return tx.RcvAddr
-}
-
-// GetSndAddress returns the sender address from the transaction
-func (tx *Transaction) GetSndAddress() []byte {
-	return tx.SndAddr
-}
-
-// GetGasLimit returns the gas limit of the transaction
-func (tx *Transaction) GetGasLimit() uint64 {
-	return tx.GasLimit
-}
-
-// GetGasPrice returns the gas price of the transaction
-func (tx *Transaction) GetGasPrice() uint64 {
-	return tx.GasPrice
-}
-
 // SetValue sets the value of the transaction
-func (tx *Transaction) SetValue(value *big.Int) {
+func (tx *Transaction) SetValue(value *data.ProtoBigInt) {
 	tx.Value = value
 }
 
@@ -147,72 +33,31 @@ func (tx *Transaction) SetData(data string) {
 	tx.Data = data
 }
 
-// SetRecvAddress sets the receiver address of the transaction
-func (tx *Transaction) SetRecvAddress(addr []byte) {
+// SetRcvAddr sets the receiver address of the transaction
+func (tx *Transaction) SetRcvAddr(addr []byte) {
 	tx.RcvAddr = addr
 }
 
-// SetSndAddress sets the sender address of the transaction
-func (tx *Transaction) SetSndAddress(addr []byte) {
+// SetSndAddr sets the sender address of the transaction
+func (tx *Transaction) SetSndAddr(addr []byte) {
 	tx.SndAddr = addr
 }
 
-// MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
-// Note that Value data type is converted in a string
-func (tx *Transaction) MarshalJSON() ([]byte, error) {
-	valAsString := "nil"
-	if tx.Value != nil {
-		valAsString = tx.Value.String()
-	}
-	return json.Marshal(&struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{
-		Nonce:     tx.Nonce,
-		Value:     valAsString,
-		RcvAddr:   tx.RcvAddr,
-		SndAddr:   tx.SndAddr,
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: tx.Signature,
-	})
-}
+// ----- for compatibility only ----
 
-// UnmarshalJSON converts the provided bytes into a Transaction data type.
-func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
-	aux := &struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{}
-	if err := json.Unmarshal(dataBuff, &aux); err != nil {
+func (t *Transaction) Save(w io.Writer) error {
+	b, err := t.Marshal()
+	if err != nil {
 		return err
 	}
-	tx.Nonce = aux.Nonce
-	tx.RcvAddr = aux.RcvAddr
-	tx.SndAddr = aux.SndAddr
-	tx.GasPrice = aux.GasPrice
-	tx.GasLimit = aux.GasLimit
-	tx.Data = aux.Data
-	tx.Signature = aux.Signature
+	_, err = w.Write(b)
+	return err
+}
 
-	var ok bool
-	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
-	if !ok {
-		return data.ErrInvalidValue
+func (t *Transaction) Load(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
 	}
-
-	return nil
+	return t.Unmarshal(b)
 }
