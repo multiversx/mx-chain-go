@@ -14,6 +14,7 @@ import (
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -164,6 +165,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 }

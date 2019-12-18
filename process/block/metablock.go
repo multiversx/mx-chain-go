@@ -237,6 +237,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyEpochStartDataForMetablock(header)
+	if err != nil {
+		return err
+	}
+
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
@@ -1801,6 +1806,8 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 	epochStart, err := mp.createEpochStartForMetablock()
 	if err == nil {
 		metaHeader.EpochStart = *epochStart
+	} else {
+		log.Error(err.Error())
 	}
 
 	return metaHeader

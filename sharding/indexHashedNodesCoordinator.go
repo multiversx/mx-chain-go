@@ -401,13 +401,15 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	return signersIndexes, nil
 }
 
-// EpochStartAction is called upon a start of epoch event.
-// NodeCoordinator has to get the nodes assignment to shards using the shuffler.
-func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
-	randomness := hdr.GetRandSeed()
-	newEpoch := hdr.GetEpoch()
-	epochToRemove := int32(newEpoch) - nodeCoordinatorStoredEpochs
-	needToRemove := epochToRemove >= 0
+// EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
+// Some components may need to do some initialisation on this event
+func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.HeaderHandler) {
+	randomness := metaHeader.GetRandSeed()
+	newEpoch := metaHeader.GetEpoch()
+
+	if newEpoch != ihgs.currentEpoch+1 {
+		return
+	}
 
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
@@ -430,16 +432,24 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	err := ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
-	if err != nil {
-		return
-	}
+	_ = ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+}
 
+// EpochStartAction is called upon a start of epoch event.
+// NodeCoordinator has to get the nodes assignment to shards using the shuffler.
+func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
+	newEpoch := hdr.GetEpoch()
+	epochToRemove := int32(newEpoch) - nodeCoordinatorStoredEpochs
+	needToRemove := epochToRemove >= 0
 	ihgs.currentEpoch = newEpoch
 
 	ihgs.mutNodesConfig.Lock()
 	if needToRemove {
-		delete(ihgs.nodesConfig, uint32(epochToRemove))
+		for epoch := range ihgs.nodesConfig {
+			if epoch <= uint32(epochToRemove) {
+				delete(ihgs.nodesConfig, epoch)
+			}
+		}
 	}
 	ihgs.mutNodesConfig.Unlock()
 }

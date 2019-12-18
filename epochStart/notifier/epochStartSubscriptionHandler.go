@@ -12,6 +12,7 @@ type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.EpochStartHandler)
 	UnregisterHandler(handler epochStart.EpochStartHandler)
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -53,11 +54,21 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
-	essh.mutEpochStartHandler.Lock()
+	essh.mutEpochStartHandler.RLock()
 	for _, handler := range essh.epochStartHandlers {
 		handler.EpochStartAction(hdr)
 	}
-	essh.mutEpochStartHandler.Unlock()
+	essh.mutEpochStartHandler.RUnlock()
+}
+
+// NotifyAllPrepare will call all the subscribed clients to notify them that an epoch change block has been
+// observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
+func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+	essh.mutEpochStartHandler.RLock()
+	for _, handler := range essh.epochStartHandlers {
+		handler.EpochStartPrepare(metaHeader)
+	}
+	essh.mutEpochStartHandler.RUnlock()
 }
 
 // IsInterfaceNil -

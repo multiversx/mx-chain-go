@@ -9,6 +9,7 @@ type EpochStartNotifierStub struct {
 	RegisterHandlerCalled   func(handler epochStart.EpochStartHandler)
 	UnregisterHandlerCalled func(handler epochStart.EpochStartHandler)
 	NotifyAllCalled         func(hdr data.HeaderHandler)
+	NotifyAllPrepareCalled  func(hdr data.HeaderHandler)
 	epochStartHdls          []epochStart.EpochStartHandler
 }
 
@@ -30,6 +31,16 @@ func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.EpochSt
 			esnm.epochStartHdls = append(esnm.epochStartHdls[:i], esnm.epochStartHdls[i+1:]...)
 			break
 		}
+	}
+}
+
+func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+	if esnm.NotifyAllPrepareCalled != nil {
+		esnm.NotifyAllPrepareCalled(metaHeader)
+	}
+
+	for _, hdl := range esnm.epochStartHdls {
+		hdl.EpochStartPrepare(metaHeader)
 	}
 }
 

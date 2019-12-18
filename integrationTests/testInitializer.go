@@ -316,6 +316,7 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -335,6 +336,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		metaDataPool,
 		economics,
+		rootHash,
 	)
 
 	return genesisBlocks
@@ -353,6 +355,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) data.HeaderHandler {
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
@@ -367,7 +370,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   []byte("validator stats root hash"),
+		ValidatorStatsRootHash:   rootHash,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -1470,8 +1473,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1480,7 +1483,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()

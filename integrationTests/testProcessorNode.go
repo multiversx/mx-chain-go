@@ -1,13 +1,17 @@
 package integrationTests
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -169,6 +173,9 @@ type TestProcessorNode struct {
 
 	MultiSigner crypto.MultiSigner
 
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	blockProcessorInitializer    BlockProcessorInitializer
+
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
@@ -214,6 +221,9 @@ func NewTestProcessorNode(
 		Sk: sk,
 		Pk: pk,
 	}
+
+	tpn.blockProcessorInitializer = tpn
+
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
@@ -257,6 +267,48 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	return tpn
 }
 
+func (tpn *TestProcessorNode) initValidatorStatistics() {
+	var peerDataPool peer.DataPool = tpn.MetaDataPool
+	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
+		peerDataPool = tpn.ShardDataPool
+	}
+
+	initialNodes := make([]*sharding.InitialNode, 0)
+	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
+	for _, pks := range nodesMap {
+		for _, pk := range pks {
+			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
+			n := &sharding.InitialNode{
+				PubKey:   core.ToHex(validator.PubKey()),
+				Address:  core.ToHex(validator.Address()),
+				NodeInfo: sharding.NodeInfo{},
+			}
+			initialNodes = append(initialNodes, n)
+		}
+	}
+
+	sort.Slice(initialNodes, func(i, j int) bool {
+		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
+	})
+
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		InitialNodes:     initialNodes,
+		PeerAdapter:      tpn.PeerState,
+		AdrConv:          TestAddressConverter,
+		NodesCoordinator: tpn.NodesCoordinator,
+		ShardCoordinator: tpn.ShardCoordinator,
+		DataPool:         peerDataPool,
+		StorageService:   tpn.Storage,
+		Marshalizer:      TestMarshalizer,
+		StakeValue:       big.NewInt(500),
+		Rater:            mock.GetNewMockRater(),
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	tpn.ValidatorStatisticsProcessor = validatorStatistics
+}
+
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
@@ -273,6 +325,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
+
+	tpn.initValidatorStatistics()
+
+	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -285,8 +341,11 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
+		rootHash,
 	)
+
 	tpn.initBlockProcessor()
+
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -707,6 +766,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
+	if tpn.ValidatorStatisticsProcessor == nil {
+		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{}
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 tpn.ForkDetector,
@@ -721,7 +784,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
@@ -814,6 +877,7 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 	_ = tpn.BlockChain.SetGenesisHeader(genesisBlock)
 	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, genesisBlock)
 	tpn.BlockChain.SetGenesisHeaderHash(hash)
+	fmt.Println(fmt.Sprintf("Set genesis hash shard %d %s", tpn.ShardCoordinator.SelfId(), core.ToHex(hash)))
 }
 
 func (tpn *TestProcessorNode) initNode() {
@@ -948,7 +1012,11 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	buff, _ := TestMarshalizer.Marshal(currHdr)
-	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
+
+	prevHash := TestHasher.Compute(string(buff))
+	blockHeader.SetPrevHash(prevHash)
+	fmt.Println(fmt.Sprintf("ApplyPrevHash %d %s", tpn.ShardCoordinator.SelfId(), core.ToHex(prevHash)))
+
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
@@ -1217,4 +1285,8 @@ func (tpn *TestProcessorNode) initRounder() {
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+}
+
+func (tpn *TestProcessorNode) InitBlockProcessor() {
+	tpn.initBlockProcessor()
 }

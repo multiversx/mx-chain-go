@@ -146,9 +146,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 }
 
 func TestEpochChangeWithNodesShuffling(t *testing.T) {
-	//	if testing.Short() {
-	t.Skip("this is not a short test")
-	//	}
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
@@ -359,18 +359,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	}
 
 	time.Sleep(5 * time.Second)
-}
-
-func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
-	randomness := make(map[uint32][]byte)
-
-	for i := uint32(0); i < nbShards; i++ {
-		randomness[i] = []byte("root hash")
-	}
-
-	randomness[core.MetachainShardId] = []byte("root hash")
-
-	return randomness
 }
 
 func getBlockProposersIndexes(

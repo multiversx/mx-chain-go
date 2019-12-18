@@ -56,4 +56,5 @@ type RequestHandler interface {
 // EpochStartHandler defines the action taken on epoch start event
 type EpochStartHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler)
 }

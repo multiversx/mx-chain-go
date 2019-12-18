@@ -120,6 +120,7 @@ type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.EpochStartHandler)
 	UnregisterHandler(handler epochStart.EpochStartHandler)
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

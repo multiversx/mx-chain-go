@@ -245,11 +245,17 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),
-		header.GetEpoch(),
+		epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -273,10 +279,12 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 
 	err = p.checkForMissedBlocks(
 		header.GetRound(),
+		// TODO: in case of epoch change and previous header is before the epoch change event
+		// then the round should be the first round in the new epoch not the round from previous epoch
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
-		previousHeader.Epoch,
+		epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -372,9 +380,14 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 		return err
 	}
 
-	for _, h := range metaHeader.ShardInfo {
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
-		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID, metaHeader.Epoch)
+	for _, h := range metaHeader.ShardInfo {
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -398,10 +411,12 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 
 		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
+			// TODO: in case of an epoch change after prevShardData round, then the round needs to be the round after the
+			// epoch change, also grace period should be considered.
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
-			metaHeader.Epoch,
+			epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr

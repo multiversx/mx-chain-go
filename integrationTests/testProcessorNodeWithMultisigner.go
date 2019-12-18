@@ -68,6 +68,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	} else {
 		tpn.OwnAccount = ownAccount
 	}
+
 	tpn.EpochStartNotifier = epochStartNotifier
 	tpn.initDataPools()
 	tpn.initTestNode()
@@ -88,7 +89,7 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 
@@ -116,6 +117,8 @@ func CreateNodesWithNodesCoordinator(
 		}
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
+		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
+
 		for i := range validatorList {
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
@@ -128,7 +131,21 @@ func CreateNodesWithNodesCoordinator(
 				nil,
 			)
 		}
-		nodesMap[shardId] = nodesList
+
+		for i := range waitingMap[shardId] {
+			nodesListWaiting[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
+				uint32(nbShards),
+				shardId,
+				seedAddress,
+				epochStartSubscriber,
+				nodesCoordinator,
+				cpWaiting,
+				i,
+				nil,
+			)
+		}
+
+		nodesMap[shardId] = append(nodesList, nodesListWaiting...)
 	}
 
 	return nodesMap
@@ -208,6 +225,7 @@ func ProposeBlockWithConsensusSignature(
 	epoch uint32,
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
+
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		fmt.Println("Error getting the validators public keys: ", err)
