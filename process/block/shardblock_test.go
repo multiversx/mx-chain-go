@@ -2139,7 +2139,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	bl, err := sp.CreateBlockBody(&block.Header{}, func() bool { return true })
+	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
 	// nil block
 	assert.Nil(t, bl)
 	// error
@@ -2166,7 +2166,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	haveTime := func() bool {
 		return false
 	}
-	bl, err := sp.CreateBlockBody(&block.Header{}, haveTime)
+	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTime)
 	// no error
 	assert.Equal(t, process.ErrTimeIsOut, err)
 	// no miniblocks
@@ -2191,7 +2191,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
-	blk, err := sp.CreateBlockBody(&block.Header{}, haveTime)
+	blk, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTime)
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
 }

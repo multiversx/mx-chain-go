@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -399,6 +400,17 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
+		return nil
+	}
+}
+
+// WithEpochStartTrigger sets up an start of epoch trigger option for the node
+func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(epochStartTrigger) {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartTrigger = epochStartTrigger
 		return nil
 	}
 }
