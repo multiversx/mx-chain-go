@@ -697,7 +697,6 @@ func (boot *baseBootstrap) rollBackOneBlock(
 			return err
 		}
 
-		prevHeaderHash = currHeader.GetPrevHash()
 		boot.accounts.CancelPrune(prevHeader.GetRootHash())
 
 		errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
