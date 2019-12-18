@@ -234,8 +234,5 @@ func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, key [][
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
-	if txPool == nil {
-		return true
-	}
-	return false
+	return txPool == nil {
 }
