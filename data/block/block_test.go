@@ -30,7 +30,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		PrevRandSeed:     []byte("prev random seed"),
 		RandSeed:         []byte("current random seed"),
 		PubKeysBitmap:    []byte("pub key bitmap"),
-		ShardId:          uint32(10),
+		ShardID:          uint32(10),
 		TimeStamp:        uint64(1234),
 		Round:            uint64(1),
 		Epoch:            uint32(1),
@@ -39,7 +39,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
-		MetaBlockHashes:  make([][]byte, 0),
+		MetaBlockHashes:  nil,
 		TxCount:          uint32(10),
 		LeaderSignature:  []byte("leader_sig"),
 	}
@@ -130,7 +130,7 @@ func TestHeader_GetShard(t *testing.T) {
 
 	shardId := uint32(2)
 	h := block.Header{
-		ShardId: shardId,
+		ShardID: shardId,
 	}
 
 	assert.Equal(t, shardId, h.GetShardID())

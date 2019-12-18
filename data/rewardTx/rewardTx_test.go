@@ -2,9 +2,9 @@ package rewardTx_test
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,9 +13,9 @@ func TestRewardTx_SaveLoad(t *testing.T) {
 	smrS := rewardTx.RewardTx{
 		Round:   uint64(1),
 		Epoch:   uint32(1),
-		Value:   big.NewInt(1),
+		Value:   data.NewProtoBigInt(1),
 		RcvAddr: []byte("receiver_address"),
-		ShardId: 10,
+		ShardID: 10,
 	}
 
 	var b bytes.Buffer
@@ -41,7 +41,7 @@ func TestRewardTx_GetRecvAddr(t *testing.T) {
 func TestRewardTx_GetValue(t *testing.T) {
 	t.Parallel()
 
-	value := big.NewInt(10)
+	value := data.NewProtoBigInt(10)
 	scr := &rewardTx.RewardTx{Value: value}
 
 	assert.Equal(t, value, scr.Value)
@@ -52,7 +52,7 @@ func TestRewardTx_SetRecvAddr(t *testing.T) {
 
 	data := []byte("data")
 	scr := &rewardTx.RewardTx{}
-	scr.SetRecvAddress(data)
+	scr.SetRcvAddr(data)
 
 	assert.Equal(t, data, scr.RcvAddr)
 }
@@ -60,7 +60,7 @@ func TestRewardTx_SetRecvAddr(t *testing.T) {
 func TestRewardTx_SetValue(t *testing.T) {
 	t.Parallel()
 
-	value := big.NewInt(10)
+	value := data.NewProtoBigInt(10)
 	scr := &rewardTx.RewardTx{}
 	scr.SetValue(value)
 

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func TestPeerData_SaveLoad(t *testing.T) {
 		PublicKey:   []byte("public key"),
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
-		ValueChange: big.NewInt(1),
+		ValueChange: &data.ProtoBigInt{*big.NewInt(1)},
 		Address:     []byte("address"),
 	}
 	var b bytes.Buffer
@@ -61,7 +62,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PublicKey:   []byte("public key"),
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
-		ValueChange: big.NewInt(1),
+		ValueChange: &data.ProtoBigInt{*big.NewInt(1)},
 	}
 
 	mbh := block.ShardMiniBlockHeader{
