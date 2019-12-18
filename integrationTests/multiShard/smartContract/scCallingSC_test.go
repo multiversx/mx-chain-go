@@ -3,6 +3,7 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -18,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -58,7 +59,9 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000)
+	initialVal := big.NewInt(10000000000000)
+  initialVal.Mul(initialVal, initialVal)
+  fmt.Printf("Initial minted sum: %s\n", initialVal.String())
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -103,15 +106,17 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	// verify how many times was shard 0 and shard 1 called
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
-	for _, node := range nodes {
+	for index, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
 		}
 
+		fmt.Printf("Investigating Node %d from Shard %d\n", index, shId)
+
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
 		assert.NotNil(t, numCalled)
 		if numCalled != nil {
-			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
+			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d, Shard %d", index, shId))
 		}
 	}
 }
