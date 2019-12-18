@@ -8,9 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,8 +60,8 @@ func createDataPools() dataRetriever.MetaPoolsHolder {
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{}
 		},
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}

@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +36,7 @@ func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -53,7 +55,7 @@ func TestNewShardedDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.CacherStub{},
@@ -72,7 +74,7 @@ func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		nil,
@@ -91,7 +93,7 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -110,7 +112,7 @@ func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -129,7 +131,7 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -148,7 +150,7 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewShardedDataPool(
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -164,7 +166,7 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
-	transactions := &mock.ShardedDataStub{}
+	transactions := txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 	scResults := &mock.ShardedDataStub{}
 	rewardTransactions := &mock.ShardedDataStub{}
 	headers := &mock.CacherStub{}

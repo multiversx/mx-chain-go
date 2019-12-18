@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +21,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -36,7 +38,7 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 		nil,
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -53,7 +55,7 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil,
 		&mock.Uint64SyncMapCacherStub{},
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -70,7 +72,7 @@ func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -104,7 +106,7 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
-		&mock.ShardedDataStub{},
+		txpool.NewShardedTxPool(storageUnit.CacheConfig{}),
 		nil,
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -120,7 +122,7 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	shardHeaders := &mock.CacherStub{}
 	miniBlocks := &mock.CacherStub{}
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
-	transactions := &mock.ShardedDataStub{}
+	transactions := txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 	unsigned := &mock.ShardedDataStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(

@@ -9,7 +9,7 @@ type PoolsHolderStub struct {
 	HeadersCalled              func() storage.Cacher
 	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
 	PeerChangesBlocksCalled    func() storage.Cacher
-	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
+	TransactionsCalled         func() dataRetriever.TxPool
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
 	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled           func() storage.Cacher
@@ -33,7 +33,7 @@ func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 	return phs.PeerChangesBlocksCalled()
 }
 
-func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
+func (phs *PoolsHolderStub) Transactions() dataRetriever.TxPool {
 	return phs.TransactionsCalled()
 }
 
