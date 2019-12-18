@@ -6,9 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -171,15 +171,17 @@ type Process struct {
 }
 
 type coreComponentsFactoryArgs struct {
-	config   *config.Config
-	uniqueID string
+	config      *config.Config
+	pathManager storage.PathManagerHandler
+	shardId     string
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.PathManagerHandler, shardId string) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
-		config:   config,
-		uniqueID: uniqueID,
+		config:      config,
+		pathManager: pathManager,
+		shardId:     shardId,
 	}
 }
 
@@ -195,7 +197,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	merkleTrie, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.uniqueID)
+	merkleTrie, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.pathManager, args.shardId)
 	if err != nil {
 		return nil, errors.New("error creating trie: " + err.Error())
 	}
@@ -215,7 +217,7 @@ type stateComponentsFactoryArgs struct {
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
-	uniqueID         string
+	pathManager      storage.PathManagerHandler
 }
 
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
@@ -224,14 +226,14 @@ func NewStateComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
-	uniqueID string,
+	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
 		genesisConfig:    genesisConfig,
 		shardCoordinator: shardCoordinator,
 		core:             core,
-		uniqueID:         uniqueID,
+		pathManager:      pathManager,
 	}
 }
 
@@ -261,11 +263,18 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
+	var shardId string
+	if args.shardCoordinator.SelfId() > args.shardCoordinator.NumberOfShards() {
+		shardId = "metachain"
+	} else {
+		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
+	}
 	peerAccountsTrie, err := getTrie(
 		args.config.PeerAccountsTrieStorage,
 		args.core.Marshalizer,
 		args.core.Hasher,
-		args.uniqueID,
+		args.pathManager,
+		shardId,
 	)
 	if err != nil {
 		return nil, err
@@ -293,8 +302,9 @@ type dataComponentsFactoryArgs struct {
 	config             *config.Config
 	shardCoordinator   sharding.Coordinator
 	core               *Core
-	uniqueID           string
+	pathManager        storage.PathManagerHandler
 	epochStartNotifier EpochStartNotifier
+	currentEpoch       uint32
 }
 
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
@@ -302,15 +312,17 @@ func NewDataComponentsFactoryArgs(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
-	uniqueID string,
+	pathManager storage.PathManagerHandler,
 	epochStartNotifier EpochStartNotifier,
+	currentEpoch uint32,
 ) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
 		config:             config,
 		shardCoordinator:   shardCoordinator,
 		core:               core,
-		uniqueID:           uniqueID,
+		pathManager:        pathManager,
 		epochStartNotifier: epochStartNotifier,
+		currentEpoch:       currentEpoch,
 	}
 }
 
@@ -323,7 +335,13 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID, args.epochStartNotifier)
+	store, err := createDataStoreFromConfig(
+		args.config,
+		args.shardCoordinator,
+		args.pathManager,
+		args.epochStartNotifier,
+		args.currentEpoch,
+	)
 	if err != nil {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
@@ -879,14 +897,15 @@ func getTrie(
 	cfg config.StorageConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	uniqueID string,
+	pathManager storage.PathManagerHandler,
+	shardId string,
 ) (data.Trie, error) {
 
-	// TODO: the path will be fetched from a path naming component
-	uniqueID = strings.Replace(uniqueID, "Epoch_0", "Static", 1)
+	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
+	dbConfig.FilePath = pathManager.PathForStatic(shardId, cfg.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(cfg.Cache),
-		storageFactory.GetDBFromConfig(cfg.DB, uniqueID),
+		dbConfig,
 		storageFactory.GetBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
@@ -941,10 +960,17 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 func createDataStoreFromConfig(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
-	uniqueID string,
+	pathManager storage.PathManagerHandler,
 	epochStartNotifier EpochStartNotifier,
+	currentEpoch uint32,
 ) (dataRetriever.StorageService, error) {
-	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(config, shardCoordinator, uniqueID, epochStartNotifier)
+	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
+		config,
+		shardCoordinator,
+		pathManager,
+		epochStartNotifier,
+		currentEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}

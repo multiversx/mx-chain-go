@@ -2,6 +2,7 @@ package pruning_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -32,16 +33,18 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 	return cacheConf, dbConf, blConf
 }
 
-func getDefaultArgs() *pruning.PruningStorerArgs {
+func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
 			return memorydb.New()
 		},
 	}
-	return &pruning.PruningStorerArgs{
+	return &pruning.StorerArgs{
 		Identifier:            "id",
 		FullArchive:           false,
+		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
+		PathManager:           &mock.PathManagerStub{},
 		CacheConf:             cacheConf,
 		DbPath:                dbConf.FilePath,
 		PersisterFactory:      persisterFactory,
@@ -75,6 +78,28 @@ func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, storage.ErrNilEpochStartNotifier, err)
 }
 
+func TestNewPruningStorer_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.ShardCoordinator = nil
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrNilShardCoordinator, err)
+}
+
+func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.PathManager = nil
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrNilPathManager, err)
+}
+
 func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -97,7 +122,29 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 	assert.False(t, ps.IsInterfaceNil())
 }
 
-func TestNewPruningStorer_PutAndGetShouldWork(t *testing.T) {
+func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardId := uint32(7)
+	shardIdStr := fmt.Sprintf("%d", shardId)
+	args := getDefaultArgs()
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if !strings.Contains(path, shardIdStr) {
+				assert.Fail(t, "path not set correctly")
+			}
+
+			return memorydb.New()
+		},
+	}
+	ps, err := pruning.NewShardedPruningStorer(args, shardId)
+
+	assert.NotNil(t, ps)
+	assert.Nil(t, err)
+	assert.False(t, ps.IsInterfaceNil())
+}
+
+func TestPruningStorer_PutAndGetShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
@@ -110,6 +157,47 @@ func TestNewPruningStorer_PutAndGetShouldWork(t *testing.T) {
 	res, err := ps.Get(testKey)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
+}
+
+func TestPruningStorer_RemoveShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewPruningStorer(args)
+
+	testKey, testVal := []byte("key"), []byte("value")
+	err := ps.Put(testKey, testVal)
+	assert.Nil(t, err)
+
+	// make sure that the key is there
+	res, err := ps.Get(testKey)
+	assert.Nil(t, err)
+	assert.Equal(t, testVal, res)
+
+	// now remove it
+	err = ps.Remove(testKey)
+	assert.Nil(t, err)
+
+	// it should have been removed from the persister and cache
+	res, err = ps.Get(testKey)
+	assert.NotNil(t, err)
+	assert.Nil(t, res)
+}
+
+func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.NumOfEpochsToKeep = 3
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// simulate the passing of 2 epochs in order to have more persisters.
+	// we will store 3 epochs with 2 active. all 3 should be removed
+	_ = ps.ChangeEpoch(1)
+	_ = ps.ChangeEpoch(2)
+
+	err := ps.DestroyUnit()
+	assert.Nil(t, err)
 }
 
 func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
