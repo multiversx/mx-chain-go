@@ -89,7 +89,6 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
@@ -109,7 +108,7 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 		gasLimit,
 		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
 	)
-	err = txProc.ProcessTransaction(tx, round)
+	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(accnts, nil)
