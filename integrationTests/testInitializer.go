@@ -91,7 +91,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+func CreateTestShardDataPool(txPool dataRetriever.TxPool) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}
@@ -449,7 +449,6 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 		)
 	}
 	table, _ := display.CreateTableString(header, dataLines)
-
 	return table
 }
 
@@ -612,7 +611,6 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			if pShardId != n.ShardCoordinator.SelfId() {
 				continue
 			}
-
 			MintAddress(n.AccntState, player.Address.Bytes(), value)
 			player.Balance = big.NewInt(0).Set(value)
 		}
@@ -1195,32 +1193,30 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
+	txPool := txpool.NewShardedTxPoolMock()
+	// not allowed to request data from the same shard
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		assert.Fail(t, "same-shard requesters should not be queried")
+		return nil, false
+	}
+	txPool.ShardDataStoreCalled = func(cacheId string) (c storage.Cacher) {
+		assert.Fail(t, "same-shard requesters should not be queried")
+		return nil
+	}
+	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+		mutRecvTxs.Lock()
+		defer mutRecvTxs.Unlock()
 
-	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(&mock.ShardedDataStub{
-		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-			assert.Fail(t, "same-shard requesters should not be queried")
-			return nil, false
-		},
-		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			assert.Fail(t, "same-shard requesters should not be queried")
-			return nil
-		},
-		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-			mutRecvTxs.Lock()
-			defer mutRecvTxs.Unlock()
+		txMap := recvTxs[nodeIndex]
+		if txMap == nil {
+			txMap = make(map[string]struct{})
+			recvTxs[nodeIndex] = txMap
+		}
 
-			txMap := recvTxs[nodeIndex]
-			if txMap == nil {
-				txMap = make(map[string]struct{})
-				recvTxs[nodeIndex] = txMap
-			}
+		txMap[string(key)] = struct{}{}
+	}
 
-			txMap[string(key)] = struct{}{}
-		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
-		},
-	})
+	return CreateTestShardDataPool(txPool)
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -1234,7 +1230,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100})
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
