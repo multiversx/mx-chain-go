@@ -74,7 +74,7 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	return shard
 }
 
-// AddTx will add the transaction to the cache
+// AddTx adds the transaction to the cache
 func (txPool *shardedTxPool) AddTx(txHash []byte, tx data.TransactionHandler, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
@@ -201,9 +201,9 @@ func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
 	return cache
 }
 
-// AddData is not implemented for this pool
-func (txPool *shardedTxPool) AddData(key []byte, data interface{}, cacheID string) {
-	panic("shardedTxPool.AddData is not implemented")
+// AddData adds the transaction to the cache
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID string) {
+	txPool.AddTx(key, value.(data.TransactionHandler), cacheID)
 }
 
 // SearchFirstData is not implemented for this pool

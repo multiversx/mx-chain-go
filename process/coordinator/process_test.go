@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -92,19 +93,15 @@ func createShardedDataChacherNotifier(
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
-	tx := &transaction.Transaction{
-		Nonce: 10,
-		Value: big.NewInt(0),
-	}
 	sc := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}
 	rTx := &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}
 
-	txCalled := createShardedDataChacherNotifier(tx, testHash)
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16})
 	unsignedTxHandler := createShardedDataChacherNotifier(sc, testHash)
 	rewardTxCalled := createShardedDataChacherNotifier(rTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled:         txCalled,
+		TransactionsTxPool:         txPool,
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
@@ -783,6 +780,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
+	tdp.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10}, "1_0")
+
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
@@ -841,8 +840,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
 	maxMbRemaining := uint32(15000)
@@ -861,9 +860,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 
 	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, 1, len(mbs))
-	assert.Equal(t, uint32(1), txs)
-	assert.True(t, finalized)
+	require.Equal(t, 1, len(mbs))
+	require.Equal(t, uint32(1), txs)
+	require.True(t, finalized)
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
@@ -899,9 +898,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.PoolsHolderStub{
-			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return shardedCacheMock
-			},
+			TransactionsTxPool: txpool.NewShardedTxPool(storageUnit.CacheConfig{Shards: 16}),
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
@@ -1011,11 +1008,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txPool
-	}
+	txPool := tdp.TransactionsTxPool
 	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
@@ -1056,11 +1050,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	t.Parallel()
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txPool
-	}
+	txPool := tdp.TransactionsTxPool
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
@@ -1118,11 +1110,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	numMiniBlocks := allTxs / numTxsToAdd
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txPool
-	}
+	txPool := tdp.TransactionsTxPool
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
@@ -1185,11 +1174,8 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txPool
-	}
+	txPool := tdp.TransactionsTxPool
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
@@ -1248,11 +1234,8 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txPool
-	}
+	txPool := tdp.TransactionsTxPool
 	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
@@ -1329,6 +1312,8 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 
 	txHashInPool := []byte("tx_hash1")
 	tdp := initDataPool(txHashInPool)
+	tdp.TransactionsTxPool.AddData(txHashInPool, &transaction.Transaction{Nonce: 10}, "0")
+
 	nrShards := uint32(5)
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
@@ -1339,8 +1324,8 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	body := block.Body{}
 	txHashToAsk := []byte("tx_hashnotinPool")
@@ -1349,14 +1334,14 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 	tc.RequestBlockTransactions(body)
 
 	tc.mutRequestedTxs.Lock()
-	assert.Equal(t, 1, tc.requestedTxs[block.TxBlock])
+	require.Equal(t, 1, tc.requestedTxs[block.TxBlock])
 	tc.mutRequestedTxs.Unlock()
 
 	haveTime := func() time.Duration {
 		return time.Second
 	}
 	err = tc.IsDataPreparedForProcessing(haveTime)
-	assert.Equal(t, process.ErrTimeIsOut, err)
+	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
 func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
@@ -1477,6 +1462,8 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
+	tdp.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10}, "0")
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
@@ -1486,11 +1473,11 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	err = tc.SaveBlockDataToStorage(nil)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -1499,14 +1486,14 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 	tc.RequestBlockTransactions(body)
 
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	require.Equal(t, process.ErrMissingTransaction, err)
 }
 
 func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
@@ -1514,6 +1501,8 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
+	tdp.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10, Value: big.NewInt(0)}, "1_0")
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
@@ -1523,12 +1512,12 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	nrTxs, err := tc.RestoreBlockDataFromStorage(nil)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, nrTxs)
+	require.Nil(t, err)
+	require.Equal(t, 0, nrTxs)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -1536,21 +1525,21 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 
 	tc.RequestBlockTransactions(body)
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
-	assert.Equal(t, 1, nrTxs)
-	assert.Nil(t, err)
+	require.Nil(t, err)
+	require.Equal(t, 1, nrTxs)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	require.Equal(t, process.ErrMissingTransaction, err)
 
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
-	assert.Equal(t, 1, nrTxs)
-	assert.NotNil(t, err)
+	require.Equal(t, 1, nrTxs)
+	require.NotNil(t, err)
 }
 
 func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
@@ -1587,6 +1576,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
+	dataPool.TransactionsTxPool.AddTx([]byte(txHash), &transaction.Transaction{Nonce: 10}, "1_0")
 
 	accounts := initAccountsMock()
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(
@@ -1630,14 +1620,14 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	haveTime := func() time.Duration {
 		return time.Second
 	}
 	err = tc.ProcessBlockTransaction(nil, haveTime)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -1645,19 +1635,19 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	require.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	noTime := func() time.Duration {
 		return 0
 	}
 	err = tc.ProcessBlockTransaction(body, noTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	require.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	require.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
@@ -1665,6 +1655,8 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
+	dataPool.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10}, "1_0")
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
@@ -1674,14 +1666,14 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	haveTime := func() time.Duration {
 		return time.Second
 	}
 	err = tc.ProcessBlockTransaction(nil, haveTime)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -1689,19 +1681,19 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	noTime := func() time.Duration {
 		return -1
 	}
 	err = tc.ProcessBlockTransaction(body, noTime)
-	assert.Equal(t, process.ErrTimeIsOut, err)
+	require.Equal(t, process.ErrTimeIsOut, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	require.Equal(t, process.ErrMissingTransaction, err)
 }
 
 func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
@@ -2185,6 +2177,8 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
+	tdp.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10}, "0")
+
 	retError := errors.New("save error")
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -2209,8 +2203,8 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 		},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -2219,7 +2213,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 	tc.RequestBlockTransactions(body)
 
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Equal(t, retError, err)
+	require.Equal(t, retError, err)
 }
 
 func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *testing.T) {
@@ -2227,6 +2221,8 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
+	tdp.TransactionsTxPool.AddData(txHash, &transaction.Transaction{Nonce: 10}, "0")
+
 	intermediateTxWereSaved := false
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -2252,8 +2248,8 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 		},
 		&mock.GasHandlerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -2262,7 +2258,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 	tc.RequestBlockTransactions(body)
 
 	err = tc.SaveBlockDataToStorage(body)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.True(t, intermediateTxWereSaved)
+	require.True(t, intermediateTxWereSaved)
 }

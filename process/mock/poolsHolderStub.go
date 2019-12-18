@@ -7,6 +7,9 @@ import (
 )
 
 type PoolsHolderStub struct {
+	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
+
 	HeadersCalled           func() storage.Cacher
 	HeadersNoncesCalled     func() dataRetriever.Uint64SyncMapCacher
 	PeerChangesBlocksCalled func() storage.Cacher
@@ -49,11 +52,19 @@ func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
 }
 
 func (stub *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	if stub.UnsignedTransactionsCalled != nil {
+		return stub.UnsignedTransactionsCalled()
+	}
+
 	check.AssertNotNil(stub.UnsignedTransactionsTxPool, "stub.UnsignedTransactionsTxPool")
 	return stub.UnsignedTransactionsTxPool
 }
 
 func (stub *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	if stub.RewardTransactionsCalled != nil {
+		return stub.RewardTransactionsCalled()
+	}
+
 	check.AssertNotNil(stub.RewardTransactionsTxPool, "stub.RewardTransactionsTxPool")
 	return stub.RewardTransactionsTxPool
 }
