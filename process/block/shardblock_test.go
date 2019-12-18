@@ -1416,30 +1416,46 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
-	res := sp.IsMetaHeaderFinal(&hdr, nil, 0)
+	res := sp.IsHeaderValidFinal(&hdr, nil, nil, 0, 1)
 	assert.False(t, res)
-	res = sp.IsMetaHeaderFinal(nil, nil, 0)
+	res = sp.IsHeaderValidFinal(nil, nil, nil, 0, 1)
 	assert.False(t, res)
 
-	meta = &block.MetaBlock{
-		Nonce:        2,
-		ShardInfo:    make([]block.ShardData, 0),
-		Round:        2,
-		PrevHash:     metaHash,
-		PrevRandSeed: randSeed,
-	}
-	metaBytes, _ = marshalizer.Marshal(meta)
-	metaHash = hasher.Compute(string(metaBytes))
-	tdp.MetaBlocks().Put(metaHash, meta)
-
-	meta = &block.MetaBlock{
+	meta1 := &block.MetaBlock{
 		Nonce:     1,
-		ShardInfo: shardHdrs,
+		ShardInfo: make([]block.ShardData, 0),
 		Round:     1,
 		RandSeed:  randSeed,
 	}
-	ordered, _ := sp.GetOrderedMetaBlocks(3)
-	res = sp.IsMetaHeaderFinal(meta, ordered, 0)
+	metaBytes, _ = marshalizer.Marshal(meta1)
+	metaHash = hasher.Compute(string(metaBytes))
+	tdp.MetaBlocks().Put(metaHash, meta1)
+
+	meta2 := &block.MetaBlock{
+		Nonce:        2,
+		ShardInfo:    shardHdrs,
+		Round:        2,
+		PrevHash:     metaHash,
+		PrevRandSeed: randSeed,
+		RandSeed:     randSeed,
+	}
+	metaBytes, _ = marshalizer.Marshal(meta2)
+	metaHash = hasher.Compute(string(metaBytes))
+	tdp.MetaBlocks().Put(metaHash, meta2)
+
+	meta3 := &block.MetaBlock{
+		Nonce:        3,
+		ShardInfo:    make([]block.ShardData, 0),
+		Round:        3,
+		PrevHash:     metaHash,
+		PrevRandSeed: randSeed,
+	}
+	metaBytes, _ = marshalizer.Marshal(meta3)
+	metaHash = hasher.Compute(string(metaBytes))
+	tdp.MetaBlocks().Put(metaHash, meta3)
+
+	ordered, _, _ := sp.GetOrderedMetaBlocks(3)
+	res = sp.IsHeaderValidFinal(meta2, meta1, ordered, 0, 1)
 	assert.True(t, res)
 }
 

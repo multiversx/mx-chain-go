@@ -185,10 +185,6 @@ func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	return bp.isHdrConstructionValid(currHdr, prevHdr)
 }
 
-func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
-	return mp.isShardHeaderValidFinal(currHdr, lastHdr, sortedShardHdrs)
-}
-
 func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
 	return mp.chRcvAllHdrs
 }
@@ -221,8 +217,8 @@ func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
 	sp.checkAndRequestIfMetaHeadersMissing(round)
 }
 
-func (sp *shardProcessor) IsMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
-	return sp.isMetaHeaderFinal(currHdr, sortedHdrs, startPos)
+func (bp *baseProcessor) IsHeaderValidFinal(currHdr data.HeaderHandler, lastHdr data.HeaderHandler, sortedHdrs []data.HeaderHandler, startPos int, blockFinality uint32) bool {
+	return bp.isHeaderValidFinal(currHdr, lastHdr, sortedHdrs, startPos, blockFinality)
 }
 
 func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []byte) *hashAndHdr {
@@ -244,7 +240,7 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
 }
 
-func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
+func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]data.HeaderHandler, [][]byte, error) {
 	return sp.getOrderedMetaBlocks(round)
 }
 

@@ -291,17 +291,17 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		log.Trace("round does not match",
+		log.Debug("round does not match",
 			"shard", currHdr.GetShardID(),
-			"local block round", prevHdr.GetRound(),
+			"local header round", prevHdr.GetRound(),
 			"received round", currHdr.GetRound())
 		return process.ErrLowerRoundInBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
-		log.Trace("nonce does not match",
+		log.Debug("nonce does not match",
 			"shard", currHdr.GetShardID(),
-			"local block nonce", prevHdr.GetNonce(),
+			"local header nonce", prevHdr.GetNonce(),
 			"received nonce", currHdr.GetNonce())
 		return process.ErrWrongNonceInBlock
 	}
@@ -312,19 +312,19 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Trace("block hash does not match",
+		log.Debug("header hash does not match",
 			"shard", currHdr.GetShardID(),
-			"local prev hash", prevHeaderHash,
-			"received block with prev hash", currHdr.GetPrevHash(),
+			"local header hash", prevHeaderHash,
+			"received header with prev hash", currHdr.GetPrevHash(),
 		)
 		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Trace("random seed does not match",
+		log.Debug("header random seed does not match",
 			"shard", currHdr.GetShardID(),
-			"local rand seed", prevHdr.GetRandSeed(),
-			"received block with rand seed", currHdr.GetPrevRandSeed(),
+			"local header random seed", prevHdr.GetRandSeed(),
+			"received header with prev random seed", currHdr.GetPrevRandSeed(),
 		)
 		return process.ErrRandSeedDoesNotMatch
 	}
@@ -1107,4 +1107,61 @@ func (bp *baseProcessor) commitAll() error {
 	}
 
 	return nil
+}
+
+// isHeaderValidFinal verifies if given header is final
+func (bp *baseProcessor) isHeaderValidFinal(
+	currHdr data.HeaderHandler,
+	lastHdr data.HeaderHandler,
+	sortedHdrs []data.HeaderHandler,
+	startPos int,
+	blockFinality uint32,
+) bool {
+
+	if check.IfNil(currHdr) {
+		return false
+	}
+	if check.IfNil(lastHdr) {
+		return false
+	}
+	if sortedHdrs == nil {
+		return false
+	}
+
+	if currHdr.GetNonce() != lastHdr.GetNonce()+1 {
+		return false
+	}
+
+	err := bp.isHdrConstructionValid(currHdr, lastHdr)
+	if err != nil {
+		return false
+	}
+
+	// verify if there are "K" block after current to make this one final
+	lastVerifiedHdr := currHdr
+	nextBlocksVerified := uint32(0)
+
+	for i := startPos; i < len(sortedHdrs); i++ {
+		if nextBlocksVerified >= blockFinality {
+			return true
+		}
+
+		// found a header with the next nonce
+		tmpHdr := sortedHdrs[i]
+		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
+			err := bp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			if err != nil {
+				continue
+			}
+
+			lastVerifiedHdr = tmpHdr
+			nextBlocksVerified += 1
+		}
+	}
+
+	if nextBlocksVerified >= blockFinality {
+		return true
+	}
+
+	return false
 }

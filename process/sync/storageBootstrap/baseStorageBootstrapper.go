@@ -229,13 +229,13 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 
-		log.Debug("add self notarized header",
-			"shard", header.GetShardID(),
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", bootInfos[i].Header.Hash)
-
 		if i > 0 {
+			log.Debug("add self notarized header",
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", bootInfos[i].Header.Hash)
+
 			st.blockTracker.AddSelfNotarizedHeader(header.GetShardID(), header)
 		}
 

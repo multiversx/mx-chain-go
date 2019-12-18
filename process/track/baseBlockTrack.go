@@ -165,6 +165,10 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
+	if check.IfNil(header) {
+		return headers, headersHashes
+	}
+
 	sortedHeaders, sortedHeadersHashes := bbt.sortHeadersForShardFromNonce(shardID, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
@@ -344,6 +348,10 @@ func (bbt *baseBlockTrack) checkHeaderFinality(
 	}
 
 	return nil
+}
+
+func (bbt *baseBlockTrack) GetTrackedHeadersForShard(shardID uint32) ([]data.HeaderHandler, [][]byte) {
+	return bbt.sortHeadersForShardFromNonce(shardID, 0)
 }
 
 // IsShardStuck returns true if the given shard is stuck

@@ -1978,30 +1978,27 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 
-	srtShardHdrs := make([]*block.Header, 0)
+	srtShardHdrs := make([]data.HeaderHandler, 0)
 
-	valid, hdrIds := mp.IsShardHeaderValidFinal(currHdr, prevHdr, nil)
+	valid := mp.IsHeaderValidFinal(currHdr, prevHdr, nil, 0, 1)
 	assert.False(t, valid)
-	assert.Nil(t, hdrIds)
 
-	valid, hdrIds = mp.IsShardHeaderValidFinal(nil, prevHdr, srtShardHdrs)
+	valid = mp.IsHeaderValidFinal(nil, prevHdr, srtShardHdrs, 0, 1)
 	assert.False(t, valid)
-	assert.Nil(t, hdrIds)
 
-	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, nil, srtShardHdrs)
+	valid = mp.IsHeaderValidFinal(currHdr, nil, srtShardHdrs, 0, 1)
 	assert.False(t, valid)
-	assert.Nil(t, hdrIds)
 
-	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, wrongPrevHdr, srtShardHdrs)
+	valid = mp.IsHeaderValidFinal(currHdr, wrongPrevHdr, srtShardHdrs, 0, 1)
 	assert.False(t, valid)
-	assert.Nil(t, hdrIds)
 
-	mp.SetShardBlockFinality(0)
-	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	shardBlockFinality := uint32(0)
+	mp.SetShardBlockFinality(shardBlockFinality)
+	valid = mp.IsHeaderValidFinal(currHdr, prevHdr, srtShardHdrs, 0, shardBlockFinality)
 	assert.True(t, valid)
-	assert.NotNil(t, hdrIds)
 
-	mp.SetShardBlockFinality(1)
+	shardBlockFinality = uint32(1)
+	mp.SetShardBlockFinality(shardBlockFinality)
 	nextWrongHdr := &block.Header{
 		Round:        12,
 		Nonce:        44,
@@ -2012,9 +2009,8 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		RootHash:     []byte("currRootHash")}
 
 	srtShardHdrs = append(srtShardHdrs, nextWrongHdr)
-	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	valid = mp.IsHeaderValidFinal(currHdr, prevHdr, srtShardHdrs, 0, shardBlockFinality)
 	assert.False(t, valid)
-	assert.Nil(t, hdrIds)
 
 	prevHash, _ = mp.ComputeHeaderHash(currHdr)
 	nextHdr := &block.Header{
@@ -2027,9 +2023,8 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		RootHash:     []byte("currRootHash")}
 
 	srtShardHdrs = append(srtShardHdrs, nextHdr)
-	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	valid = mp.IsHeaderValidFinal(currHdr, prevHdr, srtShardHdrs, 0, shardBlockFinality)
 	assert.True(t, valid)
-	assert.NotNil(t, hdrIds)
 }
 
 func TestMetaProcessor_DecodeBlockBody(t *testing.T) {

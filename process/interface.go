@@ -546,6 +546,7 @@ type BlockTracker interface {
 	AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler)
 	CleanupHeadersForShardBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	GetTrackedHeadersForShard(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
 	LastHeaderForShard(shardID uint32) data.HeaderHandler
 	RegisterSelfNotarizedHeadersHandler(func(headers []data.HeaderHandler, headersHashes [][]byte))

@@ -122,7 +122,10 @@ func (bbt *baseBlockTrack) getHeadersIfMissing(
 
 		header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardID)
 		if err != nil {
-			log.Debug("getHeaderFromPoolWithNonce", "error", err.Error())
+			log.Debug("getHeaderFromPoolWithNonce",
+				"shard", shardID,
+				"nonce", nonce,
+				"error", err.Error())
 			continue
 		}
 
@@ -172,7 +175,7 @@ func (bbt *baseBlockTrack) doJobOnReceivedHeader(shardID uint32) {
 		bbt.setSelfNotarizedHeadersForShard(shardID, lastSelfNotarizedHeader, selfNotarizedHeaders)
 	}
 
-	log.Debug("display on received header", "shard", shardID)
+	log.Trace("display on received header", "shard", shardID)
 	bbt.displayHeadersForShard(shardID)
 }
 
@@ -190,7 +193,7 @@ func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 		bbt.callSelfNotarizedHeadersHandlers(selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 
-	log.Debug("display on received cross notarized header", "shard", shardID)
+	log.Trace("display on received cross notarized header", "shard", shardID)
 	bbt.displayHeadersForShard(shardID)
 }
 
