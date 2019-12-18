@@ -883,7 +883,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	if len(scr.Data) > 0 {
-		storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
+		storageUpdates, err := sc.argsParser.GetStorageUpdates(string(scr.Data))
 		if err != nil {
 			log.Debug("storage updates could not be parsed")
 		}

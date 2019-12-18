@@ -10,8 +10,8 @@ type ArgumentParserMock struct {
 	GetCodeCalled                     func() ([]byte, error)
 	GetFunctionCalled                 func() (string, error)
 	GetSeparatorCalled                func() string
-	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) []byte
-	GetStorageUpdatesCalled           func(data []byte) ([]*vmcommon.StorageUpdate, error)
+	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdatesCalled           func(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
 func (ap *ArgumentParserMock) ParseData(data string) error {
@@ -49,14 +49,14 @@ func (ap *ArgumentParserMock) GetSeparator() string {
 	return ap.GetSeparatorCalled()
 }
 
-func (ap *ArgumentParserMock) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte {
+func (ap *ArgumentParserMock) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string {
 	if ap.CreateDataFromStorageUpdateCalled == nil {
-		return []byte("")
+		return ""
 	}
 	return ap.CreateDataFromStorageUpdateCalled(storageUpdates)
 }
 
-func (ap *ArgumentParserMock) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
+func (ap *ArgumentParserMock) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
 	if ap.GetStorageUpdatesCalled == nil {
 		return nil, nil
 	}

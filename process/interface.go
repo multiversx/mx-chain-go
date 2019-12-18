@@ -383,8 +383,8 @@ type ArgumentsParser interface {
 	GetFunction() (string, error)
 	ParseData(data string) error
 
-	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
-	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
 	IsInterfaceNil() bool
 }
 

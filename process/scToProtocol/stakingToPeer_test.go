@@ -194,7 +194,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return nil, testError
 	}
 
@@ -219,7 +219,7 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -252,7 +252,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -298,7 +298,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetSchnorrPublicKeyShouldErr(t *testi
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -349,7 +349,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -372,7 +372,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -408,7 +408,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -432,7 +432,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -467,7 +467,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -492,7 +492,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -528,7 +528,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -552,7 +552,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -587,7 +587,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -612,7 +612,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: stakeValue,
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -654,7 +654,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	}
 
 	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data []byte) (updates []*vmcommon.StorageUpdate, e error) {
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("off1"), Data: []byte("data1")},
 		}, nil
@@ -679,7 +679,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: stakeValue,
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 

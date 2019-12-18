@@ -25,8 +25,8 @@ type Facade struct {
 	GetAccountHandler           func(address string) (*state.Account, error)
 	GenerateTransactionHandler  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler       func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler      func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
-	CreateTransactionHandler    func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendTransactionHandler      func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, data []byte, signature []byte) (string, error)
+	CreateTransactionHandler    func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, challenge string) (*transaction.Transaction, error)
 	SendBulkTransactionsHandler func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler        func() external.StatusMetricsHandler
