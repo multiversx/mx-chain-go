@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -97,12 +98,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		RcvAddr: []byte("receiver"),
 		ShardId: 0,
 	}
-	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled:         txCalled,
+		TransactionsTxPool:         txPool,
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {

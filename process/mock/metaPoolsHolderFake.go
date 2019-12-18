@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -14,18 +15,18 @@ type MetaPoolsHolderFake struct {
 	miniBlocks    storage.Cacher
 	shardHeaders  storage.Cacher
 	headersNonces dataRetriever.Uint64SyncMapCacher
-	transactions  dataRetriever.ShardedDataCacherNotifier
+	transactions  dataRetriever.TxPool
 	unsigned      dataRetriever.ShardedDataCacherNotifier
 	currTxs       dataRetriever.TransactionCacher
 
-	MetaBlocksCalled func() storage.Cacher
+	MetaBlocksCalled   func() storage.Cacher
 	ShardHeadersCalled func() storage.Cacher
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf := &MetaPoolsHolderFake{}
 	mphf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	mphf.transactions = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000})
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
@@ -44,7 +45,7 @@ func (mphf *MetaPoolsHolderFake) CurrentBlockTxs() dataRetriever.TransactionCach
 	return mphf.currTxs
 }
 
-func (mphf *MetaPoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifier {
+func (mphf *MetaPoolsHolderFake) Transactions() dataRetriever.TxPool {
 	return mphf.transactions
 }
 

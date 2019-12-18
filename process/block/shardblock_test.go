@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,7 +39,7 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
@@ -234,9 +235,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return nil
-	}
+	tdp.TransactionsTxPool = nil
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, err := blproc.NewShardProcessor(arguments)
@@ -1795,33 +1794,6 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
-
-	txCache := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		},
-		LenCalled: func() int {
-			return 0
-		},
-	}
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return txCache
-			},
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
-			},
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				if reflect.DeepEqual(key, []byte("tx1_hash")) {
-					return &transaction.Transaction{Nonce: 10}, true
-				}
-				return nil, false
-			},
-			RegisterHandlerCalled: func(i func(key []byte)) {
-
-			},
-		}
-	}
 
 	txHash := []byte("txHash")
 	rootHash := []byte("root hash")

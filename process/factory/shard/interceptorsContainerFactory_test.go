@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -47,8 +48,8 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 
 func createDataPools() dataRetriever.PoolsHolder {
 	pools := &mock.PoolsHolderStub{}
-	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	pools.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	pools.HeadersCalled = func() storage.Cacher {
 		return &mock.CacherStub{}

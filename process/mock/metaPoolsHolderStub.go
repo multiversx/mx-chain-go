@@ -10,7 +10,7 @@ type MetaPoolsHolderStub struct {
 	MiniBlocksCalled           func() storage.Cacher
 	ShardHeadersCalled         func() storage.Cacher
 	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
-	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
+	TransactionsCalled         func() dataRetriever.TxPool
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 }
@@ -19,7 +19,7 @@ func (mphs *MetaPoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCach
 	return mphs.CurrBlockTxsCalled()
 }
 
-func (mphs *MetaPoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
+func (mphs *MetaPoolsHolderStub) Transactions() dataRetriever.TxPool {
 	return mphs.TransactionsCalled()
 }
 

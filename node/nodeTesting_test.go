@@ -11,10 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,12 +125,8 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	_, pk := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	n, _ := node.NewNode(
@@ -154,12 +151,8 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	sk, pk := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	n, _ := node.NewNode(
@@ -187,12 +180,8 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 	sk, pk := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	n, _ := node.NewNode(
@@ -219,12 +208,8 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 	sk, pk := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	n, _ := node.NewNode(
@@ -292,12 +277,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	}
 
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	accAdapter := getAccAdapter(big.NewInt(0))

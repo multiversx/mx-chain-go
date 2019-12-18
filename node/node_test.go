@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -28,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -802,7 +804,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
 		return nil
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -829,8 +831,8 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
 		return nil
@@ -860,12 +862,12 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	dataPool := &mock.PoolsHolderStub{}
 
 	var txShardedStores []string
-	txShardedData := &mock.ShardedDataStub{}
+	txShardedData := txpool.NewShardedTxPoolMock()
 	txShardedData.CreateShardStoreCalled = func(cacherId string) {
 		txShardedStores = append(txShardedStores, cacherId)
 	}
 	headerShardedData := &mock.CacherStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
 		return txShardedData
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -1787,12 +1789,8 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	}
 
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
+		TransactionsCalled: func() dataRetriever.TxPool {
+			return txpool.NewShardedTxPool(storageUnit.CacheConfig{})
 		},
 	}
 	accAdapter := getAccAdapter(big.NewInt(100))

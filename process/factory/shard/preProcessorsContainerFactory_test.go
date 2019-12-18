@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
@@ -454,7 +455,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
 		return nil
 	}
 
@@ -488,11 +489,8 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
@@ -528,11 +526,8 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
+	dataPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{

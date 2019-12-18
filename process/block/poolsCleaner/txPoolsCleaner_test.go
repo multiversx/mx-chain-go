@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -33,64 +34,65 @@ func initDataPoolWithFourTransactions() *mock.PoolsHolderStub {
 	invalidTxKey := "key3"
 
 	return &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							switch string(key) {
-							case delayedFetchingKey:
-								time.Sleep(time.Second)
-								return &transaction.Transaction{Nonce: 10}, true
-							case validTxKey:
-								return &transaction.Transaction{
-									Nonce:   10,
-									SndAddr: []byte("address_address_address_address_"),
-								}, true
-							case invalidTxKey:
-								return &smartContractResult.SmartContractResult{}, true
-							default:
-								return nil, false
-							}
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte(delayedFetchingKey), []byte(validTxKey), []byte(invalidTxKey), []byte("key4")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-						RemoveCalled: func(key []byte) {
-							return
-						},
-					}
-				},
+		TransactionsCalled: func() dataRetriever.TxPool {
+			txPool := txpool.NewShardedTxPoolMock()
+			txPool.ShardDataStoreCalled = func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						switch string(key) {
+						case delayedFetchingKey:
+							time.Sleep(time.Second)
+							return &transaction.Transaction{Nonce: 10}, true
+						case validTxKey:
+							return &transaction.Transaction{
+								Nonce:   10,
+								SndAddr: []byte("address_address_address_address_"),
+							}, true
+						case invalidTxKey:
+							return &smartContractResult.SmartContractResult{}, true
+						default:
+							return nil, false
+						}
+					},
+					KeysCalled: func() [][]byte {
+						return [][]byte{[]byte(delayedFetchingKey), []byte(validTxKey), []byte(invalidTxKey), []byte("key4")}
+					},
+					LenCalled: func() int {
+						return 0
+					},
+					RemoveCalled: func(key []byte) {
+						return
+					},
+				}
 			}
+
+			return txPool
 		},
 	}
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Equal(key, testHash) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
+		TransactionsCalled: func() dataRetriever.TxPool {
+			txPool := txpool.NewShardedTxPoolMock()
+			txPool.ShardDataStoreCalled = func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						if bytes.Equal(key, testHash) {
+							return &transaction.Transaction{Nonce: 10}, true
+						}
+						return nil, false
+					},
+					KeysCalled: func() [][]byte {
+						return [][]byte{[]byte("key1"), []byte("key2")}
+					},
+					LenCalled: func() int {
+						return 0
+					},
+				}
 			}
+
+			return txPool
 		},
 	}
 	return sdp
@@ -144,7 +146,7 @@ func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
 	accounts := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		TransactionsCalled: func() dataRetriever.TxPool {
 			return nil
 		},
 	}

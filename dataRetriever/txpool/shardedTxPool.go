@@ -208,7 +208,8 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 
 // SearchFirstData is not implemented for this pool
 func (txPool *shardedTxPool) SearchFirstData(key []byte) (interface{}, bool) {
-	panic("shardedTxPool.SearchFirstData is not implemented")
+	tx, ok := txPool.SearchFirstTx(key)
+	return tx, ok
 }
 
 // RemoveData is not implemented for this pool

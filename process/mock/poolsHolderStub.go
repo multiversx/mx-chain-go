@@ -7,6 +7,7 @@ import (
 )
 
 type PoolsHolderStub struct {
+	TransactionsCalled         func() dataRetriever.TxPool
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
 	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 
@@ -47,6 +48,10 @@ func (stub *PoolsHolderStub) MetaBlocks() storage.Cacher {
 }
 
 func (stub *PoolsHolderStub) Transactions() dataRetriever.TxPool {
+	if stub.TransactionsCalled != nil {
+		return stub.TransactionsCalled()
+	}
+
 	check.AssertNotNil(stub.TransactionsTxPool, "stub.TransactionsTxPool")
 	return stub.TransactionsTxPool
 }

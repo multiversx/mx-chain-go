@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -2209,7 +2210,7 @@ func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
 		return nil
 	}
 
@@ -2233,8 +2234,8 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	expectedMiniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dPool.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -2393,8 +2394,8 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dPool.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -2486,8 +2487,8 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dPool.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -2616,8 +2617,8 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	arguments.StartHeaders[0] = hdr
 
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dPool.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -2699,8 +2700,8 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 	}
 
 	dPool := initMetaDataPool()
-	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dPool.TransactionsCalled = func() dataRetriever.TxPool {
+		return txpool.NewShardedTxPoolMock()
 	}
 	dPool.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
