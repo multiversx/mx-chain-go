@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -33,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -631,10 +631,6 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	fmt.Println("All shards propose blocks...")
 
 	for idx, n := range nodes {
-		// set the consensus reward addresses as rewards processor expects at least valid round
-		// otherwise the produced rewards will not be valid on verification
-		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())
-
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
