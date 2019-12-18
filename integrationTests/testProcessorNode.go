@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -183,7 +184,7 @@ type TestProcessorNode struct {
 	ChainID []byte
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance
+// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
 func NewTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
@@ -214,6 +215,53 @@ func NewTestProcessorNode(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           IntegrationTestsChainID,
+	}
+
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+	tpn.MultiSigner = TestMultiSig
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	tpn.initDataPools()
+	tpn.initTestNode()
+
+	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
+	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
+
+	return tpn
+}
+
+// NewTestProcessorNodeWithMemP2P returns a new TestProcessorNode instance with a memory-based messenger
+func NewTestProcessorNodeWithMemP2P(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	network *memp2p.Network,
+) *TestProcessorNode {
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
+
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+
+			address := pkAddr
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
+
+			return []sharding.Validator{v}, nil
+		},
+	}
+
+	messenger, _ := memp2p.NewMessenger(network)
+	tpn := &TestProcessorNode{
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
