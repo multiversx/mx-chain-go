@@ -58,7 +58,6 @@ type AccountHandler interface {
 
 	GetRootHash() []byte
 	SetRootHash([]byte)
-	SetRootHashWithJournal([]byte) error
 	DataTrie() data.Trie
 	SetDataTrie(trie data.Trie)
 	DataTrieTracker() DataTrieTracker
@@ -74,6 +73,10 @@ type PeerAccountHandler interface {
 	DecreaseLeaderSuccessRateWithJournal() error
 	IncreaseValidatorSuccessRateWithJournal() error
 	DecreaseValidatorSuccessRateWithJournal() error
+	GetRating() uint32
+	SetRatingWithJournal(uint322 uint32) error
+	GetTempRating() uint32
+	SetTempRatingWithJournal(uint322 uint32) error
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -110,4 +113,12 @@ type AccountsAdapter interface {
 type JournalEntry interface {
 	Revert() (AccountHandler, error)
 	IsInterfaceNil() bool
+}
+
+// TriesHolder is used to store multiple tries
+type TriesHolder interface {
+	Put([]byte, data.Trie)
+	Get([]byte) data.Trie
+	GetAll() []data.Trie
+	Reset()
 }

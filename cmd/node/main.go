@@ -4,11 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -44,11 +42,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
@@ -542,6 +539,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
+		nodesConfig.ChainID,
 		defaultDBPath,
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
@@ -549,6 +547,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
+		nodesConfig.ChainID,
 		defaultDBPath,
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
@@ -572,8 +571,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
 	if err != nil {
 		return err
 	}
@@ -595,7 +605,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
-		coreComponents.Hasher)
+		coreComponents.Hasher,
+		rater)
 	if err != nil {
 		return err
 	}
@@ -619,59 +630,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
-
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
-	if usePrometheusBool {
-		log.Warn("using prometheus", "status", "DEPRECATED")
-		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
 	}
 
-	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
-
-	useTermui := !ctx.GlobalBool(useLogView.Name)
-	if useTermui {
-		log.Trace("using termui mode")
-		views, err = factory.CreateViews(presenterStatusHandler)
-		if err != nil {
-			return err
-		}
-
-		writer, ok := presenterStatusHandler.(io.Writer)
-		if ok {
-			logger.ClearLogObservers()
-			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-			if err != nil {
-				return err
-			}
-		}
-
-		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
-		if ok {
-			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
-		}
-	}
-
-	if views == nil {
-		log.Info("using log view mode")
-	}
-
-	statusMetrics := statusHandler.NewStatusMetrics()
-	appStatusHandlers = append(appStatusHandlers, statusMetrics)
-
-	if len(appStatusHandlers) > 0 {
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
-		if err != nil {
-			log.Debug("cannot init AppStatusFacade",
-				"error", err.Error(),
-			)
-		}
-	} else {
-		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
-		log.Debug("no AppStatusHandler used, started with NilStatusHandler")
-	}
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("initializing metrics")
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
@@ -679,6 +644,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating data components")
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
 		return err
 	}
@@ -758,12 +728,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
-	}
-
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -793,6 +757,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		0,
+		rater,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -855,7 +820,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Marshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
-		statusMetrics,
+		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
 	)
@@ -887,8 +852,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	efConfig := &config.FacadeConfig{
 		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        usePrometheusBool,
-		PrometheusJoinURL: prometheusJoinUrl,
+		Prometheus:        statusHandlersInfo.UsePrometheus,
+		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
@@ -929,35 +894,6 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
-}
-
-func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
-
-	return prometheusJoinUrl, usePrometheusBool
-}
-
-func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return "", err
-	}
-	baseURL := serversConfig.Prometheus.PrometheusBaseURL
-	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
-	resp, err := http.Get(statusURL)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("prometheus URL not available")
-	}
-	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
-	return joinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
@@ -1062,6 +998,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
+	rater sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1105,7 +1042,13 @@ func createNodesCoordinator(
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 	if err != nil {
 		return nil, err
 	}
@@ -1238,6 +1181,9 @@ func createNode(
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithChainID(core.ChainID),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
