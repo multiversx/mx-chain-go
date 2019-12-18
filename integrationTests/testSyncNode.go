@@ -228,6 +228,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.RequestedItemsHandler,
+		tpn.EpochStartTrigger,
 	)
 
 	if err != nil {

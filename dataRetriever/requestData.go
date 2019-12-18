@@ -30,6 +30,8 @@ const (
 	HashArrayType
 	// NonceType indicates that the request data object is of type nonce (uint64)
 	NonceType
+	// EpochType indicates that the request data object is of type epoch
+	EpochType
 )
 
 // RequestData holds the requested data
