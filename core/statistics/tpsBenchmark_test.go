@@ -80,7 +80,8 @@ func TestTpsBenchmark_BlockNumber(t *testing.T) {
 				TxCount:               10,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 	assert.Equal(t, tpsBenchmark.BlockNumber(), uint64(0))
@@ -119,7 +120,8 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 				TxCount:               10,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 	metaBlock2 := &block.MetaBlock{
@@ -136,7 +138,8 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 				TxCount:               10,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 	// Start with block with nonce 1 so it would be processed
@@ -185,10 +188,11 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 				PrevRandSeed:          []byte{1},
 				PubKeysBitmap:         []byte{1},
 				Signature:             []byte{1},
-				TxCount:               10,
+				TxCount:               txCount,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 
@@ -204,10 +208,11 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 				PrevRandSeed:          []byte{1},
 				PubKeysBitmap:         []byte{1},
 				Signature:             []byte{1},
-				TxCount:               10,
+				TxCount:               txCount,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 
@@ -239,10 +244,11 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 				PrevRandSeed:          []byte{1},
 				PubKeysBitmap:         []byte{1},
 				Signature:             []byte{1},
-				TxCount:               10,
+				TxCount:               peakTps,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 
@@ -258,10 +264,11 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 				PrevRandSeed:          []byte{1},
 				PubKeysBitmap:         []byte{1},
 				Signature:             []byte{1},
-				TxCount:               10,
+				TxCount:               txCount,
 				Round:                 uint64(1),
 				PrevHash:              []byte{1},
-				Nonce:                 uint64(1)},
+				Nonce:                 uint64(1),
+			},
 		},
 	}
 

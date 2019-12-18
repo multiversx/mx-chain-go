@@ -71,6 +71,7 @@ type Config struct {
 	RewardTxStorage            StorageConfig
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
+	StatusMetricsStorage       StorageConfig
 
 	ShardDataStorage StorageConfig
 	BootstrapStorage StorageConfig
@@ -98,6 +99,7 @@ type Config struct {
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
+	BLSPublicKey   AddressConfig
 	Hasher           TypeConfig
 	MultisigHasher   TypeConfig
 	Marshalizer      TypeConfig

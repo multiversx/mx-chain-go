@@ -172,7 +172,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	assert.True(t, strings.Contains(result.Error(), "balance"))
 }
 
-func TestTxValidator_CheckTxValidityNumOfRejectedTxShouldIncreaseShouldReturnFalse(t *testing.T) {
+func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	accountNonce := uint64(0)
@@ -191,9 +191,6 @@ func TestTxValidator_CheckTxValidityNumOfRejectedTxShouldIncreaseShouldReturnFal
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.NotNil(t, result)
-
-	numRejectedTx := txValidator.NumRejectedTxs()
-	assert.Equal(t, uint64(1), numRejectedTx)
 }
 
 func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.T) {

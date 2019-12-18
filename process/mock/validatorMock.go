@@ -9,6 +9,9 @@ type ValidatorMock struct {
 	rating  int32
 	pubKey  []byte
 	address []byte
+
+	PubKeyCalled  func() []byte
+	AddressCalled func() []byte
 }
 
 func NewValidatorMock(stake *big.Int, rating int32, pubKey []byte, address []byte) *ValidatorMock {
@@ -24,9 +27,15 @@ func (vm *ValidatorMock) Rating() int32 {
 }
 
 func (vm *ValidatorMock) PubKey() []byte {
+	if vm.PubKeyCalled != nil {
+		return vm.PubKeyCalled()
+	}
 	return vm.pubKey
 }
 
 func (vm *ValidatorMock) Address() []byte {
+	if vm.AddressCalled != nil {
+		return vm.AddressCalled()
+	}
 	return vm.address
 }

@@ -152,6 +152,17 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[StatusMetricsStorage]
+    [StatusMetricsStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [StatusMetricsStorage.DB]
+        FilePath = "StatusMetricsStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Size = 1000
@@ -257,6 +268,10 @@
     Length = 32
     Prefix = "0x"
 
+[BLSPublicKey]
+    Length = 128
+    Prefix = "0x"
+
 [Hasher]
    Type = "blake2b"
 
@@ -268,8 +283,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 30
-    RoundsPerEpoch         = 50
+    MinRoundsBetweenEpochs = 1000000
+    RoundsPerEpoch         = 1000000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

@@ -39,6 +39,8 @@ const (
 	MiniBlockHeaderUnit UnitType = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
 	BootstrapUnit UnitType = 12
+	//StatusMetricsUnit is the status metrics storage unit identifier
+	StatusMetricsUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

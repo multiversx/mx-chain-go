@@ -1041,7 +1041,12 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{true, 90, 90, []byte("hash")}
+		return &process.ForkInfo{
+			IsDetected: true,
+			Nonce:      90,
+			Round:      90,
+			Hash:       []byte("hash"),
+		}
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
@@ -2587,6 +2592,11 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
+				_, ok := obj.(*block.Header)
+				if !ok {
+					return nil
+				}
+
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.Header).Signature = prevHdr.Signature
@@ -2756,6 +2766,11 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
+				_, ok := obj.(*block.Header)
+				if !ok {
+					return nil
+				}
+
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.Header).Signature = prevHdr.Signature
