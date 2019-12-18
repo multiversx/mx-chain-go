@@ -106,8 +106,9 @@ type Header struct {
 	RootHash               []byte            `capid:"14"`
 	ValidatorStatsRootHash []byte            `capid:"15"`
 	MetaBlockHashes        [][]byte          `capid:"16"`
-	TxCount                uint32            `capid:"17"`
-	ChainID                []byte            `capid:"18"`
+	EpochStartMetaHash     []byte            `capid:"17"`
+	TxCount                uint32            `capid:"18"`
+	ChainID                []byte            `capid:"19"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -147,6 +148,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.EpochStartMetaHash = src.EpochStartMetaHash()
 	dest.ChainID = src.Chainid()
 
 	mbLength := src.MiniBlockHeaders().Len()
@@ -193,6 +195,8 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetSignature(src.Signature)
 	dest.SetLeaderSignature(src.LeaderSignature)
 	dest.SetChainid(src.ChainID)
+	dest.SetEpochStartMetaHash(src.EpochStartMetaHash)
+
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -444,6 +448,11 @@ func (h *Header) GetTxCount() uint32 {
 	return h.TxCount
 }
 
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardId = shId
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -569,6 +578,11 @@ func (h *Header) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (h *Header) IsStartOfEpochBlock() bool {
+	return len(h.EpochStartMetaHash) > 0
 }
 
 // ItemsInHeader gets the number of items(hashes) added in block header
