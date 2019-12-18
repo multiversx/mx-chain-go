@@ -219,3 +219,32 @@ type ConnectedPeersInfo struct {
 	IntraShardPeers []string
 	CrossShardPeers []string
 }
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid PeerID, pk []byte)
+	IsInterfaceNil() bool
+}
+
+// SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
+type SignerVerifier interface {
+	Sign(message []byte) ([]byte, error)
+	Verify(message []byte, sig []byte, pk []byte) error
+	PublicKey() []byte
+	IsInterfaceNil() bool
+}
+
+// Marshalizer defines the 2 basic operations: serialize (marshal) and deserialize (unmarshal)
+type Marshalizer interface {
+	Marshal(obj interface{}) ([]byte, error)
+	Unmarshal(obj interface{}, buff []byte) error
+	IsInterfaceNil() bool
+}
+
+// PeerCounts represents the DTO structure used to output the count metrics for connected peers
+type PeerCounts struct {
+	UnknownPeers    int
+	IntraShardPeers int
+	CrossShardPeers int
+}

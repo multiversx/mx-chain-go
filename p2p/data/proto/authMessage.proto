@@ -1,0 +1,10 @@
+// to compile, use: protoc -I=. --go_out=. ./schema.proto
+syntax = "proto3";
+package protobuf;
+
+message AuthMessagePb{
+    bytes Message = 1;
+    bytes Sig = 2;
+    bytes Pubkey = 3;
+    int64 Timestamp = 4;
+}

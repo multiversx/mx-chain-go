@@ -61,6 +61,7 @@ type networkMessenger struct {
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutineThrottler
+	ip                  *identityProvider
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -230,6 +231,17 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 	}
 
 	return ps, nil
+}
+
+// ApplyOptions can set up different configurable options of a networkMessenger instance
+func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
+	for _, opt := range opts {
+		err := opt(netMes)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Close closes the host, connections and streams
