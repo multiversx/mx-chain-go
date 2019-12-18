@@ -87,10 +87,10 @@ func Test_GetTransactions(t *testing.T) {
 	nRequestedTransactions := math.MaxInt16
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		sender := fmt.Sprintf("sender%d", senderTag)
+		sender := fmt.Sprintf("sender:%d", senderTag)
 
 		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := fmt.Sprintf("hash%d%d", senderTag, txNonce)
+			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
 			tx := createTx(sender, uint64(txNonce))
 			cache.AddTx([]byte(txHash), tx)
 		}
