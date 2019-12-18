@@ -109,7 +109,10 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
-		assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
+		assert.NotNil(t, numCalled)
+		if numCalled != nil {
+			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
+		}
 	}
 }
 
