@@ -627,14 +627,7 @@ func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byt
 func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
 	t.Parallel()
 
-	db, _ := mock.NewMemDbMock()
-	marshalizer, hasher := getTestMarshAndHasher()
-	tr, _ := NewTrie(db, marshalizer, hasher)
-
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-
+	tr := initTrie()
 	_ = tr.Commit()
 
 	root, _ := tr.root.(*extensionNode)

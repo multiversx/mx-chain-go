@@ -47,7 +47,7 @@ func ScCallTxWithParams(
 
 	_, _ = senderNode.SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 }
 
 // DeployScTx creates and sends a SC tx

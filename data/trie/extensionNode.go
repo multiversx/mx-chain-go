@@ -610,7 +610,7 @@ func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db d
 		return err
 	}
 
-	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
 		return err
 	}

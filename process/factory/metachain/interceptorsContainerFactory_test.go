@@ -696,6 +696,8 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
 	)
 
 	container, err := icf.Create()

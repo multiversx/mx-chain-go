@@ -741,7 +741,7 @@ func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db, marshalizer)
+		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
 			return err
 		}

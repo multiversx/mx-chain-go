@@ -19,7 +19,7 @@ func NewInterceptedTrieNodeDataFactory(
 ) (*interceptedTrieNodeDataFactory, error) {
 
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer

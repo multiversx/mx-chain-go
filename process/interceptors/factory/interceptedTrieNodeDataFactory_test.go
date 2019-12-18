@@ -13,7 +13,7 @@ func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
 	itn, err := NewInterceptedTrieNodeDataFactory(nil)
 
 	assert.Nil(t, itn)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T) {

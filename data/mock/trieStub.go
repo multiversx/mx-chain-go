@@ -26,7 +26,7 @@ type TrieStub struct {
 	SetCheckpointCalled      func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
-	GetAllLeavesCalled func() (map[string][]byte, error)
+	GetAllLeavesCalled       func() (map[string][]byte, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {

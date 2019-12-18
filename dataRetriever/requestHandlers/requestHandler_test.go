@@ -42,6 +42,7 @@ func TestNewMetaResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 		100,
 	)
 
@@ -149,6 +150,7 @@ func TestNewMetaResolverRequestTrieNodeHandlerEmptyTopic(t *testing.T) {
 
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
+		&mock.RequestedItemsHandlerStub{},
 		"shard topic",
 		"meta topic",
 		"tx topic",

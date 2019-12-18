@@ -1157,6 +1157,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	oldRootHash, _ := adb.Commit()
 
+	state2, _ = adb.GetAccountWithJournal(address2)
 	state2.DataTrieTracker().SaveKeyValue(key1, value2)
 	_ = adb.SaveDataTrie(state2)
 
@@ -1207,7 +1208,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100)
+	valMinting := big.NewInt(1000000000)
 	valToTransferPerTx := big.NewInt(2)
 
 	fmt.Println("Generating private keys for senders and receivers...")
@@ -1238,7 +1239,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -1294,7 +1295,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100)
+	valMinting := big.NewInt(1000000000)
 	valToTransferPerTx := big.NewInt(2)
 
 	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
@@ -1330,7 +1331,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 

@@ -527,7 +527,7 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	}
 
 	leaves := make(map[string][]byte)
-	err := tr.root.getAllLeaves(leaves, []byte{}, tr.db, tr.marshalizer)
+	err := tr.root.getAllLeaves(leaves, []byte{}, tr.Database(), tr.marshalizer)
 	if err != nil {
 		return nil, err
 	}
