@@ -178,16 +178,16 @@ type coreComponentsFactoryArgs struct {
 	config      *config.Config
 	pathManager storage.PathManagerHandler
 	shardId     string
-	chainID  []byte
+	chainID     []byte
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, pathManager storage.PathManagerHandler, shardId string, chainID []byte) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.PathManagerHandler, shardId string, chainID []byte) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
-		config:   config,
+		config:      config,
 		pathManager: pathManager,
 		shardId:     shardId,
-		chainID:  chainID,
+		chainID:     chainID,
 	}
 }
 

@@ -166,6 +166,19 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
+	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
+	shardId = core.GetShardIdString(psf.shardCoordinator.SelfId())
+	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
+	statusMetricsDbConfig.FilePath = dbPath
+	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.StatusMetricsStorage.Cache),
+		statusMetricsDbConfig,
+		GetBloomFromConfig(psf.generalConfig.StatusMetricsStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, statusMetricsStorageUnit)
+
 	bootstrapUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BootstrapStorage)
 	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
@@ -186,6 +199,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }
@@ -275,6 +289,19 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
+	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
+	shardId = core.GetShardIdString(psf.shardCoordinator.SelfId())
+	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
+	statusMetricsDbConfig.FilePath = dbPath
+	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.StatusMetricsStorage.Cache),
+		statusMetricsDbConfig,
+		GetBloomFromConfig(psf.generalConfig.StatusMetricsStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, statusMetricsStorageUnit)
+
 	txUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxStorage)
 	txUnit, err = pruning.NewPruningStorer(txUnitArgs)
 	if err != nil {
@@ -326,6 +353,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
+	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
 }

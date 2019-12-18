@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -538,6 +539,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
+		nodesConfig.ChainID,
 		defaultDBPath,
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
@@ -545,6 +547,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
+		nodesConfig.ChainID,
 		defaultDBPath,
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
