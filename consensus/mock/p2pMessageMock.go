@@ -23,7 +23,7 @@ func (msg *P2PMessageMock) Data() []byte {
 }
 
 func (msg *P2PMessageMock) SeqNo() []byte {
-	return msg.SeqNo()
+	return msg.SeqNoField
 }
 
 func (msg *P2PMessageMock) TopicIDs() []string {

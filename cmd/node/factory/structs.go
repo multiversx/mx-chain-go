@@ -123,6 +123,7 @@ type Core struct {
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
+	ChainID                  []byte
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -170,13 +171,15 @@ type Process struct {
 type coreComponentsFactoryArgs struct {
 	config   *config.Config
 	uniqueID string
+	chainID  []byte
 }
 
 // NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string, chainID []byte) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
+		chainID:  chainID,
 	}
 }
 
@@ -204,6 +207,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
+		ChainID:                  args.chainID,
 	}, nil
 }
 
@@ -1486,6 +1490,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1543,6 +1548,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		economics,
 		headerBlackList,
 		headerSigVerifier,
+		core.ChainID,
 	)
 	if err != nil {
 		return nil, nil, nil, err

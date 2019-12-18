@@ -49,6 +49,7 @@ struct MetaBlockCapn {
     validatorStatsRootHash @13: Data;
     txCount                @14: UInt32;
     miniBlockHeaders       @15: List(MiniBlockHeaderCapn);
+    chainid                @16: Data;
 }
 
 ##compile with:

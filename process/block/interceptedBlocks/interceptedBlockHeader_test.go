@@ -27,6 +27,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID: []byte("chain ID"),
 	}
 
 	hdr := createMockShardHeader()
@@ -53,6 +54,7 @@ func createMockShardHeader() *dataBlock.Header {
 		RootHash:         []byte("root hash"),
 		MetaBlockHashes:  nil,
 		TxCount:          0,
+		ChainID:          []byte("chain ID"),
 	}
 }
 
