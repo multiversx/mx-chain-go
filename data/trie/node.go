@@ -193,6 +193,21 @@ func keyBytesToHex(str []byte) []byte {
 	return nibbles
 }
 
+func hexToKeyBytes(hex []byte) ([]byte, error) {
+	hex = hex[:len(hex)-1]
+	length := len(hex)
+	if length%2 != 0 {
+		return nil, ErrInvalidLength
+	}
+
+	key := make([]byte, length/2)
+	for i := range key {
+		key[i] = hex[i*2]*hexTerminator + hex[i*2+1]
+	}
+
+	return key, nil
+}
+
 // prefixLen returns the length of the common prefix of a and b.
 func prefixLen(a, b []byte) int {
 	i := 0

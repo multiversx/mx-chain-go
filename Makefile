@@ -49,5 +49,10 @@ test-agario-join-reward:
 test-miniblocks-sc-v:
 	go test -count=1 -v ./integrationTests/multiShard/block/executingMiniblocksSc_test.go
 
+benchmark-arwen:
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithFibbonacciAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
+
 cross:
 	./cross_build.sh

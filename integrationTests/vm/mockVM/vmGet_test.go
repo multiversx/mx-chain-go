@@ -3,16 +3,17 @@ package mockVM
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"math"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,17 +21,24 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
 	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
-	vmContainer := &mock.VMContainerMock{GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-		return mockVM, nil
-	}}
-
-	scgd, _ := smartContract.NewSCDataGetter(integrationTests.TestAddressConverter, vmContainer)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
+		}}
+	service, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 
 	functionName := "Get"
-	returnedVals, err := scgd.Get(destinationAddressBytes, functionName)
+	query := process.SCQuery{
+		ScAddress: destinationAddressBytes,
+		FuncName:  functionName,
+		Arguments: [][]byte{},
+	}
+
+	vmOutput, err := service.ExecuteQuery(&query)
+	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedValueForVar.Bytes(), returnedVals)
+	assert.Equal(t, expectedValueForVar, returnData)
 }
 
 func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int) {
@@ -38,7 +46,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
@@ -59,7 +66,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

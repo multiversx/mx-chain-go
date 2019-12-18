@@ -8,13 +8,13 @@ import (
 )
 
 type TxProcessorMock struct {
-	ProcessTransactionCalled         func(transaction *transaction.Transaction, round uint64) error
+	ProcessTransactionCalled         func(transaction *transaction.Transaction) error
 	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
 	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) error
 }
 
-func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round uint64) error {
-	return etm.ProcessTransactionCalled(transaction, round)
+func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction) error {
+	return etm.ProcessTransactionCalled(transaction)
 }
 
 func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error) {

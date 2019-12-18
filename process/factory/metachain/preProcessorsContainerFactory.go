@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -19,10 +20,12 @@ type preProcessorsContainerFactory struct {
 	hasher              hashing.Hasher
 	dataPool            dataRetriever.MetaPoolsHolder
 	txProcessor         process.TransactionProcessor
+	scResultProcessor   process.SmartContractResultProcessor
 	accounts            state.AccountsAdapter
 	requestHandler      process.RequestHandler
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -35,39 +38,47 @@ func NewPreProcessorsContainerFactory(
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
+	scResultProcessor process.SmartContractResultProcessor,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*preProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStore
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if txProcessor == nil || txProcessor.IsInterfaceNil() {
+	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+	if check.IfNil(miniBlocksCompacter) {
 		return nil, process.ErrNilMiniBlocksCompacter
+	}
+	if check.IfNil(scResultProcessor) {
+		return nil, process.ErrNilSmartContractResultProcessor
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	return &preProcessorsContainerFactory{
@@ -81,6 +92,8 @@ func NewPreProcessorsContainerFactory(
 		requestHandler:      requestHandler,
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
+		scResultProcessor:   scResultProcessor,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -94,6 +107,16 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	}
 
 	err = container.Add(block.TxBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
+	preproc, err = ppcm.createSmartContractResultPreProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.SmartContractResultBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +136,27 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
+		ppcm.gasHandler,
 	)
 
 	return txPreprocessor, err
+}
+
+func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
+	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
+		ppcm.dataPool.UnsignedTransactions(),
+		ppcm.store,
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.scResultProcessor,
+		ppcm.shardCoordinator,
+		ppcm.accounts,
+		ppcm.requestHandler.RequestUnsignedTransactions,
+		ppcm.gasHandler,
+		ppcm.economicsFee,
+	)
+
+	return scrPreprocessor, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

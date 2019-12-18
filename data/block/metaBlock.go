@@ -1,13 +1,16 @@
 package block
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -73,6 +76,9 @@ type ShardData struct {
 	PubKeysBitmap         []byte                 `capid:"4"`
 	Signature             []byte                 `capid:"5"`
 	TxCount               uint32                 `capid:"6"`
+	Round                 uint64                 `capid:"7"`
+	PrevHash              []byte                 `capid:"8"`
+	Nonce                 uint64                 `capid:"9"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -93,6 +99,7 @@ type MetaBlock struct {
 	ValidatorStatsRootHash []byte            `capid:"13"`
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
+	ChainID                []byte            `capid:"16"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -305,6 +312,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
 	dest.SetLeaderSignature(src.LeaderSignature)
+	dest.SetChainid(src.ChainID)
 
 	return dest
 }
@@ -345,6 +353,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.ChainID = src.Chainid()
 
 	return dest
 }
@@ -414,6 +423,11 @@ func (m *MetaBlock) GetLeaderSignature() []byte {
 	return m.LeaderSignature
 }
 
+// GetChainID gets the chain ID on which this block is valid on
+func (m *MetaBlock) GetChainID() []byte {
+	return m.ChainID
+}
+
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
@@ -474,6 +488,11 @@ func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 	m.LeaderSignature = sg
 }
 
+// SetChainID sets the chain ID on which this block is valid on
+func (m *MetaBlock) SetChainID(chainID []byte) {
+	m.ChainID = chainID
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
@@ -532,4 +551,25 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 // ItemsInBody gets the number of items(hashes) added in block body
 func (m *MetaBlock) ItemsInBody() uint32 {
 	return m.TxCount
+}
+
+// Clone will return a clone of the object
+func (m *MetaBlock) Clone() data.HeaderHandler {
+	metaBlockCopy := *m
+	return &metaBlockCopy
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (m *MetaBlock) CheckChainID(reference []byte) error {
+	if !bytes.Equal(m.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(m.ChainID),
+		)
+	}
+
+	return nil
 }

@@ -733,3 +733,29 @@ func (bn *branchNode) loadChildren(syncer *trieSyncer) error {
 
 	return nil
 }
+
+func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		childKey := append(key, byte(i))
+		err = bn.children[i].getAllLeaves(leaves, childKey, db, marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

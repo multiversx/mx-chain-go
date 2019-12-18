@@ -58,7 +58,6 @@ type AccountHandler interface {
 
 	GetRootHash() []byte
 	SetRootHash([]byte)
-	SetRootHashWithJournal([]byte) error
 	DataTrie() data.Trie
 	SetDataTrie(trie data.Trie)
 	DataTrieTracker() DataTrieTracker
@@ -112,4 +111,12 @@ type AccountsAdapter interface {
 type JournalEntry interface {
 	Revert() (AccountHandler, error)
 	IsInterfaceNil() bool
+}
+
+// TriesHolder is used to store multiple tries
+type TriesHolder interface {
+	Put([]byte, data.Trie)
+	Get([]byte) data.Trie
+	GetAll() []data.Trie
+	Reset()
 }

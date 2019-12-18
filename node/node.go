@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -77,6 +78,7 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
+	validatorStatistics      process.ValidatorStatisticsProcessor
 
 	txSignPrivKey     crypto.PrivateKey
 	txSignPubKey      crypto.PublicKey
@@ -104,8 +106,13 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer          indexer.Indexer
-	blackListHandler process.BlackListHandler
+	indexer               indexer.Indexer
+	blackListHandler      process.BlackListHandler
+	bootStorer            process.BootStorer
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	headerSigVerifier     spos.RandSeedVerifier
+
+	chainID []byte
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -216,7 +223,7 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-// StartConsensus will start the consesus service for the current node
+// StartConsensus will start the consensus service for the current node
 func (n *Node) StartConsensus() error {
 	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
 		n.blkc.GetGenesisHeader() == nil
@@ -276,6 +283,8 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
+		n.headerSigVerifier,
+		n.chainID,
 	)
 	if err != nil {
 		return err
@@ -306,7 +315,15 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler, n.indexer)
+	fct, err := sposFactory.GetSubroundsFactory(
+		consensusDataContainer,
+		consensusState,
+		worker,
+		n.consensusType,
+		n.appStatusHandler,
+		n.indexer,
+		n.chainID,
+	)
 	if err != nil {
 		return err
 	}
@@ -386,6 +403,24 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -399,9 +434,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.resolversFinder,
 		n.shardCoordinator,
 		accountsWrapper,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		shardStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -411,6 +448,24 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -424,9 +479,11 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		metaStorageBootstrapper,
+		n.requestedItemsHandler,
 	)
 
 	if err != nil {
@@ -727,7 +784,7 @@ func (n *Node) CreateTransaction(
 }
 
 //GetTransaction gets the transaction
-func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
@@ -894,6 +951,36 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 		return nil
 	}
 	return n.heartbeatMonitor.GetHeartbeats()
+}
+
+// ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
+func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	mapToReturn := make(map[string]*state.ValidatorApiResponse)
+	for _, pubKeyInShards := range n.initialNodesPubkeys {
+		for _, pubKey := range pubKeyInShards {
+			acc, err := n.validatorStatistics.GetPeerAccount([]byte(pubKey))
+			if err != nil {
+				log.Debug("validator api: get peer account", "error", err.Error())
+				continue
+			}
+
+			peerAcc, ok := acc.(*state.PeerAccount)
+			if !ok {
+				log.Debug("validator api: convert to peer account", "error", ErrCannotConvertToPeerAccount)
+				continue
+			}
+
+			strKey := hex.EncodeToString([]byte(pubKey))
+			mapToReturn[strKey] = &state.ValidatorApiResponse{
+				NrLeaderSuccess:    peerAcc.LeaderSuccessRate.NrSuccess,
+				NrLeaderFailure:    peerAcc.LeaderSuccessRate.NrFailure,
+				NrValidatorSuccess: peerAcc.ValidatorSuccessRate.NrSuccess,
+				NrValidatorFailure: peerAcc.ValidatorSuccessRate.NrFailure,
+			}
+		}
+	}
+
+	return mapToReturn, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"strconv"
 	"testing"
 	"time"
 
@@ -41,6 +40,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 			0,
 			advertiserAddr,
 		)
+		nodes[i].EconomicsData.SetMinGasPrice(0)
 	}
 
 	idxProposer := 0
@@ -73,7 +73,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
@@ -147,7 +147,7 @@ func runMultipleRoundsOfTheGame(
 				nodes,
 				player,
 				topUpValue,
-				strconv.Itoa(currentRound),
+				int32(currentRound),
 				hardCodedScResultingAddress,
 			)
 		}
@@ -160,7 +160,7 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], int32(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions

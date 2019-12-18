@@ -136,19 +136,6 @@ func (a *Account) SetRootHash(roothash []byte) {
 	a.RootHash = roothash
 }
 
-// SetRootHashWithJournal sets the account's root hash, saving the old root hash before changing
-func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
-	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash, a.DataTrie())
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.RootHash = rootHash
-
-	return a.accountTracker.SaveAccount(a)
-}
-
 // DataTrie returns the trie that holds the current account's data
 func (a *Account) DataTrie() data.Trie {
 	return a.dataTrieTracker.DataTrie()

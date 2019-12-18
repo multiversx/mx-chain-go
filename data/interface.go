@@ -31,6 +31,7 @@ type HeaderHandler interface {
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 	GetLeaderSignature() []byte
+	GetChainID() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
@@ -46,6 +47,7 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
+	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
@@ -53,6 +55,8 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
+	Clone() HeaderHandler
+	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body
@@ -122,6 +126,7 @@ type Trie interface {
 	AppendToOldHashes([][]byte)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

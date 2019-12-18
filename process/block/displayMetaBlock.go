@@ -83,14 +83,19 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
+	metaLinesHeader := []*display.LineData{
+		display.NewLineData(false, []string{
+			"Header",
+			"Block type",
+			"MetaBlock"}),
+	}
+
 	lines := displayHeader(header)
 
-	metaLines := make([]*display.LineData, 0)
-	metaLines = append(metaLines, display.NewLineData(false, []string{
-		"Header",
-		"Block type",
-		"MetaBlock"}))
+	metaLines := make([]*display.LineData, 0, len(lines)+len(metaLinesHeader))
+	metaLines = append(metaLines, metaLinesHeader...)
 	metaLines = append(metaLines, lines...)
+
 	metaLines = hc.displayShardInfo(metaLines, header)
 
 	return tableHeader, metaLines

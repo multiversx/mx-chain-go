@@ -28,19 +28,17 @@ func NewSubroundBlock(
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
 ) (*SubroundBlock, error) {
-	err := checkNewSubroundBlockParams(
-		baseSubround,
-	)
+	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
 
 	srBlock := SubroundBlock{
-		baseSubround,
-		mtBlockBody,
-		mtBlockHeader,
-		processingThresholdPercentage,
-		getSubroundName,
+		Subround:                      baseSubround,
+		mtBlockBody:                   mtBlockBody,
+		mtBlockHeader:                 mtBlockHeader,
+		processingThresholdPercentage: processingThresholdPercentage,
+		getSubroundName:               getSubroundName,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -150,7 +148,9 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 		nil,
 		sr.mtBlockBody,
 		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+		sr.Rounder().Index(),
+		sr.ChainID(),
+	)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
@@ -183,7 +183,9 @@ func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 		nil,
 		sr.mtBlockHeader,
 		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+		sr.Rounder().Index(),
+		sr.ChainID(),
+	)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
@@ -218,7 +220,7 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
 	}
 
-	randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
+	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +229,7 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
+	hdr.SetChainID(sr.ChainID())
 
 	return hdr, nil
 }

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,8 @@ import (
 )
 
 // TODO: increase code coverage with unit tests
+
+const initialTxHashesSliceLen = 10
 
 type txShardInfo struct {
 	senderShardID   uint32
@@ -41,6 +44,8 @@ type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
+	economicsFee     process.FeeHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -72,7 +77,7 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
-	mrsTxs := make([][]byte, 0)
+	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
 		txInfo := forBlock.txHashAndInfo[string(txHash)]
@@ -107,6 +112,7 @@ func (bpp *basePreProcess) saveTxsToStorage(
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfo == nil || txInfo.tx == nil {
+			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
@@ -162,13 +168,13 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 func (bpp *basePreProcess) computeExistingAndMissing(
 	body block.Body,
 	forBlock *txsForBlock,
-	chRcvAllTxs chan bool,
+	_ chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32][]*txsHashesInfo {
 
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
-
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, len(body))
+	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -177,7 +183,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		txHashes := make([][]byte, 0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
@@ -197,12 +202,15 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID],
-				&txsHashesInfo{txHashes: txHashes, receiverShardID: miniBlock.ReceiverShardID})
+			tmp := &txsHashesInfo{
+				txHashes:        sliceUtil.TrimSliceSliceByte(txHashes),
+				receiverShardID: miniBlock.ReceiverShardID,
+			}
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], tmp)
 		}
+		txHashes = txHashes[:0]
 	}
 	forBlock.mutTxsForBlock.Unlock()
-
 	return missingTxsForShard
 }
 
@@ -212,4 +220,80 @@ func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForB
 	forBlock.mutTxsForBlock.RUnlock()
 
 	return txAlreadyProcessed
+}
+
+func (bpp *basePreProcess) computeGasConsumed(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx data.TransactionHandler,
+	txHash []byte,
+	gasConsumedByMiniBlockInSenderShard *uint64,
+	gasConsumedByMiniBlockInReceiverShard *uint64,
+) error {
+
+	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
+		senderShardId,
+		receiverShardId,
+		tx,
+		txHash)
+	if err != nil {
+		return err
+	}
+
+	gasConsumedByTxInSelfShard := uint64(0)
+	if bpp.shardCoordinator.SelfId() == senderShardId {
+		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
+
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+		}
+	} else {
+		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
+
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+		}
+	}
+
+	if bpp.gasHandler.TotalGasConsumed()+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
+	}
+
+	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
+	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+
+	return nil
+}
+
+func (bpp *basePreProcess) computeGasConsumedByTx(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx data.TransactionHandler,
+	txHash []byte,
+) (uint64, uint64, error) {
+
+	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasConsumedByTx(
+		senderShardId,
+		receiverShardId,
+		tx)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
+		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
+
+		if txGasLimitInReceiverShard < txGasRefunded {
+			return 0, 0, process.ErrInsufficientGasLimitInTx
+		}
+
+		txGasLimitInReceiverShard -= txGasRefunded
+
+		if senderShardId == receiverShardId {
+			txGasLimitInSenderShard -= txGasRefunded
+		}
+	}
+
+	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
 }

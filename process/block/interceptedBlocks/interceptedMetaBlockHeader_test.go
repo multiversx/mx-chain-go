@@ -1,42 +1,25 @@
 package interceptedBlocks_test
 
 import (
-	"math/big"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier: mock.NewMultiSigner(),
-		Hasher:           testHasher,
-		Marshalizer:      testMarshalizer,
-		NodesCoordinator: &mock.NodesCoordinatorMock{
-			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
-
-				validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("pubKey"), []byte("pubKey"))
-				return []sharding.Validator{validator}, nil
-			},
-		},
-		KeyGen: &mock.SingleSignKeyGenMock{
-			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
-				return nil, nil
-			},
-		},
-		SingleSigVerifier: &mock.SignerMock{
-			VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		Hasher:            testHasher,
+		Marshalizer:       testMarshalizer,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID: 		   []byte("chain ID"),
 	}
 
 	hdr := createMockMetaHeader()
@@ -60,6 +43,7 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 		TxCount:       0,
 		PeerInfo:      nil,
 		ShardInfo:     nil,
+		ChainID:       []byte("chain ID"),
 	}
 }
 
@@ -71,7 +55,7 @@ func TestNewInterceptedMetaHeader_NilArgumentShouldErr(t *testing.T) {
 	inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(nil)
 
 	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedMetaHeader_MarshalizerFailShouldErr(t *testing.T) {
@@ -163,6 +147,42 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inHdr.Hash())
 	assert.True(t, inHdr.IsForCurrentShard())
+}
+
+func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedErr := errors.New("expected err")
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	expectedSignature := []byte("ran")
+	hdr.LeaderSignature = expectedSignature
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultShardArgument()
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Nil(t, err)
 }
 
 //------- IsInterfaceNil

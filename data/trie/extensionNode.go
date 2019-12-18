@@ -603,3 +603,23 @@ func (en *extensionNode) loadChildren(syncer *trieSyncer) error {
 
 	return nil
 }
+
+func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	childKey := append(key, en.Key...)
+	err = en.child.getAllLeaves(leaves, childKey, db, marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

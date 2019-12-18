@@ -18,11 +18,6 @@ func (ntv *nilTxValidator) CheckTxValidity(interceptedTx process.TxValidatorHand
 	return nil
 }
 
-// NumRejectedTxs will return number of rejected transaction
-func (ntv *nilTxValidator) NumRejectedTxs() uint64 {
-	return 0
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntv *nilTxValidator) IsInterfaceNil() bool {
 	if ntv == nil {

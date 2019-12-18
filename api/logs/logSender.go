@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const disconnectMessage = -1
+
 type logSender struct {
 	marshalizer    marshal.Marshalizer
 	conn           wsConn
@@ -82,7 +84,7 @@ func (ls *logSender) StartSendingBlocking() {
 	}
 
 	go ls.monitorConnection()
-	ls.doSendContinously()
+	ls.doSendContinuously()
 }
 
 func (ls *logSender) waitForPatternMessage() error {
@@ -101,10 +103,17 @@ func (ls *logSender) waitForPatternMessage() error {
 }
 
 func (ls *logSender) monitorConnection() {
+	var err error
+	var mt int
+
+	defer func() {
+		_ = ls.writer.Close()
+	}()
+
 	for {
-		mt, _, err := ls.conn.ReadMessage()
-		if mt == websocket.CloseMessage {
-			_ = ls.writer.Close()
+		mt, _, err = ls.conn.ReadMessage()
+		ls.log.Trace("message type", "value", mt)
+		if mt == websocket.CloseMessage || mt == disconnectMessage {
 			return
 		}
 		if err != nil {
@@ -113,7 +122,7 @@ func (ls *logSender) monitorConnection() {
 	}
 }
 
-func (ls *logSender) doSendContinously() {
+func (ls *logSender) doSendContinuously() {
 	for {
 		shouldStop := ls.sendMessage()
 		if shouldStop {

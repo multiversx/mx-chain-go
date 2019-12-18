@@ -32,7 +32,7 @@ func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	hip, err := processor.NewHdrInterceptorProcessor(nil)
 
 	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {
@@ -142,11 +142,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 			return expectedErr
 		},
 	}
-	arg.BlackList = &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
-			return false
-		},
-	}
+	arg.BlackList = &mock.BlackListHandlerStub{}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {

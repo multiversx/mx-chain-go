@@ -519,3 +519,18 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 	return nodes, nil
 }
+
+// GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
+func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+	if tr.root == nil {
+		return map[string][]byte{}, nil
+	}
+
+	leaves := make(map[string][]byte)
+	err := tr.root.getAllLeaves(leaves, []byte{}, tr.Database(), tr.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	return leaves, nil
+}

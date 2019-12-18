@@ -10,26 +10,37 @@ import (
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	NrCommitBlockCalled              uint32
-	Marshalizer                      marshal.Marshalizer
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) error
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
-	CreateNewHeaderCalled            func() data.HeaderHandler
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	NrCommitBlockCalled                     uint32
+	Marshalizer                             marshal.Marshalizer
+	ProcessBlockCalled                      func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                       func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled                func()
+	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
+	ApplyBodyToHeaderCalled                 func(header data.HeaderHandler, body data.BodyHandler) error
+	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
+	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
+	SetConsensusDataCalled                  func(randomness []byte, round uint64, epoch uint32, shardId uint32)
+	CreateNewHeaderCalled                   func() data.HeaderHandler
+	RevertStateToBlockCalled                func(header data.HeaderHandler) error
+	RestoreLastNotarizedHrdsToGenesisCalled func()
+}
+
+func (blProcMock *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
+	if blProcMock.RestoreLastNotarizedHrdsToGenesisCalled != nil {
+		blProcMock.RestoreLastNotarizedHrdsToGenesisCalled()
+	}
 }
 
 // ProcessBlock mocks pocessing a block
 func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
+}
+
+func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+
 }
 
 // CommitBlock mocks the commit of a block
@@ -59,12 +70,16 @@ func (blProcMock BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler
 	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
 	if blProcMock.RevertStateToBlockCalled != nil {
 		return blProcMock.RevertStateToBlock(header)
 	}
 	return nil
+}
+
+func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+
 }
 
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {

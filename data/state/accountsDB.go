@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -18,6 +19,7 @@ type AccountsDB struct {
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
 
+	dataTries  TriesHolder
 	entries    []JournalEntry
 	mutEntries sync.RWMutex
 }
@@ -49,6 +51,7 @@ func NewAccountsDB(
 		accountFactory: accountFactory,
 		entries:        make([]JournalEntry, 0),
 		mutEntries:     sync.RWMutex{},
+		dataTries:      NewDataTriesHolder(),
 	}, nil
 }
 
@@ -112,18 +115,13 @@ func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 		return NewErrorTrieNotNormalized(HashLength, len(accountHandler.GetRootHash()))
 	}
 
-	dataTrie, err := adb.searchDataTrieInJournal(accountHandler.GetRootHash())
-	if err == nil {
+	dataTrie := adb.dataTries.Get(accountHandler.AddressContainer().Bytes())
+	if dataTrie != nil {
 		accountHandler.SetDataTrie(dataTrie)
 		return nil
 	}
 
-	_, isErrMissingTrie := err.(*ErrMissingTrie)
-	if !isErrMissingTrie {
-		return err
-	}
-
-	dataTrie, err = adb.mainTrie.Recreate(accountHandler.GetRootHash())
+	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
 		//error as there is an inconsistent state:
 		//account has data root hash but does not contain the actual trie
@@ -131,32 +129,8 @@ func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 	}
 
 	accountHandler.SetDataTrie(dataTrie)
+	adb.dataTries.Put(accountHandler.AddressContainer().Bytes(), dataTrie)
 	return nil
-}
-
-// searches a data entry in journal from the most recent entries towards the first
-// and if it finds a matching data trie, returns a deep copy of that trie
-func (adb *AccountsDB) searchDataTrieInJournal(rootHash []byte) (data.Trie, error) {
-	adb.mutEntries.RLock()
-	defer adb.mutEntries.RUnlock()
-
-	for i := len(adb.entries) - 1; i >= 0; i-- {
-		dataTrieEntry, ok := adb.entries[i].(*BaseJournalEntryData)
-		if !ok {
-			continue
-		}
-
-		dataRootHash, err := dataTrieEntry.trie.Root()
-		if err != nil {
-			return nil, errors.New("corrupted trie found in journal while computing root hash: " + err.Error())
-		}
-
-		if bytes.Equal(dataRootHash, rootHash) {
-			return dataTrieEntry.trie.DeepClone()
-		}
-	}
-
-	return nil, NewErrMissingTrie(rootHash)
 }
 
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
@@ -164,31 +138,38 @@ func (adb *AccountsDB) searchDataTrieInJournal(rootHash []byte) (data.Trie, erro
 func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	flagHasDirtyData := false
 
-	var newDataTrie data.Trie
-	var err error
-	if accountHandler.DataTrie() == nil || accountHandler.DataTrie().IsInterfaceNil() {
-		newDataTrie, err = adb.mainTrie.Recreate(make([]byte, 0))
+	if check.IfNil(accountHandler.DataTrie()) {
+		newDataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
 			return err
 		}
-	} else {
-		newDataTrie, err = accountHandler.DataTrie().DeepClone()
-		if err != nil {
-			return err
-		}
+
+		accountHandler.SetDataTrie(newDataTrie)
+		adb.dataTries.Put(accountHandler.AddressContainer().Bytes(), newDataTrie)
 	}
 
 	trackableDataTrie := accountHandler.DataTrieTracker()
 	if trackableDataTrie == nil {
 		return ErrNilTrackableDataTrie
 	}
+
+	dataTrie := trackableDataTrie.DataTrie()
+	oldValues := make(map[string][]byte)
+
 	for k, v := range trackableDataTrie.DirtyData() {
 		originalValue := trackableDataTrie.OriginalValue([]byte(k))
 
 		if !bytes.Equal(v, originalValue) {
 			flagHasDirtyData = true
 
-			err := newDataTrie.Update([]byte(k), v)
+			val, err := dataTrie.Get([]byte(k))
+			if err != nil {
+				return err
+			}
+
+			oldValues[k] = val
+
+			err = dataTrie.Update([]byte(k), v)
 			if err != nil {
 				return err
 			}
@@ -200,37 +181,21 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 		return nil
 	}
 
-	root, err := newDataTrie.Root()
+	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
+	if err != nil {
+		return err
+	}
+	adb.Journalize(entry)
+
+	rootHash, err := trackableDataTrie.DataTrie().Root()
 	if err != nil {
 		return err
 	}
 
-	err = accountHandler.SetRootHashWithJournal(root)
-	if err != nil {
-		return err
-	}
-
+	accountHandler.SetRootHash(rootHash)
 	trackableDataTrie.ClearDataCaches()
 
-	err = adb.saveDataTrieWithJournal(accountHandler, newDataTrie)
-	if err != nil {
-		return err
-	}
-
 	return adb.SaveAccount(accountHandler)
-}
-
-func (adb *AccountsDB) saveDataTrieWithJournal(accountHandler AccountHandler, dataTrie data.Trie) error {
-	//append a journal entry as the data needs to be updated in its trie
-	entry, err := NewBaseJournalEntryData(accountHandler, dataTrie)
-	if err != nil {
-		return err
-	}
-
-	adb.Journalize(entry)
-	accountHandler.SetDataTrie(dataTrie)
-
-	return nil
 }
 
 // HasAccount searches for an account based on the address. Errors if something went wrong and
@@ -296,7 +261,7 @@ func (adb *AccountsDB) GetAccountWithJournal(addressContainer AddressContainer) 
 		return nil, err
 	}
 	if acnt != nil {
-		return adb.loadAccountHandler(acnt, addressContainer)
+		return adb.loadAccountHandler(acnt)
 	}
 
 	return adb.newAccountHandler(addressContainer)
@@ -320,7 +285,7 @@ func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (Ac
 	return acnt, nil
 }
 
-func (adb *AccountsDB) loadAccountHandler(accountHandler AccountHandler, addressContainer AddressContainer) (AccountHandler, error) {
+func (adb *AccountsDB) loadAccountHandler(accountHandler AccountHandler) (AccountHandler, error) {
 	err := adb.loadCodeAndDataIntoAccountHandler(accountHandler)
 	if err != nil {
 		return nil, err
@@ -410,22 +375,18 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutEntries.RUnlock()
 
 	oldHashes := make([][]byte, 0)
-	//Step 1. iterate through journal entries and commit the data tries accordingly
-	for i := 0; i < len(jEntries); i++ {
-		jed, found := jEntries[i].(*BaseJournalEntryData)
-
-		if found {
-			tr := jed.Trie()
-			oldTrieHashes := tr.ResetOldHashes()
-
-			err := tr.Commit()
-			if err != nil {
-				return nil, err
-			}
-
-			oldHashes = append(oldHashes, oldTrieHashes...)
+	//Step 1. commit all data tries
+	dataTries := adb.dataTries.GetAll()
+	for i := 0; i < len(dataTries); i++ {
+		oldTrieHashes := dataTries[i].ResetOldHashes()
+		err := dataTries[i].Commit()
+		if err != nil {
+			return nil, err
 		}
+
+		oldHashes = append(oldHashes, oldTrieHashes...)
 	}
+	adb.dataTries.Reset()
 
 	//step 2. clean the journal
 	adb.clearJournal()

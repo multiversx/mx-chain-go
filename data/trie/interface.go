@@ -37,6 +37,7 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(*trieSyncer) error
+	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type ValidatorStatisticsProcessorMock struct {
@@ -9,7 +10,9 @@ type ValidatorStatisticsProcessorMock struct {
 	RevertPeerStateCalled           func(header data.HeaderHandler) error
 	IsInterfaceNilCalled            func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
+	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
 	CommitCalled                    func() ([]byte, error)
+	RootHashCalled                  func() ([]byte, error)
 }
 
 func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
@@ -37,6 +40,21 @@ func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
 	if vsp.CommitCalled != nil {
 		return vsp.CommitCalled()
 	}
+	return nil, nil
+}
+
+func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
+	if vsp.RootHashCalled != nil {
+		return vsp.RootHashCalled()
+	}
+	return nil, nil
+}
+
+func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+	if vsp.GetPeerAccountCalled != nil {
+		return vsp.GetPeerAccountCalled(address)
+	}
+
 	return nil, nil
 }
 
