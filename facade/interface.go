@@ -50,6 +50,9 @@ type NodeWrapper interface {
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+
+	// ValidatorStatisticsApi return the statistics for all the validators
+	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

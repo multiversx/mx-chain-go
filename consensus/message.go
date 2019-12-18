@@ -12,6 +12,7 @@ type Message struct {
 	MsgType         int
 	TimeStamp       uint64
 	RoundIndex      int64
+	ChainID         []byte
 }
 
 // NewConsensusMessage creates a new Message object
@@ -23,6 +24,7 @@ func NewConsensusMessage(
 	msg int,
 	tms uint64,
 	roundIndex int64,
+	chainID []byte,
 ) *Message {
 
 	return &Message{
@@ -33,5 +35,6 @@ func NewConsensusMessage(
 		MsgType:         msg,
 		TimeStamp:       tms,
 		RoundIndex:      roundIndex,
+		ChainID:         chainID,
 	}
 }

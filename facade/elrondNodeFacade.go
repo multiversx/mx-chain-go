@@ -171,6 +171,11 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, challenge)
 }
 
+// ValidatorStatisticsApi will return the statistics for all validators
+func (ef *ElrondNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	return ef.node.ValidatorStatisticsApi()
+}
+
 // SendTransaction will send a new transaction on the topic channel
 func (ef *ElrondNodeFacade) SendTransaction(
 	nonce uint64,
