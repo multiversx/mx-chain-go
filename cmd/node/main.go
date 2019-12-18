@@ -1168,7 +1168,7 @@ func createNode(
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
-		node.WithChainID(core.ChainID),
+		node.WithChainID(coreData.ChainID),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

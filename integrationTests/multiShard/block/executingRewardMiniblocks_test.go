@@ -156,20 +156,19 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 		}
 	}()
 
-	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+	integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
 	round := uint64(1)
 	nonce := uint64(1)
 	nbBlocksProduced := 2
 
-	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		for shardId, consensusGroup := range consensusNodes {
 			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()

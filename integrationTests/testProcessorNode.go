@@ -74,6 +74,9 @@ var TestMarshalizer = &marshal.JsonMarshalizer{}
 // TestAddressConverter represents a plain address converter
 var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
+// TestAddressConverterBLS represents an address converter from BLS public keys
+var TestAddressConverterBLS, _ = addressConverters.NewPlainAddressConverter(128, "0x")
+
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)
 
@@ -205,13 +208,12 @@ func NewTestProcessorNode(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkAddr := []byte("aaa00000000000000000000000000000")
+	pkBytes := make([]byte, 128)
+	address := make([]byte, 32)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 
-			address := pkAddr
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
-
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -304,7 +306,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
 		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverter,
+		AdrConv:          TestAddressConverterBLS,
 		NodesCoordinator: tpn.NodesCoordinator,
 		ShardCoordinator: tpn.ShardCoordinator,
 		DataPool:         peerDataPool,
@@ -335,10 +337,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
-
+	tpn.GenesisBlocks = make(map[uint32]data.HeaderHandler)
 	tpn.initValidatorStatistics()
-
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
+
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressConverter,

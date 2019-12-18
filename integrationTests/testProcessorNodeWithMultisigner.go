@@ -148,6 +148,7 @@ func CreateNodesWithNodesCoordinator(
 				cpWaiting,
 				i,
 				nil,
+				&mock.HeaderSigVerifierStub{},
 			)
 		}
 
