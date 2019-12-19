@@ -17,9 +17,10 @@ var log = logger.GetOrCreate("dataretriever/txpool")
 type shardedTxPool struct {
 	mutex             sync.RWMutex
 	backingMap        map[string]*txPoolShard
-	cacheConfig       storageUnit.CacheConfig
 	mutexAddCallbacks sync.RWMutex
 	onAddCallbacks    []func(key []byte)
+	cacheConfig       storageUnit.CacheConfig
+	evictionConfig    txcache.EvictionConfig
 }
 
 type txPoolShard struct {
@@ -30,12 +31,23 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataCacherNotifier {
+	size := config.Size
+	evictionConfig := txcache.EvictionConfig{
+		Enabled:                         true,
+		CountThreshold:                  size,
+		ThresholdEvictSenders:           1000,
+		NumOldestSendersToEvict:         500,
+		ALotOfTransactionsForASender:    size / 10,
+		NumTxsToEvictForASenderWithALot: 1000,
+	}
+
 	return &shardedTxPool{
-		cacheConfig:       config,
 		mutex:             sync.RWMutex{},
 		backingMap:        make(map[string]*txPoolShard),
 		mutexAddCallbacks: sync.RWMutex{},
 		onAddCallbacks:    make([]func(key []byte), 0),
+		cacheConfig:       config,
+		evictionConfig:    evictionConfig,
 	}
 }
 
@@ -68,7 +80,8 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	shard, ok = txPool.backingMap[cacheID]
 	if !ok {
 		nChunksHint := txPool.cacheConfig.Shards
-		cache := txcache.NewTxCache(nChunksHint)
+		evictionConfig := txPool.evictionConfig
+		cache := txcache.NewTxCacheWithEviction(nChunksHint, evictionConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
