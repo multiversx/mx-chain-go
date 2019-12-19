@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -19,6 +20,7 @@ type factory struct {
 
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
+	chainID          []byte
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
@@ -26,12 +28,14 @@ func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) (*factory, error) {
 
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	if err != nil {
@@ -43,6 +47,7 @@ func NewSubroundsFactory(
 		consensusState:   consensusState,
 		worker:           worker,
 		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		chainID:          chainID,
 	}
 
 	return &fct, nil
@@ -52,18 +57,20 @@ func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
 		return err
 	}
-
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
-
-	if worker == nil || worker.IsInterfaceNil() {
+	if check.IfNil(worker) {
 		return spos.ErrNilWorker
+	}
+	if len(chainID) == 0 {
+		return spos.ErrInvalidChainID
 	}
 
 	return nil
@@ -144,6 +151,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 
 	if err != nil {
@@ -186,6 +194,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -222,6 +231,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -253,6 +263,7 @@ func (fct *factory) generateBitmapSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -284,6 +295,7 @@ func (fct *factory) generateCommitmentSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -315,6 +327,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -346,6 +359,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err

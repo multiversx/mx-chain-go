@@ -46,3 +46,52 @@ type PublicKeysSelector interface {
 	GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
+
+// ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
+type ArgsUpdateNodes struct {
+	eligible map[uint32][]Validator
+	waiting  map[uint32][]Validator
+	newNodes []Validator
+	leaving  []Validator
+	rand     []byte
+	nbShards uint32
+}
+
+// NodesShuffler provides shuffling functionality for nodes
+type NodesShuffler interface {
+	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
+	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
+}
+
+//RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
+type RaterHandler interface {
+	RatingReader
+	//GetStartRating gets the start rating values
+	GetStartRating() uint32
+	//ComputeIncreaseProposer computes the new rating for the increaseLeader
+	ComputeIncreaseProposer(val uint32) uint32
+	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
+	ComputeDecreaseProposer(val uint32) uint32
+	//ComputeIncreaseValidator computes the new rating for the increaseValidator
+	ComputeIncreaseValidator(val uint32) uint32
+	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
+	ComputeDecreaseValidator(val uint32) uint32
+}
+
+//RatingReader provides rating reading capabilities for the ratingHandler
+type RatingReader interface {
+	//GetRating gets the rating for the public key
+	GetRating(string) uint32
+	//GetRatings gets all the ratings as a map[pk] ratingValue
+	GetRatings([]string) map[string]uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+//RatingReaderSetter provides the capabilities to set a RatingReader
+type RatingReaderSetter interface {
+	//GetRating gets the rating for the public key
+	SetRatingReader(RatingReader)
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}

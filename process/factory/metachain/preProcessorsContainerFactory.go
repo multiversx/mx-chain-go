@@ -154,6 +154,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
+		ppcm.economicsFee,
 	)
 
 	return scrPreprocessor, err
