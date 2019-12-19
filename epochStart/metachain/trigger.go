@@ -11,10 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/prometheus/common/log"
 )
+
+var log = logger.GetOrCreate("epochStart")
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
@@ -180,13 +182,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 
 	metaBuff, err := t.marshalizer.Marshal(metaBlock)
 	if err != nil {
-		log.Debug("SetProcessed marshal error")
+		log.Debug("SetProcessed marshal", "error", err.Error())
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
 	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if err != nil {
-		log.Debug("SetProcessed put into metaHdrStorage error")
+		log.Debug("SetProcessed put into metaHdrStorage", "error", err.Error())
 	}
 
 	t.currEpochStartRound = metaBlock.Round
@@ -213,7 +215,7 @@ func (t *trigger) Revert() {
 	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
 	err := t.metaHdrStorage.Remove([]byte(epochStartIdentifier))
 	if err != nil {
-		log.Debug("Revert remove from metaHdrStorage error")
+		log.Debug("Revert remove from metaHdrStorage", "error", err.Error())
 	}
 
 	t.isEpochStart = true

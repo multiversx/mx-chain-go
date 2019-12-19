@@ -12,11 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/prometheus/common/log"
 )
+
+var log = logger.GetOrCreate("epochStart")
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
@@ -240,14 +242,14 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
-				log.Debug("updateTriggerFromMeta marshal error")
+				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
 				continue
 			}
 
 			epochStartIdentifier := core.EpochStartIdentifier(meta.Epoch)
 			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 			if err != nil {
-				log.Debug("updateTriggerMeta put into metaHdrStorage error")
+				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
 				continue
 			}
 		}
