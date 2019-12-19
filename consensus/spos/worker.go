@@ -304,12 +304,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			return err
 		}
 
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
-		}
-
 		log.Debug("received proposed block",
 			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
 			"header hash", cnsDta.BlockHeaderHash,
@@ -317,6 +311,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			//we should not return error here because the other peers connected to self might need this message
+			//to advance the consensus
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
