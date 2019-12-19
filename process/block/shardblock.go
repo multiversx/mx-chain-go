@@ -828,7 +828,7 @@ func (sp *shardProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
-	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	metaHeader, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -837,7 +837,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
-		headerMeta.GetNonce(),
+		metaHeader,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
