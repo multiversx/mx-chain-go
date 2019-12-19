@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. node.proto
 package trie
 
 import (
@@ -5,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -41,21 +41,21 @@ type node interface {
 }
 
 type branchNode struct {
-	protobuf.CollapsedBn
+	CollapsedBn
 	children [nrOfChildren]node
 	hash     []byte
 	dirty    bool
 }
 
 type extensionNode struct {
-	protobuf.CollapsedEn
+	CollapsedEn
 	child node
 	hash  []byte
 	dirty bool
 }
 
 type leafNode struct {
-	protobuf.CollapsedLn
+	CollapsedLn
 	hash  []byte
 	dirty bool
 }

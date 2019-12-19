@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +18,7 @@ func getLn() *leafNode {
 func TestLeafNode_newLeafNode(t *testing.T) {
 	t.Parallel()
 	expectedLn := &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   []byte("dog"),
 			Value: []byte("dog"),
 		},
@@ -368,8 +367,8 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 
 func TestLeafNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	ln := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{100, 111, 103}}}
-	expected := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{2, 100, 111, 103}}, dirty: true}
+	ln := &leafNode{CollapsedLn: CollapsedLn{Key: []byte{100, 111, 103}}}
+	expected := &leafNode{CollapsedLn: CollapsedLn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
 }

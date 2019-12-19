@@ -1,74 +1,44 @@
 package trie
 
 import (
-	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Save saves the serialized data of a branch node into a stream through Capnp protocol
-func (bn *branchNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	branchNodeGoToCapn(seg, bn)
-	_, err := seg.WriteTo(w)
-	return err
-}
+var _ = node(&branchNode{})
 
-// Load loads the data from the stream into a branch node object through Capnp protocol
-func (bn *branchNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
+// Save saves the serialized data of a branch node into a stream through protobuf
+func (bn *branchNode) Save(w io.Writer) error {
+	b, err := bn.Marshal()
 	if err != nil {
 		return err
 	}
-	z := capnp.ReadRootBranchNodeCapn(capMsg)
-	branchNodeCapnToGo(z, bn)
-	return nil
+	_, err = w.Write(b)
+	return err
 }
 
-func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn {
-	dest := capnp.AutoNewBranchNodeCapn(seg)
-
-	children := seg.NewDataList(len(src.EncodedChildren))
-	for i := range src.EncodedChildren {
-		children.Set(i, src.EncodedChildren[i])
+// Load loads the data from the stream into a branch node object through protobuf
+func (bn *branchNode) Load(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
 	}
-	dest.SetEncodedChildren(children)
-
-	return dest
-}
-
-func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
-	if dest == nil {
-		dest = newBranchNode()
-	}
-
-	for i := 0; i < nrOfChildren; i++ {
-		child := src.EncodedChildren().At(i)
-		if bytes.Equal(child, []byte{}) {
-			dest.EncodedChildren[i] = nil
-		} else {
-			dest.EncodedChildren[i] = child
-		}
-
-	}
-	return dest
+	bn.Reset()
+	return bn.Unmarshal(b)
 }
 
 func newBranchNode() *branchNode {
 	var children [nrOfChildren]node
-	EncChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
-			EncodedChildren: EncChildren,
+		CollapsedBn: CollapsedBn{
+			EncodedChildren: make([][]byte, nrOfChildren),
 		},
 		children: children,
 		hash:     nil,
@@ -80,6 +50,9 @@ func (bn *branchNode) getHash() []byte {
 	return bn.hash
 }
 
+func (bn *branchNode) Equal(that *branchNode) bool {
+	return bn.CollapsedBn.Equal(&that.CollapsedBn)
+}
 func (bn *branchNode) isDirty() bool {
 	return bn.dirty
 }

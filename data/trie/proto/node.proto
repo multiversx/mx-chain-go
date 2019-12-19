@@ -1,8 +1,13 @@
 syntax = "proto3";
-package protobuf;
+
+package proto;
+
+option go_package = "trie";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message CollapsedBn{
-    repeated bytes EncodedChildren = 1;
+    repeated bytes EncodedChildren = 1 [(gogoproto.nullable) = true];
 }
 
 message CollapsedEn{

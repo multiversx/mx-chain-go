@@ -15,7 +15,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &mock.ProtobufMarshalizerMock{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }
@@ -910,9 +910,9 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 	}
 }
 
-func BenchmarkMarshallNodeCapnp(b *testing.B) {
+func BenchmarkMarshallNodeGogoProto(b *testing.B) {
 	bn, _ := getBnAndCollapsedBn()
-	marsh := &marshal.CapnpMarshalizer{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = marsh.Marshal(bn)
