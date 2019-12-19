@@ -74,6 +74,11 @@ func (l *lruDB) Destroy() error {
 	return nil
 }
 
+// DestroyClosed removes the already closed storage medium stored data
+func (l *lruDB) DestroyClosed() error {
+	return l.Destroy()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (l *lruDB) IsInterfaceNil() bool {
 	if l == nil {
