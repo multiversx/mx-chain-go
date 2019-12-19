@@ -78,9 +78,8 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 func (txPool *shardedTxPool) AddTx(txHash []byte, tx data.TransactionHandler, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
-	ok, found := cache.AddTx(txHash, tx)
-
-	if ok && !found {
+	_, added := cache.AddTx(txHash, tx)
+	if added {
 		txPool.onAdded(txHash)
 	}
 }

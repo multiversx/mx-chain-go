@@ -56,6 +56,19 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 	chunk.Unlock()
 }
 
+// SetIfAbsent sets the given value under the specified key if no value was associated with it.
+func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
+	// Get map shard.
+	chunk := m.getChunk(key)
+	chunk.Lock()
+	_, ok := chunk.items[key]
+	if !ok {
+		chunk.items[key] = value
+	}
+	chunk.Unlock()
+	return !ok
+}
+
 // Get retrieves an element from map under given key.
 func (m *ConcurrentMap) Get(key string) (interface{}, bool) {
 	chunk := m.getChunk(key)

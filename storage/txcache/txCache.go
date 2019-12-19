@@ -41,23 +41,25 @@ func NewTxCacheWithEviction(nChunksHint uint32, evictionConfig EvictionConfig) *
 
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
-func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool, existed bool) {
+func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool, added bool) {
+	ok = false
+	added = false
+
 	if check.IfNil(tx) {
-		return false, false
+		return
 	}
 
 	if cache.evictionConfig.Enabled {
 		cache.doEviction()
 	}
 
-	// TODO: refactor, protect (read mutex)
-	if cache.txByHash.backingMap.Has(string(txHash)) {
-		return true, true
+	ok = true
+	added = cache.txByHash.addTx(txHash, tx)
+	if added {
+		cache.txListBySender.addTx(txHash, tx)
 	}
 
-	cache.txByHash.addTx(txHash, tx)
-	cache.txListBySender.addTx(txHash, tx)
-	return true, false
+	return
 }
 
 // GetByTxHash gets the transaction by hash
