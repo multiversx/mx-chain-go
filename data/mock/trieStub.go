@@ -22,8 +22,8 @@ type TrieStub struct {
 	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier) error
 	ResetOldHashesCalled     func() [][]byte
 	AppendToOldHashesCalled  func([][]byte)
-	TakeSnapshotCalled       func() error
-	SetCheckpointCalled      func() error
+	TakeSnapshotCalled       func(rootHash []byte) error
+	SetCheckpointCalled      func(rootHash []byte) error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
 	GetAllLeavesCalled       func() (map[string][]byte, error)
@@ -111,10 +111,7 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
-	if ts == nil {
-		return true
-	}
-	return false
+	return ts == nil
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
@@ -149,16 +146,16 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	}
 }
 
-func (ts *TrieStub) TakeSnapshot() error {
+func (ts *TrieStub) TakeSnapshot(rootHash []byte) error {
 	if ts.TakeSnapshotCalled != nil {
-		return ts.TakeSnapshotCalled()
+		return ts.TakeSnapshotCalled(rootHash)
 	}
 	return nil
 }
 
-func (ts *TrieStub) SetCheckpoint() error {
+func (ts *TrieStub) SetCheckpoint(rootHash []byte) error {
 	if ts.SetCheckpointCalled != nil {
-		return ts.SetCheckpointCalled()
+		return ts.SetCheckpointCalled(rootHash)
 	}
 	return nil
 }

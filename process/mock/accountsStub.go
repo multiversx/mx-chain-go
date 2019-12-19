@@ -22,6 +22,8 @@ type AccountsStub struct {
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 	PruneTrieCalled             func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte) error
+	SetStateCheckpointCalled    func(rootHash []byte) error
 	CancelPruneCalled           func(rootHash []byte)
 }
 
@@ -155,10 +157,23 @@ func (aam *AccountsStub) CancelPrune(rootHash []byte) {
 	}
 }
 
+func (aam *AccountsStub) SnapshotState(rootHash []byte) error {
+	if aam.SnapshotStateCalled != nil {
+		return aam.SnapshotStateCalled(rootHash)
+	}
+
+	return errNotImplemented
+}
+
+func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) error {
+	if aam.SetStateCheckpointCalled != nil {
+		return aam.SetStateCheckpointCalled(rootHash)
+	}
+
+	return errNotImplemented
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (aam *AccountsStub) IsInterfaceNil() bool {
-	if aam == nil {
-		return true
-	}
-	return false
+	return aam == nil
 }
