@@ -59,6 +59,9 @@ func NewInterceptorsContainerFactory(
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	chainID []byte,
+	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -71,6 +74,9 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilBlockChain
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -108,19 +114,27 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(blockSingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
+	if check.IfNil(headerSigVerifier) {
+		return nil, process.ErrNilHeaderSigVerifier
+	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:      marshalizer,
-		Hasher:           hasher,
-		ShardCoordinator: shardCoordinator,
-		MultiSigVerifier: multiSigner,
-		NodesCoordinator: nodesCoordinator,
-		KeyGen:           keyGen,
-		BlockKeyGen:      blockSignKeyGen,
-		Signer:           singleSigner,
-		BlockSigner:      blockSingleSigner,
-		AddrConv:         addrConverter,
-		FeeHandler:       txFeeHandler,
+		Marshalizer:       marshalizer,
+		Hasher:            hasher,
+		ShardCoordinator:  shardCoordinator,
+		MultiSigVerifier:  multiSigner,
+		NodesCoordinator:  nodesCoordinator,
+		KeyGen:            keyGen,
+		BlockKeyGen:       blockSignKeyGen,
+		Signer:            singleSigner,
+		BlockSigner:       blockSingleSigner,
+		AddrConv:          addrConverter,
+		FeeHandler:        txFeeHandler,
+		HeaderSigVerifier: headerSigVerifier,
+		ChainID:           chainID,
 	}
 
 	icf := &interceptorsContainerFactory{

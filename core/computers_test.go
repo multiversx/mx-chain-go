@@ -78,3 +78,15 @@ func TestMinUint64ShouldReturnA(t *testing.T) {
 	b := uint64(11)
 	assert.Equal(t, a, core.MinUint64(a, b))
 }
+
+func TestMinIntShouldReturnB(t *testing.T) {
+	a := 11
+	b := 10
+	assert.Equal(t, b, core.MinInt(a, b))
+}
+
+func TestMinIntReturnA(t *testing.T) {
+	a := 10
+	b := 11
+	assert.Equal(t, a, core.MinInt(a, b))
+}

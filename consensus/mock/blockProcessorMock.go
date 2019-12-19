@@ -25,6 +25,10 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
+func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+
+}
+
 func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
 
 }
@@ -50,7 +54,7 @@ func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
 	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+		return blProcMock.RevertStateToBlockCalled(header)
 	}
 	return nil
 }

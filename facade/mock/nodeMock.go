@@ -28,6 +28,7 @@ type NodeMock struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
+	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -98,6 +99,10 @@ func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
 
 func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return nm.GetHeartbeatsHandler()
+}
+
+func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	return nm.ValidatorStatisticsApiCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

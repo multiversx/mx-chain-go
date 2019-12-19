@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -36,6 +38,7 @@ func NewShardForkDetector(
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+	bfd.fork.nonce = math.MaxUint64
 
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,
@@ -81,6 +84,7 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	sfd.append(&headerInfo{
+		epoch: header.GetEpoch(),
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
