@@ -339,7 +339,6 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body block.Body,
-	round uint64,
 	timeRemaining func() time.Duration,
 ) error {
 
@@ -359,7 +358,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime)
+		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
 		if err != nil {
 			return err
 		}
@@ -375,7 +374,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	processedMiniBlocksHashes map[string]struct{},
 	maxTxSpaceRemained uint32,
 	maxMbSpaceRemained uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
 
@@ -426,7 +424,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, haveTime)
 		if err != nil {
 			continue
 		}
@@ -450,7 +448,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	maxTxSpaceRemained uint32,
 	maxMbSpaceRemained uint32,
-	round uint64,
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
@@ -464,7 +461,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
 			maxTxSpaceRemained,
 			maxMbSpaceRemained,
-			round,
 			haveTime,
 		)
 		if err != nil {
@@ -690,13 +686,12 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 func (tc *transactionCoordinator) processCompleteMiniBlock(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,
-	round uint64,
 	haveTime func() bool,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
 
-	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
+	err := preproc.ProcessMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())
 
