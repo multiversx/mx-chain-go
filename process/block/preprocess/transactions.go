@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var log = logger.GetOrCreate("process/block/preprocess")
@@ -656,14 +655,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 func (txs *transactions) getSortedTxs(senderShardID uint32, destinationShardID uint32) ([]data.TransactionHandler, [][]byte, error) {
 	cacheName := process.ShardCacherIdentifier(senderShardID, destinationShardID)
 	cache := txs.txPool.ShardDataStore(cacheName)
-	cacheAsTxCache := cache.(*txcache.TxCache)
+	sortedTransactionsProvider := cache.(SortedTransactionsProvider)
 
-	if cacheAsTxCache.Len() == 0 {
+	if cache.Len() == 0 {
 		return nil, nil, process.ErrEmptyTxDataPool
 	}
 
 	// TODO-TXCACHE
-	sortedTxs, hashes := cacheAsTxCache.GetTransactions(process.MaxItemsInBlock, 2)
+	sortedTxs, hashes := sortedTransactionsProvider.GetTransactions(process.MaxItemsInBlock, 2)
 
 	return sortedTxs, hashes, nil
 }
