@@ -48,6 +48,15 @@ func Test_findTx(t *testing.T) {
 	assert.Nil(t, noElementWithD)
 }
 
+func Test_findTx_CoverNonceComparisonOptimization(t *testing.T) {
+	list := newTxListForSender(".", 0)
+	list.AddTx([]byte("A"), createTx(".", 42))
+
+	// Find one with a lower nonce, not added to cache
+	noElement := list.findListElementWithTx(createTx(".", 41))
+	assert.Nil(t, noElement)
+}
+
 func Test_RemoveTransaction(t *testing.T) {
 	list := newTxListForSender(".", 0)
 	tx := createTx(".", 1)
