@@ -661,7 +661,7 @@ func (txs *transactions) getSortedTxs(senderShardID uint32, destinationShardID u
 	}
 
 	// TODO-TXCACHE
-	sortedTxs, hashes := txCache.GetTransactions(15000, 2)
+	sortedTxs, hashes := txCache.GetTransactions(process.MaxItemsInBlock, 2)
 
 	return sortedTxs, hashes, nil
 }
