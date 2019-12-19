@@ -314,7 +314,6 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 				GasLimit:  uint64(rand.Int63n(10000)),
 				Data:      RandomStr(32),
 				Signature: []byte(RandomStr(32)),
-				Challenge: []byte(RandomStr(32)),
 			},
 		})
 	}
