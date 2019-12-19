@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -18,7 +19,7 @@ type MetaPoolsHolderFake struct {
 	unsigned      dataRetriever.ShardedDataCacherNotifier
 	currTxs       dataRetriever.TransactionCacher
 
-	MetaBlocksCalled func() storage.Cacher
+	MetaBlocksCalled   func() storage.Cacher
 	ShardHeadersCalled func() storage.Cacher
 }
 

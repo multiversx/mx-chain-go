@@ -29,7 +29,7 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.TxPool {
+func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataCacherNotifier {
 	return &shardedTxPool{
 		cacheConfig:       config,
 		mutex:             sync.RWMutex{},
