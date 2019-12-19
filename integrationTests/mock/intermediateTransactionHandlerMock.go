@@ -15,6 +15,10 @@ type IntermediateTransactionHandlerMock struct {
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 }
 
+func (ith *IntermediateTransactionHandlerMock) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	return &block.MiniBlock{}
+}
+
 func (ith *IntermediateTransactionHandlerMock) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
 	if ith.GetAllCurrentFinishedTxsCalled != nil {
 		return ith.GetAllCurrentFinishedTxsCalled()

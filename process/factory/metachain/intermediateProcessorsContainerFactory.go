@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -78,7 +78,7 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewIntermediateResultsProcessor(
+	irp, err := postprocess.NewIntermediateResultsProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
