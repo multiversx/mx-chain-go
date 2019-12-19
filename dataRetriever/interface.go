@@ -37,11 +37,11 @@ const (
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
 	// MiniBlockHeaderUnit is the miniblock header data unit identifier
-	MiniBlockHeaderUnit = 11
+	MiniBlockHeaderUnit UnitType = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 11
+	BootstrapUnit UnitType = 12
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 12
+	StatusMetricsUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
