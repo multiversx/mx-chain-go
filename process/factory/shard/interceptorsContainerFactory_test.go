@@ -910,6 +910,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()

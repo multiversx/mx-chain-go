@@ -19,7 +19,7 @@ type MetaPoolsHolderFake struct {
 	unsigned      dataRetriever.ShardedDataCacherNotifier
 	currTxs       dataRetriever.TransactionCacher
 
-	MetaBlocksCalled func() storage.Cacher
+	MetaBlocksCalled   func() storage.Cacher
 	ShardHeadersCalled func() storage.Cacher
 }
 

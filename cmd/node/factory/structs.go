@@ -737,6 +737,7 @@ func newRequestHandler(
 			factory.MiniBlocksTopic,
 			factory.HeadersTopic,
 			factory.MetachainBlocksTopic,
+			factory.TrieNodesTopic,
 			MaxTxsToRequest,
 		)
 		if err != nil {
@@ -755,6 +756,7 @@ func newRequestHandler(
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.MiniBlocksTopic,
+			factory.TrieNodesTopic,
 			MaxTxsToRequest,
 		)
 		if err != nil {
