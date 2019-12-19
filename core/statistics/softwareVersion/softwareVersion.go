@@ -2,8 +2,9 @@ package softwareVersion
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -18,6 +19,7 @@ type tagVersion struct {
 	TagVersion string `json:"tag_name"`
 }
 
+// SoftwareVersionChecker is component used to check if a new software stable tag in available
 type SoftwareVersionChecker struct {
 	statusHandler             core.AppStatusHandler
 	mostRecentSoftwareVersion string
@@ -32,8 +34,14 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*Softwar
 		return nil, core.ErrNilAppStatusHandler
 	}
 
-	// check interval will be random in a interval [1hour, 1hour 15minutes]
-	randInterval := time.Duration(rand.Int() % 15)
+	// check interval will be random in a interval [1hour5minutes , 1hour20minutes]
+	randBigInt, err := rand.Int(rand.Reader, big.NewInt(15))
+	if err != nil {
+		return nil, err
+	}
+
+	randInt := randBigInt.Int64()
+	randInterval := time.Duration(randInt)
 	checkRandInterval := checkInterval + randInterval*time.Minute
 
 	return &SoftwareVersionChecker{

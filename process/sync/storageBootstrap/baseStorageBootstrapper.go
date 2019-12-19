@@ -60,6 +60,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		if err != nil {
 			break
 		}
+
+		if round == headerInfo.LastRound {
+			err = sync.ErrCorruptBootstrapFromStorageDb
+			break
+		}
+
 		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
 
 		if uint64(round) > st.bootstrapRoundIndex {
