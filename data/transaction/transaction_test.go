@@ -20,7 +20,6 @@ func TestTransaction_SaveLoad(t *testing.T) {
 		GasLimit:  uint64(1000),
 		Data:      "tx_data",
 		Signature: []byte("signature"),
-		Challenge: []byte("challenge"),
 	}
 
 	var b bytes.Buffer
