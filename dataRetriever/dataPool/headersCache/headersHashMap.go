@@ -1,45 +1,28 @@
 package headersCache
 
-import (
-	"sync"
-)
+type headersByHashMap map[string]headerInfo
 
-type headersHashMap struct {
-	hdrsHash    map[string]headerInfo
-	mutHdrsHash sync.RWMutex
-}
-
-func newHeadersHashMap() *headersHashMap {
-	return &headersHashMap{
-		hdrsHash:    make(map[string]headerInfo),
-		mutHdrsHash: sync.RWMutex{},
-	}
-}
-
-func (hh *headersHashMap) addElement(hash []byte, info headerInfo) bool {
-	hh.mutHdrsHash.Lock()
-	defer hh.mutHdrsHash.Unlock()
-
-	if _, ok := hh.hdrsHash[string(hash)]; ok {
+func (hhm headersByHashMap) addElement(hash []byte, info headerInfo) bool {
+	if _, ok := hhm[string(hash)]; ok {
 		return true
 	}
 
-	hh.hdrsHash[string(hash)] = info
+	hhm[string(hash)] = info
 	return false
 }
 
-func (hh *headersHashMap) deleteElement(hash []byte) {
-	hh.mutHdrsHash.Lock()
-	defer hh.mutHdrsHash.Unlock()
-
-	delete(hh.hdrsHash, string(hash))
+func (hhm headersByHashMap) deleteElement(hash []byte) {
+	delete(hhm, string(hash))
 }
 
-func (hh *headersHashMap) getElement(hash []byte) (headerInfo, bool) {
-	hh.mutHdrsHash.RLock()
-	defer hh.mutHdrsHash.RUnlock()
+func (hhm headersByHashMap) deleteBulk(hashes [][]byte) {
+	for _, hash := range hashes {
+		delete(hhm, string(hash))
+	}
+}
 
-	if element, ok := hh.hdrsHash[string(hash)]; ok {
+func (hhm headersByHashMap) getElement(hash []byte) (headerInfo, bool) {
+	if element, ok := hhm[string(hash)]; ok {
 		return element, true
 	}
 

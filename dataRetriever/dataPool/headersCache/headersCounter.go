@@ -1,48 +1,25 @@
 package headersCache
 
-import "sync"
+type numHeadersByShard map[uint32]uint64
 
-type headersCounter struct {
-	hdrsCounter    map[uint32]uint64
-	mutHdrsCounter sync.RWMutex
-}
-
-func newHeadersCounter() *headersCounter {
-	return &headersCounter{
-		hdrsCounter:    make(map[uint32]uint64),
-		mutHdrsCounter: sync.RWMutex{},
+func (nhs numHeadersByShard) increment(shardId uint32) {
+	if _, ok := nhs[shardId]; !ok {
+		nhs[shardId] = 0
 	}
+
+	nhs[shardId]++
 }
 
-func (hdc *headersCounter) increment(shardId uint32) {
-	hdc.mutHdrsCounter.Lock()
-	defer hdc.mutHdrsCounter.Unlock()
-
-	if _, ok := hdc.hdrsCounter[shardId]; !ok {
-		hdc.hdrsCounter[shardId] = 1
-
+func (nhs numHeadersByShard) decrement(shardId uint32, value int) {
+	if _, ok := nhs[shardId]; !ok {
 		return
 	}
 
-	hdc.hdrsCounter[shardId]++
+	nhs[shardId] -= uint64(value)
 }
 
-func (hdc *headersCounter) decrement(shardId uint32) {
-	hdc.mutHdrsCounter.Lock()
-	defer hdc.mutHdrsCounter.Unlock()
-
-	if _, ok := hdc.hdrsCounter[shardId]; !ok {
-		return
-	}
-
-	hdc.hdrsCounter[shardId]--
-}
-
-func (hdc *headersCounter) getNumHeaderFromCache(shardId uint32) int64 {
-	hdc.mutHdrsCounter.RLock()
-	defer hdc.mutHdrsCounter.RUnlock()
-
-	numShardHeaders, ok := hdc.hdrsCounter[shardId]
+func (nhs numHeadersByShard) getNumHeaderFromCache(shardId uint32) int64 {
+	numShardHeaders, ok := nhs[shardId]
 	if !ok {
 		return 0
 	}
@@ -50,12 +27,10 @@ func (hdc *headersCounter) getNumHeaderFromCache(shardId uint32) int64 {
 	return int64(numShardHeaders)
 }
 
-func (hdc *headersCounter) totalHeaders() int {
-	hdc.mutHdrsCounter.RLock()
-	defer hdc.mutHdrsCounter.RUnlock()
-
+func (nhs numHeadersByShard) totalHeaders() int {
 	total := 0
-	for _, value := range hdc.hdrsCounter {
+
+	for _, value := range nhs {
 		total += int(value)
 	}
 

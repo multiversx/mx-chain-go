@@ -1,96 +1,82 @@
 package headersCache
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"sort"
-	"sync"
 	"time"
 )
 
-type nonceTimestamp struct {
-	nonce     uint64
-	timestamp time.Time
+type headersMap map[uint64]timestampedListOfHeaders
+
+func (hMap headersMap) addElement(nonce uint64, details timestampedListOfHeaders) {
+	hMap[nonce] = details
 }
 
-type headersMap struct {
-	hdrsMap    map[uint64]headerListDetails
-	mutHdrsMap sync.RWMutex
-}
-
-func newHeadersMap() *headersMap {
-	return &headersMap{
-		hdrsMap:    make(map[uint64]headerListDetails),
-		mutHdrsMap: sync.RWMutex{},
-	}
-}
-
-func (h *headersMap) addElement(nonce uint64, details headerListDetails) {
-	h.mutHdrsMap.Lock()
-	h.hdrsMap[nonce] = details
-	h.mutHdrsMap.Unlock()
-}
-
-func (h *headersMap) getElement(nonce uint64) headerListDetails {
-	h.mutHdrsMap.RLock()
-	defer h.mutHdrsMap.RUnlock()
-
-	element, ok := h.hdrsMap[nonce]
+func (hMap headersMap) getElement(nonce uint64) timestampedListOfHeaders {
+	element, ok := hMap[nonce]
 	if !ok {
-		return headerListDetails{
-			headerList: make([]headerDetails, 0),
-			timestamp:  time.Now(),
+		return timestampedListOfHeaders{
+			headers:   make([]headerDetails, 0),
+			timestamp: time.Now(),
 		}
 	}
 
 	return element
 }
 
-func (h *headersMap) removeElement(nonce uint64) {
-	h.mutHdrsMap.Lock()
-	delete(h.hdrsMap, nonce)
-	h.mutHdrsMap.Unlock()
+func (hMap headersMap) appendElement(headerHash []byte, header data.HeaderHandler) {
+	headerNonce := header.GetNonce()
+	headersWithTimestamp := hMap.getElement(headerNonce)
+
+	headerDetails := headerDetails{
+		headerHash: headerHash,
+		header:     header,
+	}
+	headersWithTimestamp.headers = append(headersWithTimestamp.headers, headerDetails)
+	hMap.addElement(headerNonce, headersWithTimestamp)
 }
 
-func (h *headersMap) getNoncesTimestampSorted() []uint64 {
+func (hMap headersMap) removeElement(nonce uint64) {
+	delete(hMap, nonce)
+}
+
+func (hMap headersMap) getNoncesSortedByTimestamp() []uint64 {
 	noncesTimestampsSlice := make([]nonceTimestamp, 0)
 
-	h.mutHdrsMap.RLock()
-	for key, value := range h.hdrsMap {
+	for key, value := range hMap {
 		noncesTimestampsSlice = append(noncesTimestampsSlice, nonceTimestamp{nonce: key, timestamp: value.timestamp})
 	}
-	h.mutHdrsMap.RUnlock()
 
 	sort.Slice(noncesTimestampsSlice, func(i, j int) bool {
 		return noncesTimestampsSlice[j].timestamp.After(noncesTimestampsSlice[i].timestamp)
 	})
 
-	nonceSlice := make([]uint64, 0)
-	for _, d := range noncesTimestampsSlice {
-		nonceSlice = append(nonceSlice, d.nonce)
+	nonces := make([]uint64, 0)
+	for _, element := range noncesTimestampsSlice {
+		nonces = append(nonces, element.nonce)
 	}
 
-	return nonceSlice
+	return nonces
 }
 
-func (h *headersMap) getHeadersDetailsListFromSMap(hdrNonce uint64) (headerListDetails, bool) {
-	headersListD := h.getElement(hdrNonce)
-	if len(headersListD.headerList) == 0 {
-		return headerListDetails{}, false
+// getHeadersByNonce will return a list of headers and update timestamp
+func (hMap headersMap) getHeadersByNonce(hdrNonce uint64) (timestampedListOfHeaders, bool) {
+	hdrsWithTimestamp := hMap.getElement(hdrNonce)
+	if hdrsWithTimestamp.isEmpty() {
+		return timestampedListOfHeaders{}, false
 	}
 
 	//update timestamp
-	headersListD.timestamp = time.Now()
-	h.addElement(hdrNonce, headersListD)
+	hdrsWithTimestamp.timestamp = time.Now()
+	hMap.addElement(hdrNonce, hdrsWithTimestamp)
 
-	return headersListD, true
+	return hdrsWithTimestamp, true
 }
 
-func (h *headersMap) keys() []uint64 {
-	h.mutHdrsMap.RLock()
-	defer h.mutHdrsMap.RUnlock()
+func (hMap headersMap) keys() []uint64 {
+	nonces := make([]uint64, len(hMap))
 
-	nonces := make([]uint64, len(h.hdrsMap))
-
-	for key := range h.hdrsMap {
+	for key := range hMap {
 		nonces = append(nonces, key)
 	}
 

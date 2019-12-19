@@ -208,8 +208,8 @@ type HeadersPool interface {
 	Clear()
 	Add(headerHash []byte, header data.HeaderHandler)
 	RemoveHeaderByHash(headerHash []byte)
-	RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32)
-	GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
+	GetHeaderByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
 	RegisterHandler(handler func(shardHeaderHash []byte))
 	Keys(shardId uint32) []uint64
