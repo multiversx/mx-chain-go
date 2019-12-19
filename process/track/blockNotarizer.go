@@ -31,21 +31,21 @@ func (bbt *baseBlockTrack) setCrossNotarizedHeaders(startHeaders map[uint32]data
 	return nil
 }
 
-func (bbt *baseBlockTrack) setCrossNotarizedHeadersForShard(
-	shardID uint32,
-	lastCrossNotarizedHeader data.HeaderHandler,
-	lastCrossNotarizedHeaderHash []byte,
-	crossNotarizedHeaders []data.HeaderHandler,
-	crossNotarizedHeadersHashes [][]byte,
-) {
-	bbt.mutCrossNotarizedHeaders.Lock()
-	delete(bbt.crossNotarizedHeaders, shardID)
-	bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], &headerInfo{header: lastCrossNotarizedHeader, hash: lastCrossNotarizedHeaderHash})
-	for index, crossNotarizedHeader := range crossNotarizedHeaders {
-		bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], &headerInfo{header: crossNotarizedHeader, hash: crossNotarizedHeadersHashes[index]})
-	}
-	bbt.mutCrossNotarizedHeaders.Unlock()
-}
+//func (bbt *baseBlockTrack) setCrossNotarizedHeadersForShard(
+//	shardID uint32,
+//	lastCrossNotarizedHeader data.HeaderHandler,
+//	lastCrossNotarizedHeaderHash []byte,
+//	crossNotarizedHeaders []data.HeaderHandler,
+//	crossNotarizedHeadersHashes [][]byte,
+//) {
+//	bbt.mutCrossNotarizedHeaders.Lock()
+//	delete(bbt.crossNotarizedHeaders, shardID)
+//	bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], &headerInfo{header: lastCrossNotarizedHeader, hash: lastCrossNotarizedHeaderHash})
+//	for index, crossNotarizedHeader := range crossNotarizedHeaders {
+//		bbt.crossNotarizedHeaders[shardID] = append(bbt.crossNotarizedHeaders[shardID], &headerInfo{header: crossNotarizedHeader, hash: crossNotarizedHeadersHashes[index]})
+//	}
+//	bbt.mutCrossNotarizedHeaders.Unlock()
+//}
 
 func (bbt *baseBlockTrack) addCrossNotarizedHeaders(
 	shardID uint32,
@@ -152,21 +152,21 @@ func (bbt *baseBlockTrack) setSelfNotarizedHeaders(startHeaders map[uint32]data.
 	return nil
 }
 
-func (bbt *baseBlockTrack) setSelfNotarizedHeadersForShard(
-	shardID uint32,
-	lastSelfNotarizedHeader data.HeaderHandler,
-	lastSelfNotarizedHeaderHash []byte,
-	selfNotarizedHeaders []data.HeaderHandler,
-	selfNotarizedHeadersHashes [][]byte,
-) {
-	bbt.mutSelfNotarizedHeaders.Lock()
-	delete(bbt.selfNotarizedHeaders, shardID)
-	bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], &headerInfo{header: lastSelfNotarizedHeader, hash: lastSelfNotarizedHeaderHash})
-	for index, selfNotarizedHeader := range selfNotarizedHeaders {
-		bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], &headerInfo{header: selfNotarizedHeader, hash: selfNotarizedHeadersHashes[index]})
-	}
-	bbt.mutSelfNotarizedHeaders.Unlock()
-}
+//func (bbt *baseBlockTrack) setSelfNotarizedHeadersForShard(
+//	shardID uint32,
+//	lastSelfNotarizedHeader data.HeaderHandler,
+//	lastSelfNotarizedHeaderHash []byte,
+//	selfNotarizedHeaders []data.HeaderHandler,
+//	selfNotarizedHeadersHashes [][]byte,
+//) {
+//	bbt.mutSelfNotarizedHeaders.Lock()
+//	delete(bbt.selfNotarizedHeaders, shardID)
+//	bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], &headerInfo{header: lastSelfNotarizedHeader, hash: lastSelfNotarizedHeaderHash})
+//	for index, selfNotarizedHeader := range selfNotarizedHeaders {
+//		bbt.selfNotarizedHeaders[shardID] = append(bbt.selfNotarizedHeaders[shardID], &headerInfo{header: selfNotarizedHeader, hash: selfNotarizedHeadersHashes[index]})
+//	}
+//	bbt.mutSelfNotarizedHeaders.Unlock()
+//}
 
 func (bbt *baseBlockTrack) addSelfNotarizedHeaders(
 	shardID uint32,

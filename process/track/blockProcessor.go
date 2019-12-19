@@ -170,14 +170,21 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 }
 
 func (bbt *baseBlockTrack) doJobOnReceivedHeader(shardID uint32) {
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, selfNotarizedHeaders, selfNotarizedHeadersHashes :=
-		bbt.blockTracker.computeLongestSelfChain()
+	_, _, selfNotarizedHeaders, selfNotarizedHeadersHashes := bbt.blockTracker.computeLongestSelfChain()
+
+	//if len(selfNotarizedHeaders) > 0 {
+	//	bbt.setSelfNotarizedHeadersForShard(
+	//		shardID,
+	//		lastSelfNotarizedHeader,
+	//		lastSelfNotarizedHeaderHash,
+	//		selfNotarizedHeaders,
+	//		selfNotarizedHeadersHashes,
+	//	)
+	//}
 
 	if len(selfNotarizedHeaders) > 0 {
-		bbt.setSelfNotarizedHeadersForShard(
+		_, _ = bbt.addSelfNotarizedHeaders(
 			shardID,
-			lastSelfNotarizedHeader,
-			lastSelfNotarizedHeaderHash,
 			selfNotarizedHeaders,
 			selfNotarizedHeadersHashes,
 		)
