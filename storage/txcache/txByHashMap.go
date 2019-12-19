@@ -81,4 +81,5 @@ func (txMap *txByHashMap) forEach(function ForEachTransaction) {
 
 func (txMap *txByHashMap) clear() {
 	txMap.backingMap.Clear()
+	txMap.counter.Set(0)
 }

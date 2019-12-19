@@ -131,4 +131,5 @@ func (txMap *txListBySenderMap) forEach(function ForEachSender) {
 
 func (txMap *txListBySenderMap) clear() {
 	txMap.backingMap.Clear()
+	txMap.counter.Set(0)
 }
