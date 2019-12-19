@@ -52,6 +52,7 @@ func (h *headersMap) removeElement(nonce uint64) {
 
 func (h *headersMap) getNoncesTimestampSorted() []uint64 {
 	noncesTimestampsSlice := make([]nonceTimestamp, 0)
+
 	h.mutHdrsMap.RLock()
 	for key, value := range h.hdrsMap {
 		noncesTimestampsSlice = append(noncesTimestampsSlice, nonceTimestamp{nonce: key, timestamp: value.timestamp})

@@ -39,9 +39,9 @@ func (hh *headersHashMap) getElement(hash []byte) (headerInfo, bool) {
 	hh.mutHdrsHash.RLock()
 	defer hh.mutHdrsHash.RUnlock()
 
-	if _, ok := hh.hdrsHash[string(hash)]; !ok {
-		return headerInfo{}, false
+	if element, ok := hh.hdrsHash[string(hash)]; ok {
+		return element, true
 	}
 
-	return hh.hdrsHash[string(hash)], true
+	return headerInfo{}, false
 }
