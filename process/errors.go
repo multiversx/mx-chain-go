@@ -575,6 +575,9 @@ var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last f
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")
 
+// ErrMinRatingSmallerThanOne signals that the min rating is smaller than the min value of 1
+var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
+
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
 
