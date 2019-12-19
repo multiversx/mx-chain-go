@@ -108,6 +108,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -137,6 +138,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -166,6 +168,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -195,6 +198,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -224,6 +228,37 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := metachain.NewInterceptorsContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		nil,
+		&mock.HasherMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
 	)
 
 	assert.Nil(t, icf)
@@ -253,6 +288,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -282,6 +318,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -311,6 +348,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -340,6 +378,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -369,6 +408,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -398,6 +438,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -427,6 +468,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -456,6 +498,7 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -485,6 +528,7 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		nil,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -514,6 +558,7 @@ func TestNewInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -543,6 +588,37 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+	)
+
+	assert.NotNil(t, icf)
+	assert.Nil(t, err)
+}
+
+func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
+	t.Parallel()
+
+	icf, err := metachain.NewInterceptorsContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
 	)
 
 	assert.NotNil(t, icf)
@@ -574,6 +650,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -605,6 +682,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -636,6 +714,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -667,6 +746,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -736,6 +816,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -787,6 +868,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
 	)
 
 	container, err := icf.Create()

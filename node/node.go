@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -58,6 +59,7 @@ type Option func(*Node) error
 //  required services as requested
 type Node struct {
 	marshalizer              marshal.Marshalizer
+	sizeCheckDelta           uint32
 	ctx                      context.Context
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
@@ -70,6 +72,7 @@ type Node struct {
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
+	epochStartTrigger        epochStart.TriggerHandler
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -269,6 +272,10 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	netInputMarshalizer := n.marshalizer
+	if n.sizeCheckDelta > 0 {
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+	}
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -278,7 +285,7 @@ func (n *Node) StartConsensus() error {
 		consensusState,
 		n.forkDetector,
 		n.keyGen,
-		n.marshalizer,
+		netInputMarshalizer,
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
@@ -370,7 +377,8 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncTimer)
+		n.syncTimer,
+	)
 
 	if err != nil {
 		return nil, err
@@ -869,6 +877,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
+
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
@@ -879,8 +888,12 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
 	timer := &heartbeat.RealTimer{}
+	netInputMarshalizer := n.marshalizer
+	if n.sizeCheckDelta > 0 {
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
-		n.marshalizer,
+		netInputMarshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
 		n.genesisTime,

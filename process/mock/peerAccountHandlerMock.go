@@ -16,9 +16,14 @@ type PeerAccountHandlerMock struct {
 	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
-	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
-	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
-	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
+	SetNonceWithJournalCalled      func(nonce uint64) error
+	SetCodeHashWithJournalCalled   func(codeHash []byte) error
+	SetRootHashWithJournalCalled   func([]byte) error
+	RatingCalled                   func() uint32
+	SetCodeWithJournalCalled       func(codeHash []byte) error
+	SetRatingWithJournalCalled     func(rating uint32) error
+	TempRatingCalled               func() uint32
+	SetTempRatingWithJournalCalled func(rating uint32) error
 
 	IncreaseLeaderSuccessRateWithJournalCalled    func() error
 	DecreaseLeaderSuccessRateWithJournalCalled    func() error
@@ -111,6 +116,34 @@ func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() er
 func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
 	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
 		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
+	}
+	return nil
+}
+
+func (pahm *PeerAccountHandlerMock) GetRating() uint32 {
+	if pahm.SetRatingWithJournalCalled != nil {
+		return pahm.RatingCalled()
+	}
+	return 10
+}
+
+func (pahm *PeerAccountHandlerMock) SetRatingWithJournal(rating uint32) error {
+	if pahm.SetRatingWithJournalCalled != nil {
+		return pahm.SetRatingWithJournalCalled(rating)
+	}
+	return nil
+}
+
+func (pahm *PeerAccountHandlerMock) GetTempRating() uint32 {
+	if pahm.TempRatingCalled != nil {
+		return pahm.TempRatingCalled()
+	}
+	return 10
+}
+
+func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) error {
+	if pahm.SetTempRatingWithJournalCalled != nil {
+		return pahm.SetTempRatingWithJournalCalled(rating)
 	}
 	return nil
 }
