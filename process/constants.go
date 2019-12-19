@@ -53,6 +53,11 @@ const MaxHeaderRequestsAllowed = 10
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
 const MaxItemsInBlock = 15000
 
+// NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
+// from the transactions pool, for a specific sender, in a single pass.
+// Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
+const NumTxPerSenderBatchForFillingMiniblock = MaxItemsInBlock / 1000
+
 // MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
 // (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
 const MinItemsInBlock = 15000
