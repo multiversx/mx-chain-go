@@ -200,7 +200,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, "")
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 	}
 
 	time.Sleep(time.Second)
@@ -280,6 +280,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, "")
 		}
 	}
+
+	time.Sleep(2 * time.Second)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
