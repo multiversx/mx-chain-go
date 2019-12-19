@@ -112,7 +112,7 @@ func (txPool *shardedTxPool) SearchFirstTx(txHash []byte) (tx data.TransactionHa
 // RemoveTx removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveTx(txHash []byte, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
-	shard.Cache.RemoveTxByHash(txHash)
+	_ = shard.Cache.RemoveTxByHash(txHash)
 }
 
 // RemoveTxBulk removes a bunch of transactions from the pool
@@ -129,7 +129,7 @@ func (txPool *shardedTxPool) RemoveTxFromAllShards(txHash []byte) {
 
 	for _, shard := range txPool.backingMap {
 		cache := shard.Cache
-		cache.RemoveTxByHash(txHash)
+		_ = cache.RemoveTxByHash(txHash)
 	}
 }
 

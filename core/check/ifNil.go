@@ -1,7 +1,6 @@
 package check
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -22,11 +21,4 @@ func IfNilReflect(i interface{}) bool {
 		return false
 	}
 	return true
-}
-
-// AssertNotNil throws a programmer error (go panic) if the object is nil
-func AssertNotNil(object NilInterfaceChecker, objectName string) {
-	if object == nil || object.IsInterfaceNil() {
-		panic(fmt.Sprintf("ProgrammerError: %s is NIL", objectName))
-	}
 }
