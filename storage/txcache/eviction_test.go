@@ -24,7 +24,7 @@ func Test_EvictOldestSenders(t *testing.T) {
 	require.Equal(t, int64(1), cache.txByHash.counter.Get())
 }
 
-func Test_DoHighNonceTransactionsEviction(t *testing.T) {
+func Test_EvictHighNonceTransactions(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:                  400,
 		ALotOfTransactionsForASender:    50,
@@ -54,6 +54,24 @@ func Test_DoHighNonceTransactionsEviction(t *testing.T) {
 	require.Equal(t, int64(351), cache.txByHash.counter.Get())
 }
 
+func Test_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
+	config := EvictionConfig{
+		CountThreshold:                  0,
+		ALotOfTransactionsForASender:    0,
+		NumTxsToEvictForASenderWithALot: 1,
+	}
+
+	cache := NewTxCacheWithEviction(1, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	require.Equal(t, int64(1), cache.CountSenders())
+
+	// Alice is also removed from the map of senders, since it has no transaction left
+	nTxs, nSenders := cache.evictHighNonceTransactions()
+	require.Equal(t, uint32(1), nTxs)
+	require.Equal(t, uint32(1), nSenders)
+	require.Equal(t, int64(0), cache.CountSenders())
+}
+
 func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:          100,
@@ -78,6 +96,22 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, uint32(100), nSenders)
 	require.Equal(t, int64(100), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
+}
+
+func Test_EvictSendersWhileTooManyTxs_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
+	config := EvictionConfig{
+		CountThreshold:          0,
+		NumOldestSendersToEvict: 42,
+	}
+
+	cache := NewTxCacheWithEviction(1, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+
+	// Eviction done in 1 step, since "NumOldestSendersToEvict" > number of senders
+	steps, nTxs, nSenders := cache.evictSendersWhileTooManyTxs()
+	require.Equal(t, uint32(1), steps)
+	require.Equal(t, uint32(1), nTxs)
+	require.Equal(t, uint32(1), nSenders)
 }
 
 func Test_DoEviction_DoneInPass1_WhenTooManySenders(t *testing.T) {
