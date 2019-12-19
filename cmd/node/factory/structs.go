@@ -721,7 +721,7 @@ func newRequestHandler(
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
 			factory.MiniBlocksTopic,
-			factory.HeadersTopic,
+			factory.ShardBlocksTopic,
 			factory.MetachainBlocksTopic,
 			MaxTxsToRequest,
 		)
@@ -736,7 +736,7 @@ func newRequestHandler(
 		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 			resolversFinder,
 			requestedItemsHandler,
-			factory.ShardHeadersForMetachainTopic,
+			factory.ShardBlocksTopic,
 			factory.MetachainBlocksTopic,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,

@@ -7,16 +7,14 @@ const (
 	UnsignedTransactionTopic = "unsignedTransactions"
 	// RewardsTransactionTopic is the topic used for sharing fee transactions
 	RewardsTransactionTopic = "rewardsTransactions"
-	// HeadersTopic is the topic used for sharing block headers
-	HeadersTopic = "headers"
+	// ShardBlocksTopic is the topic used for sharing block headers
+	ShardBlocksTopic = "shardBlocks"
 	// MiniBlocksTopic is the topic used for sharing mini blocks
 	MiniBlocksTopic = "txBlockBodies"
 	// PeerChBodyTopic is used for sharing peer change block bodies
 	PeerChBodyTopic = "peerChangeBlockBodies"
-	// MetachainBlocksTopic is used for sharing metachain block headers between shards
+	// MetachainBlocksTopic is used for sharing metachain block headers
 	MetachainBlocksTopic = "metachainBlocks"
-	// ShardHeadersForMetachainTopic is used for sharing shards block headers to the metachain nodes
-	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )
 
 // SystemVirtualMachine is a byte array identifier for the smart contract address created for system VM

@@ -388,13 +388,16 @@ func createConsensusOnlyNode(
 	mbResolver := &mock.MiniBlocksResolverMock{}
 	resolverFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if baseTopic == factory.HeadersTopic {
-				return hdrResolver, nil
-			}
 			if baseTopic == factory.MiniBlocksTopic {
 				return mbResolver, nil
 			}
-			return hdrResolver, nil
+			return nil, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			if baseTopic == factory.ShardBlocksTopic {
+				return hdrResolver, nil
+			}
+			return nil, nil
 		},
 	}
 

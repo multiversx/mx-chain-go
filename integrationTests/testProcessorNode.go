@@ -495,7 +495,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
-			factory.ShardHeadersForMetachainTopic,
+			factory.ShardBlocksTopic,
 			factory.MetachainBlocksTopic,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
@@ -522,7 +522,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
 			factory.MiniBlocksTopic,
-			factory.HeadersTopic,
+			factory.ShardBlocksTopic,
 			factory.MetachainBlocksTopic,
 			100,
 		)
@@ -1048,7 +1048,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
