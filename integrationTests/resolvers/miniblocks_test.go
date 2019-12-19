@@ -47,7 +47,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 
 	rm := newReceiverMonitor(t)
 	shardIdResolver := uint32(0)
-	shardIdRequester := uint32(0)
+	shardIdRequester := uint32(1)
 	nResolver, nRequester := createResolverRequester(shardIdResolver, shardIdRequester)
 	miniblock, hash := createMiniblock(shardIdResolver, shardIdRequester)
 
@@ -65,7 +65,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash)
 	log.LogIfError(err)
@@ -97,7 +97,39 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, sharding.MetachainShardId)
+	log.LogIfError(err)
+	err = resolver.RequestDataFromHash(hash)
+	log.LogIfError(err)
+
+	rm.waitWithTimeout()
+}
+
+func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	rm := newReceiverMonitor(t)
+	shardId := uint32(0)
+	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
+	miniblock, hash := createMiniblock(shardId, sharding.MetachainShardId)
+
+	//add miniblock in pool
+	_, _ = nResolver.ShardDataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+
+	//setup header received event
+	nRequester.MetaDataPool.MiniBlocks().RegisterHandler(
+		func(key []byte) {
+			if bytes.Equal(key, hash) {
+				log.Info("received miniblock", "hash", key)
+				rm.done()
+			}
+		},
+	)
+
+	//request by hash should work
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash)
 	log.LogIfError(err)

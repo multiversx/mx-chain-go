@@ -290,21 +290,8 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		return nil, nil, err
 	}
 
-	//err = rcf.createTopicHeadersForMetachain()
-	//if err != nil {
-	//	return nil, nil, err
-	//}
-
 	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
 }
-
-//TODO remove this
-//func (rcf *resolversContainerFactory) createTopicHeadersForMetachain() error {
-//	shardC := rcf.shardCoordinator
-//	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-//
-//	return rcf.messenger.CreateTopic(identifierHdr, true)
-//}
 
 //------- MiniBlocks resolvers
 

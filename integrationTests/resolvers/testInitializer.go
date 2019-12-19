@@ -1,11 +1,13 @@
 package resolvers
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
@@ -95,4 +97,19 @@ func createMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBl
 	log.LogIfError(err)
 
 	return miniblock, hash
+}
+
+func createReward(round uint64, shardId uint32) (data.TransactionHandler, []byte) {
+	reward := &rewardTx.RewardTx{
+		Round:   round,
+		Epoch:   0,
+		Value:   big.NewInt(1),
+		RcvAddr: make([]byte, integrationTests.TestHasher.Size()),
+		ShardId: shardId,
+	}
+
+	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)
+	log.LogIfError(err)
+
+	return reward, hash
 }

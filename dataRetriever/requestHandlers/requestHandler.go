@@ -161,7 +161,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	txResolver, ok := resolver.(HashSliceResolver)
 	if !ok {
-		log.Debug("wrong assertion type when creating transaction resolver")
+		log.Warn("wrong assertion type when creating transaction resolver")
 		return
 	}
 
