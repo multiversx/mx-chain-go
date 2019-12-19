@@ -260,6 +260,15 @@ func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, calle
 	return vmcommon.Ok
 }
 
+func (s *stakingAuctionSC) isNumArgsCorrectToStake(args [][]byte) bool {
+	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
+	if uint64(len(args)) < 2*maxNodesToRun+1 {
+		return false
+	}
+
+	return true
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 

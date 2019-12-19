@@ -49,12 +49,8 @@ type SystemEI interface {
 	IsInterfaceNil() bool
 }
 
-// PeerChangesEI defines the environment interface system smart contract can use to write peer changes
-type PeerChangesEI interface {
-	GetPeerState()
-	SetPeerState()
-
-	CleanCache()
-	CreatePeerChangesOutput()
+// SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
+type SignerVerifier interface {
+	Verify(message []byte, sig []byte, pk []byte) error
 	IsInterfaceNil() bool
 }
