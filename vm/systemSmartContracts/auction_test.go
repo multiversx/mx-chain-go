@@ -14,6 +14,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
+	args := ArgsStakingAuctionSmartContract{
+		MinStakeValue: big.NewInt(10000000),
+		MinStepValue:  big.NewInt(100000),
+		TotalSupply:   big.NewInt(100000000000),
+		UnBondPeriod:  uint64(100000),
+		NumNodes:      uint32(10),
+		Eei:           &mock.SystemEIStub{},
+		SigVerifier:   &mock.MessageSignVerifierMock{},
+	}
+
+	return args
+}
+
 func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint64) AuctionData {
 	data := AuctionData{
 		RewardAddress:   []byte("addr"),
@@ -37,19 +51,8 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(10)
-
-	eei := &mock.SystemEIStub{}
-
-	kg := &mock.KeyGenMock{}
-
 	expectedNodePrice := big.NewInt(20000000)
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
 
 	bids := []AuctionData{
 		createABid(100000000, 100, 30000000),
@@ -68,17 +71,10 @@ func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
 func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
 	expectedNodePrice := big.NewInt(20000000)
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.NumNodes = 5
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
 		createABid(100000000, 1, 30000000),
@@ -95,17 +91,10 @@ func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
 	expectedNodePrice := big.NewInt(12500000)
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.NumNodes = 5
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
 		createABid(25000000, 2, 12500000),
@@ -122,15 +111,7 @@ func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(10)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
 
 	bid1 := createABid(25000000, 2, 12500000)
 	bid2 := createABid(30000000, 3, 10000000)
@@ -149,15 +130,9 @@ func TestAuctionSC_calculateNodePrice_Case4ShouldErr(t *testing.T) {
 func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.NumNodes = 5
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bid1 := createABid(25000000, 2, 12500000)
 	bid2 := createABid(30000000, 3, 10000000)
@@ -178,15 +153,10 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(1)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(10)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.MinStepValue = big.NewInt(100000)
+	args.MinStakeValue = big.NewInt(1)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
 		createABid(10000000, 10, 10000000),
@@ -223,15 +193,7 @@ func checkExpectedKeys(t *testing.T, expectedKeys [][]byte, data [][]byte, expec
 func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(1)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(10)
-	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
 
 	bids := []AuctionData{
 		createABid(100000000, 10, 10000000),
@@ -255,12 +217,6 @@ func TestAuctionSC_selection_FirstBidderTakesAll(t *testing.T) {
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
-
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
 	auctionDataBytes, _ := json.Marshal(&auctionData)
@@ -279,10 +235,11 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 			assert.Equal(t, big.NewInt(26000000), auctionData.TotalStakeValue)
 		}
 	}
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+	args.NumNodes = uint32(5)
 
-	kg := &mock.KeyGenMock{}
-
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "stake"
 	arguments.CallValue = big.NewInt(1000000)
@@ -293,12 +250,6 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 
 func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	t.Parallel()
-
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
 
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
@@ -328,13 +279,15 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 		}
 	}
 
-	kg := &mock.KeyGenMock{}
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+	args.NumNodes = uint32(5)
 
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "stake"
 	arguments.CallValue = big.NewInt(1000000)
-	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, key2, maxStakePerNoce.Bytes(), rewardAddr}
+	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key2, []byte("msg2"), maxStakePerNoce.Bytes(), rewardAddr}
 
 	errCode := stakingAuctionSC.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
@@ -342,12 +295,6 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 
 func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 	t.Parallel()
-
-	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
 
 	arguments := CreateVmContractCallInput()
 	auctionData := createABid(25000000, 2, 12500000)
@@ -364,7 +311,6 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 	stakedDataBytes, _ := json.Marshal(&stakedData)
 
 	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		if bytes.Equal(key, arguments.CallerAddr) {
 			return auctionDataBytes
@@ -381,7 +327,11 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 		assert.Equal(t, false, stakedData.Staked)
 	}
 
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+	args.NumNodes = uint32(5)
+
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "unStake"
 	arguments.Arguments = [][]byte{auctionData.BlsPubKeys[0]}
@@ -393,10 +343,6 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(10000000)
-	totalSupply := big.NewInt(100000000000)
-	minStep := big.NewInt(100000)
-	unBondPeriod := uint64(100000)
-	numNodes := uint32(5)
 	arguments := CreateVmContractCallInput()
 	totalStake := uint64(25000000)
 
@@ -414,7 +360,6 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	stakedDataBytes, _ := json.Marshal(&stakedData)
 
 	eei := &mock.SystemEIStub{}
-	kg := &mock.KeyGenMock{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		if bytes.Equal(arguments.CallerAddr, key) {
 			return auctionDataBytes
@@ -436,7 +381,11 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 		}
 	}
 
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBondPeriod, numNodes, eei, kg)
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+	args.NumNodes = uint32(5)
+
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "unBond"
 	arguments.Arguments = [][]byte{auctionData.BlsPubKeys[0]}

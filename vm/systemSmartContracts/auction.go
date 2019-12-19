@@ -7,7 +7,6 @@ import (
 	"math/rand"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -193,7 +192,7 @@ func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument [][]byte, maxNumNodes uint64) ([][]byte, error) {
+func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument [][]byte) ([][]byte, error) {
 	registeredKeysMap := make(map[string]struct{})
 
 	for _, blsKey := range registeredKeys {
@@ -201,7 +200,7 @@ func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgu
 	}
 
 	newKeys := make([][]byte, 0)
-	for i := uint64(0); i < uint64(len(keysFromArgument)) && i < maxNumNodes; i++ {
+	for i := uint64(0); i < uint64(len(keysFromArgument)); i++ {
 		if _, ok := registeredKeysMap[string(keysFromArgument[i])]; ok {
 			continue
 		}
@@ -226,19 +225,15 @@ func (s *stakingAuctionSC) saveBLSKeys(registrationData *AuctionData, args [][]b
 		return vm.ErrNotEnoughArgumentsToStake
 	}
 
-	newKeys, err := s.getNewValidKeys(registrationData.BlsPubKeys, args[1:1+maxNodesToRun], maxNodesToRun)
+	blsKeys := s.getVerifiableBLSKeysFromArgs(args)
+
+	newKeys, err := s.getNewValidKeys(registrationData.BlsPubKeys, blsKeys)
 	if err != nil {
 		log.Debug("staking with already existing key is not allowed")
 		return vm.ErrKeyAlreadyRegistered
 	}
 
 	for _, blsKey := range newKeys {
-		_, err := s.kg.PublicKeyFromByteArray(blsKey)
-		if err != nil {
-			log.Debug("bls key is not valid")
-			return vm.ErrBLSKeyIsNotValid
-		}
-
 		err = s.saveStakedData(blsKey, &StakedData{})
 		if err != nil {
 			return err
@@ -269,7 +264,14 @@ func (s *stakingAuctionSC) getVerifiableBLSKeysFromArgs(args [][]byte) [][]byte 
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 
 	for i := uint64(1); i < maxNodesToRun*2+1; i += 2 {
+		blsKey := args[i]
+		signedMessage := args[i+1]
+		err := s.sigVerifier.Verify([]byte("stake"), signedMessage, blsKey)
+		if err != nil {
+			continue
+		}
 
+		blsKeys = append(blsKeys, blsKey)
 	}
 
 	return blsKeys
@@ -302,6 +304,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return s.updateStakeValue(registrationData, args.CallerAddr)
 	}
 
+	if !s.isNumArgsCorrectToStake(args.Arguments) {
+		log.Debug("incorrect number of arguments to call stake", "numArgs", args.Arguments)
+		return vmcommon.UserError
+	}
+
 	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	err = s.saveBLSKeys(registrationData, args.Arguments)
 	if err != nil {
@@ -313,8 +320,8 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
 	// do the optionals - rewardAddress and maxStakePerNode
-	if uint64(lenArgs) > maxNodesToRun+1 {
-		for i := maxNodesToRun + 1; i < uint64(lenArgs); i++ {
+	if uint64(lenArgs) > maxNodesToRun*2+1 {
+		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
 				registrationData.RewardAddress = args.Arguments[i]
 			} else {
