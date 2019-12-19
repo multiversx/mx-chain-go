@@ -368,12 +368,12 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		// map from *block.Header to dataHandler
-		sortedHdrs := make([]data.HeaderHandler, len(orderedHdrsPerShard[i]))
-		for j := 0; j < len(orderedHdrsPerShard[i]); j++ {
-			sortedHdrs[j] = orderedHdrsPerShard[i][j]
-		}
+		//sortedHdrs := make([]data.HeaderHandler, len(orderedHdrsPerShard[i]))
+		//for j := 0; j < len(orderedHdrsPerShard[i]); j++ {
+		//	sortedHdrs[j] = orderedHdrsPerShard[i][j]
+		//}
 
-		err := mp.requestHeadersIfMissing(sortedHdrs, i, round, mp.dataPool.ShardHeaders())
+		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.ShardHeaders())
 		if err != nil {
 			log.Trace("requestHeadersIfMissing", "error", err.Error())
 			continue
@@ -615,7 +615,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	hdrsAdded := uint32(0)
 	lastShardHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 
-	orderedHdrs, orderedHdrsHashes, _, err := mp.getLongestChainFromLastNotarized(round)
+	orderedHdrs, orderedHdrsHashes, _, err := mp.getLongestShardsChainFromLastNotarized(round)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -707,7 +707,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 				haveTime)
 
 			if !hdrProcessFinished {
-				log.Debug("shard header can not be fully processed",
+				log.Debug("shard header cannot be fully processed",
 					"round", currShardHdr.GetRound(),
 					"nonce", currShardHdr.GetNonce(),
 					"hash", orderedHdrsHashes[i])
@@ -735,9 +735,11 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("hdrs added for shard",
+		log.Debug("shard hdrs added",
 			"shard", shardID,
-			"nb", hdrsAddedForShard[shardID])
+			"nb", hdrsAddedForShard[shardID],
+			"lastShardHdr", lastShardHdr[shardID].GetNonce())
+
 		if hdrsAddedForShard[shardID] == 0 {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
@@ -972,11 +974,14 @@ func (mp *metaProcessor) CommitBlock(
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
+	mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+
 	go mp.headersCounter.displayLogInfo(
 		header,
 		body,
 		headerHash,
 		mp.dataPool.ShardHeaders().Len(),
+		mp.blockTracker,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -994,8 +999,6 @@ func (mp *metaProcessor) CommitBlock(
 		"shard headers", mp.dataPool.ShardHeaders().Len(),
 		"shard headers capacity", mp.dataPool.ShardHeaders().MaxSize(),
 	)
-
-	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
 }
@@ -1264,8 +1267,8 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
 			shardId,
 			mp.shardBlockFinality,
-			mp.getShardHeaderFromPoolWithNonce,
-			mp.dataPool.ShardHeaders(),
+			//mp.getShardHeaderFromPoolWithNonce,
+			//mp.dataPool.ShardHeaders(),
 		)
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
@@ -1508,7 +1511,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getLongestChainFromLastNotarized(round uint64) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+func (mp *metaProcessor) getLongestShardsChainFromLastNotarized(round uint64) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	lastHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	hdrsMap := make(map[uint32][]data.HeaderHandler, 0)
 	hdrsHashesMap := make(map[uint32][][]byte, 0)
@@ -1709,19 +1712,19 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 	return false
 }
 
-func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
-	nonce uint64,
-	shardId uint32,
-) (data.HeaderHandler, []byte, error) {
-
-	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		shardId,
-		mp.dataPool.ShardHeaders(),
-		mp.dataPool.HeadersNonces())
-
-	return shardHeader, shardHeaderHash, err
-}
+//func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
+//	nonce uint64,
+//	shardId uint32,
+//) (data.HeaderHandler, []byte, error) {
+//
+//	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
+//		nonce,
+//		shardId,
+//		mp.dataPool.ShardHeaders(),
+//		mp.dataPool.HeadersNonces())
+//
+//	return shardHeader, shardHeaderHash, err
+//}
 
 func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	miniBlockPool := mp.dataPool.MiniBlocks()

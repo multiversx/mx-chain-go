@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -807,8 +806,8 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher st
 func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	shardId uint32,
 	finality uint32,
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
-	cacher storage.Cacher,
+	//getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+	//cacher storage.Cacher,
 ) uint32 {
 	requestedHeaders := uint32(0)
 	missingFinalityAttestingHeaders := uint32(0)
@@ -820,7 +819,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, cacher, shardId, i)
+		//headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, cacher, shardId, i)
+		headers, headersHashes := bp.blockTracker.GetTrackedHeadersForShardWithNonce(shardId, i)
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
@@ -985,45 +985,45 @@ func (bp *baseProcessor) removeHeaderFromPools(
 	}
 }
 
-func (bp *baseProcessor) getHeadersFromPools(
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
-	cacher storage.Cacher,
-	shardId uint32,
-	nonce uint64,
-) ([]data.HeaderHandler, [][]byte) {
-
-	keys := cacher.Keys()
-	headers := make([]data.HeaderHandler, 0, len(keys)+1)
-	headersHashes := make([][]byte, 0, len(keys)+1)
-
-	//TODO: This for could be deleted when the implementation of the new cache will be done
-	for _, headerHash := range keys {
-		val, _ := cacher.Peek(headerHash)
-		if val == nil {
-			continue
-		}
-
-		header, ok := val.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if header.GetShardID() == shardId && header.GetNonce() == nonce {
-			headers = append(headers, header)
-			headersHashes = append(headersHashes, headerHash)
-		}
-	}
-
-	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
-	if err != nil {
-		return headers, headersHashes
-	}
-
-	headers = append(headers, header)
-	headersHashes = append(headersHashes, headerHash)
-
-	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
-}
+//func (bp *baseProcessor) getHeadersFromPools(
+//	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+//	cacher storage.Cacher,
+//	shardId uint32,
+//	nonce uint64,
+//) ([]data.HeaderHandler, [][]byte) {
+//
+//	keys := cacher.Keys()
+//	headers := make([]data.HeaderHandler, 0, len(keys)+1)
+//	headersHashes := make([][]byte, 0, len(keys)+1)
+//
+//	//TODO: This for could be deleted when the implementation of the new cache will be done
+//	for _, headerHash := range keys {
+//		val, _ := cacher.Peek(headerHash)
+//		if val == nil {
+//			continue
+//		}
+//
+//		header, ok := val.(data.HeaderHandler)
+//		if !ok {
+//			continue
+//		}
+//
+//		if header.GetShardID() == shardId && header.GetNonce() == nonce {
+//			headers = append(headers, header)
+//			headersHashes = append(headersHashes, headerHash)
+//		}
+//	}
+//
+//	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
+//	if err != nil {
+//		return headers, headersHashes
+//	}
+//
+//	headers = append(headers, header)
+//	headersHashes = append(headersHashes, headerHash)
+//
+//	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
+//}
 
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,

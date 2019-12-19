@@ -224,7 +224,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
 
@@ -249,6 +249,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
+		log.Debug("node is not in eligible list", "pubKey", cnsDta.PubKey)
 		return ErrSenderNotOk
 	}
 
@@ -265,6 +266,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
+		log.Debug("verify signature failed", "error", sigVerifErr)
 		return ErrInvalidSignature
 	}
 
@@ -272,20 +274,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return err
-		}
-
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
+			log.Debug("received header is invalid")
 			return ErrInvalidHeader
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
 		}
 
 		log.Debug("received proposed block",
@@ -295,6 +287,17 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			log.Debug("verify rand seed failed", "error", err)
+			return err
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

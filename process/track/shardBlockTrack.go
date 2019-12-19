@@ -111,12 +111,12 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 	return selfHeadersInfo
 }
 
-func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, err := sbt.getLastSelfNotarizedHeader(sharding.MetachainShardId)
+func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeaderInfo, err := sbt.getLastSelfNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
-	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
-	return lastSelfNotarizedHeader, headers, hashes
+	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeaderInfo.header)
+	return lastSelfNotarizedHeaderInfo.header, lastSelfNotarizedHeaderInfo.hash, headers, hashes
 }

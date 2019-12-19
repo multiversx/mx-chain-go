@@ -232,16 +232,17 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-		sp.getMetaHeaderFromPoolWithNonce,
-		sp.dataPool.MetaBlocks())
+	//sp.getMetaHeaderFromPoolWithNonce,
+	//sp.dataPool.MetaBlocks(),
+	)
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
 }
 
-func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]data.HeaderHandler, [][]byte, error) {
-	return sp.getOrderedMetaBlocks(round)
+func (sp *shardProcessor) GetTrackedMetaBlocks(round uint64) []data.HeaderHandler {
+	return sp.getTrackedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
@@ -264,8 +265,9 @@ func (sp *shardProcessor) DisplayLogInfo(
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
 	statusHandler core.AppStatusHandler,
+	blockTracker process.BlockTracker,
 ) {
-	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler)
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler, blockTracker)
 }
 
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {

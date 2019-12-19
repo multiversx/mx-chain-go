@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type headersCounter struct {
@@ -53,6 +54,7 @@ func (hc *headersCounter) displayLogInfo(
 	body block.Body,
 	headerHash []byte,
 	numHeadersFromPool int,
+	blockTracker process.BlockTracker,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
 
@@ -75,6 +77,8 @@ func (hc *headersCounter) displayLogInfo(
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
 	log.Debug(message, arguments...)
+
+	blockTracker.DisplayTrackedHeaders()
 }
 
 func (hc *headersCounter) createDisplayableMetaHeader(

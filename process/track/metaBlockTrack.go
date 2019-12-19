@@ -107,12 +107,12 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 	return selfMetaBlocksInfo
 }
 
-func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, err := mbt.getLastSelfNotarizedHeader(mbt.shardCoordinator.SelfId())
+func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeaderInfo, err := mbt.getLastSelfNotarizedHeader(mbt.shardCoordinator.SelfId())
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
-	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
-	return lastSelfNotarizedHeader, headers, hashes
+	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeaderInfo.header)
+	return lastSelfNotarizedHeaderInfo.header, lastSelfNotarizedHeaderInfo.hash, headers, hashes
 }

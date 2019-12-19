@@ -66,7 +66,7 @@ func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHea
 			"hash", hash)
 
 		msb.blkExecutor.AddLastNotarizedHdr(i, header)
-		msb.blockTracker.AddCrossNotarizedHeader(i, header)
+		msb.blockTracker.AddCrossNotarizedHeader(i, header, hash)
 		msb.blockTracker.AddTrackedHeader(header, hash)
 	}
 

@@ -170,41 +170,57 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 }
 
 func (bbt *baseBlockTrack) doJobOnReceivedHeader(shardID uint32) {
-	lastSelfNotarizedHeader, selfNotarizedHeaders, _ := bbt.blockTracker.computeLongestSelfChain()
-	if len(selfNotarizedHeaders) > 0 {
-		bbt.setSelfNotarizedHeadersForShard(shardID, lastSelfNotarizedHeader, selfNotarizedHeaders)
-	}
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, selfNotarizedHeaders, selfNotarizedHeadersHashes :=
+		bbt.blockTracker.computeLongestSelfChain()
 
-	log.Trace("display on received header", "shard", shardID)
-	bbt.displayHeadersForShard(shardID)
+	if len(selfNotarizedHeaders) > 0 {
+		bbt.setSelfNotarizedHeadersForShard(
+			shardID,
+			lastSelfNotarizedHeader,
+			lastSelfNotarizedHeaderHash,
+			selfNotarizedHeaders,
+			selfNotarizedHeadersHashes,
+		)
+	}
 }
 
 func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
-	_, crossNotarizedHeaders, crossNotarizedHeadersHashes := bbt.computeLongestChainFromLastCrossNotarized(shardID)
+	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bbt.computeLongestChainFromLastCrossNotarized(shardID)
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bbt.computeSelfNotarizedHeaders(crossNotarizedHeaders)
 
 	if len(crossNotarizedHeaders) > 0 {
-		bbt.addCrossNotarizedHeaders(shardID, crossNotarizedHeaders)
-		bbt.callCrossNotarizedHeadersHandlers(crossNotarizedHeaders, crossNotarizedHeadersHashes)
+		addedCrossNotarizedHeaders, addedCrossNotarizedHeadersHashes := bbt.addCrossNotarizedHeaders(
+			shardID,
+			crossNotarizedHeaders,
+			crossNotarizedHeadersHashes,
+		)
+
+		if len(addedCrossNotarizedHeaders) > 0 {
+			bbt.callCrossNotarizedHeadersHandlers(addedCrossNotarizedHeaders, addedCrossNotarizedHeadersHashes)
+		}
 	}
 
 	if len(selfNotarizedHeaders) > 0 {
-		bbt.addSelfNotarizedHeaders(shardID, selfNotarizedHeaders)
-		bbt.callSelfNotarizedHeadersHandlers(selfNotarizedHeaders, selfNotarizedHeadersHashes)
-	}
+		addedSelfNotarizedHeaders, addedSelfNotarizedHeadersHashes := bbt.addSelfNotarizedHeaders(
+			shardID,
+			selfNotarizedHeaders,
+			selfNotarizedHeadersHashes,
+		)
 
-	log.Trace("display on received cross notarized header", "shard", shardID)
-	bbt.displayHeadersForShard(shardID)
+		if len(addedSelfNotarizedHeaders) > 0 {
+			bbt.callSelfNotarizedHeadersHandlers(addedSelfNotarizedHeaders, addedSelfNotarizedHeadersHashes)
+		}
+	}
 }
 
-func (bbt *baseBlockTrack) computeLongestChainFromLastCrossNotarized(shardID uint32) (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
-	lastCrossNotarizedHeader, err := bbt.getLastCrossNotarizedHeader(shardID)
+func (bbt *baseBlockTrack) computeLongestChainFromLastCrossNotarized(shardID uint32) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastCrossNotarizedHeaderInfo, err := bbt.getLastCrossNotarizedHeader(shardID)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
-	headers, hashes := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeader)
-	return lastCrossNotarizedHeader, headers, hashes
+	headers, hashes := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeaderInfo.header)
+	return lastCrossNotarizedHeaderInfo.header, lastCrossNotarizedHeaderInfo.hash, headers, hashes
 }
 
 func (bbt *baseBlockTrack) computeSelfNotarizedHeaders(headers []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {

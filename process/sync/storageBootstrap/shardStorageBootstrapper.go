@@ -108,7 +108,7 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 		"hash", hash)
 
 	ssb.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
-	ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock)
+	ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock, hash)
 	ssb.blockTracker.AddTrackedHeader(metaBlock, hash)
 
 	return nil
@@ -174,7 +174,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 			"nonce", selfNotarizedHeader.GetNonce(),
 			"hash", selfNotarizedHeaderHash)
 
-		ssb.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader)
+		ssb.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 
 	return selfNotarizedHeaders, nil

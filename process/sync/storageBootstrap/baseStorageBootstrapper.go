@@ -236,7 +236,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 				"nonce", header.GetNonce(),
 				"hash", bootInfos[i].Header.Hash)
 
-			st.blockTracker.AddSelfNotarizedHeader(header.GetShardID(), header)
+			st.blockTracker.AddSelfNotarizedHeader(header.GetShardID(), header, bootInfos[i].Header.Hash)
 		}
 
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].Header.Hash)

@@ -1454,7 +1454,7 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	metaHash = hasher.Compute(string(metaBytes))
 	tdp.MetaBlocks().Put(metaHash, meta3)
 
-	ordered, _, _ := sp.GetOrderedMetaBlocks(3)
+	ordered := sp.GetTrackedMetaBlocks(3)
 	res = sp.IsHeaderValidFinal(meta2, meta1, ordered, 0, 1)
 	assert.True(t, res)
 }
@@ -2315,7 +2315,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler)
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerStub{})
 }
 
 func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
