@@ -15,14 +15,6 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 const ownerKey = "owner"
 const initialStakeKey = "initialStake"
 
-type StakingData struct {
-	StartNonce    uint64   `json:"StartNonce"`
-	Staked        bool     `json:"Staked"`
-	UnStakedNonce uint64   `json:"UnStakedNonce"`
-	Address       []byte   `json:"Address"`
-	StakeValue    *big.Int `json:"StakeValue"`
-}
-
 type stakingSC struct {
 	eei          vm.SystemEI
 	stakeValue   *big.Int
@@ -107,10 +99,10 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	registrationData := StakingData{
-		StartNonce:    0,
+	registrationData := StakedData{
+		RegisterNonce: 0,
 		Staked:        false,
-		Address:       nil,
+		RewardAddress: nil,
 		UnStakedNonce: 0,
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
@@ -138,8 +130,8 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	registrationData.StartNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.Address = args.CallerAddr
+	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.RewardAddress = args.CallerAddr
 	//TODO: verify if blsPubKey is valid
 
 	data, err := json.Marshal(registrationData)
@@ -156,7 +148,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	var registrationData StakingData
+	var registrationData StakedData
 	data := r.eei.GetStorage(args.Arguments[0])
 	if data == nil {
 		log.Debug("unStake is not possible for address which is not staked")
@@ -171,10 +163,10 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if !bytes.Equal(args.CallerAddr, registrationData.Address) {
+	if !bytes.Equal(args.CallerAddr, registrationData.RewardAddress) {
 		log.Debug("unStake possible only from staker",
-				"caller", args.CallerAddr,
-				"staker", registrationData.Address,
+			"caller", args.CallerAddr,
+			"staker", registrationData.RewardAddress,
 		)
 		return vmcommon.UserError
 	}
@@ -201,7 +193,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	var registrationData StakingData
+	var registrationData StakedData
 	data := r.eei.GetStorage(args.Arguments[0])
 	if data == nil {
 		log.Error("unBond is not possible for address which is not staked")
@@ -210,13 +202,13 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
-		log.Debug("unmarshal error on finalize unstake function",
+		log.Debug("unmarshal error on unBond function",
 			"error", err.Error(),
 		)
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.StartNonce {
+	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.RegisterNonce {
 		log.Debug("unBond is not possible for address which is staked or is not in unbond period")
 		return vmcommon.UserError
 	}
@@ -232,7 +224,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
 	if err != nil {
-		log.Debug("transfer error on finalizeUnStake function",
+		log.Debug("transfer error on unBond function",
 			"error", err.Error(),
 		)
 		return vmcommon.UserError
@@ -253,7 +245,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	var registrationData StakingData
+	var registrationData StakedData
 	stakerAddress := args.Arguments[0]
 	data := r.eei.GetStorage(stakerAddress)
 	if data == nil {
@@ -295,7 +287,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	data := r.eei.GetStorage(args.Arguments[0])
-	registrationData := StakingData{}
+	registrationData := StakedData{}
 	if data != nil {
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {

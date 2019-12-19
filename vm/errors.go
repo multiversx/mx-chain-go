@@ -56,9 +56,6 @@ var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
 
-// ErrBLSKeyIsNotValid signals that bls key is invalid
-var ErrBLSKeyIsNotValid = errors.New("bls key is invalid")
-
 // ErrBLSKeyIsNotStaked signals that bls key is not staked
 var ErrBLSKeyIsNotStaked = errors.New("bls key is not staked")
 
@@ -67,3 +64,12 @@ var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
 
 // ErrStillInUnBoundPeriod signals that bls key is in unbond period
 var ErrStillInUnBoundPeriod = errors.New("bls key is in unbond period")
+
+// ErrNilKeyGenerator signals that key generator is nil
+var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrSingleSigner signals that single signer is nil
+var ErrSingleSigner = errors.New("nil single signer")
+
+// ErrConfigIncorrect signals that auction config is incorrect
+var ErrConfigIncorrect = errors.New("config incorrect")

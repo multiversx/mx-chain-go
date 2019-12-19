@@ -11,6 +11,7 @@ type messageSigVerifier struct {
 	singleSigner crypto.SingleSigner
 }
 
+// NewMessageSigVerifier creates a message signature verifier
 func NewMessageSigVerifier(
 	kg crypto.KeyGenerator,
 	singleSigner crypto.SingleSigner,

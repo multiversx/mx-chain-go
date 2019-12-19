@@ -154,7 +154,7 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	err = setStakingData(
+	err = setStakedData(
 		txProcessor,
 		args.ShardCoordinator,
 		args.NodesSetup.InitialNodesInfo(),
@@ -322,8 +322,8 @@ func deploySystemSmartContracts(
 	return nil
 }
 
-// setStakingData sets the initial staked values to the staking smart contract
-func setStakingData(
+// setStakedData sets the initial staked values to the staking smart contract
+func setStakedData(
 	txProcessor process.TransactionProcessor,
 	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,

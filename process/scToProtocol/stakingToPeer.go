@@ -168,7 +168,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return stp.peerState.RemoveAccount(adrSrc)
 		}
 
-		var stakingData systemSmartContracts.StakingData
+		var stakingData systemSmartContracts.StakedData
 		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
@@ -210,11 +210,11 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakingData,
+	stakingData systemSmartContracts.StakedData,
 	account *state.PeerAccount,
 ) error {
-	if !bytes.Equal(stakingData.Address, account.Address) {
-		err := account.SetSchnorrPublicKeyWithJournal(stakingData.Address)
+	if !bytes.Equal(stakingData.RewardAddress, account.Address) {
+		err := account.SetSchnorrPublicKeyWithJournal(stakingData.RewardAddress)
 		if err != nil {
 			return err
 		}
@@ -227,8 +227,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if stakingData.StartNonce != account.Nonce {
-		err := account.SetNonceWithJournal(stakingData.StartNonce)
+	if stakingData.RegisterNonce != account.Nonce {
+		err := account.SetNonceWithJournal(stakingData.RegisterNonce)
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func (stp *stakingToPeer) updatePeerState(
 }
 
 func (stp *stakingToPeer) createPeerChangeData(
-	stakingData systemSmartContracts.StakingData,
+	stakingData systemSmartContracts.StakedData,
 	account *state.PeerAccount,
 	nonce uint64,
 ) error {
@@ -267,7 +267,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 
 	if len(account.BLSPublicKey) == 0 {
 		actualPeerChange.Action = block.PeerRegistrantion
-		actualPeerChange.TimeStamp = stakingData.StartNonce
+		actualPeerChange.TimeStamp = stakingData.RegisterNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
 
 		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
@@ -289,7 +289,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 		}
 	}
 
-	if stakingData.StartNonce == nonce {
+	if stakingData.RegisterNonce == nonce {
 		actualPeerChange.Action = block.PeerRegistrantion
 	}
 
