@@ -14,31 +14,55 @@ type EvictionConfig struct {
 	NumTxsToEvictForASenderWithALot uint32
 }
 
+// evictionJournal keeps a short journal about the eviction process
+// This is useful for debugging and reasoning about the eviction
+type evictionJournal struct {
+	passOneNumEvictedTxs       uint32
+	passOneNumEvictedSenders   uint32
+	passTwoNumEvictedTxs       uint32
+	passTwoNumEvictedSenders   uint32
+	passThreeNumEvictedTxs     uint32
+	passThreeNumEvictedSenders uint32
+}
+
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction() {
+func (cache *TxCache) doEviction() evictionJournal {
 	if !cache.areThereTooManyTxs() {
-		return
+		return evictionJournal{}
 	}
+
+	journal := evictionJournal{}
 
 	cache.evictionMutex.Lock()
 
 	if cache.areThereTooManySenders() {
 		countTxs, countSenders := cache.evictOldestSenders()
+		journal.passOneNumEvictedTxs = countTxs
+		journal.passOneNumEvictedSenders = countSenders
+
 		log.Trace("DoEviction, 1st pass:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	if cache.areThereTooManyTxs() {
 		countTxs, countSenders := cache.evictHighNonceTransactions()
+		journal.passTwoNumEvictedTxs = countTxs
+		journal.passTwoNumEvictedSenders = countSenders
+
 		log.Trace("DoEviction, 2nd pass:", "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	if cache.areThereTooManyTxs() && !cache.areThereJustAFewSenders() {
 		steps, countTxs, countSenders := cache.evictSendersWhileTooManyTxs()
+		journal.passThreeNumEvictedTxs = countTxs
+		journal.passThreeNumEvictedSenders = countSenders
+
 		log.Trace("DoEviction, 3rd pass:", "steps", steps, "countTxs", countTxs, "countSenders", countSenders)
 	}
 
 	cache.evictionMutex.Unlock()
+
+	return journal
 }
 
 func (cache *TxCache) areThereTooManySenders() bool {
