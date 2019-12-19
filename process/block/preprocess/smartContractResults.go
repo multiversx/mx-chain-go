@@ -42,6 +42,7 @@ func NewSmartContractResultPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
+	economicsFee process.FeeHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -71,12 +72,16 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		gasHandler:       gasHandler,
+		economicsFee:     economicsFee,
 	}
 
 	scr := &smartContractResults{
@@ -216,6 +221,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			txInfo := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
 			if txInfo == nil || txInfo.tx == nil {
+				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.SmartContractResultBlock, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 
@@ -455,6 +461,38 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
+	}
+
+	processedTxHashes := make([][]byte, 0)
+
+	defer func() {
+		if err != nil {
+			scr.gasHandler.RemoveGasConsumed(processedTxHashes)
+			scr.gasHandler.RemoveGasRefunded(processedTxHashes)
+		}
+	}()
+
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+
+	for index := range miniBlockScrs {
+		if !haveTime() {
+			return process.ErrTimeIsOut
+		}
+
+		err = scr.computeGasConsumed(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			miniBlockScrs[index],
+			miniBlockTxHashes[index],
+			&gasConsumedByMiniBlockInSenderShard,
+			&gasConsumedByMiniBlockInReceiverShard)
+
+		if err != nil {
+			return err
+		}
+
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
 	for index := range miniBlockScrs {

@@ -19,8 +19,5 @@ func (s *SignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) err
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SignerMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
