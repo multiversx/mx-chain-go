@@ -107,11 +107,6 @@ func (m *ConcurrentMap) Remove(key string) {
 	chunk.Unlock()
 }
 
-// IsEmpty checks if map is empty.
-func (m *ConcurrentMap) IsEmpty() bool {
-	return m.Count() == 0
-}
-
 // IterCb is an iterator callback
 type IterCb func(key string, v interface{})
 
