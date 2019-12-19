@@ -1644,7 +1644,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	epochStart, err := mp.createEpochStartForMetablock()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	metaHdr.EpochStart = *epochStart
 
@@ -1652,7 +1652,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		metaHdr.GetRound(),
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
-	return nil
+	return body, nil
 }
 
 func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {

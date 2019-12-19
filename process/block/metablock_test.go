@@ -892,7 +892,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
 	bodyHandler := block.Body{&block.MiniBlock{Type: 0}}
-	err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
+	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
 
