@@ -49,8 +49,8 @@ type SystemEI interface {
 	IsInterfaceNil() bool
 }
 
-// SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
-type SignerVerifier interface {
-	Verify(message []byte, sig []byte, pk []byte) error
+// MessageSignVerifier is used to verify if message was signed with given public key
+type MessageSignVerifier interface {
+	Verify(message []byte, signedMessage []byte, pubKey []byte) error
 	IsInterfaceNil() bool
 }

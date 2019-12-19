@@ -45,42 +45,46 @@ type AuctionConfig struct {
 type stakingAuctionSC struct {
 	eei          vm.SystemEI
 	unBondPeriod uint64
-	kg           crypto.KeyGenerator
+	sigVerifier  vm.MessageSignVerifier
 	baseConfig   AuctionConfig
+}
+
+type ArgsStakingAuctionSmartContract struct {
+	MinStakeValue *big.Int
+	MinStepValue  *big.Int
+	TotalSupply   *big.Int
+	UnBondPeriod  uint64
+	NumNodes      uint32
+	Eei           vm.SystemEI
+	SigVerifier   vm.MessageSignVerifier
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
 func NewStakingAuctionSmartContract(
-	minStakeValue *big.Int,
-	minStepValue *big.Int,
-	totalSupply *big.Int,
-	unBondPeriod uint64,
-	numNodes uint32,
-	eei vm.SystemEI,
-	kg crypto.KeyGenerator,
+	args ArgsStakingAuctionSmartContract,
 ) (*stakingAuctionSC, error) {
-	if minStakeValue == nil {
+	if args.MinStakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if minStakeValue.Cmp(big.NewInt(0)) < 1 {
+	if args.MinStakeValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
-	if check.IfNil(eei) {
+	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 
 	baseConfig := AuctionConfig{
-		MinStakeValue: minStakeValue,
-		NumNodes:      numNodes,
-		TotalSupply:   totalSupply,
-		MinStep:       minStepValue,
-		NodePrice:     big.NewInt(0).Set(minStakeValue),
+		MinStakeValue: args.MinStakeValue,
+		NumNodes:      args.NumNodes,
+		TotalSupply:   args.TotalSupply,
+		MinStep:       args.MinStepValue,
+		NodePrice:     big.NewInt(0).Set(args.MinStakeValue),
 	}
 
 	reg := &stakingAuctionSC{
-		eei:          eei,
-		unBondPeriod: unBondPeriod,
-		kg:           kg,
+		eei:          args.Eei,
+		unBondPeriod: args.UnBondPeriod,
+		sigVerifier:  args.SigVerifier,
 		baseConfig:   baseConfig,
 	}
 	return reg, nil
@@ -258,6 +262,17 @@ func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, calle
 	}
 
 	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) getVerifiableBLSKeysFromArgs(args [][]byte) [][]byte {
+	blsKeys := make([][]byte, 0)
+	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
+
+	for i := uint64(1); i < maxNodesToRun*2+1; i += 2 {
+
+	}
+
+	return blsKeys
 }
 
 func (s *stakingAuctionSC) isNumArgsCorrectToStake(args [][]byte) bool {
