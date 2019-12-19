@@ -8,10 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
-var marshalizer = &mock.ProtobufMarshalizerMock{}
+var marshalizer = &marshal.GogoProtoMarshalizer{}
 var hasher = &mock.KeccakMock{}
 var emptyTrieHash = make([]byte, 32)
 
@@ -151,7 +152,8 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof(proof, []byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.Nil(t, err)
 	assert.True(t, ok)
 }
 

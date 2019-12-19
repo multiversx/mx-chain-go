@@ -4,58 +4,38 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Save saves the serialized data of an extension node into a stream through Capnp protocol
-func (en *extensionNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	extensionNodeGoToCapn(seg, en)
-	_, err := seg.WriteTo(w)
-	return err
-}
+var _ = node(&extensionNode{})
 
-// Load loads the data from the stream into an extension node object through Capnp protocol
-func (en *extensionNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
+// Save saves the serialized data of an extension node into a stream through protobuf
+func (en *extensionNode) Save(w io.Writer) error {
+	b, err := en.Marshal()
 	if err != nil {
 		return err
 	}
-	z := capnp.ReadRootExtensionNodeCapn(capMsg)
-	extensionNodeCapnToGo(z, en)
-	return nil
+	_, err = w.Write(b)
+	return err
 }
 
-func extensionNodeGoToCapn(seg *capn.Segment, src *extensionNode) capnp.ExtensionNodeCapn {
-	dest := capnp.AutoNewExtensionNodeCapn(seg)
-
-	dest.SetKey(src.Key)
-	dest.SetEncodedChild(src.EncodedChild)
-
-	return dest
-}
-
-func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *extensionNode {
-	if dest == nil {
-		dest = &extensionNode{}
+// Load loads the data from the stream into an extension node object through protobuf
+func (en *extensionNode) Load(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
 	}
-
-	dest.EncodedChild = src.EncodedChild()
-	dest.Key = src.Key()
-
-	return dest
+	return en.Unmarshal(b)
 }
 
 func newExtensionNode(key []byte, child node) *extensionNode {
 	return &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
+		CollapsedEn: CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
 		},

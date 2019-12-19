@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +16,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	en := newExtensionNode([]byte("d"), child)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild, marsh, hasher)
-	collapsedEn := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte("d"), EncodedChild: childHash}}
+	collapsedEn := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte("d"), EncodedChild: childHash}}
 	return en, collapsedEn
 }
 
@@ -25,7 +24,7 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 	t.Parallel()
 	bn, _ := getBnAndCollapsedBn()
 	expectedEn := &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
+		CollapsedEn: CollapsedEn{
 			Key:          []byte("dog"),
 			EncodedChild: nil,
 		},
@@ -572,8 +571,8 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	en := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{100, 111, 103}}}
-	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, dirty: true}
+	en := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{100, 111, 103}}}
+	expected := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := en.reduceNode(2)
 	assert.Equal(t, expected, node)
 }

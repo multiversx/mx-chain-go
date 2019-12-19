@@ -4,58 +4,38 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Save saves the serialized data of a leaf node into a stream through Capnp protocol
-func (ln *leafNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	leafNodeGoToCapn(seg, ln)
-	_, err := seg.WriteTo(w)
-	return err
-}
+var _ = node(&leafNode{})
 
-// Load loads the data from the stream into a leaf node object through Capnp protocol
-func (ln *leafNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
+// Save saves the serialized data of a leaf node into a stream through protobuf
+func (ln *leafNode) Save(w io.Writer) error {
+	b, err := ln.Marshal()
 	if err != nil {
 		return err
 	}
-	z := capnp.ReadRootLeafNodeCapn(capMsg)
-	leafNodeCapnToGo(z, ln)
-	return nil
+	_, err = w.Write(b)
+	return err
 }
 
-func leafNodeGoToCapn(seg *capn.Segment, src *leafNode) capnp.LeafNodeCapn {
-	dest := capnp.AutoNewLeafNodeCapn(seg)
-
-	dest.SetKey(src.Key)
-	dest.SetValue(src.Value)
-
-	return dest
-}
-
-func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
-	if dest == nil {
-		dest = &leafNode{}
+// Load loads the data from the stream into a leaf node object through protobuf
+func (ln *leafNode) Load(r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
 	}
-
-	dest.Value = src.Value()
-	dest.Key = src.Key()
-
-	return dest
+	return ln.Unmarshal(b)
 }
 
 func newLeafNode(key, value []byte) *leafNode {
 	return &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   key,
 			Value: value,
 		},

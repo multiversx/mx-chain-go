@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,7 +63,7 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
-	en := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2}, EncodedChild: []byte("doge")}}
+	en := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{2}, EncodedChild: []byte("doge")}}
 
 	encNode, _ := marsh.Marshal(en)
 	encNode = append(encNode, extension)
@@ -382,9 +381,9 @@ func TestNode_childPosOutOfRange(t *testing.T) {
 	assert.False(t, childPosOutOfRange(5))
 }
 
-func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
+func TestMarshalingAndUnmarshalingWithGogoProto(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn()
-	marsh := marshal.CapnpMarshalizer{}
+	marsh := marshal.GogoProtoMarshalizer{}
 	bn := newBranchNode()
 
 	encBn, err := marsh.Marshal(collapsedBn)
@@ -393,7 +392,7 @@ func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
 
 	err = marsh.Unmarshal(bn, encBn)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, bn)
+	assert.Truef(t, collapsedBn.Equal(bn), "%#v, %#v", collapsedBn, bn)
 }
 
 func TestKeyBytesToHex(t *testing.T) {
