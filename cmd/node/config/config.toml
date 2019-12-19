@@ -278,8 +278,14 @@
 [MultisigHasher]
    Type = "blake2b"
 
+# Marshalizer configuration
+# Type idenftifies the marshalizer
+# SizeCheckDelta the maximum allow drift between the input data buffer and
+#     the reencoded version (in percents).
+#     0 disables the feature.
 [Marshalizer]
    Type = "json"
+   SizeCheckDelta = 0
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
