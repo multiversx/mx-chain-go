@@ -1011,7 +1011,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1056,7 +1056,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	t.Parallel()
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1118,7 +1118,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	numMiniBlocks := allTxs / numTxsToAdd
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: nrShards})
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1185,7 +1185,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1248,7 +1248,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool

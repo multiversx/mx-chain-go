@@ -92,7 +92,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.TxPool) dataRetriever.PoolsHolder {
+func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}
