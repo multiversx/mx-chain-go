@@ -95,8 +95,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	if err != nil {
+		log.Warn("bootstrapper", "error", err)
 		st.restoreBlockChainToGenesis()
-		_ = st.bootStorer.SaveLastRound(0)
+		err = st.bootStorer.SaveLastRound(0)
+		log.LogIfError(err, "bootstorer")
+
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 

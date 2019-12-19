@@ -19,7 +19,7 @@ type tagVersion struct {
 	TagVersion string `json:"tag_name"`
 }
 
-// SoftwareVersionChecker is component used to check if a new software stable tag in available
+// SoftwareVersionChecker is a component which is used to check if a new software stable tag is available
 type SoftwareVersionChecker struct {
 	statusHandler             core.AppStatusHandler
 	mostRecentSoftwareVersion string
@@ -34,7 +34,7 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*Softwar
 		return nil, core.ErrNilAppStatusHandler
 	}
 
-	// check interval will be random in a interval [1hour5minutes , 1hour20minutes]
+	// check interval will be a random duration in the interval [1hour5minutes , 1hour20minutes]
 	randBigInt, err := rand.Int(rand.Reader, big.NewInt(15))
 	if err != nil {
 		return nil, err
