@@ -346,7 +346,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
-	tpn.initBlockProcessor()
+	tpn.initBlockProcessor(100)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -758,7 +758,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
-func (tpn *TestProcessorNode) initBlockProcessor() {
+func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
@@ -872,7 +872,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			ArgBaseProcessor:       argumentsBase,
 			DataPool:               tpn.ShardDataPool,
 			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: 100,
+			StateCheckpointModulus: stateCheckpointModulus,
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

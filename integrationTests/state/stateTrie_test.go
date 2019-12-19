@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -1345,4 +1346,134 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Equal(t, trie.ErrHashNotFound, err)
+}
+
+func TestSnapshotOnEpochChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
+	stateCheckpointModulus := uint(3)
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodesWithCustomStateCheckpintModulus(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+		stateCheckpointModulus,
+	)
+
+	roundsPerEpoch := uint64(5)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	sendValue := big.NewInt(5)
+	receiverAddress := []byte("12345678901234567890123456789012")
+	initialVal := big.NewInt(10000000)
+
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	checkpointsRootHashes := make(map[int][][]byte)
+	snapshotsRootHashes := make(map[int][][]byte)
+	prunedRootHashes := make(map[int][][]byte)
+
+	numRounds := uint32(9)
+	for i := uint64(0); i < uint64(numRounds); i++ {
+
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+		}
+		time.Sleep(integrationTests.StepDelay)
+
+		for j := 0; j < numOfShards*nodesPerShard; j++ {
+			currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
+
+			if currentBlockHeader.IsStartOfEpochBlock() {
+				snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
+			} else if currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0 {
+				checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
+			} else {
+				prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
+			}
+		}
+	}
+
+	numDelayRounds := uint32(4)
+	for i := uint64(0); i < uint64(numDelayRounds); i++ {
+
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		time.Sleep(integrationTests.StepDelay)
+	}
+
+	for i := 0; i < numOfShards*nodesPerShard; i++ {
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+	}
+}
+
+func testNodeStateCheckpointSnapshotAndPruning(
+	t *testing.T,
+	node *integrationTests.TestProcessorNode,
+	checkpointsRootHashes [][]byte,
+	snapshotsRootHashes [][]byte,
+	prunedRootHashes [][]byte,
+) {
+
+	assert.Equal(t, 3, len(checkpointsRootHashes))
+	for i := range checkpointsRootHashes {
+		tr, err := node.StateTrie.Recreate(checkpointsRootHashes[i])
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	assert.Equal(t, 1, len(snapshotsRootHashes))
+	for i := range snapshotsRootHashes {
+		tr, err := node.StateTrie.Recreate(snapshotsRootHashes[i])
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	assert.Equal(t, 5, len(prunedRootHashes))
+	for i := range prunedRootHashes {
+		tr, err := node.StateTrie.Recreate(prunedRootHashes[i])
+		assert.Nil(t, tr)
+		assert.NotNil(t, err)
+	}
 }
