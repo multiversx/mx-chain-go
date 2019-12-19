@@ -1720,7 +1720,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  11,
 		Data:      "",
 		Signature: []byte("sig0"),
-		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
@@ -1732,7 +1731,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  12,
 		Data:      "",
 		Signature: []byte("sig1"),
-		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
@@ -1744,7 +1742,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  13,
 		Data:      "",
 		Signature: []byte("sig2"),
-		Challenge: nil,
 	})
 
 	wg := sync.WaitGroup{}
