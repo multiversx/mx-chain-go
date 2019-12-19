@@ -108,18 +108,6 @@ func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(
 	return ppm.CreateAndProcessMiniBlocksCalled(maxTxSpaceRemained, maxMbSpaceRemained, haveTime)
 }
 
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlock(
-	senderShardId, receiverShardId uint32,
-	spaceRemained int,
-	haveTime func() bool,
-) (*block.MiniBlock, error) {
-
-	if ppm.CreateAndProcessMiniBlockCalled == nil {
-		return nil, nil
-	}
-	return ppm.CreateAndProcessMiniBlockCalled(senderShardId, receiverShardId, spaceRemained, haveTime)
-}
-
 func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	if ppm.GetAllCurrentUsedTxsCalled == nil {
 		return nil

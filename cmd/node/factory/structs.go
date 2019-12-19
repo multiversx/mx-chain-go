@@ -1779,6 +1779,16 @@ func newShardBlockProcessor(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
 		return nil, err
@@ -1828,6 +1838,8 @@ func newShardBlockProcessor(
 		rewardsTxHandler,
 		txTypeHandler,
 		economics,
+		receiptTxInterim,
+		badTxInterim,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
@@ -1866,6 +1878,8 @@ func newShardBlockProcessor(
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		core.Hasher,
+		core.Marshalizer,
 		shardCoordinator,
 		state.AccountsAdapter,
 		data.Datapool.MiniBlocks(),
@@ -2070,6 +2084,8 @@ func newMetaBlockProcessor(
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		core.Hasher,
+		core.Marshalizer,
 		shardCoordinator,
 		state.AccountsAdapter,
 		data.MetaDatapool.MiniBlocks(),

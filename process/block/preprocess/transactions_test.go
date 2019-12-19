@@ -216,6 +216,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -239,6 +240,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -262,6 +264,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -285,6 +288,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -308,6 +312,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -331,6 +336,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -354,6 +360,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -376,6 +383,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -399,6 +407,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		nil,
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -422,6 +431,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMiniBlocksCompacter(t *tes
 		feeHandlerMock(),
 		nil,
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -445,6 +455,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		nil,
+		block.TxBlock,
 	)
 
 	assert.Nil(t, txs)
@@ -467,9 +478,10 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 	txHash := []byte("tx1_hash")
-	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions())
+	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions(), false)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)
@@ -491,6 +503,7 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -521,6 +534,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	shardId := uint32(1)
@@ -566,6 +580,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	//add 3 tx hashes on requested list
@@ -642,6 +657,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 
 	mb := &block.MiniBlock{
@@ -679,6 +695,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
 	assert.NotNil(t, err)
@@ -701,6 +718,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		block.TxBlock,
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -753,6 +771,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 				return 0
 			},
 		},
+		block.TxBlock,
 	)
 	assert.NotNil(t, txs)
 
@@ -770,7 +789,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -813,6 +832,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 				return 0
 			},
 		},
+		block.TxBlock,
 	)
 	assert.NotNil(t, txs)
 
@@ -832,7 +852,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -883,6 +903,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
+		block.TxBlock,
 	)
 	assert.NotNil(t, txs)
 
@@ -901,7 +922,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
+	mb, err := txs.createAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue)
 	assert.Nil(t, err)
 
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))
@@ -984,6 +1005,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 				return 0
 			},
 		},
+		block.TxBlock,
 	)
 
 	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
