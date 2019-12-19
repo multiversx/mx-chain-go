@@ -194,7 +194,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if t.newEpochHdrReceived == false && !metaHdr.IsStartOfEpochBlock() {
+	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
 
@@ -208,10 +208,10 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if _, ok := t.mapHashHdr[string(hdrHash)]; ok {
+	if _, ok = t.mapHashHdr[string(hdrHash)]; ok {
 		return
 	}
-	if _, ok := t.mapEpochStartHdrs[string(hdrHash)]; ok {
+	if _, ok = t.mapEpochStartHdrs[string(hdrHash)]; ok {
 		return
 	}
 

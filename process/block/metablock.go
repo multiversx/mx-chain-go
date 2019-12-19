@@ -1697,6 +1697,7 @@ func (mp *metaProcessor) createEpochStartForMetablock() (*block.EpochStart, erro
 
 		currShardPendingMBs := epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders
 		currShardPendingMBs = append(currShardPendingMBs, pendingMiniBlock)
+		epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders = currShardPendingMBs
 	}
 
 	return epochStart, nil
