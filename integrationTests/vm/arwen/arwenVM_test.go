@@ -446,6 +446,10 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	for i := 0; i < 10; i++ {
 		deployAndExecuteERC20WithBigInt(t, 1000, nil)
 	}

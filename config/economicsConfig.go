@@ -28,10 +28,28 @@ type ValidatorSettings struct {
 	UnBoundPeriod string
 }
 
+// RatingSettings will hold rating settings
+type RatingSettings struct {
+	StartRating                 uint32
+	MaxRating                   uint32
+	MinRating                   uint32
+	ProposerIncreaseRatingStep  uint32
+	ProposerDecreaseRatingStep  uint32
+	ValidatorIncreaseRatingStep uint32
+	ValidatorDecreaseRatingStep uint32
+}
+
+//RatingValue will hold different rating options with increase and decresea steps
+type RatingValue struct {
+	Name  string
+	Value int32
+}
+
 // ConfigEconomics will hold economics config
 type ConfigEconomics struct {
 	EconomicsAddresses EconomicsAddresses
 	RewardsSettings    RewardsSettings
 	FeeSettings        FeeSettings
 	ValidatorSettings  ValidatorSettings
+	RatingSettings     RatingSettings
 }

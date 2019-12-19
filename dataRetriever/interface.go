@@ -35,6 +35,8 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	// MiniBlockHeaderUnit is the miniblock header data unit identifier
+	MiniBlockHeaderUnit = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
 	BootstrapUnit UnitType = 11
 	//StatusMetricsUnit is the status metrics storage unit identifier

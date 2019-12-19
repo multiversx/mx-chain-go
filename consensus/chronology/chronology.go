@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -53,7 +54,8 @@ func NewChronology(
 		genesisTime:      genesisTime,
 		rounder:          rounder,
 		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler.NewNilStatusHandler()}
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
+	}
 
 	chr.subroundId = srBeforeStartRound
 
@@ -68,11 +70,10 @@ func checkNewChronologyParams(
 	syncTimer ntp.SyncTimer,
 ) error {
 
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return ErrNilRounder
 	}
-
-	if syncTimer == nil || syncTimer.IsInterfaceNil() {
+	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
 	}
 

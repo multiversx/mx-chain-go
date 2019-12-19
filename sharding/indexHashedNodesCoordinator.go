@@ -11,6 +11,7 @@ import (
 )
 
 type indexHashedNodesCoordinator struct {
+	doExpandEligibleList    func(uint32) []Validator
 	nbShards                uint32
 	shardId                 uint32
 	hasher                  hashing.Hasher
@@ -36,6 +37,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
 	}
+
+	ihgs.doExpandEligibleList = ihgs.expandEligibleList
 
 	err = ihgs.SetNodesPerShards(arguments.Nodes)
 	if err != nil {
@@ -88,6 +91,11 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Va
 	return nil
 }
 
+// GetNodesPerShard returns the nodes per shard map
+func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard() map[uint32][]Validator {
+	return ihgs.nodesMap
+}
+
 // ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
@@ -119,7 +127,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.expandEligibleList(shardId)
+	expandedList := ihgs.doExpandEligibleList(shardId)
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
