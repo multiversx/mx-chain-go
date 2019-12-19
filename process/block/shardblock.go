@@ -516,17 +516,24 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
+
+	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		shardId,
-		header.GetEpoch(),
+		epoch,
 	)
 	if err != nil {
 		return
 	}
 
-	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, header.GetEpoch())
+	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		return
 	}

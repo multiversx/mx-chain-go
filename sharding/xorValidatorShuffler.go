@@ -148,7 +148,7 @@ func shuffleNodesIntraShards(
 	newNbShards := uint32(len(eligible))
 
 	for shard, validators := range eligible {
-		shuffledOutMap[0], validators, leaving = shuffleOutShard(
+		shuffledOutMap[shard], validators, leaving = shuffleOutShard(
 			validators,
 			len(waiting[shard]),
 			leaving,

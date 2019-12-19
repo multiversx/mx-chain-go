@@ -94,61 +94,45 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Hasher:                  TestHasher,
-			Shuffler:                nodeShuffler,
-			EpochStartSubscriber:    epochStartSubscriber,
-			ShardId:                 shardId,
-			NbShards:                uint32(nbShards),
-			EligibleNodes:           validatorsMap,
-			WaitingNodes:            waitingMap,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-		}
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
-		if err != nil {
-			fmt.Println("Error creating node coordinator")
-		}
-
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
 
 		for i := range validatorList {
-			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
+			nodesList[i] = createNode(
+				nodesPerShard,
+				nbMetaNodes,
+				shardConsensusGroupSize,
+				metaConsensusGroupSize,
 				shardId,
-				seedAddress,
-				epochStartSubscriber,
-				nodesCoordinator,
-				cp,
+				nbShards,
+				validatorsMap,
+				waitingMap,
 				i,
-				nil,
-				&mock.HeaderSigVerifierStub{},
+				seedAddress,
+				cp,
 			)
 		}
 
 		for i := range waitingMap[shardId] {
-			nodesListWaiting[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
+			nodesListWaiting[i] = createNode(
+				nodesPerShard,
+				nbMetaNodes,
+				shardConsensusGroupSize,
+				metaConsensusGroupSize,
 				shardId,
-				seedAddress,
-				epochStartSubscriber,
-				nodesCoordinator,
-				cpWaiting,
+				nbShards,
+				validatorsMap,
+				waitingMap,
 				i,
-				nil,
-				&mock.HeaderSigVerifierStub{},
+				seedAddress,
+				cpWaiting,
 			)
 		}
 
@@ -156,6 +140,53 @@ func CreateNodesWithNodesCoordinator(
 	}
 
 	return nodesMap
+}
+
+func createNode(
+	nodesPerShard int,
+	nbMetaNodes int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	shardId uint32,
+	nbShards int,
+	validatorsMap map[uint32][]sharding.Validator,
+	waitingMap map[uint32][]sharding.Validator,
+	keyIndex int,
+	seedAddress string,
+	cp *CryptoParams,
+) *TestProcessorNode {
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+
+	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Hasher:                  TestHasher,
+		Shuffler:                nodeShuffler,
+		EpochStartSubscriber:    epochStartSubscriber,
+		ShardId:                 shardId,
+		NbShards:                uint32(nbShards),
+		EligibleNodes:           validatorsMap,
+		WaitingNodes:            waitingMap,
+		SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+	}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	if err != nil {
+		fmt.Println("Error creating node coordinator")
+	}
+
+	return NewTestProcessorNodeWithCustomNodesCoordinator(
+		uint32(nbShards),
+		shardId,
+		seedAddress,
+		epochStartSubscriber,
+		nodesCoordinator,
+		cp,
+		keyIndex,
+		nil,
+		&mock.HeaderSigVerifierStub{},
+	)
 }
 
 // CreateNodesWithNodesCoordinatorKeygenAndSingleSigner returns a map with nodes per shard each using a real nodes coordinator
@@ -208,14 +239,18 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				shardCoordinator,
 				shardId,
 				singleSigner,
-				keyGenForBlocks)
+				keyGenForBlocks,
+			)
+
 			args := headerCheck.ArgsHeaderSigVerifier{
 				Marshalizer:       TestMarshalizer,
 				Hasher:            TestHasher,
 				NodesCoordinator:  nodesCoordinator,
 				MultiSigVerifier:  TestMultiSig,
 				SingleSigVerifier: singleSigner,
-				KeyGen:            keyGenForBlocks}
+				KeyGen:            keyGenForBlocks,
+			}
+
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
