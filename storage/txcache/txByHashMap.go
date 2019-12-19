@@ -22,9 +22,13 @@ func newTxByHashMap(nChunksHint uint32) txByHashMap {
 }
 
 // addTx adds a transaction to the map
-func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) {
-	txMap.backingMap.Set(string(txHash), tx)
-	txMap.counter.Increment()
+func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) bool {
+	added := txMap.backingMap.SetIfAbsent(string(txHash), tx)
+	if added {
+		txMap.counter.Increment()
+	}
+
+	return added
 }
 
 // removeTx removes a transaction from the map
@@ -62,4 +66,19 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 
 	txMap.counter.Set(int64(newCount))
 	return nRemoved
+}
+
+// ForEachTransaction is an iterator callback
+type ForEachTransaction func(txHash []byte, value data.TransactionHandler)
+
+// forEach iterates over the senders
+func (txMap *txByHashMap) forEach(function ForEachTransaction) {
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
+		tx := item.(data.TransactionHandler)
+		function([]byte(key), tx)
+	})
+}
+
+func (txMap *txByHashMap) clear() {
+	txMap.backingMap.Clear()
 }

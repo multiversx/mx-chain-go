@@ -73,7 +73,7 @@ func Test_GetTransactions_Dummy(t *testing.T) {
 	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
 	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted := cache.GetTransactions(10, 2)
+	sorted, _ := cache.GetTransactions(10, 2)
 	assert.Len(t, sorted, 8)
 }
 
@@ -87,10 +87,10 @@ func Test_GetTransactions(t *testing.T) {
 	nRequestedTransactions := math.MaxInt16
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		sender := fmt.Sprintf("sender%d", senderTag)
+		sender := fmt.Sprintf("sender:%d", senderTag)
 
 		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := fmt.Sprintf("hash%d%d", senderTag, txNonce)
+			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
 			tx := createTx(sender, uint64(txNonce))
 			cache.AddTx([]byte(txHash), tx)
 		}
@@ -98,7 +98,7 @@ func Test_GetTransactions(t *testing.T) {
 
 	assert.Equal(t, int64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.GetTransactions(nRequestedTransactions, 2)
+	sorted, _ := cache.GetTransactions(nRequestedTransactions, 2)
 
 	assert.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 
