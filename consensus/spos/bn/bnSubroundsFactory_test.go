@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var chainID = []byte("chain ID")
+
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
@@ -40,6 +42,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	return fct
@@ -62,6 +65,7 @@ func initFactoryWithConsensusStateChangedChannelNil() bn.Factory {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	return fct
@@ -105,6 +109,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		nil,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -121,6 +126,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		container,
 		nil,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -139,6 +145,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -157,6 +164,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -175,6 +183,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -193,6 +202,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -211,6 +221,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -229,6 +240,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -247,6 +259,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -265,6 +278,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -283,6 +297,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -301,6 +316,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -319,6 +335,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		worker,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
@@ -335,10 +352,29 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		container,
 		consensusState,
 		nil,
+		chainID,
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestFactory_NewFactoryEmptyShardIDShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bn.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrInvalidChainID, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {

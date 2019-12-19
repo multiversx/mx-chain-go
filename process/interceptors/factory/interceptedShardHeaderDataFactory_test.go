@@ -16,7 +16,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilArgumentsShouldErr(t *testing.T
 	imh, err := NewInterceptedShardHeaderDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing.T) {

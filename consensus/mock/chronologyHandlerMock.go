@@ -8,6 +8,14 @@ type ChronologyHandlerMock struct {
 	AddSubroundCalled        func(consensus.SubroundHandler)
 	RemoveAllSubroundsCalled func()
 	StartRoundCalled         func()
+	EpochCalled              func() uint32
+}
+
+func (chrm *ChronologyHandlerMock) Epoch() uint32 {
+	if chrm.EpochCalled != nil {
+		return chrm.EpochCalled()
+	}
+	return 0
 }
 
 func (chrm *ChronologyHandlerMock) AddSubround(subroundHandler consensus.SubroundHandler) {
