@@ -231,7 +231,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Contains(t, transactionResponse.Error, errorString)
 	assert.Empty(t, transactionResponse.TxResp)
 }

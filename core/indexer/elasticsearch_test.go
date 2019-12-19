@@ -96,7 +96,6 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		GasLimit:  uint64(1000),
 		Data:      []byte("tx_data1"),
 		Signature: []byte("signature1"),
-		Challenge: []byte("challange1"),
 	}
 
 	txPool["tx2"] = &transaction.Transaction{
@@ -108,7 +107,6 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		GasLimit:  uint64(1000),
 		Data:      []byte("tx_data2"),
 		Signature: []byte("signature2"),
-		Challenge: []byte("challange2"),
 	}
 
 	txPool["tx3"] = &transaction.Transaction{
@@ -120,7 +118,6 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		GasLimit:  uint64(1000),
 		Data:      []byte("tx_data3"),
 		Signature: []byte("signature3"),
-		Challenge: []byte("challange3"),
 	}
 
 	return txPool

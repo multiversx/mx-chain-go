@@ -356,6 +356,12 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		shardCoordinator,
 		nodesCoordinator,
 	)
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -373,6 +379,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -803,6 +811,13 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
 	base.SetHasher(hasher)
 	marshalizer := &mock.MarshalizerMock{}
 	base.SetMarshalizer(marshalizer)
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      hasher,
+		Marshalizer: marshalizer,
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	base.SetHeaderValidator(headerValidator)
+
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
 
@@ -825,6 +840,14 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
 	base.SetHasher(hasher)
 	marshalizer := &mock.MarshalizerMock{}
 	base.SetMarshalizer(marshalizer)
+
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      hasher,
+		Marshalizer: marshalizer,
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	base.SetHeaderValidator(headerValidator)
+
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
 
@@ -867,4 +890,83 @@ func TestBaseProcessor_RemoveLastNotarizedShouldNotDeleteTheLastRecord(t *testin
 		hdr := base.LastNotarizedHdrForShard(i)
 		assert.Equal(t, genesisBlcks[i], hdr)
 	}
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 2,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	randSeed := []byte("randseed")
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch:    1,
+				RandSeed: randSeed,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 2
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+
+	randSeed := []byte("randseed")
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch:    3,
+				RandSeed: randSeed,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
 }

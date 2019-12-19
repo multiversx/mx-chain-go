@@ -30,7 +30,7 @@ type NodeWrapper interface {
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, challenge string) (*transaction.Transaction, error)
+		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the 'send transactions pipe' channel
 	SendTransaction(nonce uint64, senderHex string, receiverHex string, value string, gasPrice uint64, gasLimit uint64, transactionData []byte, signature []byte) (string, error)

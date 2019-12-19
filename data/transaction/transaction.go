@@ -20,7 +20,6 @@ type Transaction struct {
 	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
 	Data      []byte   `capid:"6" json:"data,omitempty"`
 	Signature []byte   `capid:"7" json:"signature,omitempty"`
-	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -73,8 +72,6 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 	dest.Data = src.Data()
 	// Signature
 	dest.Signature = src.Signature()
-	// Challenge
-	dest.Challenge = src.Challenge()
 
 	return dest
 }
@@ -92,7 +89,6 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionC
 	dest.SetGasLimit(src.GasLimit)
 	dest.SetData(src.Data)
 	dest.SetSignature(src.Signature)
-	dest.SetChallenge(src.Challenge)
 
 	return dest
 }

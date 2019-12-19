@@ -170,7 +170,6 @@ func runWASMVMBenchmark(
 		GasLimit:  gasLimit,
 		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
@@ -195,7 +194,6 @@ func runWASMVMBenchmark(
 		GasLimit:  gasLimit,
 		Data:      []byte("_main"),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	for i := 0; i < numRun; i++ {
@@ -332,7 +330,6 @@ func TestWASMNamespacing(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
@@ -362,7 +359,6 @@ func TestWASMNamespacing(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      []byte("main"),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	err = txProc.ProcessTransaction(tx)
@@ -392,7 +388,6 @@ func TestWASMMetering(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
@@ -422,7 +417,6 @@ func TestWASMMetering(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      []byte("_main"),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	err = txProc.ProcessTransaction(tx)
@@ -446,6 +440,10 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	for i := 0; i < 10; i++ {
 		deployAndExecuteERC20WithBigInt(t, 1000, nil)
 	}

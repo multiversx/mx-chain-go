@@ -289,7 +289,6 @@ func deploySystemSmartContracts(
 		GasLimit:  0,
 		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	accountsDB, ok := accounts.(*state.AccountsDB)
@@ -343,7 +342,6 @@ func setStakingData(
 				GasLimit:  0,
 				Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
 				Signature: nil,
-				Challenge: nil,
 			}
 
 			err := txProcessor.ProcessTransaction(tx)
@@ -364,7 +362,6 @@ func setStakingData(
 			GasLimit:  0,
 			Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
 			Signature: nil,
-			Challenge: nil,
 		}
 
 		err := txProcessor.ProcessTransaction(tx)

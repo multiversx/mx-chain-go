@@ -13,7 +13,6 @@ struct TransactionCapn {
    gasLimit   @5:   UInt64; 
    data       @6:   Data;
    signature  @7:   Data;
-   challenge  @8:   Data;
 } 
 
 ##compile with:
