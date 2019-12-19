@@ -105,6 +105,9 @@ const roundDuration = 5 * time.Second
 // IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
 var IntegrationTestsChainID = []byte("integration tests chain ID")
 
+// sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
+const sizeCheckDelta = 100
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -440,6 +443,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -467,6 +471,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -488,6 +493,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -511,6 +517,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -882,7 +889,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithMarshalizer(TestMarshalizer),
+		node.WithMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
