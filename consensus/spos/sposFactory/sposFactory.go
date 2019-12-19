@@ -21,11 +21,12 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	indexer indexer.Indexer,
+	chainID []byte,
 ) (spos.SubroundsFactory, error) {
 
 	switch consensusType {
 	case blsConsensusType:
-		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +40,7 @@ func GetSubroundsFactory(
 
 		return subRoundFactoryBls, nil
 	case bnConsensusType:
-		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
 		if err != nil {
 			return nil, err
 		}

@@ -117,8 +117,5 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tth *txTypeHandler) IsInterfaceNil() bool {
-	if tth == nil {
-		return true
-	}
-	return false
+	return tth == nil
 }

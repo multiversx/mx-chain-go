@@ -1,6 +1,8 @@
 package block
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -104,7 +106,9 @@ type Header struct {
 	RootHash               []byte            `capid:"14"`
 	ValidatorStatsRootHash []byte            `capid:"15"`
 	MetaBlockHashes        [][]byte          `capid:"16"`
-	TxCount                uint32            `capid:"17"`
+	EpochStartMetaHash     []byte            `capid:"17"`
+	TxCount                uint32            `capid:"18"`
+	ChainID                []byte            `capid:"19"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -144,6 +148,8 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.EpochStartMetaHash = src.EpochStartMetaHash()
+	dest.ChainID = src.Chainid()
 
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
@@ -188,6 +194,9 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
 	dest.SetLeaderSignature(src.LeaderSignature)
+	dest.SetChainid(src.ChainID)
+	dest.SetEpochStartMetaHash(src.EpochStartMetaHash)
+
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -424,6 +433,11 @@ func (h *Header) GetLeaderSignature() []byte {
 	return h.LeaderSignature
 }
 
+// GetChainID gets the chain ID on which this block is valid on
+func (h *Header) GetChainID() []byte {
+	return h.ChainID
+}
+
 // GetTimeStamp returns the time stamp
 func (h *Header) GetTimeStamp() uint64 {
 	return h.TimeStamp
@@ -432,6 +446,11 @@ func (h *Header) GetTimeStamp() uint64 {
 // GetTxCount returns transaction count in the block associated with this header
 func (h *Header) GetTxCount() uint32 {
 	return h.TxCount
+}
+
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardId = shId
 }
 
 // SetNonce sets header nonce
@@ -487,6 +506,11 @@ func (h *Header) SetSignature(sg []byte) {
 // SetLeaderSignature will set the leader's signature
 func (h *Header) SetLeaderSignature(sg []byte) {
 	h.LeaderSignature = sg
+}
+
+// SetChainID sets the chain ID on which this block is valid on
+func (h *Header) SetChainID(chainID []byte) {
+	h.ChainID = chainID
 }
 
 // SetTimeStamp sets header timestamp
@@ -556,6 +580,11 @@ func (h *Header) IsInterfaceNil() bool {
 	return false
 }
 
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (h *Header) IsStartOfEpochBlock() bool {
+	return len(h.EpochStartMetaHash) > 0
+}
+
 // ItemsInHeader gets the number of items(hashes) added in block header
 func (h *Header) ItemsInHeader() uint32 {
 	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
@@ -565,4 +594,19 @@ func (h *Header) ItemsInHeader() uint32 {
 // ItemsInBody gets the number of items(hashes) added in block body
 func (h *Header) ItemsInBody() uint32 {
 	return h.TxCount
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (h *Header) CheckChainID(reference []byte) error {
+	if !bytes.Equal(h.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(h.ChainID),
+		)
+	}
+
+	return nil
 }

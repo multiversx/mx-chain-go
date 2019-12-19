@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -41,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -516,6 +518,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	uniqueDBFolder := filepath.Join(
 		workingDir,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
 		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
@@ -529,18 +532,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating nodes coordinator")
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
+	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
-		coreComponents.Hasher)
+		coreComponents.Hasher,
+		rater)
 	if err != nil {
 		return err
 	}
@@ -662,12 +679,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
-	}
-
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -694,6 +705,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
+		epochStartNotifier,
+		&generalConfig.EpochStartConfig,
+		0,
+		rater,
+		generalConfig.Marshalizer.SizeCheckDelta,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -934,6 +950,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
+	rater sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -977,7 +994,13 @@ func createNodesCoordinator(
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 	if err != nil {
 		return nil, err
 	}
@@ -1073,7 +1096,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
-		node.WithMarshalizer(core.Marshalizer),
+		node.WithMarshalizer(core.Marshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
@@ -1106,10 +1129,13 @@ func createNode(
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
+		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithChainID(core.ChainID),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

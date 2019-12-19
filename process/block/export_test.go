@@ -56,6 +56,13 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		shardCoordinator,
 		nodesCoordinator,
 	)
+
+	argsHeaderValidator := ArgsHeaderValidator{
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -73,6 +80,8 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -135,6 +144,14 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
+func (mp *metaProcessor) CreateEpochStartForMetablock() (*block.EpochStart, error) {
+	return mp.createEpochStartForMetablock()
+}
+
+func (mp *metaProcessor) GetLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
+	return mp.getLastFinalizedMetaHashForShard(shardHdr)
+}
+
 func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
@@ -162,6 +179,10 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 	bp.hasher = hasher
 }
 
+func (bp *baseProcessor) SetHeaderValidator(validator process.HeaderConstructionValidator) {
+	bp.headerValidator = validator
+}
+
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	mp.shardBlockFinality = val
@@ -172,8 +193,8 @@ func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error 
 	return mp.saveLastNotarizedHeader(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
-	return mp.checkShardHeadersValidity()
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+	return mp.checkShardHeadersValidity(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
@@ -181,7 +202,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	return bp.isHdrConstructionValid(currHdr, prevHdr)
+	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
 
 func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {

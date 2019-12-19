@@ -27,6 +27,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID: []byte("chain ID"),
 	}
 
 	hdr := createMockShardHeader()
@@ -53,6 +54,7 @@ func createMockShardHeader() *dataBlock.Header {
 		RootHash:         []byte("root hash"),
 		MetaBlockHashes:  nil,
 		TxCount:          0,
+		ChainID:          []byte("chain ID"),
 	}
 }
 
@@ -64,7 +66,7 @@ func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(nil)
 
 	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
