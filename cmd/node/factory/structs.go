@@ -491,6 +491,7 @@ type processComponentsFactoryArgs struct {
 	epochStart            *config.EpochStartConfig
 	startEpochNum         uint32
 	rater                 sharding.RaterHandler
+	sizeCheckDelta        uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -514,6 +515,7 @@ func NewProcessComponentsFactoryArgs(
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
 	rater sharding.RaterHandler,
+	sizeCheckDelta uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:        coreComponents,
@@ -535,6 +537,7 @@ func NewProcessComponentsFactoryArgs(
 		epochStart:            epochStart,
 		startEpochNum:         startEpochNum,
 		rater:                 rater,
+		sizeCheckDelta:        sizeCheckDelta,
 	}
 }
 
@@ -571,6 +574,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.network,
 		args.economicsData,
 		headerSigVerifier,
+		args.sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, err
@@ -1557,6 +1561,7 @@ func newInterceptorAndResolverContainerFactory(
 	network *Network,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	sizeCheckDelta uint32,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1570,6 +1575,7 @@ func newInterceptorAndResolverContainerFactory(
 			network,
 			economics,
 			headerSigVerifier,
+			sizeCheckDelta,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1583,6 +1589,7 @@ func newInterceptorAndResolverContainerFactory(
 			state,
 			economics,
 			headerSigVerifier,
+			sizeCheckDelta,
 		)
 	}
 
@@ -1599,6 +1606,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	network *Network,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	sizeCheckDelta uint32,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -1621,6 +1629,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		headerBlackList,
 		headerSigVerifier,
 		core.ChainID,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1639,6 +1648,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1657,6 +1667,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	state *State,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	sizeCheckDelta uint32,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1679,6 +1690,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		headerBlackList,
 		headerSigVerifier,
 		core.ChainID,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1697,6 +1709,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
