@@ -92,17 +92,16 @@ func Test_DoEviction_DoneInPass1_WhenTooManySenders(t *testing.T) {
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
 	journal := cache.doEviction()
-	require.Equal(t, uint32(2), journal.passOneNumEvictedTxs)
-	require.Equal(t, uint32(2), journal.passOneNumEvictedSenders)
-	require.Equal(t, uint32(0), journal.passTwoNumEvictedTxs)
-	require.Equal(t, uint32(0), journal.passTwoNumEvictedSenders)
-	require.Equal(t, uint32(0), journal.passThreeNumEvictedTxs)
-	require.Equal(t, uint32(0), journal.passThreeNumEvictedSenders)
+	require.Equal(t, uint32(2), journal.passOneNumTxs)
+	require.Equal(t, uint32(2), journal.passOneNumSenders)
+	require.Equal(t, uint32(0), journal.passTwoNumTxs)
+	require.Equal(t, uint32(0), journal.passTwoNumSenders)
+	require.Equal(t, uint32(0), journal.passThreeNumTxs)
+	require.Equal(t, uint32(0), journal.passThreeNumSenders)
 
 	// Alice and Bob evicted. Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
 	require.Equal(t, int64(1), cache.CountSenders())
 	require.Equal(t, int64(1), cache.CountTx())
-
 }
