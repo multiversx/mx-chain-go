@@ -122,8 +122,8 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	Prune(rootHash []byte, identifier TriePruningIdentifier) error
-	TakeSnapshot(rootHash []byte) error
-	SetCheckpoint(rootHash []byte) error
+	TakeSnapshot(rootHash []byte)
+	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	Database() DBWriteCacher

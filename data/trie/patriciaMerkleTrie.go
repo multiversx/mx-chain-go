@@ -410,22 +410,14 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 }
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
-func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) error {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
+func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
 	tr.trieStorage.SetCheckpoint(rootHash, tr.marshalizer, tr.hasher)
-	return nil
 }
 
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
-func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) error {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
+func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
 	tr.trieStorage.TakeSnapshot(rootHash, tr.marshalizer, tr.hasher)
-	return nil
 }
 
 // Database returns the trie database

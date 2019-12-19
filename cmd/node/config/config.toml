@@ -330,3 +330,6 @@
    Port = 123
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
+
+[StateCheckpointConfig]
+    RoundsModulus = 100

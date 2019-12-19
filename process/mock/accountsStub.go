@@ -157,20 +157,16 @@ func (aam *AccountsStub) CancelPrune(rootHash []byte) {
 	}
 }
 
-func (aam *AccountsStub) SnapshotState(rootHash []byte) error {
+func (aam *AccountsStub) SnapshotState(rootHash []byte) {
 	if aam.SnapshotStateCalled != nil {
-		return aam.SnapshotStateCalled(rootHash)
+		aam.SnapshotStateCalled(rootHash)
 	}
-
-	return errNotImplemented
 }
 
-func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) error {
+func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 	if aam.SetStateCheckpointCalled != nil {
-		return aam.SetStateCheckpointCalled(rootHash)
+		aam.SetStateCheckpointCalled(rootHash)
 	}
-
-	return errNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

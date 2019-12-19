@@ -114,7 +114,7 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
-	_ = tr.TakeSnapshot(rootHash)
+	tr.TakeSnapshot(rootHash)
 
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(snapshotDelay)
@@ -150,7 +150,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()
-		_ = tr.TakeSnapshot(tr.root.getHash())
+		tr.TakeSnapshot(tr.root.getHash())
 		for trieStorage.snapshotsBuffer.len() != 0 {
 			time.Sleep(snapshotDelay)
 		}
@@ -182,7 +182,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()
-		_ = tr.TakeSnapshot(tr.root.getHash())
+		tr.TakeSnapshot(tr.root.getHash())
 		for trieStorage.snapshotsBuffer.len() != 0 {
 			time.Sleep(snapshotDelay)
 		}
@@ -230,7 +230,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
 	rootHashes = append(rootHashes, rootHash)
-	_ = tr.TakeSnapshot(rootHash)
+	tr.TakeSnapshot(rootHash)
 
 	nrRounds := 10
 	nrUpdates := 1000
@@ -285,7 +285,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 
 	_ = tr.Commit()
-	_ = tr.TakeSnapshot(tr.root.getHash())
+	tr.TakeSnapshot(tr.root.getHash())
 
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(snapshotDelay)
@@ -311,8 +311,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	err = tr.SetCheckpoint(tr.root.getHash())
-	assert.Nil(t, err)
+	tr.SetCheckpoint(tr.root.getHash())
 
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(snapshotDelay)
@@ -334,8 +333,8 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 	assert.Equal(t, 0, len(trieStorage.snapshots))
 
 	_ = tr.Commit()
-	err := tr.SetCheckpoint(tr.root.getHash())
-	assert.Nil(t, err)
+	tr.SetCheckpoint(tr.root.getHash())
+
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(snapshotDelay)
 	}
@@ -352,8 +351,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Commit()
 
-	err := tr.TakeSnapshot(tr.root.getHash())
-	assert.Nil(t, err)
+	tr.TakeSnapshot(tr.root.getHash())
 	for trieStorage.snapshotsBuffer.len() != 0 {
 		time.Sleep(time.Second)
 	}
@@ -370,7 +368,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	for i := 0; i < numSnapshots; i++ {
 		go func() {
 			rootHash, _ := tr.Root()
-			assert.Nil(t, tr.TakeSnapshot(rootHash))
+			tr.TakeSnapshot(rootHash)
 			snapshotWg.Done()
 		}()
 	}
@@ -378,7 +376,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	for i := 0; i < numCheckpoints; i++ {
 		go func() {
 			rootHash, _ := tr.Root()
-			assert.Nil(t, tr.SetCheckpoint(rootHash))
+			tr.SetCheckpoint(rootHash)
 			checkpointWg.Done()
 		}()
 	}

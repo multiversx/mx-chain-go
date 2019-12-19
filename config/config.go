@@ -94,6 +94,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
+	StateCheckpointConfig   CheckpointConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -203,4 +204,9 @@ type FacadeConfig struct {
 	Prometheus        bool
 	PrometheusJoinURL string
 	PrometheusJobName string
+}
+
+// CheckpointConfig will hold information about state checkpoint
+type CheckpointConfig struct {
+	RoundModulus uint
 }

@@ -473,13 +473,13 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte) {
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *AccountsDB) SnapshotState(rootHash []byte) error {
-	return adb.mainTrie.TakeSnapshot(rootHash)
+func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+	adb.mainTrie.TakeSnapshot(rootHash)
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
-func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) error {
-	return adb.mainTrie.SetCheckpoint(rootHash)
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mainTrie.SetCheckpoint(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
