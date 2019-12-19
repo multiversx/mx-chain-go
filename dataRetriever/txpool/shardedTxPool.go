@@ -128,107 +128,106 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 
 // RemoveData is not implemented for this pool
 func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
-	panic("shardedTxPool.RemoveData is not implemented")
+	txPool.removeTx(key, cacheID)
 }
 
 // removeTx removes the transaction from the pool
 func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) {
-	// shard := txPool.getOrCreateShard(cacheID)
-	// _ = shard.Cache.RemoveTxByHash(txHash)
+	shard := txPool.getOrCreateShard(cacheID)
+	_ = shard.Cache.RemoveTxByHash(txHash)
 }
 
 // RemoveSetOfDataFromPool is not implemented for this pool
 func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
-	//txPool.removeTxBulk(keys, cacheID)
+	txPool.removeTxBulk(keys, cacheID)
 }
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
-	// for _, key := range txHashes {
-	// 	txPool.removeTx(key, cacheID)
-	// }
+	for _, key := range txHashes {
+		txPool.removeTx(key, cacheID)
+	}
 }
 
 // RemoveDataFromAllShards is not implemented for this pool
 func (txPool *shardedTxPool) RemoveDataFromAllShards(key []byte) {
-	panic("shardedTxPool.RemoveDataFromAllShards is not implemented")
+	txPool.removeTxFromAllShards(key)
 }
 
 // removeTxFromAllShards will remove the transaction from the pool (searches for it in all shards)
 func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
-	// txPool.mutex.RLock()
-	// defer txPool.mutex.RUnlock()
+	txPool.mutex.RLock()
+	defer txPool.mutex.RUnlock()
 
-	// for _, shard := range txPool.backingMap {
-	// 	cache := shard.Cache
-	// 	_ = cache.RemoveTxByHash(txHash)
-	// }
+	for _, shard := range txPool.backingMap {
+		cache := shard.Cache
+		_ = cache.RemoveTxByHash(txHash)
+	}
 }
 
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
-	// sourceShard := txPool.getOrCreateShard(sourceCacheID)
-	// sourceCache := sourceShard.Cache
+	sourceShard := txPool.getOrCreateShard(sourceCacheID)
+	sourceCache := sourceShard.Cache
 
-	// sourceCache.ForEachTransaction(func(txHash []byte, tx data.TransactionHandler) {
-	// 	txPool.addTx(txHash, tx, destCacheID)
-	// })
+	sourceCache.ForEachTransaction(func(txHash []byte, tx data.TransactionHandler) {
+		txPool.addTx(txHash, tx, destCacheID)
+	})
 
-	// txPool.mutex.Lock()
-	// delete(txPool.backingMap, sourceCacheID)
-	// txPool.mutex.Unlock()
+	txPool.mutex.Lock()
+	delete(txPool.backingMap, sourceCacheID)
+	txPool.mutex.Unlock()
 }
 
 // MoveData is not implemented for this pool
-func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, key [][]byte) {
-	panic("shardedTxPool.MoveData is not implemented")
+func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, keys [][]byte) {
+	txPool.MoveTxs(sourceCacheID, destCacheID, keys)
 }
 
 // MoveTxs moves the transactions between two caches
 func (txPool *shardedTxPool) MoveTxs(sourceCacheID string, destCacheID string, txHashes [][]byte) {
-	// sourceShard := txPool.getOrCreateShard(sourceCacheID)
-	// sourceCache := sourceShard.Cache
+	sourceShard := txPool.getOrCreateShard(sourceCacheID)
+	sourceCache := sourceShard.Cache
 
-	// for _, txHash := range txHashes {
-	// 	tx, ok := sourceCache.GetByTxHash(txHash)
-	// 	if ok {
-	// 		txPool.addTx(txHash, tx, destCacheID)
-	// 		txPool.removeTx(txHash, sourceCacheID)
-	// 	}
-	// }
+	for _, txHash := range txHashes {
+		tx, ok := sourceCache.GetByTxHash(txHash)
+		if ok {
+			txPool.addTx(txHash, tx, destCacheID)
+			txPool.removeTx(txHash, sourceCacheID)
+		}
+	}
 }
 
 // Clear clears everything in the pool
 func (txPool *shardedTxPool) Clear() {
-	// txPool.mutex.Lock()
-	// for key := range txPool.backingMap {
-	// 	delete(txPool.backingMap, key)
-	// }
-	// txPool.mutex.Unlock()
+	txPool.mutex.Lock()
+	for key := range txPool.backingMap {
+		delete(txPool.backingMap, key)
+	}
+	txPool.mutex.Unlock()
 }
 
 // ClearShardStore clears a specific cache
 func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
-	// shard := txPool.getOrCreateShard(cacheID)
-	// shard.Cache.Clear()
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.Clear()
 }
 
-// CreateShardStore is a ShardedData method that is responsible for creating
-//  a new shardStore with cacheId index in the shardedDataStore map
+// CreateShardStore is not implemented
 func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
 	panic("shardedTxPool.CreateShardStore() is not implemented (not needed; shard creation is managed internally)")
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added
 func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
-	// if handler == nil {
-	// 	log.Error("attempt to register a nil handler")
-	// 	return
-	// }
+	if handler == nil {
+		log.Error("attempt to register a nil handler")
+		return
+	}
 
-	// txPool.mutexAddCallbacks.Lock()
-	// txPool.onAddCallbacks = append(txPool.onAddCallbacks, handler)
-	// txPool.mutexAddCallbacks.Unlock()
+	txPool.mutexAddCallbacks.Lock()
+	txPool.onAddCallbacks = append(txPool.onAddCallbacks, handler)
+	txPool.mutexAddCallbacks.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
