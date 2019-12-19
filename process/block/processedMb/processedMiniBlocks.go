@@ -32,7 +32,7 @@ func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, min
 
 	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
 	if !ok {
-		miniBlocksProcessed := make(MiniBlockHashes)
+		miniBlocksProcessed = make(MiniBlockHashes)
 		miniBlocksProcessed[miniBlockHash] = struct{}{}
 		pmb.processedMiniBlocks[metaBlockHash] = miniBlocksProcessed
 
@@ -53,10 +53,7 @@ func (pmb *ProcessedMiniBlockTracker) RemoveMetaBlockHash(metaBlockHash string) 
 func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	for metaHash, miniBlocksProcessed := range pmb.processedMiniBlocks {
-		_, isProcessed := miniBlocksProcessed[miniBlockHash]
-		if isProcessed {
-			delete(miniBlocksProcessed, miniBlockHash)
-		}
+		delete(miniBlocksProcessed, miniBlockHash)
 
 		if len(miniBlocksProcessed) == 0 {
 			delete(pmb.processedMiniBlocks, metaHash)
@@ -90,17 +87,20 @@ func (pmb *ProcessedMiniBlockTracker) IsMiniBlockProcessed(metaBlockHash string,
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
 func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta {
-	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
-
 	pmb.mutProcessedMiniBlocks.RLock()
+	defer pmb.mutProcessedMiniBlocks.RUnlock()
+
+	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0, len(pmb.processedMiniBlocks))
 	for metaHash, miniBlocksHashes := range pmb.processedMiniBlocks {
-		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlocksHashes: make([][]byte, 0)}
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
+			MetaHash:         []byte(metaHash),
+			MiniBlocksHashes: make([][]byte, 0, len(miniBlocksHashes)),
+		}
 		for miniBlockHash := range miniBlocksHashes {
 			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
 		}
 		miniBlocksInMetaBlocks = append(miniBlocksInMetaBlocks, miniBlocksInMeta)
 	}
-	pmb.mutProcessedMiniBlocks.RUnlock()
 
 	return miniBlocksInMetaBlocks
 }
@@ -108,6 +108,8 @@ func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []b
 // ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
 func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) {
 	pmb.mutProcessedMiniBlocks.Lock()
+	defer pmb.mutProcessedMiniBlocks.Unlock()
+
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
 		miniBlocksHashes := make(MiniBlockHashes)
 		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
@@ -115,7 +117,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 		}
 		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
 	}
-	pmb.mutProcessedMiniBlocks.Unlock()
+
 }
 
 // DisplayProcessedMiniBlocks will display all miniblocks hashes and meta block hash from the map
