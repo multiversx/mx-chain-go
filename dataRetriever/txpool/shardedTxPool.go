@@ -37,8 +37,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataC
 		CountThreshold:                  size,
 		ThresholdEvictSenders:           1000,
 		NumOldestSendersToEvict:         500,
-		ALotOfTransactionsForASender:    size / 10,
-		NumTxsToEvictForASenderWithALot: 1000,
+		ALotOfTransactionsForASender:    size / 100,
+		NumTxsToEvictForASenderWithALot: (size / 100) * 3 / 4,
 	}
 
 	return &shardedTxPool{

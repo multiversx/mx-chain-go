@@ -15,19 +15,18 @@ import (
 func Test_AddTx(t *testing.T) {
 	cache := NewTxCache(1)
 
-	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
 
-	ok, added := cache.AddTx(txHash, tx)
+	ok, added := cache.AddTx([]byte("hash-1"), tx)
 	require.True(t, ok)
 	require.True(t, added)
 
 	// Add it again (no-operation)
-	ok, added = cache.AddTx(txHash, tx)
+	ok, added = cache.AddTx([]byte("hash-1"), tx)
 	require.True(t, ok)
 	require.False(t, added)
 
-	foundTx, ok := cache.GetByTxHash(txHash)
+	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
 	require.True(t, ok)
 	require.Equal(t, tx, foundTx)
 }
