@@ -16,6 +16,7 @@ type ForkDetectorMock struct {
 	ResetForkCalled                       func()
 	GetNotarizedHeaderHashCalled          func(nonce uint64) []byte
 	RestoreFinalCheckPointToGenesisCalled func()
+	SetForkNonceCalled                    func(nonce uint64)
 }
 
 func (f *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
@@ -51,6 +52,12 @@ func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
 
 func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 	fdm.ResetProbableHighestNonceCalled()
+}
+
+func (fdm *ForkDetectorMock) SetForkNonce(nonce uint64) {
+	if fdm.SetForkNonceCalled != nil {
+		fdm.SetForkNonceCalled(nonce)
+	}
 }
 
 func (fdm *ForkDetectorMock) ResetFork() {

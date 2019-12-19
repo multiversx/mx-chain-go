@@ -617,6 +617,12 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if !revertUsingForkNonce && currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
 			return ErrRollBackBehindFinalHeader
 		}
+
+		shouldEndRollBack := revertUsingForkNonce && currHeader.GetNonce() < boot.forkInfo.Nonce
+		if shouldEndRollBack {
+			return ErrRollBackBehindForkNonce
+		}
+
 		currBlockBody, err := boot.blockBootstrapper.getBlockBody(currHeader)
 		if err != nil {
 			return err
@@ -667,6 +673,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if shouldContinueRollBack {
 			continue
 		}
+
 		break
 	}
 

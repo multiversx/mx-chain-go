@@ -35,6 +35,7 @@ type HeaderHandler interface {
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
+	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
 	SetRound(r uint64)
@@ -50,6 +51,7 @@ type HeaderHandler interface {
 	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
+	IsStartOfEpochBlock() bool
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 
 	IsInterfaceNil() bool
