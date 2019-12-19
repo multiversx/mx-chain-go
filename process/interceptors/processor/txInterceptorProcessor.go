@@ -16,7 +16,7 @@ type TxInterceptorProcessor struct {
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
 func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxInterceptorProcessor, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ShardedDataCache) {
 		return nil, process.ErrNilDataPoolHolder

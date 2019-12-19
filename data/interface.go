@@ -18,9 +18,11 @@ type HeaderHandler interface {
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 	GetLeaderSignature() []byte
+	GetChainID() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
+	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
 	SetRound(r uint64)
@@ -33,14 +35,17 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
+	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
+	IsStartOfEpochBlock() bool
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
 	Clone() HeaderHandler
+	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body

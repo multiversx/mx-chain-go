@@ -19,7 +19,7 @@ type StakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
 	Staked        bool     `json:"Staked"`
 	UnStakedNonce uint64   `json:"UnStakedNonce"`
-	BlsPubKey     []byte   `json:"BlsPubKey"`
+	Address       []byte   `json:"Address"`
 	StakeValue    *big.Int `json:"StakeValue"`
 }
 
@@ -110,11 +110,11 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	registrationData := StakingData{
 		StartNonce:    0,
 		Staked:        false,
-		BlsPubKey:     nil,
+		Address:       nil,
 		UnStakedNonce: 0,
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
-	data := r.eei.GetStorage(args.CallerAddr)
+	data := r.eei.GetStorage(args.Arguments[0])
 
 	if data != nil {
 		err := json.Unmarshal(data, &registrationData)
@@ -139,7 +139,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	registrationData.StartNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.BlsPubKey = args.Arguments[0]
+	registrationData.Address = args.CallerAddr
 	//TODO: verify if blsPubKey is valid
 
 	data, err := json.Marshal(registrationData)
@@ -150,14 +150,14 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage(args.CallerAddr, data)
+	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	var registrationData StakingData
-	data := r.eei.GetStorage(args.CallerAddr)
+	data := r.eei.GetStorage(args.Arguments[0])
 	if data == nil {
 		log.Debug("unStake is not possible for address which is not staked")
 		return vmcommon.UserError
@@ -167,6 +167,14 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	if err != nil {
 		log.Debug("unmarshal error in unStake function of staking SC",
 			"error", err.Error(),
+		)
+		return vmcommon.UserError
+	}
+
+	if !bytes.Equal(args.CallerAddr, registrationData.Address) {
+		log.Debug("unStake possible only from staker",
+				"caller", args.CallerAddr,
+				"staker", registrationData.Address,
 		)
 		return vmcommon.UserError
 	}
@@ -187,14 +195,14 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage(args.CallerAddr, data)
+	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	var registrationData StakingData
-	data := r.eei.GetStorage(args.CallerAddr)
+	data := r.eei.GetStorage(args.Arguments[0])
 	if data == nil {
 		log.Error("unBond is not possible for address which is not staked")
 		return vmcommon.UserError
@@ -219,7 +227,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage(args.CallerAddr, nil)
+	r.eei.SetStorage(args.Arguments[0], nil)
 
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
@@ -276,7 +284,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage(args.CallerAddr, data)
+	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
