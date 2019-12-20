@@ -14,6 +14,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+const fileModeUserReadWrite = 0600
+
 var (
 	fileGenHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
@@ -72,7 +74,7 @@ func backupFileIfExists(filename string) {
 		}
 	}
 	//if we reached here the file probably exists, make a timestamped backup
-	os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
+	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 
 }
 
@@ -101,7 +103,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
-	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, 0666)
+	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, fileModeUserReadWrite)
 	if err != nil {
 		return err
 	}
@@ -112,7 +114,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
-	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, 0666)
+	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, fileModeUserReadWrite)
 	if err != nil {
 		return err
 	}

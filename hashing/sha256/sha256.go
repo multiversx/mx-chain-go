@@ -16,7 +16,7 @@ func (sha Sha256) Compute(s string) []byte {
 		return sha.EmptyHash()
 	}
 	h := sha256.New()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
@@ -35,8 +35,5 @@ func (Sha256) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha Sha256) IsInterfaceNil() bool {
-	if &sha == nil {
-		return true
-	}
-	return false
+	return &sha == nil
 }

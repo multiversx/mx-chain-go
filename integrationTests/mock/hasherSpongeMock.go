@@ -15,7 +15,7 @@ type HasherSpongeMock struct {
 // Compute will output the SHA's equivalent of the input string
 func (sha HasherSpongeMock) Compute(s string) []byte {
 	h, _ := blake2b.New(hashSize, nil)
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 

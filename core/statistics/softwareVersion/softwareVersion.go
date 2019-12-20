@@ -57,7 +57,7 @@ func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 }
 
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
-	tagVersion, err := readJSONFromUrl(stableTagLocation)
+	tagVersion, err := readJSONFromUrl()
 	if err != nil {
 		log.Debug("cannot read json with latest stable tag", err)
 		return
@@ -69,8 +69,8 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
 }
 
-func readJSONFromUrl(url string) (string, error) {
-	resp, err := http.Get(url)
+func readJSONFromUrl() (string, error) {
+	resp, err := http.Get(stableTagLocation)
 	if err != nil {
 		return "", err
 	}

@@ -16,7 +16,7 @@ func (f Fnv) Compute(s string) []byte {
 		return f.EmptyHash()
 	}
 	h := fnv.New128a()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
@@ -35,8 +35,5 @@ func (Fnv) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (f Fnv) IsInterfaceNil() bool {
-	if &f == nil {
-		return true
-	}
-	return false
+	return &f == nil
 }

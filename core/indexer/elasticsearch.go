@@ -256,7 +256,11 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	}
 
 	buff.Grow(len(marshalizedRoundInfo))
-	buff.Write(marshalizedRoundInfo)
+	_, err = buff.Write(marshalizedRoundInfo)
+	if err != nil {
+		log.Trace("elastic search: save round info, write", "error", err.Error())
+		return
+	}
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
@@ -307,7 +311,10 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 	}
 
 	buff.Grow(len(marshalizedValidatorPubKeys))
-	buff.Write(marshalizedValidatorPubKeys)
+	_, err = buff.Write(marshalizedValidatorPubKeys)
+	if err != nil {
+		log.Trace("elastic search: save shard validators pub keys, write", "error", err.Error())
+	}
 
 	req := esapi.IndexRequest{
 		Index:      validatorsIndex,
@@ -368,7 +375,10 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes [
 	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
 
 	buff.Grow(len(serializedBlock))
-	buff.Write(serializedBlock)
+	_, err := buff.Write(serializedBlock)
+	if err != nil {
+		log.Trace("elastic search: save header, write", "error", err.Error())
+	}
 
 	req := esapi.IndexRequest{
 		Index:      blockIndex,
@@ -405,8 +415,14 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 		serializedTx = append(serializedTx, "\n"...)
 
 		buff.Grow(len(meta) + len(serializedTx))
-		buff.Write(meta)
-		buff.Write(serializedTx)
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Trace("elastic search: serialize bulk tx, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedTx)
+		if err != nil {
+			log.Trace("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
 	}
 
 	return buff
@@ -541,8 +557,14 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	serializedInfo = append(serializedInfo, "\n"...)
 
 	buff.Grow(len(meta) + len(serializedInfo))
-	buff.Write(meta)
-	buff.Write(serializedInfo)
+	_, err = buff.Write(meta)
+	if err != nil {
+		log.Trace("elastic search: update TPS write meta", "error", err.Error())
+	}
+	_, err = buff.Write(serializedInfo)
+	if err != nil {
+		log.Trace("elastic search: update TPS write serialized info", "error", err.Error())
+	}
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
 		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
@@ -551,8 +573,14 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 		}
 
 		buff.Grow(len(meta) + len(serializedInfo))
-		buff.Write(meta)
-		buff.Write(serializedInfo)
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Trace("elastic search: update TPS write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedInfo)
+		if err != nil {
+			log.Trace("elastic search: update TPS write serialized data", "error", err.Error())
+		}
 
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
