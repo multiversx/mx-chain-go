@@ -74,18 +74,17 @@ func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) 
 	}
 }
 
-func Test_AddData_Or_AddTx(t *testing.T) {
+func Test_AddData(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 16})
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("1")
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.addTx([]byte("hash-y"), createTx("alice", 43), "1")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
 	require.Equal(t, int64(2), cache.CountTx())
 
 	// Try to add again, duplication does not occur
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.addTx([]byte("hash-y"), createTx("alice", 43), "1")
 	require.Equal(t, int64(2), cache.CountTx())
 
 	_, ok := cache.GetByTxHash([]byte("hash-x"))
@@ -119,22 +118,19 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	require.Equal(t, 1, numAdded)
 }
 
-func Test_SearchFirstData_Or_searchFirstTx(t *testing.T) {
+func Test_SearchFirstData(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "2")
+	tx := createTx("alice", 42)
+	pool.AddData([]byte("hash-x"), tx, "1")
 
-	xGeneric, okGeneric := pool.SearchFirstData([]byte("hash-x"))
-	xTx, okTx := pool.searchFirstTx([]byte("hash-x"))
-	require.True(t, okGeneric)
-	require.True(t, okTx)
-	require.NotNil(t, xGeneric)
-	require.Equal(t, xGeneric, xTx)
+	foundTx, ok := pool.SearchFirstData([]byte("hash-x"))
+	require.True(t, ok)
+	require.Equal(t, tx, foundTx)
 }
 
-func Test_RemoveData_Or_RemoveTx(t *testing.T) {
+func Test_RemoveData(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
 	pool := poolAsInterface.(*shardedTxPool)
 
@@ -142,7 +138,7 @@ func Test_RemoveData_Or_RemoveTx(t *testing.T) {
 	pool.AddData([]byte("hash-y"), createTx("bob", 43), "bar")
 
 	pool.RemoveData([]byte("hash-x"), "foo")
-	pool.removeTx([]byte("hash-y"), "bar")
+	pool.RemoveData([]byte("hash-y"), "bar")
 	xTx, xOk := pool.searchFirstTx([]byte("hash-x"))
 	yTx, yOk := pool.searchFirstTx([]byte("hash-y"))
 	require.False(t, xOk)
@@ -151,7 +147,7 @@ func Test_RemoveData_Or_RemoveTx(t *testing.T) {
 	require.Nil(t, yTx)
 }
 
-func Test_RemoveSetOfDataFromPool_Or_removeTxBulk(t *testing.T) {
+func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("foo")
@@ -161,13 +157,6 @@ func Test_RemoveSetOfDataFromPool_Or_removeTxBulk(t *testing.T) {
 	require.Equal(t, int64(2), cache.CountTx())
 
 	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "foo")
-	require.Zero(t, cache.CountTx())
-
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "foo")
-	require.Equal(t, int64(2), cache.CountTx())
-
-	pool.removeTxBulk([][]byte{[]byte("hash-x"), []byte("hash-y")}, "foo")
 	require.Zero(t, cache.CountTx())
 }
 
