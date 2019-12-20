@@ -130,7 +130,7 @@ func waitABit() {
 
 	wg.Add(1)
 	go func() {
-		time.Sleep(10)
+		time.Sleep(10 * time.Millisecond)
 		wg.Done()
 	}()
 	wg.Wait()
