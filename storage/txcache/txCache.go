@@ -151,7 +151,7 @@ func (cache *TxCache) Clear() {
 
 // Put is not implemented
 func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
-	panic("TxCache.Put is not implemented")
+	return false
 }
 
 // Get gets a transaction by hash
@@ -162,7 +162,7 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 
 // Has is not implemented
 func (cache *TxCache) Has(key []byte) bool {
-	panic("TxCache.Has is not implemented")
+	return false
 }
 
 // Peek gets a transaction by hash
@@ -173,35 +173,32 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd is not implemented
 func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	panic("TxCache.HasOrAdd is not implemented")
+	return false, false
 }
 
 // Remove is not implemented
 func (cache *TxCache) Remove(key []byte) {
-	panic("TxCache.Remove is not implemented")
 }
 
 // RemoveOldest is not implemented
 func (cache *TxCache) RemoveOldest() {
-	panic("TxCache.RemoveOldest is not implemented")
 }
 
 // Keys is not implemented
 func (cache *TxCache) Keys() [][]byte {
-	panic("TxCache.Keys is not implemented")
+	return [][]byte{}
 }
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	panic("TxCache.MaxSize is not implemented")
+	return 0
 }
 
 // RegisterHandler is not implemented
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
-	panic("TxCache.RegisterHandler is not implemented")
 }
 
 // IsInterfaceNil is not implemented
 func (cache *TxCache) IsInterfaceNil() bool {
-	panic("TxCache.IsInterfaceNil is not implemented")
+	return cache == nil
 }

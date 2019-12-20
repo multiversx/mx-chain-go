@@ -45,7 +45,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 		journal.passThreeNumSteps = steps
 	}
 
-	journal.dump()
+	journal.display()
 	return journal
 }
 

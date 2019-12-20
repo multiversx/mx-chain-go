@@ -12,7 +12,7 @@ type evictionJournal struct {
 	passThreeNumSteps   uint32
 }
 
-func (journal *evictionJournal) dump() {
+func (journal *evictionJournal) display() {
 	log.Trace("Eviction journal:")
 	log.Trace("1st pass:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
 	log.Trace("2nd pass:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)

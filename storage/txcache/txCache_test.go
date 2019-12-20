@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -212,15 +214,34 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 func Test_NotImplementedFunctions(t *testing.T) {
 	cache := NewTxCache(1)
 
-	require.Panics(t, func() { cache.Put(nil, nil) })
-	require.Panics(t, func() { cache.Has(nil) })
-	require.Panics(t, func() { cache.HasOrAdd(nil, nil) })
-	require.Panics(t, func() { cache.Remove(nil) })
-	require.Panics(t, func() { cache.RemoveOldest() })
-	require.Panics(t, func() { cache.Keys() })
-	require.Panics(t, func() { cache.MaxSize() })
-	require.Panics(t, func() { cache.RegisterHandler(nil) })
-	require.Panics(t, func() { cache.IsInterfaceNil() })
+	evicted := cache.Put(nil, nil)
+	require.False(t, evicted)
+
+	has := cache.Has(nil)
+	require.False(t, has)
+
+	ok, evicted := cache.HasOrAdd(nil, nil)
+	require.False(t, ok)
+	require.False(t, evicted)
+
+	require.NotPanics(t, func() { cache.Remove(nil) })
+	require.NotPanics(t, func() { cache.RemoveOldest() })
+	require.NotPanics(t, func() { cache.RegisterHandler(nil) })
+
+	require.Zero(t, len(cache.Keys()))
+	require.Zero(t, cache.MaxSize())
+}
+
+func Test_IsInterfaceNil(t *testing.T) {
+	cache := NewTxCache(1)
+	require.False(t, check.IfNil(cache))
+
+	makeNil := func() storage.Cacher {
+		return nil
+	}
+
+	thisIsNil := makeNil()
+	require.True(t, check.IfNil(thisIsNil))
 }
 
 // This seems to be the worst case in terms of eviction complexity
