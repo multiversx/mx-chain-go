@@ -208,5 +208,5 @@ type FacadeConfig struct {
 
 // CheckpointConfig will hold information about state checkpoint
 type CheckpointConfig struct {
-	RoundModulus uint
+	RoundsModulus uint
 }
