@@ -441,3 +441,20 @@ func TestHeader_CheckChainID(t *testing.T) {
 	assert.Nil(t, hdr.CheckChainID(okChainID))
 	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
 }
+
+func TestMiniBlock_Clone(t *testing.T) {
+	t.Parallel()
+
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		Type:            0,
+	}
+
+	clonedMB := miniBlock.Clone()
+
+	for i, txHash := range miniBlock.TxHashes {
+		assert.True(t, bytes.Equal(clonedMB.TxHashes[i], txHash))
+	}
+}

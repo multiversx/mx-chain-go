@@ -86,7 +86,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 		return bytes.Compare(miniBlocks[selfId].TxHashes[a], miniBlocks[selfId].TxHashes[b]) < 0
 	})
 
-	opp.intraShardMiniBlock = createNewMiniBlock(miniBlocks[selfId])
+	opp.intraShardMiniBlock = miniBlocks[selfId].Clone()
 
 	return miniBlocks
 }

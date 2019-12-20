@@ -139,14 +139,3 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 
 	return bpp.intraShardMiniBlock
 }
-
-func createNewMiniBlock(mb *block.MiniBlock) *block.MiniBlock {
-	newMb := &block.MiniBlock{
-		ReceiverShardID: mb.ReceiverShardID,
-		SenderShardID:   mb.SenderShardID,
-		Type:            mb.Type,
-	}
-	copy(newMb.TxHashes, mb.TxHashes)
-
-	return newMb
-}

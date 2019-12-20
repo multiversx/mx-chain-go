@@ -162,7 +162,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
 
 	if _, ok := miniBlocks[rtxh.shardCoordinator.SelfId()]; ok {
-		rtxh.intraShardMiniBlock = createNewMiniBlock(miniBlocks[rtxh.shardCoordinator.SelfId()])
+		rtxh.intraShardMiniBlock = miniBlocks[rtxh.shardCoordinator.SelfId()].Clone()
 	}
 
 	return miniBlocks
@@ -485,19 +485,5 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtxh *rewardsHandler) IsInterfaceNil() bool {
-	if rtxh == nil {
-		return true
-	}
-	return false
-}
-
-func createNewMiniBlock(mb *block.MiniBlock) *block.MiniBlock {
-	newMb := &block.MiniBlock{
-		ReceiverShardID: mb.ReceiverShardID,
-		SenderShardID:   mb.SenderShardID,
-		Type:            mb.Type,
-	}
-	copy(newMb.TxHashes, mb.TxHashes)
-
-	return newMb
+	return rtxh == nil
 }

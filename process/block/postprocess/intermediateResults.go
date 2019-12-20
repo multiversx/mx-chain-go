@@ -107,7 +107,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	}
 
 	if _, ok := finalMBs[irp.shardCoordinator.SelfId()]; ok {
-		irp.intraShardMiniBlock = createNewMiniBlock(finalMBs[irp.shardCoordinator.SelfId()])
+		irp.intraShardMiniBlock = finalMBs[irp.shardCoordinator.SelfId()].Clone()
 	}
 
 	irp.mutInterResultsForBlock.Unlock()
@@ -212,8 +212,5 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (irp *intermediateResultsProcessor) IsInterfaceNil() bool {
-	if irp == nil {
-		return true
-	}
-	return false
+	return irp == nil
 }
