@@ -30,6 +30,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
+	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.3.1
@@ -44,7 +45,6 @@ require (
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
-	github.com/prometheus/client_golang v1.0.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/stretchr/testify v1.4.0
