@@ -505,8 +505,14 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		return nil, err
 	}
 
+	eligibleNodesPubKeys := make(map[string]struct{})
+
+	for _, v := range n.initialNodesPubkeys[n.shardCoordinator.SelfId()] {
+		eligibleNodesPubKeys[v] = struct{}{}
+	}
+
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
+		eligibleNodesPubKeys,
 		n.consensusGroupSize,
 		string(selfId))
 

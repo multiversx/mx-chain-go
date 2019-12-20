@@ -16,8 +16,13 @@ import (
 func internalInitConsensusState() *spos.ConsensusState {
 	eligibleList := []string{"1", "2", "3"}
 
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesPubKeys,
 		3,
 		"2")
 

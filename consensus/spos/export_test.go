@@ -146,3 +146,7 @@ func (wrk *Worker) SetConsensusStateChangedChannel(consensusStateChangedChannel 
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 	return wrk.checkSelfState(cnsDta)
 }
+
+func (rcns *RoundConsensus) EligibleList() map[string]struct{} {
+	return rcns.eligibleNodes
+}

@@ -48,9 +48,9 @@ func initRounderMock() *mock.RounderMock {
 }
 
 func createEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
+	eligibleList := make([]string, size)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		eligibleList[i] = string(i + 65)
 	}
 	return eligibleList
 }
@@ -59,10 +59,18 @@ func initConsensusState() *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
 	indexLeader := 1
+
+	eligibleNodesKeys := make(map[string]struct{}, len(eligibleList))
+
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
+
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader])
+		eligibleList[indexLeader],
+	)
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
