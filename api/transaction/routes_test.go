@@ -209,7 +209,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 
 	facade := mock.Facade{
 		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value string,
-			gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
+			gasPrice uint64, gasLimit uint64, data string, signature []byte) (string, error) {
 			return "", errors.New(errorString)
 		},
 	}
@@ -231,7 +231,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Contains(t, transactionResponse.Error, errorString)
 	assert.Empty(t, transactionResponse.TxResp)
 }

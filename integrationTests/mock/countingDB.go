@@ -43,6 +43,10 @@ func (cdb *countingDB) Destroy() error {
 	return cdb.db.Destroy()
 }
 
+func (cdb *countingDB) DestroyClosed() error {
+	return cdb.Destroy()
+}
+
 func (cdb *countingDB) Reset() {
 	cdb.nrOfPut = 0
 }
