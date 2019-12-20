@@ -98,7 +98,12 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 // AddData adds the transaction to the cache
 func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID string) {
-	txPool.addTx(key, value.(data.TransactionHandler), cacheID)
+	valueAsTransaction, ok := value.(data.TransactionHandler)
+	if !ok {
+		return
+	}
+
+	txPool.addTx(key, valueAsTransaction, cacheID)
 }
 
 // addTx adds the transaction to the cache

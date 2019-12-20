@@ -94,10 +94,10 @@ func Test_AddData(t *testing.T) {
 	require.True(t, ok)
 }
 
-func Test_AddData_Panics_IfNotATransaction(t *testing.T) {
+func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{})
 
-	require.Panics(t, func() {
+	require.NotPanics(t, func() {
 		poolAsInterface.AddData([]byte("hash"), &thisIsNotATransaction{}, "1")
 	})
 }
