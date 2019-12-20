@@ -243,6 +243,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
 
+	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := &config.DBConfig{
 		FilePath:          tempDir,

@@ -171,7 +171,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			ArgBaseProcessor:       argumentsBase,
 			DataPool:               tpn.ShardDataPool,
 			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
-			StateCheckpointModulus: 100,
+			StateCheckpointModulus: stateCheckpointModulus,
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

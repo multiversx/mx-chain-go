@@ -1361,7 +1361,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := integrationTests.CreateNodesWithCustomStateCheckpintModulus(
+	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
@@ -1406,45 +1406,61 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	snapshotsRootHashes := make(map[int][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
+	numShardNodes := numOfShards * nodesPerShard
 	numRounds := uint32(9)
 	for i := uint64(0); i < uint64(numRounds); i++ {
 
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
 		}
 		time.Sleep(integrationTests.StepDelay)
 
-		for j := 0; j < numOfShards*nodesPerShard; j++ {
-			currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
-
-			if currentBlockHeader.IsStartOfEpochBlock() {
-				snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
-			} else if currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0 {
-				checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
-			} else {
-				prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
-			}
-		}
+		collectSnapshotAndCheckpointHashes(
+			nodes,
+			numShardNodes,
+			checkpointsRootHashes,
+			snapshotsRootHashes,
+			prunedRootHashes,
+			uint64(stateCheckpointModulus),
+		)
 	}
 
 	numDelayRounds := uint32(4)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
-
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		time.Sleep(integrationTests.StepDelay)
 	}
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
 		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+	}
+}
+
+func collectSnapshotAndCheckpointHashes(
+	nodes []*integrationTests.TestProcessorNode,
+	numShardNodes int,
+	checkpointsRootHashes map[int][][]byte,
+	snapshotsRootHashes map[int][][]byte,
+	prunedRootHashes map[int][][]byte,
+	stateCheckpointModulus uint64,
+) {
+	for j := 0; j < numShardNodes; j++ {
+		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
+
+		if currentBlockHeader.IsStartOfEpochBlock() {
+			snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		checkpointRound := currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0
+		if checkpointRound {
+			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
 	}
 }
 

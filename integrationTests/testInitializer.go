@@ -236,6 +236,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
+	// TODO change this implementation with a factory
 	tempDir, _ := ioutil.TempDir("", "integrationTests")
 	cfg := &config.DBConfig{
 		FilePath:          tempDir,
@@ -841,8 +842,8 @@ func CreateNodes(
 	return nodes
 }
 
-// CreateNodesWithCustomStateCheckpintModulus creates multiple nodes in different shards with custom stateCheckpintModulus
-func CreateNodesWithCustomStateCheckpintModulus(
+// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
+func CreateNodesWithCustomStateCheckpointModulus(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,

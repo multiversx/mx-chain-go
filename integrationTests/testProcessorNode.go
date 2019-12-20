@@ -108,6 +108,8 @@ var IntegrationTestsChainID = []byte("integration tests chain ID")
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
+const stateCheckpointModulus = 100
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -346,7 +348,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
-	tpn.initBlockProcessor(100)
+	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,

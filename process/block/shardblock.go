@@ -807,11 +807,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	for i := range finalHeaders {
-		if finalHeaders[i].IsStartOfEpochBlock() {
-			sp.accounts.SnapshotState(finalHeaders[i].GetRootHash())
-		} else if finalHeaders[i].GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
-			sp.accounts.SetStateCheckpoint(finalHeaders[i].GetRootHash())
-		}
+		sp.saveState(finalHeaders[i])
 
 		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
 		if errNotCritical != nil {
@@ -914,6 +910,18 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
+	if finalHeader.IsStartOfEpochBlock() {
+		sp.accounts.SnapshotState(finalHeader.GetRootHash())
+		return
+	}
+
+	// TODO generate checkpoint on a trigger
+	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+	}
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
