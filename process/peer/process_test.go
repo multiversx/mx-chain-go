@@ -41,6 +41,15 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				StakeValue:    "500",
 				UnBoundPeriod: "5",
 			},
+			RatingSettings: config.RatingSettings{
+				StartRating:                 5,
+				MaxRating:                   10,
+				MinRating:                   1,
+				ProposerIncreaseRatingStep:  2,
+				ProposerDecreaseRatingStep:  4,
+				ValidatorIncreaseRatingStep: 1,
+				ValidatorDecreaseRatingStep: 2,
+			},
 		},
 	)
 
