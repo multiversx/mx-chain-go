@@ -161,7 +161,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
 
-	rtxh.intraShardMiniBlock = &block.MiniBlock{}
+	rtxh.intraShardMiniBlock = nil
 	if _, ok := miniBlocks[rtxh.shardCoordinator.SelfId()]; ok {
 		rtxh.intraShardMiniBlock = miniBlocks[rtxh.shardCoordinator.SelfId()]
 	}
