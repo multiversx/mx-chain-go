@@ -9,10 +9,6 @@ prepareFolders() {
   [ -d seednode ] || mkdir -p seednode
   [ -d seednode/config ] || mkdir -p seednode/config
   [ -d node_working_dirs ] || mkdir -p node_working_dirs
-  [ -d proxy ] || mkdir -p proxy
-  [ -d ./proxy/config ] || mkdir -p ./proxy/config
-  [ -d txgen ] || mkdir -p txgen
-  [ -d ./txgen/config ] || mkdir -p ./txgen/config
 }
 
 prepareFolders_PrivateRepos() {
