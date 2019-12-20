@@ -27,7 +27,7 @@ buildConfigGenerator() {
   popd
 
   pushd $TESTNETDIR
-  cp $CONFIGGENERATOR ./filegen/
+  mv $CONFIGGENERATOR ./filegen/
   echo "Configuration Generator built..."
   popd
 }
@@ -40,7 +40,7 @@ buildNode() {
   popd
 
   pushd $TESTNETDIR
-  cp $NODE ./node/
+  mv $NODE ./node/
   echo "Node executable built."
   popd
 }
@@ -52,7 +52,7 @@ buildSeednode() {
   popd
 
   pushd $TESTNETDIR
-  cp $SEEDNODE ./seednode/
+  mv $SEEDNODE ./seednode/
   echo "Seednode executable built."
   popd
 }
@@ -64,7 +64,7 @@ buildProxy() {
   popd
 
   pushd $TESTNETDIR
-  cp $PROXY ./proxy/
+  mv $PROXY ./proxy/
   echo "Proxy executable built."
   popd
 }
@@ -76,7 +76,7 @@ buildTxGen() {
   popd
 
   pushd $TESTNETDIR
-  cp $TXGEN ./txgen/
+  mv $TXGEN ./txgen/
   echo "TxGen executable built."
   popd
 }
