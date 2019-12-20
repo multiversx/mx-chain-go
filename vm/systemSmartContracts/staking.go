@@ -189,6 +189,10 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 			)
 			return vmcommon.UserError
 		}
+
+		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
+			registrationData.StakeValue.Set(stakeValue)
+		}
 	}
 
 	if registrationData.Staked {
