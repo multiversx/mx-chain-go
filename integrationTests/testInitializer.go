@@ -94,7 +94,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 // CreateTestShardDataPool creates a test data pool for shard nodes
 func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+		txPool, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
@@ -146,7 +146,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
@@ -1287,7 +1287,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100})
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)

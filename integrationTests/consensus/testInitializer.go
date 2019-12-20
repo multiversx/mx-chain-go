@@ -196,7 +196,7 @@ func createTestStore() dataRetriever.StorageService {
 }
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}

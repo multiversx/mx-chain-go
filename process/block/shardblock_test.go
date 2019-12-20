@@ -39,7 +39,7 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})

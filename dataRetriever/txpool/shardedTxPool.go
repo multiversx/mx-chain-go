@@ -31,7 +31,7 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataCacherNotifier {
+func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
 	size := config.Size
 	evictionConfig := txcache.EvictionConfig{
 		Enabled:                         true,
@@ -42,7 +42,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataC
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
 	}
 
-	return &shardedTxPool{
+	shardedTxPool := &shardedTxPool{
 		mutex:             sync.RWMutex{},
 		backingMap:        make(map[string]*txPoolShard),
 		mutexAddCallbacks: sync.RWMutex{},
@@ -50,6 +50,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataC
 		cacheConfig:       config,
 		evictionConfig:    evictionConfig,
 	}
+
+	return shardedTxPool, nil
 }
 
 // ShardDataStore is not implemented for this pool
