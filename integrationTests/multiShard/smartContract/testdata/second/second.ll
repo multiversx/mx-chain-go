@@ -10,11 +10,11 @@ target triple = "wasm32-unknown-unknown-wasm"
 ; Function Attrs: noinline nounwind optnone
 define void @doSomething() #0 {
 entry:
-  %call = call i32 @transferValue(i8* getelementptr inbounds ([32 x i8], [32 x i8]* @firstScAddress, i32 0, i32 0), i8* getelementptr inbounds ([32 x i8], [32 x i8]* @zero, i32 0, i32 0), i8* getelementptr inbounds ([10 x i8], [10 x i8]* @.str, i32 0, i32 0), i32 9)
+  %call = call i32 @asyncCall(i8* getelementptr inbounds ([32 x i8], [32 x i8]* @firstScAddress, i32 0, i32 0), i8* getelementptr inbounds ([32 x i8], [32 x i8]* @zero, i32 0, i32 0), i8* getelementptr inbounds ([10 x i8], [10 x i8]* @.str, i32 0, i32 0), i32 9)
   ret void
 }
 
-declare i32 @transferValue(i8*, i8*, i8*, i32) #1
+declare i32 @asyncCall(i8*, i8*, i8*, i32) #1
 
 ; Function Attrs: noinline nounwind optnone
 define void @callBack() #0 {

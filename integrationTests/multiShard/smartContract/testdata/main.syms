@@ -36,3 +36,4 @@ bigIntgetArgument
 bigIntgetCallValue
 bigIntgetExternalBalance
 transferValue
+asyncCall
