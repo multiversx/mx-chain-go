@@ -36,7 +36,7 @@ buildConfigGenerator() {
 buildNode() {
   echo "Building Node executable..."
   pushd $NODEDIR
-  go build .
+  go build -gcflags="all=-N -l" .
   popd
 
   pushd $TESTNETDIR
