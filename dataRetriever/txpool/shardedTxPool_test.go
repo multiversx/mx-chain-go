@@ -3,6 +3,7 @@ package txpool
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -105,9 +106,9 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
 	pool := poolAsInterface.(*shardedTxPool)
 
-	numAdded := 0
+	numAdded := uint32(0)
 	pool.RegisterHandler(func(key []byte) {
-		numAdded++
+		atomic.AddUint32(&numAdded, 1)
 	})
 
 	// Second addition is ignored (txhash-based deduplication)
@@ -115,7 +116,7 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	pool.AddData([]byte("hash-1"), createTx("whatever", 43), "1")
 
 	waitABit()
-	require.Equal(t, 1, numAdded)
+	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
 }
 
 func Test_SearchFirstData(t *testing.T) {
@@ -263,14 +264,7 @@ func createTx(sender string, nonce uint64) data.TransactionHandler {
 }
 
 func waitABit() {
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		wg.Done()
-	}()
-	wg.Wait()
+	time.Sleep(10 * time.Millisecond)
 }
 
 type thisIsNotATransaction struct {
