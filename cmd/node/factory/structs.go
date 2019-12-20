@@ -481,26 +481,27 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents        *coreComponentsFactoryArgs
-	genesisConfig         *sharding.Genesis
-	economicsData         *economics.EconomicsData
-	nodesConfig           *sharding.NodesSetup
-	gasSchedule           map[string]map[string]uint64
-	syncer                ntp.SyncTimer
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	data                  *Data
-	core                  *Core
-	crypto                *Crypto
-	state                 *State
-	network               *Network
-	coreServiceContainer  serviceContainer.Core
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	epochStartNotifier    EpochStartNotifier
-	epochStart            *config.EpochStartConfig
-	startEpochNum         uint32
-	rater                 sharding.RaterHandler
-	sizeCheckDelta        uint32
+	coreComponents         *coreComponentsFactoryArgs
+	genesisConfig          *sharding.Genesis
+	economicsData          *economics.EconomicsData
+	nodesConfig            *sharding.NodesSetup
+	gasSchedule            map[string]map[string]uint64
+	syncer                 ntp.SyncTimer
+	shardCoordinator       sharding.Coordinator
+	nodesCoordinator       sharding.NodesCoordinator
+	data                   *Data
+	core                   *Core
+	crypto                 *Crypto
+	state                  *State
+	network                *Network
+	coreServiceContainer   serviceContainer.Core
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	epochStartNotifier     EpochStartNotifier
+	epochStart             *config.EpochStartConfig
+	startEpochNum          uint32
+	rater                  sharding.RaterHandler
+	sizeCheckDelta         uint32
+	stateCheckpointModulus uint
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -525,28 +526,30 @@ func NewProcessComponentsFactoryArgs(
 	startEpochNum uint32,
 	rater sharding.RaterHandler,
 	sizeCheckDelta uint32,
+	stateCheckpointModulus uint,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:        coreComponents,
-		genesisConfig:         genesisConfig,
-		economicsData:         economicsData,
-		nodesConfig:           nodesConfig,
-		gasSchedule:           gasSchedule,
-		syncer:                syncer,
-		shardCoordinator:      shardCoordinator,
-		nodesCoordinator:      nodesCoordinator,
-		data:                  data,
-		core:                  core,
-		crypto:                crypto,
-		state:                 state,
-		network:               network,
-		coreServiceContainer:  coreServiceContainer,
-		requestedItemsHandler: requestedItemsHandler,
-		epochStartNotifier:    epochStartNotifier,
-		epochStart:            epochStart,
-		startEpochNum:         startEpochNum,
-		rater:                 rater,
-		sizeCheckDelta:        sizeCheckDelta,
+		coreComponents:         coreComponents,
+		genesisConfig:          genesisConfig,
+		economicsData:          economicsData,
+		nodesConfig:            nodesConfig,
+		gasSchedule:            gasSchedule,
+		syncer:                 syncer,
+		shardCoordinator:       shardCoordinator,
+		nodesCoordinator:       nodesCoordinator,
+		data:                   data,
+		core:                   core,
+		crypto:                 crypto,
+		state:                  state,
+		network:                network,
+		coreServiceContainer:   coreServiceContainer,
+		requestedItemsHandler:  requestedItemsHandler,
+		epochStartNotifier:     epochStartNotifier,
+		epochStart:             epochStart,
+		startEpochNum:          startEpochNum,
+		rater:                  rater,
+		sizeCheckDelta:         sizeCheckDelta,
+		stateCheckpointModulus: stateCheckpointModulus,
 	}
 }
 
@@ -2071,6 +2074,7 @@ func newBlockProcessor(
 			validatorStatisticsProcessor,
 			bootStorer,
 			processArgs.gasSchedule,
+			processArgs.stateCheckpointModulus,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -2114,6 +2118,7 @@ func newShardBlockProcessor(
 	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
+	stateCheckpointModulus uint,
 ) (process.BlockProcessor, error) {
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
@@ -2318,9 +2323,10 @@ func newShardBlockProcessor(
 		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-		DataPool:         data.Datapool,
-		TxsPoolsCleaner:  txPoolsCleaner,
+		ArgBaseProcessor:       argumentsBaseProcessor,
+		DataPool:               data.Datapool,
+		TxsPoolsCleaner:        txPoolsCleaner,
+		StateCheckpointModulus: stateCheckpointModulus,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)

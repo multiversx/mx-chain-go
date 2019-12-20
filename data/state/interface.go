@@ -108,6 +108,8 @@ type AccountsAdapter interface {
 	SaveDataTrie(accountHandler AccountHandler) error
 	PruneTrie(rootHash []byte) error
 	CancelPrune(rootHash []byte)
+	SnapshotState(rootHash []byte)
+	SetStateCheckpoint(rootHash []byte)
 	IsInterfaceNil() bool
 }
 

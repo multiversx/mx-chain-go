@@ -472,10 +472,17 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte) {
 	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
 }
 
+// SnapshotState triggers the snapshotting process of the state trie
+func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+	adb.mainTrie.TakeSnapshot(rootHash)
+}
+
+// SetStateCheckpoint sets a checkpoint for the state trie
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mainTrie.SetCheckpoint(rootHash)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
-	if adb == nil {
-		return true
-	}
-	return false
+	return adb == nil
 }

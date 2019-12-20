@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strings"
 	"sync"
@@ -234,7 +235,17 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+
+	// TODO change this implementation with a factory
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := &config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
@@ -824,6 +835,35 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
+func CreateNodesWithCustomStateCheckpointModulus(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+	stateCheckpointModulus uint,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), shardId, shardId, serviceID, stateCheckpointModulus)
+
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID, stateCheckpointModulus)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}

@@ -547,36 +547,6 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	_ = tr.Commit()
-	err := tr.TakeSnapshot()
-	assert.Nil(t, err)
-}
-
-func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldNotFail(t *testing.T) {
-	t.Parallel()
-
-	tr, _ := initTrieMultipleValues(1000)
-
-	_ = tr.Commit()
-	_ = tr.TakeSnapshot()
-	err := tr.TakeSnapshot()
-	assert.Nil(t, err)
-}
-
-func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	err := tr.TakeSnapshot()
-	assert.Equal(t, trie.ErrTrieNotCommitted, err)
-}
-
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 	t.Parallel()
 
@@ -612,7 +582,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
-	_ = tr.TakeSnapshot()
+	tr.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 	_ = tr.Prune(rootHash, data.NewRoot)
 

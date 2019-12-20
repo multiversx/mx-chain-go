@@ -108,6 +108,8 @@ var IntegrationTestsChainID = []byte("integration tests chain ID")
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
+const stateCheckpointModulus = 100
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -346,7 +348,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
-	tpn.initBlockProcessor()
+	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -758,7 +760,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
-func (tpn *TestProcessorNode) initBlockProcessor() {
+func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
@@ -869,9 +871,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.ShardDataPool,
-			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
+			ArgBaseProcessor:       argumentsBase,
+			DataPool:               tpn.ShardDataPool,
+			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
+			StateCheckpointModulus: stateCheckpointModulus,
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

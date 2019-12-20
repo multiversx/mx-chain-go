@@ -39,6 +39,7 @@ type shardProcessor struct {
 	core                   serviceContainer.Core
 	txCounter              *transactionCounter
 	txsPoolsCleaner        process.PoolsCleaner
+	stateCheckpointModulus uint
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -89,11 +90,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp := shardProcessor{
-		core:            arguments.Core,
-		baseProcessor:   base,
-		dataPool:        arguments.DataPool,
-		txCounter:       NewTransactionCounter(),
-		txsPoolsCleaner: arguments.TxsPoolsCleaner,
+		core:                   arguments.Core,
+		baseProcessor:          base,
+		dataPool:               arguments.DataPool,
+		txCounter:              NewTransactionCounter(),
+		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
+		stateCheckpointModulus: arguments.StateCheckpointModulus,
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
@@ -805,6 +807,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	for i := range finalHeaders {
+		sp.saveState(finalHeaders[i])
+
 		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
@@ -906,6 +910,18 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
+	if finalHeader.IsStartOfEpochBlock() {
+		sp.accounts.SnapshotState(finalHeader.GetRootHash())
+		return
+	}
+
+	// TODO generate checkpoint on a trigger
+	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+	}
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
