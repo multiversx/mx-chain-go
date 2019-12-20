@@ -636,7 +636,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 
 	peersData := stakingToPeer.PeerChanges()
 	assert.Equal(t, 1, len(peersData))
-	assert.Equal(t, stakeValue, &peersData[0].ValueChange.Int)
+	assert.Equal(t, stakeValue, peersData[0].ValueChange.Get())
 
 	err = stakingToPeer.VerifyPeerChanges(peersData)
 	assert.Nil(t, err)

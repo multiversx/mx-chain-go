@@ -2,7 +2,6 @@ package block_test
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -16,7 +15,7 @@ func TestPeerData_SaveLoad(t *testing.T) {
 		PublicKey:   []byte("public key"),
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
-		ValueChange: &data.ProtoBigInt{*big.NewInt(1)},
+		ValueChange: data.NewProtoBigInt(1),
 		Address:     []byte("address"),
 	}
 	var b bytes.Buffer
@@ -62,7 +61,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PublicKey:   []byte("public key"),
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
-		ValueChange: &data.ProtoBigInt{*big.NewInt(1)},
+		ValueChange: data.NewProtoBigInt(1),
 	}
 
 	mbh := block.ShardMiniBlockHeader{

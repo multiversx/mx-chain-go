@@ -340,7 +340,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
-	assert.Equal(t, &value.Int, txi.TotalValue())
+	assert.Equal(t, value.Get(), txi.TotalValue())
 	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
 }
 

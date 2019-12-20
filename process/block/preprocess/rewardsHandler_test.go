@@ -288,9 +288,9 @@ func TestRewardsHandler_CreateRewardsFromFees(t *testing.T) {
 	txs = th.createRewardFromFees()
 	assert.Equal(t, 3, len(txs))
 
-	totalSum := txs[0].GetValue().Uint64()
-	totalSum += txs[1].GetValue().Uint64()
-	totalSum += txs[2].GetValue().Uint64()
+	totalSum := txs[0].GetValue().Get().Uint64()
+	totalSum += txs[1].GetValue().Get().Uint64()
+	totalSum += txs[2].GetValue().Get().Uint64()
 
 	assert.Equal(t, currTxFee.Uint64(), totalSum)
 }

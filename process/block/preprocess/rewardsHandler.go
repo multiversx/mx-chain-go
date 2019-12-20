@@ -416,7 +416,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
-		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, &rTx.GetValue().Int)
+		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue().Get())
 	}
 
 	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
@@ -425,7 +425,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	totalCalculatedFees := big.NewInt(0)
 	for _, value := range calculatedRewardTxs {
-		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, &value.GetValue().Int)
+		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue().Get())
 
 		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, value)
 		if err != nil {
@@ -436,7 +436,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 		if !ok {
 			return process.ErrRewardTxNotFound
 		}
-		if txFromBlock.GetValue().Cmp(&value.GetValue().Int) != 0 {
+		if txFromBlock.GetValue().Get().Cmp(value.GetValue().Get()) != 0 {
 			return process.ErrRewardTxsDoNotMatch
 		}
 	}

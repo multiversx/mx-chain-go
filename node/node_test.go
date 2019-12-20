@@ -679,7 +679,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
-	assert.Equal(t, value, &tx.Value.Int)
+	assert.Equal(t, value, tx.Value.Get())
 	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
 }
 

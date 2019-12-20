@@ -5,87 +5,87 @@ import (
 )
 
 type ProtoBigInt struct {
-	big.Int
+	i big.Int
 }
 
 // NewProtoBigInt allocates and returns a new ProtoBigInt set to x.
 func NewProtoBigInt(x int64) *ProtoBigInt {
 	t := ProtoBigInt{}
-	t.SetInt64(x)
+	t.i.SetInt64(x)
 	return &t
 }
 
 // NewProtoBigInt allocates and returns a new ProtoBigInt set to bi.
 func NewProtoBigIntFromBigInt(bi *big.Int) *ProtoBigInt {
-	if bi == nil {
-		return nil
+	t := ProtoBigInt{}
+	if bi != nil {
+		t.i.Set(bi)
 	}
-	t := ProtoBigInt{*bi}
 	return &t
 }
 
 func writeToSlice(sign int, abs, data []byte) {
-
 	if sign == -1 {
 		data[0] = 1
 	} else {
 		data[0] = 0
 	}
-
 	copy(data[1:], abs)
 }
 
+// Marshal used in gogo protobuf conversion
 func (t ProtoBigInt) Marshal() ([]byte, error) {
-	tmp := t.Bytes()
+	tmp := t.i.Bytes()
 	data := make([]byte, len(tmp)+1)
-	writeToSlice(t.Sign(), tmp, data)
+	writeToSlice(t.i.Sign(), tmp, data)
 	return data, nil
+}
+
+// MarshalTo used in gogo protobuf conversion
+func (t *ProtoBigInt) MarshalTo(data []byte) (n int, err error) {
+	tmp := t.i.Bytes()
+	if len(data) <= len(tmp) {
+		return 0, ErrInvalidValue
+	}
+
+	writeToSlice(t.i.Sign(), tmp, data)
+	return len(tmp) + 1, nil
+}
+
+// Unmarshal used in gogo protobuf conversion
+func (t *ProtoBigInt) Unmarshal(data []byte) error {
+	if len(data) < 1 || data[0] > 1 {
+		return ErrInvalidValue
+	}
+	t.i.SetBytes(data[1:])
+	if data[0] == 1 {
+		t.i.Neg(&t.i)
+	}
+	return nil
 
 }
 
+// Size get the protobuf size of t
+func (t *ProtoBigInt) Size() int {
+	tmp := t.i.Bytes()
+	return len(tmp) + 1 /*For sign*/
+}
+
+// Text safe conversion of t to its base string representation
 func (t *ProtoBigInt) Text(base int) string {
 	if t == nil {
 		var nbi *big.Int
 		return nbi.Text(base)
 	}
-	return t.Int.Text(base)
+	return t.i.Text(base)
 }
 
+// Text safe conversion of t to its base 10 string representation
 func (t *ProtoBigInt) String() string {
 	return t.Text(10)
 }
 
-func (t *ProtoBigInt) MarshalTo(data []byte) (n int, err error) {
-	tmp := t.Bytes()
-	if len(data) <= len(tmp) {
-		return 0, ErrInvalidValue
-	}
-
-	writeToSlice(t.Sign(), tmp, data)
-	return len(tmp) + 1, nil
-}
-
-func (t *ProtoBigInt) Unmarshal(data []byte) error {
-	if len(data) < 1 {
-		return ErrInvalidValue
-	}
-	t.SetBytes(data[1:])
-	if data[0] == 0 {
-		// Maybe revize this
-	} else if data[0] == 1 {
-		t.Mul(&t.Int, big.NewInt(-1))
-	} else {
-		t.SetInt64(0)
-		return ErrInvalidValue
-	}
-	return nil
-
-}
-func (t *ProtoBigInt) Size() int {
-	tmp := t.Bytes()
-	return len(tmp) + 1 /*For sign*/
-}
-
+// MarshalJSON convert t to its JSON representation
 func (t ProtoBigInt) MarshalJSON() ([]byte, error) {
 	str := t.String()
 	ret := make([]byte, len(str)+2)
@@ -95,23 +95,34 @@ func (t ProtoBigInt) MarshalJSON() ([]byte, error) {
 	return ret, nil
 }
 
+// UnmarshalJSON convert t from its JSON representation
 func (t *ProtoBigInt) UnmarshalJSON(data []byte) error {
 	if len(data) <= 2 || data[0] != '"' || data[len(data)-1] != '"' {
 		return ErrInvalidValue
 	}
-	if _, ok := t.SetString(string(data[1:len(data)-1]), 10); !ok {
+	if _, ok := t.i.SetString(string(data[1:len(data)-1]), 10); !ok {
 		return ErrInvalidValue
 	}
 	return nil
 
 }
 
-// only required if the compare option is set
+// Compare only required if the compare option is set
 func (t ProtoBigInt) Compare(other ProtoBigInt) int {
-	return t.Cmp(&other.Int)
+	return t.i.Cmp(&other.i)
 }
 
-// only required if the equal option is set
+// Equal only required if the equal option is set
 func (t ProtoBigInt) Equal(other ProtoBigInt) bool {
-	return t.Cmp(&other.Int) == 0
+	return t.i.Cmp(&other.i) == 0
+}
+
+// Get returns a pointer to the inner math/big.Int
+func (t *ProtoBigInt) Get() *big.Int {
+	return &t.i
+}
+
+// Set sets the value of the inner big.Int to p
+func (t *ProtoBigInt) Set(p *big.Int) {
+	t.i.Set(p)
 }
