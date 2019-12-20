@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,13 +18,13 @@ type ArgsPendingMiniBlocks struct {
 	Marshalizer      marshal.Marshalizer
 	Storage          storage.Storer
 	MetaBlockStorage storage.Storer
-	MetaBlockPool    storage.Cacher
+	MetaBlockPool    dataRetriever.HeadersPool
 }
 
 type pendingMiniBlockHeaders struct {
 	marshalizer         marshal.Marshalizer
 	metaBlockStorage    storage.Storer
-	metaBlockPool       storage.Cacher
+	metaBlockPool       dataRetriever.HeadersPool
 	storage             storage.Storer
 	mutPending          sync.Mutex
 	mapMiniBlockHeaders map[string]block.ShardMiniBlockHeader
@@ -155,7 +156,7 @@ func (p *pendingMiniBlockHeaders) getLastUsedMetaBlockFromShardHeaders(
 }
 
 func (p *pendingMiniBlockHeaders) getMetaBlockByHash(metaHash []byte) (*block.MetaBlock, error) {
-	peekedData, _ := p.metaBlockPool.Peek(metaHash)
+	peekedData, _ := p.metaBlockPool.GetHeaderByHash(metaHash)
 	metaHdr, ok := peekedData.(*block.MetaBlock)
 	if ok {
 		return metaHdr, nil

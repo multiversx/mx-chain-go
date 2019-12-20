@@ -1713,7 +1713,7 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 	var lastFinalizedMetaHash []byte
 
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
-		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
+		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.Headers(), mp.marshalizer, mp.store)
 		if err != nil {
 			return nil, nil, err
 		}

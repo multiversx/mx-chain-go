@@ -1017,14 +1017,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrPool, err := headersCache.NewHeadersCacher(1000, 100)
 	if err != nil {
 		log.Error("error creating hdrpool")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
@@ -1048,10 +1047,8 @@ func createShardDataPoolFromConfig(
 		uTxPool,
 		rewardTxPool,
 		hdrPool,
-		//hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		//metaBlockBody,
 		currBlockTxs,
 	)
 }
@@ -1059,43 +1056,20 @@ func createShardDataPoolFromConfig(
 func createMetaDataPoolFromConfig(
 	config *config.Config,
 ) (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating metaBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
-	cacherCfg := getCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
 	shardHeaders, err := headersCache.NewHeadersCacher(1000, 500)
 	if err != nil {
 		log.Error("error creating shardHeaders")
 		return nil, err
 	}
 
-	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
-		return nil, err
-	}
-	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
-		return nil, err
-	}
-
 	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
-	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -2122,7 +2096,7 @@ func newMetaBlockProcessor(
 	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
 		Marshalizer:      core.Marshalizer,
 		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    data.MetaDatapool.MetaBlocks(),
+		MetaBlockPool:    data.MetaDatapool.Headers(),
 		MetaBlockStorage: metaBlocksStore,
 	}
 	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)

@@ -59,11 +59,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
+	nResolver.ShardDataPool.Headers().Add(hdrHash1, hdr1)
 
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(0, hdrHash1)
-	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
@@ -122,11 +119,8 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
+	nResolver.ShardDataPool.Headers().Add(hdrHash1, hdr1)
 
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(0, hdrHash1)
-	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
@@ -192,7 +186,7 @@ func wireUpHandler(
 	chanDone1 := make(chan struct{}, 1)
 	chanDone2 := make(chan struct{}, 1)
 	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
+		hdrStored, _ := nRequester.ShardDataPool.Headers().GetHeaderByHash(key)
 		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
 
 		if reflect.DeepEqual(hdrStored, hdr1) && hdr1.GetSignature() != nil {

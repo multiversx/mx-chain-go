@@ -2566,11 +2566,11 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
 		cs.RegisterHandlerCalled = func(i func(key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{
 				PrevHash:         []byte("hash1"),
 				Nonce:            1,
@@ -2578,14 +2578,15 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 				PrevRandSeed:     []byte("roothash"),
 				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
 				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
-			}, true
+			}, nil
 		}
+
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		cs.RemoveHeaderByHashCalled = func(key []byte) {}
+		cs.KeysCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -2649,11 +2650,11 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
 		cs.RegisterHandlerCalled = func(i func(key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{
 				PrevHash:         []byte("hash1"),
 				Nonce:            2,
@@ -2661,14 +2662,15 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 				PrevRandSeed:     []byte("roothash"),
 				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
 				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
-			}, true
+			}, nil
 		}
+
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		cs.RemoveHeaderByHashCalled = func(key []byte) {}
+		cs.KeysCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000

@@ -571,11 +571,6 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		return process.ErrNilMetaBlocksPool
 	}
 
-	metaHeaderNoncesPool := sp.dataPool.HeadersNonces()
-	if metaHeaderNoncesPool == nil {
-		return process.ErrNilMetaHeadersNoncesDataPool
-	}
-
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, len(metaBlockHashes))
 
 	for _, metaBlockHash := range metaBlockHashes {
