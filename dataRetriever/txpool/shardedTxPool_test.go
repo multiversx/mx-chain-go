@@ -30,8 +30,8 @@ func Test_NewShardedTxPool_ComputesEvictionConfig(t *testing.T) {
 	require.Equal(t, uint32(75000), pool.evictionConfig.CountThreshold)
 	require.Equal(t, uint32(1000), pool.evictionConfig.ThresholdEvictSenders)
 	require.Equal(t, uint32(500), pool.evictionConfig.NumOldestSendersToEvict)
-	require.Equal(t, uint32(750), pool.evictionConfig.ALotOfTransactionsForASender)
-	require.Equal(t, uint32(750*3/4), pool.evictionConfig.NumTxsToEvictForASenderWithALot)
+	require.Equal(t, uint32(500), pool.evictionConfig.ALotOfTransactionsForASender)
+	require.Equal(t, uint32(100), pool.evictionConfig.NumTxsToEvictForASenderWithALot)
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {

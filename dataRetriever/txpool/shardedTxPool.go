@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -35,10 +36,10 @@ func NewShardedTxPool(config storageUnit.CacheConfig) dataRetriever.ShardedDataC
 	evictionConfig := txcache.EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  size,
-		ThresholdEvictSenders:           1000,
-		NumOldestSendersToEvict:         500,
-		ALotOfTransactionsForASender:    size / 100,
-		NumTxsToEvictForASenderWithALot: (size / 100) * 3 / 4,
+		ThresholdEvictSenders:           process.TxPoolThresholdEvictSenders,
+		NumOldestSendersToEvict:         process.TxPoolNumOldestSendersToEvict,
+		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
+		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
 	}
 
 	return &shardedTxPool{
