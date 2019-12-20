@@ -9,10 +9,6 @@ prepareFolders() {
   [ -d seednode ] || mkdir -p seednode
   [ -d seednode/config ] || mkdir -p seednode/config
   [ -d node_working_dirs ] || mkdir -p node_working_dirs
-  [ -d proxy ] || mkdir -p proxy
-  [ -d ./proxy/config ] || mkdir -p ./proxy/config
-  [ -d txgen ] || mkdir -p txgen
-  [ -d ./txgen/config ] || mkdir -p ./txgen/config
 }
 
 prepareFolders_PrivateRepos() {
@@ -31,7 +27,7 @@ buildConfigGenerator() {
   popd
 
   pushd $TESTNETDIR
-  cp $CONFIGGENERATOR ./filegen/
+  mv $CONFIGGENERATOR ./filegen/
   echo "Configuration Generator built..."
   popd
 }
@@ -40,11 +36,11 @@ buildConfigGenerator() {
 buildNode() {
   echo "Building Node executable..."
   pushd $NODEDIR
-  go build .
+  go build -gcflags="all=-N -l" .
   popd
 
   pushd $TESTNETDIR
-  cp $NODE ./node/
+  mv $NODE ./node/
   echo "Node executable built."
   popd
 }
@@ -56,7 +52,7 @@ buildSeednode() {
   popd
 
   pushd $TESTNETDIR
-  cp $SEEDNODE ./seednode/
+  mv $SEEDNODE ./seednode/
   echo "Seednode executable built."
   popd
 }
@@ -68,7 +64,7 @@ buildProxy() {
   popd
 
   pushd $TESTNETDIR
-  cp $PROXY ./proxy/
+  mv $PROXY ./proxy/
   echo "Proxy executable built."
   popd
 }
@@ -80,7 +76,7 @@ buildTxGen() {
   popd
 
   pushd $TESTNETDIR
-  cp $TXGEN ./txgen/
+  mv $TXGEN ./txgen/
   echo "TxGen executable built."
   popd
 }
