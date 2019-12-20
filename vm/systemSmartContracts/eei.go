@@ -3,30 +3,38 @@ package systemSmartContracts
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContext struct {
-	blockChainHook vmcommon.BlockchainHook
-	cryptoHook     vmcommon.CryptoHook
-	scAddress      []byte
+	blockChainHook  vmcommon.BlockchainHook
+	cryptoHook      vmcommon.CryptoHook
+	systemContracts vm.SystemSCContainer
+	inputParser     vm.ArgumentsParser
+	scAddress       []byte
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
 
 	output []byte
-
-	selfDestruct map[string][]byte
 }
 
 // NewVMContext creates a context where smart contracts can run and write
-func NewVMContext(blockChainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*vmContext, error) {
-	if blockChainHook == nil {
+func NewVMContext(
+	blockChainHook vmcommon.BlockchainHook,
+	cryptoHook vmcommon.CryptoHook,
+	inputParser vm.ArgumentsParser,
+) (*vmContext, error) {
+	if check.IfNilReflect(blockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
 	}
-	if cryptoHook == nil {
+	if check.IfNilReflect(cryptoHook) {
 		return nil, vm.ErrNilCryptoHook
+	}
+	if check.IfNil(inputParser) {
+		return nil, vm.ErrNilArgumentsParser
 	}
 
 	vmc := &vmContext{blockChainHook: blockChainHook, cryptoHook: cryptoHook}
@@ -35,9 +43,14 @@ func NewVMContext(blockChainHook vmcommon.BlockchainHook, cryptoHook vmcommon.Cr
 	return vmc, nil
 }
 
-// SelfDestruct destroy the current smart contract, setting the beneficiary for the liberated storage fees
-func (host *vmContext) SelfDestruct(beneficiary []byte) {
-	host.selfDestruct[string(host.scAddress)] = beneficiary
+// SetSystemSCContainer sets the existing system smart contracts to the vm context
+func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) error {
+	if check.IfNil(scContainer) {
+		return vm.ErrNilSystemContractsContainer
+	}
+
+	host.systemContracts = scContainer
+	return nil
 }
 
 // GetStorage get the values saved for a certain key
@@ -122,8 +135,105 @@ func (host *vmContext) Transfer(
 
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
+	destAcc.Data = append(destAcc.Data, input...)
 
 	return nil
+}
+
+func (host *vmContext) copyToNewContext() *vmContext {
+	newContext := vmContext{
+		storageUpdate:  host.storageUpdate,
+		outputAccounts: host.outputAccounts,
+		output:         host.output,
+	}
+
+	return &newContext
+}
+
+func (host *vmContext) copyFromContext(currContext *vmContext) {
+	host.output = append(host.output, currContext.output...)
+
+	for key, storageUpdate := range currContext.storageUpdate {
+		if _, ok := host.storageUpdate[key]; !ok {
+			host.storageUpdate[key] = storageUpdate
+			continue
+		}
+
+		for internKey, internStore := range storageUpdate {
+			host.storageUpdate[key][internKey] = internStore
+		}
+	}
+
+	host.outputAccounts = currContext.outputAccounts
+	host.scAddress = currContext.scAddress
+}
+
+func (host *vmContext) createContractCallInput(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.ContractCallInput, error) {
+	err := host.inputParser.ParseData(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	arguments, err := host.inputParser.GetArguments()
+	if err != nil {
+		return nil, err
+	}
+
+	function, err := host.inputParser.GetFunction()
+	if err != nil {
+		return nil, err
+	}
+
+	input := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  sender,
+			Arguments:   arguments,
+			CallValue:   value,
+			GasPrice:    0,
+			GasProvided: 0,
+		},
+		RecipientAddr: destination,
+		Function:      function,
+	}
+
+	return input, nil
+}
+
+// ExecuteOnDestContext executes the input data in the destinations context
+func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.VMOutput, error) {
+	input, err := host.createContractCallInput(destination, sender, value, data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	currContext := host.copyToNewContext()
+	defer func() {
+		host.copyFromContext(currContext)
+	}()
+
+	host.CleanCache()
+	host.SetSCAddress(input.RecipientAddr)
+
+	contract, err := host.systemContracts.Get(input.RecipientAddr)
+	if err != nil {
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	if input.Function == "_init" {
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+	}
+
+	returnCode := contract.Execute(input)
+
+	vmOutput := host.CreateVMOutput()
+	vmOutput.ReturnCode = returnCode
+
+	return vmOutput, nil
 }
 
 // Finish append the value to the final output
@@ -144,7 +254,6 @@ func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte, 0)
-	host.selfDestruct = make(map[string][]byte)
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
 	host.output = make([]byte, 0)
 }
@@ -189,11 +298,6 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		}
 
 		outAccs[addr].GasLimit = outAcc.GasLimit
-	}
-
-	// add self destructed contracts
-	for addr := range host.selfDestruct {
-		vmOutput.DeletedAccounts = append(vmOutput.DeletedAccounts, []byte(addr))
 	}
 
 	// save to the output finally

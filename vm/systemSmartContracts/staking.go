@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -13,30 +15,52 @@ import (
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
-const initialStakeKey = "initialStake"
 
 type stakingSC struct {
-	eei          vm.SystemEI
-	stakeValue   *big.Int
-	unBondPeriod uint64
+	eei           vm.SystemEI
+	minStakeValue *big.Int
+	unBondPeriod  uint64
+	accessAddr    []byte
+	kg            crypto.KeyGenerator
+}
+
+// StakedData represents the data which is saved for the selected nodes
+type StakedData struct {
+	RegisterNonce uint64   `json:"RegisterNonce"`
+	Staked        bool     `json:"Staked"`
+	UnStakedNonce uint64   `json:"UnStakedNonce"`
+	UnStakedEpoch uint32   `json:"UnStakedEpoch"`
+	RewardAddress []byte   `json:"RewardAddress"`
+	StakeValue    *big.Int `json:"StakeValue"`
 }
 
 // NewStakingSmartContract creates a staking smart contract
-func NewStakingSmartContract(stakeValue *big.Int, unBondPeriod uint64, eei vm.SystemEI) (*stakingSC, error) {
-	if stakeValue == nil {
+func NewStakingSmartContract(
+	minStakeValue *big.Int,
+	unBondPeriod uint64,
+	eei vm.SystemEI,
+	accessAddr []byte,
+	kg crypto.KeyGenerator,
+) (*stakingSC, error) {
+	if minStakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if stakeValue.Cmp(big.NewInt(0)) < 1 {
+	if minStakeValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
-	if eei == nil || eei.IsInterfaceNil() {
+	if check.IfNil(eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
+	}
+	if check.IfNil(kg) {
+		return nil, vm.ErrNilKeyGenerator
 	}
 
 	reg := &stakingSC{
-		stakeValue:   big.NewInt(0).Set(stakeValue),
-		eei:          eei,
-		unBondPeriod: unBondPeriod,
+		minStakeValue: big.NewInt(0).Set(minStakeValue),
+		eei:           eei,
+		unBondPeriod:  unBondPeriod,
+		accessAddr:    accessAddr,
+		kg:            kg,
 	}
 	return reg, nil
 }
@@ -62,6 +86,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.get(args)
 	case "isStaked":
 		return r.isStaked(args)
+	case "setStakeValue":
+		return r.setStakeValueForCurrentEpoch(args)
 	}
 
 	return vmcommon.UserError
@@ -81,19 +107,66 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
-		log.Error("smart contract was already initialized")
+		log.Debug("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
-	r.eei.SetStorage([]byte(initialStakeKey), r.stakeValue.Bytes())
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		return vmcommon.UserError
+	}
+
+	if len(args.Arguments) < 1 {
+		log.Debug("nil arguments to call setStakeValueForCurrentEpoch")
+		return vmcommon.UserError
+	}
+
+	epoch := r.eei.BlockChainHook().CurrentEpoch()
+	epochData := big.NewInt(0).SetUint64(uint64(epoch)).Bytes()
+
+	inputStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
+	if inputStakeValue.Cmp(r.minStakeValue) < 0 {
+		inputStakeValue.Set(r.minStakeValue)
+	}
+
+	r.eei.SetStorage(epochData, inputStakeValue.Bytes())
+
+	return vmcommon.UserError
+}
+
+func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
+	stakeValue := big.NewInt(0)
+
+	epoch := r.eei.BlockChainHook().CurrentEpoch()
+	epochData := big.NewInt(0).SetUint64(uint64(epoch)).Bytes()
+
+	stakeValueBytes := r.eei.GetStorage(epochData)
+	stakeValue.SetBytes(stakeValueBytes)
+
+	if stakeValue.Cmp(r.minStakeValue) < 0 {
+		stakeValue.Set(r.minStakeValue)
+	}
+
+	return stakeValue
+}
+
 func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	stakeValueBytes := r.eei.GetStorage([]byte(initialStakeKey))
-	stakeValue := big.NewInt(0).SetBytes(stakeValueBytes)
+	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		log.Debug("not enough arguments, needed BLS key and reward address")
+		return vmcommon.UserError
+	}
+
+	stakeValue := r.getStakeValueForCurrentEpoch()
 
 	if args.CallValue.Cmp(stakeValue) != 0 || args.CallValue.Sign() <= 0 {
 		return vmcommon.UserError
@@ -125,14 +198,8 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	registrationData.Staked = true
 
-	if len(args.Arguments) < 1 {
-		log.Debug("not enough arguments to process stake function")
-		return vmcommon.UserError
-	}
-
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.RewardAddress = args.CallerAddr
-	//TODO: verify if blsPubKey is valid
 
 	data, err := json.Marshal(registrationData)
 	if err != nil {

@@ -73,3 +73,12 @@ var ErrSingleSigner = errors.New("nil single signer")
 
 // ErrConfigIncorrect signals that auction config is incorrect
 var ErrConfigIncorrect = errors.New("config incorrect")
+
+// ErrNilMessageSignVerifier signals that message sign verifier is nil
+var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
+
+// ErrNilStakingSmartContractAddress signals that staking smart contract address is nil
+var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
+
+// ErrNilArgumentsParser signals that arguments parses is nil
+var ErrNilArgumentsParser = errors.New("nil arguments parser")

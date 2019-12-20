@@ -31,6 +31,7 @@ type SystemSCContainer interface {
 
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
+	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) error
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
@@ -40,6 +41,21 @@ type SystemEI interface {
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 
+	IsInterfaceNil() bool
+}
+
+// ContextHandler defines the methods needed to execute system smart contracts
+type ContextHandler interface {
+	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
+	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
+	GetBalance(addr []byte) *big.Int
+	SetStorage(key []byte, value []byte)
+	GetStorage(key []byte) []byte
+	Finish(value []byte)
+	BlockChainHook() vmcommon.BlockchainHook
+	CryptoHook() vmcommon.CryptoHook
+
+	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
 	SetSCAddress(addr []byte)
@@ -52,5 +68,24 @@ type SystemEI interface {
 // MessageSignVerifier is used to verify if message was signed with given public key
 type MessageSignVerifier interface {
 	Verify(message []byte, signedMessage []byte, pubKey []byte) error
+	IsInterfaceNil() bool
+}
+
+// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
+type ValidatorSettingsHandler interface {
+	UnBoundPeriod() uint64
+	StakeValue() *big.Int
+	MinStepValue() *big.Int
+	TotalSupply() *big.Int
+	NumNodes() uint32
+	AuctionEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
+type ArgumentsParser interface {
+	GetArguments() ([][]byte, error)
+	GetFunction() (string, error)
+	ParseData(data string) error
 	IsInterfaceNil() bool
 }

@@ -22,16 +22,6 @@ type AuctionData struct {
 	MaxStakePerNode *big.Int `json:"MaxStakePerNode"`
 }
 
-// StakedData represents the data which is saved for the selected nodes
-type StakedData struct {
-	RegisterNonce uint64   `json:"RegisterNonce"`
-	Staked        bool     `json:"Staked"`
-	UnStakedNonce uint64   `json:"UnStakedNonce"`
-	UnStakedEpoch uint32   `json:"UnStakedEpoch"`
-	RewardAddress []byte   `json:"RewardAddress"`
-	StakeValue    *big.Int `json:"StakeValue"`
-}
-
 // AuctionConfig represents the settings for a specific epoch
 type AuctionConfig struct {
 	MinStakeValue *big.Int `json:"MinStakeValue"`
@@ -42,22 +32,24 @@ type AuctionConfig struct {
 }
 
 type stakingAuctionSC struct {
-	eei            vm.SystemEI
-	unBondPeriod   uint64
-	sigVerifier    vm.MessageSignVerifier
-	baseConfig     AuctionConfig
-	auctionEnabled bool
+	eei              vm.SystemEI
+	unBondPeriod     uint64
+	sigVerifier      vm.MessageSignVerifier
+	baseConfig       AuctionConfig
+	auctionEnabled   bool
+	stakingSCAddress []byte
 }
 
 type ArgsStakingAuctionSmartContract struct {
-	MinStakeValue  *big.Int
-	MinStepValue   *big.Int
-	TotalSupply    *big.Int
-	UnBondPeriod   uint64
-	NumNodes       uint32
-	Eei            vm.SystemEI
-	SigVerifier    vm.MessageSignVerifier
-	AuctionEnabled bool
+	MinStakeValue    *big.Int
+	MinStepValue     *big.Int
+	TotalSupply      *big.Int
+	UnBondPeriod     uint64
+	NumNodes         uint32
+	Eei              vm.SystemEI
+	SigVerifier      vm.MessageSignVerifier
+	AuctionEnabled   bool
+	StakingSCAddress []byte
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -73,6 +65,9 @@ func NewStakingAuctionSmartContract(
 	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
+	if len(args.StakingSCAddress) == 0 {
+		return nil, vm.ErrNilStakingSmartContractAddress
+	}
 
 	baseConfig := AuctionConfig{
 		MinStakeValue: args.MinStakeValue,
@@ -83,11 +78,12 @@ func NewStakingAuctionSmartContract(
 	}
 
 	reg := &stakingAuctionSC{
-		eei:            args.Eei,
-		unBondPeriod:   args.UnBondPeriod,
-		sigVerifier:    args.SigVerifier,
-		baseConfig:     baseConfig,
-		auctionEnabled: args.AuctionEnabled,
+		eei:              args.Eei,
+		unBondPeriod:     args.UnBondPeriod,
+		sigVerifier:      args.SigVerifier,
+		baseConfig:       baseConfig,
+		auctionEnabled:   args.AuctionEnabled,
+		stakingSCAddress: args.StakingSCAddress,
 	}
 	return reg, nil
 }
