@@ -208,6 +208,11 @@ func (s *DB) Destroy() error {
 	return err
 }
 
+// DestroyClosed removes the already closed storage medium stored data
+func (s *DB) DestroyClosed() error {
+	return os.RemoveAll(s.path)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
 	if s == nil {

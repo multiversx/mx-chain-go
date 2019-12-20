@@ -91,6 +91,11 @@ func (s *MemDbMock) Destroy() error {
 	return nil
 }
 
+// DestroyClosed removes the already closed storage medium stored data
+func (s *MemDbMock) DestroyClosed() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *MemDbMock) IsInterfaceNil() bool {
 	if s == nil {
