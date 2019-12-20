@@ -10,11 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ResourceMonitor outputs statistics about resources used by the binary
