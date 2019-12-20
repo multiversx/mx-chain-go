@@ -14,4 +14,5 @@ type ArgInterceptedBlockHeader struct {
 	Hasher            hashing.Hasher
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+	ChainID           []byte
 }

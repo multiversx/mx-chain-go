@@ -48,13 +48,3 @@ type SystemEI interface {
 
 	IsInterfaceNil() bool
 }
-
-// PeerChangesEI defines the environment interface system smart contract can use to write peer changes
-type PeerChangesEI interface {
-	GetPeerState()
-	SetPeerState()
-
-	CleanCache()
-	CreatePeerChangesOutput()
-	IsInterfaceNil() bool
-}

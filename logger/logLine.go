@@ -77,8 +77,6 @@ func logLineWrapperCapnToGo(src capnp.LogLineMessageCapn, dest *LogLineWrapper) 
 	for i := 0; i < src.Args().Len(); i++ {
 		dest.Args[i] = src.Args().At(i)
 	}
-
-	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

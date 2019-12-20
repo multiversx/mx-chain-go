@@ -19,7 +19,7 @@ type NodeMock struct {
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, amount string, code string, signature []byte) (string, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
@@ -28,6 +28,7 @@ type NodeMock struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
+	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -63,9 +64,9 @@ func (nm *NodeMock) GenerateTransaction(sender string, receiver string, amount s
 }
 
 func (nm *NodeMock) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-	gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error) {
+	gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, error) {
 
-	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
 }
 
 func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error) {
@@ -98,6 +99,10 @@ func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
 
 func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return nm.GetHeartbeatsHandler()
+}
+
+func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+	return nm.ValidatorStatisticsApiCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
