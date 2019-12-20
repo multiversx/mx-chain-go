@@ -225,6 +225,10 @@ func (rtxh *rewardsHandler) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
+	if rtxh.intraShardMiniBlock == nil {
+		return nil
+	}
+
 	return rtxh.intraShardMiniBlock.Clone()
 }
 
