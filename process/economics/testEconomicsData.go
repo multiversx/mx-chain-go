@@ -24,6 +24,11 @@ func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64) {
 	ted.minGasLimit = minGasLimit
 }
 
+// SetMinGasLimit sets the minimum gas limit for a transaction to be accepted
+func (ted *TestEconomicsData) GetMinGasLimit() uint64 {
+	return ted.minGasLimit
+}
+
 // SetRewards sets the new reward value
 func (ted *TestEconomicsData) SetRewards(value *big.Int) {
 	ted.rewardsValue = value

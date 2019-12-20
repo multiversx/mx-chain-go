@@ -59,14 +59,16 @@ type baseProcessor struct {
 	specialAddressHandler        process.SpecialAddressHandler
 	accounts                     state.AccountsAdapter
 	forkDetector                 process.ForkDetector
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	hasher                       hashing.Hasher
 	marshalizer                  marshal.Marshalizer
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
+	epochStartTrigger            process.EpochStartTriggerHandler
+	headerValidator              process.HeaderConstructionValidator
 	blockChainHook               process.BlockChainHookHandler
 	txCoordinator                process.TransactionCoordinator
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	rounder                      consensus.Rounder
 	bootStorer                   process.BootStorer
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
@@ -244,6 +246,11 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	if bodyHandler != nil {
 		// TODO: add bodyHandler verification here
+	}
+
+	// verification of epoch
+	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
+		return process.ErrEpochDoesNotMatch
 	}
 
 	// TODO: add signature validation as well, with randomness source and all
@@ -437,7 +444,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			return err
 		}
 
-		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
+		err = bp.headerValidator.IsHeaderConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
 		if err != nil {
 			return err
 		}
@@ -648,6 +655,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
+	if check.IfNil(arguments.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
@@ -659,6 +669,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return process.ErrNilTransactionCoordinator
+	}
+	if check.IfNil(arguments.HeaderValidator) {
+		return process.ErrNilHeaderValidator
 	}
 
 	return nil
@@ -1130,4 +1143,27 @@ func (bp *baseProcessor) commitAll() error {
 	}
 
 	return nil
+}
+
+func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
+	for i := 0; i < len(body); {
+		mb := body[i]
+		if mb.ReceiverShardID != mb.SenderShardID {
+			i++
+			continue
+		}
+
+		if mb.Type != block.ReceiptBlock && mb.Type != block.SmartContractResultBlock {
+			i++
+			continue
+		}
+
+		body[i] = body[len(body)-1]
+		body = body[:len(body)-1]
+		if i == len(body)-1 {
+			break
+		}
+	}
+
+	return body
 }

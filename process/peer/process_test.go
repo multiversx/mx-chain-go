@@ -55,9 +55,15 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		AdrConv:          &mock.AddressConverterMock{},
 		PeerAdapter:      getAccountsMock(),
-		Economics:        economicsData,
+		StakeValue:       economicsData.StakeValue(),
+		Rater:            createMockRater(),
 	}
 	return arguments
+}
+
+func createMockRater() *mock.RaterMock {
+	rater := mock.GetNewMockRater()
+	return rater
 }
 
 func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
@@ -154,7 +160,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnInvalidNode(t *testin
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	initialNodes := []*sharding.InitialNode{{PubKey: "", Address: ""}}
-	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100))
+	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100), uint32(5))
 
 	assert.Equal(t, process.ErrInvalidInitialNodesState, err)
 }
@@ -546,6 +552,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -603,6 +610,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
+
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -670,6 +679,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -745,6 +755,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.PeerAdapter = adapter
 	arguments.Marshalizer = marshalizer
+	arguments.Rater = mock.GetNewMockRater()
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -824,7 +835,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.ShardCoordinator = shardCoordinatorMock
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, computeErr, err)
@@ -854,7 +865,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 		},
 	}
 	arguments.PeerAdapter = getAccountsMock()
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, peerAccErr, err)
@@ -889,7 +900,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 		},
 	}
 	arguments.PeerAdapter = peerAdapter
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, decreaseErr, err)
@@ -928,7 +939,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 		},
 	}
 	arguments.PeerAdapter = peerAdapter
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
 	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)

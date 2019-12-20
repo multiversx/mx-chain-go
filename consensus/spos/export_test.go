@@ -7,7 +7,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type RoundConsensus *roundConsensus
+type RoundConsensus struct {
+	*roundConsensus
+}
+
+func NewRoundConsensusWrapper(rcns *roundConsensus) *RoundConsensus {
+	return &RoundConsensus{
+		roundConsensus: rcns,
+	}
+}
 
 // worker
 

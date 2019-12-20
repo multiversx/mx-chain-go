@@ -19,3 +19,12 @@
 [ValidatorSettings]
     StakeValue = "500000000000000000000000" #500000ERD
     UnBoundPeriod = "100000"
+
+[RatingSettings]
+    StartRating = 50
+    MaxRating = 100
+    MinRating = 0
+    ProposerIncreaseRatingStep = 2
+    ProposerDecreaseRatingStep = 4
+    ValidatorIncreaseRatingStep = 1
+    ValidatorDecreaseRatingStep = 2

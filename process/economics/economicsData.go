@@ -24,6 +24,7 @@ type EconomicsData struct {
 	burnAddress          string
 	stakeValue           *big.Int
 	unBoundPeriod        uint64
+	ratingsData         *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -46,6 +47,11 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	rd, err := NewRatingsData(economics.RatingSettings)
+	if err != nil {
+		return nil, err
+	}
+
 	if data.maxGasLimitPerBlock < data.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
@@ -64,6 +70,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		unBoundPeriod:        data.unBoundPeriod,
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
+		ratingsData:         rd,
 	}, nil
 }
 
@@ -246,4 +253,9 @@ func (ed *EconomicsData) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// RatingsData will return the ratingsDataObject
+func (ed *EconomicsData) RatingsData() *RatingsData {
+	return ed.ratingsData
 }

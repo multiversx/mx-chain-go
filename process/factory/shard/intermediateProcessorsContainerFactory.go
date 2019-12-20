@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -94,11 +95,31 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
+	interproc, err = ppcm.createReceiptIntermediateProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.ReceiptBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
+	interproc, err = ppcm.createBadTransactionsIntermediateProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.InvalidBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewIntermediateResultsProcessor(
+	irp, err := postprocess.NewIntermediateResultsProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
@@ -106,6 +127,32 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),
+	)
+
+	return irp, err
+}
+
+func (ppcm *intermediateProcessorsContainerFactory) createReceiptIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := postprocess.NewOneMiniBlockPostProcessor(
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.shardCoordinator,
+		ppcm.store,
+		block.ReceiptBlock,
+		dataRetriever.UnsignedTransactionUnit,
+	)
+
+	return irp, err
+}
+
+func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := postprocess.NewOneMiniBlockPostProcessor(
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.shardCoordinator,
+		ppcm.store,
+		block.InvalidBlock,
+		dataRetriever.TransactionUnit,
 	)
 
 	return irp, err
