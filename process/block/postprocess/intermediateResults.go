@@ -106,7 +106,10 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		}
 	}
 
-	irp.intraShardMiniBlock = miniBlocks[irp.shardCoordinator.SelfId()]
+	irp.intraShardMiniBlock = &block.MiniBlock{}
+	if _, ok := finalMBs[irp.shardCoordinator.SelfId()]; ok {
+		irp.intraShardMiniBlock = finalMBs[irp.shardCoordinator.SelfId()]
+	}
 
 	irp.mutInterResultsForBlock.Unlock()
 
