@@ -14,13 +14,11 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 prepareFolders
 
 # Phase 1: build Seednode and Node executables
-buildConfigGenerator
 buildSeednode
 buildNode
 
 
 # Phase 2: generate configuration
-generateConfig
 copyConfig
 
 copySeednodeConfig
@@ -28,6 +26,7 @@ updateSeednodeConfig
 
 copyNodeConfig
 updateNodeConfig
+
 
 # Phase 3: start the Seednode
 startSeednode
@@ -47,10 +46,6 @@ if [ $PRIVATE_REPOS -eq 1 ]; then
   prepareFolders_PrivateRepos
   buildProxy
   buildTxGen
-  copyProxyConfig
-  updateProxyConfig
-  copyTxGenConfig
-  updateTxGenConfig
 
   # Phase 6: start the Proxy
   startProxy
