@@ -440,7 +440,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubround_EmptyChainIDShouldFail(t *testing.T) {

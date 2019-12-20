@@ -58,3 +58,9 @@ type EpochStartHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(hdr data.HeaderHandler)
 }
+
+// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
+type EpochStartSubscriber interface {
+	RegisterHandler(handler EpochStartHandler)
+	UnregisterHandler(handler EpochStartHandler)
+}

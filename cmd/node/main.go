@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -30,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -300,12 +301,6 @@ var coreServiceContainer serviceContainer.Core
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = core.UnVersionedAppString
-
-// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
-type EpochStartSubscriber interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
-}
 
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
@@ -752,6 +747,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		version,
 		elasticIndexer,
 		requestedItemsHandler,
+		epochStartNotifier,
 	)
 	if err != nil {
 		return err
@@ -955,7 +951,7 @@ func createShardCoordinator(
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	settingsConfig config.GeneralSettingsConfig,
-	epochStartSubscriber EpochStartSubscriber,
+	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 	rater sharding.RaterHandler,
@@ -1120,6 +1116,7 @@ func createNode(
 	version string,
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1163,6 +1160,7 @@ func createNode(
 		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
+		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),

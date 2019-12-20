@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -40,16 +42,17 @@ func NewSubroundStartRound(
 	}
 
 	srStartRound := SubroundStartRound{
-		baseSubround,
-		processingThresholdPercentage,
-		getSubroundName,
-		executeStoredMessages,
-		statusHandler.NewNilStatusHandler(),
-		indexer.NewNilIndexer(),
+		Subround:                      baseSubround,
+		processingThresholdPercentage: processingThresholdPercentage,
+		getSubroundName:               getSubroundName,
+		executeStoredMessages:         executeStoredMessages,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		indexer:                       indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
+	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -260,4 +263,27 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
+}
+
+// EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
+// Some components may need to do initialisation on this event
+func (sr *SubroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
+	// nothing to do
+}
+
+// EpochStartAction is called upon a start of epoch event.
+func (sr *SubroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
+	publicKeys, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(hdr.GetEpoch())
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	shardEligible := make([]string, 0)
+	shardId := sr.ShardCoordinator().SelfId()
+	for key := range publicKeys[shardId] {
+		shardEligible = append(shardEligible, string(key))
+	}
+
+	sr.SetEligibleList(shardEligible)
 }

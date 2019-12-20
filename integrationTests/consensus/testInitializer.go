@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -298,6 +300,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
+	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -440,6 +443,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
+		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
@@ -508,6 +512,7 @@ func createNodes(
 			pubKeys,
 			cp.keyGen,
 			consensusType,
+			epochStartSubscriber,
 		)
 
 		testNode.node = n

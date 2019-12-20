@@ -189,7 +189,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
