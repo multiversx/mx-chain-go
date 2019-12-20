@@ -138,8 +138,11 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	if bpp.intraShardMiniBlock == nil {
+		log.Debug("nil intra shard miniblock")
 		return nil
 	}
+
+	log.Debug("intraShardMiniBlock", "recv", bpp.intraShardMiniBlock.SenderShardID, "snd", bpp.intraShardMiniBlock.ReceiverShardID, "txHashes", bpp.intraShardMiniBlock.TxHashes, "type", bpp.intraShardMiniBlock.Type)
 
 	return bpp.intraShardMiniBlock.Clone()
 }
