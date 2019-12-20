@@ -231,7 +231,6 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 
 // CreateShardStore is not implemented
 func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
-	panic("shardedTxPool.CreateShardStore() is not implemented (not needed; shard creation is managed internally)")
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added

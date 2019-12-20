@@ -253,7 +253,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
 	pool := poolAsInterface.(*shardedTxPool)
 
-	require.Panics(t, func() { pool.CreateShardStore("foo") })
+	require.NotPanics(t, func() { pool.CreateShardStore("foo") })
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {
