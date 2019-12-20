@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -625,7 +627,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, uniqueDBFolder)
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1223,7 +1225,8 @@ func initStatsFileMonitor(
 	pubKey crypto.PublicKey,
 	log logger.Logger,
 	workingDir string,
-	uniqueDBFolder string,
+	pathManager storage.PathManagerHandler,
+	shardId string,
 ) error {
 
 	publicKey, err := pubKey.ToByteArray()
@@ -1237,7 +1240,7 @@ func initStatsFileMonitor(
 	if err != nil {
 		return err
 	}
-	err = startStatisticsMonitor(statsFile, config, log, uniqueDBFolder)
+	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1269,7 +1272,8 @@ func startStatisticsMonitor(
 	file *os.File,
 	generalConfig *config.Config,
 	log logger.Logger,
-	uniqueDBFolder string,
+	pathManager storage.PathManagerHandler,
+	shardId string,
 ) error {
 	if !generalConfig.ResourceStats.Enabled {
 		return nil
@@ -1286,7 +1290,7 @@ func startStatisticsMonitor(
 
 	go func() {
 		for {
-			err = resMon.SaveStatistics(generalConfig, uniqueDBFolder)
+			err = resMon.SaveStatistics(generalConfig, pathManager, shardId)
 			log.LogIfError(err)
 			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}

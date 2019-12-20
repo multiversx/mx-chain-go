@@ -186,7 +186,7 @@
         Size = 75000
         Type = "LRU"
     [AccountsTrieStorage.DB]
-        FilePath = "AccountsTrie"
+        FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000
@@ -213,7 +213,7 @@
         Size = 75000
         Type = "LRU"
     [PeerAccountsTrieStorage.DB]
-        FilePath = "PeerAccountsTrie"
+        FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000

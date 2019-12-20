@@ -37,7 +37,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return memorydb.New()
+			return memorydb.New(), nil
 		},
 	}
 	return &pruning.StorerArgs{
@@ -134,7 +134,7 @@ func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
 				assert.Fail(t, "path not set correctly")
 			}
 
-			return memorydb.New()
+			return memorydb.New(), nil
 		},
 	}
 	ps, err := pruning.NewShardedPruningStorer(args, shardId)
@@ -222,7 +222,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"], _ = memorydb.New()
+	persistersByPath["Epoch_0"] = memorydb.New()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -231,7 +231,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -315,7 +315,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"], _ = memorydb.New()
+	persistersByPath["Epoch_0"] = memorydb.New()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -324,7 +324,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil

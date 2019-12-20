@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -928,8 +930,10 @@ func getTrie(
 	shardId string,
 ) (data.Trie, error) {
 
+	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, cfg.DB.FilePath))
+
 	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
-	dbConfig.FilePath = pathManager.PathForStatic(shardId, cfg.DB.FilePath)
+	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(cfg.Cache),
 		dbConfig,
@@ -941,7 +945,7 @@ func getTrie(
 
 	evictionDb, err := storageUnit.NewDB(
 		storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		filepath.Join(uniqueID, cfg.DB.FilePath, evictionWaitingListCfg.DB.FilePath),
+		filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
 		evictionWaitingListCfg.DB.MaxBatchSize,
 		evictionWaitingListCfg.DB.BatchDelaySeconds,
 		evictionWaitingListCfg.DB.MaxOpenFiles,
@@ -950,7 +954,7 @@ func getTrie(
 		return nil, errors.New("error creating evictionDb: " + err.Error())
 	}
 
-	snapshotDbCfg.FilePath = filepath.Join(uniqueID, cfg.DB.FilePath, snapshotDbCfg.FilePath)
+	snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, snapshotDbCfg.FilePath)
 
 	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
 	if err != nil {
