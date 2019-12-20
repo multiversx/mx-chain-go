@@ -246,7 +246,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	//only one shard header topic shardBlocks_0_META
+	//only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
