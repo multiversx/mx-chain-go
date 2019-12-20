@@ -17,6 +17,10 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled               func(reference []byte) error
 }
 
+func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
+	return []byte("receipt")
+}
+
 func (hhs *HeaderHandlerStub) SetShardID(_ uint32) {
 }
 

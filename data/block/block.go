@@ -38,8 +38,10 @@ const (
 	SmartContractResultBlock Type = 3
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 4
-	// InvalidBlock identifies identifies an invalid miniblock
+	// InvalidBlock identifies a miniblock holding invalid transactions
 	InvalidBlock Type = 5
+	// ReceiptBlock identifies a miniblock holding receipts
+	ReceiptBlock Type = 6
 )
 
 // String returns the string representation of the Type
@@ -57,6 +59,8 @@ func (bType Type) String() string {
 		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
+	case ReceiptBlock:
+		return "ReceiptBlock"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}
@@ -108,7 +112,8 @@ type Header struct {
 	MetaBlockHashes        [][]byte          `capid:"16"`
 	EpochStartMetaHash     []byte            `capid:"17"`
 	TxCount                uint32            `capid:"18"`
-	ChainID                []byte            `capid:"19"`
+	ReceiptsHash           []byte            `capid:"19"`
+	ChainID                []byte            `capid:"20"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -453,6 +458,11 @@ func (h *Header) SetShardID(shId uint32) {
 	h.ShardId = shId
 }
 
+// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
+func (h *Header) GetReceiptsHash() []byte {
+	return h.ReceiptsHash
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -566,10 +576,7 @@ func (b Body) IntegrityAndValidity() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b Body) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+	return b == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -35,6 +35,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -48,6 +49,9 @@ func NewResolversContainerFactory(
 	}
 	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(dataPools) {
 		return nil, dataRetriever.ErrNilDataPoolHolder

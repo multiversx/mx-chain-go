@@ -98,6 +98,15 @@ func SecondsToHourMinSec(input int) string {
 	return result
 }
 
+// GetShardIdString will return the string representation of the shard id
+func GetShardIdString(shardId uint32) string {
+	if shardId == math.MaxUint32 {
+		return "metachain"
+	}
+
+	return fmt.Sprintf("%d", shardId)
+}
+
 // EpochStartIdentifier returns the string for the epoch start identifier
 func EpochStartIdentifier(epoch uint32) string {
 	return fmt.Sprintf("epochStartBlock_%d", epoch)
