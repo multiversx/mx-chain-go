@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -116,6 +117,153 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 
 	waitABit()
 	require.Equal(t, 1, numAdded)
+}
+
+func Test_SearchFirstData_Or_searchFirstTx(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "2")
+
+	xGeneric, okGeneric := pool.SearchFirstData([]byte("hash-x"))
+	xTx, okTx := pool.searchFirstTx([]byte("hash-x"))
+	require.True(t, okGeneric)
+	require.True(t, okTx)
+	require.NotNil(t, xGeneric)
+	require.Equal(t, xGeneric, xTx)
+}
+
+func Test_RemoveData_Or_RemoveTx(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "bar")
+
+	pool.RemoveData([]byte("hash-x"), "foo")
+	pool.removeTx([]byte("hash-y"), "bar")
+	xTx, xOk := pool.searchFirstTx([]byte("hash-x"))
+	yTx, yOk := pool.searchFirstTx([]byte("hash-y"))
+	require.False(t, xOk)
+	require.False(t, yOk)
+	require.Nil(t, xTx)
+	require.Nil(t, yTx)
+}
+
+func Test_RemoveSetOfDataFromPool_Or_removeTxBulk(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+	cache := pool.getTxCache("foo")
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "foo")
+	require.Equal(t, int64(2), cache.CountTx())
+
+	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "foo")
+	require.Zero(t, cache.CountTx())
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), "foo")
+	require.Equal(t, int64(2), cache.CountTx())
+
+	pool.removeTxBulk([][]byte{[]byte("hash-x"), []byte("hash-y")}, "foo")
+	require.Zero(t, cache.CountTx())
+}
+
+func Test_RemoveDataFromAllShards(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "bar")
+	pool.RemoveDataFromAllShards([]byte("hash-x"))
+
+	require.Zero(t, pool.getTxCache("foo").CountTx())
+	require.Zero(t, pool.getTxCache("bar").CountTx())
+}
+
+func Test_MergeShardStores(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
+	pool.MergeShardStores("foo", "bar")
+
+	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
+	require.Equal(t, int64(2), pool.getTxCache("bar").CountTx())
+}
+
+func Test_MoveData(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
+
+	pool.MoveData("foo", "bar", [][]byte{[]byte("hash-x")})
+	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
+	require.Equal(t, int64(2), pool.getTxCache("bar").CountTx())
+
+	pool.MoveData("bar", "foo", [][]byte{[]byte("hash-x"), []byte("hash-y")})
+	require.Equal(t, int64(2), pool.getTxCache("foo").CountTx())
+	require.Equal(t, int64(0), pool.getTxCache("bar").CountTx())
+}
+
+func Test_Clear(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
+
+	pool.Clear()
+	require.Zero(t, pool.getTxCache("foo").CountTx())
+	require.Zero(t, pool.getTxCache("bar").CountTx())
+}
+
+func Test_CreateShardStore(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "foo")
+	pool.AddData([]byte("hash-z"), createTx("alice", 15), "bar")
+
+	pool.ClearShardStore("foo")
+	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
+	require.Equal(t, int64(1), pool.getTxCache("bar").CountTx())
+}
+
+func Test_RegisterHandler(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	pool.RegisterHandler(func(key []byte) {})
+	require.Equal(t, 1, len(pool.onAddCallbacks))
+
+	pool.RegisterHandler(nil)
+	require.Equal(t, 1, len(pool.onAddCallbacks))
+}
+
+func Test_IsInterfaceNil(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	require.False(t, check.IfNil(poolAsInterface))
+
+	makeNil := func() dataRetriever.ShardedDataCacherNotifier {
+		return nil
+	}
+
+	thisIsNil := makeNil()
+	require.True(t, check.IfNil(thisIsNil))
+}
+
+func Test_NotImplementedFunctions(t *testing.T) {
+	poolAsInterface := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	pool := poolAsInterface.(*shardedTxPool)
+
+	require.Panics(t, func() { pool.CreateShardStore("foo") })
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {
