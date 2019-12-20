@@ -124,7 +124,8 @@ type TransactionCoordinator interface {
 
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
-	VerifyCreatedBlockTransactions(body block.Body) error
+	CreateReceiptsHash() ([]byte, error)
+	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -144,6 +145,7 @@ type IntermediateTransactionHandler interface {
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
+	GetCreatedInShardMiniBlock() *block.MiniBlock
 	IsInterfaceNil() bool
 }
 
@@ -198,7 +200,6 @@ type PreProcessor interface {
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
-	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool) (*block.MiniBlock, error)
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -214,7 +215,7 @@ type BlockProcessor interface {
 	CreateNewHeader() data.HeaderHandler
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error
+	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler

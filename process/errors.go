@@ -599,6 +599,24 @@ var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrFailedTransaction signals that transaction is of type failed.
+var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
+
+// ErrNilBadTxHandler signals that bad tx handler is nil
+var ErrNilBadTxHandler = errors.New("nil bad tx handler")
+
+// ErrNilReceiptHandler signals that receipt handler is nil
+var ErrNilReceiptHandler = errors.New("nil receipt handler")
+
+// ErrTooManyReceiptsMiniBlocks signals that there were too many receipts miniblocks created
+var ErrTooManyReceiptsMiniBlocks = errors.New("too many receipts miniblocks")
+
+// ErrReceiptsHashMissmatch signals that overall receipts has does not match
+var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
+
+// ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
+var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
+
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
