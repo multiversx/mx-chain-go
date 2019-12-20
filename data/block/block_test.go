@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -447,14 +448,12 @@ func TestMiniBlock_Clone(t *testing.T) {
 
 	miniBlock := &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
-		ReceiverShardID: 0,
-		SenderShardID:   0,
+		ReceiverShardID: 1,
+		SenderShardID:   2,
 		Type:            0,
 	}
 
 	clonedMB := miniBlock.Clone()
 
-	for i, txHash := range miniBlock.TxHashes {
-		assert.True(t, bytes.Equal(clonedMB.TxHashes[i], txHash))
-	}
+	assert.True(t, reflect.DeepEqual(miniBlock, clonedMB))
 }
