@@ -161,7 +161,6 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
 
-	rtxh.intraShardMiniBlock = nil
 	if _, ok := miniBlocks[rtxh.shardCoordinator.SelfId()]; ok {
 		rtxh.intraShardMiniBlock = miniBlocks[rtxh.shardCoordinator.SelfId()]
 	}
@@ -276,6 +275,7 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.mut.Lock()
 	rtxh.accumulatedFees = big.NewInt(0)
 	rtxh.rewardTxsForBlock = make(map[string]*rewardTx.RewardTx)
+	rtxh.intraShardMiniBlock = nil
 	rtxh.mut.Unlock()
 
 	rtxh.mutGenRewardTxs.Lock()
@@ -283,6 +283,7 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.protocolRewards = make([]data.TransactionHandler, 0)
 	rtxh.protocolRewardsMeta = make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.Unlock()
+
 }
 
 func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {

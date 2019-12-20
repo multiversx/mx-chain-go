@@ -106,7 +106,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		}
 	}
 
-	irp.intraShardMiniBlock = nil
 	if _, ok := finalMBs[irp.shardCoordinator.SelfId()]; ok {
 		irp.intraShardMiniBlock = finalMBs[irp.shardCoordinator.SelfId()]
 	}

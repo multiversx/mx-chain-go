@@ -65,6 +65,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
+	bpp.intraShardMiniBlock = nil
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
