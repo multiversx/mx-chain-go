@@ -72,12 +72,15 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 		return shard
 	}
 
-	// The cache not yet created, we'll create in a critical section
+	shard = txPool.createShard(cacheID)
+	return shard
+}
+
+func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	txPool.mutex.Lock()
 	defer txPool.mutex.Unlock()
 
-	// We have to check again if not created (concurrency issue)
-	shard, ok = txPool.backingMap[cacheID]
+	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
 		nChunksHint := txPool.cacheConfig.Shards
 		evictionConfig := txPool.evictionConfig
