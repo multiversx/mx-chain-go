@@ -275,6 +275,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if header.PubKeysBitmap == nil {
+		return nil
+	}
+
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
 		return err
@@ -1474,12 +1478,12 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	/*rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
 	if err != nil {
 		return err
 	}
 
-	metaHdr.ValidatorStatsRootHash = rootHash
+	metaHdr.ValidatorStatsRootHash = rootHash*/
 
 	return nil
 }

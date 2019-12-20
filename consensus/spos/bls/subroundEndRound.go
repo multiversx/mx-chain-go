@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -86,6 +87,16 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
+
+	if sr.ShardCoordinator().SelfId() == sharding.MetachainShardId {
+		vrh, err := sr.BlockProcessor().ValidatorStatisticsProcessor().UpdatePeerState(sr.Header)
+		if err != nil {
+			log.Error(err.Error())
+			return false
+		}
+
+		sr.Header.SetValidatorStatsRootHash(vrh)
+	}
 
 	// Header is complete so the leader can sign it
 	leaderSignature, err := sr.signBlockHeader()

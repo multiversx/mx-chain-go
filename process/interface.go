@@ -221,6 +221,7 @@ type BlockProcessor interface {
 	RestoreLastNotarizedHrdsToGenesis()
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	SetNumProcessedObj(numObj uint64)
+	ValidatorStatisticsProcessor() ValidatorStatisticsProcessor
 	IsInterfaceNil() bool
 }
 

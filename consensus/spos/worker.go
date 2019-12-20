@@ -289,25 +289,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return err
-		}
-
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
 			return ErrInvalidHeader
-		}
-
-		err := header.CheckChainID(wrk.chainID)
-		if err != nil {
-			return err
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
 		}
 
 		log.Debug("received proposed block",
@@ -317,6 +301,22 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			return err
+		}
+
+		err := header.CheckChainID(wrk.chainID)
+		if err != nil {
+			return err
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Debug("add header in forkdetector", "error", err.Error())
+			return err
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

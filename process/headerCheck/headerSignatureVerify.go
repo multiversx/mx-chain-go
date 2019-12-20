@@ -198,6 +198,7 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) da
 	headerCopy.SetSignature(nil)
 	headerCopy.SetPubKeysBitmap(nil)
 	headerCopy.SetLeaderSignature(nil)
+	headerCopy.SetValidatorStatsRootHash(nil)
 
 	return headerCopy
 }

@@ -301,7 +301,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		}
 
 		for j := 1; j < len(consensusGroup); j++ {
-			validatorPeerAccount, verr := p.GetPeerAccount(consensusGroup[i].PubKey())
+			validatorPeerAccount, verr := p.GetPeerAccount(consensusGroup[j].PubKey())
 			if verr != nil {
 				return verr
 			}
