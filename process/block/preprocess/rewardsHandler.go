@@ -222,7 +222,10 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 }
 
 func (rtxh *rewardsHandler) GetCreatedInShardMiniBlock() *block.MiniBlock {
-	return rtxh.intraShardMiniBlock
+	rtxh.mut.Lock()
+	defer rtxh.mut.Unlock()
+
+	return rtxh.intraShardMiniBlock.Clone()
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
