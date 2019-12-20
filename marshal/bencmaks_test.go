@@ -250,7 +250,7 @@ func (tx *Transaction) GenerateDummyArray() []interface{} {
 	transactions := make([]interface{}, 0, 1000)
 
 	val := data.NewProtoBigInt(0)
-	_ = val.GobDecode([]byte(RandomStr(32)))
+	_ = val.Get().GobDecode([]byte(RandomStr(32)))
 
 	for i := 0; i < 1000; i++ {
 		transactions = append(transactions, &Transaction{

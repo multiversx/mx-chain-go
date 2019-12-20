@@ -160,9 +160,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	value := &tx.GetValue().Int
-
-	err = txProc.moveBalances(acntSrc, acntDst, value)
+	err = txProc.moveBalances(acntSrc, acntDst, tx.GetValue().Get())
 	if err != nil {
 		return err
 	}

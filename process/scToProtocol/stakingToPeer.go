@@ -2,7 +2,6 @@ package scToProtocol
 
 import (
 	"bytes"
-	"math/big"
 	"sort"
 	"sync"
 
@@ -197,7 +196,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
-		ValueChange: &data.ProtoBigInt{*big.NewInt(0).Set(account.Stake)},
+		ValueChange: data.NewProtoBigIntFromBigInt(account.Stake),
 	}
 
 	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
@@ -281,7 +280,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 	}
 
 	if account.Stake.Cmp(stakingData.StakeValue) != 0 {
-		actualPeerChange.ValueChange.Sub(account.Stake, stakingData.StakeValue)
+		actualPeerChange.ValueChange.Get().Sub(account.Stake, stakingData.StakeValue)
 		if account.Stake.Cmp(stakingData.StakeValue) < 0 {
 			actualPeerChange.Action = block.PeerSlashed
 		} else {

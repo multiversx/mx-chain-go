@@ -214,7 +214,7 @@ func (sc *scProcessor) processIfError(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, &tx.GetValue().Int))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue().Get()))
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		nonce = acntSnd.GetNonce()
 	}
 
-	txValue := big.NewInt(0).Set(&tx.GetValue().Int)
+	txValue := big.NewInt(0).Set(tx.GetValue().Get())
 	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
 
 	return nil
@@ -416,7 +416,7 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 		return nil, err
 	}
 
-	vmInput.CallValue = &tx.GetValue().Int
+	vmInput.CallValue = new(big.Int).Set(tx.GetValue().Get())
 	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
 
@@ -448,7 +448,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
-	cost = cost.Add(cost, &tx.GetValue().Int)
+	cost = cost.Add(cost, tx.GetValue().Get())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -693,7 +693,7 @@ func (sc *scProcessor) createSCRForSender(
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx data.TransactionHandler) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, &tx.GetValue().Int)
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue().Get())
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
@@ -907,7 +907,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	operation := big.NewInt(0)
-	operation = operation.Add(&scr.GetValue().Int, stAcc.Balance)
+	operation = operation.Add(scr.GetValue().Get(), stAcc.Balance)
 	err := stAcc.SetBalanceWithJournal(operation)
 	if err != nil {
 		return err

@@ -81,7 +81,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		assert.True(t, ok)
 
 		assert.Equal(t, frontendNonce, txRecovered.Nonce)
-		assert.Equal(t, frontendValue, &txRecovered.Value.Int)
+		assert.Equal(t, frontendValue, txRecovered.Value.Get())
 
 		sender, _ := hex.DecodeString(frontendSenderHex)
 		assert.Equal(t, sender, txRecovered.SndAddr)
