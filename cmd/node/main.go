@@ -539,16 +539,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
-		nodesConfig.ChainID,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
-		nodesConfig.ChainID,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
