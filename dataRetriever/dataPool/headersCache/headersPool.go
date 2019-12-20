@@ -16,8 +16,8 @@ type headersPool struct {
 	addedDataHandlers    []func(shardHeaderHash []byte)
 }
 
-// NewHeadersCacher will create a new headers cacher
-func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*headersPool, error) {
+// NewHeadersPool will create a new items cacher
+func NewHeadersPool(numMaxHeaderPerShard int, numElementsToRemove int) (*headersPool, error) {
 	if numMaxHeaderPerShard < numElementsToRemove {
 		return nil, ErrInvalidHeadersCacheParameter
 	}
@@ -32,14 +32,14 @@ func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*heade
 	}, nil
 }
 
-// Add is used to add a header in pool
-func (pool *headersPool) Add(headerHash []byte, header data.HeaderHandler) {
+// AddHeader is used to add a header in pool
+func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
 
-	alreadyExits := pool.cache.addHeader(headerHash, header)
+	added := pool.cache.addHeader(headerHash, header)
 
-	if !alreadyExits {
+	if added {
 		pool.callAddedDataHandlers(headerHash)
 	}
 }
@@ -65,10 +65,10 @@ func (pool *headersPool) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId 
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
 
-	_ = pool.cache.removeHeaderNonceByNonceAndShardId(hdrNonce, shardId)
+	_ = pool.cache.removeHeaderByNonceAndShardId(hdrNonce, shardId)
 }
 
-// GetHeaderByNonceAndShardId will return a list of headers from pool
+// GetHeaderByNonceAndShardId will return a list of items from pool
 func (pool *headersPool) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
@@ -89,15 +89,15 @@ func (pool *headersPool) GetHeaderByHash(hash []byte) (data.HeaderHandler, error
 	return pool.cache.getHeaderByHash(hash)
 }
 
-// GetNumHeadersFromCacheShard will return how many header are in pool for a specific shard
-func (pool *headersPool) GetNumHeadersFromCacheShard(shardId uint32) int {
-	pool.mutHeadersPool.Lock()
-	defer pool.mutHeadersPool.Unlock()
+// GetNumHeaders will return how many header are in pool for a specific shard
+func (pool *headersPool) GetNumHeaders(shardId uint32) int {
+	pool.mutHeadersPool.RLock()
+	defer pool.mutHeadersPool.RUnlock()
 
-	return int(pool.cache.getNumHeaderFromCache(shardId))
+	return int(pool.cache.getNumHeaders(shardId))
 }
 
-// Clear will clear headers pool
+// Clear will clear items pool
 func (pool *headersPool) Clear() {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
@@ -117,26 +117,26 @@ func (pool *headersPool) RegisterHandler(handler func(shardHeaderHash []byte)) {
 	pool.mutAddedDataHandlers.Unlock()
 }
 
-// Keys will return a slice of all headers nonce that are in pool
+// Keys will return a slice of all items nonce that are in pool
 func (pool *headersPool) Keys(shardId uint32) []uint64 {
-	pool.mutHeadersPool.Lock()
-	defer pool.mutHeadersPool.Unlock()
+	pool.mutHeadersPool.RLock()
+	defer pool.mutHeadersPool.RUnlock()
 
 	return pool.cache.keys(shardId)
 }
 
-// Len will return how many headers are in pool
+// Len will return how many items are in pool
 func (pool *headersPool) Len() int {
-	pool.mutHeadersPool.Lock()
-	defer pool.mutHeadersPool.Unlock()
+	pool.mutHeadersPool.RLock()
+	defer pool.mutHeadersPool.RUnlock()
 
 	return pool.cache.totalHeaders()
 }
 
 // MaxSize will return how many header can be added in a pool ( per shard)
 func (pool *headersPool) MaxSize() int {
-	pool.mutHeadersPool.Lock()
-	defer pool.mutHeadersPool.Unlock()
+	pool.mutHeadersPool.RLock()
+	defer pool.mutHeadersPool.RUnlock()
 
 	return pool.cache.maxHeadersPerShard
 }
