@@ -75,8 +75,8 @@ func initNodesAndTest(
 			nodes[0][i].blkProcessor.ApplyBodyToHeaderCalled = func(
 				header data.HeaderHandler,
 				body data.BodyHandler,
-			) error {
-				return process.ErrAccountStateDirty
+			) (data.BodyHandler, error) {
+				return nil, process.ErrAccountStateDirty
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
 				header data.HeaderHandler,

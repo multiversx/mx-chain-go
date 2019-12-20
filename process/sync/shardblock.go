@@ -387,7 +387,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 
 	boot.requestedItemsHandler.Sweep()
 
-	hashes := make([][]byte, 0)
+	hashes := make([][]byte, 0, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
 		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
 			continue

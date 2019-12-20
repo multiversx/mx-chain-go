@@ -1638,7 +1638,8 @@ func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T
 		hash,
 		nil,
 		storageService,
-		marshalizer)
+		marshalizer,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
@@ -1656,7 +1657,8 @@ func TestGetTransactionHandlerShouldErrNilStorage(t *testing.T) {
 		hash,
 		shardedDataCacherNotifier,
 		nil,
-		marshalizer)
+		marshalizer,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrNilStorage, err)
@@ -1674,7 +1676,8 @@ func TestGetTransactionHandlerShouldErrNilMarshalizer(t *testing.T) {
 		hash,
 		shardedDataCacherNotifier,
 		storageService,
-		nil)
+		nil,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -1702,7 +1705,8 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 		hash,
 		shardedDataCacherNotifier,
 		storageService,
-		marshalizer)
+		marshalizer,
+		false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromPool)
@@ -1741,7 +1745,8 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 		hash,
 		shardedDataCacherNotifier,
 		storageService,
-		marshalizer)
+		marshalizer,
+		false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromStorage)
@@ -1754,7 +1759,8 @@ func TestGetTransactionHandlerFromPoolShouldErrNilShardedDataCacherNotifier(t *t
 		0,
 		0,
 		hash,
-		nil)
+		nil,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
@@ -1773,7 +1779,8 @@ func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
 		0,
 		0,
 		hash,
-		shardedDataCacherNotifier)
+		shardedDataCacherNotifier,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrNilStorage, err)
@@ -1796,7 +1803,8 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 		0,
 		0,
 		hash,
-		shardedDataCacherNotifier)
+		shardedDataCacherNotifier,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrTxNotFound, err)
@@ -1819,7 +1827,8 @@ func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 		0,
 		0,
 		hash,
-		shardedDataCacherNotifier)
+		shardedDataCacherNotifier,
+		false)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrInvalidTxInPool, err)
@@ -1843,7 +1852,8 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 		0,
 		0,
 		hash,
-		shardedDataCacherNotifier)
+		shardedDataCacherNotifier,
+		false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)

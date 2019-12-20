@@ -2,9 +2,11 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +57,37 @@ func TestShardData_SaveLoad(t *testing.T) {
 	assert.Equal(t, loadSd, sd)
 }
 
+func TestEpochStart_SaveLoad(t *testing.T) {
+
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardID:   uint32(0),
+		ReceiverShardID: uint32(1),
+		TxCount:         uint32(1),
+	}
+
+	lastFinalHdr := block.EpochStartShardData{
+		ShardId:                 0,
+		HeaderHash:              []byte("headerhash"),
+		RootHash:                []byte("roothash"),
+		FirstPendingMetaBlock:   []byte("firstPending"),
+		LastFinishedMetaBlock:   []byte("lastfinished"),
+		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+	}
+
+	epochStart := block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
+	}
+
+	var b bytes.Buffer
+	_ = epochStart.Save(&b)
+
+	loadEpoch := block.EpochStart{}
+	_ = loadEpoch.Load(&b)
+
+	assert.Equal(t, loadEpoch, epochStart)
+}
+
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
 		Address:     []byte("address"),
@@ -88,6 +121,15 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:         uint32(10),
 	}
 
+	lastFinalHdr := block.EpochStartShardData{
+		ShardId:                 0,
+		HeaderHash:              []byte("headerhash"),
+		RootHash:                []byte("roothash"),
+		FirstPendingMetaBlock:   []byte("firstPending"),
+		LastFinishedMetaBlock:   []byte("lastfinished"),
+		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+	}
+
 	mb := block.MetaBlock{
 		Nonce:                  uint64(1),
 		Epoch:                  uint32(1),
@@ -105,6 +147,10 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		ValidatorStatsRootHash: []byte("rootHash"),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
 		LeaderSignature:        []byte("leader_sign"),
+		ChainID:                []byte("chain ID"),
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
+		},
 	}
 	var b bytes.Buffer
 	err := mb.Save(&b)
@@ -114,7 +160,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 	err = loadMb.Load(&b)
 	assert.Nil(t, err)
 
-	assert.Equal(t, loadMb, mb)
+	assert.Equal(t, mb, loadMb)
 }
 
 func TestMetaBlock_GetEpoch(t *testing.T) {
@@ -377,4 +423,18 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 	assert.Equal(t, 0, len(mbDst0))
 	mbDst1 := metaHdr.GetMiniBlockHeadersWithDst(1)
 	assert.Equal(t, len(shardMBHeader), len(mbDst1))
+}
+
+func TestMetaBlock_IsChainIDValid(t *testing.T) {
+	t.Parallel()
+
+	chainID := []byte("chainID")
+	okChainID := []byte("chainID")
+	wrongChainID := []byte("wrong chain ID")
+	metablock := &block.MetaBlock{
+		ChainID: chainID,
+	}
+
+	assert.Nil(t, metablock.CheckChainID(okChainID))
+	assert.True(t, errors.Is(metablock.CheckChainID(wrongChainID), data.ErrInvalidChainID))
 }

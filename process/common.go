@@ -352,6 +352,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -359,7 +360,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -376,19 +377,30 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	if shardedDataCacherNotifier == nil {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	strCache := ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-	if txStore == nil {
-		return nil, ErrNilStorage
+	var val interface{}
+	ok := false
+	if searchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		if !ok {
+			return nil, ErrTxNotFound
+		}
+	} else {
+		strCache := ShardCacherIdentifier(senderShardID, destShardID)
+		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+		if txStore == nil {
+			return nil, ErrNilStorage
+		}
+
+		val, ok = txStore.Peek(txHash)
 	}
 
-	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -594,10 +606,13 @@ func NewForkInfo() *ForkInfo {
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
 func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
-	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0, len(processedMiniBlocks))
 
 	for metaHash, miniBlocksHashes := range processedMiniBlocks {
-		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlocksHashes: make([][]byte, 0)}
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
+			MetaHash:         []byte(metaHash),
+			MiniBlocksHashes: make([][]byte, 0, len(miniBlocksHashes)),
+		}
 		for miniBlockHash := range miniBlocksHashes {
 			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
 		}
@@ -609,10 +624,10 @@ func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[str
 
 // ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
 func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
-	processedMiniBlocks := make(map[string]map[string]struct{})
+	processedMiniBlocks := make(map[string]map[string]struct{}, len(miniBlocksInMetaBlocks))
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksHashes := make(map[string]struct{})
+		miniBlocksHashes := make(map[string]struct{}, len(miniBlocksInMeta.MiniBlocksHashes))
 		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
 			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
 		}

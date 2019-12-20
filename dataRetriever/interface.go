@@ -35,10 +35,12 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	// MiniBlockHeaderUnit is the miniblock header data unit identifier
+	MiniBlockHeaderUnit UnitType = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 11
+	BootstrapUnit UnitType = 12
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 12
+	StatusMetricsUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -206,8 +208,8 @@ type HeadersPool interface {
 	Clear()
 	Add(headerHash []byte, header data.HeaderHandler)
 	RemoveHeaderByHash(headerHash []byte)
-	RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32)
-	GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
+	GetHeaderByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
 	RegisterHandler(handler func(shardHeaderHash []byte))
 	Keys(shardId uint32) []uint64

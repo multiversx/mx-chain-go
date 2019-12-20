@@ -137,6 +137,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
+		block.TxBlock,
 	)
 
 	return txPreprocessor, err
@@ -153,6 +154,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
+		ppcm.economicsFee,
 	)
 
 	return scrPreprocessor, err

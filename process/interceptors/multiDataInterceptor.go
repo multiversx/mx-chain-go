@@ -70,7 +70,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return process.ErrNoDataInMessage
 	}
 
-	filteredMultiDataBuff := make([][]byte, 0)
+	filteredMultiDataBuff := make([][]byte, 0, len(multiDataBuff))
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))

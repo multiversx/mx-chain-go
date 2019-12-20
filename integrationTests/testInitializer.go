@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -33,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -538,6 +539,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
@@ -613,10 +616,6 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	fmt.Println("All shards propose blocks...")
 
 	for idx, n := range nodes {
-		// set the consensus reward addresses as rewards processor expects at least valid round
-		// otherwise the produced rewards will not be valid on verification
-		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())
-
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
@@ -776,7 +775,6 @@ func CreateNodes(
 	numMetaChainNodes int,
 	serviceID string,
 ) []*TestProcessorNode {
-	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
@@ -791,6 +789,34 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodesWithMemP2P creates multiple nodes in different shards
+func CreateNodesWithMemP2P(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	network *memp2p.Network,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), shardId, shardId, network)
+
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), sharding.MetachainShardId, 0, network)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -891,6 +917,30 @@ func CreateAndSendTransaction(
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
+	}
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	node.OwnAccount.Nonce++
+}
+
+func CreateAndSendTransactionWithGasLimit(
+	node *TestProcessorNode,
+	txValue *big.Int,
+	gasLimit uint64,
+	rcvAddress []byte,
+	txData string,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    txValue,
+		SndAddr:  node.OwnAccount.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: MinTxGasPrice,
+		GasLimit: gasLimit,
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)
@@ -1251,7 +1301,7 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithMarshalizer(TestMarshalizer),
+		node.WithMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),

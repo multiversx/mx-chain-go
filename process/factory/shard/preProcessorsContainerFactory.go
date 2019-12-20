@@ -125,12 +125,22 @@ func NewPreProcessorsContainerFactory(
 func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
 	container := containers.NewPreProcessorsContainer()
 
-	preproc, err := ppcm.createTxPreProcessor()
+	preproc, err := ppcm.createTxPreProcessor(block.TxBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	err = container.Add(block.TxBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
+	preproc, err = ppcm.createTxPreProcessor(block.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.InvalidBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +168,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	return container, nil
 }
 
-func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
+func (ppcm *preProcessorsContainerFactory) createTxPreProcessor(blockType block.Type) (process.PreProcessor, error) {
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
 		ppcm.dataPool.Transactions(),
 		ppcm.store,
@@ -171,6 +181,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
+		blockType,
 	)
 
 	return txPreprocessor, err
@@ -187,6 +198,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
+		ppcm.economicsFee,
 	)
 
 	return scrPreprocessor, err

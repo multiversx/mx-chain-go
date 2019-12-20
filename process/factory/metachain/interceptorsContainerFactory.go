@@ -65,6 +65,8 @@ func NewInterceptorsContainerFactory(
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	chainID []byte,
+	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -75,6 +77,9 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStore
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -118,6 +123,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(headerSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -132,6 +140,7 @@ func NewInterceptorsContainerFactory(
 		AddrConv:          addrConverter,
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
+		ChainID:           chainID,
 	}
 
 	icf := &interceptorsContainerFactory{

@@ -262,10 +262,6 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 // Note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
 // is not automatically called
 func (boot *baseBootstrap) ShouldSync() bool {
-	if !boot.networkWatcher.IsConnectedToTheNetwork() {
-		return true
-	}
-
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
@@ -282,7 +278,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
 
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock
+	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
+
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -604,6 +602,12 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if !revertUsingForkNonce && currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
 			return ErrRollBackBehindFinalHeader
 		}
+
+		shouldEndRollBack := revertUsingForkNonce && currHeader.GetNonce() < boot.forkInfo.Nonce
+		if shouldEndRollBack {
+			return ErrRollBackBehindForkNonce
+		}
+
 		currBlockBody, err := boot.blockBootstrapper.getBlockBody(currHeader)
 		if err != nil {
 			return err
@@ -654,6 +658,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if shouldContinueRollBack {
 			continue
 		}
+
 		break
 	}
 

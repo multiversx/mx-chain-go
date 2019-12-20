@@ -155,3 +155,14 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 func (bs *bootstrapStorer) IsInterfaceNil() bool {
 	return bs == nil
 }
+
+// TrimHeaderInfoSlice creates a copy of the provided slice without the excess capacity
+func TrimHeaderInfoSlice(in []BootstrapHeaderInfo) []BootstrapHeaderInfo {
+	if len(in) == 0 {
+		return []BootstrapHeaderInfo{}
+	}
+
+	ret := make([]BootstrapHeaderInfo, len(in))
+	copy(ret, in)
+	return ret
+}

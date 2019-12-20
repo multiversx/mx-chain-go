@@ -1,8 +1,13 @@
 package transaction
 
 import (
+	"errors"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,6 +26,8 @@ type txProcessor struct {
 	txTypeHandler    process.TxTypeHandler
 	shardCoordinator sharding.Coordinator
 	economicsFee     process.FeeHandler
+	receiptForwarder process.IntermediateTransactionHandler
+	badTxForwarder   process.IntermediateTransactionHandler
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -34,34 +41,42 @@ func NewTxProcessor(
 	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
+	receiptForwarder process.IntermediateTransactionHandler,
+	badTxForwarder process.IntermediateTransactionHandler,
 ) (*txProcessor, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addressConv == nil || addressConv.IsInterfaceNil() {
+	if check.IfNil(addressConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scProcessor == nil || scProcessor.IsInterfaceNil() {
+	if check.IfNil(scProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
+	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(receiptForwarder) {
+		return nil, process.ErrNilReceiptHandler
+	}
+	if check.IfNil(badTxForwarder) {
+		return nil, process.ErrNilBadTxHandler
 	}
 
 	baseTxProcess := &baseTxProcessor{
@@ -71,19 +86,21 @@ func NewTxProcessor(
 	}
 
 	return &txProcessor{
-		baseTxProcessor: baseTxProcess,
-		hasher:          hasher,
-		marshalizer:     marshalizer,
-		scProcessor:     scProcessor,
-		txFeeHandler:    txFeeHandler,
-		txTypeHandler:   txTypeHandler,
-		economicsFee:    economicsFee,
+		baseTxProcessor:  baseTxProcess,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		scProcessor:      scProcessor,
+		txFeeHandler:     txFeeHandler,
+		txTypeHandler:    txTypeHandler,
+		economicsFee:     economicsFee,
+		receiptForwarder: receiptForwarder,
+		badTxForwarder:   badTxForwarder,
 	}, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint64) error {
-	if tx == nil || tx.IsInterfaceNil() {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
@@ -99,6 +116,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
+		if errors.Is(err, process.ErrInsufficientFunds) {
+			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
+			if receiptErr != nil {
+				return receiptErr
+			}
+		}
 		return err
 	}
 
@@ -111,12 +134,106 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	case process.MoveBalance:
 		return txProc.processMoveBalance(tx, adrSrc, adrDst)
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
+		return txProc.processSCDeployment(tx, adrSrc)
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
+		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
 	return process.ErrWrongTransaction
+}
+
+func (txProc *txProcessor) executingFailedTransaction(
+	tx *transaction.Transaction,
+	acntSnd state.AccountHandler,
+	txError error,
+) error {
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+
+	account, ok := acntSnd.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	cost := txProc.economicsFee.ComputeFee(tx)
+	if account.Balance.Cmp(cost) < 0 {
+		cost.Set(account.Balance)
+	}
+
+	operation := big.NewInt(0)
+	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, cost))
+	if err != nil {
+		return err
+	}
+
+	err = txProc.increaseNonce(account)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	if err != nil {
+		return err
+	}
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	rpt := &receipt.Receipt{
+		Value:   big.NewInt(0).Set(cost),
+		SndAddr: tx.SndAddr,
+		Data:    txError.Error(),
+		TxHash:  txHash,
+	}
+
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	if err != nil {
+		return err
+	}
+
+	return process.ErrFailedTransaction
+}
+
+func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transaction, acntSnd *state.Account) error {
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+	if core.IsSmartContractAddress(tx.RcvAddr) {
+		return nil
+	}
+
+	totalProvided := big.NewInt(0)
+	totalProvided.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+
+	actualCost := txProc.economicsFee.ComputeFee(tx)
+	refundValue := big.NewInt(0).Sub(totalProvided, actualCost)
+
+	zero := big.NewInt(0)
+	if refundValue.Cmp(zero) == 0 {
+		return nil
+	}
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	rpt := &receipt.Receipt{
+		Value:   big.NewInt(0).Set(refundValue),
+		SndAddr: tx.SndAddr,
+		Data:    "refundedGas",
+		TxHash:  txHash,
+	}
+
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
@@ -126,13 +243,14 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	err := txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
+		receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
+		if receiptErr != nil {
+			return nil, receiptErr
+		}
 		return nil, err
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-	if acntSnd.Balance.Cmp(cost) < 0 {
-		return nil, process.ErrInsufficientFunds
-	}
 
 	operation := big.NewInt(0)
 	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
@@ -175,6 +293,11 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
+	err = txProc.createReceiptWithReturnedGas(tx, acntSrc)
+	if err != nil {
+		return err
+	}
+
 	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return nil
@@ -183,7 +306,6 @@ func (txProc *txProcessor) processMoveBalance(
 func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc state.AddressContainer,
-	roundIndex uint64,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -192,14 +314,13 @@ func (txProc *txProcessor) processSCDeployment(
 		return err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc)
 	return err
 }
 
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
-	roundIndex uint64,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -208,7 +329,7 @@ func (txProc *txProcessor) processSCInvoking(
 		return err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	return err
 }
 

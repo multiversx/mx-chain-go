@@ -8,7 +8,7 @@ import (
 	capn "github.com/glycerine/go-capnproto"
 )
 
-// SmartContractResult holds all the data needed for a value transfer
+// SmartContractResult holds all the data needed for results coming from smart contract processing
 type SmartContractResult struct {
 	Nonce    uint64   `capid:"0" json:"nonce"`
 	Value    *big.Int `capid:"1" json:"value"`
@@ -141,4 +141,14 @@ func (scr *SmartContractResult) SetRecvAddress(addr []byte) {
 // SetSndAddress sets the sender address of the smart contract result
 func (scr *SmartContractResult) SetSndAddress(addr []byte) {
 	scr.SndAddr = addr
+}
+
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
+func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
+	if len(in) == 0 {
+		return []*SmartContractResult{}
+	}
+	ret := make([]*SmartContractResult, len(in))
+	copy(ret, in)
+	return ret
 }

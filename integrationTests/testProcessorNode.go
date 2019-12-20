@@ -30,12 +30,15 @@ import (
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -97,7 +100,13 @@ const OpGasValueForMockVm = uint64(50)
 var TimeSpanForBadHeaders = time.Second * 30
 
 // roundDuration defines the duration of the round
-const roundDuration = time.Duration(5 * time.Second)
+const roundDuration = 5 * time.Second
+
+// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
+var IntegrationTestsChainID = []byte("integration tests chain ID")
+
+// sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
+const sizeCheckDelta = 100
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -161,6 +170,8 @@ type TestProcessorNode struct {
 	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
+	EpochStartTrigger TestEpochStartTrigger
+
 	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
@@ -172,9 +183,11 @@ type TestProcessorNode struct {
 	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
+
+	ChainID []byte
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance
+// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
 func NewTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
@@ -199,6 +212,54 @@ func NewTestProcessorNode(
 	}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	tpn := &TestProcessorNode{
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           IntegrationTestsChainID,
+	}
+
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+	tpn.MultiSigner = TestMultiSig
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	tpn.initDataPools()
+	tpn.initTestNode()
+
+	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
+	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
+
+	return tpn
+}
+
+// NewTestProcessorNodeWithMemP2P returns a new TestProcessorNode instance with a memory-based messenger
+func NewTestProcessorNodeWithMemP2P(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	network *memp2p.Network,
+) *TestProcessorNode {
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
+
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+
+			address := pkAddr
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
+
+			return []sharding.Validator{v}, nil
+		},
+	}
+
+	messenger, _ := memp2p.NewMessenger(network)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -236,6 +297,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -380,6 +442,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
+			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -406,6 +470,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
+			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -427,6 +493,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -450,6 +517,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -528,7 +596,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	mockVM.GasForOperation = OpGasValueForMockVm
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
-	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
@@ -547,6 +615,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 	)
 
+	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
+	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
@@ -557,6 +627,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsHandler,
 		txTypeHandler,
 		tpn.EconomicsData,
+		receiptsHandler,
+		badBlocskHandler,
 	)
 
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
@@ -582,6 +654,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.ShardDataPool.MiniBlocks(),
@@ -623,7 +697,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -668,6 +742,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.MetaDataPool.MiniBlocks(),
@@ -700,6 +776,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 tpn.ForkDetector,
@@ -715,6 +797,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -724,10 +807,29 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime: argumentsBase.Rounder.TimeStamp(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		}
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
+		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
+		blsKeyedAddressConverter, _ := addressConverters.NewPlainAddressConverter(
+			128,
+			"0x",
+		)
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     TestAddressConverter,
+			AdrConv:     blsKeyedAddressConverter,
 			Hasher:      TestHasher,
 			Marshalizer: TestMarshalizer,
 			PeerState:   tpn.PeerState,
@@ -743,10 +845,30 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			SCDataGetter:       tpn.SCQueryService,
 			SCToProtocol:       scToProtocol,
 			PeerChangesHandler: scToProtocol,
+			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
+
 	} else {
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    headerValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.ShardDataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		}
+		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
+		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
@@ -775,7 +897,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithMarshalizer(TestMarshalizer),
+		node.WithMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
@@ -877,7 +999,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 200000
+	maxTime := time.Second * 2
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
@@ -887,6 +1009,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader := tpn.BlockProcessor.CreateNewHeader()
 
+	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
@@ -902,13 +1025,14 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
+	blockHeader.SetChainID(tpn.ChainID)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
@@ -1101,7 +1225,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2000
+			return time.Second * 2
 		},
 	)
 	if err != nil {
