@@ -21,7 +21,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,*:DEBUG,*:TRACE")
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	numNodesPerShard := 3
 	numNodesMeta := 3

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("epochStart")
+var log = logger.GetOrCreate("epochStart/shardchain")
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {

@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("epochStart")
+var log = logger.GetOrCreate("epochStart/metachain")
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
