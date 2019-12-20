@@ -48,8 +48,10 @@ type HeaderValidator interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
-	RequestHeaderByNonce(shardId uint32, nonce uint64)
-	RequestHeader(shardId uint32, hash []byte)
+	RequestShardHeader(shardId uint32, hash []byte)
+	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderByNonce(nonce uint64)
+	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	IsInterfaceNil() bool
 }
 
