@@ -16,6 +16,7 @@ type headersPool struct {
 	addedDataHandlers    []func(shardHeaderHash []byte)
 }
 
+// NewHeadersCacher will create a new headers cacher
 func NewHeadersCacher(numMaxHeaderPerShard int, numElementsToRemove int) (*headersPool, error) {
 	if numMaxHeaderPerShard < numElementsToRemove {
 		return nil, ErrInvalidHeadersCacheParameter
@@ -72,19 +73,8 @@ func (pool *headersPool) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uin
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
 
-	headersList, ok := pool.cache.getHeadersByNonceAndShardId(hdrNonce, shardId)
+	headers, hashes, ok := pool.cache.getHeadersAndHashesByNonceAndShardId(hdrNonce, shardId)
 	if !ok {
-		return nil, nil, ErrHeaderNotFound
-	}
-
-	headers := make([]data.HeaderHandler, 0)
-	hashes := make([][]byte, 0)
-	for _, hdrDetails := range headersList {
-		headers = append(headers, hdrDetails.header)
-		hashes = append(hashes, hdrDetails.headerHash)
-	}
-
-	if len(headers) == 0 {
 		return nil, nil, ErrHeaderNotFound
 	}
 

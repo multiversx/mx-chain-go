@@ -74,7 +74,7 @@ func (hMap headersMap) getHeadersByNonce(hdrNonce uint64) (timestampedListOfHead
 }
 
 func (hMap headersMap) keys() []uint64 {
-	nonces := make([]uint64, len(hMap))
+	nonces := make([]uint64, 0, len(hMap))
 
 	for key := range hMap {
 		nonces = append(nonces, key)

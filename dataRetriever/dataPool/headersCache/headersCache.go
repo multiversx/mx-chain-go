@@ -31,6 +31,9 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
+	//check if pool is full and if it is do eviction
+	cache.tryToDoEviction(headerShardId)
+
 	// add header info in second map
 	alreadyExits := cache.headersByHash.addElement(headerHash, headerInfo{headerNonce, headerShardId})
 	if alreadyExits {
@@ -42,15 +45,13 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 
 	cache.hdrsCounter.increment(headerShardId)
 
-	cache.tryToDoEviction(headerShardId)
-
 	return false
 
 }
 
 func (cache *headersCache) tryToDoEviction(hdrShardId uint32) {
 	numHeaders := cache.getNumHeaderFromCache(hdrShardId)
-	if int(numHeaders) > cache.maxHeadersPerShard {
+	if int(numHeaders) >= cache.maxHeadersPerShard {
 		cache.lruEviction(hdrShardId)
 	}
 
@@ -186,6 +187,22 @@ func (cache *headersCache) getHeadersByNonceAndShardId(hdrNonce uint64, shardId 
 	}
 
 	return headersList.headers, true
+}
+
+func (cache *headersCache) getHeadersAndHashesByNonceAndShardId(nonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, bool) {
+	headersList, ok := cache.getHeadersByNonceAndShardId(nonce, shardId)
+	if !ok || len(headersList) == 0 {
+		return nil, nil, false
+	}
+
+	headers := make([]data.HeaderHandler, 0, len(headersList))
+	hashes := make([][]byte, 0, len(headersList))
+	for _, hdrDetails := range headersList {
+		headers = append(headers, hdrDetails.header)
+		hashes = append(hashes, hdrDetails.headerHash)
+	}
+
+	return headers, hashes, true
 }
 
 func (cache *headersCache) keys(shardId uint32) []uint64 {
