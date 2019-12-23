@@ -56,12 +56,12 @@ func NewShardBlockTrack(
 		headersNoncesPool: poolsHolder.HeadersNonces(),
 	}
 
-	err = bbt.setCrossNotarizedHeaders(startHeaders)
+	err = bbt.initCrossNotarizedHeaders(startHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.setSelfNotarizedHeaders(startHeaders)
+	err = bbt.initSelfNotarizedHeaders(startHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func NewShardBlockTrack(
 	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
-	sbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
-	sbt.crossNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	sbt.selfNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	sbt.crossNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	sbt.blockFinality = process.BlockFinality
 

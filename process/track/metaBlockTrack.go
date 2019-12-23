@@ -56,12 +56,12 @@ func NewMetaBlockTrack(
 		headersNoncesPool: poolsHolder.HeadersNonces(),
 	}
 
-	err = bbt.setCrossNotarizedHeaders(startHeaders)
+	err = bbt.initCrossNotarizedHeaders(startHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.setSelfNotarizedHeaders(startHeaders)
+	err = bbt.initSelfNotarizedHeaders(startHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func NewMetaBlockTrack(
 	mbt.metaBlocksPool.RegisterHandler(mbt.receivedMetaBlock)
 	mbt.shardHeadersPool.RegisterHandler(mbt.receivedShardHeader)
 
-	mbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
-	mbt.crossNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	mbt.selfNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
+	mbt.crossNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
 
 	mbt.blockFinality = process.BlockFinality
 

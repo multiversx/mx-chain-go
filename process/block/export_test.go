@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -144,15 +145,33 @@ func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 }
 
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
-	return bp.notarizedHdrs
+	lastCrossNotarizedHeaders := make(map[uint32][]data.HeaderHandler)
+	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+		lastCrossNotarizedHeaderForShard := bp.LastNotarizedHdrForShard(shardID)
+		if !check.IfNil(lastCrossNotarizedHeaderForShard) {
+			lastCrossNotarizedHeaders[shardID] = append(lastCrossNotarizedHeaders[shardID], lastCrossNotarizedHeaderForShard)
+		}
+	}
+
+	lastCrossNotarizedHeaderForShard := bp.LastNotarizedHdrForShard(sharding.MetachainShardId)
+	if !check.IfNil(lastCrossNotarizedHeaderForShard) {
+		lastCrossNotarizedHeaders[sharding.MetachainShardId] = append(lastCrossNotarizedHeaders[sharding.MetachainShardId], lastCrossNotarizedHeaderForShard)
+	}
+
+	return lastCrossNotarizedHeaders
 }
 
-func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
-	return bp.lastNotarizedHdrForShard(shardId)
+func (bp *baseProcessor) LastNotarizedHdrForShard(shardID uint32) data.HeaderHandler {
+	lastCrossNotarizedHeaderForShard, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+	if check.IfNil(lastCrossNotarizedHeaderForShard) {
+		return nil
+	}
+
+	return lastCrossNotarizedHeaderForShard
 }
 
-func (bp *baseProcessor) RemoveLastNotarized() {
-	bp.removeLastNotarized()
+func (bp *baseProcessor) RemoveLastCrossNotarized() {
+	bp.blockTracker.RemoveLastCrossNotarizedHeader()
 }
 
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
@@ -201,16 +220,12 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
 
-func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
+func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	return sp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
 	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
-}
-
-func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
-	return bp.setLastNotarizedHeadersSlice(startHeaders)
 }
 
 func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {

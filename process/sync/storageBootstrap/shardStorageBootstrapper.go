@@ -87,10 +87,6 @@ func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandl
 }
 
 func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeadersHashes map[uint32][]byte) error {
-	//if len(crossNotarizedHeadersHashes) == 0 {
-	//	return nil
-	//}
-
 	hash, ok := crossNotarizedHeadersHashes[sharding.MetachainShardId]
 	if !ok {
 		return sync.ErrNilNotarizedHeader
@@ -107,7 +103,6 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 		"nonce", metaBlock.GetNonce(),
 		"hash", hash)
 
-	ssb.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
 	ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock, hash)
 	ssb.blockTracker.AddTrackedHeader(metaBlock, hash)
 

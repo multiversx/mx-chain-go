@@ -20,6 +20,7 @@ type headerInfo struct {
 type checkpointInfo struct {
 	nonce uint64
 	round uint64
+	hash  []byte
 }
 
 type forkInfo struct {
@@ -209,7 +210,7 @@ func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 
 // append adds a new header in the slice found in nonce position
 // it not adds the header if its hash is already stored in the slice
-func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
+func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -217,28 +218,34 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
 	// is achieved. They should be received afterwards through sync mechanism.
 	if hdrInfo.state == process.BHProposed {
 		bfd.setLastProposedBlockNonce(hdrInfo.nonce)
-		return
+		return false
 	}
 
 	hdrInfos := bfd.headers[hdrInfo.nonce]
 	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
 	if isHdrInfosNilOrEmpty {
 		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
-		return
+		return true
 	}
 
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.state == hdrInfo.state {
-			return
+			return false
 		}
 	}
 
 	bfd.headers[hdrInfo.nonce] = append(bfd.headers[hdrInfo.nonce], hdrInfo)
+	return true
 }
 
 // GetHighestFinalBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
 func (bfd *baseForkDetector) GetHighestFinalBlockNonce() uint64 {
 	return bfd.finalCheckpoint().nonce
+}
+
+// GetHighestFinalBlockHash gets the hash of the block which is final and it can not be reverted anymore
+func (bfd *baseForkDetector) GetHighestFinalBlockHash() []byte {
+	return bfd.finalCheckpoint().hash
 }
 
 // ProbableHighestNonce gets the probable highest nonce
@@ -285,7 +292,8 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 // RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
 func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
 	bfd.mutFork.Lock()
-	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0}
+	//TODO: Should be set the real hash?
+	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0, hash: nil}
 	bfd.mutFork.Unlock()
 }
 

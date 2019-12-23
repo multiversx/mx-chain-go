@@ -54,13 +54,13 @@ func NewShardForkDetector(
 	return &sfd, nil
 }
 
-// AddTrackedHeader method adds a new header to headers map
+// AddHeader method adds a new header to headers map
 func (sfd *shardForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	notarizedHeaders []data.HeaderHandler,
-	notarizedHeadersHashes [][]byte,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
 ) error {
 
 	if check.IfNil(header) {
@@ -82,7 +82,7 @@ func (sfd *shardForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	sfd.append(&headerInfo{
+	_ = sfd.append(&headerInfo{
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
@@ -90,8 +90,8 @@ func (sfd *shardForkDetector) AddHeader(
 	})
 
 	if state == process.BHProcessed {
-		sfd.addSelfNotarizedHeaders(notarizedHeaders, notarizedHeadersHashes)
-		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
+		sfd.addSelfNotarizedHeaders(sharding.MetachainShardId, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 		sfd.removePastOrInvalidRecords()
 	}
 
@@ -102,23 +102,42 @@ func (sfd *shardForkDetector) AddHeader(
 	return nil
 }
 
-func (sfd *shardForkDetector) addSelfNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
-	for i := 0; i < len(notarizedHeaders); i++ {
-		log.Debug("added self notarized header",
-			"shard", notarizedHeaders[i].GetShardID(),
-			"round", notarizedHeaders[i].GetRound(),
-			"nonce", notarizedHeaders[i].GetNonce(),
-			"hash", notarizedHeadersHashes[i])
-
-		sfd.append(&headerInfo{
-			nonce: notarizedHeaders[i].GetNonce(),
-			round: notarizedHeaders[i].GetRound(),
-			hash:  notarizedHeadersHashes[i],
-			state: process.BHNotarized,
-		})
+func (sfd *shardForkDetector) addSelfNotarizedHeaders(
+	shardID uint32,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) {
+	if shardID != sharding.MetachainShardId || len(selfNotarizedHeaders) == 0 {
+		return
 	}
 
-	sfd.computeFinalCheckpoint()
+	selfNotarizedHeaderAdded := false
+	finalNonce := sfd.finalCheckpoint().nonce
+
+	for i := 0; i < len(selfNotarizedHeaders); i++ {
+		if selfNotarizedHeaders[i].GetNonce() <= finalNonce {
+			continue
+		}
+
+		if sfd.append(&headerInfo{
+			nonce: selfNotarizedHeaders[i].GetNonce(),
+			round: selfNotarizedHeaders[i].GetRound(),
+			hash:  selfNotarizedHeadersHashes[i],
+			state: process.BHNotarized,
+		}) {
+			log.Debug("added self notarized header",
+				"shard", selfNotarizedHeaders[i].GetShardID(),
+				"round", selfNotarizedHeaders[i].GetRound(),
+				"nonce", selfNotarizedHeaders[i].GetNonce(),
+				"hash", selfNotarizedHeadersHashes[i])
+
+			selfNotarizedHeaderAdded = true
+		}
+	}
+
+	if selfNotarizedHeaderAdded {
+		sfd.computeFinalCheckpoint()
+	}
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
@@ -140,7 +159,7 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 		if indexBHNotarized != -1 && indexBHProcessed != -1 {
 			if finalCheckPoint.nonce < nonce {
 				if bytes.Equal(hdrInfos[indexBHNotarized].hash, hdrInfos[indexBHProcessed].hash) {
-					sfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: hdrInfos[indexBHNotarized].round})
+					sfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: hdrInfos[indexBHNotarized].round, hash: hdrInfos[indexBHNotarized].hash})
 				}
 			}
 		}

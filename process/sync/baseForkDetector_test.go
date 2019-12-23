@@ -102,7 +102,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 		&mock.BlockTrackerStub{},
 		0,
 	)
-	bfd.SetFinalCheckpoint(1, 1)
+	bfd.SetFinalCheckpoint(1, 1, nil)
 	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 }
@@ -117,7 +117,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 		&mock.BlockTrackerStub{},
 		0,
 	)
-	bfd.SetFinalCheckpoint(2, 2)
+	bfd.SetFinalCheckpoint(2, 2, nil)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
 }
@@ -634,7 +634,7 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
 	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
 	_ = bfd.AddHeader(hdr3, hash3, process.BHReceived, nil, nil)
-	bfd.SetFinalCheckpoint(4, 4)
+	bfd.SetFinalCheckpoint(4, 4, nil)
 	bfd.RemovePastHeaders()
 
 	hInfos := bfd.GetHeaders(3)
@@ -673,7 +673,7 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
 	rounderMock.RoundIndex = 15
 	_ = bfd.AddHeader(hdr3, hash3, process.BHReceived, nil, nil)
-	bfd.SetFinalCheckpoint(9, 12)
+	bfd.SetFinalCheckpoint(9, 12, nil)
 	bfd.RemoveInvalidReceivedHeaders()
 
 	hInfos := bfd.GetHeaders(8)
@@ -840,7 +840,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	sfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
+	sfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced, nil)
 	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
 	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
@@ -881,7 +881,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	mfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
+	mfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced, nil)
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
 	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
@@ -904,7 +904,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
@@ -915,7 +915,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
@@ -926,7 +926,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr3)
 	hashes = append(hashes, hash3)
 
-	sfd.AddSelfNotarizedHeaders(hdrs, hashes)
+	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
@@ -995,7 +995,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 		0,
 	)
 
-	bfd.SetFinalCheckpoint(0, 0)
+	bfd.SetFinalCheckpoint(0, 0, nil)
 	_ = bfd.AddHeader(
 		&block.Header{PubKeysBitmap: []byte("X"), Nonce: 0, Round: 28},
 		[]byte("hash1"),

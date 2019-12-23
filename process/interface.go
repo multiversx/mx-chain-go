@@ -217,8 +217,8 @@ type BlockProcessor interface {
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	RestoreLastNotarizedHrdsToGenesis()
+	//AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	//RestoreLastNotarizedHrdsToGenesis()
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
@@ -258,6 +258,7 @@ type ForkDetector interface {
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
+	GetHighestFinalBlockHash() []byte
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonce()
 	ResetFork()
@@ -547,11 +548,13 @@ type BlockTracker interface {
 	CleanupHeadersForShardBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	DisplayTrackedHeaders()
+	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersForShard(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForShardWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
-	LastHeaderForShard(shardID uint32) data.HeaderHandler
-	RegisterSelfNotarizedHeadersHandler(func(headers []data.HeaderHandler, headersHashes [][]byte))
+	//LastHeaderForShard(shardID uint32) data.HeaderHandler
+	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RemoveLastCrossNotarizedHeader()
 	RestoreHeadersToGenesis()
 	IsInterfaceNil() bool
 }

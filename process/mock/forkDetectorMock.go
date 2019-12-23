@@ -10,6 +10,7 @@ type ForkDetectorMock struct {
 	RemoveHeadersCalled                   func(nonce uint64, hash []byte)
 	CheckForkCalled                       func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled       func() uint64
+	GetHighestFinalBlockHashCalled        func() []byte
 	ProbableHighestNonceCalled            func() uint64
 	ResetProbableHighestNonceCalled       func()
 	ResetForkCalled                       func()
@@ -35,6 +36,10 @@ func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
 
 func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 	return fdm.GetHighestFinalBlockNonceCalled()
+}
+
+func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
+	return fdm.GetHighestFinalBlockHashCalled()
 }
 
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {

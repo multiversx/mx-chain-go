@@ -49,13 +49,13 @@ func NewMetaForkDetector(
 	return &mfd, nil
 }
 
-// AddTrackedHeader method adds a new header to headers map
+// AddHeader method adds a new header to headers map
 func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	notarizedHeaders []data.HeaderHandler,
-	notarizedHeadersHashes [][]byte,
+	_ []data.HeaderHandler,
+	_ [][]byte,
 ) error {
 
 	if check.IfNil(header) {
@@ -77,7 +77,7 @@ func (mfd *metaForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	mfd.append(&headerInfo{
+	_ = mfd.append(&headerInfo{
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
@@ -86,7 +86,7 @@ func (mfd *metaForkDetector) AddHeader(
 
 	if state == process.BHProcessed {
 		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
-		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
+		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 		mfd.removePastOrInvalidRecords()
 	}
 

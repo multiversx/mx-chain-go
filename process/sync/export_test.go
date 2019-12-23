@@ -58,8 +58,8 @@ func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
 }
 
-func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
-	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
+	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round, hash: hash})
 }
 
 func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
@@ -178,8 +178,8 @@ func (sfd *shardForkDetector) ComputeFinalCheckpoint() {
 	sfd.computeFinalCheckpoint()
 }
 
-func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
-	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
+func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64, hash []byte) {
+	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce, hash: hash})
 }
 
 func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
@@ -223,6 +223,6 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 	hdrInfo.Hash = hash
 }
 
-func (sfd *shardForkDetector) AddSelfNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
-	sfd.addSelfNotarizedHeaders(notarizedHeaders, notarizedHeadersHashes)
+func (sfd *shardForkDetector) AddSelfNotarizedHeaders(shardID uint32, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
+	sfd.addSelfNotarizedHeaders(shardID, notarizedHeaders, notarizedHeadersHashes)
 }
