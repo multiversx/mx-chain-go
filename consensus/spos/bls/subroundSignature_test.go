@@ -290,7 +290,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[1]),
 		[]byte("sig"),
 		int(bls.MtSignature),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -417,7 +416,6 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bls.MtSignature),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)

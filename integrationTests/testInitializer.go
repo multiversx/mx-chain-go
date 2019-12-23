@@ -318,11 +318,14 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlock := CreateSimpleGenesisBlock(shardId)
+		//genesisBlock.ValidatorStatsRootHash = rootHash
+		genesisBlocks[shardId] = genesisBlock
 	}
 
 	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
@@ -337,6 +340,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		metaDataPool,
 		economics,
+		rootHash,
 	)
 
 	return genesisBlocks
@@ -355,6 +359,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) data.HeaderHandler {
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
@@ -369,7 +374,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   []byte("validator stats root hash"),
+		ValidatorStatsRootHash:   rootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -394,6 +399,7 @@ func CreateGenesisMetaBlock(
 
 	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
+	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
 
 	return metaHdr
 }
@@ -1484,8 +1490,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1494,7 +1500,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()

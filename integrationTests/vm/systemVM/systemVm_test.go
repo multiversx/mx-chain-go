@@ -115,6 +115,118 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	verifyUnbound(t, nodes, initialVal, consumedBalance)
 }
 
+func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
+
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 3
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
+
+	for _, nds := range nodesMap {
+		for _, node := range nds {
+			nodes = append(nodes, node)
+		}
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	verifyInitialBalance(t, nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	///////////------- send stake tx and check sender's balance
+	var txData string
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "stake" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.StakingSCAddress, txData)
+	}
+
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	time.Sleep(time.Second)
+
+	consumedBalance := big.NewInt(0).Add(big.NewInt(int64(len(txData))), big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit))
+	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+
+	checkAccountsAfterStaking(t, nodes, initialVal, consumedBalance)
+
+	/////////------ send unStake tx
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "unStake" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
+	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
+	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	consumedBalance.Add(consumedBalance, consumed)
+
+	time.Sleep(time.Second)
+
+	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	/////////----- wait for unbound period
+	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
+
+	////////----- send unBound
+	for index, node := range nodes {
+		pubKey := generateUniqueKey(index)
+		txData = "unBound" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
+	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
+	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	consumedBalance.Add(consumedBalance, consumed)
+
+	time.Sleep(time.Second)
+
+	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	verifyUnbound(t, nodes, initialVal, consumedBalance)
+}
+
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, initialVal, consumedBalance *big.Int) {
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
@@ -183,5 +295,5 @@ func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *st
 func generateUniqueKey(identifier int) string {
 	neededLength := 256
 	uniqueIdentifier := fmt.Sprintf("%d", identifier)
-	return strings.Repeat("0", neededLength - len(uniqueIdentifier)) + uniqueIdentifier
+	return strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier
 }
