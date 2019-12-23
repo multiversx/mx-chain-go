@@ -174,7 +174,7 @@ func saveRoundInfoInElastic(
 		}
 		signersIndexes, err = nodesCoordinator.GetValidatorsIndexes(publicKeys, lastHeader.GetEpoch())
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("error saving round %d info %s", i, err.Error())
 			continue
 		}
 

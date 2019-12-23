@@ -535,6 +535,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
+		log.Error("error indexing round %d block header %s", header.GetRound(), err.Error())
 		return
 	}
 
