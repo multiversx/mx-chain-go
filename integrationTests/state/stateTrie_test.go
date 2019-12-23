@@ -1282,6 +1282,67 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, trie.ErrHashNotFound, err)
 }
 
+func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodesPerShard := 1
+	numNodesMeta := 1
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartSyncingBlocks(nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(1000000000)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	time.Sleep(time.Second * 5)
+
+	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	shardIdToRollbackLastBlock := uint32(0)
+	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
+	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.Nil(t, err)
+}
+
 func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

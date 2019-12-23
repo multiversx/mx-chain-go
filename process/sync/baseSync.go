@@ -706,9 +706,11 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 		boot.accounts.CancelPrune(prevHeader.GetRootHash())
 
-		errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
+		if !bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
+			errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
+			if errNotCritical != nil {
+				log.Debug(errNotCritical.Error())
+			}
 		}
 	} else {
 		err = boot.setCurrentBlockInfo(nil, nil, nil)
