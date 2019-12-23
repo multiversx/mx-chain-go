@@ -19,7 +19,6 @@ import (
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -183,6 +182,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.KeysCalled = func() [][]byte {
 				return nil
+			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				return nil, false
 			}
 			return cs
 		},
@@ -362,6 +364,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
+	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -373,7 +376,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			NodesCoordinator:             nodesCoordinator,
 			SpecialAddressHandler:        specialAddressHandler,
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:                 createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+			StartHeaders:                 startHeaders,
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
@@ -387,7 +390,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			BlockTracker: &mock.BlockTrackerStub{},
+			BlockTracker: mock.NewBlockTrackerStub(startHeaders),
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -586,222 +589,190 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	return processedHdrs
 }
 
-func TestBaseProcessor_SaveLastNoterizedHdrLastNotSliceNotSet(t *testing.T) {
-	t.Parallel()
-
-	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(2, prHdrs)
-
-	assert.Equal(t, process.ErrCrossNotarizedHdrsSliceIsNil, err)
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrLastNotShardIdMissmatch(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(6, prHdrs)
-
-	assert.Equal(t, process.ErrShardIdMissmatch, err)
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrLastNotHdrNil(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-
-	// make it wrong
-	shardId := uint32(2)
-	genesisBlock := createGenesisBlocks(shardCoordinator)
-	genesisBlock[shardId] = nil
-
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
-
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeShard(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-
-	// make it wrong
-	shardId := uint32(2)
-	genesisBlock := createGenesisBlocks(shardCoordinator)
-	genesisBlock[shardId] = &block.MetaBlock{Nonce: 0}
-
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
-
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeMeta(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-
-	// make it wrong
-	genesisBlock := createGenesisBlocks(shardCoordinator)
-	genesisBlock[sharding.MetachainShardId] = &block.Header{Nonce: 0}
-
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
-	prHdrs := createMetaProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
-
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
-	highestNonce := uint64(10)
-	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	shardId := uint32(0)
-	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-
-	notarizedHdrs := base.NotarizedHdrs()
-	assert.Equal(t, uint64(0), notarizedHdrs[shardId][0].GetNonce())
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	base.SetHasher(mock.HasherMock{})
-	base.SetMarshalizer(&mock.MarshalizerMock{})
-	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
-	highestNonce := uint64(10)
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
-
-	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-
-	notarizedHdrs := base.NotarizedHdrs()
-	assert.Equal(t, uint64(0), notarizedHdrs[sharding.MetachainShardId][0].GetNonce())
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	hasher := mock.HasherMock{}
-	base.SetHasher(hasher)
-	marshalizer := &mock.MarshalizerMock{}
-	base.SetMarshalizer(marshalizer)
-	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      hasher,
-		Marshalizer: marshalizer,
-	}
-	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
-	base.SetHeaderValidator(headerValidator)
-
-	genesisBlcks := createGenesisBlocks(shardCoordinator)
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
-
-	highestNonce := uint64(10)
-	shardId := uint32(0)
-	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[shardId], hasher, marshalizer)
-
-	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
-	assert.Nil(t, err)
-
-	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(shardId).GetNonce())
-}
-
-func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	hasher := mock.HasherMock{}
-	base.SetHasher(hasher)
-	marshalizer := &mock.MarshalizerMock{}
-	base.SetMarshalizer(marshalizer)
-
-	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      hasher,
-		Marshalizer: marshalizer,
-	}
-	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
-	base.SetHeaderValidator(headerValidator)
-
-	genesisBlcks := createGenesisBlocks(shardCoordinator)
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
-
-	highestNonce := uint64(10)
-	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[sharding.MetachainShardId], hasher, marshalizer)
-
-	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
-	assert.Nil(t, err)
-
-	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
-}
-
-func TestBaseProcessor_RemoveLastNotarizedShouldNotDeleteTheLastRecord(t *testing.T) {
-	t.Parallel()
-
-	nrShards := uint32(5)
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(nrShards)
-	base := blproc.NewBaseProcessor(shardCoordinator)
-	hasher := mock.HasherMock{}
-	base.SetHasher(hasher)
-	marshalizer := &mock.MarshalizerMock{}
-	base.SetMarshalizer(marshalizer)
-	genesisBlcks := createGenesisBlocks(shardCoordinator)
-	//_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
-
-	for i := uint32(0); i < nrShards; i++ {
-		//base.AddLastNotarizedHdr(i, &block.Header{Nonce: 1})
-	}
-
-	base.RemoveLastCrossNotarized()
-
-	for i := uint32(0); i < nrShards; i++ {
-		hdr := base.LastNotarizedHdrForShard(i)
-		assert.Equal(t, genesisBlcks[i], hdr)
-	}
-
-	base.RemoveLastCrossNotarized()
-
-	for i := uint32(0); i < nrShards; i++ {
-		hdr := base.LastNotarizedHdrForShard(i)
-		assert.Equal(t, genesisBlcks[i], hdr)
-	}
-}
+//func TestBaseProcessor_SaveLastNoterizedHdrLastNotSliceNotSet(t *testing.T) {
+//	t.Parallel()
+//
+//	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(2, prHdrs)
+//
+//	assert.Equal(t, process.ErrCrossNotarizedHdrsSliceIsNil, err)
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrLastNotShardIdMissmatch(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(6, prHdrs)
+//
+//	assert.Equal(t, process.ErrShardIdMissmatch, err)
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrLastNotHdrNil(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//
+//	// make it wrong
+//	shardId := uint32(2)
+//	genesisBlock := createGenesisBlocks(shardCoordinator)
+//	genesisBlock[shardId] = nil
+//
+//	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
+//
+//	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeShard(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//
+//	// make it wrong
+//	shardId := uint32(2)
+//	genesisBlock := createGenesisBlocks(shardCoordinator)
+//	genesisBlock[shardId] = &block.MetaBlock{Nonce: 0}
+//
+//	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
+//
+//	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeMeta(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//
+//	// make it wrong
+//	genesisBlock := createGenesisBlocks(shardCoordinator)
+//	genesisBlock[sharding.MetachainShardId] = &block.Header{Nonce: 0}
+//
+//	//_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
+//	prHdrs := createMetaProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
+//
+//	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+//	highestNonce := uint64(10)
+//	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	shardId := uint32(0)
+//	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
+//	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+//
+//	notarizedHdrs := base.NotarizedHdrs()
+//	assert.Equal(t, uint64(0), notarizedHdrs[shardId][0].GetNonce())
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	base.SetHasher(mock.HasherMock{})
+//	base.SetMarshalizer(&mock.MarshalizerMock{})
+//	//_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+//	highestNonce := uint64(10)
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+//
+//	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
+//	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+//
+//	notarizedHdrs := base.NotarizedHdrs()
+//	assert.Equal(t, uint64(0), notarizedHdrs[sharding.MetachainShardId][0].GetNonce())
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	hasher := mock.HasherMock{}
+//	base.SetHasher(hasher)
+//	marshalizer := &mock.MarshalizerMock{}
+//	base.SetMarshalizer(marshalizer)
+//	argsHeaderValidator := blproc.ArgsHeaderValidator{
+//		Hasher:      hasher,
+//		Marshalizer: marshalizer,
+//	}
+//	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+//	base.SetHeaderValidator(headerValidator)
+//
+//	genesisBlcks := createGenesisBlocks(shardCoordinator)
+//	//_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
+//
+//	highestNonce := uint64(10)
+//	shardId := uint32(0)
+//	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[shardId], hasher, marshalizer)
+//
+//	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
+//	assert.Nil(t, err)
+//
+//	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(shardId).GetNonce())
+//}
+//
+//func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
+//	t.Parallel()
+//
+//	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+//	base := blproc.NewBaseProcessor(shardCoordinator)
+//	hasher := mock.HasherMock{}
+//	base.SetHasher(hasher)
+//	marshalizer := &mock.MarshalizerMock{}
+//	base.SetMarshalizer(marshalizer)
+//
+//	argsHeaderValidator := blproc.ArgsHeaderValidator{
+//		Hasher:      hasher,
+//		Marshalizer: marshalizer,
+//	}
+//	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+//	base.SetHeaderValidator(headerValidator)
+//
+//	genesisBlcks := createGenesisBlocks(shardCoordinator)
+//	//_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
+//
+//	highestNonce := uint64(10)
+//	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[sharding.MetachainShardId], hasher, marshalizer)
+//
+//	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
+//	assert.Nil(t, err)
+//
+//	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
+//}
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	t.Parallel()

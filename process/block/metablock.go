@@ -979,18 +979,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.commitEpochStart(header, chainHandler)
 
-	err = chainHandler.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
-	err = chainHandler.SetCurrentBlockHeader(header)
-	if err != nil {
-		return err
-	}
-
-	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
 	mp.cleanupBlockTrackerPools()
 
 	err = mp.saveLastNotarizedHeader(header)
@@ -1039,6 +1027,18 @@ func (mp *metaProcessor) CommitBlock(
 	//mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
+
+	err = chainHandler.SetCurrentBlockBody(body)
+	if err != nil {
+		return err
+	}
+
+	err = chainHandler.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)

@@ -53,6 +53,7 @@ import (
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -323,6 +324,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(factory2.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
@@ -775,6 +777,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
 		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return nil
+		},
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
@@ -782,6 +787,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Marshalizer: TestMarshalizer,
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
+	tpn.initBlockTracker()
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
@@ -805,7 +812,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				return nil
 			},
 		},
-		BlockTracker: &mock.BlockTrackerStub{},
+		BlockTracker: tpn.BlockTracker,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1296,4 +1303,28 @@ func (tpn *TestProcessorNode) initRounder() {
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+}
+
+func (tpn *TestProcessorNode) initBlockTracker() {
+	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		tpn.BlockTracker, _ = track.NewShardBlockTrack(
+			TestHasher,
+			TestMarshalizer,
+			tpn.ShardDataPool,
+			tpn.Rounder,
+			tpn.ShardCoordinator,
+			tpn.Storage,
+			tpn.GenesisBlocks,
+		)
+	} else {
+		tpn.BlockTracker, _ = track.NewMetaBlockTrack(
+			TestHasher,
+			TestMarshalizer,
+			tpn.MetaDataPool,
+			tpn.Rounder,
+			tpn.ShardCoordinator,
+			tpn.Storage,
+			tpn.GenesisBlocks,
+		)
+	}
 }

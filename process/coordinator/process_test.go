@@ -767,7 +767,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
-	assert.True(t, finalized)
+	assert.False(t, finalized)
 }
 
 func createTestMetablock() *block.MetaBlock {

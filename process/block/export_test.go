@@ -89,7 +89,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 					return nil
 				},
 			},
-			BlockTracker: &mock.BlockTrackerStub{},
+			BlockTracker: mock.NewBlockTrackerStub(genesisBlocks),
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -187,10 +187,6 @@ func (bp *baseProcessor) LastNotarizedHdrForShard(shardID uint32) data.HeaderHan
 	return lastCrossNotarizedHeaderForShard
 }
 
-func (bp *baseProcessor) RemoveLastCrossNotarized() {
-	bp.blockTracker.RemoveLastCrossNotarizedHeader()
-}
-
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
 	bp.marshalizer = marshal
 }
@@ -253,10 +249,6 @@ func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
 	sp.checkAndRequestIfMetaHeadersMissing(round)
 }
 
-func (bp *baseProcessor) IsHeaderValidFinal(currHdr data.HeaderHandler, lastHdr data.HeaderHandler, sortedHdrs []data.HeaderHandler, startPos int, blockFinality uint32) bool {
-	return bp.isHeaderValidFinal(currHdr, lastHdr, sortedHdrs, startPos, blockFinality)
-}
-
 func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []byte) *hashAndHdr {
 	return &hashAndHdr{header, hash}
 }
@@ -268,8 +260,6 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-	//sp.getMetaHeaderFromPoolWithNonce,
-	//sp.dataPool.MetaBlocks(),
 	)
 }
 

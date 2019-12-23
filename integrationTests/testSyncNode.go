@@ -120,7 +120,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
-	tpn.BlockTracker = &mock.BlockTrackerStub{}
+	tpn.initBlockTracker()
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
@@ -145,7 +145,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker: &mock.BlockTrackerStub{},
+		BlockTracker: tpn.BlockTracker,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
