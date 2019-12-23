@@ -212,8 +212,19 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
 	}
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := currentHeader.GetEpoch()
+	if currentHeader.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes, _ := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, currentHeader.GetEpoch())
+	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
 	round := sr.Rounder().Index()
 
 	roundInfo := indexer.RoundInfo{

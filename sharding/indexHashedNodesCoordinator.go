@@ -398,6 +398,10 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 		}
 	}
 
+	if len(publicKeys) != len(signersIndexes) {
+		return nil, ErrNotInvalidNumberPubKeys
+	}
+
 	return signersIndexes, nil
 }
 
