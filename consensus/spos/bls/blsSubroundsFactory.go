@@ -19,6 +19,7 @@ type factory struct {
 
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
+	chainID          []byte
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -26,11 +27,13 @@ func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
+		chainID,
 	)
 	if err != nil {
 		return nil, err
@@ -41,6 +44,7 @@ func NewSubroundsFactory(
 		consensusState:   consensusState,
 		worker:           worker,
 		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		chainID:          chainID,
 	}
 
 	return &fct, nil
@@ -50,6 +54,7 @@ func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -60,6 +65,9 @@ func checkNewFactoryParams(
 	}
 	if worker == nil || worker.IsInterfaceNil() {
 		return spos.ErrNilWorker
+	}
+	if len(chainID) == 0 {
+		return spos.ErrInvalidChainID
 	}
 
 	return nil
@@ -125,6 +133,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -165,6 +174,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -201,6 +211,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
@@ -237,6 +248,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err

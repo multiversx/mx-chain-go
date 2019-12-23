@@ -67,6 +67,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		AddrConv:          createMockAddressConverter(),
 		FeeHandler:        createMockFeeHandler(),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           []byte("chain ID"),
 	}
 }
 
@@ -76,7 +77,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilArgumentShouldErr(t *testing.T) 
 	imh, err := NewInterceptedMetaHeaderDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.T) {

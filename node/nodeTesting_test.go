@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testSizeCheckDelta = 100
+
 var timeoutWait = time.Second
 
 //------- GenerateAndSendBulkTransactions
@@ -39,7 +41,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
@@ -61,7 +63,7 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 	accAdapter := getAccAdapter(big.NewInt(0))
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
@@ -84,7 +86,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
@@ -105,7 +107,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
@@ -136,7 +138,7 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPubKey(pk),
-		node.WithMarshalizer(&mock.MarshalizerFake{}),
+		node.WithMarshalizer(&mock.MarshalizerFake{}, testSizeCheckDelta),
 		node.WithTxSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataPool(dataPool),
@@ -232,7 +234,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithTxSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataPool(dataPool),
@@ -305,7 +307,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
+		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),

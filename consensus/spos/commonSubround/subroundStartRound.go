@@ -253,7 +253,5 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	sr.SetConsensusGroup(nextConsensusGroup)
 
-	sr.BlockProcessor().SetConsensusData(randomSeed, uint64(sr.RoundIndex), currentHeader.GetEpoch(), shardId)
-
 	return nil
 }

@@ -5,14 +5,14 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"math/big"
-
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -54,6 +55,7 @@ const blsConsensusType = "bls"
 const bnConsensusType = "bn"
 
 var r *rand.Rand
+var consensusChainID = []byte("consensus chain ID")
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -319,8 +321,8 @@ func createConsensusOnlyNode(
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
-			return nil
+		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+			return body, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
@@ -366,8 +368,19 @@ func createConsensusOnlyNode(
 	rounder, err := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(uint64(roundTime)),
+		time.Millisecond*time.Duration(roundTime),
 		syncer)
+
+	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+		GenesisTime:        time.Unix(startTime, 0),
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		Settings: &config.EpochStartConfig{
+			MinRoundsBetweenEpochs: 1,
+			RoundsPerEpoch:         3,
+		},
+		Epoch: 0,
+	}
+	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
 		rounder,
@@ -396,14 +409,14 @@ func createConsensusOnlyNode(
 		inPubKeys[shardId] = append(inPubKeys[shardId], string(sPubKey))
 	}
 
-	testMultiSig := mock.NewMultiSigner(uint32(consensusSize))
+	testMultiSig := mock.NewMultiSigner(consensusSize)
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	accntAdapter := createAccountsDB(testMarshalizer)
 
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
-		node.WithRoundDuration(uint64(roundTime)),
+		node.WithRoundDuration(roundTime),
 		node.WithConsensusGroupSize(int(consensusSize)),
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
@@ -412,7 +425,7 @@ func createConsensusOnlyNode(
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
-		node.WithMarshalizer(testMarshalizer),
+		node.WithMarshalizer(testMarshalizer, 0),
 		node.WithHasher(testHasher),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
@@ -430,9 +443,11 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithEpochStartTrigger(epochStartTrigger),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
+		node.WithChainID(consensusChainID),
 	)
 
 	if err != nil {
