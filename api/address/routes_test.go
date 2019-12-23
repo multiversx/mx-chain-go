@@ -29,12 +29,12 @@ type GeneralResponse struct {
 //addressResponse structure
 type addressResponse struct {
 	GeneralResponse
-	Balance *big.Int `json:"balance"`
+	Balance string `json:"balance"`
 }
 
 func NewAddressResponse() *addressResponse {
 	return &addressResponse{
-		Balance: big.NewInt(0),
+		Balance: "0",
 	}
 }
 
@@ -84,7 +84,10 @@ func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 	addressResponse := NewAddressResponse()
 	loadResponse(resp.Body, &addressResponse)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, amount, addressResponse.Balance)
+
+	balanceResponse, ok := big.NewInt(0).SetString(addressResponse.Balance, 10)
+	assert.True(t, ok)
+	assert.Equal(t, amount, balanceResponse)
 	assert.Equal(t, "", addressResponse.Error)
 }
 
@@ -106,7 +109,10 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 	addressResponse := NewAddressResponse()
 	loadResponse(resp.Body, &addressResponse)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, big.NewInt(0), addressResponse.Balance)
+
+	balanceResponse, ok := big.NewInt(0).SetString(addressResponse.Balance, 10)
+	assert.True(t, ok)
+	assert.Equal(t, big.NewInt(0), balanceResponse)
 	assert.Equal(t, "", addressResponse.Error)
 }
 
@@ -150,7 +156,10 @@ func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	addressResponse := NewAddressResponse()
 	loadResponse(resp.Body, &addressResponse)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Equal(t, big.NewInt(0), addressResponse.Balance)
+
+	balanceResponse, ok := big.NewInt(0).SetString(addressResponse.Balance, 10)
+	assert.True(t, ok)
+	assert.Equal(t, big.NewInt(0), balanceResponse)
 	assert.NotEmpty(t, addressResponse.Error)
 	assert.True(t, strings.Contains(addressResponse.Error,
 		fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), errors2.ErrEmptyAddress.Error()),

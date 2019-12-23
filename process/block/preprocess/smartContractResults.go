@@ -270,7 +270,7 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 // receivedSmartContractResult is a call back function which is called when a new smartContractResult
 // is added in the smartContractResult pool
 func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
-	receivedAllMissing := scr.baseReceivedTransaction(txHash, &scr.scrForBlock, scr.scrPool)
+	receivedAllMissing := scr.baseReceivedTransaction(txHash, &scr.scrForBlock, scr.scrPool, block.SmartContractResultBlock)
 
 	if receivedAllMissing {
 		scr.chRcvAllScrs <- true
@@ -389,7 +389,8 @@ func (scr *smartContractResults) computeMissingScrsForMiniBlock(miniBlock *block
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			txHash,
-			scr.scrPool)
+			scr.scrPool,
+			false)
 
 		if tx == nil || tx.IsInterfaceNil() {
 			missingSmartContractResults = append(missingSmartContractResults, txHash)
@@ -434,16 +435,6 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 	}
 
 	return smartContractResult.TrimSlicePtr(smartContractResults), sliceUtil.TrimSliceSliceByte(txHashes), nil
-}
-
-// CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
-func (scr *smartContractResults) CreateAndProcessMiniBlock(
-	_, _ uint32,
-	_ int,
-	_ func() bool,
-) (*block.MiniBlock, error) {
-
-	return nil, nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

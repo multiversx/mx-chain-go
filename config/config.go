@@ -46,6 +46,12 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
+// MarshalizerConfig
+type MarshalizerConfig struct {
+	Type           string `json:"type"`
+	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -99,16 +105,17 @@ type Config struct {
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
-	BLSPublicKey   AddressConfig
+	BLSPublicKey     AddressConfig
 	Hasher           TypeConfig
 	MultisigHasher   TypeConfig
-	Marshalizer      TypeConfig
+	Marshalizer      MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
+	StoragePruning  StoragePruningConfig
 
 	NTPConfig NTPConfig
 }
@@ -118,6 +125,13 @@ type NodeConfig struct {
 	Port            int
 	Seed            string
 	TargetPeerCount int
+}
+
+// StoragePruningConfig will hold settings relates to storage pruning
+type StoragePruningConfig struct {
+	FullArchive         bool
+	NumEpochsToKeep     uint64
+	NumActivePersisters uint64
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
