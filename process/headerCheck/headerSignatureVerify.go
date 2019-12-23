@@ -1,6 +1,9 @@
 package headerCheck
 
 import (
+	"errors"
+	"math/bits"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -98,6 +101,11 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
+	err = hsv.verifyConsensusSize(consensusPubKeys, header)
+	if err != nil {
+		return err
+	}
+
 	verifier, err := hsv.multiSigVerifier.Create(consensusPubKeys, 0)
 	if err != nil {
 		return err
@@ -118,6 +126,21 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	}
 
 	return verifier.Verify(hash, bitmap)
+}
+
+func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
+	consensusSize := len(consensusPubKeys)
+	bitmap := header.GetPubKeysBitmap()
+	numOfOnesInBitmap := 0
+	for index := range bitmap {
+		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
+	}
+
+	if numOfOnesInBitmap >= consensusSize*2/3+1 {
+		return nil
+	}
+
+	return errors.New("block is not signed by 2/3 + 1 of participants")
 }
 
 // VerifyRandSeed will check if rand seed is correct
