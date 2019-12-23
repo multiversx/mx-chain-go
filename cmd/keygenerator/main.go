@@ -14,8 +14,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const fileModeUserReadWrite = 0600
-
 var (
 	fileGenHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
@@ -103,7 +101,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
-	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, fileModeUserReadWrite)
+	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
 	if err != nil {
 		return err
 	}
@@ -114,7 +112,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
-	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, fileModeUserReadWrite)
+	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
 	if err != nil {
 		return err
 	}

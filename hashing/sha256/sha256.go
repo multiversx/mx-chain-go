@@ -35,5 +35,5 @@ func (Sha256) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha Sha256) IsInterfaceNil() bool {
-	return &sha == nil
+	return false
 }

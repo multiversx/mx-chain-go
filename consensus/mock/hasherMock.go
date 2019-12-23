@@ -30,5 +30,5 @@ func (HasherMock) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha HasherMock) IsInterfaceNil() bool {
-	return &sha == nil
+	return false
 }

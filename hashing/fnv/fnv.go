@@ -35,5 +35,5 @@ func (Fnv) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (f Fnv) IsInterfaceNil() bool {
-	return &f == nil
+	return false
 }

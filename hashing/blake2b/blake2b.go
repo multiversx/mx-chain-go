@@ -47,5 +47,5 @@ func (b2b Blake2b) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b2b Blake2b) IsInterfaceNil() bool {
-	return &b2b == nil
+	return false
 }

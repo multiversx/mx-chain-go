@@ -33,6 +33,6 @@ func (HasherSpongeMock) Size() int {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sha *HasherSpongeMock) IsInterfaceNil() bool {
-	return sha == nil
+func (sha HasherSpongeMock) IsInterfaceNil() bool {
+	return false
 }

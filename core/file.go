@@ -11,8 +11,6 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-const fileModeUserReadWrite = 0600
-
 // OpenFile method opens the file from given path - does not close the file
 func OpenFile(relativePath string) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
@@ -122,7 +120,7 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 	return os.OpenFile(
 		filepath.Join(absPath, fileName+"."+fileExtension),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		fileModeUserReadWrite)
+		FileModeUserReadWrite)
 }
 
 // LoadSkFromPemFile loads the secret key bytes stored in the file
