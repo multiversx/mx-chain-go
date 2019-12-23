@@ -1700,41 +1700,42 @@ func (mp *metaProcessor) createEpochStartForMetablock() (*block.EpochStart, erro
 }
 
 func (mp *metaProcessor) getLastNotarizedAndFinalizedHeaders() (*block.EpochStart, []data.HeaderHandler, error) {
-	mp.mutNotarizedHdrs.RLock()
-	defer mp.mutNotarizedHdrs.RUnlock()
-
 	epochStart := &block.EpochStart{
 		LastFinalizedHeaders: make([]block.EpochStartShardData, 0),
 	}
 
 	lastNotarizedHeaders := make([]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
-		shardHdr, ok := lastNotarizedHdr.(*block.Header)
-		if !ok {
-			return nil, nil, process.ErrWrongTypeAssertion
-		}
-
-		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastNotarizedHdr)
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		lastCrossNotarizedHeaderForShard, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		lastMetaHash, lastFinalizedMetaHash, err := mp.getLastFinalizedMetaHashForShard(shardHdr)
+		shardHeader, ok := lastCrossNotarizedHeaderForShard.(*block.Header)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
+
+		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastCrossNotarizedHeaderForShard)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		lastMetaHash, lastFinalizedMetaHash, err := mp.getLastFinalizedMetaHashForShard(shardHeader)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		finalHeader := block.EpochStartShardData{
-			ShardId:               lastNotarizedHdr.GetShardID(),
+			ShardId:               lastCrossNotarizedHeaderForShard.GetShardID(),
 			HeaderHash:            hdrHash,
-			RootHash:              lastNotarizedHdr.GetRootHash(),
+			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
 			FirstPendingMetaBlock: lastMetaHash,
 			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
 
 		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
-		lastNotarizedHeaders[i] = lastNotarizedHdr
+		lastNotarizedHeaders[shardID] = lastCrossNotarizedHeaderForShard
 	}
 
 	return epochStart, lastNotarizedHeaders, nil

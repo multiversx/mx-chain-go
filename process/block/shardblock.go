@@ -394,7 +394,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	}
 
 	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
-		err = sp.bp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return err
 		}
@@ -850,7 +850,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
-		lastCrossNotarizedHeader.GetNonce(),
+		lastCrossNotarizedHeader,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{

@@ -829,7 +829,7 @@ func newEpochStartTrigger(
 			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
 			Validity:           process.MetaBlockValidity,
-			Finality:           process.MetaBlockFinality,
+			Finality:           process.BlockFinality,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

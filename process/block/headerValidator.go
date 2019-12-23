@@ -2,7 +2,7 @@ package block
 
 import (
 	"bytes"
-	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -38,54 +38,50 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 }
 
 // IsHeaderConstructionValid verified if header is constructed correctly on top of other
-func (h *headerValidator) IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	if prevHdr == nil || prevHdr.IsInterfaceNil() {
+func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.HeaderHandler) error {
+	if check.IfNil(prevHeader) {
 		return process.ErrNilBlockHeader
 	}
-	if currHdr == nil || currHdr.IsInterfaceNil() {
+	if check.IfNil(currHeader) {
 		return process.ErrNilBlockHeader
 	}
 
-	// special case with genesis nonce - 0
-	if currHdr.GetNonce() == 0 {
-		if prevHdr.GetNonce() != 0 {
-			return process.ErrWrongNonceInBlock
-		}
-		// block with nonce 0 was already saved
-		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateDoesNotMatch
-		}
-		return nil
-	}
-
-	//TODO: add verification if rand seed was correctly computed add other verification
-	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
-	if prevHdr.GetRound() >= currHdr.GetRound() {
-		log.Debug(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
-			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
+	if prevHeader.GetRound() >= currHeader.GetRound() {
+		log.Trace("round does not match",
+			"shard", currHeader.GetShardID(),
+			"local header round", prevHeader.GetRound(),
+			"received round", currHeader.GetRound())
 		return process.ErrLowerRoundInBlock
 	}
 
-	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
-		log.Debug(fmt.Sprintf("nonce does not match in shard %d: local block nonce is %d and node received block with nonce %d\n",
-			currHdr.GetShardID(), prevHdr.GetNonce(), currHdr.GetNonce()))
+	if currHeader.GetNonce() != prevHeader.GetNonce()+1 {
+		log.Trace("nonce does not match",
+			"shard", currHeader.GetShardID(),
+			"local header nonce", prevHeader.GetNonce(),
+			"received nonce", currHeader.GetNonce())
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHdr)
+	prevHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Debug(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
+	if !bytes.Equal(currHeader.GetPrevHash(), prevHash) {
+		log.Trace("header hash does not match",
+			"shard", currHeader.GetShardID(),
+			"local header hash", prevHash,
+			"received header with prev hash", currHeader.GetPrevHash(),
+		)
 		return process.ErrBlockHashDoesNotMatch
 	}
 
-	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Debug(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
+	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
+		log.Trace("header random seed does not match",
+			"shard", currHeader.GetShardID(),
+			"local header random seed", prevHeader.GetRandSeed(),
+			"received header with prev random seed", currHeader.GetPrevRandSeed(),
+		)
 		return process.ErrRandSeedDoesNotMatch
 	}
 
