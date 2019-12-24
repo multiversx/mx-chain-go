@@ -120,7 +120,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
-	tpn.initBlockTracker()
+	tpn.initBlockTracker(headerValidator)
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,

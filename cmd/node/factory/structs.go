@@ -666,15 +666,25 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      args.core.Hasher,
+		Marshalizer: args.core.Marshalizer,
+	}
+	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	if err != nil {
+		return nil, err
+	}
+
 	blockTracker, err := newBlockTracker(
 		args.core.Hasher,
+		headerValidator,
 		args.core.Marshalizer,
+		rounder,
 		args.shardCoordinator,
+		args.data.Store,
 		args.data.Datapool,
 		args.data.MetaDatapool,
-		rounder,
 		genesisBlocks,
-		args.data.Store,
 	)
 	if err != nil {
 		return nil, err
@@ -700,6 +710,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		epochStartTrigger,
 		bootStorer,
 		validatorStatisticsProcessor,
+		headerValidator,
 		blockTracker,
 	)
 	if err != nil {
@@ -1631,21 +1642,42 @@ func createInMemoryShardCoordinatorAndAccount(
 
 func newBlockTracker(
 	hasher hashing.Hasher,
+	headerValidator process.HeaderConstructionValidator,
 	marshalizer marshal.Marshalizer,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
 	datapool dataRetriever.PoolsHolder,
 	metaDatapool dataRetriever.MetaPoolsHolder,
-	rounder consensus.Rounder,
 	genesisBlocks map[uint32]data.HeaderHandler,
-	store dataRetriever.StorageService,
 ) (process.BlockTracker, error) {
 
+	argBaseTracker := track.ArgBaseTracker{
+		Hasher:           hasher,
+		HeaderValidator:  headerValidator,
+		Marshalizer:      marshalizer,
+		Rounder:          rounder,
+		ShardCoordinator: shardCoordinator,
+		Store:            store,
+		StartHeaders:     genesisBlocks,
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return track.NewShardBlockTrack(hasher, marshalizer, datapool, rounder, shardCoordinator, store, genesisBlocks)
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    datapool,
+		}
+
+		return track.NewShardBlockTrack(arguments)
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return track.NewMetaBlockTrack(hasher, marshalizer, metaDatapool, rounder, shardCoordinator, store, genesisBlocks)
+		arguments := track.ArgMetaTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    metaDatapool,
+		}
+
+		return track.NewMetaBlockTrack(arguments)
 	}
 
 	return nil, errors.New("could not create block tracker")
@@ -1677,6 +1709,7 @@ func newBlockProcessor(
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 
@@ -1728,6 +1761,7 @@ func newBlockProcessor(
 			validatorStatisticsProcessor,
 			bootStorer,
 			processArgs.gasSchedule,
+			headerValidator,
 			blockTracker,
 		)
 	}
@@ -1748,6 +1782,7 @@ func newBlockProcessor(
 			rounder,
 			epochStartTrigger,
 			bootStorer,
+			headerValidator,
 			blockTracker,
 		)
 	}
@@ -1772,6 +1807,7 @@ func newShardBlockProcessor(
 	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
+	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 	argsParser, err := vmcommon.NewAtArgumentParser()
@@ -1960,15 +1996,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      core.Hasher,
-		Marshalizer: core.Marshalizer,
-	}
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2026,6 +2053,7 @@ func newMetaBlockProcessor(
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
+	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 
@@ -2195,15 +2223,6 @@ func newMetaBlockProcessor(
 		MetaBlockStorage: metaBlocksStore,
 	}
 	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      core.Hasher,
-		Marshalizer: core.Marshalizer,
-	}
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
 		return nil, err
 	}

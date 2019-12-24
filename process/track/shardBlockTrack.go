@@ -1,74 +1,61 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type shardBlockTrack struct {
 	*baseBlockTrack
-	store dataRetriever.StorageService
 }
 
 // NewShardBlockTrack creates an object for tracking the received shard blocks
-func NewShardBlockTrack(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	poolsHolder dataRetriever.PoolsHolder,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	store dataRetriever.StorageService,
-	startHeaders map[uint32]data.HeaderHandler,
-) (*shardBlockTrack, error) {
-
-	err := checkTrackerNilParameters(hasher, marshalizer, rounder, shardCoordinator, store)
+func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
+	err := checkTrackerNilParameters(arguments.ArgBaseTracker)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(poolsHolder) {
+	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.Headers()) {
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(poolsHolder.MetaBlocks()) {
+	if check.IfNil(arguments.PoolsHolder.MetaBlocks()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(poolsHolder.HeadersNonces()) {
+	if check.IfNil(arguments.PoolsHolder.HeadersNonces()) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
 	bbt := &baseBlockTrack{
-		hasher:            hasher,
-		marshalizer:       marshalizer,
-		rounder:           rounder,
-		shardCoordinator:  shardCoordinator,
-		shardHeadersPool:  poolsHolder.Headers(),
-		metaBlocksPool:    poolsHolder.MetaBlocks(),
-		headersNoncesPool: poolsHolder.HeadersNonces(),
+		hasher:            arguments.Hasher,
+		headerValidator:   arguments.HeaderValidator,
+		marshalizer:       arguments.Marshalizer,
+		rounder:           arguments.Rounder,
+		shardCoordinator:  arguments.ShardCoordinator,
+		shardHeadersPool:  arguments.PoolsHolder.Headers(),
+		metaBlocksPool:    arguments.PoolsHolder.MetaBlocks(),
+		headersNoncesPool: arguments.PoolsHolder.HeadersNonces(),
+		store:             arguments.Store,
 	}
 
-	err = bbt.initCrossNotarizedHeaders(startHeaders)
+	err = bbt.initCrossNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.initSelfNotarizedHeaders(startHeaders)
+	err = bbt.initSelfNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
 	sbt := &shardBlockTrack{
 		baseBlockTrack: bbt,
-		store:          store,
 	}
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)

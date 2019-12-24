@@ -92,11 +92,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockTracker:                  arguments.BlockTracker,
 	}
 
-	//err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	mp := metaProcessor{
 		core:              arguments.Core,
 		baseProcessor:     base,
@@ -400,21 +395,9 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
-	//_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
-	//if err != nil {
-	//	log.Trace("getOrderedHdrs", "error", err.Error())
-	//	return
-	//}
-
 	orderedHdrsPerShard := mp.getTrackedHeaders(round)
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		// map from *block.Header to dataHandler
-		//sortedHdrs := make([]data.HeaderHandler, len(orderedHdrsPerShard[i]))
-		//for j := 0; j < len(orderedHdrsPerShard[i]); j++ {
-		//	sortedHdrs[j] = orderedHdrsPerShard[i][j]
-		//}
-
 		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.ShardHeaders())
 		if err != nil {
 			log.Trace("requestHeadersIfMissing", "error", err.Error())
@@ -692,7 +675,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		lastShardHdr[shardID] = lastCrossNotarizedHeader
 	}
 
-	//foundFinal := make(map[uint32]bool)
 	hdrsAddedForShard := make(map[uint32]uint32)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -727,13 +709,6 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 				"curr shard hdr nonce", currShardHdr.GetNonce())
 			continue
 		}
-
-		//isFinal := mp.isHeaderValidFinal(currShardHdr, lastShardHdr[currShardHdr.GetShardID()], sortedHdrsPerShard[currShardHdr.GetShardID()], 0, mp.shardBlockFinality)
-		//if !isFinal {
-		//	continue
-		//}
-		//
-		//foundFinal[currShardHdr.GetShardID()] = true
 
 		if len(currShardHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
@@ -1022,9 +997,6 @@ func (mp *metaProcessor) CommitBlock(
 	log.Debug("highest final meta block",
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
-
-	//hdrsToAttestPreviousFinal := mp.shardBlockFinality + 1
-	//mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
 
@@ -1897,91 +1869,6 @@ func (mp *metaProcessor) getTrackedHeaders(round uint64) map[uint32][]data.Heade
 	return hdrsMap
 }
 
-//func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
-//	shardBlocksPool := mp.dataPool.ShardHeaders()
-//	if shardBlocksPool == nil {
-//		return nil, nil, nil, process.ErrNilShardBlockPool
-//	}
-//
-//	mp.mutNotarizedHdrs.RLock()
-//	if mp.notarizedHdrs == nil {
-//		mp.mutNotarizedHdrs.RUnlock()
-//		return nil, nil, nil, process.ErrCrossNotarizedHdrsSliceIsNil
-//	}
-//
-//	hashAndHdrMap := make(map[uint32][]*hashAndHdr)
-//
-//	// get keys and arrange them into shards
-//	for _, key := range shardBlocksPool.Keys() {
-//		val, _ := shardBlocksPool.Peek(key)
-//		if val == nil {
-//			continue
-//		}
-//
-//		hdr, ok := val.(*block.Header)
-//		if !ok {
-//			continue
-//		}
-//		if hdr.GetRound() > round {
-//			continue
-//		}
-//
-//		currShardId := hdr.ShardId
-//		lastHdr := mp.lastNotarizedHdrForShard(currShardId)
-//		if check.IfNil(lastHdr) {
-//			continue
-//		}
-//		if hdr.GetRound() <= lastHdr.GetRound() {
-//			continue
-//		}
-//		if hdr.GetNonce() <= lastHdr.GetNonce() {
-//			continue
-//		}
-//
-//		hashAndHdrMap[currShardId] = append(hashAndHdrMap[currShardId],
-//			&hashAndHdr{hdr: hdr, hash: key})
-//	}
-//	mp.mutNotarizedHdrs.RUnlock()
-//
-//	// sort headers for each shard
-//	maxHdrLen := 0
-//	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-//		hdrsForShard := hashAndHdrMap[shardId]
-//		if len(hdrsForShard) == 0 {
-//			continue
-//		}
-//
-//		sort.Slice(hdrsForShard, func(i, j int) bool {
-//			return hdrsForShard[i].hdr.GetNonce() < hdrsForShard[j].hdr.GetNonce()
-//		})
-//
-//		tmpHdrLen := len(hdrsForShard)
-//		if maxHdrLen < tmpHdrLen {
-//			maxHdrLen = tmpHdrLen
-//		}
-//	}
-//
-//	orderedHeaders := make([]data.HeaderHandler, 0)
-//	orderedHeadersHashes := make([][]byte, 0)
-//	headersMap := make(map[uint32][]data.HeaderHandler)
-//
-//	// copy from map to lists - equality between number of headers per shard
-//	for i := 0; i < maxHdrLen; i++ {
-//		for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-//			hdrsForShard := hashAndHdrMap[shardId]
-//			if i >= len(hdrsForShard) {
-//				continue
-//			}
-//
-//			orderedHeaders = append(orderedHeaders, hdrsForShard[i].hdr)
-//			orderedHeadersHashes = append(orderedHeadersHashes, hdrsForShard[i].hash)
-//			headersMap[shardId] = append(headersMap[shardId], hdrsForShard[i].hdr)
-//		}
-//	}
-//
-//	return orderedHeaders, orderedHeadersHashes, headersMap, nil
-//}
-
 func getTxCount(shardInfo []block.ShardData) uint32 {
 	txs := uint32(0)
 	for i := 0; i < len(shardInfo); i++ {
@@ -2029,25 +1916,8 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *metaProcessor) IsInterfaceNil() bool {
-	if mp == nil {
-		return true
-	}
-	return false
+	return mp == nil
 }
-
-//func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
-//	nonce uint64,
-//	shardId uint32,
-//) (data.HeaderHandler, []byte, error) {
-//
-//	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
-//		nonce,
-//		shardId,
-//		mp.dataPool.ShardHeaders(),
-//		mp.dataPool.HeadersNonces())
-//
-//	return shardHeader, shardHeaderHash, err
-//}
 
 // GetBlockBodyFromPool returns block body from pool for a given header
 func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {

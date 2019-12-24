@@ -788,7 +788,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
-	tpn.initBlockTracker()
+	tpn.initBlockTracker(headerValidator)
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
@@ -1305,26 +1305,30 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }
 
-func (tpn *TestProcessorNode) initBlockTracker() {
+func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderConstructionValidator) {
+	argBaseTracker := track.ArgBaseTracker{
+		Hasher:           TestHasher,
+		HeaderValidator:  headerValidator,
+		Marshalizer:      TestMarshalizer,
+		Rounder:          tpn.Rounder,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Store:            tpn.Storage,
+		StartHeaders:     tpn.GenesisBlocks,
+	}
+
 	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-		tpn.BlockTracker, _ = track.NewShardBlockTrack(
-			TestHasher,
-			TestMarshalizer,
-			tpn.ShardDataPool,
-			tpn.Rounder,
-			tpn.ShardCoordinator,
-			tpn.Storage,
-			tpn.GenesisBlocks,
-		)
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.ShardDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
 	} else {
-		tpn.BlockTracker, _ = track.NewMetaBlockTrack(
-			TestHasher,
-			TestMarshalizer,
-			tpn.MetaDataPool,
-			tpn.Rounder,
-			tpn.ShardCoordinator,
-			tpn.Storage,
-			tpn.GenesisBlocks,
-		)
+		arguments := track.ArgMetaTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.MetaDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
 	}
 }

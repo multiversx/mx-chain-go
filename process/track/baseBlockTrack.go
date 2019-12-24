@@ -1,12 +1,10 @@
 package track
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -27,12 +25,14 @@ type headerInfo struct {
 
 type baseBlockTrack struct {
 	hasher            hashing.Hasher
+	headerValidator   process.HeaderConstructionValidator
 	marshalizer       marshal.Marshalizer
 	rounder           consensus.Rounder
 	shardCoordinator  sharding.Coordinator
 	metaBlocksPool    storage.Cacher
 	shardHeadersPool  storage.Cacher
 	headersNoncesPool dataRetriever.Uint64SyncMapCacher
+	store             dataRetriever.StorageService
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32]map[uint64][]*headerInfo
@@ -272,7 +272,7 @@ func (bbt *baseBlockTrack) getNextHeader(
 		}
 
 		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
-			err := bbt.isHeaderConstructionValid(currHeader, prevHeader)
+			err := bbt.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 			if err != nil {
 				continue
 			}
@@ -287,56 +287,6 @@ func (bbt *baseBlockTrack) getNextHeader(
 			headersIndexes = headersIndexes[:len(headersIndexes)-1]
 		}
 	}
-}
-
-func (bbt *baseBlockTrack) isHeaderConstructionValid(currHeader, prevHeader data.HeaderHandler) error {
-	if check.IfNil(prevHeader) {
-		return process.ErrNilBlockHeader
-	}
-	if check.IfNil(currHeader) {
-		return process.ErrNilBlockHeader
-	}
-
-	if prevHeader.GetRound() >= currHeader.GetRound() {
-		log.Trace("round does not match",
-			"shard", currHeader.GetShardID(),
-			"local header round", prevHeader.GetRound(),
-			"received round", currHeader.GetRound())
-		return process.ErrLowerRoundInBlock
-	}
-
-	if currHeader.GetNonce() != prevHeader.GetNonce()+1 {
-		log.Trace("nonce does not match",
-			"shard", currHeader.GetShardID(),
-			"local header nonce", prevHeader.GetNonce(),
-			"received nonce", currHeader.GetNonce())
-		return process.ErrWrongNonceInBlock
-	}
-
-	prevHash, err := core.CalculateHash(bbt.marshalizer, bbt.hasher, prevHeader)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(currHeader.GetPrevHash(), prevHash) {
-		log.Trace("header hash does not match",
-			"shard", currHeader.GetShardID(),
-			"local header hash", prevHash,
-			"received header with prev hash", currHeader.GetPrevHash(),
-		)
-		return process.ErrBlockHashDoesNotMatch
-	}
-
-	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
-		log.Trace("header random seed does not match",
-			"shard", currHeader.GetShardID(),
-			"local header random seed", prevHeader.GetRandSeed(),
-			"received header with prev random seed", currHeader.GetPrevRandSeed(),
-		)
-		return process.ErrRandSeedDoesNotMatch
-	}
-
-	return nil
 }
 
 func (bbt *baseBlockTrack) checkHeaderFinality(
@@ -359,7 +309,7 @@ func (bbt *baseBlockTrack) checkHeaderFinality(
 		}
 
 		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
-			err := bbt.isHeaderConstructionValid(currHeader, prevHeader)
+			err := bbt.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 			if err != nil {
 				continue
 			}
@@ -493,27 +443,24 @@ func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 	return bbt == nil
 }
 
-func checkTrackerNilParameters(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	store dataRetriever.StorageService,
-) error {
+func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 
-	if check.IfNil(hasher) {
+	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arguments.HeaderValidator) {
+		return process.ErrNilHeaderValidator
+	}
+	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(rounder) {
+	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if check.IfNil(store) {
+	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
 	}
 
