@@ -158,6 +158,9 @@ func createNode(
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
+	nodeKeys := cp.Keys[shardId][keyIndex]
+	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -168,7 +171,7 @@ func createNode(
 		NbShards:                uint32(nbShards),
 		EligibleNodes:           validatorsMap,
 		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+		SelfPublicKey:           pubKeyBytes,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

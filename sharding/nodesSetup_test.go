@@ -38,14 +38,14 @@ func createAndAssignNodes(ns NodesSetup, noOfInitialNodes int) *NodesSetup {
 		ns.InitialNodes[i].Address = Address[lookupIndex]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 	if err != nil {
 		return nil
 	}
 
-	ns.ProcessMetaChainAssigment()
-	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesInfo()
+	ns.processMetaChainAssigment()
+	ns.processShardAssignment()
+	ns.createInitialNodesInfo()
 
 	return &ns
 }
@@ -145,7 +145,7 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 	ns.InitialNodes[0].PubKey = PubKeys[0]
 	ns.InitialNodes[0].Address = Address[0]
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrCouldNotParsePubKey, err)
@@ -166,7 +166,7 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
@@ -189,7 +189,7 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
@@ -210,7 +210,7 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
@@ -233,7 +233,7 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
@@ -254,7 +254,7 @@ func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) 
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
@@ -277,7 +277,7 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
@@ -298,7 +298,7 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)
@@ -322,7 +322,7 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 		ns.InitialNodes[i].Address = Address[i]
 	}
 
-	err := ns.ProcessConfig()
+	err := ns.processConfig()
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)

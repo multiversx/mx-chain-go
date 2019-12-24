@@ -399,7 +399,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	if len(publicKeys) != len(signersIndexes) {
-		log.Error("len pubKeys = %d, len signersIndexes = %d", len(publicKeys), len(signersIndexes))
+		log.Error("public keys not found", "len pubKeys", len(publicKeys), "len signers", len(signersIndexes))
 		return nil, ErrNotInvalidNumberPubKeys
 	}
 
@@ -466,7 +466,7 @@ func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validat
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
-	selfShard := nodesConfig.shardId
+	selfShard := ihgs.nodesConfig[ihgs.currentEpoch].shardId
 
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
