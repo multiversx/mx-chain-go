@@ -1325,7 +1325,7 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	_, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	time.Sleep(time.Second * 5)
 
 	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())

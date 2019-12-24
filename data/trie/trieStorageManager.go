@@ -150,6 +150,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 
 	err := tsm.removeFromDb(rootHash)
 	if err != nil {
+		log.Debug("trie storage manager prune", "error", rootHash)
 		return err
 	}
 
@@ -184,6 +185,7 @@ func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("trie storage manager: mark for eviction", "root", root)
 
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }
