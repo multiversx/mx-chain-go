@@ -416,7 +416,7 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 // HasTopicValidator returns true if the topic has a validator set
 func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	netMes.mutTopics.RLock()
-	validator, _ := netMes.processors[name]
+	validator := netMes.processors[name]
 	netMes.mutTopics.RUnlock()
 
 	return validator != nil
