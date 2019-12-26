@@ -252,6 +252,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			hex.EncodeToString(cnsDta.ChainID),
 			hex.EncodeToString(wrk.chainID),
 		)
+		log.Debug("consensus data chain ID mismatch",
+			"error", err)
 		return err
 	}
 
@@ -282,6 +284,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
+		log.Debug("verify consensus data signature failed",
+			"error", sigVerifErr)
 		return ErrInvalidSignature
 	}
 
@@ -289,25 +293,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return err
-		}
-
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
 			return ErrInvalidHeader
-		}
-
-		err := header.CheckChainID(wrk.chainID)
-		if err != nil {
-			return err
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
 		}
 
 		log.Debug("received proposed block",
@@ -317,6 +305,27 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			log.Debug("verify rand seed failed",
+				"error", err)
+			return err
+		}
+
+		err := header.CheckChainID(wrk.chainID)
+		if err != nil {
+			log.Debug("chain ID mismatch",
+				"error", err)
+			return err
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			//we should not return error here because the other peers connected to self might need this message
+			//to advance the consensus
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

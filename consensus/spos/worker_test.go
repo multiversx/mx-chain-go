@@ -718,7 +718,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
-	assert.Equal(t, process.ErrRandSeedDoesNotMatch, err)
+	assert.Equal(t, spos.ErrInvalidHeader, err)
 }
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testing.T) {
