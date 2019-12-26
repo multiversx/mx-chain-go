@@ -36,6 +36,11 @@ type prometheus struct {
 	NetworkID string
 }
 
+// MiddlewareLimiter defines a request limiter used in conjunction with a gin server
+type MiddlewareLimiter interface {
+	Limit() gin.HandlerFunc
+}
+
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiInterface() string
@@ -66,7 +71,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler) error {
+func Start(elrondFacade MainApiHandler, limiters ...MiddlewareLimiter) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -76,6 +81,9 @@ func Start(elrondFacade MainApiHandler) error {
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
+	for _, limiter := range limiters {
+		ws.Use(limiter.Limit())
+	}
 
 	err := registerValidators()
 	if err != nil {

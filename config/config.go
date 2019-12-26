@@ -183,9 +183,17 @@ type FacadeConfig struct {
 	PrometheusJobName string
 }
 
+// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+type WebServerAntifloodConfig struct {
+	SimultaneousRequests         uint32
+	SameSourceRequests           uint32
+	SameSourceResetIntervalInSec uint32
+}
+
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
 	Cache                     CacheConfig
 	PeerMaxMessagesPerSecond  uint32
 	PeerMaxTotalSizePerSecond uint64
+	WebServer                 WebServerAntifloodConfig
 }

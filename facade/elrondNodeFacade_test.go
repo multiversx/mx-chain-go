@@ -17,27 +17,99 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createWsAntifloodingConfig() config.WebServerAntifloodConfig {
+	return config.WebServerAntifloodConfig{
+		SimultaneousRequests:         0,
+		SameSourceRequests:           1,
+		SameSourceResetIntervalInSec: 1,
+	}
+}
+
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{}, false)
+	ef, _ := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+	return ef
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ApiResolverStub{}, false)
+	ef, _ := NewElrondNodeFacade(
+		node,
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+	return ef
 }
 
-func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
+func TestNewElrondFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
+	t.Parallel()
+
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	assert.NotNil(t, ef)
 }
 
-func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{}, false)
+func TestNewElrondFacade_WithNilNodeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ef, err := NewElrondNodeFacade(
+		nil,
+		&mock.ApiResolverStub{},
+		false,
+		createWsAntifloodingConfig(),
+	)
+
 	assert.Nil(t, ef)
+	assert.Equal(t, ErrNilNode, err)
 }
 
-func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil, false)
+func TestNewElrondFacade_WithNilApiResolverShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		nil,
+		false,
+		createWsAntifloodingConfig(),
+	)
+
 	assert.Nil(t, ef)
+	assert.Equal(t, ErrNilApiResolver, err)
+}
+
+func TestNewElrondFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SameSourceResetIntervalInSec = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
+}
+
+func TestNewElrondFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SameSourceRequests = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
 }
 
 func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
@@ -292,7 +364,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	ef := NewElrondNodeFacade(
+	ef, _ := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
 			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
@@ -301,6 +373,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 			},
 		},
 		false,
+		createWsAntifloodingConfig(),
 	)
 
 	_, _ = ef.ExecuteSCQuery(nil)

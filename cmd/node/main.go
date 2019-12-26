@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -702,7 +703,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var elasticIndexer indexer.Indexer
-	if coreServiceContainer == nil || coreServiceContainer.IsInterfaceNil() {
+	if check.IfNil(coreServiceContainer) {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
@@ -784,7 +785,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
+	ef, err := facade.NewElrondNodeFacade(
+		currentNode,
+		apiResolver,
+		restAPIServerDebugMode,
+		generalConfig.Antiflood.WebServer,
+	)
+	if err != nil {
+		return fmt.Errorf("%w while creating NodeFacade", err)
+	}
 
 	efConfig := &config.FacadeConfig{
 		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),

@@ -238,6 +238,15 @@
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
+    [Antiflood.WebServer]
+        # SimultaneousRequests represents the number of councurrent requests accepted by the web server
+        # this is a global throttler that acts on all http connections regardless of the originating source
+        SimultaneousRequests = 100
+        # SameSourceRequests defines how many requests are allowed from the same source in the specified
+        # time frame (SameSourceResetIntervalInSec)
+        SameSourceRequests = 10
+        # SameSourceResetIntervalInSec time frame between counter reset, in seconds
+        SameSourceResetIntervalInSec = 60
 
 [Logger]
     Path = "logs"
