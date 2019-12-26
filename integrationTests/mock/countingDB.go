@@ -15,7 +15,7 @@ func NewCountingDB() *countingDB {
 }
 
 func (cdb *countingDB) Put(key, val []byte) error {
-	cdb.db.Put(key, val)
+	_ = cdb.db.Put(key, val)
 	cdb.nrOfPut++
 	return nil
 }

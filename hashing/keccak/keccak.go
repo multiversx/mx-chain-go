@@ -16,7 +16,7 @@ func (k Keccak) Compute(s string) []byte {
 		return k.EmptyHash()
 	}
 	h := sha3.NewLegacyKeccak256()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
