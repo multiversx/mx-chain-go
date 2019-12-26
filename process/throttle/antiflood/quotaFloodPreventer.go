@@ -89,40 +89,40 @@ func NewQuotaFloodPreventer(
 	}, nil
 }
 
-// IncrementAddingToSum tries to increment the counter values held at "identifier" position
+// AccumulateGlobal tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota and increment its values
-func (qfp *quotaFloodPreventer) IncrementAddingToSum(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) AccumulateGlobal(identifier string, size uint64) bool {
 	qfp.mutOperation.Lock()
-	defer qfp.mutOperation.Unlock()
 
 	qfp.globalQuota.numReceivedMessages++
 	qfp.globalQuota.sizeReceivedMessages += size
 
-	result := qfp.increment(identifier, size)
-	if result {
+	isQuotaNotReached := qfp.accumulate(identifier, size)
+	if isQuotaNotReached {
 		qfp.globalQuota.numProcessedMessages++
 		qfp.globalQuota.sizeProcessedMessages += size
 	}
+	qfp.mutOperation.Unlock()
 
-	return result
+	return isQuotaNotReached
 }
 
-// Increment tries to increment the counter values held at "identifier" position
+// Accumulate tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota but does not increment its values
-func (qfp *quotaFloodPreventer) Increment(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) Accumulate(identifier string, size uint64) bool {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	return qfp.increment(identifier, size)
+	return qfp.accumulate(identifier, size)
 }
 
-func (qfp *quotaFloodPreventer) increment(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) accumulate(identifier string, size uint64) bool {
 	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
 		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
 	if isGlobalQuotaReached {
@@ -174,6 +174,7 @@ func (qfp *quotaFloodPreventer) Reset() {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
+	qfp.statusHandler.ResetStatistics()
 	qfp.createStatistics()
 
 	//TODO change this if cacher.Clear() is time consuming
@@ -183,8 +184,6 @@ func (qfp *quotaFloodPreventer) Reset() {
 
 // createStatistics is useful to benchmark the system when running
 func (qfp quotaFloodPreventer) createStatistics() {
-	qfp.statusHandler.ResetStatistics()
-
 	keys := qfp.cacher.Keys()
 	for _, k := range keys {
 		val, ok := qfp.cacher.Get(k)

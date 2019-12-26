@@ -15,7 +15,7 @@ type quota struct {
 	sizeProcessedMessages uint64
 }
 
-// p2pQuotaProcessor implements process.QuotaStatusHandler and is able to periodically sends to a
+// p2pQuotaProcessor implements process.QuotaStatusHandler and is able to periodically send to a
 // statusHandler the processed p2p quota information
 type p2pQuotaProcessor struct {
 	mutStatistics    sync.Mutex

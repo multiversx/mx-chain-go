@@ -57,11 +57,11 @@ func TestP2pQuotaProcessor_AddQuotaShouldWork(t *testing.T) {
 func TestP2pQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics(t *testing.T) {
 	t.Parallel()
 
-	identifier1 := "identifier"
-	numReceived1 := uint64(1)
-	sizeReceived1 := uint64(2)
-	numProcessed1 := uint64(3)
-	sizeProcessed1 := uint64(4)
+	identifier := "identifier"
+	numReceived := uint64(1)
+	sizeReceived := uint64(2)
+	numProcessed := uint64(3)
+	sizeProcessed := uint64(4)
 
 	numReceivedNetwork := uint64(5)
 	sizeReceivedNetwork := uint64(6)
@@ -70,18 +70,18 @@ func TestP2pQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics
 
 	status := mock.NewAppStatusHandlerMock()
 	pqp, _ := p2pQuota.NewP2pQuotaProcessor(status)
-	pqp.AddQuota(identifier1, uint32(numReceived1), sizeReceived1, uint32(numProcessed1), sizeProcessed1)
+	pqp.AddQuota(identifier, uint32(numReceived), sizeReceived, uint32(numProcessed), sizeProcessed)
 	pqp.SetGlobalQuota(uint32(numReceivedNetwork), sizeReceivedNetwork, uint32(numProcessedNetwork), sizeProcessedNetwork)
 
 	pqp.ResetStatistics()
 
-	assert.Nil(t, pqp.GetQuota(identifier1))
+	assert.Nil(t, pqp.GetQuota(identifier))
 
 	numReceivers := uint64(1)
 	checkNetworkMetrics(t, status, numReceivedNetwork, sizeReceivedNetwork, numProcessedNetwork, sizeProcessedNetwork)
 	checkPeakNetworkMetrics(t, status, numReceivedNetwork, sizeReceivedNetwork, numProcessedNetwork, sizeProcessedNetwork)
-	checkPeerMetrics(t, status, numReceived1, sizeReceived1, numProcessed1, sizeProcessed1)
-	checkPeakPeerMetrics(t, status, numReceived1, sizeReceived1, numProcessed1, sizeProcessed1)
+	checkPeerMetrics(t, status, numReceived, sizeReceived, numProcessed, sizeProcessed)
+	checkPeakPeerMetrics(t, status, numReceived, sizeReceived, numProcessed, sizeProcessed)
 	checkNumReceivers(t, status, numReceivers, numReceivers)
 }
 

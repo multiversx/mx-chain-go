@@ -37,15 +37,15 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	peerMaxMumProcessMessages := uint32(5)
-	maxMumProcessMessages := uint32(math.MaxUint32)
+	peerMaxNumProcessMessages := uint32(5)
+	maxNumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
 		topic,
-		peerMaxMumProcessMessages,
+		peerMaxNumProcessMessages,
 		maxMessageSize,
-		maxMumProcessMessages,
+		maxNumProcessMessages,
 		maxMessageSize,
 	)
 	assert.Nil(t, err)
@@ -76,7 +76,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 
 	isFlooding.Store(false)
 
-	checkMessagesOnPeers(t, peers, interceptors, peerMaxMumProcessMessages, floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, peerMaxNumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 // TestAntifloodWithMessagesFromOtherPeers tests what happens if a peer decide to send a number of messages
@@ -99,15 +99,15 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	// (check integrationTests.CreateFixedNetworkOf14Peers function)
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	peerMaxMumProcessMessages := uint32(5)
-	maxMumProcessMessages := uint32(math.MaxUint32)
+	peerMaxNumProcessMessages := uint32(5)
+	maxNumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
 		topic,
-		peerMaxMumProcessMessages,
+		peerMaxNumProcessMessages,
 		maxMessageSize,
-		maxMumProcessMessages,
+		maxNumProcessMessages,
 		maxMessageSize,
 	)
 	assert.Nil(t, err)
@@ -131,7 +131,7 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	}
 	time.Sleep(broadcastMessageDuration)
 
-	checkMessagesOnPeers(t, peers, interceptors, peerMaxMumProcessMessages, floodedIdxes, protectedIdexes)
+	checkMessagesOnPeers(t, peers, interceptors, peerMaxNumProcessMessages, floodedIdxes, protectedIdexes)
 }
 
 // TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send large messages
@@ -154,15 +154,15 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
-	maxMumProcessMessages := uint32(math.MaxUint32)
+	maxNumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(math.MaxUint64)
 	peerMaxMessageSize := uint64(1 << 10) //1KB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
 		topic,
-		maxMumProcessMessages,
+		maxNumProcessMessages,
 		peerMaxMessageSize,
-		maxMumProcessMessages,
+		maxNumProcessMessages,
 		maxMessageSize,
 	)
 	assert.Nil(t, err)

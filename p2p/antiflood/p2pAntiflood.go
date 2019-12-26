@@ -34,14 +34,14 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	//protect from directly connected peer
-	ok := floodPreventer.IncrementAddingToSum(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
+	ok := floodPreventer.AccumulateGlobal(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
 	if !ok {
 		return fmt.Errorf("%w in p2pAntiflood for connected peer", p2p.ErrSystemBusy)
 	}
 
 	if fromConnectedPeer != message.Peer() {
 		//protect from the flooding messages that originate from the same source but come from different peers
-		ok = floodPreventer.Increment(message.Peer().Pretty(), uint64(len(message.Data())))
+		ok = floodPreventer.Accumulate(message.Peer().Pretty(), uint64(len(message.Data())))
 		if !ok {
 			return fmt.Errorf("%w in p2pAntiflood for originator", p2p.ErrSystemBusy)
 		}

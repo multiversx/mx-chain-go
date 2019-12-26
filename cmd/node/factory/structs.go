@@ -482,16 +482,16 @@ func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHa
 		return nil, err
 	}
 
-	maxMessagesPerPeer := mainConfig.Antiflood.PeerMaxMessagesPerSecond
-	maxTotalSizePerPeer := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
-	maxMessages := mainConfig.Antiflood.MaxMessagesPerSecond
-	maxTotalSize := mainConfig.Antiflood.MaxTotalSizePerSecond
+	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxMessagesPerSecond
+	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
+	maxMessagesPerSecond := mainConfig.Antiflood.MaxMessagesPerSecond
+	maxTotalSizePerSecond := mainConfig.Antiflood.MaxTotalSizePerSecond
 
 	log.Debug("started antiflood component",
-		"maxMessagesPerPeer", maxMessagesPerPeer,
-		"maxTotalSizePerPeer", core.ConvertBytes(maxTotalSizePerPeer),
-		"maxMessages", maxMessages,
-		"maxTotalSize", core.ConvertBytes(maxTotalSize),
+		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
+		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
+		"maxMessagesPerSecond", maxMessagesPerSecond,
+		"maxTotalSizePerSecond", core.ConvertBytes(maxTotalSizePerSecond),
 	)
 
 	quotaProcessor, err := p2pQuota.NewP2pQuotaProcessor(status)
@@ -502,10 +502,10 @@ func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHa
 	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
 		antifloodCache,
 		quotaProcessor,
-		maxMessagesPerPeer,
-		maxTotalSizePerPeer,
-		maxMessages,
-		maxTotalSize,
+		peerMaxMessagesPerSecond,
+		peerMaxTotalSizePerSecond,
+		maxMessagesPerSecond,
+		maxTotalSizePerSecond,
 	)
 	if err != nil {
 		return nil, err
