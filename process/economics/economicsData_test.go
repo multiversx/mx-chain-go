@@ -444,6 +444,18 @@ func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
 }
 
+func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 0
+	economicsConfig.RatingSettings.MaxRating = 8
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
+}
+
 func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
