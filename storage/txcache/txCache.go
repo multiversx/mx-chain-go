@@ -162,6 +162,7 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 
 // Has is not implemented
 func (cache *TxCache) Has(key []byte) bool {
+	log.Error("TxCache.Has is not implemented")
 	return false
 }
 
@@ -173,29 +174,35 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd is not implemented
 func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
+	log.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }
 
 // Remove is not implemented
 func (cache *TxCache) Remove(key []byte) {
+	log.Error("TxCache.Remove is not implemented")
 }
 
 // RemoveOldest is not implemented
 func (cache *TxCache) RemoveOldest() {
+	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
 // Keys is not implemented
 func (cache *TxCache) Keys() [][]byte {
+	log.Error("TxCache.Keys is not implemented")
 	return [][]byte{}
 }
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
+	log.Error("TxCache.MaxSize is not implemented")
 	return 0
 }
 
 // RegisterHandler is not implemented
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
+	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
