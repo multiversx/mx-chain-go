@@ -8,7 +8,6 @@ import (
 type BroadcastMessengerMock struct {
 	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeaderCalled           func(data.HeaderHandler) error
-	BroadcastShardHeaderCalled      func(data.HeaderHandler) error
 	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
 	BroadcastTransactionsCalled     func(map[string][][]byte) error
 	BroadcastConsensusMessageCalled func(*consensus.Message) error
@@ -17,13 +16,6 @@ type BroadcastMessengerMock struct {
 func (bmm *BroadcastMessengerMock) BroadcastBlock(bodyHandler data.BodyHandler, headerhandler data.HeaderHandler) error {
 	if bmm.BroadcastBlockCalled != nil {
 		return bmm.BroadcastBlockCalled(bodyHandler, headerhandler)
-	}
-	return nil
-}
-
-func (bmm *BroadcastMessengerMock) BroadcastShardHeader(headerHandler data.HeaderHandler) error {
-	if bmm.BroadcastShardHeaderCalled != nil {
-		return bmm.BroadcastShardHeaderCalled(headerHandler)
 	}
 	return nil
 }
