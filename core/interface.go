@@ -1,6 +1,6 @@
 package core
 
-// AppStatusHandler interface will handle different implementations of monitoring tools, such as Prometheus of term-ui
+// AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
 type AppStatusHandler interface {
 	IsInterfaceNil() bool
 	Increment(key string)

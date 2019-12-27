@@ -85,7 +85,6 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtCommitment),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
