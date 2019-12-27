@@ -58,3 +58,8 @@ func (st *sourceThrottler) Reset() {
 	st.sourceRequests = make(map[string]uint32)
 	st.mutRequests.Unlock()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (st *sourceThrottler) IsInterfaceNil() bool {
+	return st == nil
+}

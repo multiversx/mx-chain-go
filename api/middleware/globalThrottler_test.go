@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func init() {
 func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnections uint32) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	globalThrottler := middleware.NewGlobalThrottler(maxConnections)
+	globalThrottler, _ := middleware.NewGlobalThrottler(maxConnections)
 	ws.Use(globalThrottler.Limit())
 	addressRoutes := ws.Group("/address")
 	if handler != nil {
@@ -35,8 +36,27 @@ func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnection
 	return ws
 }
 
+func TestNewGlobalThrottler_InvalidMaxConnectionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	gt, err := middleware.NewGlobalThrottler(0)
+
+	assert.True(t, check.IfNil(gt))
+	assert.Equal(t, middleware.ErrInvalidMaxNumRequests, err)
+}
+
+func TestNewGlobalThrottler(t *testing.T) {
+	t.Parallel()
+
+	gt, err := middleware.NewGlobalThrottler(1)
+
+	assert.False(t, check.IfNil(gt))
+	assert.Nil(t, err)
+}
+
 func TestGlobalThrottler_LimitUnderShouldProcessRequest(t *testing.T) {
 	t.Parallel()
+
 	addr := "testAddress"
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {

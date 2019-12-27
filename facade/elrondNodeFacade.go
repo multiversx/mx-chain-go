@@ -29,8 +29,9 @@ const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
 
-type resetter interface {
+type resetHandler interface {
 	Reset()
+	IsInterfaceNil() bool
 }
 
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
@@ -57,6 +58,9 @@ func NewElrondNodeFacade(
 	}
 	if check.IfNil(apiResolver) {
 		return nil, ErrNilApiResolver
+	}
+	if wsAntifloodConfig.SimultaneousRequests == 0 {
+		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
 	}
 	if wsAntifloodConfig.SameSourceRequests == 0 {
 		return nil, fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
@@ -195,12 +199,15 @@ func (ef *ElrondNodeFacade) createMiddlewareLimiters() ([]api.MiddlewareLimiter,
 	}
 	go ef.sourceLimiterReset(sourceLimiter)
 
-	globalLimiter := middleware.NewGlobalThrottler(ef.wsAntifloodConfig.SimultaneousRequests)
+	globalLimiter, err := middleware.NewGlobalThrottler(ef.wsAntifloodConfig.SimultaneousRequests)
+	if err != nil {
+		return nil, err
+	}
 
 	return []api.MiddlewareLimiter{sourceLimiter, globalLimiter}, nil
 }
 
-func (ef *ElrondNodeFacade) sourceLimiterReset(reset resetter) {
+func (ef *ElrondNodeFacade) sourceLimiterReset(reset resetHandler) {
 	for {
 		time.Sleep(time.Second * time.Duration(ef.wsAntifloodConfig.SameSourceResetIntervalInSec))
 

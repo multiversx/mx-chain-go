@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestNewSourceThrottler_InvalidValueShouldErr(t *testing.T) {
 
 	st, err := middleware.NewSourceThrottler(0)
 
-	assert.Nil(t, st)
+	assert.True(t, check.IfNil(st))
 	assert.Equal(t, middleware.ErrInvalidMaxNumRequests, err)
 }
 
@@ -47,7 +48,7 @@ func TestNewSourceThrottler(t *testing.T) {
 
 	st, err := middleware.NewSourceThrottler(1)
 
-	assert.NotNil(t, st)
+	assert.False(t, check.IfNil(st))
 	assert.Nil(t, err)
 }
 

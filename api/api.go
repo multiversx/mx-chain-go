@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
@@ -39,6 +40,7 @@ type prometheus struct {
 // MiddlewareLimiter defines a request limiter used in conjunction with a gin server
 type MiddlewareLimiter interface {
 	Limit() gin.HandlerFunc
+	IsInterfaceNil() bool
 }
 
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
@@ -82,6 +84,10 @@ func Start(elrondFacade MainApiHandler, limiters ...MiddlewareLimiter) error {
 	ws = gin.Default()
 	ws.Use(cors.Default())
 	for _, limiter := range limiters {
+		if check.IfNil(limiter) {
+			continue
+		}
+
 		ws.Use(limiter.Limit())
 	}
 

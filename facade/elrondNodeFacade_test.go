@@ -19,7 +19,7 @@ import (
 
 func createWsAntifloodingConfig() config.WebServerAntifloodConfig {
 	return config.WebServerAntifloodConfig{
-		SimultaneousRequests:         0,
+		SimultaneousRequests:         1,
 		SameSourceRequests:           1,
 		SameSourceResetIntervalInSec: 1,
 	}
@@ -78,6 +78,22 @@ func TestNewElrondFacade_WithNilApiResolverShouldErr(t *testing.T) {
 
 	assert.Nil(t, ef)
 	assert.Equal(t, ErrNilApiResolver, err)
+}
+
+func TestNewElrondFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cfg := createWsAntifloodingConfig()
+	cfg.SimultaneousRequests = 0
+	ef, err := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{},
+		false,
+		cfg,
+	)
+
+	assert.Nil(t, ef)
+	assert.True(t, errors.Is(err, ErrInvalidValue))
 }
 
 func TestNewElrondFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testing.T) {
