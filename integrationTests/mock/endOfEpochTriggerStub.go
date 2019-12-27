@@ -15,7 +15,13 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
-func (e *EpochStartTriggerStub) SetFinalityAttestingRound(round uint64) {
+func (e *EpochStartTriggerStub) SetCurrentEpochStartRound(_ uint64) {
+}
+
+func (e *EpochStartTriggerStub) NotifyAll(_ data.HeaderHandler) {
+}
+
+func (e *EpochStartTriggerStub) SetFinalityAttestingRound(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
@@ -30,7 +36,7 @@ func (e *EpochStartTriggerStub) GetRoundsPerEpoch() uint64 {
 	return 0
 }
 
-func (e *EpochStartTriggerStub) SetTrigger(triggerHandler epochStart.TriggerHandler) {
+func (e *EpochStartTriggerStub) SetTrigger(_ epochStart.TriggerHandler) {
 }
 
 func (e *EpochStartTriggerStub) Revert() {
@@ -82,7 +88,7 @@ func (e *EpochStartTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 	}
 }
 
-func (e *EpochStartTriggerStub) SetRoundsPerEpoch(roundsPerEpoch uint64) {
+func (e *EpochStartTriggerStub) SetRoundsPerEpoch(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) IsInterfaceNil() bool {

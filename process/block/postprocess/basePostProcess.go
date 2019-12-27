@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var log = logger.GetOrCreate("process/block/postprocess")
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
