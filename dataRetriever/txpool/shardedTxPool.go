@@ -241,9 +241,7 @@ func (txPool *shardedTxPool) MoveTxs(sourceCacheID string, destCacheID string, t
 // Clear clears everything in the pool
 func (txPool *shardedTxPool) Clear() {
 	txPool.mutex.Lock()
-	for key := range txPool.backingMap {
-		delete(txPool.backingMap, key)
-	}
+	txPool.backingMap = make(map[string]*txPoolShard)
 	txPool.mutex.Unlock()
 }
 
