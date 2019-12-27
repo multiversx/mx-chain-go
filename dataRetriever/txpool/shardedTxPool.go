@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -32,6 +33,11 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
+	err := verifyConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	size := config.Size
 	evictionConfig := txcache.EvictionConfig{
 		Enabled:                         true,
@@ -52,6 +58,17 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 	}
 
 	return shardedTxPool, nil
+}
+
+func verifyConfig(config storageUnit.CacheConfig) error {
+	if config.Size < 1 {
+		return fmt.Errorf("size must be a positive number")
+	}
+	if config.Shards < 1 {
+		return fmt.Errorf("shards must be a positive number")
+	}
+
+	return nil
 }
 
 // ShardDataStore is not implemented for this pool

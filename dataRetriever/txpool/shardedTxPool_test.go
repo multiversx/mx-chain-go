@@ -16,15 +16,27 @@ import (
 )
 
 func Test_NewShardedTxPool(t *testing.T) {
-	pool, err := NewShardedTxPool(storageUnit.CacheConfig{})
+	pool, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 1, Shards: 1})
 
 	require.Nil(t, err)
 	require.NotNil(t, pool)
 	require.Implements(t, (*dataRetriever.ShardedDataCacherNotifier)(nil), pool)
 }
 
+func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
+	pool, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 1})
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.EqualError(t, err, "shards must be a positive number")
+
+	pool, err = NewShardedTxPool(storageUnit.CacheConfig{Shards: 1})
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.EqualError(t, err, "size must be a positive number")
+}
+
 func Test_NewShardedTxPool_ComputesEvictionConfig(t *testing.T) {
-	poolAsInterface, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	require.Nil(t, err)
 
 	pool := poolAsInterface.(*shardedTxPool)
@@ -98,7 +110,7 @@ func Test_AddData(t *testing.T) {
 }
 
 func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Shards: 1})
 
 	require.NotPanics(t, func() {
 		poolAsInterface.AddData([]byte("hash"), &thisIsNotATransaction{}, "1")
@@ -106,7 +118,7 @@ func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {
 }
 
 func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	numAdded := uint32(0)
@@ -123,7 +135,7 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 }
 
 func Test_SearchFirstData(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	tx := createTx("alice", 42)
@@ -135,7 +147,7 @@ func Test_SearchFirstData(t *testing.T) {
 }
 
 func Test_RemoveData(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -152,7 +164,7 @@ func Test_RemoveData(t *testing.T) {
 }
 
 func Test_RemoveSetOfDataFromPool(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("foo")
 
@@ -165,7 +177,7 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 }
 
 func Test_RemoveDataFromAllShards(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -177,7 +189,7 @@ func Test_RemoveDataFromAllShards(t *testing.T) {
 }
 
 func Test_MergeShardStores(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -189,7 +201,7 @@ func Test_MergeShardStores(t *testing.T) {
 }
 
 func Test_MoveData(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -205,7 +217,7 @@ func Test_MoveData(t *testing.T) {
 }
 
 func Test_Clear(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -217,7 +229,7 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_CreateShardStore(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
@@ -230,7 +242,7 @@ func Test_CreateShardStore(t *testing.T) {
 }
 
 func Test_RegisterHandler(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	pool.RegisterHandler(func(key []byte) {})
@@ -241,7 +253,7 @@ func Test_RegisterHandler(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	require.False(t, check.IfNil(poolAsInterface))
 
 	makeNil := func() dataRetriever.ShardedDataCacherNotifier {
@@ -253,7 +265,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000})
+	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)
 
 	require.NotPanics(t, func() { pool.CreateShardStore("foo") })

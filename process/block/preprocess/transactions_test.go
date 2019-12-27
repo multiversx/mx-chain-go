@@ -738,7 +738,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -799,7 +799,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -862,7 +862,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCall(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1082,7 +1082,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 	t.Parallel()
 
 	totalGasConsumed := uint64(0)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewTransactionPreprocessor(
 		txPool,

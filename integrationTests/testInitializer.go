@@ -1287,7 +1287,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Shards: 1})
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
