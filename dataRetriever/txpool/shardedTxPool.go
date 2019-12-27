@@ -156,8 +156,7 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
-	for key := range txPool.backingMap {
-		shard := txPool.backingMap[key]
+	for _, shard := range txPool.backingMap {
 		tx, ok := shard.Cache.GetByTxHash(txHash)
 		if ok {
 			return tx, ok
