@@ -379,7 +379,9 @@ func createConsensusOnlyNode(
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,
 		},
-		Epoch: 0,
+		Epoch:       0,
+		Storage:     createTestStore(),
+		Marshalizer: testMarshalizer,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 

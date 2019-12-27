@@ -628,6 +628,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+
 	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, args.nodesConfig.StartTime)
 	if err != nil {
 		return nil, err
@@ -821,6 +826,8 @@ func newEpochStartTrigger(
 			Settings:           args.epochStart,
 			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
+			Storage:            args.data.Store,
+			Marshalizer:        args.core.Marshalizer,
 		}
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

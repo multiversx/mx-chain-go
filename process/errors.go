@@ -346,9 +346,6 @@ var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 // ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
 var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 
-// ErrInvalidDataInput signals that the data input is invalid for parsing
-var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -568,9 +565,6 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
-
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
 
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")

@@ -1093,13 +1093,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		ProcessedMiniBlocks:  processedMiniBlocks,
 	}
 
-	go func() {
-		err := bp.bootStorer.Put(int64(round), bootData)
-		if err != nil {
-			log.Warn("cannot save boot data in storage",
-				"error", err.Error())
-		}
-	}()
+	err := bp.bootStorer.Put(int64(round), bootData)
+	if err != nil {
+		log.Warn("cannot save boot data in storage",
+			"error", err.Error())
+	}
 }
 
 func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHeaderInfo {

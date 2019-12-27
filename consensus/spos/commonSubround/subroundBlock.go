@@ -147,7 +147,6 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
@@ -182,7 +181,6 @@ func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockHeader,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
