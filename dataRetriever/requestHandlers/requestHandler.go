@@ -282,7 +282,8 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardId uint32) (dataRetriever.HeaderResolver, error) {
 	isMetachainNode := rrh.shardID == sharding.MetachainShardId
 	shardIdMissmatch := rrh.shardID != shardId
-	isRequestInvalid := !isMetachainNode && shardIdMissmatch
+	requestOnMetachain := shardId == sharding.MetachainShardId
+	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest
 	}
@@ -341,7 +342,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	}
 
 	baseTopic := factory.MetachainBlocksTopic
-	log.Trace("requesting by hash",
+	log.Trace("requesting header by epoch",
 		"topic", baseTopic,
 		"hash", epochStartIdentifier,
 	)
@@ -364,7 +365,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 
 	err = headerResolver.RequestDataFromEpoch([]byte(epochStartIdentifier))
 	if err != nil {
-		log.Debug("RequestDataFromHash", "error", err.Error())
+		log.Debug("RequestDataFromEpoch", "error", err.Error())
 		return
 	}
 
