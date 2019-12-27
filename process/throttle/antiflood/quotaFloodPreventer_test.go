@@ -16,6 +16,7 @@ func createMockQuotaStatusHandler() *mock.QuotaStatusHandlerStub {
 	return &mock.QuotaStatusHandlerStub{
 		ResetStatisticsCalled: func() {},
 		AddQuotaCalled:        func(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {},
+		SetGlobalQuotaCalled:  func(_ uint32, _ uint64, _ uint32, _ uint64) {},
 	}
 }
 
@@ -24,16 +25,78 @@ func createMockQuotaStatusHandler() *mock.QuotaStatusHandlerStub {
 func TestNewQuotaFloodPreventer_NilCacherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	qfp, err := NewQuotaFloodPreventer(nil, &mock.QuotaStatusHandlerStub{}, minMessages, minTotalSize)
+	qfp, err := NewQuotaFloodPreventer(
+		nil,
+		&mock.QuotaStatusHandlerStub{},
+		minMessages,
+		minTotalSize,
+		minMessages,
+		minTotalSize,
+	)
 
 	assert.True(t, check.IfNil(qfp))
 	assert.Equal(t, process.ErrNilCacher, err)
 }
 
+func TestNewQuotaFloodPreventer_NilStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		nil,
+		minMessages,
+		minTotalSize,
+		minMessages,
+		minTotalSize,
+	)
+
+	assert.True(t, check.IfNil(qfp))
+	assert.Equal(t, process.ErrNilQuotaStatusHandler, err)
+}
+
+func TestNewQuotaFloodPreventer_LowerMinMessagesPerPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		&mock.QuotaStatusHandlerStub{},
+		minMessages-1,
+		minTotalSize,
+		minMessages,
+		minTotalSize,
+	)
+
+	assert.True(t, check.IfNil(qfp))
+	assert.True(t, errors.Is(err, process.ErrInvalidValue))
+}
+
+func TestNewQuotaFloodPreventer_LowerMinSizePerPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		&mock.QuotaStatusHandlerStub{},
+		minMessages,
+		minTotalSize-1,
+		minMessages,
+		minTotalSize,
+	)
+
+	assert.True(t, check.IfNil(qfp))
+	assert.True(t, errors.Is(err, process.ErrInvalidValue))
+}
+
 func TestNewQuotaFloodPreventer_LowerMinMessagesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	qfp, err := NewQuotaFloodPreventer(&mock.CacherStub{}, &mock.QuotaStatusHandlerStub{}, minMessages-1, minTotalSize)
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		&mock.QuotaStatusHandlerStub{},
+		minMessages,
+		minTotalSize,
+		minMessages-1,
+		minTotalSize,
+	)
 
 	assert.True(t, check.IfNil(qfp))
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
@@ -42,7 +105,14 @@ func TestNewQuotaFloodPreventer_LowerMinMessagesShouldErr(t *testing.T) {
 func TestNewQuotaFloodPreventer_LowerMinSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	qfp, err := NewQuotaFloodPreventer(&mock.CacherStub{}, &mock.QuotaStatusHandlerStub{}, minMessages, minTotalSize-1)
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		&mock.QuotaStatusHandlerStub{},
+		minMessages,
+		minTotalSize,
+		minMessages,
+		minTotalSize-1,
+	)
 
 	assert.True(t, check.IfNil(qfp))
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
@@ -51,15 +121,22 @@ func TestNewQuotaFloodPreventer_LowerMinSizeShouldErr(t *testing.T) {
 func TestNewQuotaFloodPreventer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	qfp, err := NewQuotaFloodPreventer(&mock.CacherStub{}, &mock.QuotaStatusHandlerStub{}, minMessages, minTotalSize)
+	qfp, err := NewQuotaFloodPreventer(
+		&mock.CacherStub{},
+		&mock.QuotaStatusHandlerStub{},
+		minMessages,
+		minTotalSize,
+		minMessages,
+		minTotalSize,
+	)
 
 	assert.False(t, check.IfNil(qfp))
 	assert.Nil(t, err)
 }
 
-//------- Increment
+//------- Accumulate
 
-func TestNewQuotaFloodPreventer_IncrementIdentifierNotPresentPutQuotaAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_AccumulateIdentifierNotPresentPutQuotaAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -84,15 +161,17 @@ func TestNewQuotaFloodPreventer_IncrementIdentifierNotPresentPutQuotaAndReturnTr
 		createMockQuotaStatusHandler(),
 		minMessages*4,
 		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
 	)
 
-	ok := qfp.Increment("identifier", size)
+	ok := qfp.Accumulate("identifier", size)
 
 	assert.True(t, ok)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_IncrementNotQuotaSavedInCacheShouldPutQuotaAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_AccumulateNotQuotaSavedInCacheShouldPutQuotaAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -117,15 +196,17 @@ func TestNewQuotaFloodPreventer_IncrementNotQuotaSavedInCacheShouldPutQuotaAndRe
 		createMockQuotaStatusHandler(),
 		minMessages*4,
 		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
 	)
 
-	ok := qfp.Increment("identifier", size)
+	ok := qfp.Accumulate("identifier", size)
 
 	assert.True(t, ok)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_IncrementUnderMaxValuesShouldIncrementAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_AccumulateUnderMaxValuesShouldIncrementAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -156,15 +237,78 @@ func TestNewQuotaFloodPreventer_IncrementUnderMaxValuesShouldIncrementAndReturnT
 		createMockQuotaStatusHandler(),
 		minMessages*4,
 		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
 	)
 
-	ok := qfp.Increment("identifier", size)
+	ok := qfp.Accumulate("identifier", size)
 
 	assert.True(t, ok)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_IncrementOverMaxNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_AccumulateGlobalWithResetShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numPutOperations := 0
+	addedGlobalQuotaCalled := false
+	existingSize := uint64(0)
+	existingMessages := uint32(0)
+	existingQuota := &quota{
+		numReceivedMessages:  existingMessages,
+		sizeReceivedMessages: existingSize,
+	}
+	identifier := "identifier"
+	size := uint64(minTotalSize * 2)
+	qfp, _ := NewQuotaFloodPreventer(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return existingQuota, true
+			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				if string(key) == identifier {
+					numPutOperations++
+				}
+
+				return
+			},
+			KeysCalled: func() [][]byte {
+				return make([][]byte, 0)
+			},
+			ClearCalled: func() {},
+		},
+		&mock.QuotaStatusHandlerStub{
+			AddQuotaCalled: func(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {},
+			SetGlobalQuotaCalled: func(numReceived uint32, sizeReceived uint64, numProcessed uint32, sizeProcessed uint64) {
+				addedGlobalQuotaCalled = true
+				assert.Equal(t, uint32(2), numReceived)
+				assert.Equal(t, size+size+1, sizeReceived)
+				assert.Equal(t, uint32(2), numProcessed)
+				assert.Equal(t, size+size+1, sizeProcessed)
+			},
+			ResetStatisticsCalled: func() {},
+		},
+		minMessages*4,
+		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
+	)
+
+	ok := qfp.AccumulateGlobal(identifier, size)
+	assert.True(t, ok)
+
+	ok = qfp.AccumulateGlobal(identifier, size+1)
+	assert.True(t, ok)
+
+	qfp.Reset()
+
+	assert.Equal(t, 2, numPutOperations)
+	assert.True(t, addedGlobalQuotaCalled)
+}
+
+//------- Accumulate per peer
+
+func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	existingMessages := uint32(minMessages + 11)
@@ -187,14 +331,16 @@ func TestNewQuotaFloodPreventer_IncrementOverMaxNumMessagesShouldNotPutAndReturn
 		createMockQuotaStatusHandler(),
 		minMessages*4,
 		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
 	)
 
-	ok := qfp.Increment("identifier", minTotalSize)
+	ok := qfp.Accumulate("identifier", minTotalSize)
 
 	assert.False(t, ok)
 }
 
-func TestNewQuotaFloodPreventer_IncrementOverMaxSizeShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerSizeShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	existingMessages := uint32(minMessages)
@@ -217,27 +363,92 @@ func TestNewQuotaFloodPreventer_IncrementOverMaxSizeShouldNotPutAndReturnFalse(t
 		createMockQuotaStatusHandler(),
 		minMessages*4,
 		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
 	)
 
-	ok := qfp.Increment("identifier", minTotalSize)
+	ok := qfp.Accumulate("identifier", minTotalSize)
 
 	assert.False(t, ok)
 }
 
-func TestCountersMap_IncrementShouldWorkConcurrently(t *testing.T) {
+//------- Accumulate globally
+
+func TestNewQuotaFloodPreventer_AccumulateOverMaxNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
+	globalMessages := uint32(minMessages + 11)
+	globalSize := uint64(minTotalSize * 3)
+	qfp, _ := NewQuotaFloodPreventer(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				assert.Fail(t, "should have not called put")
+
+				return false
+			},
+		},
+		createMockQuotaStatusHandler(),
+		minMessages*4,
+		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
+	)
+	qfp.SetGlobalQuotaValues(globalMessages, globalSize)
+
+	ok := qfp.Accumulate("identifier", minTotalSize)
+
+	assert.False(t, ok)
+}
+
+func TestNewQuotaFloodPreventer_AccumulateOverMaxSizeShouldNotPutAndReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	globalMessages := uint32(minMessages)
+	globalSize := uint64(minTotalSize * 11)
+	qfp, _ := NewQuotaFloodPreventer(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				assert.Fail(t, "should have not called put")
+
+				return false
+			},
+		},
+		createMockQuotaStatusHandler(),
+		minMessages*4,
+		minTotalSize*10,
+		minMessages*4,
+		minTotalSize*10,
+	)
+	qfp.SetGlobalQuotaValues(globalMessages, globalSize)
+
+	ok := qfp.Accumulate("identifier", minTotalSize)
+
+	assert.False(t, ok)
+}
+
+func TestCountersMap_AccumulateShouldWorkConcurrently(t *testing.T) {
+	t.Parallel()
+
+	numIterations := 1000
 	qfp, _ := NewQuotaFloodPreventer(
 		mock.NewCacherMock(),
 		createMockQuotaStatusHandler(),
 		minMessages,
-		minTotalSize)
-	numIterations := 1000
+		minTotalSize,
+		minMessages*uint32(numIterations),
+		minTotalSize*uint64(numIterations),
+	)
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			ok := qfp.Increment(fmt.Sprintf("%d", idx), minTotalSize)
+			ok := qfp.Accumulate(fmt.Sprintf("%d", idx), minTotalSize)
 			assert.True(t, ok)
 			wg.Done()
 		}(i)
@@ -262,6 +473,8 @@ func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 			},
 		},
 		createMockQuotaStatusHandler(),
+		minTotalSize,
+		minMessages,
 		minTotalSize,
 		minMessages,
 	)
@@ -324,7 +537,10 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 
 				assert.Equal(t, quotaToCompare, quotaProvided)
 			},
+			SetGlobalQuotaCalled: func(_ uint32, _ uint64, _ uint32, _ uint64) {},
 		},
+		minTotalSize,
+		minMessages,
 		minTotalSize,
 		minMessages,
 	)
@@ -339,18 +555,20 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 	t.Parallel()
 
+	numIterations := 1000
 	qfp, _ := NewQuotaFloodPreventer(
 		mock.NewCacherMock(),
 		createMockQuotaStatusHandler(),
 		minMessages,
 		minTotalSize,
+		minTotalSize*uint32(numIterations),
+		minMessages*uint64(numIterations),
 	)
-	numIterations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations + numIterations/10)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			ok := qfp.Increment(fmt.Sprintf("%d", idx), minTotalSize)
+			ok := qfp.Accumulate(fmt.Sprintf("%d", idx), minTotalSize)
 			assert.True(t, ok)
 			wg.Done()
 		}(i)
