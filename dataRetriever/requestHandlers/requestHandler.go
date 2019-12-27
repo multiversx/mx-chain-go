@@ -135,11 +135,7 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
-	rrh.sweepIfNeeded()
-
-	if rrh.requestedItemsHandler.Has(string(miniblockHash)) {
-		log.Trace("item already requested",
-			"key", miniblockHash)
+	if !rrh.testIfRequestIsNeeded(miniblockHash) {
 		return
 	}
 
@@ -164,12 +160,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(string(miniblockHash))
-	if err != nil {
-		log.Trace("add requested item with error",
-			"error", err.Error(),
-			"key", miniblockHash)
-	}
+	rrh.addRequestedItem(miniblockHash)
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -211,7 +202,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 	err = resolver.RequestDataFromHash(hash)
 	if err != nil {
-		log.Debug("RequestDataFromHash", "error", err.Error())
+		log.Debug("RequestMetaHeader, RequestDataFromHash", "error", err.Error())
 		return
 	}
 
@@ -227,7 +218,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 
 	headerResolver, err := rrh.getShardHeaderResolver(shardId)
 	if err != nil {
-		log.Error("RequestShardHeaderByNonce",
+		log.Error("getShardHeaderResolver",
 			"error", err.Error(),
 		)
 		return
@@ -251,7 +242,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 	headerResolver, err := rrh.getMetaHeaderResolver()
 	if err != nil {
-		log.Error("RequestMetaHeaderByNonce",
+		log.Error("getMetaHeaderResolver",
 			"error", err.Error(),
 		)
 		return

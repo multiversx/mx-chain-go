@@ -11,9 +11,9 @@ const (
 	ShardBlocksTopic = "shardBlocks"
 	// MiniBlocksTopic is the topic used for sharing mini blocks
 	MiniBlocksTopic = "txBlockBodies"
-	// PeerChBodyTopic is used for sharing peer change block bodies
+	// PeerChBodyTopic is the topic used for sharing peer change block bodies
 	PeerChBodyTopic = "peerChangeBlockBodies"
-	// MetachainBlocksTopic is used for sharing metachain block headers
+	// MetachainBlocksTopic is the topic used for sharing metachain block headers
 	MetachainBlocksTopic = "metachainBlocks"
 )
 
@@ -22,12 +22,6 @@ var SystemVirtualMachine = []byte{0, 1}
 
 // IELEVirtualMachine is a byte array identifier for the smart contract address created for IELE VM
 var IELEVirtualMachine = []byte{1, 0}
-
-// HeraWABTVirtualMachine is a byte array identifier for the smart contract address created for Hera WABT VM
-var HeraWABTVirtualMachine = []byte{2, 0}
-
-// HeraWAVMVirtualMachine is a byte array identifier for the smart contract address created for Hera WAVM VM
-var HeraWAVMVirtualMachine = []byte{3, 0}
 
 // ArwenVirtualMachine is a byte array identifier for the smart contract address created for Arwen VM
 var ArwenVirtualMachine = []byte{5, 0}
