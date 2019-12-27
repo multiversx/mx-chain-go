@@ -185,5 +185,8 @@ var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
 
+// ErrNilEpochHandler signals that epoch handler is nil
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
 // ErrBadRequest signals that the request should not have happened
 var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")

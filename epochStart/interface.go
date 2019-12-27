@@ -20,6 +20,7 @@ type TriggerHandler interface {
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	Revert()
+	SetCurrentEpochStartRound(round uint64)
 	IsInterfaceNil() bool
 }
 
