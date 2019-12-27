@@ -287,7 +287,6 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		nil,
 		int(bn.MtCommitmentHash),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -527,7 +526,6 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHashReturnFalseWhenConsensusDa
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitmentHash),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)

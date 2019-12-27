@@ -3,6 +3,7 @@ package pruning
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -37,7 +38,7 @@ func removeDirectoryIfEmpty(path string) {
 }
 
 func isDirectoryEmpty(name string) bool {
-	f, err := os.Open(name)
+	f, err := os.Open(filepath.Clean(name))
 	if err != nil {
 		return false
 	}
