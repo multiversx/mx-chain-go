@@ -774,7 +774,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
-				go mp.onRequestHeaderHandlerByNonce(shardID, nonce)
+				go mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 			}
 		}
 	}

@@ -76,7 +76,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:              arguments.HeaderValidator,
 		bootStorer:                   arguments.BootStorer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
-		blockTracker:                  arguments.BlockTracker,
+		blockTracker:                 arguments.BlockTracker,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -1608,7 +1608,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
-			go sp.onRequestHeaderHandlerByNonce(lastMetaHdr.GetShardID(), nonce)
+			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}
 
