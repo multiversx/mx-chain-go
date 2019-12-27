@@ -157,11 +157,10 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
+	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
-		// TODO: Should fix this to ask only other shard peers
-		excludePeersFromTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := emptyExcludePeersOnTopic
 
 		resolver, err := rcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
 		if err != nil {

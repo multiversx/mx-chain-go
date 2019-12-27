@@ -68,12 +68,10 @@ type baseProcessor struct {
 	rounder                      consensus.Rounder
 	bootStorer                   process.BootStorer
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
+	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
 
 	hdrsForCurrBlock hdrForBlock
-
-	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
-	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
 	appStatusHandler core.AppStatusHandler
 }
@@ -313,11 +311,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	requested := 0
 	for _, nonce := range missingNonces {
-		// do the request here
-		if bp.onRequestHeaderHandlerByNonce == nil {
-			return process.ErrNilRequestHeaderHandlerByNonce
-		}
-
 		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
 		if isHeaderOutOfRange {
 			break
@@ -328,7 +321,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		}
 
 		requested++
-		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
+		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
 
 	return nil
@@ -635,7 +628,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
 			requestedHeaders++
-			go bp.onRequestHeaderHandlerByNonce(shardId, i)
+			go bp.requestHeaderByShardAndNonce(shardId, i)
 			continue
 		}
 
@@ -651,6 +644,14 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
+}
+
+func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
+	if targetShardID == sharding.MetachainShardId {
+		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
+	}
 }
 
 func (bp *baseProcessor) cleanupPools(

@@ -248,7 +248,7 @@ func TestResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShoul
 
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.ShardHeadersForMetachainTopic, ""),
+		createStubTopicMessageHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
@@ -268,7 +268,7 @@ func TestResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsSh
 
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.ShardHeadersForMetachainTopic),
+		createStubTopicMessageHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
