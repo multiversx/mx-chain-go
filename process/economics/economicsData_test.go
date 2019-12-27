@@ -33,9 +33,11 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			BurnPercentage:      0.8,
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock: "100000",
-			MinGasPrice:         "18446744073709551615",
-			MinGasLimit:         "500",
+			MaxGasLimitPerBlock:  "100000",
+			MinGasPrice:          "18446744073709551615",
+			MinGasLimit:          "500",
+			GasPerDataByte:       "1",
+			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
 			StakeValue:    "500000000",

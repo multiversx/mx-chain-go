@@ -45,6 +45,7 @@ func NewTestSyncNode(
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
 		ChainID:             IntegrationTestsChainID,
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -58,8 +59,6 @@ func NewTestSyncNode(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
-
-	tpn.EpochStartTrigger = &mock.EpochStartTriggerStub{}
 
 	return tpn
 }
@@ -228,6 +227,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.RequestedItemsHandler,
+		tpn.EpochStartTrigger,
 	)
 
 	if err != nil {

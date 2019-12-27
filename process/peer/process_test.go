@@ -33,9 +33,11 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "10000000",
-				MinGasPrice:         "10",
-				MinGasLimit:         "10",
+				MaxGasLimitPerBlock:  "10000000",
+				MinGasPrice:          "10",
+				MinGasLimit:          "10",
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
