@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -440,4 +441,19 @@ func TestHeader_CheckChainID(t *testing.T) {
 
 	assert.Nil(t, hdr.CheckChainID(okChainID))
 	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
+}
+
+func TestMiniBlock_Clone(t *testing.T) {
+	t.Parallel()
+
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
+		ReceiverShardID: 1,
+		SenderShardID:   2,
+		Type:            0,
+	}
+
+	clonedMB := miniBlock.Clone()
+
+	assert.True(t, reflect.DeepEqual(miniBlock, clonedMB))
 }

@@ -504,6 +504,7 @@ type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 	GetData() string
+	GetRecvAddress() []byte
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
