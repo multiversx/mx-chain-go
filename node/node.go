@@ -487,6 +487,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.bootStorer,
 		metaStorageBootstrapper,
 		n.requestedItemsHandler,
+		n.epochStartTrigger,
 	)
 
 	if err != nil {

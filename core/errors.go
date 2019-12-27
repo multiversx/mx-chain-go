@@ -13,9 +13,6 @@ var ErrNilHasher = errors.New("nil hasher provided")
 // ErrNilCoordinator signals that a nil shardCoordinator has been provided
 var ErrNilCoordinator = errors.New("nil coordinator provided")
 
-// ErrNilLogger signals that a nil logger has been provided
-var ErrNilLogger = errors.New("nil logger provided")
-
 // ErrInvalidValue signals that a nil value has been provided
 var ErrInvalidValue = errors.New("invalid value provided")
 
@@ -45,3 +42,6 @@ var ErrNotPositiveValue = errors.New("the provided value is not positive")
 
 // ErrNilAppStatusHandler signals that a nil status handler has been provided
 var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
+
+// ErrInvalidIdentifierForEpochStartBlockRequest
+var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifier for epoch start block request")
