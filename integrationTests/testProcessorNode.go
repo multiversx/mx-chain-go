@@ -402,9 +402,11 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: maxGasLimitPerBlock,
-				MinGasPrice:         minGasPrice,
-				MinGasLimit:         minGasLimit,
+				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
+				MinGasPrice:          minGasPrice,
+				MinGasLimit:          minGasLimit,
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
