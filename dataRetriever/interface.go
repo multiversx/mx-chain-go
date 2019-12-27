@@ -178,7 +178,6 @@ type ShardedDataCacherNotifier interface {
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
-	MoveData(sourceCacheID, destCacheID string, key [][]byte)
 	Clear()
 	ClearShardStore(cacheId string)
 	CreateShardStore(cacheId string)

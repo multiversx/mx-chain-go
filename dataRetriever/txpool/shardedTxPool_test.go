@@ -200,22 +200,6 @@ func Test_MergeShardStores(t *testing.T) {
 	require.Equal(t, int64(2), pool.getTxCache("bar").CountTx())
 }
 
-func Test_MoveData(t *testing.T) {
-	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
-	pool := poolAsInterface.(*shardedTxPool)
-
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "foo")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "bar")
-
-	pool.MoveData("foo", "bar", [][]byte{[]byte("hash-x")})
-	require.Equal(t, int64(0), pool.getTxCache("foo").CountTx())
-	require.Equal(t, int64(2), pool.getTxCache("bar").CountTx())
-
-	pool.MoveData("bar", "foo", [][]byte{[]byte("hash-x"), []byte("hash-y")})
-	require.Equal(t, int64(2), pool.getTxCache("foo").CountTx())
-	require.Equal(t, int64(0), pool.getTxCache("bar").CountTx())
-}
-
 func Test_Clear(t *testing.T) {
 	poolAsInterface, _ := NewShardedTxPool(storageUnit.CacheConfig{Size: 75000, Shards: 1})
 	pool := poolAsInterface.(*shardedTxPool)

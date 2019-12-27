@@ -219,25 +219,6 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 	txPool.mutex.Unlock()
 }
 
-// MoveData moves the transactions between two caches
-func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, keys [][]byte) {
-	txPool.MoveTxs(sourceCacheID, destCacheID, keys)
-}
-
-// MoveTxs moves the transactions between two caches
-func (txPool *shardedTxPool) MoveTxs(sourceCacheID string, destCacheID string, txHashes [][]byte) {
-	sourceShard := txPool.getOrCreateShard(sourceCacheID)
-	sourceCache := sourceShard.Cache
-
-	for _, txHash := range txHashes {
-		tx, ok := sourceCache.GetByTxHash(txHash)
-		if ok {
-			txPool.addTx(txHash, tx, destCacheID)
-			txPool.removeTx(txHash, sourceCacheID)
-		}
-	}
-}
-
 // Clear clears everything in the pool
 func (txPool *shardedTxPool) Clear() {
 	txPool.mutex.Lock()
