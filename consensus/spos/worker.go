@@ -252,6 +252,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			hex.EncodeToString(cnsDta.ChainID),
 			hex.EncodeToString(wrk.chainID),
 		)
+		log.Debug("consensus data chain ID mismatch",
+			"error", err)
 		return err
 	}
 
@@ -283,7 +285,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		log.Debug("verify signature failed", "error", sigVerifErr)
+		log.Debug("verify consensus data signature failed",
+			"error", sigVerifErr)
 		return ErrInvalidSignature
 	}
 
@@ -305,20 +308,24 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"prev hash", header.GetPrevHash(),
 		)
 
-		err := header.CheckChainID(wrk.chainID)
+		err = header.CheckChainID(wrk.chainID)
 		if err != nil {
+			log.Debug("chain ID mismatch",
+				"error", err)
 			return err
 		}
 
 		err = wrk.headerSigVerifier.VerifyRandSeed(header)
 		if err != nil {
-			log.Debug("verify rand seed failed", "error", err)
+			log.Debug("verify rand seed failed",
+				"error", err)
 			return err
 		}
 
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
+			log.Trace("add header to fork detector failed",
+				"error", err)
 			return err
 		}
 	}
