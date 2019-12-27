@@ -34,6 +34,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -44,6 +45,9 @@ func NewResolversContainerFactory(
 	}
 	if store == nil || store.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxStorage
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer

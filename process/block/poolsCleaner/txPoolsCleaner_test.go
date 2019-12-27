@@ -3,6 +3,7 @@ package poolsCleaner_test
 import (
 	"bytes"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -275,14 +276,19 @@ func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		_, _ = txsPoolsCleaner.Clean(time.Second)
+		wg.Done()
 	}()
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Microsecond)
+	wg.Add(1)
 	go func() {
 		itRan, _ := txsPoolsCleaner.Clean(time.Second)
 		assert.Equal(t, false, itRan)
+		wg.Done()
 	}()
 
-	time.Sleep(2 * time.Second)
+	wg.Wait()
 }
