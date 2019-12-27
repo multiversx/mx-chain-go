@@ -780,7 +780,7 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Debug("inshard miniblock ", "type", value, "hash", currHash)
+
 		allReceiptsHashes = append(allReceiptsHashes, currHash...)
 	}
 

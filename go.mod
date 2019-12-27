@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.2
+	github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191227132001-161cbe6d664b
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.24
 	github.com/ElrondNetwork/elrond-vm-common v0.1.6
@@ -45,7 +45,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/common v0.4.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/stretchr/testify v1.4.0

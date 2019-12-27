@@ -9,10 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/prometheus/common/log"
 )
 
 type txShardInfo struct {
@@ -24,6 +24,8 @@ type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
 }
+
+var log = logger.GetOrCreate("process/block/postprocess")
 
 type basePostProcessor struct {
 	hasher           hashing.Hasher
@@ -138,11 +140,8 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	if bpp.intraShardMiniBlock == nil {
-		log.Debug("nil intra shard miniblock")
 		return nil
 	}
-
-	log.Debug("intraShardMiniBlock", "recv", bpp.intraShardMiniBlock.SenderShardID, "snd", bpp.intraShardMiniBlock.ReceiverShardID, "txHashes", bpp.intraShardMiniBlock.TxHashes, "type", bpp.intraShardMiniBlock.Type)
 
 	return bpp.intraShardMiniBlock.Clone()
 }

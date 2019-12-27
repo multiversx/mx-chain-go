@@ -125,14 +125,14 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 	selfId := opp.shardCoordinator.SelfId()
 
 	for i := 0; i < len(txs); i++ {
-		receiptHash, err := core.CalculateHash(opp.marshalizer, opp.hasher, txs[i])
+		txHash, err := core.CalculateHash(opp.marshalizer, opp.hasher, txs[i])
 		if err != nil {
 			return err
 		}
 
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
-		opp.interResultsForBlock[string(receiptHash)] = scrInfo
+		opp.interResultsForBlock[string(txHash)] = scrInfo
 	}
 
 	return nil
