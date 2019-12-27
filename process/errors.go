@@ -509,6 +509,9 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
+var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
+
 // ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
 var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
 

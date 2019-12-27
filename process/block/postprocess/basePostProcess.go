@@ -15,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var log = logger.GetOrCreate("process/block/postprocess")
-
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -26,6 +24,8 @@ type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
 }
+
+var log = logger.GetOrCreate("process/block/postprocess")
 
 type basePostProcessor struct {
 	hasher           hashing.Hasher
@@ -67,6 +67,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
+	bpp.intraShardMiniBlock = nil
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -138,5 +139,9 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	return bpp.intraShardMiniBlock
+	if bpp.intraShardMiniBlock == nil {
+		return nil
+	}
+
+	return bpp.intraShardMiniBlock.Clone()
 }
