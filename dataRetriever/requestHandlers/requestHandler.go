@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -336,6 +337,53 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 		log.Trace("add requested item with error",
 			"error", err.Error(),
 			"key", key)
+	}
+}
+
+// RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
+func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
+	rrh.sweepIfNeeded()
+
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	if rrh.requestedItemsHandler.Has(epochStartIdentifier) {
+		log.Trace("item already requested",
+			"key", epochStartIdentifier)
+		return
+	}
+
+	baseTopic := rrh.metaHdrRequestTopic
+	log.Trace("requesting by hash",
+		"topic", baseTopic,
+		"hash", epochStartIdentifier,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(baseTopic)
+	if err != nil {
+		log.Error("missing resolver",
+			"topic", baseTopic,
+		)
+		return
+	}
+
+	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	if !ok {
+		log.Debug("resolver is not a header resolver",
+			"topic", baseTopic,
+		)
+		return
+	}
+
+	err = headerResolver.RequestDataFromEpoch([]byte(epochStartIdentifier))
+	if err != nil {
+		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
+	}
+
+	err = rrh.requestedItemsHandler.Add(epochStartIdentifier)
+	if err != nil {
+		log.Trace("add requested item with error",
+			"error", err.Error(),
+			"key", epochStartIdentifier)
 	}
 }
 

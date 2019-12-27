@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -37,28 +38,28 @@ func NewResolversContainerFactory(
 	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, dataRetriever.ErrNilStore
+	}
+	if check.IfNil(marshalizer) {
+		return nil, dataRetriever.ErrNilMarshalizer
 	}
 	if sizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if dataPools == nil || dataPools.IsInterfaceNil() {
+	if check.IfNil(dataPools) {
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
-	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
+	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
-	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
 

@@ -383,6 +383,12 @@ type EpochStartTriggerHandler interface {
 	EpochFinalityAttestingRound() uint64
 }
 
+// EpochBootstrapper defines the actions needed by bootstrapper
+type EpochBootstrapper interface {
+	SetCurrentEpochStartRound(round uint64)
+	IsInterfaceNil() bool
+}
+
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
@@ -498,6 +504,7 @@ type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 	GetData() string
+	GetRecvAddress() []byte
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
