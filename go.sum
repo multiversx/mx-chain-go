@@ -6,8 +6,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkBy
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/ElrondNetwork/arwen-wasm-vm v0.3.2 h1:EZmX7euEvAPsCfQSaz4pwJaR/MiNDu5o6oLW+colV7U=
-github.com/ElrondNetwork/arwen-wasm-vm v0.3.2/go.mod h1:5AlNE9+mwvuFF5FzGRceJKMKxpTQDlMKO6ZEPuNZBSA=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191227132001-161cbe6d664b h1:s5kZKAg5kWwMsvASAtApZqObPpWs2MPGwmgZxqXy5zc=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191227132001-161cbe6d664b/go.mod h1:5AlNE9+mwvuFF5FzGRceJKMKxpTQDlMKO6ZEPuNZBSA=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
@@ -25,8 +25,6 @@ github.com/ElrondNetwork/elrond-vm-common v0.1.6/go.mod h1:ZakxPST/Wt8umnRtA9gob
 github.com/ElrondNetwork/elrond-vm-util v0.1.1/go.mod h1:02LPKFh/Z5rbejgW2dazwjWGnsniuLOhRM2JjaOA3Mg=
 github.com/ElrondNetwork/go-ext-wasm v0.1.0 h1:aSXdg60JLQMSYdQbq0VtqpoyMdFYZqz09BcGiKwGY5U=
 github.com/ElrondNetwork/go-ext-wasm v0.1.0/go.mod h1:wlns4D0OzJP+q/cLweFz1rGpoZOG8LbGYX2jD31HCgw=
-github.com/ElrondNetwork/go-ext-wasm v0.1.1 h1:Q0KBeU7qj7klEZL84txlOoopHbZpz1IxLkWW8EHDFTQ=
-github.com/ElrondNetwork/go-ext-wasm v0.1.1/go.mod h1:wlns4D0OzJP+q/cLweFz1rGpoZOG8LbGYX2jD31HCgw=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/StackExchange/wmi v0.0.0-20170410192909-ea383cf3ba6e h1:IHXQQIpxASe3m0Jtcd3XongL+lxHNd5nUmvHxJARUmg=
 github.com/StackExchange/wmi v0.0.0-20170410192909-ea383cf3ba6e/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
