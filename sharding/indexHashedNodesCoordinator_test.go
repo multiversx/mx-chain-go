@@ -348,7 +348,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup(nil, 0, 0, 0)
 
 	assert.Nil(t, list2)
 	assert.Equal(t, ErrNilRandomness, err)
@@ -374,7 +374,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte("radomness"), 0, 5, 0)
 
 	assert.Nil(t, list2)
 	assert.Equal(t, ErrInvalidShardId, err)
@@ -407,7 +407,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, list, list2)
@@ -453,7 +453,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, eligibleMap[0][:2], list2)
@@ -511,7 +511,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, validator0, list2[1])
@@ -558,7 +558,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, eligibleMap[0][:2], list2)
@@ -643,7 +643,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(list2))
@@ -687,7 +687,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+		list2, _ := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

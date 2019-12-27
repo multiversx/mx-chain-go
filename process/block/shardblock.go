@@ -523,7 +523,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		epoch = epoch - 1
 	}
 
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		shardId,

@@ -251,7 +251,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		epoch = epoch - 1
 	}
 
-	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(
+	consensusGroup, err := p.nodesCoordinator.ComputeConsensusGroup(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),
@@ -328,7 +328,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 	}
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId, epoch)
+		consensusGroup, err := p.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardId, epoch)
 		if err != nil {
 			return err
 		}
@@ -386,7 +386,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	}
 
 	for _, h := range metaHeader.ShardInfo {
-		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}

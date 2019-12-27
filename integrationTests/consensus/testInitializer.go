@@ -469,6 +469,7 @@ func createNodes(
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
+	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
 
 	nodeShuffler := &mock.NodeShufflerMock{}
@@ -495,7 +496,7 @@ func createNodes(
 			EpochStartSubscriber:    epochStartSubscriber,
 			NbShards:                1,
 			EligibleNodes:           eligibleMap,
-			WaitingNodes:            make(map[uint32][]sharding.Validator),
+			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

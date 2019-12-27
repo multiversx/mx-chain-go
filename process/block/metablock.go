@@ -445,7 +445,7 @@ func (mp *metaProcessor) indexBlock(
 		txPool[hash] = tx
 	}
 
-	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(
+	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
 	)
 	if err != nil {

@@ -297,7 +297,9 @@ func (sr *SubroundStartRound) changeEpoch(header data.HeaderHandler) {
 		return
 	}
 
-	shardEligible := make(map[string]struct{}, 0)
+	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
+	shardEligible := make(map[string]struct{}, estimatedMapSize)
+	// TODO: update this when inter shard shuffling is enabled
 	shardId := sr.ShardCoordinator().SelfId()
 
 	for _, pubKey := range publicKeysPrevEpoch[shardId] {

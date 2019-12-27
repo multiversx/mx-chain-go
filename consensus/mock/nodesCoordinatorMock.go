@@ -12,7 +12,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 }
 
-func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
+func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	randomness []byte,
 	round uint64,
 	shardId uint32,
@@ -46,12 +46,12 @@ func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]u
 	return nil, nil
 }
 
-func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
+func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
 		return ncm.GetValidatorsPublicKeysCalled(randomness, round, shardId, epoch)
 	}
 
-	validators, err := ncm.ComputeValidatorsGroup(randomness, round, shardId, epoch)
+	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, roun
 	return pubKeys, nil
 }
 
-func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
+func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 	randomness []byte,
 	round uint64,
 	shardId uint32,
@@ -75,7 +75,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
 	}
 
-	validators, err := ncm.ComputeValidatorsGroup(randomness, round, shardId, epoch)
+	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
 	if err != nil {
 		return nil, err
 	}

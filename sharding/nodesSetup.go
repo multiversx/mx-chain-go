@@ -195,15 +195,12 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 	ns.waiting = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			m := ns.eligible
-			if !in.eligible {
-				m = ns.waiting
+			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
+			if in.eligible {
+				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
+			} else {
+				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], nodeInfo)
 			}
-
-			m[in.assignedShard] = append(
-				m[in.assignedShard],
-				&NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address},
-			)
 		}
 	}
 }
@@ -228,8 +225,8 @@ func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]*NodeInfo, map[uint32][]*
 	return ns.eligible, ns.waiting
 }
 
-// InitialNodesPubKeysForShard - gets initial nodes public keys for shard
-func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
+// InitialEligibleNodesPubKeysForShard - gets initial nodes public keys for shard
+func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
 	if ns.eligible[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}

@@ -284,7 +284,7 @@ func ProposeBlockWithConsensusSignature(
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
 
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId, epoch)
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		fmt.Println("Error getting the validators public keys: ", err)
 	}

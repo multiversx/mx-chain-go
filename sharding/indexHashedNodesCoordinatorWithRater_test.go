@@ -118,7 +118,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0, 0)
+	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list2))
@@ -220,7 +220,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup21of400(b 
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+		list2, _ := ihgsRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
@@ -485,7 +485,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), 0, 0, 0)
+		list2, _ := ihgsRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

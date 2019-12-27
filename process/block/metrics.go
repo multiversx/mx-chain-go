@@ -107,7 +107,7 @@ func saveMetachainCommitBlockMetrics(
 		epoch = epoch - 1
 	}
 
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.PrevRandSeed,
 		header.Round,
 		core.MetachainShardId,
@@ -168,7 +168,7 @@ func saveRoundInfoInElastic(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		publicKeys, err := nodesCoordinator.GetValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
+		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
 		if err != nil {
 			continue
 		}

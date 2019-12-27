@@ -60,14 +60,14 @@ func NewSpecialAddressHolder(
 // SetShardConsensusData - sets the reward addresses for the current consensus group
 func (sp *specialAddresses) SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error {
 	// give transaction coordinator the consensus group validators addresses where to send the rewards.
-	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+	consensusAddresses, err := sp.nodesCoordinator.GetConsensusValidatorsRewardsAddresses(
 		randomness, round, shardID, epoch,
 	)
 	if err != nil {
 		return err
 	}
 
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardID, epoch)
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardID, epoch)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (sp *specialAddresses) ConsensusShardRewardData() *data.ConsensusRewardData
 
 // SetMetaConsensusData sets the rewards addresses for the metachain nodes
 func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error {
-	rewardAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+	rewardAddresses, err := sp.nodesCoordinator.GetConsensusValidatorsRewardsAddresses(
 		randomness,
 		round,
 		core.MetachainShardId,
@@ -113,7 +113,7 @@ func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64
 	if err != nil {
 		return err
 	}
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, core.MetachainShardId, epoch)
 	if err != nil {
 		return err
 	}

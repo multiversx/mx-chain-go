@@ -33,7 +33,7 @@ func TestEpochStartSubscriptionHandler_RegisterHandlerOkHandlerShouldAdd(t *test
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
-	handler := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
+	handler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
 
 	essh.RegisterHandler(handler)
 
@@ -49,7 +49,7 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothin
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
 	// first register a handler
-	handler := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
+	handler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
 	essh.RegisterHandler(handler)
 
 	// then try to unregister but a nil handler is given
@@ -67,7 +67,7 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
 	// first register a handler
-	handler := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
+	handler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil)
 	essh.RegisterHandler(handler)
 
 	// then unregister the same handler
@@ -87,10 +87,10 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
 	// register 2 handlers
-	handler1 := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {
+	handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		firstHandlerWasCalled = true
 	}, nil)
-	handler2 := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {
+	handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		secondHandlerWasCalled = true
 	}, nil)
 

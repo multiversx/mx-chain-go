@@ -176,7 +176,7 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uin
 //    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
 //    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
-func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
+func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness []byte,
 	round uint64,
 	shardId uint32,
@@ -252,13 +252,13 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 
 // GetValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
 // returning their public keys
-func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(
+func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
 	round uint64,
 	shardId uint32,
 	epoch uint32,
 ) ([]string, error) {
-	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness, round, shardId, epoch)
+	consensusNodes, err := ihgs.ComputeConsensusGroup(randomness, round, shardId, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -274,13 +274,13 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(
 
 // GetValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
 // number, returning their staking/rewards addresses
-func (ihgs *indexHashedNodesCoordinator) GetValidatorsRewardsAddresses(
+func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
 	randomness []byte,
 	round uint64,
 	shardId uint32,
 	epoch uint32,
 ) ([]string, error) {
-	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness, round, shardId, epoch)
+	consensusNodes, err := ihgs.ComputeConsensusGroup(randomness, round, shardId, epoch)
 	if err != nil {
 		return nil, err
 	}

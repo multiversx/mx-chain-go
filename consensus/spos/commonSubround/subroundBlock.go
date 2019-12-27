@@ -3,6 +3,8 @@ package commonSubround
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -290,7 +292,7 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
 
-	if sr.Header == nil {
+	if check.IfNil(sr.Header) {
 		return false
 	}
 

@@ -42,13 +42,13 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ep
 // UnregisterHandler will unsubscribe a function from the slice
 func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.EpochStartHandler) {
 	if handlerToUnregister != nil {
-		essh.mutEpochStartHandler.RLock()
+		essh.mutEpochStartHandler.Lock()
 		for idx, handler := range essh.epochStartHandlers {
 			if handler == handlerToUnregister {
 				essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
 			}
 		}
-		essh.mutEpochStartHandler.RUnlock()
+		essh.mutEpochStartHandler.Unlock()
 	}
 }
 

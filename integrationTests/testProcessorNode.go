@@ -210,6 +210,8 @@ func NewTestProcessorNode(
 
 	pkBytes := make([]byte, 128)
 	address := make([]byte, 32)
+	pkBytes[0] = 1
+	address[0] = 1
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 
@@ -1035,7 +1037,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	prevHash := TestHasher.Compute(string(buff))
 	blockHeader.SetPrevHash(prevHash)
-	fmt.Println(fmt.Sprintf("ApplyPrevHash %d %s", tpn.ShardCoordinator.SelfId(), core.ToHex(prevHash)))
 
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	sig, _ := TestMultiSig.AggregateSigs(nil)
@@ -1046,12 +1047,10 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
 	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
 

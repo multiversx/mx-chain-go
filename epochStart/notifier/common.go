@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
-// MakeHandlerForEpochStart will return a struct which will satisfy the above interface
-func MakeHandlerForEpochStart(
+// NewHandlerForEpochStart will return a struct which will satisfy the above interface
+func NewHandlerForEpochStart(
 	actionFunc func(hdr data.HeaderHandler),
 	prepareFunc func(metaHeader data.HeaderHandler),
 ) epochStart.EpochStartHandler {

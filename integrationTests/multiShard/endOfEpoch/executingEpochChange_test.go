@@ -201,7 +201,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 
 	round := uint64(1)
 	nonce := uint64(1)
-	nbBlocksToProduce := uint64(16)
+	nbBlocksToProduce := uint64(20)
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
