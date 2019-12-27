@@ -340,7 +340,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	baseTopic := rrh.metaHdrRequestTopic
+	baseTopic := factory.MetachainBlocksTopic
 	log.Trace("requesting by hash",
 		"topic", baseTopic,
 		"hash", epochStartIdentifier,
