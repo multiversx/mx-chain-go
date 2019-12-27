@@ -391,6 +391,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
+			log.Debug("checkMetaHeadersValidityAndFinality -> isHdrConstructionValid")
 			return err
 		}
 
@@ -425,8 +426,9 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
-				go sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
-				log.Trace("isHdrConstructionValid", "error", err.Error())
+				//go sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
+				log.Debug("checkMetaHdrFinality -> isHdrConstructionValid",
+					"error", err.Error())
 				continue
 			}
 

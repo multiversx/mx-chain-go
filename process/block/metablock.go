@@ -1226,6 +1226,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		for _, shardHdr := range hdrsForShard {
 			err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
 			if err != nil {
+				log.Debug("checkShardHeadersValidity -> isHdrConstructionValid")
 				return nil, err
 			}
 
@@ -1288,8 +1289,9 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
-					log.Debug("isHdrConstructionValid", "error", err.Error())
+					//go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
+					log.Debug("checkShardHeadersFinality -> isHdrConstructionValid",
+						"error", err.Error())
 					continue
 				}
 

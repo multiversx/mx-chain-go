@@ -2,12 +2,12 @@ package sync
 
 import (
 	"bytes"
-	"math"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"math"
 )
 
 // shardForkDetector implements the shard fork detector mechanism
@@ -143,8 +143,6 @@ func (sfd *shardForkDetector) addSelfNotarizedHeaders(
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
-	finalCheckPoint := sfd.finalCheckpoint()
-
 	sfd.mutHeaders.RLock()
 	for nonce, hdrInfos := range sfd.headers {
 		indexBHNotarized := -1
@@ -159,7 +157,8 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 		}
 
 		if indexBHNotarized != -1 && indexBHProcessed != -1 {
-			if finalCheckPoint.nonce < nonce {
+			finalNonce := sfd.finalCheckpoint().nonce
+			if finalNonce < nonce {
 				if bytes.Equal(hdrInfos[indexBHNotarized].hash, hdrInfos[indexBHProcessed].hash) {
 					sfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: hdrInfos[indexBHNotarized].round, hash: hdrInfos[indexBHNotarized].hash})
 				}

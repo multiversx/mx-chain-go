@@ -783,41 +783,41 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	return nil
 }
 
-func (bp *baseProcessor) removeHeaderFromPools(
-	header data.HeaderHandler,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-) {
-
-	if check.IfNil(header) {
-		return
-	}
-
-	headerHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, header)
-	if err != nil {
-		return
-	}
-
-	if !check.IfNil(cacher) {
-		cacher.Remove(headerHash)
-	}
-
-	if !check.IfNil(uint64SyncMapCacher) {
-		syncMap, ok := uint64SyncMapCacher.Get(header.GetNonce())
-		if !ok {
-			return
-		}
-
-		hash, ok := syncMap.Load(header.GetShardID())
-		if hash == nil || !ok {
-			return
-		}
-
-		if bytes.Equal(headerHash, hash) {
-			uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
-		}
-	}
-}
+//func (bp *baseProcessor) removeHeaderFromPools(
+//	header data.HeaderHandler,
+//	cacher storage.Cacher,
+//	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+//) {
+//
+//	if check.IfNil(header) {
+//		return
+//	}
+//
+//	headerHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, header)
+//	if err != nil {
+//		return
+//	}
+//
+//	if !check.IfNil(cacher) {
+//		cacher.Remove(headerHash)
+//	}
+//
+//	if !check.IfNil(uint64SyncMapCacher) {
+//		syncMap, ok := uint64SyncMapCacher.Get(header.GetNonce())
+//		if !ok {
+//			return
+//		}
+//
+//		hash, ok := syncMap.Load(header.GetShardID())
+//		if hash == nil || !ok {
+//			return
+//		}
+//
+//		if bytes.Equal(headerHash, hash) {
+//			uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
+//		}
+//	}
+//}
 
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,
