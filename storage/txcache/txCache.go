@@ -198,7 +198,7 @@ func (cache *TxCache) MaxSize() int {
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
 }
 
-// IsInterfaceNil is not implemented
+// IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
 }

@@ -71,7 +71,7 @@ func verifyConfig(config storageUnit.CacheConfig) error {
 	return nil
 }
 
-// ShardDataStore is not implemented for this pool
+// ShardDataStore returns the requested cache, as the generic Cacher interface
 func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
 	cache := txPool.getTxCache(cacheID)
 	return cache
@@ -145,7 +145,7 @@ func (txPool *shardedTxPool) onAdded(txHash []byte) {
 	}
 }
 
-// SearchFirstData is not implemented for this pool
+// SearchFirstData searches the transaction against all shard data store, retrieving the first found
 func (txPool *shardedTxPool) SearchFirstData(key []byte) (interface{}, bool) {
 	tx, ok := txPool.searchFirstTx(key)
 	return tx, ok
@@ -166,7 +166,7 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	return nil, false
 }
 
-// RemoveData is not implemented for this pool
+// RemoveData removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
 	txPool.removeTx(key, cacheID)
 }
@@ -177,7 +177,7 @@ func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) {
 	_ = shard.Cache.RemoveTxByHash(txHash)
 }
 
-// RemoveSetOfDataFromPool is not implemented for this pool
+// RemoveSetOfDataFromPool removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 	txPool.removeTxBulk(keys, cacheID)
 }
@@ -189,12 +189,12 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	}
 }
 
-// RemoveDataFromAllShards is not implemented for this pool
+// RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
 func (txPool *shardedTxPool) RemoveDataFromAllShards(key []byte) {
 	txPool.removeTxFromAllShards(key)
 }
 
-// removeTxFromAllShards will remove the transaction from the pool (searches for it in all shards)
+// removeTxFromAllShards removes the transaction from the pool (it searches in all shards)
 func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
@@ -219,7 +219,7 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 	txPool.mutex.Unlock()
 }
 
-// MoveData is not implemented for this pool
+// MoveData moves the transactions between two caches
 func (txPool *shardedTxPool) MoveData(sourceCacheID, destCacheID string, keys [][]byte) {
 	txPool.MoveTxs(sourceCacheID, destCacheID, keys)
 }
@@ -253,7 +253,7 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard.Cache.Clear()
 }
 
-// CreateShardStore is not implemented
+// CreateShardStore is not implemented for this pool, since shard creations is managed internally
 func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
 }
 
