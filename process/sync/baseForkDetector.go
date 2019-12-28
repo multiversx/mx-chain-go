@@ -189,9 +189,11 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
-	var preservedHdrInfos []*headerInfo
+	preservedHdrInfos := make([]*headerInfo, 0)
 
 	bfd.mutHeaders.Lock()
+	defer bfd.mutHeaders.Unlock()
+
 	hdrInfos := bfd.headers[nonce]
 	for _, hdrInfoStored := range hdrInfos {
 		if hdrInfoStored.state != process.BHNotarized {
@@ -201,12 +203,12 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
 	}
 
-	if preservedHdrInfos == nil {
+	if len(preservedHdrInfos) == 0 {
 		delete(bfd.headers, nonce)
-	} else {
-		bfd.headers[nonce] = preservedHdrInfos
+		return
 	}
-	bfd.mutHeaders.Unlock()
+
+	bfd.headers[nonce] = preservedHdrInfos
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -629,7 +631,7 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 			continue
 		}
 
-		preservedHdrInfos := make([]*headerInfo, 0, len(hdrInfos))
+		preservedHdrInfos := make([]*headerInfo, 0)
 
 		for _, hdrInfo := range hdrInfos {
 			if hdrInfo.state != process.BHNotarized {

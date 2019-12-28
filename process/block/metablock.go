@@ -952,7 +952,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.commitEpochStart(header, chainHandler)
 
-	mp.cleanupBlockTrackerPools()
+	mp.cleanupBlockTrackerPools(chainHandler)
 
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {

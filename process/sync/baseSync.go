@@ -477,7 +477,7 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
-		if headerHandler != nil {
+		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeaders(headerHandler.GetNonce(), hash)
 		}

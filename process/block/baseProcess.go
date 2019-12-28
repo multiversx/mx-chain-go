@@ -697,24 +697,47 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 		lastCrossNotarizedHeader.GetNonce())
 }
 
-func (bp *baseProcessor) cleanupBlockTrackerPools() {
+func (bp *baseProcessor) cleanupBlockTrackerPools(chainHandler data.ChainHandler) {
+	noncesToFinal := bp.getNoncesToFinal(chainHandler)
+
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID)
+		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
 	}
 
-	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId)
+	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
 }
 
-func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32) {
+func (bp *baseProcessor) getNoncesToFinal(chainHandler data.ChainHandler) uint64 {
+	currentBlockNonce := uint64(0)
+	headerHandler := chainHandler.GetCurrentBlockHeader()
+	if !check.IfNil(headerHandler) {
+		currentBlockNonce = headerHandler.GetNonce()
+	}
+
+	noncesToFinal := uint64(0)
+	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	if currentBlockNonce > finalBlockNonce {
+		noncesToFinal = currentBlockNonce - finalBlockNonce
+	}
+
+	return noncesToFinal
+}
+
+func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
 	lastCrossNotarizedHeader, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 	if check.IfNil(lastCrossNotarizedHeader) {
 		return
 	}
 
+	crossNotarizedNonce := uint64(0)
+	if lastCrossNotarizedHeader.GetNonce() > noncesToFinal {
+		crossNotarizedNonce = lastCrossNotarizedHeader.GetNonce() - noncesToFinal
+	}
+
 	bp.blockTracker.CleanupHeadersForShardBehindNonce(
 		shardID,
 		bp.forkDetector.GetHighestFinalBlockNonce(),
-		lastCrossNotarizedHeader.GetNonce(),
+		crossNotarizedNonce,
 	)
 }
 
