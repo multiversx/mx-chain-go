@@ -762,7 +762,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.cleanupBlockTrackerPools(chainHandler)
+	sp.cleanupBlockTrackerPools(headerHandler)
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
