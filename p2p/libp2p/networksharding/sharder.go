@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	sha256 "github.com/minio/sha256-simd"
+	"github.com/minio/sha256-simd"
 )
 
 var (
