@@ -696,7 +696,7 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines(t *testing.T) {
 	port := 4000
 	msg := []byte("test message")
-	numBroadcasts := 10000
+	numBroadcasts := 2 * libp2p.BroadcastGoRoutines
 
 	_, sk := createLibP2PCredentialsMessenger()
 	ch := make(chan *p2p.SendableData)
@@ -708,7 +708,6 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 		nil,
 		&mock.ChannelLoadBalancerStub{
 			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
-				time.Sleep(time.Millisecond * 100)
 				return nil
 			},
 			GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
@@ -720,31 +719,29 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 		0,
 	)
 
-	wg := sync.WaitGroup{}
-	wg.Add(numBroadcasts - libp2p.BroadcastGoRoutines)
+	numErrors := uint32(0)
+	chDone := make(chan struct{})
+	go func() {
+		for atomic.LoadUint32(&numErrors) != uint32(numBroadcasts-libp2p.BroadcastGoRoutines) {
+			time.Sleep(time.Millisecond)
+		}
+
+		chDone <- struct{}{}
+	}()
+
 	for i := 0; i < numBroadcasts; i++ {
 		go func() {
 			err := mes.BroadcastOnChannelBlocking("test", "test", msg)
-			if err != nil {
-				wg.Done()
+			if err == p2p.ErrTooManyGoroutines {
+				atomic.AddUint32(&numErrors, 1)
 			}
 		}()
 	}
 
-	wg.Wait()
-
-	assert.True(t, libp2p.BroadcastGoRoutines >= emptyChannel(ch))
-}
-
-func emptyChannel(ch chan *p2p.SendableData) int {
-	readsCnt := 0
-	for {
-		select {
-		case <-ch:
-			readsCnt++
-		default:
-			return readsCnt
-		}
+	select {
+	case <-chDone:
+	case <-time.After(timeout):
+		assert.Fail(t, "timout waiting for go routines to finish or number of errors received mismatched")
 	}
 }
 
