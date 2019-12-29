@@ -9,19 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	initReconnectMul     = 20
-	peerDiscoveryTimeout = 5 * time.Second
-	noOfQueries          = 3
-
-	kadDhtName = "kad-dht discovery"
-
+	initReconnectMul   = 20
+	kadDhtName         = "kad-dht discovery"
 	minWatchdogTimeout = time.Second
 )
 
@@ -157,8 +153,6 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		kdd.refreshInterval,
 		kdd.initialPeersList)
 
-	ctx := kdd.contextProvider.Context()
-
 	go func() {
 		<-chanStartBootstrap
 
@@ -166,14 +160,14 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 			i := 1
 			for {
 				kdd.mutKadDht.RLock()
-				dht := kdd.kadDHT
+				kadDht := kdd.kadDHT
 				initConns := kdd.initConns
 				kdd.mutKadDht.RUnlock()
 
 				if initConns {
 					var err error = nil
-					if dht != nil {
-						err = dht.BootstrapOnce(ctx, cfg)
+					if kadDht != nil {
+						err = kadDht.Bootstrap(ctx)
 					}
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()

@@ -22,7 +22,7 @@ import (
 )
 
 var sendTimeout = time.Microsecond * 100
-const durationBetweenSends = time.Microsecond * 10
+
 const durationBetweenPeersPrints = time.Second * 20
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP

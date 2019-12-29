@@ -91,8 +91,5 @@ var ErrValidatorNotFound = errors.New("validator not found")
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
-// ErrNilNodesCoordinator signals that a nil nodes coordinator was provided
-var ErrNilNodesCoordinator = errors.New("nil NodesCoordinator")
-
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")

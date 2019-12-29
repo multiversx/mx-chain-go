@@ -387,7 +387,11 @@ func (messenger *Messenger) NumMessagesReceived() uint64 {
 }
 
 // SetPeerShardResolver is a dummy function, not setting anything
-func (messenger *Messenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
+func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver, _ uint32) error {
+	return nil
+}
+
+func (messenger *Messenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	return nil
 }
 
