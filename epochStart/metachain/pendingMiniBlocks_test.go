@@ -131,6 +131,8 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 
 	//Check miniblocks headers are returned
 	shdMbHdrs, err := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
+	assert.Nil(t, err)
+
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
 
@@ -139,6 +141,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 
 	//Check miniblocks headers are removed from pending list
 	shdMbHdrs, err = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
+	assert.Nil(t, err)
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
