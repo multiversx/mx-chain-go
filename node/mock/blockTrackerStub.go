@@ -11,6 +11,7 @@ type BlockTrackerStub struct {
 	CleanupHeadersForShardBehindNonceCalled   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                 func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	DisplayTrackedHeadersCalled               func()
+	GetCrossNotarizedHeaderCalled             func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled         func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersForShardCalled           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForShardWithNonceCalled  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -56,6 +57,14 @@ func (bts *BlockTrackerStub) DisplayTrackedHeaders() {
 	if bts.DisplayTrackedHeadersCalled != nil {
 		bts.DisplayTrackedHeadersCalled()
 	}
+}
+
+func (bts *BlockTrackerStub) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	if bts.GetCrossNotarizedHeaderCalled != nil {
+		return bts.GetCrossNotarizedHeaderCalled(shardID, offset)
+	}
+
+	return nil, nil, nil
 }
 
 func (bts *BlockTrackerStub) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {

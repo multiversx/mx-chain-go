@@ -611,6 +611,7 @@ type BlockTracker interface {
 	CleanupHeadersForShardBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	DisplayTrackedHeaders()
+	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersForShard(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForShardWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)

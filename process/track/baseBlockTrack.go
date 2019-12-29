@@ -335,6 +335,26 @@ func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 	bbt.displayHeadersForShard(sharding.MetachainShardId)
 }
 
+// GetCrossNotarizedHeader returns a cross notarized header for a given shard with a given offset, behind last cross
+// notarized header
+func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	bbt.mutCrossNotarizedHeaders.RLock()
+	defer bbt.mutCrossNotarizedHeaders.RUnlock()
+
+	if bbt.crossNotarizedHeaders == nil || bbt.crossNotarizedHeaders[shardID] == nil {
+		return nil, nil, process.ErrCrossNotarizedHdrsSliceIsNil
+	}
+
+	headerInfo := bbt.crossNotarizedHeaders[shardID][0]
+
+	crossNotarizedHeadersCount := uint64(len(bbt.crossNotarizedHeaders[shardID]))
+	if crossNotarizedHeadersCount > offset {
+		headerInfo = bbt.crossNotarizedHeaders[shardID][crossNotarizedHeadersCount-offset-1]
+	}
+
+	return headerInfo.header, headerInfo.hash, nil
+}
+
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard
 func (bbt *baseBlockTrack) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	bbt.mutCrossNotarizedHeaders.RLock()

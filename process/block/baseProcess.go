@@ -688,14 +688,9 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 	notarizedHeadersPool storage.Cacher,
 	noncesToFinal uint64,
 ) {
-	lastCrossNotarizedHeader, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-	if check.IfNil(lastCrossNotarizedHeader) {
+	crossNotarizedHeader, _, _ := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+	if check.IfNil(crossNotarizedHeader) {
 		return
-	}
-
-	crossNotarizedNonce := uint64(0)
-	if lastCrossNotarizedHeader.GetNonce() > noncesToFinal {
-		crossNotarizedNonce = lastCrossNotarizedHeader.GetNonce() - noncesToFinal
 	}
 
 	bp.removeHeadersBehindNonceFromPools(
@@ -703,50 +698,7 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 		notarizedHeadersPool,
 		headersNoncesPool,
 		shardID,
-		crossNotarizedNonce,
-	)
-}
-
-func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
-	noncesToFinal := bp.getNoncesToFinal(headerHandler)
-
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
-	}
-
-	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
-}
-
-func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	currentBlockNonce := uint64(0)
-	if !check.IfNil(headerHandler) {
-		currentBlockNonce = headerHandler.GetNonce()
-	}
-
-	noncesToFinal := uint64(0)
-	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
-	if currentBlockNonce > finalBlockNonce {
-		noncesToFinal = currentBlockNonce - finalBlockNonce
-	}
-
-	return noncesToFinal
-}
-
-func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
-	lastCrossNotarizedHeader, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-	if check.IfNil(lastCrossNotarizedHeader) {
-		return
-	}
-
-	crossNotarizedNonce := uint64(0)
-	if lastCrossNotarizedHeader.GetNonce() > noncesToFinal {
-		crossNotarizedNonce = lastCrossNotarizedHeader.GetNonce() - noncesToFinal
-	}
-
-	bp.blockTracker.CleanupHeadersForShardBehindNonce(
-		shardID,
-		bp.forkDetector.GetHighestFinalBlockNonce(),
-		crossNotarizedNonce,
+		crossNotarizedHeader.GetNonce(),
 	)
 }
 
@@ -852,6 +804,29 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 //	}
 //}
 
+func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
+	noncesToFinal := bp.getNoncesToFinal(headerHandler)
+
+	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
+	}
+
+	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+}
+
+func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
+	crossNotarizedHeader, _, _ := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+	if check.IfNil(crossNotarizedHeader) {
+		return
+	}
+
+	bp.blockTracker.CleanupHeadersForShardBehindNonce(
+		shardID,
+		bp.forkDetector.GetHighestFinalBlockNonce(),
+		crossNotarizedHeader.GetNonce(),
+	)
+}
+
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,
 	round uint64,
@@ -909,7 +884,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 	return bootstrapStorage.TrimHeaderInfoSlice(lastCrossNotarizedHeaders)
 }
 
-func (bp baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
+func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
 	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 	if check.IfNil(lastCrossNotarizedHeader) {
 		return nil
@@ -963,4 +938,19 @@ func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
 	}
 
 	return body
+}
+
+func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
+	currentBlockNonce := uint64(0)
+	if !check.IfNil(headerHandler) {
+		currentBlockNonce = headerHandler.GetNonce()
+	}
+
+	noncesToFinal := uint64(0)
+	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	if currentBlockNonce > finalBlockNonce {
+		noncesToFinal = currentBlockNonce - finalBlockNonce
+	}
+
+	return noncesToFinal
 }
