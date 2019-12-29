@@ -22,7 +22,11 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
-	VerifyCreatedBlockTransactionsCalled                 func(body block.Body) error
+	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body block.Body) error
+}
+
+func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
+	return []byte("receiptHash"), nil
 }
 
 func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
@@ -129,12 +133,12 @@ func (tcm *TransactionCoordinatorMock) GetAllCurrentUsedTxs(blockType block.Type
 	return tcm.GetAllCurrentUsedTxsCalled(blockType)
 }
 
-func (tcm *TransactionCoordinatorMock) VerifyCreatedBlockTransactions(body block.Body) error {
+func (tcm *TransactionCoordinatorMock) VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body block.Body) error {
 	if tcm.VerifyCreatedBlockTransactionsCalled == nil {
 		return nil
 	}
 
-	return tcm.VerifyCreatedBlockTransactionsCalled(body)
+	return tcm.VerifyCreatedBlockTransactionsCalled(hdr, body)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

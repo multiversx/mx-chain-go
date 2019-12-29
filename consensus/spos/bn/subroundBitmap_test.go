@@ -265,7 +265,6 @@ func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitmentHash),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -404,7 +403,6 @@ func TestSubroundBitmap_ReceivedBitmapReturnFalseWhenConsensusDataIsNotEqual(t *
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBitmap),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)

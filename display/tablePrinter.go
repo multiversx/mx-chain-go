@@ -117,36 +117,36 @@ func computeColumnsWidths(header []string, data []*LineData) []int {
 }
 
 func drawHorizontalRule(builder *strings.Builder, columnsWidths []int) {
-	builder.WriteByte('+')
+	_ = builder.WriteByte('+')
 	for i := 0; i < len(columnsWidths); i++ {
 		for j := 0; j < columnsWidths[i]+2; j++ {
-			builder.WriteByte('-')
+			_ = builder.WriteByte('-')
 		}
-		builder.WriteByte('+')
+		_ = builder.WriteByte('+')
 	}
 
-	builder.Write([]byte{'\r', '\n'})
+	_, _ = builder.Write([]byte{'\r', '\n'})
 }
 
 func drawLine(builder *strings.Builder, columnsWidths []int, strings []string) {
-	builder.WriteByte('|')
+	_ = builder.WriteByte('|')
 
 	for i := 0; i < len(columnsWidths); i++ {
-		builder.WriteByte(' ')
+		_ = builder.WriteByte(' ')
 
 		lenStr := 0
 
 		if i < len(strings) {
 			lenStr = utf8.RuneCountInString(strings[i])
-			builder.WriteString(strings[i])
+			_, _ = builder.WriteString(strings[i])
 		}
 
 		for j := lenStr; j < columnsWidths[i]; j++ {
-			builder.WriteByte(' ')
+			_ = builder.WriteByte(' ')
 		}
 
-		builder.Write([]byte{' ', '|'})
+		_, _ = builder.Write([]byte{' ', '|'})
 	}
 
-	builder.Write([]byte{'\r', '\n'})
+	_, _ = builder.Write([]byte{'\r', '\n'})
 }

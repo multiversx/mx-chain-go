@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/pkg/errors"
 )
@@ -11,6 +12,22 @@ type HeaderResolverStub struct {
 	RequestDataFromHashCalled    func(hash []byte) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 	RequestDataFromNonceCalled   func(nonce uint64) error
+	RequestDataFromEpochCalled   func(identifier []byte) error
+	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
+}
+
+func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
+	if hrs.RequestDataFromEpochCalled != nil {
+		return hrs.RequestDataFromEpochCalled(identifier)
+	}
+	return nil
+}
+
+func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	if hrs.SetEpochHandlerCalled != nil {
+		return hrs.SetEpochHandlerCalled(epochHandler)
+	}
+	return nil
 }
 
 func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte) error {
