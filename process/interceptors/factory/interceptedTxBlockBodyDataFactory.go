@@ -18,7 +18,7 @@ type interceptedTxBlockBodyDataFactory struct {
 // NewInterceptedTxBlockBodyDataFactory creates an instance of interceptedTxBlockBodyDataFactory
 func NewInterceptedTxBlockBodyDataFactory(argument *ArgInterceptedDataFactory) (*interceptedTxBlockBodyDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer

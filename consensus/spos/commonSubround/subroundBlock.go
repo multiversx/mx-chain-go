@@ -28,19 +28,17 @@ func NewSubroundBlock(
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
 ) (*SubroundBlock, error) {
-	err := checkNewSubroundBlockParams(
-		baseSubround,
-	)
+	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
 
 	srBlock := SubroundBlock{
-		baseSubround,
-		mtBlockBody,
-		mtBlockHeader,
-		processingThresholdPercentage,
-		getSubroundName,
+		Subround:                      baseSubround,
+		mtBlockBody:                   mtBlockBody,
+		mtBlockHeader:                 mtBlockHeader,
+		processingThresholdPercentage: processingThresholdPercentage,
+		getSubroundName:               getSubroundName,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -96,7 +94,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
+	body, err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
 	if err != nil {
 		log.Debug("ApplyBodyToHeader", "error", err.Error())
 		return false
@@ -149,8 +147,9 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+		sr.Rounder().Index(),
+		sr.ChainID(),
+	)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
@@ -182,8 +181,9 @@ func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockHeader,
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+		sr.Rounder().Index(),
+		sr.ChainID(),
+	)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
@@ -223,10 +223,12 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	hdr.SetShardID(sr.ShardCoordinator().SelfId())
 	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
+	hdr.SetChainID(sr.ChainID())
 
 	return hdr, nil
 }

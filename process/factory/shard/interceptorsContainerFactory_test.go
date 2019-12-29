@@ -16,6 +16,7 @@ import (
 )
 
 var errExpected = errors.New("expected error")
+var chainID = []byte("chain ID")
 
 const maxTxNonceDeltaAllowed = 100
 
@@ -107,6 +108,8 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -135,6 +138,8 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -163,6 +168,8 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -191,6 +198,8 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -219,6 +228,8 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -247,6 +258,38 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		nil,
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
 	)
 
 	assert.Nil(t, icf)
@@ -275,6 +318,8 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -303,6 +348,8 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -331,6 +378,8 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -359,6 +408,8 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -387,6 +438,8 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -415,6 +468,8 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -443,6 +498,8 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		nil,
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
@@ -471,10 +528,42 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		nil,
+		0,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -499,6 +588,38 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+	)
+
+	assert.NotNil(t, icf)
+	assert.Nil(t, err)
+}
+
+func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
 	)
 
 	assert.NotNil(t, icf)
@@ -529,6 +650,8 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -544,7 +667,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.HeadersTopic, ""),
+		createStubTopicHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -559,6 +682,8 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -589,6 +714,8 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -619,6 +746,8 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -649,6 +778,8 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -664,7 +795,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.HeadersTopic),
+		createStubTopicHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -679,6 +810,8 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -709,6 +842,8 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -739,6 +874,8 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -776,6 +913,8 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()
@@ -826,6 +965,8 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
 	)
 
 	container, err := icf.Create()

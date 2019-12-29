@@ -26,8 +26,8 @@ func NewSubroundSignature(
 	}
 
 	srSignature := subroundSignature{
-		baseSubround,
-		statusHandler.NewNilStatusHandler(),
+		Subround:         baseSubround,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -81,8 +81,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			[]byte(sr.SelfPubKey()),
 			nil,
 			int(MtSignature),
-			uint64(sr.Rounder().TimeStamp().Unix()),
-			sr.Rounder().Index())
+			sr.Rounder().Index(),
+			sr.ChainID(),
+		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 		if err != nil {

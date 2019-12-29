@@ -16,12 +16,24 @@ const NodeTypeValidator NodeType = "validator"
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
+// FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
+const FileModeUserReadWrite = 0600
+
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
+
+// PathShardPlaceholder represents the placeholder for the shard ID in paths
+const PathShardPlaceholder = "[S]"
+
+// PathEpochPlaceholder represents the placeholder for the epoch number in paths
+const PathEpochPlaceholder = "[E]"
+
+// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
+const PathIdentifierPlaceholder = "[I]"
 
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
@@ -110,6 +122,9 @@ const MetricNetworkSentBpsPeak = "erd_network_sent_bps_peak"
 
 // MetricRoundTime is the metric for round time in seconds
 const MetricRoundTime = "erd_round_time"
+
+// MetricEpochNumber is the metric for the number of epoch
+const MetricEpochNumber = "erd_epoch_number"
 
 // MetricAppVersion is the metric for the current app version
 const MetricAppVersion = "erd_app_version"

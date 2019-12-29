@@ -11,7 +11,7 @@ type NoSharder struct {
 }
 
 // GetShard always 0
-func (ns *NoSharder) GetShard(id peer.ID) uint32 {
+func (ns *NoSharder) GetShard(_ peer.ID) uint32 {
 	return 0
 }
 
