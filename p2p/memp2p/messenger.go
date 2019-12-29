@@ -207,7 +207,7 @@ func (messenger *Messenger) HasTopic(name string) bool {
 // Returns false otherwise.
 func (messenger *Messenger) HasTopicValidator(name string) bool {
 	messenger.topicsMutex.RLock()
-	validator, _ := messenger.topicValidators[name]
+	validator := messenger.topicValidators[name]
 	messenger.topicsMutex.RUnlock()
 
 	return check.IfNil(validator)
@@ -228,7 +228,7 @@ func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.M
 		return fmt.Errorf("%w RegisterMessageProcessor, topic: %s", p2p.ErrNilTopic, topic)
 	}
 
-	validator, _ := messenger.topicValidators[topic]
+	validator := messenger.topicValidators[topic]
 	if !check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -248,7 +248,7 @@ func (messenger *Messenger) UnregisterMessageProcessor(topic string) error {
 		return fmt.Errorf("%w UnregisterMessageProcessor, topic: %s", p2p.ErrNilTopic, topic)
 	}
 
-	validator, _ := messenger.topicValidators[topic]
+	validator := messenger.topicValidators[topic]
 	if check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -328,7 +328,7 @@ func (messenger *Messenger) processFromQueue() {
 
 		// numReceived gets incremented because the message arrived on a registered topic
 		atomic.AddUint64(&messenger.numReceived, 1)
-		validator, _ := messenger.topicValidators[topic]
+		validator := messenger.topicValidators[topic]
 		if check.IfNil(validator) {
 			messenger.topicsMutex.Unlock()
 			continue
