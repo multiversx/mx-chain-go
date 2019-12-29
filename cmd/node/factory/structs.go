@@ -502,7 +502,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 }
 
 func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHandler) (consensus.P2PAntifloodHandler, error) {
-	cacheConfig := getCacherFromConfig(mainConfig.Antiflood.Cache)
+	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {
 		return nil, err

@@ -51,7 +51,7 @@ type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	DataPool           dataRetriever.MetaPoolsHolder
 	PendingMiniBlocks  process.PendingMiniBlocksHandler
-	SCDataGetter       external.SCQueryService
+	SCDataGetter       process.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler
 	SCToProtocol       process.SmartContractToProtocolHandler
 }

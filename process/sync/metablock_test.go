@@ -802,7 +802,6 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 			Hash:       []byte("hash"),
 		}
 	}
-
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {

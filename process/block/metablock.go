@@ -26,7 +26,7 @@ type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
 	dataPool          dataRetriever.MetaPoolsHolder
-	scDataGetter      external.SCQueryService
+	scDataGetter      process.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
 	pendingMiniBlocks process.PendingMiniBlocksHandler

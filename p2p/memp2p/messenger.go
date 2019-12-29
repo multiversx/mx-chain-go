@@ -314,27 +314,6 @@ func (messenger *Messenger) processFromQueue() {
 			continue
 		}
 
-	//TODO(jls)
-	/*
-		for _, peer := range messenger.Network.Peers() {
-			if async {
-				go func(receivingPeer *Messenger) {
-					err := receivingPeer.ReceiveMessage(topic, message, messenger.P2PID)
-					log.LogIfError(err)
-				}(peer)
-			} else {
-				err = peer.ReceiveMessage(topic, message, messenger.P2PID)
-			}
-			if err != nil {
-				break
-			}
-		}
-
-
-	 */
-
-
-
 		topic := message.TopicIDs()[0]
 		if topic == "" {
 			continue
@@ -356,7 +335,7 @@ func (messenger *Messenger) processFromQueue() {
 		}
 		messenger.topicsMutex.Unlock()
 
-		_ = validator.ProcessReceivedMessage(message, nil)
+		_ = validator.ProcessReceivedMessage(message, messenger.p2pID)
 	}
 }
 
@@ -370,10 +349,10 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 		if !peerFound {
 			return ErrReceivingPeerNotConnected
 		}
+
 		receivingPeer.receiveMessage(message)
 
 		return nil
-		return receivingPeer.ReceiveMessage(topic, message, messenger.P2PID)
 	}
 
 	return ErrNotConnectedToNetwork
