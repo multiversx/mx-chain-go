@@ -544,14 +544,14 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	return isHeaderReceivedTooLate
 }
 
-func (bfd *baseForkDetector) activateForcedForkIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-	notarizedShard uint32,
-) {
-	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
-	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state, notarizedShard)
-}
+//func (bfd *baseForkDetector) activateForcedForkIfNeeded(
+//	header data.HeaderHandler,
+//	state process.BlockHeaderState,
+//	notarizedShard uint32,
+//) {
+//	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
+//	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state, notarizedShard)
+//}
 
 func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 	header data.HeaderHandler,
@@ -577,31 +577,31 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 	}
 }
 
-func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-	notarizedShard uint32,
-) {
-	if state != process.BHProposed || bfd.isSyncing() {
-		return
-	}
-
-	lastCheckpointNonce := bfd.lastCheckpoint().nonce
-	finalCheckpointNonce := bfd.finalCheckpoint().nonce
-
-	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
-	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
-	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-
-	isCrossNotarizedStuck := noncesWithoutCrossNotarizedDifference > process.MaxNoncesWithoutCrossNotarized &&
-		noncesDifference <= 1 &&
-		isInProperRound &&
-		!bfd.blockTracker.IsShardStuck(notarizedShard)
-
-	if isCrossNotarizedStuck {
-		bfd.setShouldForceFork(true)
-	}
-}
+//func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
+//	header data.HeaderHandler,
+//	state process.BlockHeaderState,
+//	notarizedShard uint32,
+//) {
+//	if state != process.BHProposed || bfd.isSyncing() {
+//		return
+//	}
+//
+//	lastCheckpointNonce := bfd.lastCheckpoint().nonce
+//	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+//
+//	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
+//	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
+//	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+//
+//	isCrossNotarizedStuck := noncesWithoutCrossNotarizedDifference > process.MaxNoncesWithoutCrossNotarized &&
+//		noncesDifference <= 1 &&
+//		isInProperRound &&
+//		!bfd.blockTracker.IsShardStuck(notarizedShard)
+//
+//	if isCrossNotarizedStuck {
+//		bfd.setShouldForceFork(true)
+//	}
+//}
 
 func (bfd *baseForkDetector) isSyncing() bool {
 	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(bfd.lastCheckpoint().nonce)

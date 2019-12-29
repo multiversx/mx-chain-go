@@ -67,7 +67,7 @@ const MaxRequestsWithTimeoutAllowed = 5
 const MaxHeadersToRequestInAdvance = 10
 
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
-const RoundModulusTrigger = 10
+const RoundModulusTrigger = 5
 
 // MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
 // from the full pool capacity, for the received data which are not needed in the near future
@@ -75,7 +75,7 @@ const MaxOccupancyPercentageAllowed = float64(0.9)
 
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
-const MaxRoundsWithoutCommittedBlock = 20
+const MaxRoundsWithoutCommittedBlock = 10
 
 // MaxNoncesWithoutCrossNotarized defines the maximum nonces to wait for a new block to be cross notarized,
 // before a special action to be applied
@@ -87,3 +87,7 @@ const MinForkRound = uint64(0)
 // MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
 // to be stored in advance in block tracker
 const MaxNonceDifferences = uint64(1000)
+
+// MaxHeadersFromSameShardInMetaBlock represents maximum number of shard headers form the same shard which could be
+// included in one meta block
+const MaxHeadersFromSameShardInMetaBlock = 5

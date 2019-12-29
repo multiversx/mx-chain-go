@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -942,7 +941,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededStateNotProposedShouldNotAct
 	state := process.BHReceived
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 
-	bfd.ActivateForcedForkIfNeeded(hdr1, state, sharding.MetachainShardId)
+	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
 	assert.False(t, bfd.ShouldForceFork())
 }
 
@@ -955,7 +954,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededNotSyncingShouldNotActivate(
 	state := process.BHProposed
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 
-	bfd.ActivateForcedForkIfNeeded(hdr1, state, sharding.MetachainShardId)
+	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
 	assert.False(t, bfd.ShouldForceFork())
 }
 
@@ -980,7 +979,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 	state := process.BHProposed
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	rounderMock.RoundIndex = 5
-	bfd.ActivateForcedForkIfNeeded(hdr1, state, sharding.MetachainShardId)
+	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
 	assert.False(t, bfd.ShouldForceFork())
 }
 
@@ -1011,7 +1010,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 	state := process.BHProposed
 	hdr1 := &block.Header{Nonce: 1, Round: 29, PubKeysBitmap: []byte("X")}
 	rounderMock.RoundIndex = 30
-	bfd.ActivateForcedForkIfNeeded(hdr1, state, sharding.MetachainShardId)
+	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
 	assert.True(t, bfd.ShouldForceFork())
 }
 

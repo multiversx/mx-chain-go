@@ -76,7 +76,8 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
-	sfd.activateForcedForkIfNeeded(header, state, sharding.MetachainShardId)
+	//sfd.activateForcedForkIfNeeded(header, state, sharding.MetachainShardId)
+	sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
 	isHeaderReceivedTooLate := sfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {

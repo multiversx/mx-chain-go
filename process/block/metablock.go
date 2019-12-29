@@ -1835,6 +1835,10 @@ func (mp *metaProcessor) getLongestShardsChainFromLastNotarized(round uint64) ([
 		}
 	}
 
+	//TODO: This throttle mechanism should be replaced by another one more complex, based on block tracker which should
+	//determine if one specific shard has some problems to advance
+	maxHdrLen = core.MinInt(maxHdrLen, process.MaxHeadersFromSameShardInMetaBlock)
+
 	orderedHeaders := make([]data.HeaderHandler, 0)
 	orderedHeadersHashes := make([][]byte, 0)
 

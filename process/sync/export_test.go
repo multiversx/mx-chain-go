@@ -86,12 +86,11 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *baseForkDetector) ActivateForcedForkIfNeeded(
+func (bfd *baseForkDetector) ActivateForcedForkOnConsensusStuckIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
-	notarizedShard uint32,
 ) {
-	bfd.activateForcedForkIfNeeded(header, state, notarizedShard)
+	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 }
 
 func (bfd *baseForkDetector) ShouldForceFork() bool {
