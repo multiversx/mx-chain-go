@@ -1042,7 +1042,7 @@ func (mp *metaProcessor) CommitBlock(
 		"shard headers capacity", mp.dataPool.ShardHeaders().MaxSize(),
 	)
 
-	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	go mp.cleanupPools(headerHandler, headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
 }

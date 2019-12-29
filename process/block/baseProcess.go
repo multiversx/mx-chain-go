@@ -655,10 +655,13 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 }
 
 func (bp *baseProcessor) cleanupPools(
+	headerHandler data.HeaderHandler,
 	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
 	headersPool storage.Cacher,
 	notarizedHeadersPool storage.Cacher,
 ) {
+	noncesToFinal := bp.getNoncesToFinal(headerHandler)
+
 	bp.removeHeadersBehindNonceFromPools(
 		true,
 		headersPool,
@@ -671,11 +674,11 @@ func (bp *baseProcessor) cleanupPools(
 			continue
 		}
 
-		bp.cleanupPoolsForShard(shardID, headersNoncesPool, notarizedHeadersPool)
+		bp.cleanupPoolsForShard(shardID, headersNoncesPool, notarizedHeadersPool, noncesToFinal)
 	}
 
 	if bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersNoncesPool, notarizedHeadersPool)
+		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersNoncesPool, notarizedHeadersPool, noncesToFinal)
 	}
 }
 
@@ -683,10 +686,16 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 	shardID uint32,
 	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
 	notarizedHeadersPool storage.Cacher,
+	noncesToFinal uint64,
 ) {
 	lastCrossNotarizedHeader, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 	if check.IfNil(lastCrossNotarizedHeader) {
 		return
+	}
+
+	crossNotarizedNonce := uint64(0)
+	if lastCrossNotarizedHeader.GetNonce() > noncesToFinal {
+		crossNotarizedNonce = lastCrossNotarizedHeader.GetNonce() - noncesToFinal
 	}
 
 	bp.removeHeadersBehindNonceFromPools(
@@ -694,7 +703,8 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 		notarizedHeadersPool,
 		headersNoncesPool,
 		shardID,
-		lastCrossNotarizedHeader.GetNonce())
+		crossNotarizedNonce,
+	)
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {

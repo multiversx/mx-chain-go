@@ -877,7 +877,7 @@ func (sp *shardProcessor) CommitBlock(
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
 
-	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
+	go sp.cleanupPools(headerHandler, headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
 }
