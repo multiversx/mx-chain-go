@@ -114,8 +114,9 @@ type MetaBlock struct {
 	ValidatorStatsRootHash []byte            `capid:"13"`
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
-	EpochStart             EpochStart        `capid:"15"`
-	ChainID                []byte            `capid:"16"`
+	ReceiptsHash           []byte            `capid:"16"`
+	EpochStart             EpochStart        `capid:"17"`
+	ChainID                []byte            `capid:"18"`
 }
 
 
@@ -546,6 +547,11 @@ func (m *MetaBlock) GetChainID() []byte {
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
+}
+
+// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
+func (m *MetaBlock) GetReceiptsHash() []byte {
+	return m.ReceiptsHash
 }
 
 // SetShardID sets header shard ID

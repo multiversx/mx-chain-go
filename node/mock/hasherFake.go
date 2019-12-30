@@ -11,7 +11,7 @@ type HasherFake struct {
 // Compute will output the SHA's equivalent of the input string
 func (sha HasherFake) Compute(s string) []byte {
 	h := sha256.New()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
