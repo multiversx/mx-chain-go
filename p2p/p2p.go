@@ -51,7 +51,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork() <-chan struct{}
+	ReconnectToNetwork()
 	Pause()  // pause the peer discovery
 	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
@@ -198,5 +198,20 @@ type FloodPreventer interface {
 	AccumulateGlobal(identifier string, size uint64) bool
 	Accumulate(identifier string, size uint64) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+type BlacklistHandler interface {
+	Has(key string) bool
+	IsInterfaceNil() bool
+}
+
+// ConnectionMonitor defines what a peer-management component should do
+type ConnectionMonitor interface {
+	HandleConnectedPeer(pid PeerID) error
+	HandleDisconnectedPeer(pid PeerID) error
+	DoReconnectionBlocking()
+	CheckConnectionsBlocking()
 	IsInterfaceNil() bool
 }

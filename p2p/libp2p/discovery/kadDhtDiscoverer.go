@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -111,13 +112,13 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 				if kdd.initConns {
 					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
 					if err == kbucket.ErrLookupFailure {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 					}
 					i = 1
 				} else {
 					i++
 					if (i % initReconnectMul) == 0 {
-						<-kdd.ReconnectToNetwork()
+						kdd.ReconnectToNetwork()
 						i = 1
 					}
 				}
@@ -182,7 +183,7 @@ func (kdd *KadDhtDiscoverer) Name() string {
 
 // ApplyContext sets the context in which this discoverer is to be run
 func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
+	if check.IfNil(ctxProvider) {
 		return p2p.ErrNilContextProvider
 	}
 
@@ -197,8 +198,9 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+func (kdd *KadDhtDiscoverer) ReconnectToNetwork() {
+	chDone := kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+	<-chDone
 }
 
 // Pause will suspend the discovery process

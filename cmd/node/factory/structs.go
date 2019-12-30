@@ -501,7 +501,7 @@ func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHa
 
 	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
 		antifloodCache,
-		quotaProcessor,
+		[]antifloodThrottle.QuotaStatusHandler{quotaProcessor},
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
 		maxMessagesPerSecond,

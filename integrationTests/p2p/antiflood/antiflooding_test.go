@@ -243,7 +243,7 @@ func createTopicsAndMockInterceptors(
 		interceptors[idx] = newMessageProcessor()
 		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
 			antifloodPool,
-			&nilQuotaStatusHandler{},
+			[]antiflood.QuotaStatusHandler{&nilQuotaStatusHandler{}},
 			peerMaxNumMessages,
 			peerMaxSize,
 			maxNumMessages,

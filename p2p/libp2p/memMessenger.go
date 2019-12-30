@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
@@ -10,6 +11,8 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
+
+const targetPeerCount = 100
 
 // NewMemoryMessenger creates a new sandbox testable instance of libP2P messenger
 // It should not open ports on current machine
@@ -25,7 +28,7 @@ func NewMemoryMessenger(
 	if mockNet == nil {
 		return nil, p2p.ErrNilMockNet
 	}
-	if peerDiscoverer == nil || peerDiscoverer.IsInterfaceNil() {
+	if check.IfNil(peerDiscoverer) {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 
@@ -45,7 +48,7 @@ func NewMemoryMessenger(
 		false,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerDiscoverer,
-		0,
+		targetPeerCount,
 	)
 	if err != nil {
 		return nil, err
@@ -79,6 +82,6 @@ func NewNetworkMessengerOnFreePort(
 		outgoingPLB,
 		peerDiscoverer,
 		ListenLocalhostAddrWithIp4AndTcp,
-		0,
+		targetPeerCount,
 	)
 }

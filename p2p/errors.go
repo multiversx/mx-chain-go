@@ -93,3 +93,9 @@ var ErrNilFloodPreventer = errors.New("nil flood preventer")
 
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
+
+// ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
+var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
+
+// ErrPeerBlacklisted signals that a peer is blacklisted
+var ErrPeerBlacklisted = errors.New("peer is blacklisted")
