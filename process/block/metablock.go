@@ -1664,8 +1664,8 @@ func (mp *metaProcessor) createEpochStartForMetablock() (*block.EpochStart, erro
 	for _, pendingMiniBlock := range pendingMiniBlocks {
 		recvShId := pendingMiniBlock.ReceiverShardID
 
-		currShardPendingMBs := epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders
-		currShardPendingMBs = append(currShardPendingMBs, pendingMiniBlock)
+		epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders =
+			append(epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders, pendingMiniBlock)
 	}
 
 	return epochStart, nil
