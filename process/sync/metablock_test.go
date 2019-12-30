@@ -157,6 +157,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -198,6 +199,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -234,6 +236,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -270,6 +273,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -306,6 +310,7 @@ func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -342,6 +347,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -378,6 +384,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -414,6 +421,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -450,6 +458,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -487,6 +496,7 @@ func TestNewMetaBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -523,6 +533,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -559,6 +570,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -596,6 +608,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -643,6 +656,7 @@ func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -690,6 +704,7 @@ func TestNewMetaBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -751,6 +766,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.NotNil(t, bs)
@@ -824,6 +840,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	r := bs.SyncBlock()
@@ -887,6 +904,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	r := bs.SyncBlock()
@@ -947,6 +965,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.StartSync()
@@ -1054,6 +1073,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.StartSync()
@@ -1174,6 +1194,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	r := bs.SyncBlock()
@@ -1284,6 +1305,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	err := bs.SyncBlock()
@@ -1332,6 +1354,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -1380,6 +1403,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1432,6 +1456,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1484,6 +1509,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1538,6 +1564,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
@@ -1607,6 +1634,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
@@ -1661,6 +1689,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
@@ -1733,6 +1762,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
@@ -1807,6 +1837,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1884,6 +1915,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1924,6 +1956,7 @@ func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	err := bs.RollBack(false)
@@ -1961,6 +1994,7 @@ func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2024,6 +2058,7 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2164,6 +2199,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2337,6 +2373,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2403,6 +2440,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	f1 := func(bool) {}
@@ -2448,6 +2486,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	mutex.RLock()
@@ -2539,6 +2578,7 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	err := bs.SetStatusHandler(nil)
