@@ -17,7 +17,7 @@ type BlockProcessorMock struct {
 	RevertAccountStateCalled                func()
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeaderCalled                 func(header data.HeaderHandler, body data.BodyHandler) error
+	ApplyBodyToHeaderCalled                 func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
@@ -66,7 +66,7 @@ func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHa
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) error {
+func (blProcMock BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
 

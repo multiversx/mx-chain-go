@@ -219,12 +219,6 @@ VERSION:
 		Value: "",
 	}
 
-	// usePrometheus joins the node for prometheus monitoring if set
-	usePrometheus = cli.BoolFlag{
-		Name:  "use-prometheus",
-		Usage: "Will make the node available for prometheus and grafana monitoring",
-	}
-
 	//useLogView is used when termui interface is not needed.
 	useLogView = cli.BoolFlag{
 		Name:  "use-log-view",
@@ -357,7 +351,6 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
-		usePrometheus,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -539,16 +532,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
-		nodesConfig.ChainID,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
-		nodesConfig.ChainID,
 		defaultDBPath,
+		nodesConfig.ChainID,
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -630,7 +623,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -851,11 +844,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
-		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        statusHandlersInfo.UsePrometheus,
-		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
-		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
+		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
+		PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 	}
 
 	ef.SetSyncer(syncer)

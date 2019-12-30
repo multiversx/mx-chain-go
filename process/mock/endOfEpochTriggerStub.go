@@ -12,7 +12,13 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
-func (e *EpochStartTriggerStub) SetFinalityAttestingRound(round uint64) {
+func (e *EpochStartTriggerStub) SetCurrentEpochStartRound(_ uint64) {
+}
+
+func (e *EpochStartTriggerStub) NotifyAll(_ data.HeaderHandler) {
+}
+
+func (e *EpochStartTriggerStub) SetFinalityAttestingRound(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {

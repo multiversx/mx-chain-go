@@ -11,7 +11,7 @@ type HasherMock struct {
 // Compute will output the SHA's equivalent of the input string
 func (sha HasherMock) Compute(s string) []byte {
 	h := sha256.New()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
@@ -30,8 +30,5 @@ func (HasherMock) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha HasherMock) IsInterfaceNil() bool {
-	if &sha == nil {
-		return true
-	}
 	return false
 }

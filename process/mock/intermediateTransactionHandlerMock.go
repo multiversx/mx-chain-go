@@ -63,6 +63,10 @@ func (ith *IntermediateTransactionHandlerMock) GetAllCurrentFinishedTxs() map[st
 	return nil
 }
 
+func (ith *IntermediateTransactionHandlerMock) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	return &block.MiniBlock{}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ith *IntermediateTransactionHandlerMock) IsInterfaceNil() bool {
 	if ith == nil {
