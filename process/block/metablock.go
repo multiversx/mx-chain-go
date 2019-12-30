@@ -1326,7 +1326,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		return
 	}
 
-	log.Debug("received shard block from network",
+	log.Trace("received shard header from network",
 		"shard", shardHeader.ShardId,
 		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,

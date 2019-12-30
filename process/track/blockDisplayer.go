@@ -18,9 +18,9 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32) {
 		return
 	}
 
-	log.Debug("tracked headers", "shard", shardID)
+	log.Trace("tracked headers", "shard", shardID)
 	for index, header := range headers {
-		log.Debug("tracked header info",
+		log.Trace("tracked header info",
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"hash", hashes[index])
@@ -45,9 +45,9 @@ func (bbt *baseBlockTrack) displayCrossNotarizedHeadersForShard(shardID uint32) 
 			return
 		}
 
-		log.Debug("cross notarized headers", "shard", shardID)
+		log.Trace("cross notarized headers", "shard", shardID)
 		for _, headerInfo := range crossNotarizedHeadersForShard {
-			log.Debug("cross notarized header info",
+			log.Trace("cross notarized header info",
 				"round", headerInfo.header.GetRound(),
 				"nonce", headerInfo.header.GetNonce(),
 				"hash", headerInfo.hash)
@@ -73,9 +73,9 @@ func (bbt *baseBlockTrack) displaySelfNotarizedHeadersForShard(shardID uint32) {
 			return
 		}
 
-		log.Debug("self notarized headers", "shard", shardID)
+		log.Trace("self notarized headers", "shard", shardID)
 		for _, headerInfo := range selfNotarizedHeadersForShard {
-			log.Debug("self notarized header info",
+			log.Trace("self notarized header info",
 				"round", headerInfo.header.GetRound(),
 				"nonce", headerInfo.header.GetNonce(),
 				"hash", headerInfo.hash)
