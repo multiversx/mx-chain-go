@@ -1,146 +1,107 @@
 package track
 
 import (
-	"bytes"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-func (bbt *baseBlockTrack) receivedShardHeader(shardHeaderHash []byte) {
-	shardHeader, err := process.GetShardHeaderFromPool(shardHeaderHash, bbt.shardHeadersPool)
-	if err != nil {
-		log.Trace("GetShardHeaderFromPool", "error", err.Error())
-		return
-	}
+type blockProcessor struct {
+	blockTracker                  blockTracker
+	crossNotarizedHeaders         blockNotarizerHandler
+	crossNotarizedHeadersNotifier blockNotifierHandler
+	headerValidator               process.HeaderConstructionValidator
+	selfNotarizedHeadersNotifier  blockNotifierHandler
+	shardCoordinator              sharding.Coordinator
 
-	log.Debug("received shard header from network in block tracker",
-		"shard", shardHeader.GetShardID(),
-		"round", shardHeader.GetRound(),
-		"nonce", shardHeader.GetNonce(),
-		"hash", shardHeaderHash,
-	)
-
-	bbt.processReceivedHeader(shardHeader, shardHeaderHash)
+	blockFinality uint64
 }
 
-func (bbt *baseBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
-	metaBlock, err := process.GetMetaHeaderFromPool(metaBlockHash, bbt.metaBlocksPool)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
-		return
+// NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
+func NewBlockProcessor(
+	blockTracker blockTracker,
+	crossNotarizedHeaders blockNotarizerHandler,
+	crossNotarizedHeadersNotifier blockNotifierHandler,
+	headerValidator process.HeaderConstructionValidator,
+	selfNotarizedHeadersNotifier blockNotifierHandler,
+	shardCoordinator sharding.Coordinator,
+) (*blockProcessor, error) {
+
+	if check.IfNil(headerValidator) {
+		return nil, process.ErrNilHeaderValidator
+	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
 	}
 
-	log.Debug("received meta block from network in block tracker",
-		"shard", metaBlock.GetShardID(),
-		"round", metaBlock.GetRound(),
-		"nonce", metaBlock.GetNonce(),
-		"hash", metaBlockHash,
-	)
+	bp := blockProcessor{
+		blockTracker:                  blockTracker,
+		crossNotarizedHeaders:         crossNotarizedHeaders,
+		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		headerValidator:               headerValidator,
+		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		shardCoordinator:              shardCoordinator,
+	}
 
-	bbt.processReceivedHeader(metaBlock, metaBlockHash)
+	bp.blockFinality = process.BlockFinality
+
+	return &bp, nil
 }
 
-func (bbt *baseBlockTrack) processReceivedHeader(
-	header data.HeaderHandler,
-	headerHash []byte,
-) {
-	isHeaderForSelfShard := header.GetShardID() == bbt.shardCoordinator.SelfId()
-
-	var lastNotarizedHeaderNonce uint64
-
+func (bp *blockProcessor) processReceivedHeader(header data.HeaderHandler) {
+	isHeaderForSelfShard := header.GetShardID() == bp.shardCoordinator.SelfId()
 	if isHeaderForSelfShard {
-		lastNotarizedHeaderNonce = bbt.getLastSelfNotarizedHeaderNonce(header.GetShardID())
+		bp.doJobOnReceivedHeader(header.GetShardID())
 	} else {
-		lastNotarizedHeaderNonce = bbt.getLastCrossNotarizedHeaderNonce(header.GetShardID())
-	}
-
-	if bbt.isHeaderOutOfRange(header.GetNonce(), lastNotarizedHeaderNonce) {
-		log.Debug("received header is out of range",
-			"received nonce", header.GetNonce(),
-			"last notarized nonce", lastNotarizedHeaderNonce,
-		)
-		return
-	}
-
-	bbt.addHeader(header, headerHash)
-
-	if isHeaderForSelfShard {
-		bbt.doJobOnReceivedHeader(header.GetShardID())
-	} else {
-		bbt.doJobOnReceivedCrossNotarizedHeader(header.GetShardID())
+		bp.doJobOnReceivedCrossNotarizedHeader(header.GetShardID())
 	}
 }
 
-func (bbt *baseBlockTrack) isHeaderOutOfRange(receivedNonce uint64, lastNotarizedNonce uint64) bool {
-	isHeaderOutOfRange := receivedNonce > lastNotarizedNonce+process.MaxNonceDifferences
-	return isHeaderOutOfRange
-}
-
-func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
-	if check.IfNil(header) {
-		return
-	}
-
-	shardID := header.GetShardID()
-	nonce := header.GetNonce()
-
-	bbt.mutHeaders.Lock()
-	defer bbt.mutHeaders.Unlock()
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		headersForShard = make(map[uint64][]*headerInfo)
-		bbt.headers[shardID] = headersForShard
-	}
-
-	for _, headerInfo := range headersForShard[nonce] {
-		if bytes.Equal(headerInfo.hash, hash) {
-			return
-		}
-	}
-
-	headersForShard[nonce] = append(headersForShard[nonce], &headerInfo{hash: hash, header: header})
-}
-
-func (bbt *baseBlockTrack) doJobOnReceivedHeader(shardID uint32) {
-	_, _, selfNotarizedHeaders, selfNotarizedHeadersHashes := bbt.blockTracker.computeLongestSelfChain()
+func (bp *blockProcessor) doJobOnReceivedHeader(shardID uint32) {
+	_, _, selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.blockTracker.computeLongestSelfChain()
 
 	if len(selfNotarizedHeaders) > 0 {
-		bbt.callSelfNotarizedHeadersHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bp.selfNotarizedHeadersNotifier.callHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 }
 
-func (bbt *baseBlockTrack) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
-	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bbt.computeLongestChainFromLastCrossNotarized(shardID)
-	selfNotarizedHeaders, selfNotarizedHeadersHashes := bbt.computeSelfNotarizedHeaders(crossNotarizedHeaders)
+func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
+	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bp.computeLongestChainFromLastCrossNotarized(shardID)
+	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
 
 	if len(crossNotarizedHeaders) > 0 {
-		bbt.callCrossNotarizedHeadersHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
+		bp.crossNotarizedHeadersNotifier.callHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
 	}
 
 	if len(selfNotarizedHeaders) > 0 {
-		bbt.callSelfNotarizedHeadersHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bp.selfNotarizedHeadersNotifier.callHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 }
 
-func (bbt *baseBlockTrack) computeLongestChainFromLastCrossNotarized(shardID uint32) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bbt.GetLastCrossNotarizedHeader(shardID)
+func (bp *blockProcessor) computeLongestChainFromLastCrossNotarized(
+	shardID uint32,
+) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.crossNotarizedHeaders.getLastNotarizedHeader(shardID)
 	if err != nil {
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeader)
+	headers, hashes := bp.computeLongestChain(shardID, lastCrossNotarizedHeader)
 	return lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, headers, hashes
 }
 
-func (bbt *baseBlockTrack) computeSelfNotarizedHeaders(headers []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (bp *blockProcessor) computeSelfNotarizedHeaders(
+	headers []data.HeaderHandler,
+) ([]data.HeaderHandler, [][]byte) {
+
 	selfNotarizedHeadersInfo := make([]*headerInfo, 0)
 
 	for _, header := range headers {
-		selfHeadersInfo := bbt.blockTracker.getSelfHeaders(header)
+		selfHeadersInfo := bp.blockTracker.getSelfHeaders(header)
 		if len(selfHeadersInfo) > 0 {
 			selfNotarizedHeadersInfo = append(selfNotarizedHeadersInfo, selfHeadersInfo...)
 		}
@@ -161,4 +122,111 @@ func (bbt *baseBlockTrack) computeSelfNotarizedHeaders(headers []data.HeaderHand
 	}
 
 	return selfNotarizedHeaders, selfNotarizedHeadersHashes
+}
+
+func (bp *blockProcessor) computeLongestChain(
+	shardID uint32,
+	header data.HeaderHandler,
+) ([]data.HeaderHandler, [][]byte) {
+
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	if check.IfNil(header) {
+		return headers, headersHashes
+	}
+
+	sortedHeaders, sortedHeadersHashes := bp.blockTracker.sortHeadersForShardFromNonce(shardID, header.GetNonce()+1)
+	if len(sortedHeaders) == 0 {
+		return headers, headersHashes
+	}
+
+	longestChainHeadersIndexes := make([]int, 0)
+	headersIndexes := make([]int, 0)
+	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
+
+	for _, index := range longestChainHeadersIndexes {
+		headers = append(headers, sortedHeaders[index])
+		headersHashes = append(headersHashes, sortedHeadersHashes[index])
+	}
+
+	return headers, headersHashes
+}
+
+func (bp *blockProcessor) getNextHeader(
+	longestChainHeadersIndexes *[]int,
+	headersIndexes []int,
+	prevHeader data.HeaderHandler,
+	sortedHeaders []data.HeaderHandler,
+	index int,
+) {
+	defer func() {
+		if len(headersIndexes) > len(*longestChainHeadersIndexes) {
+			*longestChainHeadersIndexes = headersIndexes
+		}
+	}()
+
+	if check.IfNil(prevHeader) {
+		return
+	}
+
+	for i := index; i < len(sortedHeaders); i++ {
+		currHeader := sortedHeaders[i]
+		if currHeader.GetNonce() > prevHeader.GetNonce()+1 {
+			break
+		}
+
+		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
+			err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
+			if err != nil {
+				continue
+			}
+
+			err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
+			if err != nil {
+				continue
+			}
+
+			headersIndexes = append(headersIndexes, i)
+			bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
+			headersIndexes = headersIndexes[:len(headersIndexes)-1]
+		}
+	}
+}
+
+func (bp *blockProcessor) checkHeaderFinality(
+	header data.HeaderHandler,
+	sortedHeaders []data.HeaderHandler,
+	index int,
+) error {
+
+	if check.IfNil(header) {
+		return process.ErrNilBlockHeader
+	}
+
+	prevHeader := header
+	numFinalityAttestingHeaders := uint64(0)
+
+	for i := index; i < len(sortedHeaders); i++ {
+		currHeader := sortedHeaders[i]
+		if numFinalityAttestingHeaders >= bp.blockFinality || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
+			break
+		}
+
+		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
+			err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
+			if err != nil {
+				continue
+			}
+
+			prevHeader = currHeader
+			numFinalityAttestingHeaders += 1
+		}
+	}
+
+	if numFinalityAttestingHeaders < bp.blockFinality {
+		return process.ErrHeaderNotFinal
+	}
+
+	return nil
 }

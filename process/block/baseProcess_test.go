@@ -601,7 +601,7 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 
 	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
-	assert.Equal(t, process.ErrCrossNotarizedHdrsSliceForShardIsNil, err)
+	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
 
 func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *testing.T) {
@@ -618,7 +618,7 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 
 	err := sp.SaveLastNotarizedHeader(6, prHdrs)
 
-	assert.Equal(t, process.ErrCrossNotarizedHdrsSliceForShardIsNil, err)
+	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
 
 func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {

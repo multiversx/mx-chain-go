@@ -80,7 +80,7 @@ func (bts *BlockTrackerStub) InitCrossNotarizedHeaders(startHeaders map[uint32]d
 	defer bts.mutCrossNotarizedHeaders.Unlock()
 
 	if startHeaders == nil {
-		return process.ErrCrossNotarizedHdrsSliceIsNil
+		return process.ErrNotarizedHeadersSliceIsNil
 	}
 
 	bts.crossNotarizedHeaders = make(map[uint32][]*headerInfo)
@@ -169,12 +169,12 @@ func (bts *BlockTrackerStub) GetLastCrossNotarizedHeader(shardID uint32) (data.H
 	defer bts.mutCrossNotarizedHeaders.RUnlock()
 
 	if bts.crossNotarizedHeaders == nil {
-		return nil, nil, process.ErrCrossNotarizedHdrsSliceIsNil
+		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
 	}
 
 	headerInfo := bts.lastCrossNotarizedHdrForShard(shardID)
 	if headerInfo == nil {
-		return nil, nil, process.ErrCrossNotarizedHdrsSliceForShardIsNil
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
 	}
 
 	return headerInfo.header, headerInfo.hash, nil

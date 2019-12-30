@@ -31,24 +31,48 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
-	bbt := &baseBlockTrack{
-		hasher:            arguments.Hasher,
-		headerValidator:   arguments.HeaderValidator,
-		marshalizer:       arguments.Marshalizer,
-		rounder:           arguments.Rounder,
-		shardCoordinator:  arguments.ShardCoordinator,
-		metaBlocksPool:    arguments.PoolsHolder.MetaBlocks(),
-		shardHeadersPool:  arguments.PoolsHolder.ShardHeaders(),
-		headersNoncesPool: arguments.PoolsHolder.HeadersNonces(),
-		store:             arguments.Store,
-	}
-
-	err = bbt.initCrossNotarizedHeaders(arguments.StartHeaders)
+	crossNotarizedHeaders, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.initSelfNotarizedHeaders(arguments.StartHeaders)
+	selfNotarizedHeaders, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	crossNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	bbt := &baseBlockTrack{
+		hasher:                        arguments.Hasher,
+		headerValidator:               arguments.HeaderValidator,
+		marshalizer:                   arguments.Marshalizer,
+		rounder:                       arguments.Rounder,
+		shardCoordinator:              arguments.ShardCoordinator,
+		metaBlocksPool:                arguments.PoolsHolder.MetaBlocks(),
+		shardHeadersPool:              arguments.PoolsHolder.ShardHeaders(),
+		headersNoncesPool:             arguments.PoolsHolder.HeadersNonces(),
+		store:                         arguments.Store,
+		crossNotarizedHeaders:         crossNotarizedHeaders,
+		selfNotarizedHeaders:          selfNotarizedHeaders,
+		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+	}
+
+	err = bbt.crossNotarizedHeaders.initNotarizedHeaders(arguments.StartHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bbt.selfNotarizedHeaders.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -57,16 +81,22 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
+	blockProcessor, err := NewBlockProcessor(
+		mbt,
+		crossNotarizedHeaders,
+		crossNotarizedHeadersNotifier,
+		arguments.HeaderValidator,
+		selfNotarizedHeadersNotifier,
+		arguments.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	mbt.blockProcessor = blockProcessor
+
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	mbt.metaBlocksPool.RegisterHandler(mbt.receivedMetaBlock)
 	mbt.shardHeadersPool.RegisterHandler(mbt.receivedShardHeader)
-
-	mbt.selfNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
-	mbt.crossNotarizedHeadersHandlers = make([]func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte), 0)
-
-	mbt.blockFinality = process.BlockFinality
-
-	mbt.blockTracker = mbt
 
 	return mbt, nil
 }
@@ -94,11 +124,11 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 }
 
 func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeaderInfo, err := mbt.getLastSelfNotarizedHeader(mbt.shardCoordinator.SelfId())
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := mbt.selfNotarizedHeaders.getLastNotarizedHeader(mbt.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeaderInfo.header)
-	return lastSelfNotarizedHeaderInfo.header, lastSelfNotarizedHeaderInfo.hash, headers, hashes
+	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
+	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
