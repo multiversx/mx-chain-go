@@ -7,6 +7,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -35,6 +39,7 @@ type indexHashedNodesCoordinator struct {
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
+	bootStorer              storage.Storer
 	selfPubKey              []byte
 	nodesConfig             map[uint32]*epochNodesConfig
 	mutNodesConfig          sync.RWMutex
@@ -101,6 +106,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.Shuffler == nil {
 		return ErrNilShuffler
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return ErrNilBootStorer
 	}
 
 	return nil

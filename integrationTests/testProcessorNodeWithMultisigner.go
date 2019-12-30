@@ -160,6 +160,7 @@ func createNode(
 
 	nodeKeys := cp.Keys[shardId][keyIndex]
 	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	bootStorer := CreateMemUnit()
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -167,6 +168,7 @@ func createNode(
 		Hasher:                  TestHasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                uint32(nbShards),
 		EligibleNodes:           validatorsMap,
@@ -217,12 +219,14 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
+		bootStorer := CreateMemUnit()
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			EpochStartSubscriber:    epochStartSubscriber,
+			BootStorer:              bootStorer,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,

@@ -3,7 +3,6 @@ package mock
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -39,8 +38,6 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList := make([]sharding.Validator, nodesPerShard)
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = sharding.NewValidator(
-				big.NewInt(10),
-				1,
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				[]byte(fmt.Sprintf("address%d%d", sh, v)),
 			)

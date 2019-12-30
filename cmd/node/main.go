@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
 
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 
@@ -551,16 +552,43 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Trace("initializing stats file")
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
+	if err != nil {
+		return err
+	}
+
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
+	}
+
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
+
+	log.Trace("creating data components")
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
+	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating nodes coordinator")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		epochStartNotifier,
 		pubKey,
 		coreComponents.Hasher,
-		rater)
+		rater,
+		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
+	)
 	if err != nil {
 		return err
 	}
@@ -578,34 +606,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
-	if err != nil {
-		return err
-	}
-
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
-	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
-	if err != nil {
-		return err
-	}
-
-	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
-
 	log.Trace("initializing metrics")
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
-
-	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
-	dataComponents, err := factory.DataComponentsFactory(dataArgs)
-	if err != nil {
-		return err
-	}
-
-	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
-	if err != nil {
-		return err
-	}
 
 	log.Trace("creating crypto components")
 	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
@@ -955,6 +957,7 @@ func createNodesCoordinator(
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 	rater sharding.RaterHandler,
+	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -998,6 +1001,7 @@ func createNodesCoordinator(
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleValidators,
@@ -1024,7 +1028,7 @@ func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint3
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			validator, err := sharding.NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
 			if err != nil {
 				return nil, err
 			}

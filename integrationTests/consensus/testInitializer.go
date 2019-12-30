@@ -5,12 +5,13 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 
@@ -100,7 +101,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
 			address := fmt.Sprintf("addr_%d_%d", shardId, i)
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(address))
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), []byte(address))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -487,6 +488,7 @@ func createNodes(
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
 		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		bootStorer := integrationTests.CreateMemUnit()
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
@@ -494,6 +496,7 @@ func createNodes(
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
 			EpochStartSubscriber:    epochStartSubscriber,
+			BootStorer:              bootStorer,
 			NbShards:                1,
 			EligibleNodes:           eligibleMap,
 			WaitingNodes:            waitingMap,

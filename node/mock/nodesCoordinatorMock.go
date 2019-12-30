@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -28,15 +26,15 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	}
 
 	list := []sharding.Validator{
-		NewValidatorMock(big.NewInt(0), 0, []byte("A"), []byte("AA")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("B"), []byte("BB")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("C"), []byte("CC")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("D"), []byte("DD")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("E"), []byte("EE")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("F"), []byte("FF")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("G"), []byte("GG")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("H"), []byte("HH")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("I"), []byte("II")),
+		NewValidatorMock([]byte("A"), []byte("AA")),
+		NewValidatorMock([]byte("B"), []byte("BB")),
+		NewValidatorMock([]byte("C"), []byte("CC")),
+		NewValidatorMock([]byte("D"), []byte("DD")),
+		NewValidatorMock([]byte("E"), []byte("EE")),
+		NewValidatorMock([]byte("F"), []byte("FF")),
+		NewValidatorMock([]byte("G"), []byte("GG")),
+		NewValidatorMock([]byte("H"), []byte("HH")),
+		NewValidatorMock([]byte("I"), []byte("II")),
 	}
 
 	return list, nil

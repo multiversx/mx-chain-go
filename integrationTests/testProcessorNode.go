@@ -215,7 +215,7 @@ func NewTestProcessorNode(
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -464,7 +464,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			fmt.Println(err.Error())
 		}
 	} else {
-		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+		interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
@@ -485,6 +485,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 		)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {

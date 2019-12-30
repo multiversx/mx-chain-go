@@ -88,6 +88,9 @@ var ErrNilStake = errors.New("nil stake")
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer provided")
+
 // ErrNegativeStake signals that the stake is negative
 var ErrNegativeStake = errors.New("negative stake")
 

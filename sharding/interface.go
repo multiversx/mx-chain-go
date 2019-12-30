@@ -1,8 +1,6 @@
 package sharding
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -19,8 +17,6 @@ type Coordinator interface {
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
 // or block proposer
 type Validator interface {
-	Stake() *big.Int
-	Rating() int32
 	PubKey() []byte
 	Address() []byte
 }
@@ -58,6 +54,7 @@ type ArgsUpdateNodes struct {
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
+	IsInterfaceNil() bool
 }
 
 //RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
