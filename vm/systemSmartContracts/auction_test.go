@@ -17,14 +17,16 @@ import (
 
 func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 	args := ArgsStakingAuctionSmartContract{
-		MinStakeValue:  big.NewInt(10000000),
-		MinStepValue:   big.NewInt(100000),
-		TotalSupply:    big.NewInt(100000000000),
-		UnBondPeriod:   uint64(100000),
-		NumNodes:       uint32(10),
-		Eei:            &mock.SystemEIStub{},
-		SigVerifier:    &mock.MessageSignVerifierMock{},
-		AuctionEnabled: false,
+		MinStakeValue:    big.NewInt(10000000),
+		MinStepValue:     big.NewInt(100000),
+		TotalSupply:      big.NewInt(100000000000),
+		UnBondPeriod:     uint64(100000),
+		NumNodes:         uint32(10),
+		Eei:              &mock.SystemEIStub{},
+		SigVerifier:      &mock.MessageSignVerifierMock{},
+		AuctionEnabled:   false,
+		AuctionSCAddress: []byte("auction"),
+		StakingSCAddress: []byte("staking"),
 	}
 
 	return args
@@ -262,27 +264,21 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	rewardAddr := []byte("tralala2")
 	maxStakePerNoce := big.NewInt(500)
 
-	eei := &mock.SystemEIStub{}
-	eei.GetStorageCalled = func(key []byte) []byte {
-		if bytes.Equal(key, arguments.CallerAddr) {
-			return auctionDataBytes
-		}
-		return nil
-	}
-	eei.SetStorageCalled = func(key []byte, value []byte) {
-		if bytes.Equal(key, arguments.CallerAddr) {
-			var auctionData AuctionData
-			_ = json.Unmarshal(value, &auctionData)
-			assert.Equal(t, big.NewInt(26000000), auctionData.TotalStakeValue)
-			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[2], key1))
-			assert.True(t, bytes.Equal(auctionData.BlsPubKeys[3], key2))
-			assert.True(t, bytes.Equal(auctionData.RewardAddress, rewardAddr))
-			assert.Equal(t, maxStakePerNoce, auctionData.MaxStakePerNode)
-		}
-	}
-
 	args := createMockArgumentsForAuction()
+
+	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
+
+	stakingSC, _ := NewStakingSmartContract(args.MinStakeValue, args.UnBondPeriod, eei, []byte("auction"))
+
+	eei.SetSCAddress([]byte("auction"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
 	args.Eei = eei
+	eei.SetStorage(arguments.CallerAddr, auctionDataBytes)
+
 	args.NumNodes = uint32(5)
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -344,7 +340,6 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 	t.Parallel()
 
-	minStakeValue := big.NewInt(10000000)
 	arguments := CreateVmContractCallInput()
 	totalStake := uint64(25000000)
 
@@ -373,16 +368,6 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 		return nil
 	}
 
-	eei.SetStorageCalled = func(key []byte, value []byte) {
-		if bytes.Contains(key, arguments.CallerAddr) {
-			var regData AuctionData
-			_ = json.Unmarshal(value, &regData)
-
-			assert.Equal(t, big.NewInt(0).Sub(big.NewInt(0).SetUint64(totalStake), minStakeValue), regData.LockedStake)
-			assert.Equal(t, big.NewInt(0).Sub(big.NewInt(0).SetUint64(totalStake), minStakeValue), regData.TotalStakeValue)
-		}
-	}
-
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 	args.NumNodes = uint32(5)
@@ -398,7 +383,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -423,7 +408,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -444,7 +429,7 @@ func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -520,8 +505,8 @@ func TestAuctionStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
 func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	t.Parallel()
 
-	stakeValue := big.NewInt(100)
-
+	stakerAddress := big.NewInt(100)
+	stakerPubKey := big.NewInt(100)
 	expectedRegistrationData := StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
@@ -531,35 +516,32 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		switch {
-		case bytes.Equal(index, []byte(initialStakeKey)):
-			return stakeValue.Bytes(), nil
-		default:
-			return nil, nil
-		}
-	}
-
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
-	eei.SetSCAddress([]byte("addr"))
-
 	args := createMockArgumentsForAuction()
+
+	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
+
+	stakingSC, _ := NewStakingSmartContract(args.MinStakeValue, args.UnBondPeriod, eei, []byte("auction"))
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
 	args.Eei = eei
 
-	stakerAddress := big.NewInt(100)
-	stakerPubKey := big.NewInt(100)
-	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+	sc, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = stakerAddress.Bytes()
 	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
 	arguments.CallValue = big.NewInt(100).Set(args.MinStakeValue)
 
-	retCode := stakingSmartContract.Execute(arguments)
+	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	var registrationData StakedData
-	data := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
+	data := sc.eei.GetStorage(arguments.CallerAddr)
 	err := json.Unmarshal(data, &registrationData)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRegistrationData, registrationData)
@@ -609,7 +591,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -639,7 +621,7 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -658,14 +640,15 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	t.Parallel()
 
-	callerAddress := []byte("caller")
+	args := createMockArgumentsForAuction()
 
+	callerAddress := []byte("caller")
 	expectedRegistrationData := StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
 		RewardAddress: callerAddress,
-		StakeValue:    nil,
+		StakeValue:    args.MinStakeValue,
 	}
 
 	stakedRegistrationData := StakedData{
@@ -676,11 +659,18 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
-	eei.SetSCAddress([]byte("addr"))
+	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser)
 
-	args := createMockArgumentsForAuction()
+	stakingSC, _ := NewStakingSmartContract(args.MinStakeValue, args.UnBondPeriod, eei, []byte("auction"))
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
 	args.Eei = eei
+	eei.SetSCAddress(args.AuctionSCAddress)
+
 	args.UnBondPeriod = 10
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
@@ -701,13 +691,27 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		MaxStakePerNode: args.MinStakeValue,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
-	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
+	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
+
+	stakedData := StakedData{
+		RegisterNonce: 0,
+		Staked:        true,
+		UnStakedNonce: 0,
+		UnStakedEpoch: 0,
+		RewardAddress: arguments.CallerAddr,
+		StakeValue:    args.MinStakeValue,
+	}
+	marshaledStakedData, _ := json.Marshal(stakedData)
+	eei.SetSCAddress(args.StakingSCAddress)
+	eei.SetStorage(arguments.Arguments[0], marshaledStakedData)
+	eei.SetSCAddress(args.AuctionSCAddress)
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	var registrationData StakedData
-	data := stakingSmartContract.eei.GetStorage(arguments.Arguments[0])
+	eei.SetSCAddress(args.StakingSCAddress)
+	data := eei.GetStorage(arguments.Arguments[0])
 	err := json.Unmarshal(data, &registrationData)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRegistrationData, registrationData)
@@ -781,7 +785,10 @@ func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + 1
 		},
-	}, hooks.NewVMCryptoHook())
+	},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{})
+
 	eei.SetSCAddress([]byte("addr"))
 	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
@@ -802,22 +809,24 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	t.Parallel()
 
 	unBondPeriod := uint64(100)
-	unstakedNonce := uint64(10)
+	unStakedNonce := uint64(10)
 	stakeValue := big.NewInt(100)
-	registrationData := StakedData{
+	stakedData := StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
-		UnStakedNonce: unstakedNonce,
+		UnStakedNonce: unStakedNonce,
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 
-	marshalizedRegData, _ := json.Marshal(&registrationData)
+	marshalizedStakedData, _ := json.Marshal(&stakedData)
+	atArgParser, _ := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
-			return unstakedNonce + unBondPeriod + 1
+			return unStakedNonce + unBondPeriod + 1
 		},
-	}, hooks.NewVMCryptoHook())
+	}, hooks.NewVMCryptoHook(), atArgParser)
+
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
 	eei.SetStorage([]byte(ownerKey), scAddress)
@@ -827,6 +836,11 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	args.UnBondPeriod = unBondPeriod
 	args.MinStakeValue = big.NewInt(0).Set(stakeValue)
 
+	stakeSC, _ := NewStakingSmartContract(args.MinStakeValue, args.UnBondPeriod, eei, args.AuctionSCAddress)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakeSC, nil
+	}})
+
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
@@ -835,7 +849,9 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	arguments.Arguments = [][]byte{[]byte("abc")}
 	arguments.RecipientAddr = scAddress
 
-	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedRegData)
+	eei.SetSCAddress(args.StakingSCAddress)
+	eei.SetStorage(arguments.Arguments[0], marshalizedStakedData)
+	eei.SetSCAddress(args.AuctionSCAddress)
 
 	auctionData := AuctionData{
 		RewardAddress:   arguments.CallerAddr,
@@ -847,12 +863,13 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 		MaxStakePerNode: args.MinStakeValue,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
-	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
+	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	data := stakingSmartContract.eei.GetStorage(arguments.Arguments[0])
+	eei.SetSCAddress(args.StakingSCAddress)
+	data := eei.GetStorage(arguments.Arguments[0])
 	assert.Equal(t, 0, len(data))
 
 	destinationBalance := stakingSmartContract.eei.GetBalance(arguments.CallerAddr)
@@ -876,7 +893,7 @@ func TestAuctionStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
+func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	t.Parallel()
 
 	// Preparation
@@ -885,15 +902,21 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook())
+	atArgParser, _ := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
 
-	smartcontractAddress := "smartcontractAddress"
+	smartcontractAddress := "auction"
 	eei.SetSCAddress([]byte(smartcontractAddress))
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 	args.UnBondPeriod = unBondPeriod
 	args.MinStakeValue = valueStakedByTheCaller
+
+	stakeSC, _ := NewStakingSmartContract(args.MinStakeValue, args.UnBondPeriod, eei, args.AuctionSCAddress)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakeSC, nil
+	}})
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 
@@ -910,7 +933,9 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 		StakeValue:    valueStakedByTheCaller,
 	}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
-	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+	eei.SetSCAddress(args.StakingSCAddress)
+	eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+
 	auctionData := AuctionData{
 		RewardAddress:   arguments.CallerAddr,
 		RegisterNonce:   0,
@@ -921,7 +946,8 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 		MaxStakePerNode: args.MinStakeValue,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
-	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
+	eei.SetSCAddress(args.AuctionSCAddress)
+	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 
 	arguments.Function = "unStake"
 
@@ -933,7 +959,8 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	var registrationData StakedData
-	data := stakingSmartContract.eei.GetStorage(arguments.Arguments[0])
+	eei.SetSCAddress(args.StakingSCAddress)
+	data := eei.GetStorage(arguments.Arguments[0])
 	err := json.Unmarshal(data, &registrationData)
 	assert.Nil(t, err)
 
@@ -951,11 +978,12 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return unStakeNonce + unBondPeriod + 1
 	}
+	eei.SetSCAddress(args.AuctionSCAddress)
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	destinationBalance := stakingSmartContract.eei.GetBalance(arguments.CallerAddr)
-	senderBalance := stakingSmartContract.eei.GetBalance([]byte(smartcontractAddress))
+	destinationBalance := eei.GetBalance(arguments.CallerAddr)
+	senderBalance := eei.GetBalance([]byte(smartcontractAddress))
 	assert.Equal(t, big.NewInt(100), destinationBalance)
 	assert.Equal(t, big.NewInt(-100), senderBalance)
 }
@@ -965,7 +993,7 @@ func TestAuctionStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 
@@ -981,7 +1009,7 @@ func TestAuctionStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 

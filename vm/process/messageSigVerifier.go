@@ -42,5 +42,5 @@ func (m *messageSigVerifier) Verify(message []byte, signedMessage []byte, pubKey
 
 // IsInterfaceNil returns if underlying object is nil
 func (m *messageSigVerifier) IsInterfaceNil() bool {
-	panic("implement me")
+	return m == nil
 }

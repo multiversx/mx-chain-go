@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -21,7 +20,6 @@ type stakingSC struct {
 	minStakeValue *big.Int
 	unBondPeriod  uint64
 	accessAddr    []byte
-	kg            crypto.KeyGenerator
 }
 
 // StakedData represents the data which is saved for the selected nodes
@@ -40,7 +38,6 @@ func NewStakingSmartContract(
 	unBondPeriod uint64,
 	eei vm.SystemEI,
 	accessAddr []byte,
-	kg crypto.KeyGenerator,
 ) (*stakingSC, error) {
 	if minStakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
@@ -51,16 +48,12 @@ func NewStakingSmartContract(
 	if check.IfNil(eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if check.IfNil(kg) {
-		return nil, vm.ErrNilKeyGenerator
-	}
 
 	reg := &stakingSC{
 		minStakeValue: big.NewInt(0).Set(minStakeValue),
 		eei:           eei,
 		unBondPeriod:  unBondPeriod,
 		accessAddr:    accessAddr,
-		kg:            kg,
 	}
 	return reg, nil
 }
@@ -139,7 +132,7 @@ func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInpu
 
 	r.eei.SetStorage(epochData, inputStakeValue.Bytes())
 
-	return vmcommon.UserError
+	return vmcommon.Ok
 }
 
 func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
@@ -174,6 +167,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		Staked:        false,
 		RewardAddress: nil,
 		UnStakedNonce: 0,
+		UnStakedEpoch: 0,
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 	data := r.eei.GetStorage(args.Arguments[0])
@@ -251,6 +245,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	registrationData.Staked = false
+	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
 
 	data, err = json.Marshal(registrationData)
@@ -271,7 +266,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		log.Debug("unStake function not allowed to be called by", "address", args.CallerAddr)
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) < 1 {
 		log.Debug("not enough arguments, needed BLS key and reward address")
 		return vmcommon.UserError
 	}
@@ -303,6 +298,8 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	}
 
 	r.eei.SetStorage(args.Arguments[0], nil)
+	r.eei.Finish(registrationData.StakeValue.Bytes())
+	r.eei.Finish(big.NewInt(0).SetUint64(uint64(registrationData.UnStakedEpoch)).Bytes())
 
 	return vmcommon.Ok
 }

@@ -27,6 +27,22 @@ type EconomicsData struct {
 	ratingsData          *RatingsData
 }
 
+func (ed *EconomicsData) MinStepValue() *big.Int {
+	return big.NewInt(0)
+}
+
+func (ed *EconomicsData) TotalSupply() *big.Int {
+	return big.NewInt(99999999999999)
+}
+
+func (ed *EconomicsData) NumNodes() uint32 {
+	return 1500
+}
+
+func (ed *EconomicsData) AuctionEnabled() bool {
+	return false
+}
+
 const float64EqualityThreshold = 1e-9
 
 // NewEconomicsData will create and object with information about economics parameters

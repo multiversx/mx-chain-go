@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -20,6 +21,14 @@ type SystemEIStub struct {
 	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
 	BlockChainHookCalled            func() vmcommon.BlockchainHook
 	CryptoHookCalled                func() vmcommon.CryptoHook
+}
+
+func (s *SystemEIStub) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
+	return &vmcommon.VMOutput{}, nil
+}
+
+func (s *SystemEIStub) SetSystemSCContainer(scContainer vm.SystemSCContainer) error {
+	return nil
 }
 
 func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {

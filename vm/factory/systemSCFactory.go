@@ -42,6 +42,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		scf.validatorSettings.StakeValue(),
 		scf.validatorSettings.UnBoundPeriod(),
 		scf.systemEI,
+		AuctionSCAddress,
 	)
 	if err != nil {
 		return nil, err
@@ -53,14 +54,16 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
-		MinStakeValue:  scf.validatorSettings.StakeValue(),
-		MinStepValue:   scf.validatorSettings.MinStepValue(),
-		TotalSupply:    scf.validatorSettings.TotalSupply(),
-		UnBondPeriod:   scf.validatorSettings.UnBoundPeriod(),
-		NumNodes:       scf.validatorSettings.NumNodes(),
-		Eei:            scf.systemEI,
-		SigVerifier:    scf.sigVerifier,
-		AuctionEnabled: scf.validatorSettings.AuctionEnabled(),
+		MinStakeValue:    scf.validatorSettings.StakeValue(),
+		MinStepValue:     scf.validatorSettings.MinStepValue(),
+		TotalSupply:      scf.validatorSettings.TotalSupply(),
+		UnBondPeriod:     scf.validatorSettings.UnBoundPeriod(),
+		NumNodes:         scf.validatorSettings.NumNodes(),
+		Eei:              scf.systemEI,
+		SigVerifier:      scf.sigVerifier,
+		AuctionEnabled:   scf.validatorSettings.AuctionEnabled(),
+		StakingSCAddress: StakingSCAddress,
+		AuctionSCAddress: AuctionSCAddress,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	if err != nil {
@@ -82,8 +85,5 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 
 // IsInterfaceNil checks whether the underlying object is nil
 func (scf *systemSCFactory) IsInterfaceNil() bool {
-	if scf == nil {
-		return true
-	}
-	return false
+	return scf == nil
 }

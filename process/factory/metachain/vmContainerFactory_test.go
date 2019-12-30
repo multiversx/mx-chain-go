@@ -35,6 +35,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
+		&mock.MessageSignVerifierMock{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -82,6 +83,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		economicsData,
+		&mock.MessageSignVerifierMock{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

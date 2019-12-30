@@ -93,6 +93,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	MetaDatapool             dataRetriever.MetaPoolsHolder
 	ValidatorStatsRootHash   []byte
+	MessageSignVerifier      vm.MessageSignVerifier
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -194,7 +195,7 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, args.MessageSignVerifier)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -18,7 +18,7 @@ type vmContext struct {
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
 
-	output []byte
+	output [][]byte
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -37,7 +37,11 @@ func NewVMContext(
 		return nil, vm.ErrNilArgumentsParser
 	}
 
-	vmc := &vmContext{blockChainHook: blockChainHook, cryptoHook: cryptoHook}
+	vmc := &vmContext{
+		blockChainHook: blockChainHook,
+		cryptoHook:     cryptoHook,
+		inputParser:    inputParser,
+	}
 	vmc.CleanCache()
 
 	return vmc, nil
@@ -201,6 +205,10 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 
 // ExecuteOnDestContext executes the input data in the destinations context
 func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.VMOutput, error) {
+	if check.IfNil(host.systemContracts) {
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
 	input, err := host.createContractCallInput(destination, sender, value, data)
 	if err != nil {
 		return nil, err
@@ -216,12 +224,12 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		host.copyFromContext(currContext)
 	}()
 
-	host.CleanCache()
+	host.softCleanCache()
 	host.SetSCAddress(input.RecipientAddr)
 
 	contract, err := host.systemContracts.Get(input.RecipientAddr)
 	if err != nil {
-		return nil, vm.ErrUnknownSystemSmartContract
+		return nil, err
 	}
 
 	if input.Function == "_init" {
@@ -238,7 +246,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 
 // Finish append the value to the final output
 func (host *vmContext) Finish(value []byte) {
-	host.output = append(host.output, value...)
+	host.output = append(host.output, value)
 }
 
 // BlockChainHook returns the blockchain hook
@@ -255,7 +263,12 @@ func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
 func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte, 0)
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
-	host.output = make([]byte, 0)
+	host.output = make([][]byte, 0)
+}
+
+func (host *vmContext) softCleanCache() {
+	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
+	host.output = make([][]byte, 0)
 }
 
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
@@ -309,7 +322,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	if len(host.output) > 0 {
-		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output)
+		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)
 	}
 
 	return vmOutput

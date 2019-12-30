@@ -82,3 +82,9 @@ var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract a
 
 // ErrNilArgumentsParser signals that arguments parses is nil
 var ErrNilArgumentsParser = errors.New("nil arguments parser")
+
+// ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
+var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
+
+// ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
+var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
