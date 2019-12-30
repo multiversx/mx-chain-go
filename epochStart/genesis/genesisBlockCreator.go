@@ -195,7 +195,7 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, args.MessageSignVerifier)
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -437,4 +437,15 @@ func setBalanceToTrie(
 	}
 
 	return account.SetBalanceWithJournal(balance)
+}
+
+type NilMessageSignVerifier struct {
+}
+
+func (n *NilMessageSignVerifier) Verify(message []byte, signedMessage []byte, pubKey []byte) error {
+	return nil
+}
+
+func (n *NilMessageSignVerifier) IsInterfaceNil() bool {
+	return n == nil
 }
