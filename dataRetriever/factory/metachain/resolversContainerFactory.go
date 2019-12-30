@@ -36,6 +36,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.MetaPoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	sizeCheckDelta uint32,
 	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*resolversContainerFactory, error) {
 
@@ -50,6 +51,9 @@ func NewResolversContainerFactory(
 	}
 	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(dataPools) {
 		return nil, dataRetriever.ErrNilDataPoolHolder
@@ -159,11 +163,10 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
+	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
-		// TODO: Should fix this to ask only other shard peers
-		excludePeersFromTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := emptyExcludePeersOnTopic
 
 		resolver, err := rcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
 		if err != nil {

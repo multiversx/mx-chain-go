@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -26,24 +27,25 @@ func TestHeader_SaveLoad(t *testing.T) {
 	}
 
 	h := block.Header{
-		Nonce:            uint64(1),
-		PrevHash:         []byte("previous hash"),
-		PrevRandSeed:     []byte("prev random seed"),
-		RandSeed:         []byte("current random seed"),
-		PubKeysBitmap:    []byte("pub key bitmap"),
-		ShardId:          uint32(10),
-		TimeStamp:        uint64(1234),
-		Round:            uint64(1),
-		Epoch:            uint32(1),
-		BlockBodyType:    block.TxBlock,
-		Signature:        []byte("signature"),
-		MiniBlockHeaders: []block.MiniBlockHeader{mb},
-		PeerChanges:      []block.PeerChange{pc},
-		RootHash:         []byte("root hash"),
-		MetaBlockHashes:  make([][]byte, 0),
-		TxCount:          uint32(10),
-		LeaderSignature:  []byte("leader_sig"),
-		ChainID:          []byte("chain ID"),
+		Nonce:              uint64(1),
+		PrevHash:           []byte("previous hash"),
+		PrevRandSeed:       []byte("prev random seed"),
+		RandSeed:           []byte("current random seed"),
+		PubKeysBitmap:      []byte("pub key bitmap"),
+		ShardId:            uint32(10),
+		TimeStamp:          uint64(1234),
+		Round:              uint64(1),
+		Epoch:              uint32(1),
+		BlockBodyType:      block.TxBlock,
+		Signature:          []byte("signature"),
+		MiniBlockHeaders:   []block.MiniBlockHeader{mb},
+		PeerChanges:        []block.PeerChange{pc},
+		RootHash:           []byte("root hash"),
+		MetaBlockHashes:    make([][]byte, 0),
+		TxCount:            uint32(10),
+		EpochStartMetaHash: []byte("epochStart"),
+		LeaderSignature:    []byte("leader_sig"),
+		ChainID:            []byte("chain ID"),
 	}
 
 	var b bytes.Buffer
@@ -439,4 +441,19 @@ func TestHeader_CheckChainID(t *testing.T) {
 
 	assert.Nil(t, hdr.CheckChainID(okChainID))
 	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
+}
+
+func TestMiniBlock_Clone(t *testing.T) {
+	t.Parallel()
+
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
+		ReceiverShardID: 1,
+		SenderShardID:   2,
+		Type:            0,
+	}
+
+	clonedMB := miniBlock.Clone()
+
+	assert.True(t, reflect.DeepEqual(miniBlock, clonedMB))
 }

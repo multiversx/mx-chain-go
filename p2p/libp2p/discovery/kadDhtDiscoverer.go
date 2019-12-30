@@ -16,9 +16,6 @@ const (
 	initReconnectMul = 20
 )
 
-var peerDiscoveryTimeout = 10 * time.Second
-var noOfQueries = 1
-
 const kadDhtName = "kad-dht discovery"
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
@@ -94,12 +91,6 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		kdd.refreshInterval,
 		kdd.initialPeersList)
 
-	cfg := dht.BootstrapConfig{
-		Period:  kdd.refreshInterval,
-		Queries: noOfQueries,
-		Timeout: peerDiscoveryTimeout,
-	}
-
 	ctx := kdd.contextProvider.Context()
 
 	go func() {
@@ -110,7 +101,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 			i := 1
 			for {
 				if kdd.initConns {
-					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					err := kdd.kadDHT.Bootstrap(ctx)
 					if err == kbucket.ErrLookupFailure {
 						kdd.ReconnectToNetwork()
 					}
@@ -123,7 +114,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 					}
 				}
 				select {
-				case <-time.After(cfg.Period):
+				case <-time.After(kdd.refreshInterval):
 				case <-ctx.Done():
 					return
 				}
@@ -226,8 +217,5 @@ func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
-	if kdd == nil {
-		return true
-	}
-	return false
+	return kdd == nil
 }

@@ -59,17 +59,20 @@ type baseProcessor struct {
 	specialAddressHandler        process.SpecialAddressHandler
 	accounts                     state.AccountsAdapter
 	forkDetector                 process.ForkDetector
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	hasher                       hashing.Hasher
 	marshalizer                  marshal.Marshalizer
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
+	epochStartTrigger            process.EpochStartTriggerHandler
+	headerValidator              process.HeaderConstructionValidator
 	blockChainHook               process.BlockChainHookHandler
 	txCoordinator                process.TransactionCoordinator
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	rounder                      consensus.Rounder
 	bootStorer                   process.BootStorer
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
+	requestHandler               process.RequestHandler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -78,9 +81,6 @@ type baseProcessor struct {
 
 	mutLastHdrs sync.RWMutex
 	lastHdrs    mapShardHeader
-
-	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
-	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
 	appStatusHandler core.AppStatusHandler
 }
@@ -244,6 +244,11 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	if bodyHandler != nil {
 		// TODO: add bodyHandler verification here
+	}
+
+	// verification of epoch
+	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
+		return process.ErrEpochDoesNotMatch
 	}
 
 	// TODO: add signature validation as well, with randomness source and all
@@ -437,7 +442,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			return err
 		}
 
-		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
+		err = bp.headerValidator.IsHeaderConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
 		if err != nil {
 			return err
 		}
@@ -541,11 +546,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	requested := 0
 	for _, nonce := range missingNonces {
-		// do the request here
-		if bp.onRequestHeaderHandlerByNonce == nil {
-			return process.ErrNilRequestHeaderHandlerByNonce
-		}
-
 		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
 		if isHeaderOutOfRange {
 			break
@@ -556,7 +556,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		}
 
 		requested++
-		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
+		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
 
 	return nil
@@ -648,6 +648,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
+	if check.IfNil(arguments.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
@@ -659,6 +662,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return process.ErrNilTransactionCoordinator
+	}
+	if check.IfNil(arguments.HeaderValidator) {
+		return process.ErrNilHeaderValidator
 	}
 
 	return nil
@@ -848,7 +854,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
 			requestedHeaders++
-			go bp.onRequestHeaderHandlerByNonce(shardId, i)
+			go bp.requestHeaderByShardAndNonce(shardId, i)
 			continue
 		}
 
@@ -864,6 +870,14 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
+}
+
+func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
+	if targetShardID == sharding.MetachainShardId {
+		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
+	}
 }
 
 func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
@@ -1080,13 +1094,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		ProcessedMiniBlocks:  processedMiniBlocks,
 	}
 
-	go func() {
-		err := bp.bootStorer.Put(int64(round), bootData)
-		if err != nil {
-			log.Warn("cannot save boot data in storage",
-				"error", err.Error())
-		}
-	}()
+	err := bp.bootStorer.Put(int64(round), bootData)
+	if err != nil {
+		log.Warn("cannot save boot data in storage",
+			"error", err.Error())
+	}
 }
 
 func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHeaderInfo {
@@ -1130,4 +1142,27 @@ func (bp *baseProcessor) commitAll() error {
 	}
 
 	return nil
+}
+
+func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {
+	for i := 0; i < len(body); {
+		mb := body[i]
+		if mb.ReceiverShardID != mb.SenderShardID {
+			i++
+			continue
+		}
+
+		if mb.Type != block.ReceiptBlock && mb.Type != block.SmartContractResultBlock {
+			i++
+			continue
+		}
+
+		body[i] = body[len(body)-1]
+		body = body[:len(body)-1]
+		if i == len(body)-1 {
+			break
+		}
+	}
+
+	return body
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -33,11 +34,12 @@ func WithMessenger(mes P2PMessenger) Option {
 }
 
 // WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
+func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
 	return func(n *Node) error {
 		if marshalizer == nil || marshalizer.IsInterfaceNil() {
 			return ErrNilMarshalizer
 		}
+		n.sizeCheckDelta = sizeCheckDelta
 		n.marshalizer = marshalizer
 		return nil
 	}
@@ -399,6 +401,17 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
+		return nil
+	}
+}
+
+// WithEpochStartTrigger sets up an start of epoch trigger option for the node
+func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(epochStartTrigger) {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartTrigger = epochStartTrigger
 		return nil
 	}
 }
