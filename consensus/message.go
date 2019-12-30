@@ -10,8 +10,8 @@ type Message struct {
 	PubKey          []byte
 	Signature       []byte
 	MsgType         int
-	TimeStamp       uint64
 	RoundIndex      int64
+	ChainID         []byte
 }
 
 // NewConsensusMessage creates a new Message object
@@ -21,8 +21,8 @@ func NewConsensusMessage(
 	pubKey []byte,
 	sig []byte,
 	msg int,
-	tms uint64,
 	roundIndex int64,
+	chainID []byte,
 ) *Message {
 
 	return &Message{
@@ -31,7 +31,7 @@ func NewConsensusMessage(
 		PubKey:          pubKey,
 		Signature:       sig,
 		MsgType:         msg,
-		TimeStamp:       tms,
 		RoundIndex:      roundIndex,
+		ChainID:         chainID,
 	}
 }

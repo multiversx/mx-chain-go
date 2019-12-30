@@ -65,8 +65,9 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtCommitmentHash),
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+		sr.Rounder().Index(),
+		sr.ChainID(),
+	)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {

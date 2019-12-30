@@ -53,7 +53,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 
 func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if arguments == nil {
-		return process.ErrNilArguments
+		return process.ErrNilArgumentStruct
 	}
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher

@@ -11,6 +11,7 @@ import (
 )
 
 type headerInfo struct {
+	epoch uint32
 	nonce uint64
 	round uint64
 	hash  []byte
@@ -30,6 +31,7 @@ type forkInfo struct {
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
 	isNotarizedShardStuck  bool
+	nonce                  uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -43,6 +45,21 @@ type baseForkDetector struct {
 
 	blackListHandler process.BlackListHandler
 	genesisTime      int64
+}
+
+// SetForkNonce sets the nonce where the chain should roll back
+func (bfd *baseForkDetector) SetForkNonce(nonce uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.nonce = nonce
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) getForcedForkNonce() uint64 {
+	bfd.mutFork.RLock()
+	nonce := bfd.fork.nonce
+	bfd.mutFork.RUnlock()
+
+	return nonce
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -178,7 +195,7 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
-func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
+func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
 	var preservedHdrInfos []*headerInfo
@@ -388,12 +405,19 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		forkHeaderRound uint64
 		forkHeaderHash  []byte
 		selfHdrInfo     *headerInfo
+		forkHeaderEpoch uint32
 	)
 
 	forkInfo := process.NewForkInfo()
-
 	if bfd.shouldForceFork() {
 		forkInfo.IsDetected = true
+		return forkInfo
+	}
+
+	if bfd.getForcedForkNonce() < math.MaxUint64 {
+		forkInfo.IsDetected = true
+		forkInfo.Nonce = bfd.getForcedForkNonce()
+		bfd.SetForkNonce(math.MaxUint64)
 		return forkInfo
 	}
 
@@ -406,6 +430,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		selfHdrInfo = nil
 		forkHeaderRound = math.MaxUint64
 		forkHeaderHash = nil
+		forkHeaderEpoch = getMaxEpochFromHdrInfos(hdrInfos)
 
 		for i := 0; i < len(hdrInfos); i++ {
 			if hdrInfos[i].state == process.BHProcessed {
@@ -413,10 +438,12 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 				continue
 			}
 
-			forkHeaderHash, forkHeaderRound = bfd.computeForkInfo(
+			forkHeaderHash, forkHeaderRound, forkHeaderEpoch = bfd.computeForkInfo(
 				hdrInfos[i],
 				forkHeaderHash,
-				forkHeaderRound)
+				forkHeaderRound,
+				forkHeaderEpoch,
+			)
 		}
 
 		if selfHdrInfo == nil {
@@ -424,7 +451,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 			continue
 		}
 
-		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound) {
+		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound, forkHeaderEpoch) {
 			forkInfo.IsDetected = true
 			if nonce < forkInfo.Nonce {
 				forkInfo.Nonce = nonce
@@ -438,43 +465,76 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	return forkInfo
 }
 
+func getMaxEpochFromHdrInfos(hdrInfos []*headerInfo) uint32 {
+	maxEpoch := uint32(0)
+	for _, hdrInfo := range hdrInfos {
+		if hdrInfo.epoch > maxEpoch {
+			maxEpoch = hdrInfo.epoch
+		}
+	}
+	return maxEpoch
+}
+
 func (bfd *baseForkDetector) computeForkInfo(
 	headerInfo *headerInfo,
 	lastForkHash []byte,
 	lastForkRound uint64,
-) ([]byte, uint64) {
+	lastForkEpoch uint32,
+) ([]byte, uint64, uint32) {
 
 	if headerInfo.state == process.BHReceivedTooLate {
-		return lastForkHash, lastForkRound
+		return lastForkHash, lastForkRound, lastForkEpoch
 	}
 
 	currentForkRound := headerInfo.round
 	if headerInfo.state == process.BHNotarized {
 		currentForkRound = process.MinForkRound
+	} else {
+		if headerInfo.epoch < lastForkEpoch {
+			log.Debug("computeForkInfo: epoch change fork choice")
+			return lastForkHash, lastForkRound, lastForkEpoch
+		}
 	}
 
 	if currentForkRound < lastForkRound {
-		return headerInfo.hash, currentForkRound
+		return headerInfo.hash, currentForkRound, headerInfo.epoch
 	}
 
 	lowerHashForSameRound := currentForkRound == lastForkRound &&
 		bytes.Compare(headerInfo.hash, lastForkHash) < 0
 	if lowerHashForSameRound {
-		return headerInfo.hash, currentForkRound
+		return headerInfo.hash, currentForkRound, headerInfo.epoch
 	}
 
-	return lastForkHash, lastForkRound
+	return lastForkHash, lastForkRound, lastForkEpoch
 }
 
 func (bfd *baseForkDetector) shouldSignalFork(
 	headerInfo *headerInfo,
 	lastForkHash []byte,
 	lastForkRound uint64,
+	lastForkEpoch uint32,
 ) bool {
 	sameHash := bytes.Equal(headerInfo.hash, lastForkHash)
+	if sameHash {
+		return false
+	}
+
+	if lastForkRound != process.MinForkRound {
+		if headerInfo.epoch > lastForkEpoch {
+			log.Debug("shouldSignalFork epoch change false")
+			return false
+		}
+
+		if headerInfo.epoch < lastForkEpoch {
+			log.Debug("shouldSignalFork epoch change true")
+			return true
+		}
+	}
+
 	higherHashForSameRound := headerInfo.round == lastForkRound &&
 		bytes.Compare(headerInfo.hash, lastForkHash) > 0
-	shouldSignalFork := !sameHash && (headerInfo.round > lastForkRound || higherHashForSameRound)
+	shouldSignalFork := headerInfo.round > lastForkRound || higherHashForSameRound
 
 	return shouldSignalFork
 }

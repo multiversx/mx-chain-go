@@ -1,7 +1,9 @@
 package spos
 
 import (
+	"bytes"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -33,6 +35,7 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 	headerSigVerifier  RandSeedVerifier
+	chainID            []byte
 
 	networkShardingCollector consensus.NetworkShardingCollector
 	checkSigChan             chan struct{}
@@ -66,6 +69,7 @@ func NewWorker(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	chainID []byte,
 	networkShardingCollector consensus.NetworkShardingCollector,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -83,6 +87,7 @@ func NewWorker(
 		singleSigner,
 		syncTimer,
 		headerSigVerifier,
+		chainID,
 		networkShardingCollector,
 	)
 	if err != nil {
@@ -90,22 +95,23 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		consensusService:   consensusService,
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessor,
-		bootstrapper:       bootstrapper,
-		broadcastMessenger: broadcastMessenger,
-		consensusState:     consensusState,
-		forkDetector:       forkDetector,
-		keyGenerator:       keyGenerator,
-		marshalizer:        marshalizer,
-		rounder:            rounder,
-		shardCoordinator:   shardCoordinator,
-		singleSigner:       singleSigner,
-		syncTimer:          syncTimer,
-		headerSigVerifier:  headerSigVerifier,
-		networkShardingCollector: networkShardingCollector,
-		checkSigChan:             make(chan struct{}, 1),
+		consensusService:   		consensusService,
+		blockChain:         		blockChain,
+		blockProcessor:     		blockProcessor,
+		bootstrapper:       		bootstrapper,
+		broadcastMessenger: 		broadcastMessenger,
+		consensusState:     		consensusState,
+		forkDetector:       		forkDetector,
+		keyGenerator:       		keyGenerator,
+		marshalizer:        		marshalizer,
+		rounder:            		rounder,
+		shardCoordinator:   		shardCoordinator,
+		singleSigner:       		singleSigner,
+		syncTimer:          		syncTimer,
+		headerSigVerifier:  		headerSigVerifier,
+		chainID:            		chainID,
+		networkShardingCollector:	networkShardingCollector,
+		checkSigChan:             	make(chan struct{}, 1),
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -136,6 +142,7 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	chainID []byte,
 	networkShardingCollector consensus.NetworkShardingCollector,
 ) error {
 	if check.IfNil(consensusService) {
@@ -179,6 +186,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(headerSigVerifier) {
 		return ErrNilHeaderSigVerifier
+	}
+	if len(chainID) == 0 {
+		return ErrInvalidChainID
 	}
 	if check.IfNil(networkShardingCollector) {
 		return ErrNilNetworkShardingCollector
@@ -238,7 +248,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
@@ -246,6 +255,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	cnsDta := &consensus.Message{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
+		return err
+	}
+	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
+		err := fmt.Errorf("%w received: %s, wanted %s",
+			ErrInvalidChainID,
+			hex.EncodeToString(cnsDta.ChainID),
+			hex.EncodeToString(wrk.chainID),
+		)
+		log.Debug("consensus data chain ID mismatch",
+			"error", err)
 		return err
 	}
 
@@ -278,6 +297,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
+		log.Debug("verify consensus data signature failed",
+			"error", sigVerifErr)
 		return ErrInvalidSignature
 	}
 
@@ -285,20 +306,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return err
-		}
-
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
 			return ErrInvalidHeader
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
 		}
 
 		log.Debug("received proposed block",
@@ -308,6 +318,27 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			log.Debug("verify rand seed failed",
+				"error", err)
+			return err
+		}
+
+		err := header.CheckChainID(wrk.chainID)
+		if err != nil {
+			log.Debug("chain ID mismatch",
+				"error", err)
+			return err
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+		if err != nil {
+			log.Trace("add header in forkdetector", "error", err.Error())
+			//we should not return error here because the other peers connected to self might need this message
+			//to advance the consensus
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
@@ -511,12 +542,12 @@ func (wrk *Worker) displaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RUnlock()
 }
 
-//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()

@@ -9,19 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	initReconnectMul     = 20
-	peerDiscoveryTimeout = 5 * time.Second
-	noOfQueries          = 3
-
-	kadDhtName = "kad-dht discovery"
-
+	initReconnectMul   = 20
+	kadDhtName         = "kad-dht discovery"
 	minWatchdogTimeout = time.Second
 )
 
@@ -157,12 +153,6 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		kdd.refreshInterval,
 		kdd.initialPeersList)
 
-	cfg := dht.BootstrapConfig{
-		Period:  kdd.refreshInterval,
-		Queries: noOfQueries,
-		Timeout: peerDiscoveryTimeout,
-	}
-
 	go func() {
 		<-chanStartBootstrap
 
@@ -170,14 +160,14 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 			i := 1
 			for {
 				kdd.mutKadDht.RLock()
-				dht := kdd.kadDHT
+				kadDht := kdd.kadDHT
 				initConns := kdd.initConns
 				kdd.mutKadDht.RUnlock()
 
 				if initConns {
 					var err error = nil
-					if dht != nil {
-						err = dht.BootstrapOnce(ctx, cfg)
+					if kadDht != nil {
+						err = kadDht.Bootstrap(ctx)
 					}
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()
@@ -191,7 +181,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 					}
 				}
 				select {
-				case <-time.After(cfg.Period):
+				case <-time.After(kdd.refreshInterval):
 				case <-ctx.Done():
 					return
 				}
@@ -295,10 +285,7 @@ func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
-	if kdd == nil {
-		return true
-	}
-	return false
+	return kdd == nil
 }
 
 // StartWatchdog start the watchdog

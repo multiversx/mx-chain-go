@@ -26,8 +26,13 @@ func NewHeaderCounter() *headersCounter {
 
 func (hc *headersCounter) subtractRestoredMBHeaders(numMiniBlockHeaders int) {
 	hc.shardMBHeaderCounterMutex.Lock()
+	defer hc.shardMBHeaderCounterMutex.Unlock()
+	if hc.shardMBHeadersTotalProcessed < uint64(numMiniBlockHeaders) {
+		hc.shardMBHeadersTotalProcessed = 0
+		return
+	}
+
 	hc.shardMBHeadersTotalProcessed -= uint64(numMiniBlockHeaders)
-	hc.shardMBHeaderCounterMutex.Unlock()
 }
 
 func (hc *headersCounter) countShardMBHeaders(numShardMBHeaders int) {

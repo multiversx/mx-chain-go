@@ -16,6 +16,12 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 // ErrNilPubKey signals that the public key is nil
 var ErrNilPubKey = errors.New("nil public key")
 
+// ErrNilNodesCoordinator signals that the nodesCoordinator is nil
+var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
+
+// ErrNilRater signals that the rater is nil
+var ErrNilRater = errors.New("nil rater")
+
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -82,8 +88,8 @@ var ErrNilAddress = errors.New("nil address")
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
-// ErrNilNodesCoordinator signals that a nil nodes coordinator was provided
-var ErrNilNodesCoordinator = errors.New("nil NodesCoordinator")
+// ErrNotImplemented signals a call of a non implemented functionality
+var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")

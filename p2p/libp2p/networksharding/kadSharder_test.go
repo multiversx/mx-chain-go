@@ -15,7 +15,7 @@ const (
 	testNodesCount = 1000
 )
 
-func fakeShard0(id p2p.PeerID) uint32 {
+func fakeShard0(_ p2p.PeerID) uint32 {
 	return 0
 }
 
