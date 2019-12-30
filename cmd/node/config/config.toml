@@ -10,6 +10,19 @@
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 
+[StoragePruning]
+   # If this flag is set to true, the node won't delete any database between epochs
+   FullArchive = false
+
+   # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
+   # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
+   NumEpochsToKeep = 3
+
+   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
+   # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
+   # to the NumOfEpochsToKeep flag
+   NumActivePersisters = 2
+
 [Explorer]
    Enabled = false
    IndexerURL = "http://localhost:9200"
@@ -20,6 +33,17 @@
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
+[MiniBlockHeadersStorage]
+    [MiniBlockHeadersStorage.Cache]
+        Size = 300
+        Type = "LRU"
+    [MiniBlockHeadersStorage.DB]
+        FilePath = "MiniBlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
@@ -259,8 +283,19 @@
 [MultisigHasher]
    Type = "blake2b"
 
+# Marshalizer configuration
+# Type idenftifies the marshalizer
+# SizeCheckDelta the maximum allow drift between the input data buffer and
+#     the reencoded version (in percents).
+#     0 disables the feature.
 [Marshalizer]
    Type = "json"
+   SizeCheckDelta = 0
+
+# TODO: change this config to real numbers before merging to development
+[EpochStartConfig]
+    MinRoundsBetweenEpochs = 1000000
+    RoundsPerEpoch         = 1000000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -297,5 +332,3 @@
    Port = 123
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
-
-

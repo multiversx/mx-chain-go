@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"net/http"
 	"reflect"
 
@@ -18,9 +17,7 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/gin-gonic/gin/json"
 	"github.com/gorilla/websocket"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -31,19 +28,11 @@ type validatorInput struct {
 	Validator validator.Func
 }
 
-type prometheus struct {
-	NodePort  string
-	NetworkID string
-}
-
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiInterface() string
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
-	PrometheusMonitoring() bool
-	PrometheusJoinURL() string
-	PrometheusNetworkID() string
 	IsInterfaceNil() bool
 }
 
@@ -84,41 +73,7 @@ func Start(elrondFacade MainApiHandler) error {
 
 	registerRoutes(ws, elrondFacade)
 
-	if elrondFacade.PrometheusMonitoring() {
-		err = joinMonitoringSystem(elrondFacade)
-		if err != nil {
-			return err
-		}
-	}
-
 	return ws.Run(elrondFacade.RestApiInterface())
-}
-
-func joinMonitoringSystem(elrondFacade MainApiHandler) error {
-	prometheusJoinUrl := elrondFacade.PrometheusJoinURL()
-	structToSend := prometheus{
-		NodePort:  elrondFacade.RestApiInterface(),
-		NetworkID: elrondFacade.PrometheusNetworkID(),
-	}
-
-	jsonValue, err := json.Marshal(structToSend)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", prometheusJoinUrl, bytes.NewBuffer(jsonValue))
-	if err != nil {
-		return err
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	err = resp.Body.Close()
-	return err
 }
 
 func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
@@ -143,11 +98,7 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	valStats.Routes(validatorRoutes)
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
-	if ok && apiHandler.PrometheusMonitoring() {
-		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	}
-
-	if apiHandler.PprofEnabled() {
+	if ok && apiHandler.PprofEnabled() {
 		pprof.Register(ws)
 	}
 

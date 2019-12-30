@@ -82,12 +82,6 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
-// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
-//TODO: Remove this method when it will not be used in elrond facade
-func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
-	return ""
-}
-
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (ef *ElrondNodeFacade) StartBackgroundServices() {
 	go ef.startRest()
@@ -115,21 +109,6 @@ func (ef *ElrondNodeFacade) RestApiInterface() string {
 	}
 
 	return ef.config.RestApiInterface
-}
-
-// PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
-func (ef *ElrondNodeFacade) PrometheusMonitoring() bool {
-	return ef.config.Prometheus
-}
-
-// PrometheusJoinURL will return the join URL from server.toml
-func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
-	return ef.config.PrometheusJoinURL
-}
-
-// PrometheusNetworkID will return the NetworkID from config.toml or the flag
-func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
-	return ef.config.PrometheusJobName
 }
 
 func (ef *ElrondNodeFacade) startRest() {
@@ -165,10 +144,9 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	gasLimit uint64,
 	data string,
 	signatureHex string,
-	challenge string,
 ) (*transaction.Transaction, error) {
 
-	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators

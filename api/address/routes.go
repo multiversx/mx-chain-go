@@ -71,7 +71,7 @@ func GetBalance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"balance": balance})
+	c.JSON(http.StatusOK, gin.H{"balance": balance.String()})
 }
 
 func accountResponseFromBaseAccount(address string, account *state.Account) accountResponse {

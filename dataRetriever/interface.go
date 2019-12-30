@@ -35,10 +35,12 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	// MiniBlockHeaderUnit is the miniblock header data unit identifier
+	MiniBlockHeaderUnit UnitType = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 11
+	BootstrapUnit UnitType = 12
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 12
+	StatusMetricsUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -59,6 +61,8 @@ type Resolver interface {
 type HeaderResolver interface {
 	Resolver
 	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromEpoch(identifier []byte) error
+	SetEpochHandler(epochHandler EpochHandler) error
 }
 
 // MiniBlocksResolver defines what a mini blocks resolver should do
@@ -100,6 +104,12 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines the functionality to get the current epoch
+type EpochHandler interface {
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
