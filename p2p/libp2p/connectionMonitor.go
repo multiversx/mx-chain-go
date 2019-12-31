@@ -42,7 +42,7 @@ func newConnectionMonitor(
 
 	cm := &connectionMonitor{
 		reconnecter:                reconnecter,
-		chDoReconnect:              make(chan struct{}, 0),
+		chDoReconnect:              make(chan struct{}),
 		libp2pContext:              libp2pContext,
 		netw:                       libp2pContext.connHost.Network(),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
@@ -95,11 +95,9 @@ func (cm *connectionMonitor) HandleDisconnectedPeer(_ p2p.PeerID) error {
 
 // DoReconnectionBlocking will try to reconnect to the initial addresses (seeders)
 func (cm *connectionMonitor) DoReconnectionBlocking() {
-	select {
-	case <-cm.chDoReconnect:
-		if cm.reconnecter != nil {
-			cm.reconnecter.ReconnectToNetwork()
-		}
+	<-cm.chDoReconnect
+	if cm.reconnecter != nil {
+		cm.reconnecter.ReconnectToNetwork()
 	}
 }
 
