@@ -201,7 +201,7 @@ func TestConnectionMonitor_BlackListedPeerShouldErr(t *testing.T) {
 	libp2pContext := &Libp2pContext{
 		blacklistHandler: &mock.BlacklistHandlerStub{
 			HasCalled: func(key string) bool {
-				return key == string(pid)
+				return key == pid.Pretty()
 			},
 		},
 		connHost: createStubConnectableHost(),
