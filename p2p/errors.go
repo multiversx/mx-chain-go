@@ -99,3 +99,6 @@ var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 
 // ErrPeerBlacklisted signals that a peer is blacklisted
 var ErrPeerBlacklisted = errors.New("peer is blacklisted")
+
+// ErrNilConfigVariable signals that a nil config variable has been provided
+var ErrNilConfigVariable = errors.New("nil config variable")

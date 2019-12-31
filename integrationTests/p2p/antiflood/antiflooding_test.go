@@ -42,6 +42,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		peerMaxNumProcessMessages,
 		maxMessageSize,
@@ -104,6 +105,7 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		peerMaxNumProcessMessages,
 		maxMessageSize,
@@ -159,6 +161,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	peerMaxMessageSize := uint64(1 << 10) //1KB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		maxNumProcessMessages,
 		peerMaxMessageSize,
@@ -222,6 +225,7 @@ func checkMessagesOnPeers(
 
 func createTopicsAndMockInterceptors(
 	peers []p2p.Messenger,
+	blacklistHandlers []antiflood.QuotaStatusHandler,
 	topic string,
 	peerMaxNumMessages uint32,
 	peerMaxSize uint64,
@@ -241,9 +245,13 @@ func createTopicsAndMockInterceptors(
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
+		statusHandlers := []antiflood.QuotaStatusHandler{&nilQuotaStatusHandler{}}
+		if len(blacklistHandlers) == len(peers) {
+			statusHandlers = append(statusHandlers, blacklistHandlers[idx])
+		}
 		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
 			antifloodPool,
-			[]antiflood.QuotaStatusHandler{&nilQuotaStatusHandler{}},
+			statusHandlers,
 			peerMaxNumMessages,
 			peerMaxSize,
 			maxNumMessages,

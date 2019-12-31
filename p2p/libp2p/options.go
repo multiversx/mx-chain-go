@@ -4,13 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-// Option represents a functional configuration parameter that can operate
-//  over the networkMessenger struct.
-type Option func(*networkMessenger) error
-
 // WithPeerBlackList defines the option of setting a peer black list handler
-func WithPeerBlackList(blacklistHandler p2p.BlacklistHandler) Option {
-	return func(mes *networkMessenger) error {
-		return mes.ctxProvider.SetPeerBlacklist(blacklistHandler)
+func WithPeerBlackList(blacklistHandler p2p.BlacklistHandler) p2p.Option {
+	return func(cfg *p2p.Config) error {
+		if cfg == nil {
+			return p2p.ErrNilConfigVariable
+		}
+		if blacklistHandler == nil {
+			return p2p.ErrNilPeerBlacklistHandler
+		}
+
+		cfg.BlacklistHandler = blacklistHandler
+
+		return nil
 	}
 }

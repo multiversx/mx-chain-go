@@ -273,13 +273,21 @@ func (netMes *networkMessenger) createConnectionMonitor(targetConnCount int) err
 }
 
 // ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
+func (netMes *networkMessenger) ApplyOptions(opts ...p2p.Option) error {
+	cfg := &p2p.Config{}
+
 	for _, opt := range opts {
-		err := opt(netMes)
+		err := opt(cfg)
 		if err != nil {
 			return err
 		}
 	}
+
+	err := netMes.ctxProvider.SetPeerBlacklist(cfg.BlacklistHandler)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

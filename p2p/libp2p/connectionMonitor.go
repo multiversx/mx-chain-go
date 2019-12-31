@@ -63,7 +63,7 @@ func newConnectionMonitor(
 // HandleConnectedPeer is called whenever a new peer is connected to the current host
 func (cm *connectionMonitor) HandleConnectedPeer(pid p2p.PeerID) error {
 	blacklistHandler := cm.libp2pContext.PeerBlacklist()
-	if blacklistHandler.Has(string(pid)) {
+	if blacklistHandler.Has(pid.Pretty()) {
 		return fmt.Errorf("%w, pid: %s", p2p.ErrPeerBlacklisted, pid.Pretty())
 	}
 
@@ -108,7 +108,7 @@ func (cm *connectionMonitor) CheckConnectionsBlocking() {
 	peers := cm.netw.Peers()
 	blacklistHandler := cm.libp2pContext.PeerBlacklist()
 	for _, pid := range peers {
-		if blacklistHandler.Has(string(pid)) {
+		if blacklistHandler.Has(pid.Pretty()) {
 			cm.closePeer(pid)
 		}
 	}
