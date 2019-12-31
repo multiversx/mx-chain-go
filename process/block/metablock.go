@@ -1026,7 +1026,15 @@ func (mp *metaProcessor) CommitBlock(
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
-	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, nil)
+
+	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
+	args := bootStorerDataArgs{
+		headerInfo:                headerInfo,
+		round:                     header.Round,
+		nodesCoordinatorConfigKey: nodesCoordinatorKey,
+	}
+
+	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 

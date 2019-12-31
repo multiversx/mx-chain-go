@@ -85,6 +85,14 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Valid
 	return nil
 }
 
+func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
+	return nil
+}
+
+func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
+	return []byte("key")
+}
+
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uint32) ([]string, error) {
 	panic("implement me")
 }

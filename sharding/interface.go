@@ -27,6 +27,8 @@ type NodesCoordinator interface {
 	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, epoch uint32) error
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
+	LoadState(key []byte) error
+	GetSavedStateKey() []byte
 	IsInterfaceNil() bool
 }
 

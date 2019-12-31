@@ -44,6 +44,8 @@ type indexHashedNodesCoordinator struct {
 	nodesConfig             map[uint32]*epochNodesConfig
 	mutNodesConfig          sync.RWMutex
 	currentEpoch            uint32
+	savedStateKey           []byte
+	mutSavedStateKey        sync.RWMutex
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 }
@@ -69,6 +71,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		hasher:                  arguments.Hasher,
 		shuffler:                arguments.Shuffler,
 		epochStartSubscriber:    arguments.EpochStartSubscriber,
+		bootStorer:              arguments.BootStorer,
 		selfPubKey:              arguments.SelfPublicKey,
 		nodesConfig:             nodesConfig,
 		currentEpoch:            arguments.Epoch,
@@ -175,7 +178,7 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uin
 	return nodesConfig.eligibleMap, nil
 }
 
-// ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
+// ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
 // 1. generate expanded eligible list by multiplying entries from shards' eligible list according to stake and rating -> TODO
@@ -258,7 +261,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	return nil, 0, ErrValidatorNotFound
 }
 
-// GetValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
+// GetConsensusValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
 // returning their public keys
 func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
@@ -280,7 +283,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	return pubKeys, nil
 }
 
-// GetValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
+// GetConsensusValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
 // number, returning their staking/rewards addresses
 func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
 	randomness []byte,
@@ -446,6 +449,13 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	eligibleMap, waitingMap, _ := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
 	_ = ihgs.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	err := ihgs.saveState(randomness)
+	if err != nil {
+		log.Error("saving nodes coordinator config failed", "error", err.Error())
+	}
+	ihgs.mutSavedStateKey.Lock()
+	ihgs.savedStateKey = randomness
+	ihgs.mutSavedStateKey.Unlock()
 }
 
 // EpochStartAction is called upon a start of epoch event.
@@ -465,6 +475,15 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 		}
 	}
 	ihgs.mutNodesConfig.Unlock()
+}
+
+// GetSavedStateKey returns the key for the last nodes coordinator saved state
+func (ihgs *indexHashedNodesCoordinator) GetSavedStateKey() []byte {
+	ihgs.mutSavedStateKey.RLock()
+	key := ihgs.savedStateKey
+	ihgs.mutSavedStateKey.RUnlock()
+
+	return key
 }
 
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {

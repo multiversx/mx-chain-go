@@ -27,6 +27,7 @@ type ArgsStorageBootstrapper struct {
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	BootstrapRoundIndex uint64
 	ShardCoordinator    sharding.Coordinator
+	NodesCoordinator    sharding.NodesCoordinator
 	ResolversFinder     dataRetriever.ResolversFinder
 }
 
@@ -39,6 +40,7 @@ type storageBootstrapper struct {
 	store            dataRetriever.StorageService
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
@@ -219,6 +221,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 	}
+
+	st.nodesCoordinator.LoadState([]byte(bootInfos[0].NodesCoordinatorConfigKey))
 
 	return nil
 }

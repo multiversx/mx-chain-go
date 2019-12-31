@@ -22,6 +22,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 		marshalizer:      arguments.Marshalizer,
 		store:            arguments.Store,
 		shardCoordinator: arguments.ShardCoordinator,
+		nodesCoordinator: arguments.NodesCoordinator,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,

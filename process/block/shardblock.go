@@ -883,7 +883,17 @@ func (sp *shardProcessor) CommitBlock(
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
+	nodesCoordinatorKey := sp.nodesCoordinator.GetSavedStateKey()
+	args := bootStorerDataArgs{
+		headerInfo:                headerInfo,
+		round:                     header.Round,
+		lastFinalHdrs:             finalHeaders,
+		lastFinalHashes:           finalHeadersHashes,
+		processedMiniBlocks:       processedMiniBlocks,
+		nodesCoordinatorConfigKey: nodesCoordinatorKey,
+	}
+
+	sp.prepareDataForBootStorer(args)
 
 	go sp.cleanTxsPools()
 

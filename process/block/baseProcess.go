@@ -87,6 +87,15 @@ type baseProcessor struct {
 	appStatusHandler core.AppStatusHandler
 }
 
+type bootStorerDataArgs struct {
+	headerInfo                bootstrapStorage.BootstrapHeaderInfo
+	round                     uint64
+	lastFinalHdrs             []data.HeaderHandler
+	lastFinalHashes           [][]byte
+	processedMiniBlocks       []bootstrapStorage.MiniBlocksInMeta
+	nodesCoordinatorConfigKey []byte
+}
+
 func checkForNils(
 	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
@@ -1061,40 +1070,35 @@ func (bp *baseProcessor) getHeadersFromPools(
 	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
 }
 
-func (bp *baseProcessor) prepareDataForBootStorer(
-	headerInfo bootstrapStorage.BootstrapHeaderInfo,
-	round uint64,
-	lastFinalHdrs []data.HeaderHandler,
-	lastFinalHashes [][]byte,
-	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
-) {
-	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(lastFinalHdrs))
+func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
+	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(args.lastFinalHdrs))
 
 	//TODO add end of epoch stuff
 
 	lastNotarizedHdrs := bp.getLastNotarizedHdrs()
 	highestFinalNonce := bp.forkDetector.GetHighestFinalBlockNonce()
 
-	for i := range lastFinalHdrs {
+	for i := range args.lastFinalHdrs {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: lastFinalHdrs[i].GetShardID(),
-			Nonce:   lastFinalHdrs[i].GetNonce(),
-			Hash:    lastFinalHashes[i],
+			ShardId: args.lastFinalHdrs[i].GetShardID(),
+			Nonce:   args.lastFinalHdrs[i].GetNonce(),
+			Hash:    args.lastFinalHashes[i],
 		}
 
 		lastFinals = append(lastFinals, headerInfo)
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:           headerInfo,
-		LastNotarizedHeaders: lastNotarizedHdrs,
-		LastFinals:           lastFinals,
-		HighestFinalNonce:    highestFinalNonce,
-		ProcessedMiniBlocks:  processedMiniBlocks,
+		LastHeader:                args.headerInfo,
+		LastNotarizedHeaders:      lastNotarizedHdrs,
+		LastFinals:                lastFinals,
+		HighestFinalNonce:         highestFinalNonce,
+		ProcessedMiniBlocks:       args.processedMiniBlocks,
+		NodesCoordinatorConfigKey: string(args.nodesCoordinatorConfigKey),
 	}
 
 	go func() {
-		err := bp.bootStorer.Put(int64(round), bootData)
+		err := bp.bootStorer.Put(int64(args.round), bootData)
 		if err != nil {
 			log.Warn("cannot save boot data in storage",
 				"error", err.Error())

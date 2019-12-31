@@ -37,7 +37,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 	return ihgs.bootStorer.Put(key, data)
 }
 
-func (ihgs *indexHashedNodesCoordinator) loadState(key []byte) error {
+func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	key = append([]byte(keyPrefix), key...)
 
 	data, err := ihgs.bootStorer.Get(key)
@@ -50,6 +50,10 @@ func (ihgs *indexHashedNodesCoordinator) loadState(key []byte) error {
 	if err != nil {
 		return err
 	}
+
+	ihgs.mutSavedStateKey.Lock()
+	ihgs.savedStateKey = key
+	ihgs.mutSavedStateKey.Unlock()
 
 	return ihgs.registryToNodesCoordinator(config)
 }
