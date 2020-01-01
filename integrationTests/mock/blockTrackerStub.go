@@ -19,6 +19,7 @@ type BlockTrackerStub struct {
 	LastHeaderForShardCalled                  func(shardId uint32) data.HeaderHandler
 	RegisterSelfNotarizedHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastCrossNotarizedHeaderCalled      func()
+	RemoveLastSelfNotarizedHeaderCalled       func()
 	RestoreHeadersToGenesisCalled             func()
 }
 
@@ -108,6 +109,12 @@ func (bts *BlockTrackerStub) RegisterSelfNotarizedHeadersHandler(handler func(sh
 func (bts *BlockTrackerStub) RemoveLastCrossNotarizedHeader() {
 	if bts.RemoveLastCrossNotarizedHeaderCalled != nil {
 		bts.RemoveLastCrossNotarizedHeaderCalled()
+	}
+}
+
+func (bts *BlockTrackerStub) RemoveLastSelfNotarizedHeader() {
+	if bts.RemoveLastSelfNotarizedHeaderCalled != nil {
+		bts.RemoveLastSelfNotarizedHeaderCalled()
 	}
 }
 

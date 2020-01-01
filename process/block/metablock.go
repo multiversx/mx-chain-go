@@ -551,6 +551,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	mp.blockTracker.RemoveLastCrossNotarizedHeader()
+	mp.blockTracker.RemoveLastSelfNotarizedHeader()
 
 	return nil
 }

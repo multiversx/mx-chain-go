@@ -548,6 +548,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
 	sp.blockTracker.RemoveLastCrossNotarizedHeader()
+	sp.blockTracker.RemoveLastSelfNotarizedHeader()
 
 	return nil
 }
