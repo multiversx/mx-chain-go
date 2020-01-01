@@ -90,4 +90,4 @@ const MaxNonceDifferences = uint64(1000)
 
 // MaxHeadersFromSameShardInMetaBlock represents maximum number of shard headers form the same shard which could be
 // included in one meta block
-const MaxHeadersFromSameShardInMetaBlock = 5
+//const MaxHeadersFromSameShardInMetaBlock = 5
