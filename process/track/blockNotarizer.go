@@ -105,6 +105,10 @@ func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32) {
 			return
 		}
 
+		log.Debug("notarized headers info",
+			"shard", shardID,
+			"nb", len(notarizedHeaders))
+
 		for _, headerInfo := range notarizedHeaders {
 			log.Trace("notarized header info",
 				"round", headerInfo.header.GetRound(),

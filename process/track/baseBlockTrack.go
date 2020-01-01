@@ -367,13 +367,8 @@ func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 }
 
 func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
-	log.Trace("tracked headers", "shard", shardID)
 	bbt.displayTrackedHeadersForShard(shardID)
-
-	log.Trace("cross notarized headers", "shard", shardID)
 	bbt.crossNotarizedHeaders.displayNotarizedHeaders(shardID)
-
-	log.Trace("self notarized headers", "shard", shardID)
 	bbt.selfNotarizedHeaders.displayNotarizedHeaders(shardID)
 }
 
@@ -384,6 +379,10 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32) {
 	if shouldNotDisplay {
 		return
 	}
+
+	log.Debug("tracked headers info",
+		"shard", shardID,
+		"nb", len(headers))
 
 	for index, header := range headers {
 		log.Trace("tracked header info",
