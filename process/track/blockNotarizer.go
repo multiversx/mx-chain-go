@@ -87,7 +87,7 @@ func (bn *blockNotarizer) cleanupNotarizedHeadersBehindNonce(shardID uint32, non
 	bn.notarizedHeaders[shardID] = headersInfo
 }
 
-func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32) {
+func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32, message string) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
@@ -105,7 +105,7 @@ func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32) {
 			return
 		}
 
-		log.Debug("notarized headers info",
+		log.Debug(message,
 			"shard", shardID,
 			"nb", len(notarizedHeaders))
 
