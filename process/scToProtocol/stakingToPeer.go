@@ -174,7 +174,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.createPeerChangeData(stakingData, peerAcc, nonce)
+		err = stp.createPeerChangeData(stakingData, peerAcc, nonce, blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -253,6 +253,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
 	nonce uint64,
+	blsKey []byte,
 ) error {
 	stp.mutPeerChanges.Lock()
 	defer stp.mutPeerChanges.Unlock()
@@ -265,11 +266,11 @@ func (stp *stakingToPeer) createPeerChangeData(
 		ValueChange: big.NewInt(0),
 	}
 
-	if len(account.BLSPublicKey) == 0 {
+	if len(account.Address) == 0 {
 		actualPeerChange.Action = block.PeerRegistrantion
 		actualPeerChange.TimeStamp = stakingData.StartNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
-
+		actualPeerChange.Address = blsKey
 		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
 		if err != nil {
 			return err

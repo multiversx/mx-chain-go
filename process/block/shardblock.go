@@ -1966,12 +1966,18 @@ func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data
 
 func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.Header, processedMetaHdrs []data.HeaderHandler) error {
 	for _, metaHeader := range processedMetaHdrs {
+		beforeHash, _ := sp.validatorStatisticsProcessor.RootHash()
+
 		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+
 		if err != nil {
 			return err
 		}
 
 		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
+			log.Info("Shard BeforeSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", beforeHash)
+			log.Info("Shard AfterSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", rootHash)
+			log.Info("Shard HeaderSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", metaHeader.GetValidatorStatsRootHash())
 			return process.ErrValidatorStatsRootHashDoesNotMatch
 		}
 	}

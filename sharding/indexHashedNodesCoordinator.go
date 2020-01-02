@@ -3,7 +3,6 @@ package sharding
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -129,11 +128,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
-	validatorLists := make([]string, 0)
-	for _, validator := range expandedList {
-		validatorLists = append(validatorLists, hex.EncodeToString(validator.PubKey()))
-	}
-	log.Info("Current List", "shardID", shardId, "randomness", randomness, "Validators:", validatorLists)
+
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -141,12 +136,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		checkedIndex := ihgs.checkIndex(proposedIndex, expandedList, tempList)
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
-
-	validatorLists = make([]string, 0)
-	for _, validator := range tempList {
-		validatorLists = append(validatorLists, hex.EncodeToString(validator.PubKey()))
-	}
-	log.Info("Temp List", "shardID", shardId, "randomness", randomness, "Validators:", validatorLists)
 
 	return tempList, nil
 }

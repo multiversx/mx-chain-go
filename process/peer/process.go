@@ -195,8 +195,8 @@ func (p *validatorStatistics) updatePeerState(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+	if !bytes.Equal(peerChange.Address, account.Address) {
+		err := account.SetSchnorrPublicKeyWithJournal(peerChange.Address)
 		if err != nil {
 			return err
 		}
