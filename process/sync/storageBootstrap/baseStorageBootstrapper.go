@@ -231,9 +231,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 	}
 
-	st.nodesCoordinator.LoadState([]byte(bootInfos[0].NodesCoordinatorConfigKey))
-
-	return nil
+	return st.nodesCoordinator.LoadState([]byte(bootInfos[0].NodesCoordinatorConfigKey))
 }
 
 func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.BootstrapHeaderInfo) {
