@@ -9,6 +9,8 @@ import (
 
 // CreateTxPool creates a new tx pool, according to the configuration
 func CreateTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
+	config.Type = storageUnit.FIFOShardedCache
+
 	switch config.Type {
 	case storageUnit.FIFOShardedCache:
 		return shardedData.NewShardedData(config)
