@@ -61,6 +61,8 @@ type Resolver interface {
 type HeaderResolver interface {
 	Resolver
 	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromEpoch(identifier []byte) error
+	SetEpochHandler(epochHandler EpochHandler) error
 }
 
 // MiniBlocksResolver defines what a mini blocks resolver should do
@@ -102,6 +104,12 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines the functionality to get the current epoch
+type EpochHandler interface {
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
