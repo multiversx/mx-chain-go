@@ -105,7 +105,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []b
 	return miniBlocksInMetaBlocks
 }
 
-// ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
+// ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]MiniBlockHashes
 func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	defer pmb.mutProcessedMiniBlocks.Unlock()
