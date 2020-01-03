@@ -7,31 +7,30 @@ import (
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	AddHeaderCalled                       func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error
-	RemoveHeadersCalled                   func(nonce uint64, hash []byte)
+	AddHeaderCalled                       func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	RemoveHeaderCalled                    func(nonce uint64, hash []byte)
 	CheckForkCalled                       func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled       func() uint64
 	GetHighestFinalBlockHashCalled        func() []byte
 	ProbableHighestNonceCalled            func() uint64
-	ResetProbableHighestNonceCalled       func()
 	ResetForkCalled                       func()
 	GetNotarizedHeaderHashCalled          func(nonce uint64) []byte
 	RestoreFinalCheckPointToGenesisCalled func()
-	SetForkNonceCalled                    func(nonce uint64)
+	SetRollBackNonceCalled                func(nonce uint64)
 }
 
 func (fdm *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
 	fdm.RestoreFinalCheckPointToGenesisCalled()
 }
 
-// AddTrackedHeader is a mock implementation for AddTrackedHeader
-func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, notarizedHeaders, notarizedHeadersHashes)
+// AddHeader is a mock implementation for AddHeader
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 }
 
-// RemoveHeaders is a mock implementation for RemoveHeaders
-func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
-	fdm.RemoveHeadersCalled(nonce, hash)
+// RemoveHeader is a mock implementation for RemoveHeader
+func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
+	fdm.RemoveHeaderCalled(nonce, hash)
 }
 
 // CheckFork is a mock implementation for CheckFork
@@ -53,13 +52,9 @@ func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
 	return f.ProbableHighestNonceCalled()
 }
 
-func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
-	fdm.ResetProbableHighestNonceCalled()
-}
-
-func (fdm *ForkDetectorMock) SetForkNonce(nonce uint64) {
-	if fdm.SetForkNonceCalled != nil {
-		fdm.SetForkNonceCalled(nonce)
+func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
+	if fdm.SetRollBackNonceCalled != nil {
+		fdm.SetRollBackNonceCalled(nonce)
 	}
 }
 

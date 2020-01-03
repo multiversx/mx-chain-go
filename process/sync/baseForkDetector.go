@@ -25,13 +25,11 @@ type checkpointInfo struct {
 }
 
 type forkInfo struct {
-	checkpoint             []*checkpointInfo
-	finalCheckpoint        *checkpointInfo
-	probableHighestNonce   uint64
-	lastBlockRound         uint64
-	lastProposedBlockNonce uint64
-	shouldForceFork        bool
-	nonce                  uint64
+	checkpoint           []*checkpointInfo
+	finalCheckpoint      *checkpointInfo
+	probableHighestNonce uint64
+	shouldForceFork      bool
+	rollBackNonce        uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -48,16 +46,16 @@ type baseForkDetector struct {
 	blockTracker     process.BlockTracker
 }
 
-// SetForkNonce sets the nonce where the chain should roll back
-func (bfd *baseForkDetector) SetForkNonce(nonce uint64) {
+// SetRollBackNonce sets the nonce where the chain should roll back
+func (bfd *baseForkDetector) SetRollBackNonce(nonce uint64) {
 	bfd.mutFork.Lock()
-	bfd.fork.nonce = nonce
+	bfd.fork.rollBackNonce = nonce
 	bfd.mutFork.Unlock()
 }
 
-func (bfd *baseForkDetector) getForcedForkNonce() uint64 {
+func (bfd *baseForkDetector) getRollBackForkNonce() uint64 {
 	bfd.mutFork.RLock()
-	nonce := bfd.fork.nonce
+	nonce := bfd.fork.rollBackNonce
 	bfd.mutFork.RUnlock()
 
 	return nonce
@@ -185,8 +183,8 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	return probableHighestNonce
 }
 
-// RemoveHeaders removes all the stored headers with a given nonce
-func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
+// RemoveHeader removes the stored header with the given nonce and hash
+func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
 	preservedHdrInfos := make([]*headerInfo, 0)
@@ -197,7 +195,9 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, _ []byte) {
 	hdrInfos := bfd.headers[nonce]
 	for _, hdrInfoStored := range hdrInfos {
 		if hdrInfoStored.state != process.BHNotarized {
-			continue
+			if bytes.Equal(hash, hdrInfoStored.hash) {
+				continue
+			}
 		}
 
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
@@ -236,7 +236,6 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
 	// is achieved. They should be received afterwards through sync mechanism.
 	if hdrInfo.state == process.BHProposed {
-		bfd.setLastProposedBlockNonce(hdrInfo.nonce)
 		return false
 	}
 
@@ -272,13 +271,9 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 	return bfd.probableHighestNonce()
 }
 
-// ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
-func (bfd *baseForkDetector) ResetProbableHighestNonce() {
-	bfd.setProbableHighestNonce(bfd.lastCheckpoint().nonce)
-}
-
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
+	bfd.setProbableHighestNonce(bfd.lastCheckpoint().nonce)
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	bfd.setShouldForceFork(false)
 }
@@ -338,34 +333,6 @@ func (bfd *baseForkDetector) probableHighestNonce() uint64 {
 	return probableHighestNonce
 }
 
-func (bfd *baseForkDetector) setLastBlockRound(round uint64) {
-	bfd.mutFork.Lock()
-	bfd.fork.lastBlockRound = round
-	bfd.mutFork.Unlock()
-}
-
-func (bfd *baseForkDetector) lastBlockRound() uint64 {
-	bfd.mutFork.RLock()
-	lastBlockRound := bfd.fork.lastBlockRound
-	bfd.mutFork.RUnlock()
-
-	return lastBlockRound
-}
-
-func (bfd *baseForkDetector) setLastProposedBlockNonce(nonce uint64) {
-	bfd.mutFork.Lock()
-	bfd.fork.lastProposedBlockNonce = nonce
-	bfd.mutFork.Unlock()
-}
-
-func (bfd *baseForkDetector) lastProposedBlockNonce() uint64 {
-	bfd.mutFork.RLock()
-	lastProposedBlockNonce := bfd.fork.lastProposedBlockNonce
-	bfd.mutFork.RUnlock()
-
-	return lastProposedBlockNonce
-}
-
 func (bfd *baseForkDetector) setShouldForceFork(shouldForceFork bool) {
 	bfd.mutFork.Lock()
 	bfd.fork.shouldForceFork = shouldForceFork
@@ -401,10 +368,11 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		return forkInfo
 	}
 
-	if bfd.getForcedForkNonce() < math.MaxUint64 {
+	rollBackNonce := bfd.getRollBackForkNonce()
+	if rollBackNonce < math.MaxUint64 {
 		forkInfo.IsDetected = true
-		forkInfo.Nonce = bfd.getForcedForkNonce()
-		bfd.SetForkNonce(math.MaxUint64)
+		forkInfo.Nonce = rollBackNonce
+		bfd.SetRollBackNonce(math.MaxUint64)
 		return forkInfo
 	}
 
@@ -531,7 +499,6 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	state process.BlockHeaderState,
 	finality int64,
 ) bool {
-
 	if state == process.BHProcessed {
 		return false
 	}
@@ -543,15 +510,6 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 
 	return isHeaderReceivedTooLate
 }
-
-//func (bfd *baseForkDetector) activateForcedForkIfNeeded(
-//	header data.HeaderHandler,
-//	state process.BlockHeaderState,
-//	notarizedShard uint32,
-//) {
-//	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
-//	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state, notarizedShard)
-//}
 
 func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 	header data.HeaderHandler,
@@ -576,32 +534,6 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 		bfd.setShouldForceFork(true)
 	}
 }
-
-//func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
-//	header data.HeaderHandler,
-//	state process.BlockHeaderState,
-//	notarizedShard uint32,
-//) {
-//	if state != process.BHProposed || bfd.isSyncing() {
-//		return
-//	}
-//
-//	lastCheckpointNonce := bfd.lastCheckpoint().nonce
-//	finalCheckpointNonce := bfd.finalCheckpoint().nonce
-//
-//	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
-//	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
-//	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-//
-//	isCrossNotarizedStuck := noncesWithoutCrossNotarizedDifference > process.MaxNoncesWithoutCrossNotarized &&
-//		noncesDifference <= 1 &&
-//		isInProperRound &&
-//		!bfd.blockTracker.IsShardStuck(notarizedShard)
-//
-//	if isCrossNotarizedStuck {
-//		bfd.setShouldForceFork(true)
-//	}
-//}
 
 func (bfd *baseForkDetector) isSyncing() bool {
 	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(bfd.lastCheckpoint().nonce)

@@ -151,7 +151,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
-		log.Debug("forkDetector.AddTrackedHeader", "error", err.Error())
+		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
 
 	boot.mutRcvHdrHash.Lock()
@@ -331,7 +331,7 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
-	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
+	boot.forkDetector.RemoveHeader(header.GetNonce(), hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
@@ -479,16 +479,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
-			boot.forkDetector.RemoveHeaders(headerHandler.GetNonce(), hash)
+			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
 		}
 
 		errNotCritical := boot.rollBack(false)
 		if errNotCritical != nil {
 			log.Debug("rollBack", "error", errNotCritical.Error())
-		}
-
-		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
-			boot.forkDetector.ResetProbableHighestNonce()
 		}
 	}
 }
@@ -747,7 +743,6 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 		log.Debug("rollBack", "error", err.Error())
 	}
 
-	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
 }
 

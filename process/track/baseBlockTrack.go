@@ -35,15 +35,14 @@ type baseBlockTrack struct {
 	headersNoncesPool dataRetriever.Uint64SyncMapCacher
 	store             dataRetriever.StorageService
 
-	mutHeaders sync.RWMutex
-	headers    map[uint32]map[uint64][]*headerInfo
-
-	blockProcessor        blockProcessorHandler
-	crossNotarizedHeaders blockNotarizerHandler
-	selfNotarizedHeaders  blockNotarizerHandler
-
+	blockProcessor                blockProcessorHandler
+	crossNotarizer                blockNotarizerHandler
+	selfNotarizer                 blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+
+	mutHeaders sync.RWMutex
+	headers    map[uint32]map[uint64][]*headerInfo
 }
 
 func (bbt *baseBlockTrack) receivedShardHeader(shardHeaderHash []byte) {
@@ -95,9 +94,9 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(header data.HeaderHandler) bool {
 
 	isHeaderForSelfShard := header.GetShardID() == bbt.shardCoordinator.SelfId()
 	if isHeaderForSelfShard {
-		lastNotarizedHeaderNonce = bbt.selfNotarizedHeaders.getLastNotarizedHeaderNonce(header.GetShardID())
+		lastNotarizedHeaderNonce = bbt.selfNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
 	} else {
-		lastNotarizedHeaderNonce = bbt.crossNotarizedHeaders.getLastNotarizedHeaderNonce(header.GetShardID())
+		lastNotarizedHeaderNonce = bbt.crossNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
 	}
 
 	if header.GetNonce() > lastNotarizedHeaderNonce+process.MaxNonceDifferences {
@@ -116,11 +115,11 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 		return
 	}
 
-	shardID := header.GetShardID()
-	nonce := header.GetNonce()
-
 	bbt.mutHeaders.Lock()
 	defer bbt.mutHeaders.Unlock()
+
+	shardID := header.GetShardID()
+	nonce := header.GetNonce()
 
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
@@ -137,18 +136,13 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	headersForShard[nonce] = append(headersForShard[nonce], &headerInfo{hash: hash, header: header})
 }
 
-// AddTrackedHeader adds header to the tracker lists
-func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
-}
-
 // AddCrossNotarizedHeader adds cross notarized header to the tracker lists
 func (bbt *baseBlockTrack) AddCrossNotarizedHeader(
 	shardID uint32,
 	crossNotarizedHeader data.HeaderHandler,
 	crossNotarizedHeaderHash []byte,
 ) {
-	bbt.crossNotarizedHeaders.addNotarizedHeader(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
+	bbt.crossNotarizer.addNotarizedHeader(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
 }
 
 // AddSelfNotarizedHeader adds self notarized headers to the tracker lists
@@ -157,33 +151,38 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 	selfNotarizedHeader data.HeaderHandler,
 	selfNotarizedHeaderHash []byte,
 ) {
-	bbt.selfNotarizedHeaders.addNotarizedHeader(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
+	bbt.selfNotarizer.addNotarizedHeader(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
 }
 
-// CleanupHeadersForShardBehindNonce removes from local pools old headers for a given shard
-func (bbt *baseBlockTrack) CleanupHeadersForShardBehindNonce(
+// AddTrackedHeader adds tracked headers to the tracker lists
+func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
+	bbt.addHeader(header, hash)
+}
+
+// CleanupHeadersBehindNonce removes from local pools old headers for a given shard
+func (bbt *baseBlockTrack) CleanupHeadersBehindNonce(
 	shardID uint32,
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
-	bbt.selfNotarizedHeaders.cleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
+	bbt.selfNotarizer.cleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
 	nonce := selfNotarizedNonce
 
 	if shardID != bbt.shardCoordinator.SelfId() {
-		bbt.crossNotarizedHeaders.cleanupNotarizedHeadersBehindNonce(shardID, crossNotarizedNonce)
+		bbt.crossNotarizer.cleanupNotarizedHeadersBehindNonce(shardID, crossNotarizedNonce)
 		nonce = crossNotarizedNonce
 	}
 
-	bbt.cleanupHeadersForShardBehindNonce(shardID, nonce)
+	bbt.cleanupTrackedHeadersBehindNonce(shardID, nonce)
 }
 
-func (bbt *baseBlockTrack) cleanupHeadersForShardBehindNonce(shardID uint32, nonce uint64) {
-	bbt.mutHeaders.Lock()
-	defer bbt.mutHeaders.Unlock()
-
+func (bbt *baseBlockTrack) cleanupTrackedHeadersBehindNonce(shardID uint32, nonce uint64) {
 	if nonce == 0 {
 		return
 	}
+
+	bbt.mutHeaders.Lock()
+	defer bbt.mutHeaders.Unlock()
 
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
@@ -198,11 +197,7 @@ func (bbt *baseBlockTrack) cleanupHeadersForShardBehindNonce(shardID uint32, non
 }
 
 // ComputeLongestChain returns the longest valid chain for a given shard from a given header
-func (bbt *baseBlockTrack) ComputeLongestChain(
-	shardID uint32,
-	header data.HeaderHandler,
-) ([]data.HeaderHandler, [][]byte) {
-
+func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	return bbt.blockProcessor.computeLongestChain(shardID, header)
 }
 
@@ -215,31 +210,110 @@ func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 	bbt.displayHeadersForShard(sharding.MetachainShardId)
 }
 
-// GetCrossNotarizedHeader returns a cross notarized header for a given shard with a given offset, behind last cross notarized header
-func (bbt *baseBlockTrack) GetCrossNotarizedHeader(
-	shardID uint32,
-	offset uint64,
-) (data.HeaderHandler, []byte, error) {
+func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
+	bbt.displayTrackedHeadersForShard(shardID, "tracked headers")
+	bbt.crossNotarizer.displayNotarizedHeaders(shardID, "cross notarized headers")
+	bbt.selfNotarizer.displayNotarizedHeaders(shardID, "self notarized headers")
+}
 
-	return bbt.crossNotarizedHeaders.getNotarizedHeader(shardID, offset)
+func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message string) {
+	headers, hashes := bbt.sortHeadersFromNonce(shardID, 0)
+	shouldNotDisplay := len(headers) == 0 ||
+		len(headers) == 1 && headers[0].GetNonce() == 0
+	if shouldNotDisplay {
+		return
+	}
+
+	log.Debug(message,
+		"shard", shardID,
+		"nb", len(headers))
+
+	for index, header := range headers {
+		log.Trace("tracked header info",
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", hashes[index])
+	}
+}
+
+// GetCrossNotarizedHeader returns a cross notarized header for a given shard with a given offset, behind last cross notarized header
+func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	return bbt.crossNotarizer.getNotarizedHeader(shardID, offset)
 }
 
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard
 func (bbt *baseBlockTrack) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	return bbt.crossNotarizedHeaders.getLastNotarizedHeader(shardID)
+	return bbt.crossNotarizer.getLastNotarizedHeader(shardID)
+}
+
+// GetLastHeader returns the last header received (highest round) for the given shard
+func (bbt *baseBlockTrack) GetLastHeader(shardID uint32) data.HeaderHandler {
+	bbt.mutHeaders.RLock()
+	defer bbt.mutHeaders.RUnlock()
+
+	var lastHeaderForShard data.HeaderHandler
+
+	headersForShard, ok := bbt.headers[shardID]
+	if !ok {
+		return lastHeaderForShard
+	}
+
+	maxRound := uint64(0)
+	for _, headersInfo := range headersForShard {
+		for _, headerInfo := range headersInfo {
+			if headerInfo.header.GetRound() > maxRound {
+				maxRound = headerInfo.header.GetRound()
+				lastHeaderForShard = headerInfo.header
+			}
+		}
+	}
+
+	return lastHeaderForShard
 }
 
 // GetTrackedHeadersForShard returns tracked headers for a given shard
-func (bbt *baseBlockTrack) GetTrackedHeadersForShard(shardID uint32) ([]data.HeaderHandler, [][]byte) {
-	return bbt.sortHeadersForShardFromNonce(shardID, 0)
+func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
+	return bbt.sortHeadersFromNonce(shardID, 0)
 }
 
-// GetTrackedHeadersForShardWithNonce returns tracked headers for a given shard and nonce
-func (bbt *baseBlockTrack) GetTrackedHeadersForShardWithNonce(
-	shardID uint32,
-	nonce uint64,
-) ([]data.HeaderHandler, [][]byte) {
+func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+	bbt.mutHeaders.RLock()
+	defer bbt.mutHeaders.RUnlock()
 
+	headersForShard, ok := bbt.headers[shardID]
+	if !ok {
+		return nil, nil
+	}
+
+	sortedHeadersInfo := make([]*headerInfo, 0)
+
+	for headersNonce, headersInfo := range headersForShard {
+		if headersNonce < nonce {
+			continue
+		}
+
+		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
+	}
+
+	if len(sortedHeadersInfo) > 1 {
+		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
+			return sortedHeadersInfo[i].header.GetNonce() < sortedHeadersInfo[j].header.GetNonce()
+		})
+	}
+
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	for _, headerInfo := range sortedHeadersInfo {
+		headers = append(headers, headerInfo.header)
+		headersHashes = append(headersHashes, headerInfo.hash)
+	}
+
+	return headers, headersHashes
+}
+
+// GetTrackedHeadersWithNonce returns tracked headers for a given shard and nonce
+func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	bbt.mutHeaders.RLock()
 	defer bbt.mutHeaders.RUnlock()
 
@@ -266,38 +340,13 @@ func (bbt *baseBlockTrack) GetTrackedHeadersForShardWithNonce(
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardId uint32) bool {
-	header := bbt.lastHeaderForShard(shardId)
+	header := bbt.GetLastHeader(shardId)
 	if check.IfNil(header) {
 		return false
 	}
 
 	isShardStuck := bbt.rounder.Index()-int64(header.GetRound()) >= process.MaxRoundsWithoutCommittedBlock
 	return isShardStuck
-}
-
-// LastHeaderForShard returns the last header received (highest round) for the given shard
-func (bbt *baseBlockTrack) lastHeaderForShard(shardID uint32) data.HeaderHandler {
-	bbt.mutHeaders.RLock()
-	defer bbt.mutHeaders.RUnlock()
-
-	var lastHeaderForShard data.HeaderHandler
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		return lastHeaderForShard
-	}
-
-	maxRound := uint64(0)
-	for _, headersInfo := range headersForShard {
-		for _, headerInfo := range headersInfo {
-			if headerInfo.header.GetRound() > maxRound {
-				maxRound = headerInfo.header.GetRound()
-				lastHeaderForShard = headerInfo.header
-			}
-		}
-	}
-
-	return lastHeaderForShard
 }
 
 // RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
@@ -314,21 +363,23 @@ func (bbt *baseBlockTrack) RegisterSelfNotarizedHeadersHandler(
 	bbt.selfNotarizedHeadersNotifier.registerHandler(handler)
 }
 
-// RemoveLastCrossNotarizedHeader removes last cross notarized header from tracker list
-func (bbt *baseBlockTrack) RemoveLastCrossNotarizedHeader() {
-	bbt.crossNotarizedHeaders.removeLastNotarizedHeader()
+// RemoveLastNotarizedHeaders removes last notarized headers from tracker list
+func (bbt *baseBlockTrack) RemoveLastNotarizedHeaders() {
+	bbt.crossNotarizer.removeLastNotarizedHeader()
+	bbt.selfNotarizer.removeLastNotarizedHeader()
 }
 
-// RemoveLastSelfNotarizedHeader removes last self notarized header from tracker list
-func (bbt *baseBlockTrack) RemoveLastSelfNotarizedHeader() {
-	bbt.selfNotarizedHeaders.removeLastNotarizedHeader()
-}
-
-// RestoreHeadersToGenesis restores notarized tracker lists to genesis
+// RestoreHeadersToGenesis restores notarized headers from tracker lists to genesis
 func (bbt *baseBlockTrack) RestoreHeadersToGenesis() {
-	bbt.crossNotarizedHeaders.restoreNotarizedHeadersToGenesis()
-	bbt.selfNotarizedHeaders.restoreNotarizedHeadersToGenesis()
+	bbt.crossNotarizer.restoreNotarizedHeadersToGenesis()
+	bbt.selfNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.restoreTrackedHeadersToGenesis()
+}
+
+func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
+	bbt.mutHeaders.Lock()
+	bbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	bbt.mutHeaders.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -337,7 +388,6 @@ func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 }
 
 func checkTrackerNilParameters(arguments ArgBaseTracker) error {
-
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
@@ -358,76 +408,4 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 
 	return nil
-}
-
-func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
-	bbt.mutHeaders.Lock()
-	bbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	bbt.mutHeaders.Unlock()
-}
-
-func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {
-	bbt.displayTrackedHeadersForShard(shardID, "tracked headers")
-	bbt.crossNotarizedHeaders.displayNotarizedHeaders(shardID, "cross notarized headers")
-	bbt.selfNotarizedHeaders.displayNotarizedHeaders(shardID, "self notarized headers")
-}
-
-func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message string) {
-	headers, hashes := bbt.sortHeadersForShardFromNonce(shardID, 0)
-	shouldNotDisplay := len(headers) == 0 ||
-		len(headers) == 1 && headers[0].GetNonce() == 0
-	if shouldNotDisplay {
-		return
-	}
-
-	log.Debug(message,
-		"shard", shardID,
-		"nb", len(headers))
-
-	for index, header := range headers {
-		log.Trace("tracked header info",
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", hashes[index])
-	}
-}
-
-func (bbt *baseBlockTrack) sortHeadersForShardFromNonce(
-	shardID uint32,
-	nonce uint64,
-) ([]data.HeaderHandler, [][]byte) {
-
-	bbt.mutHeaders.RLock()
-	defer bbt.mutHeaders.RUnlock()
-
-	sortedHeadersInfo := make([]*headerInfo, 0)
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		return nil, nil
-	}
-
-	for headersNonce, headersInfo := range headersForShard {
-		if headersNonce < nonce {
-			continue
-		}
-
-		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
-	}
-
-	if len(sortedHeadersInfo) > 1 {
-		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
-			return sortedHeadersInfo[i].header.GetNonce() < sortedHeadersInfo[j].header.GetNonce()
-		})
-	}
-
-	headers := make([]data.HeaderHandler, 0)
-	headersHashes := make([][]byte, 0)
-
-	for _, headerInfo := range sortedHeadersInfo {
-		headers = append(headers, headerInfo.header)
-		headersHashes = append(headersHashes, headerInfo.hash)
-	}
-
-	return headers, headersHashes
 }

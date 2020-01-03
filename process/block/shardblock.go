@@ -547,8 +547,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
-	sp.blockTracker.RemoveLastCrossNotarizedHeader()
-	sp.blockTracker.RemoveLastSelfNotarizedHeader()
+	sp.blockTracker.RemoveLastNotarizedHeaders()
 
 	return nil
 }
@@ -758,7 +757,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	finalHeaders, finalHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	selfNotarizedHeaders, selfNotarizedHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
 	if err != nil {
 		return err
 	}
@@ -797,9 +796,9 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("removeProcessedMetaBlocksFromPool", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddTrackedHeader", "error", errNotCritical.Error())
+		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
 	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
@@ -851,7 +850,7 @@ func (sp *shardProcessor) CommitBlock(
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
+	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
 
@@ -914,7 +913,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 		log.Debug("blockchain is wrongly constructed",
 			"reverted to nonce", nonce)
 
-		sp.forkDetector.SetForkNonce(nonce)
+		sp.forkDetector.SetRollBackNonce(nonce)
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -1488,7 +1487,7 @@ func (sp *shardProcessor) getLongestMetaChainFromLastNotarized(round uint64) ([]
 }
 
 func (sp *shardProcessor) getTrackedMetaBlocks(round uint64) []data.HeaderHandler {
-	hdrsForShard, _ := sp.blockTracker.GetTrackedHeadersForShard(sharding.MetachainShardId)
+	hdrsForShard, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
 	return hdrsForShard
 }
 

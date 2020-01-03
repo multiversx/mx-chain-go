@@ -44,7 +44,7 @@ func NewShardForkDetector(
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
-	bfd.fork.nonce = math.MaxUint64
+	bfd.fork.rollBackNonce = math.MaxUint64
 
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,
@@ -76,7 +76,6 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
-	//sfd.activateForcedForkIfNeeded(header, state, sharding.MetachainShardId)
 	sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
 	isHeaderReceivedTooLate := sfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
@@ -84,13 +83,16 @@ func (sfd *shardForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	_ = sfd.append(&headerInfo{
+	appended := sfd.append(&headerInfo{
 		epoch: header.GetEpoch(),
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
 		state: state,
 	})
+	if !appended {
+		return nil
+	}
 
 	if state == process.BHProcessed {
 		sfd.addSelfNotarizedHeaders(sharding.MetachainShardId, selfNotarizedHeaders, selfNotarizedHeadersHashes)
@@ -99,7 +101,6 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	probableHighestNonce := sfd.computeProbableHighestNonce()
-	sfd.setLastBlockRound(uint64(sfd.rounder.Index()))
 	sfd.setProbableHighestNonce(probableHighestNonce)
 
 	return nil
@@ -122,12 +123,13 @@ func (sfd *shardForkDetector) addSelfNotarizedHeaders(
 			continue
 		}
 
-		if sfd.append(&headerInfo{
+		appended := sfd.append(&headerInfo{
 			nonce: selfNotarizedHeaders[i].GetNonce(),
 			round: selfNotarizedHeaders[i].GetRound(),
 			hash:  selfNotarizedHeadersHashes[i],
 			state: process.BHNotarized,
-		}) {
+		})
+		if appended {
 			log.Debug("added self notarized header",
 				"shard", selfNotarizedHeaders[i].GetShardID(),
 				"round", selfNotarizedHeaders[i].GetRound(),

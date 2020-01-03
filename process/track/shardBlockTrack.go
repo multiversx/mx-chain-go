@@ -32,12 +32,12 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
-	crossNotarizedHeaders, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	selfNotarizedHeaders, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -62,33 +62,34 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		metaBlocksPool:                arguments.PoolsHolder.MetaBlocks(),
 		headersNoncesPool:             arguments.PoolsHolder.HeadersNonces(),
 		store:                         arguments.Store,
-		crossNotarizedHeaders:         crossNotarizedHeaders,
-		selfNotarizedHeaders:          selfNotarizedHeaders,
+		crossNotarizer:                crossNotarizer,
+		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	err = bbt.crossNotarizedHeaders.initNotarizedHeaders(arguments.StartHeaders)
+	err = bbt.crossNotarizer.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.selfNotarizedHeaders.initNotarizedHeaders(arguments.StartHeaders)
+	err = bbt.selfNotarizer.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	sbt := &shardBlockTrack{
+	sbt := shardBlockTrack{
 		baseBlockTrack: bbt,
 	}
 
 	blockProcessor, err := NewBlockProcessor(
-		sbt,
-		crossNotarizedHeaders,
-		crossNotarizedHeadersNotifier,
 		arguments.HeaderValidator,
+		arguments.ShardCoordinator,
+		&sbt,
+		crossNotarizer,
+		crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier,
-		arguments.ShardCoordinator)
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
-	return sbt, nil
+	return &sbt, nil
 }
 
 func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
@@ -129,7 +130,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 }
 
 func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizedHeaders.getLastNotarizedHeader(sharding.MetachainShardId)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return nil, nil, nil, nil
 	}

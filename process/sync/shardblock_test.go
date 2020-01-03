@@ -251,7 +251,7 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveHeadersCalled: func(nonce uint64, hash []byte) {
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
@@ -1060,7 +1060,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 			Hash:       []byte("hash"),
 		}
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
+	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
@@ -1661,8 +1661,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {}
-	forkDetector.ResetProbableHighestNonceCalled = func() {}
+	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {}
 	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
 		return nil
 	}
@@ -1977,7 +1976,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash1)
 		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
@@ -2058,7 +2057,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash2)
 		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, notarizedHeaders, notarizedHeadersHashes)
 	}

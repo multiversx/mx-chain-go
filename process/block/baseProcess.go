@@ -623,7 +623,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.blockTracker.GetTrackedHeadersForShardWithNonce(shardId, i)
+		headers, headersHashes := bp.blockTracker.GetTrackedHeadersWithNonce(shardId, i)
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
@@ -768,42 +768,6 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	return nil
 }
 
-//func (bp *baseProcessor) removeHeaderFromPools(
-//	header data.HeaderHandler,
-//	cacher storage.Cacher,
-//	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-//) {
-//
-//	if check.IfNil(header) {
-//		return
-//	}
-//
-//	headerHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, header)
-//	if err != nil {
-//		return
-//	}
-//
-//	if !check.IfNil(cacher) {
-//		cacher.Remove(headerHash)
-//	}
-//
-//	if !check.IfNil(uint64SyncMapCacher) {
-//		syncMap, ok := uint64SyncMapCacher.Get(header.GetNonce())
-//		if !ok {
-//			return
-//		}
-//
-//		hash, ok := syncMap.Load(header.GetShardID())
-//		if hash == nil || !ok {
-//			return
-//		}
-//
-//		if bytes.Equal(headerHash, hash) {
-//			uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
-//		}
-//	}
-//}
-
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
@@ -820,7 +784,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		return
 	}
 
-	bp.blockTracker.CleanupHeadersForShardBehindNonce(
+	bp.blockTracker.CleanupHeadersBehindNonce(
 		shardID,
 		bp.forkDetector.GetHighestFinalBlockNonce(),
 		crossNotarizedHeader.GetNonce(),
@@ -830,32 +794,32 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,
 	round uint64,
-	lastFinalHdrs []data.HeaderHandler,
-	lastFinalHashes [][]byte,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
-	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(lastFinalHdrs))
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
 
 	//TODO add end of epoch stuff
 
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
-	highestFinalNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	highestFinalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
 
-	for i := range lastFinalHdrs {
+	for i := range selfNotarizedHeaders {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: lastFinalHdrs[i].GetShardID(),
-			Nonce:   lastFinalHdrs[i].GetNonce(),
-			Hash:    lastFinalHashes[i],
+			ShardId: selfNotarizedHeaders[i].GetShardID(),
+			Nonce:   selfNotarizedHeaders[i].GetNonce(),
+			Hash:    selfNotarizedHeadersHashes[i],
 		}
 
-		lastFinals = append(lastFinals, headerInfo)
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                headerInfo,
 		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:  lastFinals,
-		HighestFinalNonce:         highestFinalNonce,
+		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
+		HighestFinalBlockNonce:    highestFinalBlockNonce,
 		ProcessedMiniBlocks:       processedMiniBlocks,
 	}
 

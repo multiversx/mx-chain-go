@@ -43,7 +43,7 @@ func NewMetaForkDetector(
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
-	bfd.fork.nonce = math.MaxUint64
+	bfd.fork.rollBackNonce = math.MaxUint64
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,
@@ -80,13 +80,16 @@ func (mfd *metaForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	_ = mfd.append(&headerInfo{
+	appended := mfd.append(&headerInfo{
 		epoch: header.GetEpoch(),
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
 		state: state,
 	})
+	if !appended {
+		return nil
+	}
 
 	if state == process.BHProcessed {
 		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
@@ -95,7 +98,6 @@ func (mfd *metaForkDetector) AddHeader(
 	}
 
 	probableHighestNonce := mfd.computeProbableHighestNonce()
-	mfd.setLastBlockRound(uint64(mfd.rounder.Index()))
 	mfd.setProbableHighestNonce(probableHighestNonce)
 
 	return nil

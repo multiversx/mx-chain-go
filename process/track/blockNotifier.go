@@ -19,6 +19,10 @@ func NewBlockNotifier() (*blockNotifier, error) {
 }
 
 func (bn *blockNotifier) callHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	if len(headers) == 0 {
+		return
+	}
+
 	bn.mutNotarizedHeadersHandlers.RLock()
 	for _, handler := range bn.notarizedHeadersHandlers {
 		go handler(shardID, headers, headersHashes)

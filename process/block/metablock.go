@@ -550,8 +550,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
 	}
 
-	mp.blockTracker.RemoveLastCrossNotarizedHeader()
-	mp.blockTracker.RemoveLastSelfNotarizedHeader()
+	mp.blockTracker.RemoveLastNotarizedHeaders()
 
 	return nil
 }
@@ -983,7 +982,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddTrackedHeader", "error", errNotCritical.Error())
+		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
 	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
@@ -1867,7 +1866,7 @@ func (mp *metaProcessor) getTrackedHeaders(round uint64) map[uint32][]data.Heade
 	hdrsMap := make(map[uint32][]data.HeaderHandler, 0)
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		hdrsForShard, _ := mp.blockTracker.GetTrackedHeadersForShard(shardID)
+		hdrsForShard, _ := mp.blockTracker.GetTrackedHeaders(shardID)
 		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
 	}
 

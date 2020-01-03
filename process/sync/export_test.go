@@ -18,7 +18,7 @@ func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice
 	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
 }
 
-func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
+func (boot *MetaBootstrap) ReceivedHeader(key []byte) {
 	boot.receivedHeader(key)
 }
 

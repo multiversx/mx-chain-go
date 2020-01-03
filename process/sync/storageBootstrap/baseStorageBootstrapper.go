@@ -156,17 +156,19 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {
-	highestFinalNonce := hdrInfo.HighestFinalNonce
-	highestNonce := hdrInfo.LastHeader.Nonce
+	highestFinalBlockNonce := hdrInfo.HighestFinalBlockNonce
+	highestBlockNonce := hdrInfo.LastHeader.Nonce
 
 	lastRound := hdrInfo.LastRound
 	bootInfos := []bootstrapStorage.BootstrapData{hdrInfo}
 
 	log.Debug("block info from storage",
-		"highest nonce", highestNonce, "lastFinalNone", highestFinalNonce, "last round", lastRound)
+		"highest block nonce", highestBlockNonce,
+		"highest final block nonce", highestFinalBlockNonce,
+		"last round", lastRound)
 
-	lowestNonce := core.MaxUint64(highestFinalNonce-1, 1)
-	for highestNonce > lowestNonce {
+	lowestNonce := core.MaxUint64(highestFinalBlockNonce-1, 1)
+	for highestBlockNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)
 		if err != nil {
 			log.Debug("cannot load header info from storage ", "error", err.Error())
@@ -174,7 +176,7 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		}
 
 		bootInfos = append(bootInfos, strHdrI)
-		highestNonce = strHdrI.LastHeader.Nonce
+		highestBlockNonce = strHdrI.LastHeader.Nonce
 
 		lastRound = strHdrI.LastRound
 		if lastRound == 0 {

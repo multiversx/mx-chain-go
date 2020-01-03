@@ -4,13 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// blockTracker is the interface needed by base block track to deal with shards and meta nodes while they track blocks
-type blockTracker interface {
-	getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo
-	computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
-	sortHeadersForShardFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
-}
-
 type blockNotarizerHandler interface {
 	addNotarizedHeader(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
 	cleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64)
@@ -31,4 +24,10 @@ type blockNotifierHandler interface {
 type blockProcessorHandler interface {
 	computeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	processReceivedHeader(header data.HeaderHandler)
+}
+
+type blockTrackerHandler interface {
+	getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo
+	computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
+	sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 }
