@@ -67,12 +67,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	err = bbt.crossNotarizer.initNotarizedHeaders(arguments.StartHeaders)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bbt.selfNotarizer.initNotarizedHeaders(arguments.StartHeaders)
+	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}

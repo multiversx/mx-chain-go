@@ -32,7 +32,7 @@ func (bn *blockNotifier) callHandlers(shardID uint32, headers []data.HeaderHandl
 
 func (bn *blockNotifier) registerHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if handler == nil {
-		log.Debug("attempt to register a nil handler to a tracker object")
+		log.Warn("attempt to register a nil handler to a tracker object")
 		return
 	}
 

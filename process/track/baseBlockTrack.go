@@ -409,3 +409,17 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 
 	return nil
 }
+
+func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
+	err := bbt.crossNotarizer.initNotarizedHeaders(startHeaders)
+	if err != nil {
+		return err
+	}
+
+	err = bbt.selfNotarizer.initNotarizedHeaders(startHeaders)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
