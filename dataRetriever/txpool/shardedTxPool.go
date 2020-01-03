@@ -1,7 +1,6 @@
 package txpool
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -62,10 +61,10 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 
 func verifyConfig(config storageUnit.CacheConfig) error {
 	if config.Size < 1 {
-		return fmt.Errorf("size must be a positive number")
+		return dataRetriever.ErrCacheConfigInvalidSize
 	}
 	if config.Shards < 1 {
-		return fmt.Errorf("shards must be a positive number")
+		return dataRetriever.ErrCacheConfigInvalidShards
 	}
 
 	return nil
