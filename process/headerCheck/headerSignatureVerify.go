@@ -1,7 +1,6 @@
 package headerCheck
 
 import (
-	"errors"
 	"math/bits"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -136,11 +135,16 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
 	}
 
-	if numOfOnesInBitmap >= consensusSize*2/3+1 {
+	minNumRequiredSignatures := consensusSize*2/3 + 1
+	if numOfOnesInBitmap >= minNumRequiredSignatures {
 		return nil
 	}
 
-	return errors.New("block is not signed by 2/3 + 1 of participants")
+	log.Warn("not enough signatures",
+		"minimum expected", minNumRequiredSignatures,
+		"actual", numOfOnesInBitmap)
+
+	return ErrNotEnoughSignatures
 }
 
 // VerifyRandSeed will check if rand seed is correct
