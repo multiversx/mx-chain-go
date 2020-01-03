@@ -53,7 +53,7 @@ func (bfd *baseForkDetector) SetRollBackNonce(nonce uint64) {
 	bfd.mutFork.Unlock()
 }
 
-func (bfd *baseForkDetector) getRollBackForkNonce() uint64 {
+func (bfd *baseForkDetector) getRollBackNonce() uint64 {
 	bfd.mutFork.RLock()
 	nonce := bfd.fork.rollBackNonce
 	bfd.mutFork.RUnlock()
@@ -368,7 +368,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		return forkInfo
 	}
 
-	rollBackNonce := bfd.getRollBackForkNonce()
+	rollBackNonce := bfd.getRollBackNonce()
 	if rollBackNonce < math.MaxUint64 {
 		forkInfo.IsDetected = true
 		forkInfo.Nonce = rollBackNonce
