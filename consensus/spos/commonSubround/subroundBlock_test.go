@@ -326,7 +326,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -358,7 +357,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockHeader,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -406,7 +404,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -432,7 +429,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -454,7 +450,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -482,7 +477,6 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		MtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
