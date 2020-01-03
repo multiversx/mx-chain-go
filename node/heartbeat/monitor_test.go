@@ -14,6 +14,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+
+func createMockP2pAntifloodHandler() *mock.P2PAntifloodHandlerStub {
+	return &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return nil
+		},
+	}
+}
+
 //------- NewMonitor
 
 func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
@@ -28,6 +38,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -46,6 +57,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -64,6 +76,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		nil,
 		&mock.HeartbeatStorerStub{},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -82,6 +95,7 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		nil,
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -99,10 +113,30 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		nil,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilTimer, err)
+}
+
+func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := mock.NewMockTimer()
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		th,
+		nil,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilAntifloodHandler, err)
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -130,6 +164,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 			},
 		},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.NotNil(t, mon)
@@ -169,6 +204,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 			},
 		},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	assert.NotNil(t, mon)
@@ -222,13 +258,14 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 			},
 		},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	hb := heartbeat.Heartbeat{
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -280,13 +317,14 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 			},
 		},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	hb := heartbeat.Heartbeat{
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -342,6 +380,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 			},
 		},
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	// First send from pk1 from shard 0
@@ -353,7 +392,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	buffToSend, err := json.Marshal(hb)
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -371,9 +410,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	buffToSend, err = json.Marshal(hb)
 
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	assert.Nil(t, err)
-
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 
 	time.Sleep(1 * time.Second)
 
@@ -413,6 +451,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		},
 		storer,
 		th,
+		createMockP2pAntifloodHandler(),
 	)
 
 	// First send from pk1
@@ -452,6 +491,6 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 		Pubkey: []byte(pubKey),
 	}
 	buffToSend, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	return err
 }

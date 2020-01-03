@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
@@ -27,7 +26,7 @@ type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
 	dataPool          dataRetriever.MetaPoolsHolder
-	scDataGetter      external.SCQueryService
+	scDataGetter      process.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
 	pendingMiniBlocks process.PendingMiniBlocksHandler

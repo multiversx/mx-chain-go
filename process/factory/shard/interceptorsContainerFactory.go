@@ -38,6 +38,7 @@ type interceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
+	antifloodHandler       process.P2PAntifloodHandler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -62,6 +63,7 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	antifloodHandler process.P2PAntifloodHandler,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -120,6 +122,9 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, process.ErrNilAntifloodHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -153,6 +158,7 @@ func NewInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		blackList:              blackList,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+		antifloodHandler:       antifloodHandler,
 	}
 
 	var err error
@@ -305,6 +311,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -373,6 +380,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic st
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -442,6 +450,7 @@ func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(topic stri
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -482,6 +491,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		hdrFactory,
 		hdrProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -551,6 +561,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 		txFactory,
 		txBlockBodyProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -591,6 +602,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		hdrFactory,
 		hdrProcessor,
 		icf.globalTxThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -606,8 +618,5 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
-	if icf == nil {
-		return true
-	}
-	return false
+	return icf == nil
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -33,6 +34,7 @@ type Monitor struct {
 	messageHandler              MessageHandler
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
+	antifloodHandler            P2PAntifloodHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -44,22 +46,26 @@ func NewMonitor(
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
 	timer Timer,
+	antifloodHandler P2PAntifloodHandler,
 ) (*Monitor, error) {
 
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if messageHandler == nil || messageHandler.IsInterfaceNil() {
+	if check.IfNil(messageHandler) {
 		return nil, ErrNilMessageHandler
 	}
-	if storer == nil || storer.IsInterfaceNil() {
+	if check.IfNil(storer) {
 		return nil, ErrNilHeartbeatStorer
 	}
-	if timer == nil || timer.IsInterfaceNil() {
+	if check.IfNil(timer) {
 		return nil, ErrNilTimer
+	}
+	if check.IfNil(antifloodHandler) {
+		return nil, ErrNilAntifloodHandler
 	}
 
 	mon := &Monitor{
@@ -71,6 +77,7 @@ func NewMonitor(
 		messageHandler:              messageHandler,
 		storer:                      storer,
 		timer:                       timer,
+		antifloodHandler:            antifloodHandler,
 	}
 
 	err := mon.storer.UpdateGenesisTime(genesisTime)
@@ -201,7 +208,12 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := m.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
 	if err != nil {
 		return err

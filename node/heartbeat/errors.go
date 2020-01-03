@@ -61,3 +61,6 @@ var ErrMarshalGenesisTime = errors.New("monitor: can't marshal genesis time")
 
 // ErrPropertyTooLong signals that one of the properties is too long
 var ErrPropertyTooLong = errors.New("property too long in Heartbeat")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")

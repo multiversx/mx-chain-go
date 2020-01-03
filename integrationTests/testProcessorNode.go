@@ -455,6 +455,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -483,6 +484,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -505,6 +507,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			TestUint64Converter,
 			dataPacker,
 			100,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -524,6 +527,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			TestUint64Converter,
 			dataPacker,
 			100,
+			&mock.NilAntifloodHandler{},
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()

@@ -502,3 +502,14 @@ func WithChainID(chainID []byte) Option {
 		return nil
 	}
 }
+
+// WithAntifloodHandler sets up an antiflood handler for the Node
+func WithAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(antifloodHandler) {
+			return ErrNilAntifloodHandler
+		}
+		n.antifloodHandler = antifloodHandler
+		return nil
+	}
+}

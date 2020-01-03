@@ -23,6 +23,7 @@ type HeaderResolver struct {
 	marshalizer      marshal.Marshalizer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
 	epochHandler     dataRetriever.EpochHandler
+	antifloodHandler dataRetriever.P2PAntifloodHandler
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -34,6 +35,7 @@ func NewHeaderResolver(
 	headersNoncesStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
+	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*HeaderResolver, error) {
 
 	if check.IfNil(senderResolver) {
@@ -57,6 +59,9 @@ func NewHeaderResolver(
 	if check.IfNil(nonceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
 
 	hdrResolver := &HeaderResolver{
 		TopicResolverSender: senderResolver,
@@ -67,6 +72,7 @@ func NewHeaderResolver(
 		marshalizer:         marshalizer,
 		nonceConverter:      nonceConverter,
 		epochHandler:        &nilEpochHandler{},
+		antifloodHandler:    antifloodHandler,
 	}
 
 	return hdrResolver, nil
@@ -84,7 +90,12 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := hdrRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
 	rd, err := hdrRes.parseReceivedMessage(message)
 	if err != nil {
 		return err
@@ -220,8 +231,5 @@ func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
-	if hdrRes == nil {
-		return true
-	}
-	return false
+	return hdrRes == nil
 }

@@ -98,6 +98,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -116,6 +117,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -134,6 +136,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -152,6 +155,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -170,6 +174,7 @@ func TestNewResolversContainerFactory_NilMarshalizerAndSizeShouldErr(t *testing.
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		1,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -188,6 +193,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -206,6 +212,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 		nil,
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -224,10 +231,30 @@ func TestNewResolversContainerFactory_NilSliceSplitterShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		nil,
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
+}
+
+func TestNewResolversContainerFactory_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rcf, err := shard.NewResolversContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicMessageHandler("", ""),
+		createStore(),
+		&mock.MarshalizerMock{},
+		createDataPools(),
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.DataPackerStub{},
+		0,
+		nil,
+	)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 }
 
 func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
@@ -242,6 +269,7 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.NotNil(t, rcf)
@@ -262,6 +290,7 @@ func TestResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testin
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -282,6 +311,7 @@ func TestResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testi
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -302,6 +332,7 @@ func TestResolversContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -322,6 +353,7 @@ func TestResolversContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -342,6 +374,7 @@ func TestResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) 
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -362,6 +395,7 @@ func TestResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T)
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -382,6 +416,7 @@ func TestResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *tes
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -402,6 +437,7 @@ func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *t
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -422,6 +458,7 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := rcf.Create()
@@ -448,6 +485,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, _ := rcf.Create()

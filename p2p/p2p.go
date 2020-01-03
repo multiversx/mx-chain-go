@@ -11,14 +11,7 @@ import (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, broadcastHandler func(buffToSend []byte)) error
-	IsInterfaceNil() bool
-}
-
-// BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
-// a subset of received message (after filtering occurs)
-type BroadcastCallbackHandler interface {
-	SetBroadcastCallback(callback func(buffToSend []byte))
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -41,6 +34,15 @@ func (pid PeerID) Pretty() string {
 	return base58.Encode(pid.Bytes())
 }
 
+// Config is a DTO used for config passing variables
+type Config struct {
+	BlacklistHandler BlacklistHandler
+}
+
+// Option represents a functional configuration parameter that can operate
+//  over the networkMessenger struct.
+type Option func(*Config) error
+
 // ContextProvider defines an interface for providing context to various messenger components
 type ContextProvider interface {
 	Context() context.Context
@@ -58,7 +60,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork() <-chan struct{}
+	ReconnectToNetwork()
 	Pause()  // pause the peer discovery
 	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
@@ -67,6 +69,8 @@ type Reconnecter interface {
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
+
+	ApplyOptions(opts ...Option) error
 
 	// ID is the Messenger's unique peer identifier across the network (a
 	// string). It is derived from the public key of the P2P credentials.
@@ -196,5 +200,29 @@ type DirectSender interface {
 // PeerDiscoveryFactory defines the factory for peer discoverer implementation
 type PeerDiscoveryFactory interface {
 	CreatePeerDiscoverer() (PeerDiscoverer, error)
+	IsInterfaceNil() bool
+}
+
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type FloodPreventer interface {
+	AccumulateGlobal(identifier string, size uint64) bool
+	Accumulate(identifier string, size uint64) bool
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+type BlacklistHandler interface {
+	Has(key string) bool
+	IsInterfaceNil() bool
+}
+
+// ConnectionMonitor defines what a peer-management component should do
+type ConnectionMonitor interface {
+	HandleConnectedPeer(pid PeerID) error
+	HandleDisconnectedPeer(pid PeerID) error
+	DoReconnectionBlocking()
+	CheckConnectionsBlocking()
 	IsInterfaceNil() bool
 }

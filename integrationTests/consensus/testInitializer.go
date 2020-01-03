@@ -448,6 +448,7 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithChainID(consensusChainID),
+		node.WithAntifloodHandler(&mock.NilAntifloodHandler{}),
 	)
 
 	if err != nil {
@@ -508,7 +509,6 @@ func createNodes(
 			consensusType,
 		)
 
-		testNode.node = n
 		testNode.node = n
 		testNode.sk = kp.sk
 		testNode.mesenger = mes

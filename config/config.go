@@ -102,6 +102,7 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
+	Antiflood        AntifloodConfig
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
@@ -191,4 +192,22 @@ type ElasticSearchConfig struct {
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
+}
+
+// BlackListConfig will hold the p2p peer black list threshold values
+type BlackListConfig struct {
+	ThresholdNumMessagesPerSecond uint32
+	ThresholdSizePerSecond        uint64
+	NumFloodingRounds             uint32
+	PeerBanDurationInSeconds      uint32
+}
+
+// AntifloodConfig will hold all p2p antiflood parameters
+type AntifloodConfig struct {
+	Cache                     CacheConfig
+	BlackList                 BlackListConfig
+	PeerMaxMessagesPerSecond  uint32
+	PeerMaxTotalSizePerSecond uint64
+	MaxMessagesPerSecond      uint32
+	MaxTotalSizePerSecond     uint64
 }

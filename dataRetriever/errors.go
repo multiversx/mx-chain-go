@@ -190,3 +190,6 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrBadRequest signals that the request should not have happened
 var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")

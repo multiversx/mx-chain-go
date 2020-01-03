@@ -20,7 +20,7 @@ type messageProcessorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
-func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return mps.ProcessReceivedMessageCalled(message)
 }
 
@@ -125,4 +125,67 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
+}
+
+// TestBroadcastMessageComesFormTheConnectedPeers tests what happens in a network when a message comes through pubsub
+// The receiving peer should get the message only from one of the connected peers
+func TestBroadcastMessageComesFormTheConnectedPeers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	topic := "test_topic"
+	broadcastMessageDuration := time.Second * 2
+	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
+	assert.Nil(t, err)
+
+	defer func() {
+		integrationTests.ClosePeers(peers)
+	}()
+
+	//node 0 is connected only to 1 and 3 (check integrationTests.CreateFixedNetworkOf7Peers function)
+	//a broadcast message from 6 should be received on node 0 only through peers 1 and 3
+
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic)
+	assert.Nil(t, err)
+
+	fmt.Println("bootstrapping nodes")
+	time.Sleep(durationBootstrapingTime)
+
+	broadcastIdx := 6
+	receiverIdx := 0
+	shouldReceiveFrom := []int{1, 3}
+
+	broadcastPeer := peers[broadcastIdx]
+	fmt.Printf("broadcasting message from pid %s\n", broadcastPeer.ID().Pretty())
+	broadcastPeer.Broadcast(topic, []byte("dummy"))
+	time.Sleep(broadcastMessageDuration)
+
+	countReceivedMessages := 0
+	receiverInterceptor := interceptors[receiverIdx]
+	for _, idx := range shouldReceiveFrom {
+		connectedPid := peers[idx].ID()
+		countReceivedMessages += len(receiverInterceptor.Messages(connectedPid))
+	}
+
+	assert.Equal(t, 1, countReceivedMessages)
+}
+
+func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string) ([]*messageProcessor, error) {
+	interceptors := make([]*messageProcessor, len(peers))
+
+	for idx, p := range peers {
+		err := p.CreateTopic(topic, true)
+		if err != nil {
+			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
+		}
+
+		interceptors[idx] = newMessageProcessor()
+		err = p.RegisterMessageProcessor(topic, interceptors[idx])
+		if err != nil {
+			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
+		}
+	}
+
+	return interceptors, nil
 }

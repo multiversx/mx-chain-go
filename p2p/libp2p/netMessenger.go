@@ -21,6 +21,9 @@ import (
 
 var sendTimeout = time.Microsecond * 100
 
+const durationBetweenReconnectionAttempts = time.Second * 5
+const durationCheckConnections = time.Second
+
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
@@ -51,7 +54,7 @@ type networkMessenger struct {
 	ctxProvider         *Libp2pContext
 	pb                  *pubsub.PubSub
 	ds                  p2p.DirectSender
-	connMonitor         *libp2pConnectionMonitor
+	connMonitor         *connectionMonitor
 	peerDiscoverer      p2p.PeerDiscoverer
 	mutTopics           sync.RWMutex
 	topics              map[string]*pubsub.Topic
@@ -149,8 +152,6 @@ func createMessenger(
 		return nil, err
 	}
 
-	reconnecter, _ := peerDiscoverer.(p2p.Reconnecter)
-
 	netMes := networkMessenger{
 		ctxProvider:    lctx,
 		pb:             pb,
@@ -159,12 +160,11 @@ func createMessenger(
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
 	}
-	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+
+	err = netMes.createConnectionMonitor(targetConnCount)
 	if err != nil {
 		return nil, err
-
 	}
-	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
 	if err != nil {
@@ -234,6 +234,61 @@ func (netMes *networkMessenger) sendMessage() {
 		log.Trace("error sending data",
 			"error", err)
 	}
+}
+
+func (netMes *networkMessenger) createConnectionMonitor(targetConnCount int) error {
+	var err error
+
+	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
+	netMes.connMonitor, err = newConnectionMonitor(
+		reconnecter,
+		netMes.ctxProvider,
+		defaultThresholdMinConnectedPeers,
+		targetConnCount,
+	)
+	if err != nil {
+		return err
+
+	}
+	notifee := &connectionMonitorNotifiee{
+		ConnectionMonitor: netMes.connMonitor,
+	}
+	netMes.ctxProvider.connHost.Network().Notify(notifee)
+
+	go func() {
+		for {
+			netMes.connMonitor.DoReconnectionBlocking()
+			time.Sleep(durationBetweenReconnectionAttempts)
+		}
+	}()
+
+	go func() {
+		for {
+			netMes.connMonitor.CheckConnectionsBlocking()
+			time.Sleep(durationCheckConnections)
+		}
+	}()
+
+	return nil
+}
+
+// ApplyOptions can set up different configurable options of a networkMessenger instance
+func (netMes *networkMessenger) ApplyOptions(opts ...p2p.Option) error {
+	cfg := &p2p.Config{}
+
+	for _, opt := range opts {
+		err := opt(cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	err := netMes.ctxProvider.SetPeerBlacklist(cfg.BlacklistHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close closes the host, connections and streams
@@ -482,12 +537,8 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	broadcastHandler := func(buffToSend []byte) {
-		netMes.Broadcast(topic, buffToSend)
-	}
-
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
+		err := handler.ProcessReceivedMessage(NewMessage(message), p2p.PeerID(pid))
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
 		}
@@ -531,7 +582,7 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 	return netMes.ds.Send(topic, buff, peerID)
 }
 
-func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {
+func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
@@ -543,7 +594,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg, nil)
+		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
 		}
@@ -554,8 +605,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 
 // IsConnectedToTheNetwork returns true if the current node is connected to the network
 func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
-	netw := netMes.ctxProvider.connHost.Network()
-	return netMes.connMonitor.isConnectedToTheNetwork(netw)
+	return netMes.connMonitor.isConnectedToTheNetwork()
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
@@ -564,9 +614,8 @@ func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers 
 		return p2p.ErrInvalidValue
 	}
 
-	netw := netMes.ctxProvider.connHost.Network()
 	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
-	netMes.connMonitor.doReconnectionIfNeeded(netw)
+	netMes.connMonitor.doReconnectionIfNeeded()
 
 	return nil
 }

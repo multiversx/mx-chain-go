@@ -24,6 +24,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
+	antifloodHandler         dataRetriever.P2PAntifloodHandler
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -36,6 +37,7 @@ func NewResolversContainerFactory(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
 	sizeCheckDelta uint32,
+	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*resolversContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -62,6 +64,9 @@ func NewResolversContainerFactory(
 	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
+	if check.IfNil(antifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
 
 	return &resolversContainerFactory{
 		shardCoordinator:         shardCoordinator,
@@ -72,6 +77,7 @@ func NewResolversContainerFactory(
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
+		antifloodHandler:         antifloodHandler,
 	}, nil
 }
 
@@ -205,6 +211,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -258,6 +265,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -331,6 +339,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 		txStorer,
 		rcf.marshalizer,
 		rcf.dataPacker,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -391,6 +400,7 @@ func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, exc
 		rcf.dataPools.MiniBlocks(),
 		miniBlocksStorer,
 		rcf.marshalizer,
+		rcf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -432,8 +442,5 @@ func (rcf *resolversContainerFactory) createOneResolverSender(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
-	if rcf == nil {
-		return true
-	}
-	return false
+	return rcf == nil
 }

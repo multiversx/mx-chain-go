@@ -68,6 +68,11 @@ func NewMessenger(network *Network) (*Messenger, error) {
 	return messenger, nil
 }
 
+// ApplyOptions does not apply any option provided in this implementation
+func (messenger *Messenger) ApplyOptions(_ ...p2p.Option) error {
+	return nil
+}
+
 // ID returns the P2P ID of the messenger
 func (messenger *Messenger) ID() p2p.PeerID {
 	return messenger.p2pID
@@ -207,7 +212,7 @@ func (messenger *Messenger) HasTopic(name string) bool {
 // Returns false otherwise.
 func (messenger *Messenger) HasTopicValidator(name string) bool {
 	messenger.topicsMutex.RLock()
-	validator, _ := messenger.topicValidators[name]
+	validator := messenger.topicValidators[name]
 	messenger.topicsMutex.RUnlock()
 
 	return check.IfNil(validator)
@@ -228,7 +233,7 @@ func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.M
 		return fmt.Errorf("%w RegisterMessageProcessor, topic: %s", p2p.ErrNilTopic, topic)
 	}
 
-	validator, _ := messenger.topicValidators[topic]
+	validator := messenger.topicValidators[topic]
 	if !check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -248,7 +253,7 @@ func (messenger *Messenger) UnregisterMessageProcessor(topic string) error {
 		return fmt.Errorf("%w UnregisterMessageProcessor, topic: %s", p2p.ErrNilTopic, topic)
 	}
 
-	validator, _ := messenger.topicValidators[topic]
+	validator := messenger.topicValidators[topic]
 	if check.IfNil(validator) {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -328,14 +333,14 @@ func (messenger *Messenger) processFromQueue() {
 
 		// numReceived gets incremented because the message arrived on a registered topic
 		atomic.AddUint64(&messenger.numReceived, 1)
-		validator, _ := messenger.topicValidators[topic]
+		validator := messenger.topicValidators[topic]
 		if check.IfNil(validator) {
 			messenger.topicsMutex.Unlock()
 			continue
 		}
 		messenger.topicsMutex.Unlock()
 
-		_ = validator.ProcessReceivedMessage(message, nil)
+		_ = validator.ProcessReceivedMessage(message, messenger.p2pID)
 	}
 }
 
@@ -349,6 +354,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 		if !peerFound {
 			return ErrReceivingPeerNotConnected
 		}
+
 		receivingPeer.receiveMessage(message)
 
 		return nil
