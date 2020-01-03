@@ -201,17 +201,6 @@ type ShardIdHashMap interface {
 	IsInterfaceNil() bool
 }
 
-// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
-//type Uint64SyncMapCacher_ interface {
-//	Clear()
-//	Get(nonce uint64) (ShardIdHashMap, bool)
-//	Merge(nonce uint64, src ShardIdHashMap)
-//	Remove(nonce uint64, shardId uint32)
-//	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
-//	Has(nonce uint64, shardId uint32) bool
-//	IsInterfaceNil() bool
-//}
-
 type HeadersPool interface {
 	Clear()
 	AddHeader(headerHash []byte, header data.HeaderHandler)
@@ -240,20 +229,16 @@ type PoolsHolder interface {
 	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
 	Headers() HeadersPool
-	//HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
-	//MetaBlocks() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain
 type MetaPoolsHolder interface {
-	//MetaBlocks() storage.Cacher
 	MiniBlocks() storage.Cacher
 	Headers() HeadersPool
-	//	HeadersNonces() Uint64SyncMapCacher
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
