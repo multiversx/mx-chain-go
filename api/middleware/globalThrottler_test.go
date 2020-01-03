@@ -27,7 +27,7 @@ func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnection
 	ws := gin.New()
 	ws.Use(cors.Default())
 	globalThrottler, _ := middleware.NewGlobalThrottler(maxConnections)
-	ws.Use(globalThrottler.Limit())
+	ws.Use(globalThrottler.MiddlewareHandlerFunc())
 	addressRoutes := ws.Group("/address")
 	if handler != nil {
 		addressRoutes.Use(middleware.WithElrondFacade(handler))

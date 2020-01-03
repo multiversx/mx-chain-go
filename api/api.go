@@ -29,11 +29,12 @@ type validatorInput struct {
 	Validator validator.Func
 }
 
-// MiddlewareLimiter defines a request limiter used in conjunction with a gin server
-type MiddlewareLimiter interface {
-	Limit() gin.HandlerFunc
+// MiddlewareProcessor defines a processor used internally by the web server when processing requests
+type MiddlewareProcessor interface {
+	MiddlewareHandlerFunc() gin.HandlerFunc
 	IsInterfaceNil() bool
 }
+
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiInterface() string
@@ -61,7 +62,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, limiters ...MiddlewareLimiter) error {
+func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -71,12 +72,12 @@ func Start(elrondFacade MainApiHandler, limiters ...MiddlewareLimiter) error {
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
-	for _, limiter := range limiters {
-		if check.IfNil(limiter) {
+	for _, proc := range processors {
+		if check.IfNil(proc) {
 			continue
 		}
 
-		ws.Use(limiter.Limit())
+		ws.Use(proc.MiddlewareHandlerFunc())
 	}
 
 	err := registerValidators()

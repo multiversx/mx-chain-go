@@ -22,8 +22,8 @@ func NewGlobalThrottler(maxConnections uint32) (*globalThrottler, error) {
 	}, nil
 }
 
-// Limit returns the handler func used by the gin server to limit simultaneous requests
-func (gt *globalThrottler) Limit() gin.HandlerFunc {
+// MiddlewareHandlerFunc returns the handler func used by the gin server when processing requests
+func (gt *globalThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		select {
 		case gt.queue <- struct{}{}:

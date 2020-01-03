@@ -171,7 +171,7 @@ func (ef *ElrondNodeFacade) startRest() {
 	}
 }
 
-func (ef *ElrondNodeFacade) createMiddlewareLimiters() ([]api.MiddlewareLimiter, error) {
+func (ef *ElrondNodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
 	sourceLimiter, err := middleware.NewSourceThrottler(ef.wsAntifloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func (ef *ElrondNodeFacade) createMiddlewareLimiters() ([]api.MiddlewareLimiter,
 		return nil, err
 	}
 
-	return []api.MiddlewareLimiter{sourceLimiter, globalLimiter}, nil
+	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
 func (ef *ElrondNodeFacade) sourceLimiterReset(reset resetHandler) {

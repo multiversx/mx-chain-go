@@ -28,8 +28,8 @@ func NewSourceThrottler(maxNumRequests uint32) (*sourceThrottler, error) {
 	}, nil
 }
 
-// Limit returns the handler func used by the gin server to limit requests originating from the same source
-func (st *sourceThrottler) Limit() gin.HandlerFunc {
+// MiddlewareHandlerFunc returns the handler func used by the gin server when processing requests
+func (st *sourceThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		remoteAddr, _, err := net.SplitHostPort(c.Request.RemoteAddr)
 		if err != nil {
