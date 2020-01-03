@@ -5,8 +5,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
+	"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -199,7 +199,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
-	hdrPool, _ := headersCache.NewHeadersCacher(1000, 100)
+	hdrPool, _ := headersCache.NewHeadersPool(1000, 100)
 
 	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)

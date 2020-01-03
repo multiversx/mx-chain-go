@@ -60,7 +60,7 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData) error {
 		return process.ErrWrongTypeAssertion
 	}
 
-	hip.headers.Add(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
+	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
 	return nil
 }

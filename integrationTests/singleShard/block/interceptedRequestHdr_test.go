@@ -60,7 +60,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	nResolver.ShardDataPool.Headers().Add(hdrHash1, hdr1)
+	nResolver.ShardDataPool.Headers().AddHeader(hdrHash1, hdr1)
 
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
@@ -120,7 +120,7 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	nResolver.ShardDataPool.Headers().Add(hdrHash1, hdr1)
+	nResolver.ShardDataPool.Headers().AddHeader(hdrHash1, hdr1)
 
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)

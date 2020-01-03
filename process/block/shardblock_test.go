@@ -44,7 +44,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
 
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
-	hdrPool, _ := headersCache.NewHeadersCacher(100, 100)
+	hdrPool, _ := headersCache.NewHeadersPool(100, 100)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -1017,7 +1017,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	metaBytes, _ := marshalizer.Marshal(meta)
 	metaHash := hasher.Compute(string(metaBytes))
 
-	tdp.Headers().Add(metaHash, &meta)
+	tdp.Headers().AddHeader(metaHash, &meta)
 
 	meta = block.MetaBlock{
 		Nonce:        2,
@@ -1027,7 +1027,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	metaBytes, _ = marshalizer.Marshal(meta)
 	metaHash = hasher.Compute(string(metaBytes))
 
-	tdp.Headers().Add(metaHash, &meta)
+	tdp.Headers().AddHeader(metaHash, &meta)
 
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
@@ -1156,7 +1156,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	metaHash := hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
-	tdp.Headers().Add(metaHash, &meta)
+	tdp.Headers().AddHeader(metaHash, &meta)
 
 	meta = block.MetaBlock{
 		Nonce:        2,
@@ -1167,7 +1167,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	metaHash = hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
-	tdp.Headers().Add(metaHash, &meta)
+	tdp.Headers().AddHeader(metaHash, &meta)
 
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
@@ -1294,7 +1294,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	metaHash := hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
-	tdp.Headers().Add(metaHash, meta)
+	tdp.Headers().AddHeader(metaHash, meta)
 
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
@@ -1332,7 +1332,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	metaBytes, _ = marshalizer.Marshal(meta)
 	metaHash = hasher.Compute(string(metaBytes))
 
-	tdp.Headers().Add(metaHash, meta)
+	tdp.Headers().AddHeader(metaHash, meta)
 
 	sp.CheckAndRequestIfMetaHeadersMissing(2)
 	time.Sleep(100 * time.Millisecond)
@@ -1407,7 +1407,7 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	metaHash := hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
-	tdp.Headers().Add(metaHash, meta)
+	tdp.Headers().AddHeader(metaHash, meta)
 
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
@@ -1428,7 +1428,7 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	}
 	metaBytes, _ = marshalizer.Marshal(meta)
 	metaHash = hasher.Compute(string(metaBytes))
-	tdp.Headers().Add(metaHash, meta)
+	tdp.Headers().AddHeader(metaHash, meta)
 
 	meta = &block.MetaBlock{
 		Nonce:     1,
@@ -1519,7 +1519,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	metaHash1 := hasher.Compute(string(metaBytes))
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash1)
 
-	tdp.Headers().Add(metaHash1, meta1)
+	tdp.Headers().AddHeader(metaHash1, meta1)
 
 	prevHash, _ = core.CalculateHash(marshalizer, hasher, meta1)
 	meta2 := &block.MetaBlock{
@@ -1531,7 +1531,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	metaBytes, _ = marshalizer.Marshal(meta2)
 	metaHash2 := hasher.Compute(string(metaBytes))
 
-	tdp.Headers().Add(metaHash2, meta2)
+	tdp.Headers().AddHeader(metaHash2, meta2)
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
@@ -2571,7 +2571,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
-	datapool.Headers().Add(metaBlockHash, metaBlock)
+	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
 	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
@@ -2655,7 +2655,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
-	datapool.Headers().Add(metaBlockHash, metaBlock)
+	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
 	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
@@ -2744,7 +2744,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	metaBytes, _ := marshalizer.Marshal(meta)
 	metaHash := hasher.Compute(string(metaBytes))
 
-	tdp.Headers().Add(metaHash, meta)
+	tdp.Headers().AddHeader(metaHash, meta)
 
 	haveTimeTrue := func() bool {
 		return true
@@ -2826,7 +2826,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	}
 
 	mb1Hash := []byte("meta block 1")
-	tdp.Headers().Add(mb1Hash, meta)
+	tdp.Headers().AddHeader(mb1Hash, meta)
 
 	meta = &block.MetaBlock{
 		Nonce:     2,
@@ -2835,7 +2835,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	}
 
 	mb2Hash := []byte("meta block 2")
-	tdp.Headers().Add(mb2Hash, meta)
+	tdp.Headers().AddHeader(mb2Hash, meta)
 
 	meta = &block.MetaBlock{
 		Nonce:        3,
@@ -2845,7 +2845,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	}
 
 	mb3Hash := []byte("meta block 3")
-	tdp.Headers().Add(mb3Hash, meta)
+	tdp.Headers().AddHeader(mb3Hash, meta)
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
@@ -3034,15 +3034,15 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	//put 3 metablocks in pool
 	metaBlockHash1 := []byte("meta block 1")
 	metaBlock1 := createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1])
-	datapool.Headers().Add(metaBlockHash1, metaBlock1)
+	datapool.Headers().AddHeader(metaBlockHash1, metaBlock1)
 
 	metaBlockHash2 := []byte("meta block 2")
 	metaBlock2 := createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3])
-	datapool.Headers().Add(metaBlockHash2, metaBlock2)
+	datapool.Headers().AddHeader(metaBlockHash2, metaBlock2)
 
 	metaBlockHash3 := []byte("meta block 3")
 	metaBlock3 := createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5])
-	datapool.Headers().Add(metaBlockHash3, metaBlock3)
+	datapool.Headers().AddHeader(metaBlockHash3, metaBlock3)
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = destShardId
@@ -3196,7 +3196,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	metablockHash := []byte("meta block hash 1")
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
-	datapool.Headers().Add(metablockHash, metablockHeader)
+	datapool.Headers().AddHeader(metablockHash, metablockHeader)
 
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		return &mock.StorerStub{
@@ -3453,7 +3453,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, 0, len(processedMetaHdrs))
 
 	// wrong header type in pool and defer called
-	datapool.Headers().Add(currHash, shardHdr)
+	datapool.Headers().AddHeader(currHash, shardHdr)
 	sp.SetHdrForCurrentBlock(currHash, shardHdr, true)
 
 	hashes := make([][]byte, 0)
@@ -3474,8 +3474,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, firstNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 
 	// put headers in pool
-	datapool.Headers().Add(currHash, currHdr)
-	datapool.Headers().Add(prevHash, prevHdr)
+	datapool.Headers().AddHeader(currHash, currHdr)
+	datapool.Headers().AddHeader(prevHash, prevHdr)
 
 	sp.CreateBlockStarted()
 	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
@@ -3630,8 +3630,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
 
 	// put headers in pool
-	datapool.Headers().Add(currHash, currHdr)
-	datapool.Headers().Add(prevHash, prevHdr)
+	datapool.Headers().AddHeader(currHash, currHdr)
+	datapool.Headers().AddHeader(prevHash, prevHdr)
 
 	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
@@ -3765,9 +3765,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
 
 	// put headers in pool
-	datapool.Headers().Add(currHash, currHdr)
-	datapool.Headers().Add(prevHash, prevHdr)
-	datapool.Headers().Add([]byte("shouldNotRemove"), &block.MetaBlock{
+	datapool.Headers().AddHeader(currHash, currHdr)
+	datapool.Headers().AddHeader(prevHash, prevHdr)
+	datapool.Headers().AddHeader([]byte("shouldNotRemove"), &block.MetaBlock{
 		Round:        12,
 		PrevRandSeed: []byte("nextrand"),
 		PrevHash:     currHash,
@@ -4041,7 +4041,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
-	datapool.Headers().Add([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
+	datapool.Headers().AddHeader([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
@@ -4055,7 +4055,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -4070,7 +4070,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
@@ -4113,7 +4113,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -4128,7 +4128,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
@@ -4160,7 +4160,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		Round: 1,
 	}
 	ownHash, _ := core.CalculateHash(marshalizer, hasher, ownHdr)
-	datapool.Headers().Add(ownHash, ownHdr)
+	datapool.Headers().AddHeader(ownHash, ownHdr)
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardID: 0})
@@ -4177,7 +4177,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 
 	ownHdr = &block.Header{
 		Nonce: 2,
@@ -4202,7 +4202,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -4216,7 +4216,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		RandSeed:     prevMetaHdr.GetRandSeed(),
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	datapool.Headers().Add(currHash, currMetaHdr)
+	datapool.Headers().AddHeader(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)

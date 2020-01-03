@@ -42,7 +42,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -99,7 +98,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
 
-	hdrPool, _ := headersCache.NewHeadersCacher(1000, 100)
+	hdrPool, _ := headersCache.NewHeadersPool(1000, 100)
 
 	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -127,7 +126,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	headers, _ := headersCache.NewHeadersCacher(1000, 100)
+	headers, _ := headersCache.NewHeadersPool(1000, 100)
 
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
@@ -789,34 +788,6 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-	}
-
-	return nodes
-}
-
-// CreateNodesWithMemP2P creates multiple nodes in different shards
-func CreateNodesWithMemP2P(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	network *memp2p.Network,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), shardId, shardId, network)
-
-			nodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), sharding.MetachainShardId, 0, network)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}

@@ -585,7 +585,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
 		}
 
-		metaBlockPool.Add(metaBlockHash, metaBlock)
+		metaBlockPool.AddHeader(metaBlockHash, metaBlock)
 
 		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {

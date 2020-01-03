@@ -19,7 +19,7 @@ type HeadersCacherStub struct {
 	MaxSizeCalled                       func() int
 }
 
-func (hcs *HeadersCacherStub) Add(headerHash []byte, header data.HeaderHandler) {
+func (hcs *HeadersCacherStub) AddHeader(headerHash []byte, header data.HeaderHandler) {
 	if hcs.AddCalled != nil {
 		hcs.AddCalled(headerHash, header)
 	}

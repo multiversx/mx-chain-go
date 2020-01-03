@@ -2,14 +2,12 @@ package resolvers
 
 import (
 	"bytes"
-	"testing"
-
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 //------- Request resolve by hash
@@ -26,10 +24,10 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
+	nResolver.ShardDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.ShardDataPool.MetaBlocks().RegisterHandler(
+	nRequester.ShardDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
@@ -59,10 +57,10 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
+	nResolver.ShardDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.MetaDataPool.MetaBlocks().RegisterHandler(
+	nRequester.MetaDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
@@ -92,10 +90,10 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.MetaDataPool.MetaBlocks().HasOrAdd(hash, header)
+	nResolver.MetaDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.ShardDataPool.MetaBlocks().RegisterHandler(
+	nRequester.ShardDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
@@ -124,16 +122,13 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
-	nResolver.ShardDataPool.HeadersNonces().Merge(headerNonce, syncMap)
+	nResolver.ShardDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.ShardDataPool.MetaBlocks().RegisterHandler(
+	nRequester.ShardDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
@@ -162,16 +157,13 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
 	headerNonce := uint64(0)
-	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
-	nResolver.ShardDataPool.HeadersNonces().Merge(headerNonce, syncMap)
+	nResolver.ShardDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.MetaDataPool.MetaBlocks().RegisterHandler(
+	nRequester.MetaDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
@@ -200,16 +192,13 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
-	_, _ = nResolver.MetaDataPool.MetaBlocks().HasOrAdd(hash, header)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
-	nResolver.MetaDataPool.HeadersNonces().Merge(headerNonce, syncMap)
+	nResolver.MetaDataPool.Headers().AddHeader(hash, header)
 
 	//setup header received event
-	nRequester.ShardDataPool.MetaBlocks().RegisterHandler(
+	nRequester.ShardDataPool.Headers().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var defaultReceiverMonitorTimeout = time.Second * 2
+var defaultReceiverMonitorTimeout = time.Second * 1000
 
 type receiverMonitor struct {
 	timeout  time.Duration

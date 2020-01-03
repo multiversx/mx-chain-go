@@ -153,12 +153,12 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-			n.ShardDataPool.Headers().Add(metaHdrFromShardHash, metaHdrFromShard)
+			n.ShardDataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.MetaDataPool.Headers().Add(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node4Meta.MetaDataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
 	node1Shard0.ShardDataPool.Headers().Clear()
 	node1Shard0.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
 		chanReceived <- struct{}{}

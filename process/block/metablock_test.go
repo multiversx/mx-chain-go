@@ -905,7 +905,7 @@ func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 	mp.AddHdrHashToRequestedList(nil, hdrHash3)
 
 	//received txHash2
-	pool.Headers().Add(hdrHash2, hdr2)
+	pool.Headers().AddHeader(hdrHash2, hdr2)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -946,17 +946,17 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	//put the existing headers inside datapool
-	pool.Headers().Add(hdrHash1, &block.Header{
+	pool.Headers().AddHeader(hdrHash1, &block.Header{
 		Round:            1,
 		Nonce:            45,
 		ShardId:          0,
 		MiniBlockHeaders: miniBlockHeaders1})
-	pool.Headers().Add(hdrHash2, &block.Header{
+	pool.Headers().AddHeader(hdrHash2, &block.Header{
 		Round:            2,
 		Nonce:            45,
 		ShardId:          1,
 		MiniBlockHeaders: miniBlockHeaders2})
-	pool.Headers().Add(hdrHash3, &block.Header{
+	pool.Headers().AddHeader(hdrHash3, &block.Header{
 		Round:            3,
 		Nonce:            45,
 		ShardId:          2,
@@ -1047,7 +1047,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	//put the existing headers inside datapool
 	prevHash, _ := mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(0).(*block.Header))
-	pool.Headers().Add(hdrHash1, &block.Header{
+	pool.Headers().AddHeader(hdrHash1, &block.Header{
 		Round:            10,
 		Nonce:            45,
 		ShardId:          0,
@@ -1056,7 +1056,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders1})
 
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(1).(*block.Header))
-	pool.Headers().Add(hdrHash2, &block.Header{
+	pool.Headers().AddHeader(hdrHash2, &block.Header{
 		Round:            20,
 		Nonce:            45,
 		ShardId:          1,
@@ -1065,7 +1065,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders2})
 
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(2).(*block.Header))
-	pool.Headers().Add(hdrHash3, &block.Header{
+	pool.Headers().AddHeader(hdrHash3, &block.Header{
 		Round:            30,
 		Nonce:            45,
 		ShardId:          2,
@@ -1168,8 +1168,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	pool.Headers().Add(hdrHash1, headers[0])
-	pool.Headers().Add(hdrHash11, headers[1])
+	pool.Headers().AddHeader(hdrHash1, headers[0])
+	pool.Headers().AddHeader(hdrHash11, headers[1])
 
 	// header shard 1
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(1).(*block.Header))
@@ -1192,8 +1192,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	pool.Headers().Add(hdrHash2, headers[2])
-	pool.Headers().Add(hdrHash22, headers[3])
+	pool.Headers().AddHeader(hdrHash2, headers[2])
+	pool.Headers().AddHeader(hdrHash22, headers[3])
 
 	// header shard 2
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(2).(*block.Header))
@@ -1216,8 +1216,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	pool.Headers().Add(hdrHash3, headers[4])
-	pool.Headers().Add(hdrHash33, headers[5])
+	pool.Headers().AddHeader(hdrHash3, headers[4])
+	pool.Headers().AddHeader(hdrHash33, headers[5])
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(15)
@@ -1314,8 +1314,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	pool.Headers().Add(hdrHash1, headers[0])
-	pool.Headers().Add(hdrHash11, headers[1])
+	pool.Headers().AddHeader(hdrHash1, headers[0])
+	pool.Headers().AddHeader(hdrHash11, headers[1])
 
 	// header shard 1
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(1).(*block.Header))
@@ -1338,8 +1338,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	pool.Headers().Add(hdrHash2, headers[2])
-	pool.Headers().Add(hdrHash22, headers[3])
+	pool.Headers().AddHeader(hdrHash2, headers[2])
+	pool.Headers().AddHeader(hdrHash22, headers[3])
 
 	// header shard 2
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(2).(*block.Header))
@@ -1362,8 +1362,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	pool.Headers().Add(hdrHash3, headers[4])
-	pool.Headers().Add(hdrHash33, headers[5])
+	pool.Headers().AddHeader(hdrHash3, headers[4])
+	pool.Headers().AddHeader(hdrHash33, headers[5])
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(20)
@@ -1494,8 +1494,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// wrong header type in pool and defer called
-	pool.Headers().Add(currHash, metaHdr)
-	pool.Headers().Add(prevHash, prevHdr)
+	pool.Headers().AddHeader(currHash, metaHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	mp.SetHdrForCurrentBlock(currHash, metaHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
@@ -1505,8 +1505,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// put headers in pool
-	pool.Headers().Add(currHash, currHdr)
-	pool.Headers().Add(prevHash, prevHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
@@ -1574,9 +1574,9 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	pool.Headers().Add(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
-	pool.Headers().Add(prevHash, prevHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	wrongCurrHdr := &block.Header{
 		Round:        11,
 		Nonce:        48,
@@ -1586,7 +1586,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	wrongCurrHash, _ := mp.ComputeHeaderHash(wrongCurrHdr)
-	pool.Headers().Add(wrongCurrHash, wrongCurrHdr)
+	pool.Headers().AddHeader(wrongCurrHash, wrongCurrHdr)
 
 	metaHdr := &block.MetaBlock{Round: 20}
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: wrongCurrHash}
@@ -1653,7 +1653,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		PrevHash:     []byte("prevhash"),
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	pool.Headers().Add(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: currHash}
@@ -1714,7 +1714,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Equal(t, 0, len(highestNonceHdrs))
 
-	pool.Headers().Add(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	highestNonceHdrs, err = mp.CheckShardHeadersValidity(metaHdr)
 	assert.NotNil(t, highestNonceHdrs)
@@ -1780,7 +1780,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	prevHash, _ = mp.ComputeHeaderHash(nextWrongHdr)
-	pool.Headers().Add(prevHash, nextWrongHdr)
+	pool.Headers().AddHeader(prevHash, nextWrongHdr)
 
 	mp.SetShardBlockFinality(0)
 	metaHdr := &block.MetaBlock{Round: 1}
@@ -1822,7 +1822,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		RootHash:     []byte("currRootHash")}
 
 	nextHash, _ := mp.ComputeHeaderHash(nextHdr)
-	pool.Headers().Add(nextHash, nextHdr)
+	pool.Headers().AddHeader(nextHash, nextHdr)
 	mp.SetHdrForCurrentBlock(nextHash, nextHdr, false)
 
 	metaHdr.Round = 20

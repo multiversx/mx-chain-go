@@ -25,7 +25,7 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.currTxs, _ = dataPool.NewCurrentBlockPool()
-	mphf.shardHeaders, _ = headersCache.NewHeadersCacher(1000, 100)
+	mphf.shardHeaders, _ = headersCache.NewHeadersPool(1000, 100)
 
 	return mphf
 }

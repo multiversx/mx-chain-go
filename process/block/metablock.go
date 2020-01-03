@@ -523,7 +523,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		headerPool.Add(hdrHash, shardHeader)
+		headerPool.AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := mp.store.GetStorer(hdrNonceHashDataUnit)

@@ -1013,7 +1013,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersCacher(1000, 100)
+	hdrPool, err := headersCache.NewHeadersPool(1000, 100)
 	if err != nil {
 		log.Error("error creating hdrpool")
 		return nil, err
@@ -1059,7 +1059,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeaders, err := headersCache.NewHeadersCacher(1000, 500)
+	shardHeaders, err := headersCache.NewHeadersPool(1000, 500)
 	if err != nil {
 		log.Error("error creating shardHeaders")
 		return nil, err
@@ -2234,7 +2234,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 	}
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	shardHeaders, err := headersCache.NewHeadersCacher(1000, 500)
+	shardHeaders, err := headersCache.NewHeadersPool(1000, 500)
 	if err != nil {
 		return nil, err
 	}
