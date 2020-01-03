@@ -1,3 +1,3 @@
 package track_test
 
-//TODO: Should be added units test for block notifier
+//TODO: Should be added units test for tracked blocks notifier

@@ -142,9 +142,6 @@ var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
-// ErrNilNotarizedHeadersDataPool signals that a nil notarized headers pool has been provided
-var ErrNilNotarizedHeadersDataPool = errors.New("nil notarized headers data pool")
-
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
@@ -310,20 +307,11 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
-// ErrHdrsSliceForShardIsNil signals that the slice holding headers for shard is nil
-var ErrHdrsSliceForShardIsNil = errors.New("headers slice for shard is nil")
+// ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
+var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
 
-// ErrCrossNotarizedHdrsSliceIsNil signals that the slice holding cross notarized headers is nil
-var ErrCrossNotarizedHdrsSliceIsNil = errors.New("cross notarized headers slice is nil")
-
-// ErrCrossNotarizedHdrsSliceForShardIsNil signals that the slice holding cross notarized headers for shard is nil
-var ErrCrossNotarizedHdrsSliceForShardIsNil = errors.New("cross notarized headers slice for shard is nil")
-
-// ErrSelfNotarizedHdrsSliceIsNil signals that the slice holding self notarized headers is nil
-var ErrSelfNotarizedHdrsSliceIsNil = errors.New("self notarized headers slice is nil")
-
-// ErrSelfNotarizedHdrsSliceForShardIsNil signals that the slice holding self notarized headers for shard is nil
-var ErrSelfNotarizedHdrsSliceForShardIsNil = errors.New("self notarized headers slice for shard is nil")
+// ErrNotarizedHeadersSliceForShardIsNil signals that the slice holding notarized headers for shard is nil
+var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
@@ -363,9 +351,6 @@ var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 
 // ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
 var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
-
-// ErrInvalidDataInput signals that the data input is invalid for parsing
-var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
@@ -569,9 +554,6 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
 
-// ErrNilBlockTracker signals that a nil block tracker was provided
-var ErrNilBlockTracker = errors.New("nil block tracker")
-
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 
@@ -589,9 +571,6 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
-
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
 
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")

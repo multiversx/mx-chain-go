@@ -1,88 +1,106 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type shardBlockTrack struct {
 	*baseBlockTrack
-	store dataRetriever.StorageService
 }
 
 // NewShardBlockTrack creates an object for tracking the received shard blocks
-func NewShardBlockTrack(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	poolsHolder dataRetriever.PoolsHolder,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	store dataRetriever.StorageService,
-	startHeaders map[uint32]data.HeaderHandler,
-) (*shardBlockTrack, error) {
-
-	err := checkTrackerNilParameters(hasher, marshalizer, rounder, shardCoordinator, store)
+func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
+	err := checkTrackerNilParameters(arguments.ArgBaseTracker)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(poolsHolder) {
+	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.Headers()) {
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(poolsHolder.MetaBlocks()) {
+	if check.IfNil(arguments.PoolsHolder.MetaBlocks()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(poolsHolder.HeadersNonces()) {
+	if check.IfNil(arguments.PoolsHolder.HeadersNonces()) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	crossNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
 	bbt := &baseBlockTrack{
-		hasher:            hasher,
-		marshalizer:       marshalizer,
-		rounder:           rounder,
-		shardCoordinator:  shardCoordinator,
-		shardHeadersPool:  poolsHolder.Headers(),
-		metaBlocksPool:    poolsHolder.MetaBlocks(),
-		headersNoncesPool: poolsHolder.HeadersNonces(),
+		hasher:                        arguments.Hasher,
+		headerValidator:               arguments.HeaderValidator,
+		marshalizer:                   arguments.Marshalizer,
+		rounder:                       arguments.Rounder,
+		shardCoordinator:              arguments.ShardCoordinator,
+		shardHeadersPool:              arguments.PoolsHolder.Headers(),
+		metaBlocksPool:                arguments.PoolsHolder.MetaBlocks(),
+		headersNoncesPool:             arguments.PoolsHolder.HeadersNonces(),
+		store:                         arguments.Store,
+		crossNotarizer:                crossNotarizer,
+		selfNotarizer:                 selfNotarizer,
+		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	err = bbt.setCrossNotarizedHeaders(startHeaders)
+	err = bbt.crossNotarizer.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bbt.setSelfNotarizedHeaders(startHeaders)
+	err = bbt.selfNotarizer.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	sbt := &shardBlockTrack{
+	sbt := shardBlockTrack{
 		baseBlockTrack: bbt,
-		store:          store,
 	}
+
+	blockProcessor, err := NewBlockProcessor(
+		arguments.HeaderValidator,
+		arguments.ShardCoordinator,
+		&sbt,
+		crossNotarizer,
+		crossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	sbt.blockProcessor = blockProcessor
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
 	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
 
-	sbt.selfNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
-	sbt.crossNotarizedHeadersHandlers = make([]func(headers []data.HeaderHandler, headersHashes [][]byte), 0)
-
-	sbt.blockFinality = process.BlockFinality
-
-	sbt.blockTracker = sbt
-
-	return sbt, nil
+	return &sbt, nil
 }
 
 func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
@@ -111,12 +129,12 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 	return selfHeadersInfo
 }
 
-func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, err := sbt.getLastSelfNotarizedHeader(sharding.MetachainShardId)
+func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
-	return lastSelfNotarizedHeader, headers, hashes
+	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
