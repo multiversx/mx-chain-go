@@ -10,7 +10,7 @@ type adapterTxCacheToSortedTransactionsProvider struct {
 	txCache *txcache.TxCache
 }
 
-func newTxCacheToSortedTransactionsProviderAdapter(txCache *txcache.TxCache) *adapterTxCacheToSortedTransactionsProvider {
+func newAdapterTxCacheToSortedTransactionsProvider(txCache *txcache.TxCache) *adapterTxCacheToSortedTransactionsProvider {
 	adapter := &adapterTxCacheToSortedTransactionsProvider{
 		txCache: txCache,
 	}
