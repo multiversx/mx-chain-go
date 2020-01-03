@@ -361,6 +361,41 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 	require.Equal(t, headersCache.ErrHeaderNotFound, err)
 }
 
+func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
+	t.Parallel()
+
+	shardId := uint32(0)
+	cacheSize := 99
+	numHeadersToGenerate := 100
+
+	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
+	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+
+	for i := 0; i < numHeadersToGenerate-1; i++ {
+		headersCacher.AddHeader(headersHashes[i], &headers[i])
+		time.Sleep(time.Microsecond)
+	}
+
+	headersFromCache, _, err := headersCacher.GetHeaderByNonceAndShardId(0, shardId)
+	require.Nil(t, err)
+	require.Equal(t, &headers[0], headersFromCache[0])
+
+	headersCacher.AddHeader(headersHashes[numHeadersToGenerate-1], &headers[numHeadersToGenerate-1])
+
+	header, err := headersCacher.GetHeaderByHash(headersHashes[0])
+	require.Nil(t, err)
+	require.Equal(t, &headers[0], header)
+
+	header, err = headersCacher.GetHeaderByHash(headersHashes[1])
+	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+
+	for i := 2; i <= cacheSize; i++ {
+		header, err := headersCacher.GetHeaderByHash(headersHashes[i])
+		require.Nil(t, err)
+		require.Equal(t, &headers[i], header)
+	}
+}
+
 func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	t.Parallel()
 

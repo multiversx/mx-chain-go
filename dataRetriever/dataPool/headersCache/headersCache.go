@@ -35,8 +35,9 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	//check if pool is full and if it is do eviction
 	cache.tryToDoEviction(headerShardId)
 
-	// add header info in second map
-	added := cache.headersByHash.addElement(headerHash, headerInfo{headerNonce, headerShardId})
+	headerInfo := headerInfo{headerNonce: headerNonce, headerShardId: headerShardId}
+	// add header info in map
+	added := cache.headersByHash.addElement(headerHash, headerInfo)
 	if added {
 		return false
 	}

@@ -1,9 +1,10 @@
 package headersCache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"sort"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 type listOfHeadersByNonces map[uint64]timestampedListOfHeaders
