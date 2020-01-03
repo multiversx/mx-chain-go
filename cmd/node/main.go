@@ -1039,12 +1039,14 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	if err != nil {
-		return nil, err
-	}
+	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
+	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
 
-	return nodesCoordinator, nil
+	return baseNodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
