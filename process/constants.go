@@ -87,7 +87,3 @@ const MinForkRound = uint64(0)
 // MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
 // to be stored in advance in block tracker
 const MaxNonceDifferences = uint64(1000)
-
-// MaxHeadersFromSameShardInMetaBlock represents maximum number of shard headers form the same shard which could be
-// included in one meta block
-//const MaxHeadersFromSameShardInMetaBlock = 5

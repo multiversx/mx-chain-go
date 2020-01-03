@@ -425,7 +425,6 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
-				//go sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
 				log.Debug("checkMetaHdrFinality -> isHdrConstructionValid",
 					"error", err.Error())
 				continue

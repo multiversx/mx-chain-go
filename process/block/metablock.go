@@ -1287,7 +1287,6 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					//go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
 					log.Debug("checkShardHeadersFinality -> isHdrConstructionValid",
 						"error", err.Error())
 					continue
@@ -1834,10 +1833,6 @@ func (mp *metaProcessor) getLongestShardsChainFromLastNotarized(round uint64) ([
 			maxHdrLen = tmpHdrLen
 		}
 	}
-
-	//TODO: This throttle mechanism should be replaced by another one more complex, based on block tracker which should
-	//determine if one specific shard has some problems to advance
-	//maxHdrLen = core.MinInt(maxHdrLen, process.MaxHeadersFromSameShardInMetaBlock)
 
 	orderedHeaders := make([]data.HeaderHandler, 0)
 	orderedHeadersHashes := make([][]byte, 0)
