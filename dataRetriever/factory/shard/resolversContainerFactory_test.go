@@ -269,7 +269,7 @@ func TestResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testi
 
 	rcf, _ := shard.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.HeadersTopic, ""),
+		createStubTopicMessageHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
@@ -349,7 +349,7 @@ func TestResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T)
 
 	rcf, _ := shard.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.HeadersTopic),
+		createStubTopicMessageHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
@@ -452,10 +452,9 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards + 1
 	numResolverPeerChanges := 1
-	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
-		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs
+		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

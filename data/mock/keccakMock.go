@@ -16,7 +16,7 @@ func (k KeccakMock) Compute(s string) []byte {
 		return k.EmptyHash()
 	}
 	h := sha3.NewLegacyKeccak256()
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
@@ -35,8 +35,5 @@ func (KeccakMock) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (k *KeccakMock) IsInterfaceNil() bool {
-	if k == nil {
-		return true
-	}
-	return false
+	return k == nil
 }

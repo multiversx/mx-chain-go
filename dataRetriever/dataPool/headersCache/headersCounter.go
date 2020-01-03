@@ -18,7 +18,7 @@ func (nhs numHeadersByShard) decrement(shardId uint32, value int) {
 	nhs[shardId] -= uint64(value)
 }
 
-func (nhs numHeadersByShard) getNumHeaderFromCache(shardId uint32) int64 {
+func (nhs numHeadersByShard) getCount(shardId uint32) int64 {
 	numShardHeaders, ok := nhs[shardId]
 	if !ok {
 		return 0

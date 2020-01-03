@@ -41,7 +41,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			SpecialAddressHandler:        &mock.SpecialAddressHandlerMock{},
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			StartHeaders:                 createGenesisBlocks(shardCoordinator),
-			RequestHandler:               &mock.RequestHandlerMock{},
+			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},

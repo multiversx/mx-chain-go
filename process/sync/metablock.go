@@ -25,6 +25,7 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
+	epochBootstrap process.EpochBootstrapper
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -46,6 +47,7 @@ func NewMetaBootstrap(
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	epochBootstrap process.EpochBootstrapper,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -53,6 +55,9 @@ func NewMetaBootstrap(
 	}
 	if check.IfNil(poolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
+	}
+	if check.IfNil(epochBootstrap) {
+		return nil, process.ErrNilEpochStartTrigger
 	}
 
 	err := checkBootstrapNilParameters(
@@ -95,7 +100,8 @@ func NewMetaBootstrap(
 	}
 
 	boot := MetaBootstrap{
-		baseBootstrap: base,
+		baseBootstrap:  base,
+		epochBootstrap: epochBootstrap,
 	}
 
 	base.blockBootstrapper = &boot
@@ -199,9 +205,32 @@ func (boot *MetaBootstrap) StartSync() {
 	} else {
 		_, numHdrs := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
 		boot.blkExecutor.SetNumProcessedObj(numHdrs)
+
+		boot.setLastEpochStartRound()
 	}
 
 	go boot.syncBlocks()
+}
+
+func (boot *MetaBootstrap) setLastEpochStartRound() {
+	hdr := boot.blkc.GetCurrentBlockHeader()
+	if check.IfNil(hdr) || hdr.GetEpoch() < 1 {
+		return
+	}
+
+	epochIdentifier := core.EpochStartIdentifier(hdr.GetEpoch())
+	epochStartHdr, err := boot.headerStore.Get([]byte(epochIdentifier))
+	if err != nil {
+		return
+	}
+
+	epochStartMetaBlock := &block.MetaBlock{}
+	err = boot.marshalizer.Unmarshal(epochStartMetaBlock, epochStartHdr)
+	if err != nil {
+		return
+	}
+
+	boot.epochBootstrap.SetCurrentEpochStartRound(epochStartMetaBlock.GetRound())
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool

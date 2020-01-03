@@ -1,6 +1,7 @@
 package headersCache
 
 import (
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
 )
@@ -17,25 +18,34 @@ type headerDetails struct {
 }
 
 type timestampedListOfHeaders struct {
-	headers   []headerDetails
+	items     []headerDetails
 	timestamp time.Time
 }
 
-func (hld *timestampedListOfHeaders) isEmpty() bool {
-	return len(hld.headers) == 0
+func (listOfHeaders *timestampedListOfHeaders) isEmpty() bool {
+	return len(listOfHeaders.items) == 0
 }
 
-func (hld *timestampedListOfHeaders) removeHeader(index int) {
-	hld.headers = append(hld.headers[:index], hld.headers[index+1:]...)
+func (listOfHeaders *timestampedListOfHeaders) removeHeader(index int) {
+	listOfHeaders.items = append(listOfHeaders.items[:index], listOfHeaders.items[index+1:]...)
 }
 
-func (hld *timestampedListOfHeaders) getHashes() [][]byte {
-	hdrsHashes := make([][]byte, 0)
-	for _, hdrDetails := range hld.headers {
-		hdrsHashes = append(hdrsHashes, hdrDetails.headerHash)
+func (listOfHeaders *timestampedListOfHeaders) getHashes() [][]byte {
+	hashes := make([][]byte, 0)
+	for _, header := range listOfHeaders.items {
+		hashes = append(hashes, header.headerHash)
 	}
 
-	return hdrsHashes
+	return hashes
+}
+
+func (listOfHeaders *timestampedListOfHeaders) findHeaderByHash(hash []byte) (data.HeaderHandler, bool) {
+	for _, header := range listOfHeaders.items {
+		if bytes.Equal(hash, header.headerHash) {
+			return header.header, true
+		}
+	}
+	return nil, false
 }
 
 type headerInfo struct {

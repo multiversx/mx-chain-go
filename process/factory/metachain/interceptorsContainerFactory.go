@@ -287,9 +287,9 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
+	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
+		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)
 		if err != nil {
 			return nil, nil, err

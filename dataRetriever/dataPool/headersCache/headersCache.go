@@ -3,15 +3,16 @@ package headersCache
 import (
 	"bytes"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 type headersCache struct {
-	hdrNonceCache map[uint32]headersMap
+	headersNonceCache map[uint32]listOfHeadersByNonces
 
-	headersByHash headersByHashMap
-	hdrsCounter   numHeadersByShard
+	headersByHash  headersByHashMap
+	headersCounter numHeadersByShard
 
 	numHeadersToRemove int
 	maxHeadersPerShard int
@@ -19,8 +20,8 @@ type headersCache struct {
 
 func newHeadersCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersCache {
 	return &headersCache{
-		hdrNonceCache:      make(map[uint32]headersMap),
-		hdrsCounter:        make(numHeadersByShard),
+		headersNonceCache:  make(map[uint32]listOfHeadersByNonces),
+		headersCounter:     make(numHeadersByShard),
 		headersByHash:      make(headersByHashMap),
 		numHeadersToRemove: numHeadersToRemove,
 		maxHeadersPerShard: numMaxHeaderPerShard,
@@ -35,41 +36,41 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	cache.tryToDoEviction(headerShardId)
 
 	// add header info in second map
-	alreadyExits := cache.headersByHash.addElement(headerHash, headerInfo{headerNonce, headerShardId})
-	if alreadyExits {
-		return true
+	added := cache.headersByHash.addElement(headerHash, headerInfo{headerNonce, headerShardId})
+	if added {
+		return false
 	}
 
-	headersShardMap := cache.getShardMap(headerShardId)
-	headersShardMap.appendElement(headerHash, header)
+	shard := cache.getShardMap(headerShardId)
+	shard.appendHeaderToList(headerHash, header)
 
-	cache.hdrsCounter.increment(headerShardId)
+	cache.headersCounter.increment(headerShardId)
 
-	return false
+	return true
 
 }
 
-func (cache *headersCache) tryToDoEviction(hdrShardId uint32) {
-	numHeaders := cache.getNumHeaderFromCache(hdrShardId)
+func (cache *headersCache) tryToDoEviction(shardId uint32) {
+	numHeaders := cache.getNumHeaders(shardId)
 	if int(numHeaders) >= cache.maxHeadersPerShard {
-		cache.lruEviction(hdrShardId)
+		cache.lruEviction(shardId)
 	}
 
 	return
 }
 
 func (cache *headersCache) lruEviction(shardId uint32) {
-	headersShardMap, ok := cache.hdrNonceCache[shardId]
+	shard, ok := cache.headersNonceCache[shardId]
 	if !ok {
 		return
 	}
 
-	nonces := headersShardMap.getNoncesSortedByTimestamp()
+	nonces := shard.getNoncesSortedByTimestamp()
 
-	var numHashes int
+	numHashes := 0
 	maxItemsToRemove := core.MinInt(cache.numHeadersToRemove, len(nonces))
 	for i := 0; i < maxItemsToRemove; i++ {
-		numHashes += cache.removeHeaderNonceByNonceAndShardId(nonces[i], shardId)
+		numHashes += cache.removeHeaderByNonceAndShardId(nonces[i], shardId)
 
 		if numHashes >= maxItemsToRemove {
 			break
@@ -77,38 +78,38 @@ func (cache *headersCache) lruEviction(shardId uint32) {
 	}
 }
 
-func (cache *headersCache) getShardMap(shardId uint32) headersMap {
-	if _, ok := cache.hdrNonceCache[shardId]; !ok {
-		cache.hdrNonceCache[shardId] = make(headersMap)
+func (cache *headersCache) getShardMap(shardId uint32) listOfHeadersByNonces {
+	if _, ok := cache.headersNonceCache[shardId]; !ok {
+		cache.headersNonceCache[shardId] = make(listOfHeadersByNonces)
 	}
 
-	return cache.hdrNonceCache[shardId]
+	return cache.headersNonceCache[shardId]
 }
 
-func (cache *headersCache) getNumHeaderFromCache(shardId uint32) int64 {
-	return cache.hdrsCounter.getNumHeaderFromCache(shardId)
+func (cache *headersCache) getNumHeaders(shardId uint32) int64 {
+	return cache.headersCounter.getCount(shardId)
 }
 
-func (cache *headersCache) removeHeaderNonceByNonceAndShardId(hdrNonce uint64, shardId uint32) int {
-	headersShardMap, ok := cache.hdrNonceCache[shardId]
+func (cache *headersCache) removeHeaderByNonceAndShardId(headerNonce uint64, shardId uint32) int {
+	shard, ok := cache.headersNonceCache[shardId]
 	if !ok {
 		return 0
 	}
 
-	headersWithTimestamp, ok := headersShardMap.getHeadersByNonce(hdrNonce)
+	headers, ok := shard.getHeadersByNonce(headerNonce)
 	if !ok {
 		return 0
 	}
-	hdrsHashes := headersWithTimestamp.getHashes()
+	headersHashes := headers.getHashes()
 
-	//remove headers from nonce map
-	headersShardMap.removeElement(hdrNonce)
+	//remove items from nonce map
+	shard.removeListOfHeaders(headerNonce)
 	//remove elements from hashes map
-	cache.headersByHash.deleteBulk(hdrsHashes)
+	cache.headersByHash.deleteBulk(headersHashes)
 
-	cache.hdrsCounter.decrement(shardId, len(hdrsHashes))
+	cache.headersCounter.decrement(shardId, len(headersHashes))
 
-	return len(hdrsHashes)
+	return len(headersHashes)
 }
 
 func (cache *headersCache) removeHeaderByHash(hash []byte) {
@@ -118,39 +119,39 @@ func (cache *headersCache) removeHeaderByHash(hash []byte) {
 	}
 
 	//remove header from first map
-	cache.removeHeaderNonceCache(info, hash)
+	cache.removeHeaderFromNonceMap(info, hash)
 	//remove header from second map
 	cache.headersByHash.deleteElement(hash)
 }
 
-// removeHeaderNonceCache will remove a header from headerWithTimestamp
+// removeHeaderFromNonceMap will remove a header from headerWithTimestamp
 // when a header is removed by hash we need to remove also header from the map where is stored with nonce
-func (cache *headersCache) removeHeaderNonceCache(hdrInfo headerInfo, headerHash []byte) {
-	headersShardMap, ok := cache.hdrNonceCache[hdrInfo.headerShardId]
+func (cache *headersCache) removeHeaderFromNonceMap(headerInfo headerInfo, headerHash []byte) {
+	shard, ok := cache.headersNonceCache[headerInfo.headerShardId]
 	if !ok {
 		return
 	}
 
-	headersWithTimestamp, ok := headersShardMap.getHeadersByNonce(hdrInfo.headerNonce)
+	headers, ok := shard.getHeadersByNonce(headerInfo.headerNonce)
 	if !ok {
 		return
 	}
 
 	//remove header from header list
-	for index, headerD := range headersWithTimestamp.headers {
-		if !bytes.Equal(headerD.headerHash, headerHash) {
+	for index, header := range headers.items {
+		if !bytes.Equal(header.headerHash, headerHash) {
 			continue
 		}
 
-		headersWithTimestamp.removeHeader(index)
-		cache.hdrsCounter.decrement(hdrInfo.headerShardId, 1)
+		headers.removeHeader(index)
+		cache.headersCounter.decrement(headerInfo.headerShardId, 1)
 
-		if headersWithTimestamp.isEmpty() {
-			headersShardMap.removeElement(hdrInfo.headerNonce)
+		if headers.isEmpty() {
+			shard.removeListOfHeaders(headerInfo.headerNonce)
 			return
 		}
 
-		headersShardMap.addElement(hdrInfo.headerNonce, headersWithTimestamp)
+		shard.setListOfHeaders(headerInfo.headerNonce, headers)
 		return
 	}
 }
@@ -161,32 +162,39 @@ func (cache *headersCache) getHeaderByHash(hash []byte) (data.HeaderHandler, err
 		return nil, ErrHeaderNotFound
 	}
 
-	headersList, ok := cache.getHeadersByNonceAndShardId(info.headerNonce, info.headerShardId)
+	shard, ok := cache.headersNonceCache[info.headerShardId]
 	if !ok {
 		return nil, ErrHeaderNotFound
 	}
 
-	for _, hdrDetails := range headersList {
-		if bytes.Equal(hash, hdrDetails.headerHash) {
-			return hdrDetails.header, nil
-		}
+	headers := shard.getListOfHeaders(info.headerNonce)
+	if headers.isEmpty() {
+		return nil, ErrHeaderNotFound
+	}
+
+	// update headers timestamp for lru
+	headers.timestamp = time.Now()
+	shard.setListOfHeaders(info.headerNonce, headers)
+
+	if header, ok := headers.findHeaderByHash(hash); ok {
+		return header, nil
 	}
 
 	return nil, ErrHeaderNotFound
 }
 
-func (cache *headersCache) getHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]headerDetails, bool) {
-	headersShardMap, ok := cache.hdrNonceCache[shardId]
+func (cache *headersCache) getHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]headerDetails, bool) {
+	shard, ok := cache.headersNonceCache[shardId]
 	if !ok {
 		return nil, false
 	}
 
-	headersList, ok := headersShardMap.getHeadersByNonce(hdrNonce)
+	headersList, ok := shard.getHeadersByNonce(headerNonce)
 	if !ok {
 		return nil, false
 	}
 
-	return headersList.headers, true
+	return headersList.items, true
 }
 
 func (cache *headersCache) getHeadersAndHashesByNonceAndShardId(nonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, bool) {
@@ -197,9 +205,9 @@ func (cache *headersCache) getHeadersAndHashesByNonceAndShardId(nonce uint64, sh
 
 	headers := make([]data.HeaderHandler, 0, len(headersList))
 	hashes := make([][]byte, 0, len(headersList))
-	for _, hdrDetails := range headersList {
-		headers = append(headers, hdrDetails.header)
-		hashes = append(hashes, hdrDetails.headerHash)
+	for _, headerDetails := range headersList {
+		headers = append(headers, headerDetails.header)
+		hashes = append(hashes, headerDetails.headerHash)
 	}
 
 	return headers, hashes, true
@@ -212,11 +220,11 @@ func (cache *headersCache) keys(shardId uint32) []uint64 {
 }
 
 func (cache *headersCache) totalHeaders() int {
-	return cache.hdrsCounter.totalHeaders()
+	return cache.headersCounter.totalHeaders()
 }
 
 func (cache *headersCache) clear() {
-	cache.hdrNonceCache = make(map[uint32]headersMap)
-	cache.hdrsCounter = make(numHeadersByShard)
+	cache.headersNonceCache = make(map[uint32]listOfHeadersByNonces)
+	cache.headersCounter = make(numHeadersByShard)
 	cache.headersByHash = make(headersByHashMap)
 }

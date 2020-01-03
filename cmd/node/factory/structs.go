@@ -65,7 +65,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -628,6 +627,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+
 	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, args.nodesConfig.StartTime)
 	if err != nil {
 		return nil, err
@@ -744,13 +748,8 @@ func newRequestHandler(
 		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
 			resolversFinder,
 			requestedItemsHandler,
-			factory.TransactionTopic,
-			factory.UnsignedTransactionTopic,
-			factory.RewardsTransactionTopic,
-			factory.MiniBlocksTopic,
-			factory.HeadersTopic,
-			factory.MetachainBlocksTopic,
 			MaxTxsToRequest,
+			shardCoordinator.SelfId(),
 		)
 		if err != nil {
 			return nil, err
@@ -763,11 +762,6 @@ func newRequestHandler(
 		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 			resolversFinder,
 			requestedItemsHandler,
-			factory.ShardHeadersForMetachainTopic,
-			factory.MetachainBlocksTopic,
-			factory.TransactionTopic,
-			factory.UnsignedTransactionTopic,
-			factory.MiniBlocksTopic,
 			MaxTxsToRequest,
 		)
 		if err != nil {
@@ -821,6 +815,8 @@ func newEpochStartTrigger(
 			Settings:           args.epochStart,
 			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
+			Storage:            args.data.Store,
+			Marshalizer:        args.core.Marshalizer,
 		}
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

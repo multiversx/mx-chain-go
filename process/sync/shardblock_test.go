@@ -38,17 +38,6 @@ type removedFlags struct {
 func createMockResolversFinder() *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.HeadersTopic) {
-				return &mock.HeaderResolverMock{
-					RequestDataFromNonceCalled: func(nonce uint64) error {
-						return nil
-					},
-					RequestDataFromHashCalled: func(hash []byte) error {
-						return nil
-					},
-				}, nil
-			}
-
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
 					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
@@ -62,13 +51,8 @@ func createMockResolversFinder() *mock.ResolversFinderStub {
 
 			return nil, nil
 		},
-	}
-}
-
-func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
-	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.HeadersTopic) {
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
 						return nil
@@ -79,6 +63,14 @@ func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 				}, nil
 			}
 
+			return nil, nil
+		},
+	}
+}
+
+func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
+	return &mock.ResolversFinderStub{
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
 					RequestDataFromHashCalled: func(hash []byte) error {
@@ -92,6 +84,20 @@ func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 					},
 					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 						return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+					},
+				}, nil
+			}
+
+			return nil, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
+				return &mock.HeaderResolverMock{
+					RequestDataFromNonceCalled: func(nonce uint64) error {
+						return nil
+					},
+					RequestDataFromHashCalled: func(hash []byte) error {
+						return nil
 					},
 				}, nil
 			}
@@ -736,12 +742,15 @@ func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	pools := createMockPools()
 	resFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.HeadersTopic) {
-				return nil, errExpected
-			}
-
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return &mock.ResolverStub{}, nil
+			}
+
+			return nil, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
+				return nil, errExpected
 			}
 
 			return nil, nil
@@ -788,12 +797,15 @@ func TestNewShardBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	pools := createMockPools()
 	resFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.HeadersTopic) {
-				return &mock.HeaderResolverMock{}, errExpected
-			}
-
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return nil, errExpected
+			}
+
+			return nil, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
+				return &mock.HeaderResolverMock{}, errExpected
 			}
 
 			return nil, nil
@@ -3054,7 +3066,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	}
 	resFinder := createMockResolversFinderNilMiniBlocks()
 	resFinder.IntraShardResolverCalled = func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-		if strings.Contains(baseTopic, factory.HeadersTopic) {
+		if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
 			return &mock.HeaderResolverMock{
 				RequestDataFromHashCalled: func(hash []byte) error {
 					return nil

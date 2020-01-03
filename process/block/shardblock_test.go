@@ -454,7 +454,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		tdp,
 		&mock.AddressConverterMock{},
 		accounts,
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 				return process.ErrHigherNonceInTransaction
@@ -495,7 +495,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
 		tdp.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
@@ -674,7 +674,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		tdp,
 		&mock.AddressConverterMock{},
 		accounts,
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		tpm,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -712,7 +712,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
 		tdp.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
@@ -1309,8 +1309,8 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.RequestHandler = &mock.RequestHandlerMock{
-		RequestHeaderHandlerByNonceCalled: func(destShardID uint32, nonce uint64) {
+	arguments.RequestHandler = &mock.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 		},
 	}
@@ -1828,7 +1828,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		tdp,
 		&mock.AddressConverterMock{},
 		initAccountsMock(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -1846,7 +1846,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
 		tdp.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
@@ -2393,7 +2393,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		tdp,
 		&mock.AddressConverterMock{},
 		initAccountsMock(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2411,7 +2411,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
 		tdp.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
@@ -2501,7 +2501,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		tdp,
 		&mock.AddressConverterMock{},
 		initAccountsMock(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2519,7 +2519,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
 		tdp.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
@@ -2579,17 +2579,19 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash2Requested := int32(0)
 	miniBlockHash3Requested := int32(0)
 
-	requestHandler := &mock.RequestHandlerMock{RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-		if bytes.Equal(miniBlockHash1, miniblockHash) {
-			atomic.AddInt32(&miniBlockHash1Requested, 1)
-		}
-		if bytes.Equal(miniBlockHash2, miniblockHash) {
-			atomic.AddInt32(&miniBlockHash2Requested, 1)
-		}
-		if bytes.Equal(miniBlockHash3, miniblockHash) {
-			atomic.AddInt32(&miniBlockHash3Requested, 1)
-		}
-	}}
+	requestHandler := &mock.RequestHandlerStub{
+		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+			if bytes.Equal(miniBlockHash1, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash1Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash2, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash2Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash3, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash3Requested, 1)
+			}
+		},
+	}
 
 	tc, _ := coordinator.NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -2659,9 +2661,11 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	noOfMissingMiniBlocks := int32(0)
 
-	requestHandler := &mock.RequestHandlerMock{RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-		atomic.AddInt32(&noOfMissingMiniBlocks, 1)
-	}}
+	requestHandler := &mock.RequestHandlerStub{
+		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+			atomic.AddInt32(&noOfMissingMiniBlocks, 1)
+		},
+	}
 
 	tc, _ := coordinator.NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -2932,7 +2936,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		datapool,
 		&mock.AddressConverterMock{},
 		accntAdapter,
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		txProcessorMock,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2975,7 +2979,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		mock.NewMultiShardsCoordinatorMock(3),
 		accntAdapter,
 		datapool.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
@@ -3144,7 +3148,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		datapool,
 		&mock.AddressConverterMock{},
 		initAccountsMock(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -3162,7 +3166,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
 		datapool.MiniBlocks(),
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -104,4 +105,28 @@ func GetShardIdString(shardId uint32) string {
 	}
 
 	return fmt.Sprintf("%d", shardId)
+}
+
+// EpochStartIdentifier returns the string for the epoch start identifier
+func EpochStartIdentifier(epoch uint32) string {
+	return fmt.Sprintf("epochStartBlock_%d", epoch)
+}
+
+// IsUnknownEpochIdentifier return if the epoch identifier represents unknown epoch
+func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
+	splitString := strings.Split(string(identifier), "_")
+	if len(splitString) == 0 || len(splitString[0]) == 0 {
+		return false, ErrInvalidIdentifierForEpochStartBlockRequest
+	}
+
+	epoch, err := strconv.ParseUint(splitString[1], 10, 32)
+	if err != nil {
+		return false, ErrInvalidIdentifierForEpochStartBlockRequest
+	}
+
+	if epoch == math.MaxUint32 {
+		return true, nil
+	}
+
+	return false, nil
 }

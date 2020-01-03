@@ -656,7 +656,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.ShardHeadersForMetachainTopic, ""),
+		createStubTopicHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -720,7 +720,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.ShardHeadersForMetachainTopic),
+		createStubTopicHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},

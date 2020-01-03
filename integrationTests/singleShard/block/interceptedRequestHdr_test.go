@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +68,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
+	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
@@ -127,7 +128,7 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
+	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)

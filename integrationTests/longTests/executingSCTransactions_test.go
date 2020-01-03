@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
@@ -74,7 +75,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
@@ -155,7 +156,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
@@ -246,7 +247,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		nrRoundsToPropagateMultiShard = 1
 	}
 
-	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -342,7 +343,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	idxProposers[1] = 2
 	idxProposers[2] = 4
 
-	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)

@@ -6,17 +6,13 @@ import (
 	"time"
 )
 
-type headersMap map[uint64]timestampedListOfHeaders
+type listOfHeadersByNonces map[uint64]timestampedListOfHeaders
 
-func (hMap headersMap) addElement(nonce uint64, details timestampedListOfHeaders) {
-	hMap[nonce] = details
-}
-
-func (hMap headersMap) getElement(nonce uint64) timestampedListOfHeaders {
+func (hMap listOfHeadersByNonces) getListOfHeaders(nonce uint64) timestampedListOfHeaders {
 	element, ok := hMap[nonce]
 	if !ok {
 		return timestampedListOfHeaders{
-			headers:   make([]headerDetails, 0),
+			items:     make([]headerDetails, 0),
 			timestamp: time.Now(),
 		}
 	}
@@ -24,23 +20,27 @@ func (hMap headersMap) getElement(nonce uint64) timestampedListOfHeaders {
 	return element
 }
 
-func (hMap headersMap) appendElement(headerHash []byte, header data.HeaderHandler) {
+func (hMap listOfHeadersByNonces) appendHeaderToList(headerHash []byte, header data.HeaderHandler) {
 	headerNonce := header.GetNonce()
-	headersWithTimestamp := hMap.getElement(headerNonce)
+	headersWithTimestamp := hMap.getListOfHeaders(headerNonce)
 
 	headerDetails := headerDetails{
 		headerHash: headerHash,
 		header:     header,
 	}
-	headersWithTimestamp.headers = append(headersWithTimestamp.headers, headerDetails)
-	hMap.addElement(headerNonce, headersWithTimestamp)
+	headersWithTimestamp.items = append(headersWithTimestamp.items, headerDetails)
+	hMap.setListOfHeaders(headerNonce, headersWithTimestamp)
 }
 
-func (hMap headersMap) removeElement(nonce uint64) {
+func (hMap listOfHeadersByNonces) setListOfHeaders(nonce uint64, element timestampedListOfHeaders) {
+	hMap[nonce] = element
+}
+
+func (hMap listOfHeadersByNonces) removeListOfHeaders(nonce uint64) {
 	delete(hMap, nonce)
 }
 
-func (hMap headersMap) getNoncesSortedByTimestamp() []uint64 {
+func (hMap listOfHeadersByNonces) getNoncesSortedByTimestamp() []uint64 {
 	noncesTimestampsSlice := make([]nonceTimestamp, 0)
 
 	for key, value := range hMap {
@@ -59,21 +59,21 @@ func (hMap headersMap) getNoncesSortedByTimestamp() []uint64 {
 	return nonces
 }
 
-// getHeadersByNonce will return a list of headers and update timestamp
-func (hMap headersMap) getHeadersByNonce(hdrNonce uint64) (timestampedListOfHeaders, bool) {
-	hdrsWithTimestamp := hMap.getElement(hdrNonce)
+// getHeadersByNonce will return a list of items and update timestamp
+func (hMap listOfHeadersByNonces) getHeadersByNonce(hdrNonce uint64) (timestampedListOfHeaders, bool) {
+	hdrsWithTimestamp := hMap.getListOfHeaders(hdrNonce)
 	if hdrsWithTimestamp.isEmpty() {
 		return timestampedListOfHeaders{}, false
 	}
 
 	//update timestamp
 	hdrsWithTimestamp.timestamp = time.Now()
-	hMap.addElement(hdrNonce, hdrsWithTimestamp)
+	hMap.setListOfHeaders(hdrNonce, hdrsWithTimestamp)
 
 	return hdrsWithTimestamp, true
 }
 
-func (hMap headersMap) keys() []uint64 {
+func (hMap listOfHeadersByNonces) keys() []uint64 {
 	nonces := make([]uint64, 0, len(hMap))
 
 	for key := range hMap {
