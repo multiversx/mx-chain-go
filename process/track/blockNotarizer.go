@@ -16,8 +16,6 @@ type blockNotarizer struct {
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
 
-	startHeaders map[uint32]data.HeaderHandler
-
 	mutNotarizedHeaders sync.RWMutex
 	notarizedHeaders    map[uint32][]*headerInfo
 }
