@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesShouldNotBeAccepted(t *testing.T) {
+func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotBeAccepted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -25,14 +27,26 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesShouldNotBeAccepted(t *
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
+	singleSigner := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return nil, nil
+		},
+	}
+	keyGen := &mock.KeyGenMock{}
+
 	// create map of shards - testNodeProcessors for metachain and shard chain
-	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		nodesPerShard,
 		nodesPerShard,
 		maxShards,
 		consensusGroupSize,
 		consensusGroupSize,
 		integrationTests.GetConnectableAddress(advertiser),
+		singleSigner,
+		keyGen,
 	)
 
 	for _, nodes := range nodesMap {
@@ -75,7 +89,21 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesShouldNotBeAccepted(t *
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	bitMapEnough := []byte{1, 0, 1, 0, 1}
+	bitMapTooBig := []byte{1, 0, 1, 0, 1} // only one byte was needed, so this block should not pass
+	body, hdr, _ = proposeBlock(nodesMap[0][0], round, nonce, bitMapTooBig)
+	assert.NotNil(t, body)
+	assert.NotNil(t, hdr)
+
+	nodesMap[0][0].BroadcastBlock(body, hdr)
+	time.Sleep(stepDelay)
+
+	// this block should have not passed the interceptor
+	assert.Equal(t, int32(0), nodesMap[0][1].CounterHdrRecv)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	bitMapEnough := []byte{11} // 11 = 0b0000 1011 so 3 signatures
 	body, hdr, _ = proposeBlock(nodesMap[0][0], round, nonce, bitMapEnough)
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)

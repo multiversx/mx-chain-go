@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -29,16 +30,18 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	cp *CryptoParams,
 	keyIndex int,
 	ownAccount *TestWalletAccount,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
-		ChainID:          IntegrationTestsChainID,
+		ShardCoordinator:  shardCoordinator,
+		Messenger:         messenger,
+		NodesCoordinator:  nodesCoordinator,
+		HeaderSigVerifier: headerSigVerifier,
+		ChainID:           IntegrationTestsChainID,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -55,26 +58,6 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		cp.KeyGen,
 		0,
 	)
-	singleSigner := &mock.SignerMock{
-		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			return nil
-		},
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return nil, nil
-		},
-	}
-	keyGen := &mock.KeyGenMock{}
-	args := headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       TestMarshalizer,
-		Hasher:            TestHasher,
-		NodesCoordinator:  nodesCoordinator,
-		MultiSigVerifier:  TestMultiSig,
-		SingleSigVerifier: singleSigner,
-		KeyGen:            keyGen,
-	}
-	headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
-	tpn.HeaderSigVerifier = headerSig
-
 	if tpn.MultiSigner == nil {
 		fmt.Println("Error generating multisigner")
 	}
@@ -133,6 +116,66 @@ func CreateNodesWithNodesCoordinator(
 				cp,
 				i,
 				nil,
+				&mock.HeaderSigVerifierStub{},
+			)
+		}
+		nodesMap[shardId] = nodesList
+	}
+
+	return nodesMap
+}
+
+// CreateNodesWithNodesCoordinatorAndHeaderSigVerifier returns a map with nodes per shard each using a real nodes coordinator and header sig verifier
+func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+	signer crypto.SingleSigner,
+	keyGen crypto.KeyGenerator,
+) map[uint32][]*TestProcessorNode {
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+	nodesMap := make(map[uint32][]*TestProcessorNode)
+	for shardId, validatorList := range validatorsMap {
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Hasher:                  TestHasher,
+			ShardId:                 shardId,
+			NbShards:                uint32(nbShards),
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+		}
+		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+		if err != nil {
+			fmt.Println("Error creating node coordinator")
+		}
+
+		nodesList := make([]*TestProcessorNode, len(validatorList))
+		args := headerCheck.ArgsHeaderSigVerifier{
+			Marshalizer:       TestMarshalizer,
+			Hasher:            TestHasher,
+			NodesCoordinator:  nodesCoordinator,
+			MultiSigVerifier:  TestMultiSig,
+			SingleSigVerifier: signer,
+			KeyGen:            keyGen,
+		}
+		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+		for i := range validatorList {
+			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
+				uint32(nbShards),
+				shardId,
+				seedAddress,
+				nodesCoordinator,
+				cp,
+				i,
+				nil,
+				headerSig,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -181,6 +224,14 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				shardId,
 				singleSigner,
 				keyGenForBlocks)
+			args := headerCheck.ArgsHeaderSigVerifier{
+				Marshalizer:       TestMarshalizer,
+				Hasher:            TestHasher,
+				NodesCoordinator:  nodesCoordinator,
+				MultiSigVerifier:  TestMultiSig,
+				SingleSigVerifier: singleSigner,
+				KeyGen:            keyGenForBlocks}
+			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -189,6 +240,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				cp,
 				i,
 				ownAccount,
+				headerSig,
 			)
 		}
 		nodesMap[shardId] = nodesList

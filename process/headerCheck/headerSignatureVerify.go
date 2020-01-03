@@ -130,6 +130,18 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
 	consensusSize := len(consensusPubKeys)
 	bitmap := header.GetPubKeysBitmap()
+
+	expectedBitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
+		expectedBitmapSize++
+	}
+	if len(bitmap) != expectedBitmapSize {
+		log.Debug("wrong size bitmap",
+			"expected number of bytes", expectedBitmapSize,
+			"actual", len(bitmap))
+		return ErrWrongSizeBitmap
+	}
+
 	numOfOnesInBitmap := 0
 	for index := range bitmap {
 		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
@@ -140,7 +152,7 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 		return nil
 	}
 
-	log.Warn("not enough signatures",
+	log.Debug("not enough signatures",
 		"minimum expected", minNumRequiredSignatures,
 		"actual", numOfOnesInBitmap)
 
