@@ -682,7 +682,7 @@ func (txs *transactions) computeOrderedTxs(
 		return nil, nil, process.ErrEmptyTxDataPool
 	}
 
-	sortedTransactionsProvider := getSortedTransactionsProvider(txs, txShardPool, strCache)
+	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
 	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetSortedTransactions()
 	return sortedTxs, sortedTxsHashes, nil
 }
