@@ -27,12 +27,12 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	pool, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 1})
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.EqualError(t, err, "shards must be a positive number")
+	require.Equal(t, dataRetriever.ErrCacheConfigInvalidShards, err)
 
 	pool, err = NewShardedTxPool(storageUnit.CacheConfig{Shards: 1})
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.EqualError(t, err, "size must be a positive number")
+	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSize)
 }
 
 func Test_NewShardedTxPool_ComputesEvictionConfig(t *testing.T) {
