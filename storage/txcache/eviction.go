@@ -7,6 +7,7 @@ import (
 // EvictionConfig is a cache eviction model
 type EvictionConfig struct {
 	Enabled                         bool
+	NumBytesThreshold               uint32
 	CountThreshold                  uint32
 	ThresholdEvictSenders           uint32
 	NumOldestSendersToEvict         uint32
@@ -26,44 +27,47 @@ func (cache *TxCache) doEviction() evictionJournal {
 
 	journal := evictionJournal{}
 
+	if cache.areThereTooManyBytes() {
+		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyTxs()
+	}
+
 	if cache.areThereTooManySenders() {
-		countTxs, countSenders := cache.evictOldestSenders()
-		journal.passOneNumTxs = countTxs
-		journal.passOneNumSenders = countSenders
+		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
 	}
 
 	if cache.areThereTooManyTxs() {
-		countTxs, countSenders := cache.evictHighNonceTransactions()
-		journal.passTwoNumTxs = countTxs
-		journal.passTwoNumSenders = countSenders
+		journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictHighNonceTransactions()
 	}
 
 	if cache.areThereTooManyTxs() && !cache.areThereJustAFewSenders() {
-		steps, countTxs, countSenders := cache.evictSendersWhileTooManyTxs()
-		journal.passThreeNumTxs = countTxs
-		journal.passThreeNumSenders = countSenders
-		journal.passThreeNumSteps = steps
+		journal.passThreeNumSteps, journal.passThreeNumTxs, journal.passThreeNumSenders = cache.evictSendersWhileTooManyTxs()
 	}
 
 	journal.display()
 	return journal
 }
 
+func (cache *TxCache) areThereTooManyBytes() bool {
+	numBytes := cache.NumBytes()
+	tooManyBytes := cache.evictionConfig.NumBytesThreshold > 0 && numBytes > int64(cache.evictionConfig.NumBytesThreshold)
+	return tooManyBytes
+}
+
 func (cache *TxCache) areThereTooManySenders() bool {
-	nSenders := cache.CountSenders()
-	tooManySenders := nSenders > int64(cache.evictionConfig.CountThreshold)
+	numSenders := cache.CountSenders()
+	tooManySenders := numSenders > int64(cache.evictionConfig.CountThreshold)
 	return tooManySenders
 }
 
 func (cache *TxCache) areThereJustAFewSenders() bool {
-	nSenders := cache.CountSenders()
-	justAFewSenders := nSenders < int64(cache.evictionConfig.ThresholdEvictSenders)
+	numSenders := cache.CountSenders()
+	justAFewSenders := numSenders < int64(cache.evictionConfig.ThresholdEvictSenders)
 	return justAFewSenders
 }
 
 func (cache *TxCache) areThereTooManyTxs() bool {
-	nTxs := cache.CountTx()
-	tooManyTxs := nTxs > int64(cache.evictionConfig.CountThreshold)
+	numTxs := cache.CountTx()
+	tooManyTxs := numTxs > int64(cache.evictionConfig.CountThreshold)
 	return tooManyTxs
 }
 

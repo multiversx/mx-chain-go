@@ -9,6 +9,7 @@ import (
 type txByHashMap struct {
 	backingMap *ConcurrentMap
 	counter    core.AtomicCounter
+	numBytes   core.AtomicCounter
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
@@ -26,6 +27,7 @@ func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) bool 
 	added := txMap.backingMap.SetIfAbsent(string(txHash), tx)
 	if added {
 		txMap.counter.Increment()
+		txMap.numBytes.Add(42)
 	}
 
 	return added
@@ -40,6 +42,7 @@ func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool
 
 	txMap.backingMap.Remove(txHash)
 	txMap.counter.Decrement()
+	txMap.numBytes.Subtract(42)
 	return tx, true
 }
 
@@ -56,16 +59,15 @@ func (txMap *txByHashMap) getTx(txHash string) (data.TransactionHandler, bool) {
 
 // RemoveTxsBulk removes transactions, in bulk
 func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
+	oldCount := uint32(txMap.counter.Get())
+
 	for _, txHash := range txHashes {
-		txMap.backingMap.Remove(string(txHash))
+		txMap.removeTx(string(txHash))
 	}
 
-	oldCount := uint32(txMap.counter.Get())
-	newCount := uint32(txMap.backingMap.Count())
-	nRemoved := oldCount - newCount
-
-	txMap.counter.Set(int64(newCount))
-	return nRemoved
+	newCount := uint32(txMap.counter.Get())
+	numRemoved := oldCount - newCount
+	return numRemoved
 }
 
 // ForEachTransaction is an iterator callback

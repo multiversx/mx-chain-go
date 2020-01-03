@@ -3,6 +3,9 @@ package txcache
 // evictionJournal keeps a short journal about the eviction process
 // This is useful for debugging and reasoning about the eviction
 type evictionJournal struct {
+	passZeroNumTxs      uint32
+	passZeroNumSenders  uint32
+	passZeroNumSteps    uint32
 	passOneNumTxs       uint32
 	passOneNumSenders   uint32
 	passTwoNumTxs       uint32
@@ -14,7 +17,8 @@ type evictionJournal struct {
 
 func (journal *evictionJournal) display() {
 	log.Trace("Eviction journal:")
-	log.Trace("1st pass:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Trace("2nd pass:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
-	log.Trace("3rd pass:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
+	log.Trace("Pass 0:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Trace("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Trace("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
+	log.Trace("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
 }

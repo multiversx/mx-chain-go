@@ -15,9 +15,19 @@ func (counter *AtomicCounter) Increment() int64 {
 	return atomic.AddInt64((*int64)(counter), 1)
 }
 
+// Add adds value to counter
+func (counter *AtomicCounter) Add(value int64) int64 {
+	return atomic.AddInt64((*int64)(counter), value)
+}
+
 // Decrement decrements counter
 func (counter *AtomicCounter) Decrement() int64 {
 	return atomic.AddInt64((*int64)(counter), -1)
+}
+
+// Subtract subtracts value from counter
+func (counter *AtomicCounter) Subtract(value int64) int64 {
+	return atomic.AddInt64((*int64)(counter), -value)
 }
 
 // Get gets counter
