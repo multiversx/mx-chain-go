@@ -255,7 +255,6 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitment),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -371,7 +370,6 @@ func TestSubroundCommitment_ReceivedCommitmentReturnFalseWhenConsensusDataIsNotE
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitment),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)

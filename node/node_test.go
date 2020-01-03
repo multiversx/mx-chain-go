@@ -1593,7 +1593,6 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	metricKey := core.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
-	// create a prometheus status handler which will be passed to the facade
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
@@ -1619,7 +1618,6 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	metricKey := core.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
-	// create a prometheus status handler which will be passed to the facade
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			decrementCalled <- true
@@ -1645,7 +1643,6 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	metricKey := core.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
-	// create a prometheus status handler which will be passed to the facade
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			setInt64ValueCalled <- true
@@ -1671,7 +1668,6 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	metricKey := core.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
-	// create a prometheus status handler which will be passed to the facade
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			setUInt64ValueCalled <- true

@@ -26,14 +26,11 @@ func (nd *NullDiscoverer) Name() string {
 }
 
 // ApplyContext is an empty func as the context is not required
-func (nd *NullDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
+func (nd *NullDiscoverer) ApplyContext(_ p2p.ContextProvider) error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nd *NullDiscoverer) IsInterfaceNil() bool {
-	if nd == nil {
-		return true
-	}
-	return false
+	return nd == nil
 }
