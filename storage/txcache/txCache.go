@@ -151,6 +151,7 @@ func (cache *TxCache) Clear() {
 
 // Put is not implemented
 func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
+	log.Error("TxCache.Put is not implemented")
 	return false
 }
 
