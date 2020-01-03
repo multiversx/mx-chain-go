@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -65,7 +66,7 @@ func hashInSlice(hash []byte, hashes [][]byte) bool {
 	return false
 }
 
-func txInSlice(tx *transaction.Transaction, transactions []*transaction.Transaction) bool {
+func txInSlice(tx *transaction.Transaction, transactions []data.TransactionHandler) bool {
 	for _, t := range transactions {
 		if reflect.DeepEqual(tx, t) {
 			return true
@@ -99,9 +100,9 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T)
 	lastNonce := uint64(0)
 	for i := 0; i < len(transactions); i++ {
 		tx := transactions[i]
-		require.True(t, lastNonce <= tx.Nonce)
-		fmt.Println(tx.Nonce)
-		lastNonce = tx.Nonce
+		require.True(t, lastNonce <= tx.GetNonce())
+		fmt.Println(tx.GetNonce())
+		lastNonce = tx.GetNonce()
 	}
 }
 
@@ -126,9 +127,8 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 	lastNonce := uint64(0)
 	for i := 0; i < len(sortedTxs); i++ {
 		tx := sortedTxs[i]
-		require.True(t, lastNonce <= tx.Nonce)
-		fmt.Printf("tx.Nonce: %d, tx.Sig: %s\n", tx.Nonce, tx.Signature)
-		lastNonce = tx.Nonce
+		require.True(t, lastNonce <= tx.GetNonce())
+		lastNonce = tx.GetNonce()
 	}
 	require.Equal(t, len(sortedTxs), len(transactions))
 	//test if one transaction from transactions might not be in sortedTx

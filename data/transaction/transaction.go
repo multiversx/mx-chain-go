@@ -222,3 +222,13 @@ func TrimSlicePtr(in []*Transaction) []*Transaction {
 	copy(ret, in)
 	return ret
 }
+
+// TrimSliceHandler creates a copy of the provided slice without the excess capacity
+func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
+	if len(in) == 0 {
+		return []data.TransactionHandler{}
+	}
+	ret := make([]data.TransactionHandler, len(in))
+	copy(ret, in)
+	return ret
+}

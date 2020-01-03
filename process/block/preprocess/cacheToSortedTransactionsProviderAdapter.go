@@ -27,13 +27,12 @@ func newCacheToSortedTransactionsProviderAdapter(transactionsPreprocessor *trans
 
 // GetTransactions gets the transactions from the cache, sorted by nonce
 func (adapter *cacheToSortedTransactionsProviderAdapter) GetTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
-	txsAsStruct, txHashes := adapter.getOrderedTx()
-	txsAsInterface := castToTxsAsInterface(txsAsStruct)
-	return txsAsInterface, txHashes
+	txs, txHashes := adapter.getOrderedTx()
+	return txs, txHashes
 }
 
 // getOrderedTx was moved here from the previous implementation
-func (adapter *cacheToSortedTransactionsProviderAdapter) getOrderedTx() ([]*transaction.Transaction, [][]byte) {
+func (adapter *cacheToSortedTransactionsProviderAdapter) getOrderedTx() ([]data.TransactionHandler, [][]byte) {
 	txs := adapter.transactionsPreprocessor
 	strCache := adapter.cacheKey
 
@@ -61,15 +60,15 @@ func (adapter *cacheToSortedTransactionsProviderAdapter) getOrderedTx() ([]*tran
 }
 
 // sortTxByNonce was moved here from the previous implementation
-func sortTxByNonce(cache storage.Cacher) ([]*transaction.Transaction, [][]byte) {
+func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 	txShardPool := cache
 
 	keys := txShardPool.Keys()
-	transactions := make([]*transaction.Transaction, 0, len(keys))
+	transactions := make([]data.TransactionHandler, 0, len(keys))
 	txHashes := make([][]byte, 0, len(keys))
 
 	mTxHashes := make(map[uint64][][]byte, len(keys))
-	mTransactions := make(map[uint64][]*transaction.Transaction, len(keys))
+	mTransactions := make(map[uint64][]data.TransactionHandler, len(keys))
 
 	nonces := make([]uint64, 0, len(keys))
 
@@ -79,19 +78,20 @@ func sortTxByNonce(cache storage.Cacher) ([]*transaction.Transaction, [][]byte) 
 			continue
 		}
 
-		tx, ok := val.(*transaction.Transaction)
+		tx, ok := val.(data.TransactionHandler)
 		if !ok {
 			continue
 		}
 
-		if mTxHashes[tx.Nonce] == nil {
-			nonces = append(nonces, tx.Nonce)
-			mTxHashes[tx.Nonce] = make([][]byte, 0)
-			mTransactions[tx.Nonce] = make([]*transaction.Transaction, 0)
+		nonce := tx.GetNonce()
+		if mTxHashes[nonce] == nil {
+			nonces = append(nonces, nonce)
+			mTxHashes[nonce] = make([][]byte, 0)
+			mTransactions[nonce] = make([]data.TransactionHandler, 0)
 		}
 
-		mTxHashes[tx.Nonce] = append(mTxHashes[tx.Nonce], key)
-		mTransactions[tx.Nonce] = append(mTransactions[tx.Nonce], tx)
+		mTxHashes[nonce] = append(mTxHashes[nonce], key)
+		mTransactions[nonce] = append(mTransactions[nonce], tx)
 	}
 
 	sort.Slice(nonces, func(i, j int) bool {
@@ -107,17 +107,7 @@ func sortTxByNonce(cache storage.Cacher) ([]*transaction.Transaction, [][]byte) 
 		}
 	}
 
-	return transaction.TrimSlicePtr(transactions), sliceUtil.TrimSliceSliceByte(txHashes)
-}
-
-func castToTxsAsInterface(txsAsStruct []*transaction.Transaction) []data.TransactionHandler {
-	txsAsInterface := make([]data.TransactionHandler, 0)
-	for _, tx := range txsAsStruct {
-		txCasted := data.TransactionHandler(tx)
-		txsAsInterface = append(txsAsInterface, txCasted)
-	}
-
-	return txsAsInterface
+	return transaction.TrimSliceHandler(transactions), sliceUtil.TrimSliceSliceByte(txHashes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

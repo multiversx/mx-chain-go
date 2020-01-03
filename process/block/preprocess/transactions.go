@@ -34,7 +34,7 @@ type transactions struct {
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
 	accounts             state.AccountsAdapter
-	orderedTxs           map[string][]*transaction.Transaction
+	orderedTxs           map[string][]data.TransactionHandler
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	miniBlocksCompacter  process.MiniBlocksCompacter
@@ -114,7 +114,7 @@ func NewTransactionPreprocessor(
 	txs.txPool.RegisterHandler(txs.receivedTransaction)
 
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
-	txs.orderedTxs = make(map[string][]*transaction.Transaction)
+	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 
 	return &txs, nil
@@ -315,7 +315,7 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	txs.mutOrderedTxs.Lock()
-	txs.orderedTxs = make(map[string][]*transaction.Transaction)
+	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
 }
