@@ -26,6 +26,9 @@ var ErrHigherRoundInBlock = errors.New("higher round in block")
 // ErrBlockIsNotSigned signals that the block is not signed
 var ErrBlockIsNotSigned = errors.New("block is not signed")
 
+//ErrCorruptBootstrapFromStorageDb signals that the bootstrap database is corrupt
+var ErrCorruptBootstrapFromStorageDb = errors.New("corrupt bootstrap storage database")
+
 // ErrSignedBlock signals that a block is signed
 type ErrSignedBlock struct {
 	CurrentNonce uint64
@@ -38,6 +41,9 @@ func (err ErrSignedBlock) Error() string {
 
 // ErrRollBackBehindFinalHeader signals that a roll back behind final header has been attempted
 var ErrRollBackBehindFinalHeader = errors.New("roll back behind final header is not permitted")
+
+// ErrRollBackBehindForkNonce signals that a roll back behind fork nonce is not permitted
+var ErrRollBackBehindForkNonce = errors.New("roll back behind fork nonce is not permitted")
 
 // ErrRandomSeedNotValid signals that the random seed is not valid
 var ErrRandomSeedNotValid = errors.New("random seed is not valid")

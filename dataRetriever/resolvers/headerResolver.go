@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -21,6 +22,7 @@ type HeaderResolver struct {
 	hdrNoncesStorage storage.Storer
 	marshalizer      marshal.Marshalizer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	epochHandler     dataRetriever.EpochHandler
 	antifloodHandler dataRetriever.P2PAntifloodHandler
 }
 
@@ -69,10 +71,21 @@ func NewHeaderResolver(
 		hdrNoncesStorage:    headersNoncesStorage,
 		marshalizer:         marshalizer,
 		nonceConverter:      nonceConverter,
+		epochHandler:        &nilEpochHandler{},
 		antifloodHandler:    antifloodHandler,
 	}
 
 	return hdrResolver, nil
+}
+
+// SetEpochHandler sets the epoch handler for this component
+func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	if check.IfNil(epochHandler) {
+		return dataRetriever.ErrNilEpochHandler
+	}
+
+	hdrRes.epochHandler = epochHandler
+	return nil
 }
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -94,6 +107,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		buff, err = hdrRes.resolveHeaderFromHash(rd.Value)
 	case dataRetriever.NonceType:
 		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
+	case dataRetriever.EpochType:
+		buff, err = hdrRes.resolveHeaderFromEpoch(rd.Value)
 	default:
 		return dataRetriever.ErrResolveTypeUnknown
 	}
@@ -160,6 +175,22 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) 
 	return buff, nil
 }
 
+// resolveHeaderFromEpoch resolves a header using its key based on epoch
+func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
+	actualKey := key
+
+	isUnknownEpoch, err := core.IsUnknownEpochIdentifier(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if isUnknownEpoch {
+		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.Epoch()))
+	}
+
+	return hdrRes.hdrStorage.Get(actualKey)
+}
+
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
 func (hdrRes *HeaderResolver) parseReceivedMessage(message p2p.MessageP2P) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
@@ -187,6 +218,14 @@ func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64) error {
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+	})
+}
+
+// RequestDataFromEpoch requests a header from other peers having input the epoch
+func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
+	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
+		Type:  dataRetriever.EpochType,
+		Value: identifier,
 	})
 }
 

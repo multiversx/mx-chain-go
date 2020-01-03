@@ -42,3 +42,6 @@ var ErrNotPositiveValue = errors.New("the provided value is not positive")
 
 // ErrNilAppStatusHandler signals that a nil status handler has been provided
 var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
+
+// ErrInvalidIdentifierForEpochStartBlockRequest
+var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifier for epoch start block request")

@@ -10,13 +10,13 @@ import (
 )
 
 type MetaPoolsHolderFake struct {
-	metaBlocks storage.Cacher
-	miniBlocks      storage.Cacher
-	shardHeaders    storage.Cacher
-	headersNonces   dataRetriever.Uint64SyncMapCacher
-	transactions    dataRetriever.ShardedDataCacherNotifier
-	unsigned        dataRetriever.ShardedDataCacherNotifier
-	currTxs         dataRetriever.TransactionCacher
+	metaBlocks    storage.Cacher
+	miniBlocks    storage.Cacher
+	shardHeaders  storage.Cacher
+	headersNonces dataRetriever.Uint64SyncMapCacher
+	transactions  dataRetriever.ShardedDataCacherNotifier
+	unsigned      dataRetriever.ShardedDataCacherNotifier
+	currTxs       dataRetriever.TransactionCacher
 
 	MetaBlocksCalled func() storage.Cacher
 	ShardHeadersCalled func() storage.Cacher

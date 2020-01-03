@@ -45,6 +45,7 @@ func NewTestSyncNode(
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
 		ChainID:             IntegrationTestsChainID,
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -112,6 +113,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -127,6 +134,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -146,6 +155,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			SCDataGetter:       &mock.ScQueryMock{},
 			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
+			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -217,6 +227,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.RequestedItemsHandler,
+		tpn.EpochStartTrigger,
 	)
 
 	if err != nil {

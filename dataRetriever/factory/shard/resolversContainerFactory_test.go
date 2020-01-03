@@ -97,6 +97,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -115,6 +116,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -133,6 +135,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -151,6 +154,26 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
+		&mock.P2PAntifloodHandlerStub{},
+	)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+}
+
+func TestNewResolversContainerFactory_NilMarshalizerAndSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rcf, err := shard.NewResolversContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicMessageHandler("", ""),
+		createStore(),
+		nil,
+		createDataPools(),
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.DataPackerStub{},
+		1,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -169,6 +192,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -187,6 +211,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 		createDataPools(),
 		nil,
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -205,6 +230,7 @@ func TestNewResolversContainerFactory_NilSliceSplitterShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		nil,
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -223,6 +249,7 @@ func TestNewResolversContainerFactory_NilAntifloodHandlerShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		nil,
 	)
 
@@ -241,6 +268,7 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -261,6 +289,7 @@ func TestResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testin
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -275,12 +304,13 @@ func TestResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testi
 
 	rcf, _ := shard.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.HeadersTopic, ""),
+		createStubTopicMessageHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -301,6 +331,7 @@ func TestResolversContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -321,6 +352,7 @@ func TestResolversContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -341,6 +373,7 @@ func TestResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) 
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -355,12 +388,13 @@ func TestResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T)
 
 	rcf, _ := shard.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.HeadersTopic),
+		createStubTopicMessageHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -381,6 +415,7 @@ func TestResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *tes
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -401,6 +436,7 @@ func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *t
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -421,6 +457,7 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -447,6 +484,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		0,
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
@@ -458,10 +496,9 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards + 1
 	numResolverPeerChanges := 1
-	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
-		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs
+		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

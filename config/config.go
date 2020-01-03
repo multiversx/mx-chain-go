@@ -46,6 +46,12 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
+// MarshalizerConfig
+type MarshalizerConfig struct {
+	Type           string `json:"type"`
+	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -54,9 +60,16 @@ type NTPConfig struct {
 	Version             int
 }
 
+// EpochStartConfig will hold the configuration of EpochStart settings
+type EpochStartConfig struct {
+	MinRoundsBetweenEpochs int64
+	RoundsPerEpoch         int64
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
+	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -90,18 +103,20 @@ type Config struct {
 	MetaHeaderNoncesDataPool      CacheConfig
 
 	Antiflood      AntifloodConfig
-	Logger         LoggerConfig
-	Address        AddressConfig
-	BLSPublicKey   AddressConfig
-	Hasher         TypeConfig
-	MultisigHasher TypeConfig
-	Marshalizer    TypeConfig
+	EpochStartConfig EpochStartConfig
+	Logger           LoggerConfig
+	Address          AddressConfig
+	BLSPublicKey     AddressConfig
+	Hasher           TypeConfig
+	MultisigHasher   TypeConfig
+	Marshalizer      MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
+	StoragePruning  StoragePruningConfig
 
 	NTPConfig NTPConfig
 }
@@ -111,6 +126,13 @@ type NodeConfig struct {
 	Port            int
 	Seed            string
 	TargetPeerCount int
+}
+
+// StoragePruningConfig will hold settings relates to storage pruning
+type StoragePruningConfig struct {
+	FullArchive         bool
+	NumEpochsToKeep     uint64
+	NumActivePersisters uint64
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
@@ -158,14 +180,6 @@ type ExplorerConfig struct {
 // ServersConfig will hold all the confidential settings for servers
 type ServersConfig struct {
 	ElasticSearch ElasticSearchConfig
-	Prometheus    PrometheusConfig
-}
-
-// PrometheusConfig will hold configuration for prometheus, such as the join URL
-type PrometheusConfig struct {
-	PrometheusBaseURL string
-	JoinRoute         string
-	StatusRoute       string
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -176,11 +190,8 @@ type ElasticSearchConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
-	RestApiInterface  string
-	PprofEnabled      bool
-	Prometheus        bool
-	PrometheusJoinURL string
-	PrometheusJobName string
+	RestApiInterface string
+	PprofEnabled     bool
 }
 
 // WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
