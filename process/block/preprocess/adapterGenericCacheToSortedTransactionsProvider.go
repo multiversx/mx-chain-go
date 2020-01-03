@@ -9,14 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type cacheToSortedTransactionsProviderAdapter struct {
+type adapterGenericCacheToSortedTransactionsProvider struct {
 	transactionsPreprocessor *transactions
 	cache                    storage.Cacher
 	cacheKey                 string
 }
 
-func newCacheToSortedTransactionsProviderAdapter(transactionsPreprocessor *transactions, cache storage.Cacher, cacheKey string) *cacheToSortedTransactionsProviderAdapter {
-	adapter := &cacheToSortedTransactionsProviderAdapter{
+func newAdapterGenericCacheToSortedTransactionsProvider(transactionsPreprocessor *transactions, cache storage.Cacher, cacheKey string) *adapterGenericCacheToSortedTransactionsProvider {
+	adapter := &adapterGenericCacheToSortedTransactionsProvider{
 		transactionsPreprocessor: transactionsPreprocessor,
 		cache:                    cache,
 		cacheKey:                 cacheKey,
@@ -26,13 +26,13 @@ func newCacheToSortedTransactionsProviderAdapter(transactionsPreprocessor *trans
 }
 
 // GetSortedTransactions gets the transactions from the cache
-func (adapter *cacheToSortedTransactionsProviderAdapter) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
 	txs, txHashes := adapter.getOrderedTx()
 	return txs, txHashes
 }
 
 // getOrderedTx was moved here from the previous implementation
-func (adapter *cacheToSortedTransactionsProviderAdapter) getOrderedTx() ([]data.TransactionHandler, [][]byte) {
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) getOrderedTx() ([]data.TransactionHandler, [][]byte) {
 	txs := adapter.transactionsPreprocessor
 	strCache := adapter.cacheKey
 
@@ -111,6 +111,6 @@ func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (adapter *cacheToSortedTransactionsProviderAdapter) IsInterfaceNil() bool {
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) IsInterfaceNil() bool {
 	return adapter == nil
 }

@@ -12,5 +12,5 @@ func createSortedTransactionsProvider(transactionsPreprocessor *transactions, ca
 		return newTxCacheToSortedTransactionsProviderAdapter(txCache)
 	}
 
-	return newCacheToSortedTransactionsProviderAdapter(transactionsPreprocessor, cache, cacheKey)
+	return newAdapterGenericCacheToSortedTransactionsProvider(transactionsPreprocessor, cache, cacheKey)
 }

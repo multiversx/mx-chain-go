@@ -6,12 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-type txCacheToSortedTransactionsProviderAdapter struct {
+type adapterTxCacheToSortedTransactionsProvider struct {
 	txCache *txcache.TxCache
 }
 
-func newTxCacheToSortedTransactionsProviderAdapter(txCache *txcache.TxCache) *txCacheToSortedTransactionsProviderAdapter {
-	adapter := &txCacheToSortedTransactionsProviderAdapter{
+func newTxCacheToSortedTransactionsProviderAdapter(txCache *txcache.TxCache) *adapterTxCacheToSortedTransactionsProvider {
+	adapter := &adapterTxCacheToSortedTransactionsProvider{
 		txCache: txCache,
 	}
 
@@ -19,12 +19,12 @@ func newTxCacheToSortedTransactionsProviderAdapter(txCache *txcache.TxCache) *tx
 }
 
 // GetSortedTransactions gets the transactions from the cache
-func (adapter *txCacheToSortedTransactionsProviderAdapter) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
+func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() ([]data.TransactionHandler, [][]byte) {
 	txs, txHashes := adapter.txCache.GetTransactions(process.MaxItemsInBlock, process.NumTxPerSenderBatchForFillingMiniblock)
 	return txs, txHashes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (adapter *txCacheToSortedTransactionsProviderAdapter) IsInterfaceNil() bool {
+func (adapter *adapterTxCacheToSortedTransactionsProvider) IsInterfaceNil() bool {
 	return adapter == nil
 }
