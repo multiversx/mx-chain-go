@@ -9,11 +9,12 @@ import (
 
 // CreateTxPool creates a new tx pool, according to the configuration
 func CreateTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
-	isOldTxPool := config.Type == storageUnit.FIFOShardedCache || config.Type == storageUnit.LRUCache
-
-	if isOldTxPool {
+	switch config.Type {
+	case storageUnit.FIFOShardedCache:
 		return shardedData.NewShardedData(config)
+	case storageUnit.LRUCache:
+		return shardedData.NewShardedData(config)
+	default:
+		return txpool.NewShardedTxPool(config)
 	}
-
-	return txpool.NewShardedTxPool(config)
 }
