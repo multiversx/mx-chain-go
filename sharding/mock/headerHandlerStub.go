@@ -11,6 +11,10 @@ type HeaderHandlerStub struct {
 	GetEpochCaled             func() uint32
 }
 
+func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
+	return []byte("hash")
+}
+
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
 	panic("implement me")
 }

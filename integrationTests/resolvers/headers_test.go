@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash)
 	log.LogIfError(err)
@@ -54,7 +55,7 @@ func TestRequestResolveShardHeadersByHashRequestingMetaResolvingShard(t *testing
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -87,7 +88,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -105,7 +106,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash)
 	log.LogIfError(err)
@@ -143,7 +144,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingShard(t *testi
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	assert.True(t, ok)
@@ -160,7 +161,7 @@ func TestRequestResolveShardHeadersByNonceRequestingMetaResolvingShard(t *testin
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -198,7 +199,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -219,7 +220,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
+	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	assert.True(t, ok)

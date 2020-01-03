@@ -15,8 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -31,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -47,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
@@ -597,6 +597,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating data components")
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
@@ -619,7 +620,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
-	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,

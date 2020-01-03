@@ -121,7 +121,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 		return err
 	}
 
-	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	go scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil

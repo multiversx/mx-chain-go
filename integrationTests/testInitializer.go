@@ -838,7 +838,7 @@ func CreateNodesWithMemP2P(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), sharding.MetachainShardId, 0, network)
+		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), core.MetachainShardId, 0, network)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}

@@ -489,7 +489,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
