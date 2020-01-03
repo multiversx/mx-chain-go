@@ -57,25 +57,25 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                      arguments.Accounts,
-		blockSizeThrottler:            blockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.Hasher,
-		marshalizer:                   arguments.Marshalizer,
-		store:                         arguments.Store,
-		shardCoordinator:              arguments.ShardCoordinator,
-		nodesCoordinator:              arguments.NodesCoordinator,
-		specialAddressHandler:         arguments.SpecialAddressHandler,
-		uint64Converter:               arguments.Uint64Converter,
-		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
-		appStatusHandler:              statusHandler.NewNilStatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		rounder:                       arguments.Rounder,
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		bootStorer:                    arguments.BootStorer,
-		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		accounts:                     arguments.Accounts,
+		blockSizeThrottler:           blockSizeThrottler,
+		forkDetector:                 arguments.ForkDetector,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		specialAddressHandler:        arguments.SpecialAddressHandler,
+		uint64Converter:              arguments.Uint64Converter,
+		requestHandler:               arguments.RequestHandler,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		blockChainHook:               arguments.BlockChainHook,
+		txCoordinator:                arguments.TxCoordinator,
+		rounder:                      arguments.Rounder,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		headerValidator:              arguments.HeaderValidator,
+		bootStorer:                   arguments.BootStorer,
+		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -113,7 +113,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
-	sp.onRequestHeaderHandler = arguments.RequestHandler.RequestHeader
 
 	sp.metaBlockFinality = process.MetaBlockFinality
 
@@ -142,7 +141,7 @@ func (sp *shardProcessor) ProcessBlock(
 				"for shard", headerHandler.GetShardID(),
 			)
 
-			go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+			go sp.requestHandler.RequestShardHeader(headerHandler.GetShardID(), headerHandler.GetPrevHash())
 		}
 
 		return err
@@ -284,7 +283,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
 	if err != nil {
 		return err
 	}
@@ -353,7 +352,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	isEpochStartMetaHashIncorrect := header.IsStartOfEpochBlock() &&
 		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if isEpochStartMetaHashIncorrect {
-		go sp.onRequestHeaderHandler(core.MetachainShardId, header.EpochStartMetaHash)
+		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 		sp.epochStartTrigger.Revert()
 		return process.ErrEpochDoesNotMatch
 	}
@@ -448,8 +447,8 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if nextBlocksVerified < sp.metaBlockFinality {
-		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce())
-		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce())
+		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + 1)
 		return process.ErrHeaderNotFinal
 	}
 
@@ -507,11 +506,19 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
+	invalidPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
+	receiptPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 
 	for hash, tx := range scPool {
 		txPool[hash] = tx
 	}
 	for hash, tx := range rewardPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range invalidPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range receiptPool {
 		txPool[hash] = tx
 	}
 
@@ -861,7 +868,7 @@ func (sp *shardProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
-	headerMeta, err := sp.getLastNotarizedHdr(core.MetachainShardId)
+	metaHeader, err := sp.getLastNotarizedHdr(core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -870,7 +877,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
-		headerMeta.GetNonce(),
+		metaHeader,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1038,7 +1045,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
+			go sp.requestHandler.RequestShardHeader(shardInfo.ShardID, shardInfo.HeaderHash)
 
 			log.Debug("requested missing shard header",
 				"hash", shardInfo.HeaderHash,
@@ -1385,7 +1392,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for _, hash := range missingHeadersHashes {
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: nil, usedInBlock: true}
-		go sp.onRequestHeaderHandler(core.MetachainShardId, hash)
+		go sp.requestHandler.RequestMetaHeader(hash)
 	}
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
@@ -1767,13 +1774,13 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) error {
+func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	log.Trace("started creating block header",
 		"round", hdr.GetRound(),
 	)
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
@@ -1783,18 +1790,26 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		go sp.checkAndRequestIfMetaHeadersMissing(hdr.GetRound())
 	}()
 
-	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
-		return nil
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(body)
+	var err error
+	shardHeader.ReceiptsHash, err = sp.txCoordinator.CreateReceiptsHash()
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	newBody := deleteSelfReceiptsMiniBlocks(body)
+
+	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(newBody)
+	if err != nil {
+		return nil, err
 	}
 
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
@@ -1807,7 +1822,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 
 	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	shardHeader.ValidatorStatsRootHash = rootHash
@@ -1816,7 +1831,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		hdr.GetRound(),
 		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
-	return nil
+	return newBody, nil
 }
 
 func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {

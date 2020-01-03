@@ -43,7 +43,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			SpecialAddressHandler:        &mock.SpecialAddressHandlerMock{},
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			StartHeaders:                 createGenesisBlocks(shardCoordinator),
-			RequestHandler:               &mock.RequestHandlerMock{},
+			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
@@ -871,7 +871,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := &block.MetaBlock{}
-	err := mp.ApplyBodyToHeader(hdr, nil)
+	_, err := mp.ApplyBodyToHeader(hdr, block.Body{})
 	assert.Nil(t, err)
 }
 
@@ -893,7 +893,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 
 	metaBlk := &block.MetaBlock{TimeStamp: 12345}
 	bodyHandler := block.Body{&block.MiniBlock{Type: 0}}
-	err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
+	_, err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
 	assert.Nil(t, err)
 }
 

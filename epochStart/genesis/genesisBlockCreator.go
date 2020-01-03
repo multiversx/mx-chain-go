@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/genesis")
@@ -163,7 +163,6 @@ func CreateMetaGenesisBlock(
 
 	err = setStakingData(
 		txProcessor,
-		args.ShardCoordinator,
 		allNodes,
 		args.Economics.StakeValue(),
 	)
@@ -296,7 +295,6 @@ func deploySystemSmartContracts(
 		GasLimit:  0,
 		Data:      hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	accountsDB, ok := accounts.(*state.AccountsDB)
@@ -333,7 +331,6 @@ func deploySystemSmartContracts(
 // setStakingData sets the initial staked values to the staking smart contract
 func setStakingData(
 	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {
@@ -350,7 +347,6 @@ func setStakingData(
 				GasLimit:  0,
 				Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
 				Signature: nil,
-				Challenge: nil,
 			}
 
 			err := txProcessor.ProcessTransaction(tx)

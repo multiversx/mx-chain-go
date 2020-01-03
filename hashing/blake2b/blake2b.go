@@ -24,7 +24,7 @@ func (b2b Blake2b) Compute(s string) []byte {
 	} else {
 		h, _ = blake2b.New(b2b.HashSize, nil)
 	}
-	h.Write([]byte(s))
+	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
@@ -47,8 +47,5 @@ func (b2b Blake2b) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b2b Blake2b) IsInterfaceNil() bool {
-	if &b2b == nil {
-		return true
-	}
 	return false
 }

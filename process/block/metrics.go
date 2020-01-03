@@ -82,14 +82,15 @@ func saveMetricsForACommittedBlock(
 	isInConsensus bool,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
-	headerMetaNonce uint64,
+	headerMeta data.HeaderHandler,
 ) {
 	if isInConsensus {
 		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
 	}
+	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(headerMeta.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMetaNonce))
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
 }
 
 func saveMetachainCommitBlockMetrics(
@@ -100,6 +101,7 @@ func saveMetachainCommitBlockMetrics(
 
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
+	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()

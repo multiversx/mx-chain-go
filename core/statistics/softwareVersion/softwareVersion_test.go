@@ -26,12 +26,3 @@ func TestNewSoftwareVersionChecker(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, softwareChecker)
 }
-
-func TestCheckSoftwareVersion_Read(t *testing.T) {
-	t.Parallel()
-
-	tag, err := readJSONFromUrl(stableTagLocation)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, tag)
-}

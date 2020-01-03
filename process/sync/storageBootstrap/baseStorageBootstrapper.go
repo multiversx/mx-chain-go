@@ -62,6 +62,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		if err != nil {
 			break
 		}
+
+		if round == headerInfo.LastRound {
+			err = sync.ErrCorruptBootstrapFromStorageDb
+			break
+		}
+
 		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
 
 		if uint64(round) > st.bootstrapRoundIndex {
@@ -91,8 +97,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	if err != nil {
+		log.Warn("bootstrapper", "error", err)
 		st.restoreBlockChainToGenesis()
-		_ = st.bootStorer.SaveLastRound(0)
+		err = st.bootStorer.SaveLastRound(0)
+		log.LogIfError(err, "bootstorer")
+
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 

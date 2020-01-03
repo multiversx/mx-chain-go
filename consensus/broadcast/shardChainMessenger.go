@@ -101,29 +101,11 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 		return err
 	}
 
+	headerIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	go scm.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
+	go scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
 	go scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
-
-	return nil
-}
-
-// BroadcastShardHeader will send on shard headers for metachain topic the header
-func (scm *shardChainMessenger) BroadcastShardHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
-		return spos.ErrNilHeader
-	}
-
-	msgHeader, err := scm.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-		scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-
-	go scm.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 
 	return nil
 }
@@ -139,9 +121,8 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 		return err
 	}
 
-	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
-
-	go scm.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
+	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+	go scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil
 }

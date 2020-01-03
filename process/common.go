@@ -357,6 +357,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -364,7 +365,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -381,19 +382,30 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	if shardedDataCacherNotifier == nil {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	strCache := ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-	if txStore == nil {
-		return nil, ErrNilStorage
+	var val interface{}
+	ok := false
+	if searchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		if !ok {
+			return nil, ErrTxNotFound
+		}
+	} else {
+		strCache := ShardCacherIdentifier(senderShardID, destShardID)
+		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+		if txStore == nil {
+			return nil, ErrNilStorage
+		}
+
+		val, ok = txStore.Peek(txHash)
 	}
 
-	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil, ErrTxNotFound
 	}

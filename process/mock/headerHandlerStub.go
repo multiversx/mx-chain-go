@@ -17,6 +17,10 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled               func(reference []byte) error
 }
 
+func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
+	return []byte("hash")
+}
+
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
 	return hhs.CloneCalled()
 }
