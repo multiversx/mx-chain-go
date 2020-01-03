@@ -683,7 +683,7 @@ func (txs *transactions) computeOrderedTxs(
 	}
 
 	sortedTransactionsProvider := getSortedTransactionsProvider(txs, txShardPool, strCache)
-	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetTransactions(process.MaxItemsInBlock, process.NumTxPerSenderBatchForFillingMiniblock)
+	sortedTxs, sortedTxsHashes := sortedTransactionsProvider.GetSortedTransactions()
 	return sortedTxs, sortedTxsHashes, nil
 }
 
