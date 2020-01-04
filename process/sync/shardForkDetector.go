@@ -76,7 +76,10 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
-	sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
+	if state == process.BHProposed {
+		sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
+		return nil
+	}
 
 	isHeaderReceivedTooLate := sfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
@@ -147,26 +150,39 @@ func (sfd *shardForkDetector) addSelfNotarizedHeaders(
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
 	sfd.mutHeaders.RLock()
-	for nonce, hdrInfos := range sfd.headers {
-		indexBHNotarized := -1
-		indexBHProcessed := -1
-		for index, hdrInfo := range hdrInfos {
-			if hdrInfo.state == process.BHNotarized {
-				indexBHNotarized = index
-			}
-			if hdrInfo.state == process.BHProcessed {
-				indexBHProcessed = index
-			}
-		}
-
-		if indexBHNotarized != -1 && indexBHProcessed != -1 {
+	for nonce, headersInfo := range sfd.headers {
+		indexBHProcessed, indexBHNotarized := sfd.getProcessedAndNotarizedIndexes(headersInfo)
+		isProcessedBlockAlreadyNotarized := indexBHProcessed != -1 && indexBHNotarized != -1
+		if isProcessedBlockAlreadyNotarized {
 			finalNonce := sfd.finalCheckpoint().nonce
 			if finalNonce < nonce {
-				if bytes.Equal(hdrInfos[indexBHNotarized].hash, hdrInfos[indexBHProcessed].hash) {
-					sfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: hdrInfos[indexBHNotarized].round, hash: hdrInfos[indexBHNotarized].hash})
+				sameHash := bytes.Equal(headersInfo[indexBHNotarized].hash, headersInfo[indexBHProcessed].hash)
+				if sameHash {
+					checkPointInfo := checkpointInfo{
+						nonce: nonce,
+						round: headersInfo[indexBHNotarized].round,
+						hash:  headersInfo[indexBHNotarized].hash,
+					}
+					sfd.setFinalCheckpoint(&checkPointInfo)
 				}
 			}
 		}
 	}
 	sfd.mutHeaders.RUnlock()
+}
+
+func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*headerInfo) (int, int) {
+	indexBHProcessed := -1
+	indexBHNotarized := -1
+
+	for index, headerInfo := range headersInfo {
+		switch headerInfo.state {
+		case process.BHProcessed:
+			indexBHProcessed = index
+		case process.BHNotarized:
+			indexBHNotarized = index
+		}
+	}
+
+	return indexBHProcessed, indexBHNotarized
 }
