@@ -11,6 +11,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const percentDiscoveryResume = 0.80
+const percentConnectionTrimming = 1.20
+
 type connectionMonitor struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
@@ -29,11 +32,11 @@ func newConnectionMonitor(
 	targetConnCount int,
 ) (*connectionMonitor, error) {
 
-	if thresholdMinConnectedPeers <= 0 {
+	if thresholdMinConnectedPeers < 1 {
 		return nil, fmt.Errorf("%w, thresholdMinConnectedPeers expected to be higher than 0",
 			p2p.ErrInvalidValue)
 	}
-	if targetConnCount <= 0 {
+	if targetConnCount < 1 {
 		return nil, fmt.Errorf("%w, targetConnCount expected to be higher than 0", p2p.ErrInvalidValue)
 	}
 	if check.IfNil(libp2pContext) {
@@ -52,9 +55,9 @@ func newConnectionMonitor(
 	}
 
 	if targetConnCount > 0 {
-		cm.thresholdDiscoveryResume = targetConnCount * 4 / 5
+		cm.thresholdDiscoveryResume = int(float32(targetConnCount) * percentDiscoveryResume)
 		cm.thresholdDiscoveryPause = targetConnCount
-		cm.thresholdConnTrim = targetConnCount * 6 / 5
+		cm.thresholdConnTrim = int(float32(targetConnCount) * percentConnectionTrimming)
 	}
 
 	return cm, nil
@@ -82,15 +85,13 @@ func (cm *connectionMonitor) HandleConnectedPeer(pid p2p.PeerID) error {
 }
 
 // HandleDisconnectedPeer is called whenever a new peer is disconnected from the current host
-func (cm *connectionMonitor) HandleDisconnectedPeer(_ p2p.PeerID) error {
+func (cm *connectionMonitor) HandleDisconnectedPeer(_ p2p.PeerID) {
 	cm.doReconnectionIfNeeded()
 
 	if len(cm.netw.Conns()) < cm.thresholdDiscoveryResume && cm.reconnecter != nil {
 		cm.reconnecter.Resume()
 		cm.doReconn()
 	}
-
-	return nil
 }
 
 // DoReconnectionBlocking will try to reconnect to the initial addresses (seeders)
@@ -101,7 +102,7 @@ func (cm *connectionMonitor) DoReconnectionBlocking() {
 	}
 }
 
-// CheckConnectionsBlocking will sweep all available connections checking if the connection has or not been blacklisted
+// CheckConnectionsBlocking will sweep all available connections checking if the connection has been blacklisted or not
 func (cm *connectionMonitor) CheckConnectionsBlocking() {
 	peers := cm.netw.Peers()
 	blacklistHandler := cm.libp2pContext.PeerBlacklist()

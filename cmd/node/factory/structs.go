@@ -117,6 +117,7 @@ var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
+var durationSweepP2pBlacklist = time.Second * 5
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -597,7 +598,7 @@ func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
 func startSweepingP2pPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
 	go func() {
 		for {
-			time.Sleep(time.Second * 5)
+			time.Sleep(durationSweepP2pBlacklist)
 			p2pPeerBlackList.Sweep()
 		}
 	}()

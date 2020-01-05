@@ -203,15 +203,15 @@ func TestP2pQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 
 	putCalled := false
 	identifier := "identifier"
-	existentValue := uint32(445)
+	existingValue := uint32(445)
 	pbp, _ := antiflood.NewP2pBlackListProcessor(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
-				return existentValue, true
+				return existingValue, true
 			},
 			PutCalled: func(key []byte, value interface{}) (evicted bool) {
 				putCalled = true
-				assert.Equal(t, existentValue+1, value)
+				assert.Equal(t, existingValue+1, value)
 				assert.Equal(t, identifier, string(key))
 
 				return false
@@ -263,7 +263,7 @@ func TestP2pQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 	assert.True(t, removedCalled)
 }
 
-func TestP2pQuotaBlacklistProcessor_ResetStatisticsRemoveInvalidValueValueKey(t *testing.T) {
+func TestP2pQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t *testing.T) {
 	t.Parallel()
 
 	thresholdNum := uint32(10)

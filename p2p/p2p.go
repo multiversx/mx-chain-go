@@ -221,7 +221,7 @@ type BlacklistHandler interface {
 // ConnectionMonitor defines what a peer-management component should do
 type ConnectionMonitor interface {
 	HandleConnectedPeer(pid PeerID) error
-	HandleDisconnectedPeer(pid PeerID) error
+	HandleDisconnectedPeer(pid PeerID)
 	DoReconnectionBlocking()
 	CheckConnectionsBlocking()
 	IsInterfaceNil() bool

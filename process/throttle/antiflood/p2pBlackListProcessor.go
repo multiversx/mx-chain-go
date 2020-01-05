@@ -56,13 +56,7 @@ func NewP2pBlackListProcessor(
 func (pbp *p2pBlackListProcessor) ResetStatistics() {
 	keys := pbp.cacher.Keys()
 	for _, key := range keys {
-		obj, ok := pbp.cacher.Peek(key)
-		if !ok {
-			pbp.cacher.Remove(key)
-			continue
-		}
-
-		val, ok := obj.(uint32)
+		val, ok := pbp.getFloodingValue(key)
 		if !ok {
 			pbp.cacher.Remove(key)
 			continue
@@ -73,6 +67,17 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 			_ = pbp.blacklistHandler.Add(string(key))
 		}
 	}
+}
+
+func (pbp *p2pBlackListProcessor) getFloodingValue(key []byte) (uint32, bool) {
+	obj, ok := pbp.cacher.Peek(key)
+	if !ok {
+		return 0, false
+	}
+
+	val, ok := obj.(uint32)
+
+	return val, ok
 }
 
 // AddQuota checks if the received quota for an identifier has exceeded the set thresholds

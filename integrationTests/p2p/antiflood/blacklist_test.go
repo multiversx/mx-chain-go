@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestAntifloodAndBlacklistWithNumMessages tests what happens if a peer decide to send a large number of messages
+// TestAntifloodAndBlacklistWithNumMessages tests what happens if a peer decides to send a large number of messages
 // all originating from its peer ID
 // All directed peers should add the flooder peer to their black lists and disconnect from it. Further connections
 // of the flooder to the flooded peers are no longer possible.
@@ -73,31 +73,13 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 	//flooder will deactivate its flooding mechanism as to be able to flood the network
 	interceptors[flooderIdx].floodPreventer = nil
 
-	go func() {
-		for {
-			time.Sleep(time.Second)
-
-			for _, interceptor := range interceptors {
-				if interceptor.floodPreventer == nil {
-					continue
-				}
-				interceptor.floodPreventer.Reset()
-			}
-		}
-	}()
+	go resetAntifloodStatsOnInterceptors(interceptors)
 
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
 	isFlooding.Store(true)
-	go func() {
-		for {
-			peers[flooderIdx].Broadcast(topic, []byte("floodMessage"))
+	go floodTheNetwork(peers[flooderIdx], topic, &isFlooding, 10)
 
-			if !isFlooding.Load().(bool) {
-				return
-			}
-		}
-	}()
 	time.Sleep(broadcastMessageDuration)
 
 	isFlooding.Store(false)
@@ -115,6 +97,29 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	printConnected(peers)
 	testConnections(t, peers, flooderIdx, floodedIdxes, floodedIdxesConnections)
+}
+
+func resetAntifloodStatsOnInterceptors(interceptors []*messageProcessor) {
+	for {
+		time.Sleep(time.Second)
+
+		for _, interceptor := range interceptors {
+			if interceptor.floodPreventer == nil {
+				continue
+			}
+			interceptor.floodPreventer.Reset()
+		}
+	}
+}
+
+func floodTheNetwork(peer p2p.Messenger, topic string, isFlooding *atomic.Value, messageSize uint64) {
+	for {
+		peer.Broadcast(topic, make([]byte, messageSize))
+
+		if !isFlooding.Load().(bool) {
+			return
+		}
+	}
 }
 
 func testConnections(

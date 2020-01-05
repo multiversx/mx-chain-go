@@ -125,8 +125,7 @@ func TestConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconnect(t *te
 	//wait for the reconnection blocking go routine to start
 	time.Sleep(time.Second)
 
-	err := cm.HandleDisconnectedPeer("")
-	assert.Nil(t, err)
+	cm.HandleDisconnectedPeer("")
 
 	select {
 	case <-chReconnectCalled:
@@ -179,7 +178,7 @@ func TestConnectionMonitor_HandleConnectedPeerShouldTrim(t *testing.T) {
 	assert.Equal(t, 0, resumeCallCount)
 
 	cm.netw = createNetwork(5)
-	_ = cm.HandleDisconnectedPeer(pid)
+	cm.HandleDisconnectedPeer(pid)
 	assert.Equal(t, 1, pauseCallCount)
 	assert.Equal(t, 1, resumeCallCount)
 
@@ -189,7 +188,7 @@ func TestConnectionMonitor_HandleConnectedPeerShouldTrim(t *testing.T) {
 	assert.Equal(t, 1, resumeCallCount)
 
 	cm.netw = createNetwork(5)
-	_ = cm.HandleDisconnectedPeer(pid)
+	cm.HandleDisconnectedPeer(pid)
 	assert.Equal(t, 2, pauseCallCount)
 	assert.Equal(t, 2, resumeCallCount)
 }

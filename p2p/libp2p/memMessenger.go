@@ -20,7 +20,8 @@ const targetPeerCount = 100
 func NewMemoryMessenger(
 	ctx context.Context,
 	mockNet mocknet.Mocknet,
-	peerDiscoverer p2p.PeerDiscoverer) (*networkMessenger, error) {
+	peerDiscoverer p2p.PeerDiscoverer,
+) (*networkMessenger, error) {
 
 	if ctx == nil {
 		return nil, p2p.ErrNilContext

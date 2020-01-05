@@ -20,7 +20,7 @@ func createStubConn() *mock.ConnStub {
 
 //------- Connected
 
-func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldCloseConnection(t *testing.T) {
+func TestConnectionMonitorNotifier_ConnectedHandledWithErrShouldCloseConnection(t *testing.T) {
 	t.Parallel()
 
 	cms := &mock.ConnectionMonitorStub{
@@ -28,7 +28,7 @@ func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldCloseConnection(
 			return errors.New("expected error")
 		},
 	}
-	cmn := &connectionMonitorNotifiee{
+	cmn := &connectionMonitorNotifier{
 		ConnectionMonitor: cms,
 	}
 	peerCloseCalled := false
@@ -47,7 +47,7 @@ func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldCloseConnection(
 	assert.True(t, peerCloseCalled)
 }
 
-func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldNotPanic(t *testing.T) {
+func TestConnectionMonitorNotifier_ConnectedHandledWithErrShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -63,7 +63,7 @@ func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldNotPanic(t *test
 			return expectedErr
 		},
 	}
-	cmn := &connectionMonitorNotifiee{
+	cmn := &connectionMonitorNotifier{
 		ConnectionMonitor: cms,
 	}
 	conn := createStubConn()
@@ -78,18 +78,16 @@ func TestConnectionMonitorNotifiee_ConnectedHandledWithErrShouldNotPanic(t *test
 
 //------- Disconnected
 
-func TestConnectionMonitorNotifiee_DisconnectedShouldCallHandler(t *testing.T) {
+func TestConnectionMonitorNotifier_DisconnectedShouldCallHandler(t *testing.T) {
 	t.Parallel()
 
 	handlerCalled := false
 	cms := &mock.ConnectionMonitorStub{
-		HandleDisconnectedPeerCalled: func(pid p2p.PeerID) error {
+		HandleDisconnectedPeerCalled: func(pid p2p.PeerID) {
 			handlerCalled = true
-
-			return nil
 		},
 	}
-	cmn := &connectionMonitorNotifiee{
+	cmn := &connectionMonitorNotifier{
 		ConnectionMonitor: cms,
 	}
 	conn := createStubConn()
@@ -99,32 +97,9 @@ func TestConnectionMonitorNotifiee_DisconnectedShouldCallHandler(t *testing.T) {
 	assert.True(t, handlerCalled)
 }
 
-func TestConnectionMonitorNotifiee_DisconnectedHandledWithErrShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have paniced")
-		}
-	}()
-
-	cms := &mock.ConnectionMonitorStub{
-		HandleDisconnectedPeerCalled: func(pid p2p.PeerID) error {
-			return errors.New("expected error")
-		},
-	}
-	cmn := &connectionMonitorNotifiee{
-		ConnectionMonitor: cms,
-	}
-	conn := createStubConn()
-
-	cmn.Disconnected(nil, conn)
-}
-
 //------- handlers
 
-func TestConnectionMonitorNotifiee_CallingHandlersShouldNotPanic(t *testing.T) {
+func TestConnectionMonitorNotifier_CallingHandlersShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -134,7 +109,7 @@ func TestConnectionMonitorNotifiee_CallingHandlersShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	cmn := &connectionMonitorNotifiee{}
+	cmn := &connectionMonitorNotifier{}
 
 	cmn.Listen(nil, nil)
 	cmn.ListenClose(nil, nil)

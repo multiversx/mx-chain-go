@@ -5,7 +5,7 @@ package mock
 type NilBlacklistHandler struct {
 }
 
-// IsBlacklisted outputs false (all peers are white listed)
+// Has outputs false (all peers are white listed)
 func (nbh *NilBlacklistHandler) Has(_ string) bool {
 	return false
 }

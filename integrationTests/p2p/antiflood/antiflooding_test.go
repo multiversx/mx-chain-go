@@ -64,15 +64,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
 	isFlooding.Store(true)
-	go func() {
-		for {
-			peers[flooderIdx].Broadcast(topic, []byte("floodMessage"))
-
-			if !isFlooding.Load().(bool) {
-				return
-			}
-		}
-	}()
+	go floodTheNetwork(peers[flooderIdx], topic, &isFlooding, 10)
 	time.Sleep(broadcastMessageDuration)
 
 	isFlooding.Store(false)
@@ -183,15 +175,8 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
 	isFlooding.Store(true)
-	go func() {
-		for {
-			peers[flooderIdx].Broadcast(topic, make([]byte, peerMaxMessageSize+1))
+	go floodTheNetwork(peers[flooderIdx], topic, &isFlooding, peerMaxMessageSize+1)
 
-			if !isFlooding.Load().(bool) {
-				return
-			}
-		}
-	}()
 	time.Sleep(broadcastMessageDuration)
 
 	isFlooding.Store(false)

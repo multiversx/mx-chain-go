@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -10,7 +11,7 @@ func WithPeerBlackList(blacklistHandler p2p.BlacklistHandler) p2p.Option {
 		if cfg == nil {
 			return p2p.ErrNilConfigVariable
 		}
-		if blacklistHandler == nil {
+		if check.IfNil(blacklistHandler) {
 			return p2p.ErrNilPeerBlacklistHandler
 		}
 

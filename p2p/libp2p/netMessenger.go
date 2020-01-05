@@ -250,10 +250,10 @@ func (netMes *networkMessenger) createConnectionMonitor(targetConnCount int) err
 		return err
 
 	}
-	notifee := &connectionMonitorNotifiee{
+	notifer := &connectionMonitorNotifier{
 		ConnectionMonitor: netMes.connMonitor,
 	}
-	netMes.ctxProvider.connHost.Network().Notify(notifee)
+	netMes.ctxProvider.connHost.Network().Notify(notifer)
 
 	go func() {
 		for {
