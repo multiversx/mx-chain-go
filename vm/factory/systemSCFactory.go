@@ -40,7 +40,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 
 	staking, err := systemSmartContracts.NewStakingSmartContract(
 		scf.validatorSettings.StakeValue(),
-		scf.validatorSettings.UnBoundPeriod(),
+		scf.validatorSettings.UnBondPeriod(),
 		scf.systemEI,
 		AuctionSCAddress,
 	)
@@ -54,16 +54,11 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
-		MinStakeValue:    scf.validatorSettings.StakeValue(),
-		MinStepValue:     scf.validatorSettings.MinStepValue(),
-		TotalSupply:      scf.validatorSettings.TotalSupply(),
-		UnBondPeriod:     scf.validatorSettings.UnBoundPeriod(),
-		NumNodes:         scf.validatorSettings.NumNodes(),
-		Eei:              scf.systemEI,
-		SigVerifier:      scf.sigVerifier,
-		AuctionEnabled:   scf.validatorSettings.AuctionEnabled(),
-		StakingSCAddress: StakingSCAddress,
-		AuctionSCAddress: AuctionSCAddress,
+		Eei:               scf.systemEI,
+		SigVerifier:       scf.sigVerifier,
+		ValidatorSettings: scf.validatorSettings,
+		StakingSCAddress:  StakingSCAddress,
+		AuctionSCAddress:  AuctionSCAddress,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	if err != nil {

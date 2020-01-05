@@ -65,8 +65,5 @@ func (ap *ArgumentParserMock) GetStorageUpdates(data string) ([]*vmcommon.Storag
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ap *ArgumentParserMock) IsInterfaceNil() bool {
-	if ap == nil {
-		return true
-	}
-	return false
+	return ap == nil
 }

@@ -82,7 +82,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	process2 "github.com/ElrondNetwork/elrond-go/vm/process"
+	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -463,7 +463,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 	}
 	args.log.Debug("starting with", "tx sign pubkey", GetPkEncoded(txSignPubKey))
 
-	messageSignVerifier, err := process2.NewMessageSigVerifier(args.keyGen, singleSigner)
+	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
 	if err != nil {
 		return nil, err
 	}

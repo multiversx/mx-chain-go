@@ -261,13 +261,13 @@ func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
 
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
-	host.storageUpdate = make(map[string]map[string][]byte, 0)
-	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
+	host.storageUpdate = make(map[string]map[string][]byte)
+	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
 }
 
 func (host *vmContext) softCleanCache() {
-	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
+	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
 }
 

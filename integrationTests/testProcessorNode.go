@@ -410,8 +410,12 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "5",
+				StakeValue:     "500",
+				UnBondPeriod:   "5",
+				TotalSupply:    "200000000000",
+				MinStepValue:   "100000",
+				NumNodes:       1000,
+				AuctionEnabled: false,
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 5,

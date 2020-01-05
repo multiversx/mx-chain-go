@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"math/rand"
 
@@ -43,26 +44,24 @@ type stakingAuctionSC struct {
 }
 
 type ArgsStakingAuctionSmartContract struct {
-	MinStakeValue    *big.Int
-	MinStepValue     *big.Int
-	TotalSupply      *big.Int
-	UnBondPeriod     uint64
-	NumNodes         uint32
-	Eei              vm.SystemEI
-	SigVerifier      vm.MessageSignVerifier
-	AuctionEnabled   bool
-	StakingSCAddress []byte
-	AuctionSCAddress []byte
+	ValidatorSettings vm.ValidatorSettingsHandler
+	Eei               vm.SystemEI
+	SigVerifier       vm.MessageSignVerifier
+	StakingSCAddress  []byte
+	AuctionSCAddress  []byte
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
 func NewStakingAuctionSmartContract(
 	args ArgsStakingAuctionSmartContract,
 ) (*stakingAuctionSC, error) {
-	if args.MinStakeValue == nil {
+	if check.IfNil(args.ValidatorSettings) {
+		return nil, vm.ErrNilValidatorSettings
+	}
+	if args.ValidatorSettings.StakeValue() == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if args.MinStakeValue.Cmp(big.NewInt(0)) < 1 {
+	if args.ValidatorSettings.MinStepValue().Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
 	if check.IfNil(args.Eei) {
@@ -76,19 +75,19 @@ func NewStakingAuctionSmartContract(
 	}
 
 	baseConfig := AuctionConfig{
-		MinStakeValue: args.MinStakeValue,
-		NumNodes:      args.NumNodes,
-		TotalSupply:   args.TotalSupply,
-		MinStep:       args.MinStepValue,
-		NodePrice:     big.NewInt(0).Set(args.MinStakeValue),
+		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
+		NumNodes:      args.ValidatorSettings.NumNodes(),
+		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
+		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
+		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.StakeValue()),
 	}
 
 	reg := &stakingAuctionSC{
 		eei:              args.Eei,
-		unBondPeriod:     args.UnBondPeriod,
+		unBondPeriod:     args.ValidatorSettings.UnBondPeriod(),
 		sigVerifier:      args.SigVerifier,
 		baseConfig:       baseConfig,
-		auctionEnabled:   args.AuctionEnabled,
+		auctionEnabled:   args.ValidatorSettings.AuctionEnabled(),
 		stakingSCAddress: args.StakingSCAddress,
 		auctionSCAddress: args.AuctionSCAddress,
 	}
@@ -166,16 +165,16 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 
 func (s *stakingAuctionSC) checkConfigCorrectness(config AuctionConfig) error {
 	if config.MinStakeValue == nil {
-		return vm.ErrConfigIncorrect
+		return fmt.Errorf("%w for MinStakeValue", vm.ErrIncorrectConfig)
 	}
 	if config.NodePrice == nil {
-		return vm.ErrConfigIncorrect
+		return fmt.Errorf("%w for NodePrice", vm.ErrIncorrectConfig)
 	}
 	if config.TotalSupply == nil {
-		return vm.ErrConfigIncorrect
+		return fmt.Errorf("%w for TotalSupply", vm.ErrIncorrectConfig)
 	}
 	if config.MinStep == nil {
-		return vm.ErrConfigIncorrect
+		return fmt.Errorf("%w for MinStep", vm.ErrIncorrectConfig)
 	}
 	return nil
 }
@@ -251,14 +250,14 @@ func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgu
 	return newKeys, nil
 }
 
-func (s *stakingAuctionSC) registerBLSKeys(registrationData *AuctionData, args [][]byte) error {
+func (s *stakingAuctionSC) registerBLSKeys(registrationData *AuctionData, pubKey []byte, args [][]byte) error {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 	if uint64(len(args)) < maxNodesToRun+1 {
 		log.Debug("not enough arguments to process stake function")
 		return vm.ErrNotEnoughArgumentsToStake
 	}
 
-	blsKeys := s.getVerifiedBLSKeysFromArgs(args)
+	blsKeys := s.getVerifiedBLSKeysFromArgs(pubKey, args)
 
 	newKeys, err := s.getNewValidKeys(registrationData.BlsPubKeys, blsKeys)
 	if err != nil {
@@ -291,14 +290,14 @@ func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, calle
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(args [][]byte) [][]byte {
+func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]byte) [][]byte {
 	blsKeys := make([][]byte, 0)
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 
 	for i := uint64(1); i < maxNodesToRun*2+1; i += 2 {
 		blsKey := args[i]
 		signedMessage := args[i+1]
-		err := s.sigVerifier.Verify([]byte("stake"), signedMessage, blsKey)
+		err := s.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
 		if err != nil {
 			continue
 		}
@@ -348,7 +347,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		}
 	}
 
-	err = s.registerBLSKeys(registrationData, args.Arguments)
+	err = s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
 		return vmcommon.UserError
 	}
@@ -386,7 +385,7 @@ func (s *stakingAuctionSC) activateStakingFor(
 		}
 
 		numStaked++
-		if stakedData.Staked == true {
+		if stakedData.Staked {
 			continue
 		}
 
@@ -810,9 +809,7 @@ func shuffleList(list []string, random []byte) {
 
 func isNumArgsCorrectToStake(args [][]byte) bool {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
-	if uint64(len(args)) < 2*maxNodesToRun+1 {
-		return false
-	}
+	areEnoughArgs := uint64(len(args)) >= 2*maxNodesToRun+1
 
-	return true
+	return areEnoughArgs
 }

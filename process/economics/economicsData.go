@@ -25,22 +25,10 @@ type EconomicsData struct {
 	stakeValue           *big.Int
 	unBondPeriod         uint64
 	ratingsData          *RatingsData
-}
-
-func (ed *EconomicsData) MinStepValue() *big.Int {
-	return big.NewInt(0)
-}
-
-func (ed *EconomicsData) TotalSupply() *big.Int {
-	return big.NewInt(99999999999999)
-}
-
-func (ed *EconomicsData) NumNodes() uint32 {
-	return 1500
-}
-
-func (ed *EconomicsData) AuctionEnabled() bool {
-	return false
+	minStep              *big.Int
+	totalSupply          *big.Int
+	numNodes             uint32
+	auctionEnabled       bool
 }
 
 const float64EqualityThreshold = 1e-9
@@ -87,6 +75,10 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
 		ratingsData:          rd,
+		totalSupply:          data.totalSupply,
+		minStep:              data.minStep,
+		numNodes:             data.numNodes,
+		auctionEnabled:       data.auctionEnabled,
 	}, nil
 }
 
@@ -116,9 +108,9 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidRewardsValue
 	}
 
-	unBondPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
+	unBondPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBondPeriod, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, process.ErrInvalidUnboundPeriod
+		return nil, process.ErrInvalidUnBondPeriod
 	}
 
 	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
@@ -136,6 +128,18 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidGasPerDataByte
 	}
 
+	totalSupply := new(big.Int)
+	totalSupply, ok = totalSupply.SetString(economics.ValidatorSettings.TotalSupply, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidTotalSupply
+	}
+
+	minStepValue := new(big.Int)
+	minStepValue, ok = minStepValue.SetString(economics.ValidatorSettings.MinStepValue, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidMinStepValue
+	}
+
 	return &EconomicsData{
 		rewardsValue:         rewardsValue,
 		minGasPrice:          minGasPrice,
@@ -145,6 +149,10 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		maxGasLimitPerBlock:  maxGasLimitPerBlock,
 		gasPerDataByte:       gasPerDataByte,
 		dataLimitForBaseCalc: dataLimitForBaseCalc,
+		totalSupply:          totalSupply,
+		minStep:              minStepValue,
+		numNodes:             economics.ValidatorSettings.NumNodes,
+		auctionEnabled:       economics.ValidatorSettings.AuctionEnabled,
 	}, nil
 }
 
@@ -258,17 +266,39 @@ func (ed *EconomicsData) StakeValue() *big.Int {
 	return ed.stakeValue
 }
 
-// UnBoundPeriod will return the unbond period
-func (ed *EconomicsData) UnBoundPeriod() uint64 {
+// UnBondPeriod will return the unbond period
+func (ed *EconomicsData) UnBondPeriod() uint64 {
 	return ed.unBondPeriod
+}
+
+// MinStepValue returns the step value which is considered in the node price determination
+func (ed *EconomicsData) MinStepValue() *big.Int {
+	return ed.minStep
+}
+
+// TotalSupply returns the total supply of the protocol
+func (ed *EconomicsData) TotalSupply() *big.Int {
+	return ed.totalSupply
+}
+
+// NumNodes returns the total node number for current setting
+func (ed *EconomicsData) NumNodes() uint32 {
+	return ed.numNodes
+}
+
+// AuctionEnabled returns whether full auction process is enabled
+func (ed *EconomicsData) AuctionEnabled() bool {
+	return ed.auctionEnabled
+}
+
+// SetAuctionEnabled sets whether the auction is enabled
+func (ed *EconomicsData) SetAuctionEnabled(auctionEnabled bool) {
+	ed.auctionEnabled = auctionEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
-	if ed == nil {
-		return true
-	}
-	return false
+	return ed == nil
 }
 
 // RatingsData will return the ratingsDataObject

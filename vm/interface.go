@@ -45,14 +45,7 @@ type SystemEI interface {
 
 // ContextHandler defines the methods needed to execute system smart contracts
 type ContextHandler interface {
-	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
-	GetBalance(addr []byte) *big.Int
-	SetStorage(key []byte, value []byte)
-	GetStorage(key []byte) []byte
-	Finish(value []byte)
-	BlockChainHook() vmcommon.BlockchainHook
-	CryptoHook() vmcommon.CryptoHook
+	SystemEI
 
 	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
@@ -60,8 +53,6 @@ type ContextHandler interface {
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
 	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
-
-	IsInterfaceNil() bool
 }
 
 // MessageSignVerifier is used to verify if message was signed with given public key
@@ -72,7 +63,7 @@ type MessageSignVerifier interface {
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
-	UnBoundPeriod() uint64
+	UnBondPeriod() uint64
 	StakeValue() *big.Int
 	MinStepValue() *big.Int
 	TotalSupply() *big.Int

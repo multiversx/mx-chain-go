@@ -195,10 +195,14 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
+
+	auctionEnabled := args.Economics.AuctionEnabled()
+	args.Economics.SetAuctionEnabled(false)
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
 	if err != nil {
 		return nil, nil, err
 	}
+	args.Economics.SetAuctionEnabled(auctionEnabled)
 
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
@@ -331,17 +335,18 @@ func setStakedData(
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
+	oneEncoded := hex.EncodeToString(big.NewInt(0).Bytes())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
 				Value:     big.NewInt(0).Set(stakeValue),
-				RcvAddr:   vmFactory.StakingSCAddress,
+				RcvAddr:   vmFactory.AuctionSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,
-				Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
+				Data:      "stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis")),
 				Signature: nil,
 			}
 
@@ -357,11 +362,11 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     big.NewInt(0).Set(stakeValue),
-			RcvAddr:   vmFactory.StakingSCAddress,
+			RcvAddr:   vmFactory.AuctionSCAddress,
 			SndAddr:   nodeInfo.Address(),
 			GasPrice:  0,
 			GasLimit:  0,
-			Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
+			Data:      "stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis")),
 			Signature: nil,
 		}
 

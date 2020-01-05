@@ -40,8 +40,12 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
-			StakeValue:    "500000000",
-			UnBoundPeriod: "100000",
+			StakeValue:     "500000000",
+			UnBondPeriod:   "100000",
+			TotalSupply:    "200000000000",
+			MinStepValue:   "100000",
+			NumNodes:       1000,
+			AuctionEnabled: true,
 		},
 		RatingSettings: config.RatingSettings{
 			StartRating:                 50,

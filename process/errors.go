@@ -515,8 +515,8 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
-// ErrInvalidUnboundPeriod signals that an invalid unbond period has been read from config file
-var ErrInvalidUnboundPeriod = errors.New("invalid unbond period")
+// ErrInvalidUnBondPeriod signals that an invalid unbond period has been read from config file
+var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
@@ -622,3 +622,9 @@ var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
+
+// ErrInvalidMinStepValue signals the min step value is invalid
+var ErrInvalidMinStepValue = errors.New("invalid min step value")
+
+// ErrInvalidTotalSupply signals that total supply is invalid
+var ErrInvalidTotalSupply = errors.New("invalid total supply")
