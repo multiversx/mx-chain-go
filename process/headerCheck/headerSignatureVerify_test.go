@@ -2,6 +2,7 @@ package headerCheck
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
 
@@ -135,4 +136,28 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Nil(t, err)
 	require.Equal(t, 2, count)
+}
+
+func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{}
+
+	err := hdrSigVerifier.VerifySignature(header)
+	require.Equal(t, process.ErrNilPubKeysBitmap, err)
+}
+
+func TestHeaderSigVerifier_VerifySignatureBlockProposerSigMissingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{
+		PubKeysBitmap: []byte("0"),
+	}
+
+	err := hdrSigVerifier.VerifySignature(header)
+	require.Equal(t, process.ErrBlockProposerSignatureMissing, err)
 }
