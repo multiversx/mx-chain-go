@@ -144,6 +144,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		GasPrice:    uint64(0),
 		GasProvided: uint64(0xffffffffffffffff),
 		Arguments:   arguments,
+		CallType: vmcommon.DirectCall,
 	}
 }
 
