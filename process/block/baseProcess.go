@@ -999,8 +999,8 @@ func (bp *baseProcessor) getHeadersFromPools(
 ) ([]data.HeaderHandler, [][]byte) {
 	headers, headersHashes, err := headersCacher.GetHeaderByNonceAndShardId(nonce, shardId)
 	if err != nil {
-		headers = make([]data.HeaderHandler, 0, 0)
-		headersHashes = make([][]byte, 0, 0)
+		headers = make([]data.HeaderHandler, 0)
+		headersHashes = make([][]byte, 0)
 	}
 
 	return headers, headersHashes
