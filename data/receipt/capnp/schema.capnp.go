@@ -6,9 +6,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"io"
-
 	C "github.com/glycerine/go-capnproto"
+	"io"
 )
 
 type ReceiptCapn C.Struct

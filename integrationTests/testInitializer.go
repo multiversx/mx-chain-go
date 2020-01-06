@@ -949,7 +949,7 @@ func CreateAndSendTransactionWithGasLimit(
 	txValue *big.Int,
 	gasLimit uint64,
 	rcvAddress []byte,
-	txData string,
+	txData []byte,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
