@@ -42,7 +42,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 		Enabled:                         true,
 		CountThreshold:                  size,
 		ThresholdEvictSenders:           process.TxPoolThresholdEvictSenders,
-		NumOldestSendersToEvict:         process.TxPoolNumOldestSendersToEvict,
+		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
 		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
 	}
