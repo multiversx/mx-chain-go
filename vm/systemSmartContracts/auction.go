@@ -75,7 +75,7 @@ func NewStakingAuctionSmartContract(
 	}
 
 	baseConfig := AuctionConfig{
-		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
+		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.StakeValue()),
 		NumNodes:      args.ValidatorSettings.NumNodes(),
 		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),

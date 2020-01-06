@@ -335,7 +335,7 @@ func setStakedData(
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
-	oneEncoded := hex.EncodeToString(big.NewInt(0).Bytes())
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
@@ -447,7 +447,7 @@ func setBalanceToTrie(
 type NilMessageSignVerifier struct {
 }
 
-func (n *NilMessageSignVerifier) Verify(message []byte, signedMessage []byte, pubKey []byte) error {
+func (n *NilMessageSignVerifier) Verify(_ []byte, _ []byte, _ []byte) error {
 	return nil
 }
 

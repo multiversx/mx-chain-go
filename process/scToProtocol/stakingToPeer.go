@@ -335,7 +335,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 
 			storageUpdates, err := stp.argParser.GetStorageUpdates(scr.Data)
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			for _, storageUpdate := range storageUpdates {

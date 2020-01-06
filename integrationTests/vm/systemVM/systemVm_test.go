@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -64,10 +65,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	///////////------- send stake tx and check sender's balance
 	var txData string
-	oneEncoded := hex.EncodeToString(big.NewInt(0).Bytes())
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
-		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("message"))
+		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
 		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.AuctionSCAddress, txData)
 	}
 
@@ -78,8 +79,9 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	consumedBalance := big.NewInt(0).Add(big.NewInt(int64(len(txData))), big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit))
-	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	gasLimit := nodes[0].EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: txData})
+	consumedBalance := big.NewInt(0)
+	consumedBalance.Mul(big.NewInt(0).SetUint64(gasLimit), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 
 	checkAccountsAfterStaking(t, nodes, initialVal, consumedBalance)
 

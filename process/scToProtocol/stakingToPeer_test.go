@@ -205,7 +205,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, testError, err)
+	assert.Nil(t, err)
 }
 
 func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
