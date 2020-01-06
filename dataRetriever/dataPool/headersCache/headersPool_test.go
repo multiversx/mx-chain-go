@@ -280,13 +280,13 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 101
-	numHdrsToGenerate := 100
+	cacheSize := 51
+	numHdrsToGenerate := 50
 
 	headersShard0, hashesShad0 := createASliceOfHeadersNonce0(numHdrsToGenerate, 0)
 	headersShard1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
 	headersShard2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
-	numElemsToRemove := 50
+	numElemsToRemove := 25
 	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: numElemsToRemove}
 	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
@@ -412,9 +412,9 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	t.Parallel()
 
 	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), sharding.MetachainShardId
-	cacheSize := 100
-	numHeadersToGenerate := 99
-	numElemsToRemove := 50
+	cacheSize := 50
+	numHeadersToGenerate := 49
+	numElemsToRemove := 25
 
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId0)
 	headersShard1, headersHashesShard1 := createASliceOfHeaders(numHeadersToGenerate, shardId1)
