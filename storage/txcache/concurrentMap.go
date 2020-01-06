@@ -143,3 +143,34 @@ func (m *ConcurrentMap) Clear() {
 	m.chunks = make([]*concurrentMapChunk, m.nChunks)
 	m.mutex.Unlock()
 }
+
+// Keys returns all keys as []string
+func (m *ConcurrentMap) Keys() []string {
+	count := m.Count()
+	ch := make(chan string, count)
+	go func() {
+		// Foreach shard.
+		wg := sync.WaitGroup{}
+		wg.Add(int(m.nChunks))
+		for _, shard := range m.chunks {
+			go func(shard *concurrentMapChunk) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key := range shard.items {
+					ch <- key
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
+		}
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Generate keys
+	keys := make([]string, 0, count)
+	for k := range ch {
+		keys = append(keys, k)
+	}
+	return keys
+}
