@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -993,24 +992,18 @@ func (bp *baseProcessor) removeHeaderFromPools(
 }
 
 func (bp *baseProcessor) getHeadersFromPools(
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+	_ func(uint64, uint32) (data.HeaderHandler, []byte, error),
 	headersCacher dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) ([]data.HeaderHandler, [][]byte) {
-
-	//TODO what should i do if I get and error
 	headers, headersHashes, err := headersCacher.GetHeaderByNonceAndShardId(nonce, shardId)
-
-	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
 	if err != nil {
-		return headers, headersHashes
+		headers = make([]data.HeaderHandler, 0, 0)
+		headersHashes = make([][]byte, 0, 0)
 	}
 
-	headers = append(headers, header)
-	headersHashes = append(headersHashes, headerHash)
-
-	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
+	return headers, headersHashes
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(
