@@ -189,6 +189,10 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 }
 
 func TestAgarioContractJoinGameReward(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 

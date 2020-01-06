@@ -737,6 +737,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		for j := 0; j < len(outAcc.StorageUpdates); j++ {
 			storeUpdate := outAcc.StorageUpdates[j]
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+
+			log.Info("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
 		if len(outAcc.StorageUpdates) > 0 {
@@ -754,7 +756,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 				return err
 			}
 
-			log.Debug("created SC address", "address", hex.EncodeToString(outAcc.Address))
+			log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
 		}
 
 		// change nonce only if there is a change

@@ -179,6 +179,10 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
+
+		if len(addScr.Data) > 0 {
+			//	log.Info("addInter", "hash", scrHash, "data", addScr.Data)
+		}
 	}
 
 	return nil

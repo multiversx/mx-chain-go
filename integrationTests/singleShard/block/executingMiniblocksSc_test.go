@@ -25,11 +25,13 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
-	numOfNodes := 4
+	numOfNodes := 2
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
@@ -46,7 +48,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 10
+	numPlayers := 5
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
@@ -83,6 +85,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
+	time.Sleep(stepDelay)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
@@ -169,6 +172,8 @@ func runMultipleRoundsOfTheGame(
 		time.Sleep(stepDelay)
 
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
+
+		time.Sleep(stepDelay)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
