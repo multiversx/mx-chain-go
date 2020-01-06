@@ -25,17 +25,14 @@ func (pubKey *PublicKeyMock) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pubKey *PublicKeyMock) IsInterfaceNil() bool {
-	if pubKey == nil {
-		return true
-	}
-	return false
+	return pubKey == nil
 }
 
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	return nil, nil
 }
 
-func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+func (keyGen *KeyGenMock) PrivateKeyFromByteArray(_ []byte) (crypto.PrivateKey, error) {
 	return nil, nil
 }
 
