@@ -5,11 +5,18 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("epochStart/metachain")
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
@@ -25,6 +32,8 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Epoch              uint32
 	EpochStartRound    uint64
 	EpochStartNotifier EpochStartNotifier
+	Marshalizer        marshal.Marshalizer
+	Storage            dataRetriever.StorageService
 }
 
 type trigger struct {
@@ -40,6 +49,8 @@ type trigger struct {
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
 	epochStartNotifier          EpochStartNotifier
+	metaHdrStorage              storage.Storer
+	marshalizer                 marshal.Marshalizer
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -62,6 +73,17 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Storage) {
+		return nil, epochStart.ErrNilStorageService
+	}
+
+	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaHdrStorage) {
+		return nil, epochStart.ErrNilMetaHdrStorage
+	}
 
 	return &trigger{
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -73,6 +95,8 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
 		epochStartNotifier:          args.EpochStartNotifier,
+		metaHdrStorage:              metaHdrStorage,
+		marshalizer:                 args.Marshalizer,
 	}, nil
 }
 
@@ -163,6 +187,17 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
+	metaBuff, err := t.marshalizer.Marshal(metaBlock)
+	if err != nil {
+		log.Debug("SetProcessed marshal", "error", err.Error())
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
+	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if err != nil {
+		log.Debug("SetProcessed put into metaHdrStorage", "error", err.Error())
+	}
+
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
@@ -184,6 +219,12 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 func (t *trigger) Revert() {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
+
+	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
+	err := t.metaHdrStorage.Remove([]byte(epochStartIdentifier))
+	if err != nil {
+		log.Debug("Revert remove from metaHdrStorage", "error", err.Error())
+	}
 
 	t.isEpochStart = true
 }
@@ -208,6 +249,13 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 // SetEpochStartMetaHdrHash sets the epoch start meta header hase
 func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 	t.epochStartMetaHash = metaHdrHash
+}
+
+// SetLastEpochStartRound sets the round when the current epoch started
+func (t *trigger) SetCurrentEpochStartRound(round uint64) {
+	t.mutTrigger.Lock()
+	t.currentRound = round
+	t.mutTrigger.Unlock()
 }
 
 // IsInterfaceNil return true if underlying object is nil

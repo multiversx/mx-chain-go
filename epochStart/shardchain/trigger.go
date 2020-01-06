@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -22,6 +23,8 @@ type EpochStartNotifier interface {
 	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
+
+var log = logger.GetOrCreate("epochStart/shardchain")
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
@@ -244,6 +247,19 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+
+			metaBuff, err := t.marshalizer.Marshal(meta)
+			if err != nil {
+				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
+				continue
+			}
+
+			epochStartIdentifier := core.EpochStartIdentifier(meta.Epoch)
+			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
+			if err != nil {
+				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
+				continue
+			}
 		}
 	}
 }
@@ -294,7 +310,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 
 	if nextBlocksVerified < t.finality {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
-			go t.requestHandler.RequestHeaderByNonce(core.MetachainShardId, nonce)
+			go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 		return false, 0
 	}
@@ -376,7 +392,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 		return metaHdr, nil
 	}
 
-	go t.requestHandler.RequestHeader(core.MetachainShardId, neededHash)
+	go t.requestHandler.RequestMetaHeader(neededHash)
 
 	return nil, epochStart.ErrMetaHdrNotFound
 }
@@ -426,7 +442,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
 	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
 	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestHeaderByNonce(core.MetachainShardId, nonce)
+		go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		return nil, err
 	}
 
@@ -456,7 +472,9 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
+
 	t.epochStartNotifier.NotifyAll(shardHdr)
+
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
@@ -485,6 +503,10 @@ func (t *trigger) Update(_ uint64) {
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
 func (t *trigger) SetFinalityAttestingRound(_ uint64) {
+}
+
+// SetLastEpochStartRound sets the round when the current epoch started
+func (t *trigger) SetCurrentEpochStartRound(_ uint64) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

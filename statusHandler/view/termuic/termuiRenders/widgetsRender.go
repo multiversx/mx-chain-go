@@ -221,27 +221,27 @@ func (wr *WidgetsRender) prepareChainInfo() {
 		rows[3] = []string{fmt.Sprintf("Number of transactions processed: %d", numTxProcessed)}
 	}
 
+	epoch := wr.presenter.GetEpochNumber()
+	rows[4] = []string{fmt.Sprintf("Current epoch: %d", epoch)}
+
 	nonce := wr.presenter.GetNonce()
 	probableHighestNonce := wr.presenter.GetProbableHighestNonce()
-	rows[4] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
+	rows[5] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
 		nonce, probableHighestNonce)}
 
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
-	rows[5] = []string{fmt.Sprintf("Current consensus round: %d / %d",
+	rows[6] = []string{fmt.Sprintf("Current consensus round: %d / %d",
 		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.presenter.GetRoundTime()
-	rows[6] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
-
-	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
-	rows[7] = []string{fmt.Sprintf("Live validator nodes: %d", numLiveValidators)}
-
-	numConnectedNodes := wr.presenter.GetConnectedNodes()
-	rows[8] = []string{fmt.Sprintf("Network connected nodes: %d", numConnectedNodes)}
+	rows[7] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
 
 	numConnectedPeers := wr.presenter.GetNumConnectedPeers()
-	rows[9] = []string{fmt.Sprintf("This node is connected to %d peers", numConnectedPeers)}
+	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
+	numConnectedNodes := wr.presenter.GetConnectedNodes()
+	rows[8] = []string{fmt.Sprintf("Peers / Validators / Nodes: %d / %d / %d",
+		numConnectedPeers, numLiveValidators, numConnectedNodes)}
 
 	wr.chainInfo.Title = "Chain info"
 	wr.chainInfo.RowSeparator = false
@@ -272,7 +272,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	shardId := wr.presenter.GetShardId()
 	if shardId != uint64(core.MetachainShardId) {
 		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
-		rows[4][0] += fmt.Sprintf(" ,final nonce: %d", highestFinalBlockInShard)
+		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlockInShard)
 	}
 
 	consensusState := wr.presenter.GetConsensusState()

@@ -34,6 +34,11 @@ func (psh *PresenterStatusHandler) GetCurrentBlockHash() string {
 	return psh.getFromCacheAsString(core.MetricCurrentBlockHash)
 }
 
+// GetEpochNumber will return current epoch
+func (psh *PresenterStatusHandler) GetEpochNumber() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricEpochNumber)
+}
+
 // GetCurrentRoundTimestamp will return current round timestamp
 func (psh *PresenterStatusHandler) GetCurrentRoundTimestamp() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCurrentRoundTimestamp)

@@ -28,9 +28,9 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 		hdr.SetRootHash([]byte{})
-		return nil
+		return body, nil
 	}
 	blockProcessorMock.DecodeBlockBodyCalled = func(dta []byte) data.BodyHandler {
 		return block.Body{}

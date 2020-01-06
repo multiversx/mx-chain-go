@@ -96,7 +96,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
+	body, err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
 	if err != nil {
 		log.Debug("ApplyBodyToHeader", "error", err.Error())
 		return false
@@ -149,7 +149,6 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
@@ -184,7 +183,6 @@ func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		sr.mtBlockHeader,
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)

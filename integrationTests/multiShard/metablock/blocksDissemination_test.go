@@ -112,7 +112,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	maxNumRequests := 5
 	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
-			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
+			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, senderShard)
 			assert.Nil(t, err)
 			_ = resolver.RequestDataFromHash(shardHeaderHash)
 		}

@@ -59,6 +59,7 @@ type Option func(*Node) error
 //  required services as requested
 type Node struct {
 	marshalizer              marshal.Marshalizer
+	sizeCheckDelta           uint32
 	ctx                      context.Context
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
@@ -272,6 +273,10 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	netInputMarshalizer := n.marshalizer
+	if n.sizeCheckDelta > 0 {
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+	}
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -281,7 +286,7 @@ func (n *Node) StartConsensus() error {
 		consensusState,
 		n.forkDetector,
 		n.keyGen,
-		n.marshalizer,
+		netInputMarshalizer,
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
@@ -488,6 +493,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.bootStorer,
 		metaStorageBootstrapper,
 		n.requestedItemsHandler,
+		n.epochStartTrigger,
 	)
 
 	if err != nil {
@@ -744,7 +750,6 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	data string,
 	signatureHex string,
-	challenge string,
 ) (*transaction.Transaction, error) {
 
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
@@ -770,11 +775,6 @@ func (n *Node) CreateTransaction(
 		return nil, errors.New("could not fetch signature bytes")
 	}
 
-	challengeBytes, err := hex.DecodeString(challenge)
-	if err != nil {
-		return nil, errors.New("could not fetch challenge bytes")
-	}
-
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
 		return nil, ErrInvalidValue
@@ -789,7 +789,6 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      data,
 		Signature: signatureBytes,
-		Challenge: challengeBytes,
 	}, nil
 }
 
@@ -879,6 +878,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
+
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
@@ -889,8 +889,12 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
 	timer := &heartbeat.RealTimer{}
+	netInputMarshalizer := n.marshalizer
+	if n.sizeCheckDelta > 0 {
+		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
+	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
-		n.marshalizer,
+		netInputMarshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
 		n.genesisTime,

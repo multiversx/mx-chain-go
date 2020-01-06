@@ -17,6 +17,16 @@ const ShardIdentiferLen = 2
 const metaChainShardIdentifier uint8 = 255
 const numInitCharactersForOnMetachainSC = 5
 
+// IsEmptyAddress verifies if a set address is of empty - so it is deployment address
+func IsEmptyAddress(rcvAddress []byte) bool {
+	if len(rcvAddress) <= NumInitCharactersForScAddress {
+		return false
+	}
+
+	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
+	return isEmptyAddress
+}
+
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {
 	if len(rcvAddress) <= NumInitCharactersForScAddress {

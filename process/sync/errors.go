@@ -26,6 +26,9 @@ var ErrHigherRoundInBlock = errors.New("higher round in block")
 // ErrBlockIsNotSigned signals that the block is not signed
 var ErrBlockIsNotSigned = errors.New("block is not signed")
 
+//ErrCorruptBootstrapFromStorageDb signals that the bootstrap database is corrupt
+var ErrCorruptBootstrapFromStorageDb = errors.New("corrupt bootstrap storage database")
+
 // ErrSignedBlock signals that a block is signed
 type ErrSignedBlock struct {
 	CurrentNonce uint64
