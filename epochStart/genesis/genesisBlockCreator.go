@@ -163,7 +163,6 @@ func CreateMetaGenesisBlock(
 
 	err = setStakingData(
 		txProcessor,
-		args.ShardCoordinator,
 		allNodes,
 		args.Economics.StakeValue(),
 	)
@@ -332,7 +331,6 @@ func deploySystemSmartContracts(
 // setStakingData sets the initial staked values to the staking smart contract
 func setStakingData(
 	txProcessor process.TransactionProcessor,
-	shardCoordinator sharding.Coordinator,
 	initialNodeInfo map[uint32][]*sharding.NodeInfo,
 	stakeValue *big.Int,
 ) error {

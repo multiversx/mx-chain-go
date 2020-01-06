@@ -102,6 +102,7 @@ func saveMetachainCommitBlockMetrics(
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
+
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()
 	if header.IsStartOfEpochBlock() && epoch > 0 {

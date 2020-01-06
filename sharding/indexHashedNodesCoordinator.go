@@ -167,7 +167,7 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard(epoch uint32) (map[uin
 	return nodesConfig.eligibleMap, nil
 }
 
-// ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
+// ComputeConsensusGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
 // 1. generate expanded eligible list by multiplying entries from shards' eligible list according to stake and rating -> TODO
@@ -250,7 +250,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	return nil, 0, ErrValidatorNotFound
 }
 
-// GetValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
+// GetConsensusValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
 // returning their public keys
 func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	randomness []byte,
@@ -272,7 +272,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	return pubKeys, nil
 }
 
-// GetValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
+// GetConsensusValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
 // number, returning their staking/rewards addresses
 func (ihgs *indexHashedNodesCoordinator) GetConsensusValidatorsRewardsAddresses(
 	randomness []byte,

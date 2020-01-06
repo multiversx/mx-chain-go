@@ -17,14 +17,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var log = logger.GetOrCreate("epochStart/shardchain")
+
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
-
-var log = logger.GetOrCreate("epochStart/shardchain")
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {

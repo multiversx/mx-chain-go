@@ -253,7 +253,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	shardC := rcf.shardCoordinator
 
 	//only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
