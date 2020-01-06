@@ -176,7 +176,7 @@ func (p *validatorStatistics) processPeerChanges(header data.HeaderHandler) erro
 func (p *validatorStatistics) updatePeerState(
 	peerChange block.PeerData,
 ) error {
-	adrSrc, err := p.adrConv.CreateAddressFromPublicKeyBytes(peerChange.Address)
+	adrSrc, err := p.adrConv.CreateAddressFromPublicKeyBytes(peerChange.PublicKey)
 	if err != nil {
 		return err
 	}
@@ -195,8 +195,15 @@ func (p *validatorStatistics) updatePeerState(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if !bytes.Equal(peerChange.Address, account.Address) {
-		err := account.SetSchnorrPublicKeyWithJournal(peerChange.Address)
+	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
+		err := account.SetRewardAddressWithJournal(peerChange.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -211,7 +218,7 @@ func (p *validatorStatistics) updatePeerState(
 		}
 	}
 
-	if peerChange.Action == block.PeerRegistrantion && peerChange.TimeStamp != account.Nonce {
+	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
 		err := account.SetNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
@@ -446,7 +453,7 @@ func (p *validatorStatistics) savePeerAccountData(
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
-	err := peerAccount.SetAddressWithJournal([]byte(data.Address))
+	err := peerAccount.SetRewardAddressWithJournal([]byte(data.Address))
 	if err != nil {
 		return err
 	}

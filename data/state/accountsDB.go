@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
 	"sync"
@@ -157,22 +156,18 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		originalValue := trackableDataTrie.OriginalValue([]byte(k))
+		flagHasDirtyData = true
 
-		if !bytes.Equal(v, originalValue) {
-			flagHasDirtyData = true
+		val, err := dataTrie.Get([]byte(k))
+		if err != nil {
+			return err
+		}
 
-			val, err := dataTrie.Get([]byte(k))
-			if err != nil {
-				return err
-			}
+		oldValues[k] = val
 
-			oldValues[k] = val
-
-			err = dataTrie.Update([]byte(k), v)
-			if err != nil {
-				return err
-			}
+		err = dataTrie.Update([]byte(k), v)
+		if err != nil {
+			return err
 		}
 	}
 

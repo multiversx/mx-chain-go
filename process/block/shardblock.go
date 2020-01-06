@@ -1956,10 +1956,15 @@ func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 
 func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data.HeaderHandler) error {
 	for _, header := range finalHeaders {
-		_, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
+		beforeHash, _ := sp.validatorStatisticsProcessor.RootHash()
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
 		if err != nil {
 			return err
 		}
+
+		log.Info("Shard BeforeSSSS", "shard", sp.shardCoordinator.SelfId(), "round", header.GetRound(), "validatorHash", beforeHash)
+		log.Info("Shard AfterSSSSS", "shard", sp.shardCoordinator.SelfId(), "round", header.GetRound(), "validatorHash", rootHash)
+		log.Info("Shard HeaderSSSS", "shard", sp.shardCoordinator.SelfId(), "round", header.GetRound(), "validatorHash", header.GetValidatorStatsRootHash())
 	}
 	return nil
 }
@@ -1974,12 +1979,12 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 			return err
 		}
 
-		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
-			log.Info("Shard BeforeSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", beforeHash)
-			log.Info("Shard AfterSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", rootHash)
-			log.Info("Shard HeaderSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", metaHeader.GetValidatorStatsRootHash())
-			return process.ErrValidatorStatsRootHashDoesNotMatch
-		}
+		//if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
+		log.Info("Shard BeforeSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", beforeHash)
+		log.Info("Shard AfterSSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", rootHash)
+		log.Info("Shard HeaderSSSS", "shard", sp.shardCoordinator.SelfId(), "round", metaHeader.GetRound(), "validatorHash", metaHeader.GetValidatorStatsRootHash())
+		//	return process.ErrValidatorStatsRootHashDoesNotMatch
+		//}
 	}
 
 	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()

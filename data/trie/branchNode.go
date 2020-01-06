@@ -419,9 +419,13 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 		return false, nil, err
 	}
 
-	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
-	if !dirty || err != nil {
-		return false, nil, err
+	var newNode node
+	dirty := false
+	if bn.children[childPos] != nil {
+		dirty, newNode, err = bn.children[childPos].delete(key, db, marshalizer)
+		if !dirty || err != nil {
+			return false, nil, err
+		}
 	}
 
 	bn.hash = nil
