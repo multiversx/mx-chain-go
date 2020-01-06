@@ -203,6 +203,10 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[HeadersPoolConfig]
+    MaxHeadersPerShard = 1000
+    NumElementsToRemoveOnEviction = 200
+
 [BadBlocksCache]
     Size = 1000
     Type = "LRU"

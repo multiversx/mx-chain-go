@@ -18,7 +18,7 @@ type headersCache struct {
 	maxHeadersPerShard int
 }
 
-func newHeadersCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersCache {
+func newHeadersCache(numMaxHeaderPerShard int, numHeadersToRemove int) *headersCache {
 	return &headersCache{
 		headersNonceCache:  make(map[uint32]listOfHeadersByNonces),
 		headersCounter:     make(numHeadersByShard),

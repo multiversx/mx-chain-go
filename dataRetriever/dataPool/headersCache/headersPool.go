@@ -1,6 +1,7 @@
 package headersCache
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,12 +18,13 @@ type headersPool struct {
 }
 
 // NewHeadersPool will create a new items cacher
-func NewHeadersPool(numMaxHeaderPerShard int, numElementsToRemove int) (*headersPool, error) {
-	if numMaxHeaderPerShard < numElementsToRemove {
-		return nil, ErrInvalidHeadersCacheParameter
+func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, error) {
+	err := checkHeadersPoolConfig(hdrsPoolConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	headersCache := newHeadersCache(numElementsToRemove, numMaxHeaderPerShard)
+	headersCache := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
 
 	return &headersPool{
 		cache:                headersCache,
@@ -30,6 +32,21 @@ func NewHeadersPool(numMaxHeaderPerShard int, numElementsToRemove int) (*headers
 		mutHeadersPool:       sync.RWMutex{},
 		addedDataHandlers:    make([]func(shardHeaderHash []byte), 0),
 	}, nil
+}
+
+func checkHeadersPoolConfig(hdrsPoolConfig config.HeadersPoolConfig) error {
+	maxHdrsPerShard := hdrsPoolConfig.MaxHeadersPerShard
+	numElementsToRemove := hdrsPoolConfig.NumElementsToRemoveOnEviction
+
+	if maxHdrsPerShard <= 0 || numElementsToRemove <= 0 {
+		return ErrInvalidHeadersCacheParameter
+	}
+
+	if maxHdrsPerShard < numElementsToRemove {
+		return ErrInvalidHeadersCacheParameter
+	}
+
+	return nil
 }
 
 // AddHeader is used to add a header in pool

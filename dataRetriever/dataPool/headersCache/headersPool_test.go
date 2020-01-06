@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
@@ -18,7 +19,7 @@ import (
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -48,7 +49,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 func Test_RemoveHeaderByHash(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -75,7 +76,7 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -103,7 +104,7 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 
 	numHeadersToGenerate := 1001
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
-	headersCacher, _ := headersCache.NewHeadersPool(900, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 900, NumElementsToRemoveOnEviction: 100})
 
 	for i := 0; i < numHeadersToGenerate; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
@@ -125,7 +126,8 @@ func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
 	numHeadersToGenerate := 500
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
-	headersCacher, _ := headersCache.NewHeadersPool(numHeadersToGenerate+1, 10)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: numHeadersToGenerate + 1, NumElementsToRemoveOnEviction: 10}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -148,7 +150,8 @@ func TestHeadersCacher_ConcurrentRequests_WithEviction(t *testing.T) {
 	numHeadersToGenerate := 500
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 1}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -188,7 +191,8 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 	hash1, hash2, hash3 := []byte("hash1"), []byte("hash2"), []byte("hash3")
 	header1, header2, header3 := &block.Header{Nonce: 0}, &block.Header{Nonce: 0}, &block.Header{Nonce: 1}
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 1}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 	headersCacher.AddHeader(hash1, header1)
 	headersCacher.AddHeader(hash2, header2)
 	headersCacher.AddHeader(hash3, header3)
@@ -207,7 +211,9 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	numHeaders := 500
 	shardId := uint32(0)
 	headers, headersHash := createASliceOfHeaders(numHeaders, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 50)
+
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 50}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeaders; i++ {
@@ -230,7 +236,8 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 	shardId := uint32(0)
 
 	headers, headersHash := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 50)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 50}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	start := time.Now()
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -278,8 +285,8 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 	headersShard1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
 	headersShard2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
 	numElemsToRemove := 500
-
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numElemsToRemove)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: numElemsToRemove}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()
@@ -336,7 +343,8 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 	numHeadersToGenerate := 3
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 1}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	for i := 0; i < numHeadersToGenerate-1; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
@@ -374,7 +382,8 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	headersShard2, headersHashesShard2 := createASliceOfHeaders(numHeadersToGenerate, shardId2)
 	headersShardMeta, headersHashesShardMeta := createASliceOfHeaders(numHeadersToGenerate, shardMeta)
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numElemsToRemove)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: numElemsToRemove}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()
@@ -446,7 +455,8 @@ func TestHeadersPool_Keys(t *testing.T) {
 	numHeadersToRemove := 100
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId)
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numHeadersToRemove)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: numHeadersToRemove}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	for i := 0; i < numHeadersToGenerate; i++ {
 		headersCacher.AddHeader(headersHashesShard0[i], &headersShard0[i])
@@ -470,7 +480,8 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -490,7 +501,8 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 func TestHeadersPool_Clear(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 10}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 	header, hash := createASliceOfHeaders(1, 0)
 	headersCacher.AddHeader(hash[0], &header[0])
 
