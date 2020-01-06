@@ -170,12 +170,12 @@ func (bn *blockNotarizer) getNotarizedHeader(shardID uint32, offset uint64) (dat
 		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
 	}
 
-	headerInfo := headersInfo[0]
-
 	notarizedHeadersCount := uint64(len(headersInfo))
-	if notarizedHeadersCount > offset {
-		headerInfo = headersInfo[notarizedHeadersCount-offset-1]
+	if notarizedHeadersCount <= offset {
+		return nil, nil, ErrNotarizedHeaderOffsetIsOutOfBound
 	}
+
+	headerInfo := headersInfo[notarizedHeadersCount-offset-1]
 
 	return headerInfo.header, headerInfo.hash, nil
 }

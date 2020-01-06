@@ -127,6 +127,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
+		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
 	}
 
