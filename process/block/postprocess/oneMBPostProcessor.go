@@ -86,7 +86,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 		return bytes.Compare(miniBlocks[selfId].TxHashes[a], miniBlocks[selfId].TxHashes[b]) < 0
 	})
 
-	opp.intraShardMiniBlock = miniBlocks[selfId]
+	opp.intraShardMiniBlock = miniBlocks[selfId].Clone()
 
 	return miniBlocks
 }
@@ -125,14 +125,14 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 	selfId := opp.shardCoordinator.SelfId()
 
 	for i := 0; i < len(txs); i++ {
-		receiptHash, err := core.CalculateHash(opp.marshalizer, opp.hasher, txs[i])
+		txHash, err := core.CalculateHash(opp.marshalizer, opp.hasher, txs[i])
 		if err != nil {
 			return err
 		}
 
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
-		opp.interResultsForBlock[string(receiptHash)] = scrInfo
+		opp.interResultsForBlock[string(txHash)] = scrInfo
 	}
 
 	return nil
