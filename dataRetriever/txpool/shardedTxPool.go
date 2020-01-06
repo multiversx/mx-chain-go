@@ -37,10 +37,10 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 		return nil, err
 	}
 
-	size := config.Size
 	evictionConfig := txcache.EvictionConfig{
 		Enabled:                         true,
-		CountThreshold:                  size,
+		NumBytesThreshold:               config.SizeInBytes,
+		CountThreshold:                  config.Size,
 		ThresholdEvictSenders:           process.TxPoolThresholdEvictSenders,
 		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
 		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
@@ -60,6 +60,9 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 }
 
 func verifyConfig(config storageUnit.CacheConfig) error {
+	if config.SizeInBytes != 0 && config.SizeInBytes < process.TxPoolMinSizeInBytes {
+		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
+	}
 	if config.Size < 1 {
 		return dataRetriever.ErrCacheConfigInvalidSize
 	}

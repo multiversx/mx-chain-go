@@ -146,6 +146,9 @@ var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrCacheConfigInvalidSizeInBytes signals that the cache parameter "sizeInBytes" is invalid
+var ErrCacheConfigInvalidSizeInBytes = errors.New("cache parameter [sizeInBytes] is not valid, it must be a positive, and large enough number")
+
 // ErrCacheConfigInvalidSize signals that the cache parameter "size" is invalid
 var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid, it must be a positive number")
 

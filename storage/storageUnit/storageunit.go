@@ -62,9 +62,10 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Size   uint32
-	Type   CacheType
-	Shards uint32
+	SizeInBytes uint32
+	Size        uint32
+	Type        CacheType
+	Shards      uint32
 }
 
 // DBConfig holds the configurable elements of a database

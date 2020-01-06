@@ -24,7 +24,12 @@ func Test_NewShardedTxPool(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
-	pool, err := NewShardedTxPool(storageUnit.CacheConfig{Size: 1})
+	pool, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1})
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Equal(t, dataRetriever.ErrCacheConfigInvalidSizeInBytes, err)
+
+	pool, err = NewShardedTxPool(storageUnit.CacheConfig{Size: 1})
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, dataRetriever.ErrCacheConfigInvalidShards, err)
