@@ -55,8 +55,8 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 }
 
 func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHandler) {
-	listForSender.totalBytes.Add(computeTxSize(tx))
-	listForSender.totalGas.Add(computeTxGas(tx))
+	listForSender.totalBytes.Add(estimateTxSize(tx))
+	listForSender.totalGas.Add(estimateTxGas(tx))
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -90,8 +90,8 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
 	value := element.Value.(txListForSenderNode)
 
-	listForSender.totalBytes.Subtract(computeTxSize(value.tx))
-	listForSender.totalGas.Subtract(computeTxGas(value.tx))
+	listForSender.totalBytes.Subtract(estimateTxSize(value.tx))
+	listForSender.totalGas.Subtract(estimateTxGas(value.tx))
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
