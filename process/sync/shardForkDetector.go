@@ -2,12 +2,13 @@ package sync
 
 import (
 	"bytes"
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"math"
 )
 
 // shardForkDetector implements the shard fork detector mechanism
@@ -50,7 +51,7 @@ func NewShardForkDetector(
 		baseForkDetector: bfd,
 	}
 
-	sfd.blockTracker.RegisterSelfNotarizedHeadersHandler(sfd.addSelfNotarizedHeaders)
+	sfd.blockTracker.RegisterSelfNotarizedHeadersHandler(sfd.ReceivedSelfNotarizedHeaders)
 
 	return &sfd, nil
 }
@@ -98,7 +99,8 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	if state == process.BHProcessed {
-		sfd.addSelfNotarizedHeaders(sharding.MetachainShardId, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		sfd.computeFinalCheckpoint()
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 		sfd.removePastOrInvalidRecords()
 	}
@@ -109,7 +111,9 @@ func (sfd *shardForkDetector) AddHeader(
 	return nil
 }
 
-func (sfd *shardForkDetector) addSelfNotarizedHeaders(
+// ReceivedSelfNotarizedHeaders is a registered call handler through which fork detector is notified when metachain
+// notarized new headers from self shard
+func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
 	shardID uint32,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
@@ -117,6 +121,17 @@ func (sfd *shardForkDetector) addSelfNotarizedHeaders(
 	if shardID != sharding.MetachainShardId || len(selfNotarizedHeaders) == 0 {
 		return
 	}
+
+	appended := sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if appended {
+		sfd.computeFinalCheckpoint()
+	}
+}
+
+func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) bool {
 
 	selfNotarizedHeaderAdded := false
 	finalNonce := sfd.finalCheckpoint().nonce
@@ -143,9 +158,7 @@ func (sfd *shardForkDetector) addSelfNotarizedHeaders(
 		}
 	}
 
-	if selfNotarizedHeaderAdded {
-		sfd.computeFinalCheckpoint()
-	}
+	return selfNotarizedHeaderAdded
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {

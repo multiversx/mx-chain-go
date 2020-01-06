@@ -121,11 +121,9 @@ func (bfd *baseForkDetector) removeInvalidReceivedHeaders() {
 	finalCheckpointRound := bfd.finalCheckpoint().round
 	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 
-	var validHdrInfos []*headerInfo
-
 	bfd.mutHeaders.Lock()
 	for nonce, hdrInfos := range bfd.headers {
-		validHdrInfos = nil
+		validHdrInfos := make([]*headerInfo, 0)
 		for i := 0; i < len(hdrInfos); i++ {
 			roundDif := int64(hdrInfos[i].round) - int64(finalCheckpointRound)
 			nonceDif := int64(hdrInfos[i].nonce) - int64(finalCheckpointNonce)
@@ -137,7 +135,7 @@ func (bfd *baseForkDetector) removeInvalidReceivedHeaders() {
 
 			validHdrInfos = append(validHdrInfos, hdrInfos[i])
 		}
-		if validHdrInfos == nil {
+		if len(validHdrInfos) == 0 {
 			delete(bfd.headers, nonce)
 			continue
 		}
@@ -190,7 +188,6 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 	preservedHdrsInfo := make([]*headerInfo, 0)
 
 	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
 
 	hdrsInfo := bfd.headers[nonce]
 	for _, hdrInfo := range hdrsInfo {
@@ -205,10 +202,14 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	if len(preservedHdrsInfo) == 0 {
 		delete(bfd.headers, nonce)
-		return
+	} else {
+		bfd.headers[nonce] = preservedHdrsInfo
 	}
 
-	bfd.headers[nonce] = preservedHdrsInfo
+	bfd.mutHeaders.Unlock()
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -267,8 +268,9 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
-	bfd.setProbableHighestNonce(bfd.lastCheckpoint().nonce)
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
 	bfd.setShouldForceFork(false)
 }
 
@@ -299,10 +301,17 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 
 // RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
 func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
+	bfd.mutHeaders.Lock()
+	bfd.headers = make(map[uint64][]*headerInfo)
+	bfd.mutHeaders.Unlock()
+
 	bfd.mutFork.Lock()
-	//TODO: Should be set the real hash?
-	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0, hash: nil}
+	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
 	bfd.mutFork.Unlock()
+
+	checkpoint := &checkpointInfo{}
+	bfd.setFinalCheckpoint(checkpoint)
+	bfd.addCheckpoint(checkpoint)
 }
 
 func (bfd *baseForkDetector) finalCheckpoint() *checkpointInfo {

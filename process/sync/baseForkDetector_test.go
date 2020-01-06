@@ -903,7 +903,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
@@ -914,7 +914,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
@@ -925,7 +925,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr3)
 	hashes = append(hashes, hash3)
 
-	sfd.AddSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)

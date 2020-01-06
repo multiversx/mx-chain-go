@@ -478,8 +478,8 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 		boot.requestsWithTimeout = 0
 
 		if !check.IfNil(headerHandler) {
-			_ = boot.removeHeaderFromPools(headerHandler)
-			//boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
+			hash := boot.removeHeaderFromPools(headerHandler)
+			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
 		}
 
 		errNotCritical := boot.rollBack(false)
