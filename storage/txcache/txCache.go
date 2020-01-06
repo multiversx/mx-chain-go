@@ -191,8 +191,7 @@ func (cache *TxCache) RemoveOldest() {
 
 // Keys is not implemented
 func (cache *TxCache) Keys() [][]byte {
-	log.Error("TxCache.Keys is not implemented")
-	return [][]byte{}
+	return cache.txByHash.keys()
 }
 
 // MaxSize is not implemented

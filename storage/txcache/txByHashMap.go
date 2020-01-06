@@ -83,3 +83,13 @@ func (txMap *txByHashMap) clear() {
 	txMap.backingMap.Clear()
 	txMap.counter.Set(0)
 }
+
+func (txMap *txByHashMap) keys() [][]byte {
+	keys := txMap.backingMap.Keys()
+	keysAsBytes := make([][]byte, len(keys))
+	for i := 0; i < len(keys); i++ {
+		keysAsBytes[i] = []byte(keys[i])
+	}
+
+	return keysAsBytes
+}

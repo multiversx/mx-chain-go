@@ -191,6 +191,22 @@ func Test_GetTransactions(t *testing.T) {
 	}
 }
 
+func Test_Keys(t *testing.T) {
+	cache := NewTxCache(16)
+
+	cache.AddTx([]byte("alice-x"), createTx("alice", 42))
+	cache.AddTx([]byte("alice-y"), createTx("alice", 43))
+	cache.AddTx([]byte("bob-x"), createTx("bob", 42))
+	cache.AddTx([]byte("bob-y"), createTx("bob", 43))
+
+	keys := cache.Keys()
+	require.Equal(t, 4, len(keys))
+	require.Contains(t, keys, []byte("alice-x"))
+	require.Contains(t, keys, []byte("alice-y"))
+	require.Contains(t, keys, []byte("bob-x"))
+	require.Contains(t, keys, []byte("bob-y"))
+}
+
 func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	config := EvictionConfig{
 		Enabled:                         true,
@@ -227,8 +243,6 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	require.NotPanics(t, func() { cache.Remove(nil) })
 	require.NotPanics(t, func() { cache.RemoveOldest() })
 	require.NotPanics(t, func() { cache.RegisterHandler(nil) })
-
-	require.Zero(t, len(cache.Keys()))
 	require.Zero(t, cache.MaxSize())
 }
 

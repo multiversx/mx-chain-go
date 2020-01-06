@@ -17,3 +17,13 @@ func Test_NewConcurrentMap(t *testing.T) {
 	require.Equal(t, uint32(1), myMap.nChunks)
 	require.Equal(t, 1, len(myMap.chunks))
 }
+
+func Test_ConcurrentMapKeys(t *testing.T) {
+	myMap := NewConcurrentMap(4)
+	myMap.Set("1", 0)
+	myMap.Set("2", 0)
+	myMap.Set("3", 0)
+	myMap.Set("4", 0)
+
+	require.Equal(t, 4, len(myMap.Keys()))
+}
