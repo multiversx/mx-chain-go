@@ -143,9 +143,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
 
 	for _, nds := range nodesMap {
-		for _, node := range nds {
-			nodes = append(nodes, node)
-		}
+		nodes = append(nodes, nds...)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
