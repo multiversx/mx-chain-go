@@ -65,7 +65,6 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBitmap),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)

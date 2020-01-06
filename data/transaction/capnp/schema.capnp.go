@@ -12,12 +12,12 @@ import (
 
 type TransactionCapn C.Struct
 
-func NewTransactionCapn(s *C.Segment) TransactionCapn { return TransactionCapn(s.NewStruct(24, 6)) }
+func NewTransactionCapn(s *C.Segment) TransactionCapn { return TransactionCapn(s.NewStruct(24, 5)) }
 func NewRootTransactionCapn(s *C.Segment) TransactionCapn {
-	return TransactionCapn(s.NewRootStruct(24, 6))
+	return TransactionCapn(s.NewRootStruct(24, 5))
 }
 func AutoNewTransactionCapn(s *C.Segment) TransactionCapn {
-	return TransactionCapn(s.NewStructAR(24, 6))
+	return TransactionCapn(s.NewStructAR(24, 5))
 }
 func ReadRootTransactionCapn(s *C.Segment) TransactionCapn {
 	return TransactionCapn(s.Root(0).ToStruct())
@@ -39,8 +39,6 @@ func (s TransactionCapn) DataBytes() []byte     { return C.Struct(s).GetObject(3
 func (s TransactionCapn) SetData(v string)      { C.Struct(s).SetObject(3, s.Segment.NewText(v)) }
 func (s TransactionCapn) Signature() []byte     { return C.Struct(s).GetObject(4).ToData() }
 func (s TransactionCapn) SetSignature(v []byte) { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
-func (s TransactionCapn) Challenge() []byte     { return C.Struct(s).GetObject(5).ToData() }
-func (s TransactionCapn) SetChallenge(v []byte) { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -189,25 +187,6 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
-		buf, err = json.Marshal(s)
-		if err != nil {
-			return err
-		}
-		_, err = b.Write(buf)
-		if err != nil {
-			return err
-		}
-	}
-	err = b.WriteByte(',')
-	if err != nil {
-		return err
-	}
-	_, err = b.WriteString("\"challenge\":")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.Challenge()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -386,25 +365,6 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
-	_, err = b.WriteString(", ")
-	if err != nil {
-		return err
-	}
-	_, err = b.WriteString("challenge = ")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.Challenge()
-		buf, err = json.Marshal(s)
-		if err != nil {
-			return err
-		}
-		_, err = b.Write(buf)
-		if err != nil {
-			return err
-		}
-	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -421,7 +381,7 @@ func (s TransactionCapn) MarshalCapLit() ([]byte, error) {
 type TransactionCapn_List C.PointerList
 
 func NewTransactionCapnList(s *C.Segment, sz int) TransactionCapn_List {
-	return TransactionCapn_List(s.NewCompositeList(24, 6, sz))
+	return TransactionCapn_List(s.NewCompositeList(24, 5, sz))
 }
 func (s TransactionCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s TransactionCapn_List) At(i int) TransactionCapn {

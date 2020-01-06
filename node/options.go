@@ -34,11 +34,12 @@ func WithMessenger(mes P2PMessenger) Option {
 }
 
 // WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
+func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
 	return func(n *Node) error {
 		if marshalizer == nil || marshalizer.IsInterfaceNil() {
 			return ErrNilMarshalizer
 		}
+		n.sizeCheckDelta = sizeCheckDelta
 		n.marshalizer = marshalizer
 		return nil
 	}

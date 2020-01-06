@@ -46,17 +46,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
+	defaultStatsPath      = "stats"
+	defaultDBPath         = "db"
+	defaultEpochString    = "Epoch"
+	defaultStaticDbString = "Static"
+	defaultShardString    = "Shard"
+	metachainShardName    = "metachain"
 )
 
 var (
@@ -217,12 +219,6 @@ VERSION:
 		Value: "",
 	}
 
-	// usePrometheus joins the node for prometheus monitoring if set
-	usePrometheus = cli.BoolFlag{
-		Name:  "use-prometheus",
-		Usage: "Will make the node available for prometheus and grafana monitoring",
-	}
-
 	//useLogView is used when termui interface is not needed.
 	useLogView = cli.BoolFlag{
 		Name:  "use-log-view",
@@ -280,6 +276,23 @@ VERSION:
 		Value: "",
 	}
 
+	isNodefullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "If set, the node won't remove any DB",
+	}
+
+	numEpochsToSave = cli.Uint64Flag{
+		Name:  "num-epochs-to-keep",
+		Usage: "This represents the number of epochs which kept in the databases",
+		Value: uint64(2),
+	}
+
+	numActivePersisters = cli.Uint64Flag{
+		Name:  "num-active-persisters",
+		Usage: "This represents the number of persisters which are kept open at a moment",
+		Value: uint64(2),
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -290,6 +303,9 @@ var dbIndexer indexer.Indexer
 // coreServiceContainer is defined globally so it can be injected with appropriate
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
+
+// TODO: this will be calculated from storage or fetched from network
+var currentEpoch = uint32(0)
 
 // appVersion should be populated at build time using ldflags
 // Usage examples:
@@ -335,12 +351,14 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
-		usePrometheus,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
+		isNodefullArchive,
+		numEpochsToSave,
+		numActivePersisters,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -510,29 +528,43 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Trace("working directory", "path", workingDir)
 
-	var shardId = "metachain"
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
-	}
+	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
-	uniqueDBFolder := filepath.Join(
+	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
 		nodesConfig.ChainID,
-		fmt.Sprintf("%s_%d", defaultEpochString, 0),
-		fmt.Sprintf("%s_%s", defaultShardString, shardId))
+		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	pathTemplateForStaticStorer := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		nodesConfig.ChainID,
+		defaultStaticDbString,
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	if err != nil {
+		return err
+	}
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		log.Trace("cleaning storage", "path", uniqueDBFolder)
-		err = os.RemoveAll(uniqueDBFolder)
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err = os.RemoveAll(dbPath)
 		if err != nil {
 			return err
 		}
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder, []byte(nodesConfig.ChainID))
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -550,6 +582,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating nodes coordinator")
+	if ctx.IsSet(isNodefullArchive.Name) {
+		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	if ctx.IsSet(numActivePersisters.Name) {
+		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
@@ -568,7 +610,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisConfig,
 		shardCoordinator,
 		coreComponents,
-		uniqueDBFolder,
+		pathManager,
 	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -581,7 +623,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -593,7 +635,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -709,6 +751,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		&generalConfig.EpochStartConfig,
 		0,
 		rater,
+		generalConfig.Marshalizer.SizeCheckDelta,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -801,11 +844,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
-		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        statusHandlersInfo.UsePrometheus,
-		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
-		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
+		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
+		PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 	}
 
 	ef.SetSyncer(syncer)
@@ -999,12 +1039,14 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	if err != nil {
-		return nil, err
-	}
+	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
+	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
+	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	return nodesCoordinator, nil
+	return baseNodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
@@ -1095,7 +1137,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
-		node.WithMarshalizer(core.Marshalizer),
+		node.WithMarshalizer(core.Marshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),

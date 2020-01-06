@@ -105,6 +105,9 @@ const roundDuration = 5 * time.Second
 // IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
 var IntegrationTestsChainID = []byte("integration tests chain ID")
 
+// sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
+const sizeCheckDelta = 100
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -399,13 +402,24 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: maxGasLimitPerBlock,
-				MinGasPrice:         minGasPrice,
-				MinGasLimit:         minGasLimit,
+				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
+				MinGasPrice:          minGasPrice,
+				MinGasLimit:          minGasLimit,
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
 				UnBoundPeriod: "5",
+			},
+			RatingSettings: config.RatingSettings{
+				StartRating:                 5,
+				MaxRating:                   10,
+				MinRating:                   1,
+				ProposerIncreaseRatingStep:  2,
+				ProposerDecreaseRatingStep:  4,
+				ValidatorIncreaseRatingStep: 1,
+				ValidatorDecreaseRatingStep: 2,
 			},
 		},
 	)
@@ -440,6 +454,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -467,6 +482,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.BlackListHandler,
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
+			sizeCheckDelta,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -488,6 +504,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -495,11 +512,6 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
-			factory.ShardHeadersForMetachainTopic,
-			factory.MetachainBlocksTopic,
-			factory.TransactionTopic,
-			factory.UnsignedTransactionTopic,
-			factory.MiniBlocksTopic,
 			100,
 		)
 	} else {
@@ -511,6 +523,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			100,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -518,13 +531,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
-			factory.TransactionTopic,
-			factory.UnsignedTransactionTopic,
-			factory.RewardsTransactionTopic,
-			factory.MiniBlocksTopic,
-			factory.HeadersTopic,
-			factory.MetachainBlocksTopic,
 			100,
+			tpn.ShardCoordinator.SelfId(),
 		)
 	}
 }
@@ -608,6 +616,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 	)
 
+	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
+	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
@@ -618,6 +628,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsHandler,
 		txTypeHandler,
 		tpn.EconomicsData,
+		receiptsHandler,
+		badBlocskHandler,
 	)
 
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
@@ -643,6 +655,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.ShardDataPool.MiniBlocks(),
@@ -729,6 +743,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		TestHasher,
+		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.MetaDataPool.MiniBlocks(),
@@ -801,6 +817,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			},
 			Epoch:              0,
 			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			Storage:            tpn.Storage,
+			Marshalizer:        TestMarshalizer,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -882,7 +900,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithMarshalizer(TestMarshalizer),
+		node.WithMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
@@ -989,7 +1007,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 200000
+	maxTime := time.Second * 2
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
@@ -1022,7 +1040,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
@@ -1048,7 +1066,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
@@ -1229,7 +1246,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2000
+			return time.Second * 2
 		},
 	)
 	if err != nil {

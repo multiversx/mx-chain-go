@@ -170,7 +170,6 @@ func runWASMVMBenchmark(
 		GasLimit:  gasLimit,
 		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
@@ -195,7 +194,6 @@ func runWASMVMBenchmark(
 		GasLimit:  gasLimit,
 		Data:      "_main",
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	for i := 0; i < numRun; i++ {
@@ -332,7 +330,6 @@ func TestWASMNamespacing(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
@@ -362,7 +359,6 @@ func TestWASMNamespacing(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      "main",
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	err = txProc.ProcessTransaction(tx)
@@ -392,7 +388,6 @@ func TestWASMMetering(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
@@ -422,7 +417,6 @@ func TestWASMMetering(t *testing.T) {
 		GasLimit:  gasLimit,
 		Data:      "_main",
 		Signature: nil,
-		Challenge: nil,
 	}
 
 	err = txProc.ProcessTransaction(tx)
