@@ -111,21 +111,6 @@ func (ef *ElrondNodeFacade) RestApiInterface() string {
 	return ef.config.RestApiInterface
 }
 
-// PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
-func (ef *ElrondNodeFacade) PrometheusMonitoring() bool {
-	return ef.config.Prometheus
-}
-
-// PrometheusJoinURL will return the join URL from server.toml
-func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
-	return ef.config.PrometheusJoinURL
-}
-
-// PrometheusNetworkID will return the NetworkID from config.toml or the flag
-func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
-	return ef.config.PrometheusJobName
-}
-
 func (ef *ElrondNodeFacade) startRest() {
 	log.Trace("starting REST api server")
 

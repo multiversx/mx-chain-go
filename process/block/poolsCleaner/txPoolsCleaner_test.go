@@ -3,6 +3,7 @@ package poolsCleaner_test
 import (
 	"bytes"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,6 +26,25 @@ func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	}
 
 	return accDB
+}
+
+func initDataPoolWithDelayedKeys(delay time.Duration) *mock.PoolsHolderStub {
+	return &mock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						KeysCalled: func() [][]byte {
+							time.Sleep(delay)
+
+							return make([][]byte, 0)
+						},
+					}
+				},
+			}
+		},
+	}
 }
 
 func initDataPoolWithFourTransactions() *mock.PoolsHolderStub {
@@ -271,18 +291,21 @@ func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	tdp := initDataPoolWithFourTransactions()
+	tdp := initDataPoolWithDelayedKeys(time.Second)
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	go func() {
-		_, _ = txsPoolsCleaner.Clean(time.Second)
-	}()
-	time.Sleep(time.Millisecond)
-	go func() {
-		itRan, _ := txsPoolsCleaner.Clean(time.Second)
-		assert.Equal(t, false, itRan)
-	}()
+	numRun := uint32(0)
+	for i := 0; i < 10; i++ {
+		go func() {
+			itRan, _ := txsPoolsCleaner.Clean(time.Second)
+			if itRan {
+				atomic.AddUint32(&numRun, 1)
+			}
+		}()
+	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second * 2)
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numRun))
 }

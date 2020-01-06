@@ -20,6 +20,9 @@ type RatingsData struct {
 func NewRatingsData(
 	settings config.RatingSettings,
 ) (*RatingsData, error) {
+	if settings.MinRating < 1 {
+		return nil, process.ErrMinRatingSmallerThanOne
+	}
 	if settings.MinRating > settings.MaxRating {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
 	}

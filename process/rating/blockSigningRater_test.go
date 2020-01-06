@@ -72,13 +72,16 @@ func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rat
 	return bsr
 }
 
-func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnZero(t *testing.T) {
+func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
+
 	bsr, _ := rating.NewBlockSigningRater(rd)
+	rrm := createDefaultRatingReader(make(map[string]uint32))
+	bsr.SetRatingReader(rrm)
 
 	rt := bsr.GetRating("test")
 
-	assert.Equal(t, uint32(1), rt)
+	assert.Equal(t, rd.StartRating(), rt)
 }
 
 func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {

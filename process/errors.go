@@ -346,9 +346,6 @@ var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 // ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
 var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 
-// ErrInvalidDataInput signals that the data input is invalid for parsing
-var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -497,6 +494,9 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
+var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
+
 // ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
 var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
 
@@ -569,11 +569,11 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
-
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")
+
+// ErrMinRatingSmallerThanOne signals that the min rating is smaller than the min value of 1
+var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
@@ -598,6 +598,24 @@ var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
+
+// ErrFailedTransaction signals that transaction is of type failed.
+var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
+
+// ErrNilBadTxHandler signals that bad tx handler is nil
+var ErrNilBadTxHandler = errors.New("nil bad tx handler")
+
+// ErrNilReceiptHandler signals that receipt handler is nil
+var ErrNilReceiptHandler = errors.New("nil receipt handler")
+
+// ErrTooManyReceiptsMiniBlocks signals that there were too many receipts miniblocks created
+var ErrTooManyReceiptsMiniBlocks = errors.New("too many receipts miniblocks")
+
+// ErrReceiptsHashMissmatch signals that overall receipts has does not match
+var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
+
+// ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
+var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID while processing")

@@ -8,7 +8,7 @@ import (
 	capn "github.com/glycerine/go-capnproto"
 )
 
-// SmartContractResult holds all the data needed for a value transfer
+// SmartContractResult holds all the data needed for results coming from smart contract processing
 type SmartContractResult struct {
 	Nonce    uint64   `capid:"0" json:"nonce"`
 	Value    *big.Int `capid:"1" json:"value"`

@@ -157,6 +157,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
 		&mock.FeeHandlerStub{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
@@ -258,6 +260,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
 		&mock.FeeHandlerStub{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
