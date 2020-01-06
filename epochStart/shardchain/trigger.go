@@ -19,13 +19,6 @@ import (
 
 var log = logger.GetOrCreate("epochStart/shardchain")
 
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
-	IsInterfaceNil() bool
-}
-
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
@@ -37,7 +30,7 @@ type ArgsShardEpochStartTrigger struct {
 	DataPool           dataRetriever.PoolsHolder
 	Storage            dataRetriever.StorageService
 	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier EpochStartNotifier
+	EpochStartNotifier epochStart.EpochStartNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -72,7 +65,7 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier EpochStartNotifier
+	epochStartNotifier epochStart.EpochStartNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch

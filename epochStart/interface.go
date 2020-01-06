@@ -67,3 +67,10 @@ type EpochStartSubscriber interface {
 	RegisterHandler(handler EpochStartHandler)
 	UnregisterHandler(handler EpochStartHandler)
 }
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}

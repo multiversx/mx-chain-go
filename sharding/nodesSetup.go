@@ -183,8 +183,10 @@ func (ns *NodesSetup) processShardAssignment() {
 			currentShard = core.MetachainShardId
 		}
 
-		ns.InitialNodes[i].assignedShard = currentShard
-		ns.InitialNodes[i].eligible = false
+		if ns.InitialNodes[i].pubKey != nil {
+			ns.InitialNodes[i].assignedShard = currentShard
+			ns.InitialNodes[i].eligible = false
+		}
 	}
 }
 
