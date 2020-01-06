@@ -65,7 +65,7 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 }
 
 // Connected is called when a connection opened
-func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
+func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, _ network.Conn) {
 	if len(netw.Conns()) > lcm.thresholdDiscoveryPause {
 		lcm.reconnecter.Pause()
 	}
@@ -79,7 +79,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 }
 
 // Disconnected is called when a connection closed
-func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
+func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, _ network.Conn) {
 	lcm.doReconnectionIfNeeded(netw)
 
 	if len(netw.Conns()) < lcm.thresholdDiscoveryResume && lcm.reconnecter != nil {

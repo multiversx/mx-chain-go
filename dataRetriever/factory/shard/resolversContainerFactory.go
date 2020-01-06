@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -34,27 +35,31 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPools == nil || dataPools.IsInterfaceNil() {
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
+	}
+	if check.IfNil(dataPools) {
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
-	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
+	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
-	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
 
@@ -133,15 +138,6 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	}
 
 	keys, resolverSlice, err = rcf.generatePeerChBlockBodyResolver()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, resolverSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	keys, resolverSlice, err = rcf.generateMetachainShardHeaderResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -255,8 +251,8 @@ func (rcf *resolversContainerFactory) createTxResolver(
 func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	//only one intrashard header topic
-	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	//only one shard header topic, for example: shardBlocks_0_META
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
@@ -299,19 +295,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		return nil, nil, err
 	}
 
-	err = rcf.createTopicHeadersForMetachain()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
-}
-
-func (rcf *resolversContainerFactory) createTopicHeadersForMetachain() error {
-	shardC := rcf.shardCoordinator
-	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-
-	return rcf.messenger.CreateTopic(identifierHdr, true)
 }
 
 //------- MiniBlocks resolvers
@@ -421,59 +405,6 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	return []string{identifierPeerCh}, []dataRetriever.Resolver{resolver}, nil
 }
 
-//------- MetachainShardHeaderResolvers
-
-func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
-	shardC := rcf.shardCoordinator
-
-	//only one metachain header topic
-	//example: shardHeadersForMetachain_0_META
-	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		identifierHdr,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		shardC.SelfId(),
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
-	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
-	resolver, err := resolvers.NewHeaderResolver(
-		resolverSender,
-		rcf.dataPools.Headers(),
-		rcf.dataPools.HeadersNonces(),
-		hdrStorer,
-		hdrNonceStore,
-		rcf.marshalizer,
-		rcf.uint64ByteSliceConverter,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//add on the request topic
-	_, err = rcf.createTopicAndAssignHandler(
-		identifierHdr+resolverSender.TopicRequestSuffix(),
-		resolver,
-		false)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
-}
-
 //------- MetaBlockHeaderResolvers
 
 func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
@@ -484,7 +415,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	metaAndCrtShardTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)

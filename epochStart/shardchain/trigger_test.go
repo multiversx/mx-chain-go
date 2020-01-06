@@ -47,6 +47,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
+					PutCalled: func(key, data []byte) error {
+						return nil
+					},
 				}
 			},
 		},
