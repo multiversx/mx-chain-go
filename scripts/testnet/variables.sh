@@ -44,15 +44,15 @@ export SEEDNODE_DELAY=5
 export NODE_DELAY=10
 
 # Shard structure
-export SHARDCOUNT=1
+export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=4
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=2
 
 # Metashard structure
-export META_VALIDATORCOUNT=2
+export META_VALIDATORCOUNT=1
 export META_OBSERVERCOUNT=0
-export META_CONSENSUS_SIZE=2
+export META_CONSENSUS_SIZE=1
 
 # Leave unchanged.
 let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
@@ -79,7 +79,7 @@ export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzok
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
   USETMUX=1
-  LOGLEVEL="*:TRACE"
+  LOGLEVEL="*:DEBUG"
 fi
 
 if [ "$TESTNETMODE" == "ui" ]; then
