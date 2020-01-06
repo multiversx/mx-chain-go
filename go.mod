@@ -1,13 +1,13 @@
 module github.com/ElrondNetwork/elrond-go
 
-go 1.12
+go 1.13
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191227132001-161cbe6d664b
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.24
-	github.com/ElrondNetwork/elrond-vm-common v0.1.7
+	github.com/ElrondNetwork/elrond-vm-common v0.1.8
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -56,7 +56,3 @@ require (
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
-
-replace github.com/ElrondNetwork/arwen-wasm-vm v0.3.2 => ../arwen-wasm-vm
-
-replace github.com/ElrondNetwork/elrond-vm-common v0.1.7 => ../elrond-vm-common

@@ -8,7 +8,7 @@ int int64storageStore(byte *key, i64 value);
 i64 int64storageLoad(byte *key);
 i64 int64getArgument(int argumentIndex);
 int getCallValue(byte *result);
-int transferValue(i64 gasLimit, byte *destination, byte *value, byte *data, int length);
+int asyncCall(byte *destination, byte *value, byte *data, int length);
 int getArgument(int argumentIndex, byte *argument);
 
 byte totalStakeKey[32] = {42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42};
@@ -28,7 +28,7 @@ void delegate()
 void sendToStaking()
 {
     getCallValue(callValue);
-    transferValue(999999, stakingSc, callValue, data, 262);
+    asyncCall(stakingSc, callValue, data, 262);
 }
 
 void callBack() {
