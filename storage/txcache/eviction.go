@@ -27,7 +27,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 
 	journal := evictionJournal{}
 
-	if cache.areThereTooManyBytes() {
+	if cache.isSizeEvictionEnabled() && cache.areThereTooManyBytes() {
 		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyBytes()
 	}
 
@@ -47,9 +47,13 @@ func (cache *TxCache) doEviction() evictionJournal {
 	return journal
 }
 
+func (cache *TxCache) isSizeEvictionEnabled() bool {
+	return cache.evictionConfig.NumBytesThreshold > 0
+}
+
 func (cache *TxCache) areThereTooManyBytes() bool {
 	numBytes := cache.NumBytes()
-	tooManyBytes := cache.evictionConfig.NumBytesThreshold > 0 && numBytes > int64(cache.evictionConfig.NumBytesThreshold)
+	tooManyBytes := numBytes > int64(cache.evictionConfig.NumBytesThreshold)
 	return tooManyBytes
 }
 
