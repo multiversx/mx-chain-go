@@ -1574,12 +1574,12 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	tm := core.NewTimeMeasure()
-	tm.Start("ApplyBodyToHeader")
+	sw := core.NewStopWatch()
+	sw.Start("ApplyBodyToHeader")
 	defer func() {
-		tm.Finish("ApplyBodyToHeader")
+		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("time measurements", tm.GetMeasurements()...)
+		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
 	}()
 
 	metaHdr, ok := hdr.(*block.MetaBlock)
@@ -1598,27 +1598,25 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		}
 	}()
 
-	tm.Start("createShardInfo")
+	sw.Start("createShardInfo")
 	shardInfo, err := mp.createShardInfo(hdr.GetRound())
-	tm.Finish("createShardInfo")
+	sw.Stop("createShardInfo")
 	if err != nil {
 		return nil, err
 	}
 
-	tm.Start("createPeerInfo")
+	sw.Start("createPeerInfo")
 	peerInfo, err := mp.createPeerInfo()
-	tm.Finish("createPeerInfo")
+	sw.Stop("createPeerInfo")
 	if err != nil {
 		return nil, err
 	}
 
-	tm.Start("metaHdr")
 	metaHdr.Epoch = mp.epochStartTrigger.Epoch()
 	metaHdr.ShardInfo = shardInfo
 	metaHdr.PeerInfo = peerInfo
 	metaHdr.RootHash = mp.getRootHash()
 	metaHdr.TxCount = getTxCount(shardInfo)
-	tm.Finish("metaHdr")
 
 	if check.IfNil(bodyHandler) {
 		return nil, process.ErrNilBlockBody
@@ -1630,16 +1628,14 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return nil, err
 	}
 
-	tm.Start("CreateReceiptsHash")
+	sw.Start("CreateReceiptsHash")
 	metaHdr.ReceiptsHash, err = mp.txCoordinator.CreateReceiptsHash()
-	tm.Finish("CreateReceiptsHash")
+	sw.Stop("CreateReceiptsHash")
 	if err != nil {
 		return nil, err
 	}
 
-	tm.Start("createMiniBlockHeaders")
 	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
-	tm.Finish("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err
 	}
@@ -1647,28 +1643,26 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	tm.Start("UpdatePeerState")
+	sw.Start("UpdatePeerState")
 	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
-	tm.Finish("UpdatePeerState")
+	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
 	}
 
 	metaHdr.ValidatorStatsRootHash = rootHash
 
-	tm.Start("createEpochStartForMetablock")
+	sw.Start("createEpochStartForMetablock")
 	epochStart, err := mp.createEpochStartForMetablock()
-	tm.Finish("createEpochStartForMetablock")
+	sw.Stop("createEpochStartForMetablock")
 	if err != nil {
 		return nil, err
 	}
 	metaHdr.EpochStart = *epochStart
 
-	tm.Start("blockSizeThrottler.Add")
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
-	tm.Finish("blockSizeThrottler.Add")
 
 	return body, nil
 }

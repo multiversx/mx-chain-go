@@ -312,49 +312,49 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		return nil
 	}
 
-	tm := core.NewTimeMeasure()
-	tm.Start("checkForMissedBlocks")
+	sw := core.NewStopWatch()
+	sw.Start("checkForMissedBlocks")
 	defer func() {
-		tm.Finish("checkForMissedBlocks")
-		log.Debug("measurements checkForMissedBlocks", tm.GetMeasurements()...)
+		sw.Stop("checkForMissedBlocks")
+		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
-		tmInner := core.NewTimeMeasure()
+		swInner := core.NewStopWatch()
 
-		tmInner.Start("ComputeValidatorsGroup")
+		swInner.Start("ComputeValidatorsGroup")
 		consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
-		tmInner.Finish("ComputeValidatorsGroup")
+		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
 		}
 
-		tmInner.Start("GetPeerAccount")
+		swInner.Start("GetPeerAccount")
 		leaderPeerAcc, err := vs.GetPeerAccount(consensusGroup[0].PubKey())
-		tmInner.Finish("GetPeerAccount")
+		swInner.Stop("GetPeerAccount")
 		if err != nil {
 			return err
 		}
 
-		tmInner.Start("DecreaseLeaderSuccessRateWithJournal")
+		swInner.Start("DecreaseLeaderSuccessRateWithJournal")
 		err = leaderPeerAcc.DecreaseLeaderSuccessRateWithJournal()
-		tmInner.Finish("DecreaseLeaderSuccessRateWithJournal")
+		swInner.Stop("DecreaseLeaderSuccessRateWithJournal")
 		if err != nil {
 			return err
 		}
 
-		tmInner.Start("ComputeDecreaseProposer")
+		swInner.Start("ComputeDecreaseProposer")
 		newRating := vs.rater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
-		tmInner.Finish("ComputeDecreaseProposer")
+		swInner.Stop("ComputeDecreaseProposer")
 
-		tmInner.Start("SetTempRatingWithJournal")
+		swInner.Start("SetTempRatingWithJournal")
 		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
-		tmInner.Finish("SetTempRatingWithJournal")
+		swInner.Stop("SetTempRatingWithJournal")
 		if err != nil {
 			return err
 		}
 
-		tm.Add(tmInner)
+		sw.Add(swInner)
 	}
 
 	return nil

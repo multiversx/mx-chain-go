@@ -1726,12 +1726,12 @@ func (sp *shardProcessor) createMiniBlocks(
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
 func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	tm := core.NewTimeMeasure()
-	tm.Start("ApplyBodyToHeader")
+	sw := core.NewStopWatch()
+	sw.Start("ApplyBodyToHeader")
 	defer func() {
-		tm.Finish("ApplyBodyToHeader")
+		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("time measurements", tm.GetMeasurements()...)
+		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
 	}()
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {
@@ -1755,27 +1755,27 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	}
 
 	var err error
-	tm.Start("CreateReceiptsHash")
+	sw.Start("CreateReceiptsHash")
 	shardHeader.ReceiptsHash, err = sp.txCoordinator.CreateReceiptsHash()
-	tm.Finish("CreateReceiptsHash")
+	sw.Stop("CreateReceiptsHash")
 	if err != nil {
 		return nil, err
 	}
 
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
-	tm.Start("createMiniBlockHeaders")
+	sw.Start("createMiniBlockHeaders")
 	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(newBody)
-	tm.Finish("createMiniBlockHeaders")
+	sw.Stop("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err
 	}
 
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
-	tm.Start("sortHeaderHashesForCurrentBlockByNonce")
+	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
-	tm.Finish("sortHeaderHashesForCurrentBlockByNonce")
+	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	if sp.epochStartTrigger.IsEpochStart() {
@@ -1785,20 +1785,18 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
 
-	tm.Start("validatorStatisticsProcessor.RootHash")
+	sw.Start("validatorStatisticsProcessor.RootHash")
 	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
-	tm.Finish("validatorStatisticsProcessor.RootHash")
+	sw.Stop("validatorStatisticsProcessor.RootHash")
 	if err != nil {
 		return nil, err
 	}
 
 	shardHeader.ValidatorStatsRootHash = rootHash
 
-	tm.Start("blockSizeThrottler.Add")
 	sp.blockSizeThrottler.Add(
 		hdr.GetRound(),
 		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
-	tm.Finish("blockSizeThrottler.Add")
 
 	return newBody, nil
 }

@@ -281,7 +281,6 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenL
 	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
 	lenExpandedEligibleList := uint64(lenList)
 
-	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
 	computedListIndex := computedLargeIndex % lenExpandedEligibleList
 
 	return int(computedListIndex)
