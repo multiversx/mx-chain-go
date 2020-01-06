@@ -209,7 +209,7 @@ func ProposeBlockWithConsensusSignature(
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
-	//header.SetPrevRandSeed(randomness)
+
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return body, header, txHashes, consensusNodes

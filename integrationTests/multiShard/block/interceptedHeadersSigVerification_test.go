@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -170,6 +171,8 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	nodesPerShard := 4
 	nbMetaNodes := 4
 	nbShards := 1
@@ -238,7 +241,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	}
 }
 
-func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepted(t *testing.T) {
+func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -316,6 +319,9 @@ func getBlockSingleSignerStub() crypto.SingleSigner {
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			// if rand seed is verified, return nil if the message contains "random seed"
 			if strings.Contains(string(msg), "random seed") {
+				return nil
+			}
+			if strings.Contains(string(msg), "root hash") {
 				return nil
 			}
 			// if leader signature is verified, return nil if the signature contains "leader sign"
