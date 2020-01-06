@@ -302,7 +302,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 
 	if nextBlocksVerified < t.finality {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
-			go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
+			go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 		return false, 0
 	}
@@ -384,7 +384,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 		return metaHdr, nil
 	}
 
-	go t.requestHandler.RequestHeader(sharding.MetachainShardId, neededHash)
+	go t.requestHandler.RequestMetaHeader(neededHash)
 
 	return nil, epochStart.ErrMetaHdrNotFound
 }
@@ -434,7 +434,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
 	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
 	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
+		go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		return nil, err
 	}
 
