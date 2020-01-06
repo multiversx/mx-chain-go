@@ -380,7 +380,8 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 	numHeadersToGenerate := 100
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	hdrsConfig := config.HeadersPoolConfig{MaxHeadersPerShard: cacheSize, NumElementsToRemoveOnEviction: 1}
+	headersCacher, _ := headersCache.NewHeadersPool(hdrsConfig)
 
 	for i := 0; i < numHeadersToGenerate-1; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
