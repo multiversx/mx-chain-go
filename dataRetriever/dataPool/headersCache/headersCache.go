@@ -55,8 +55,6 @@ func (cache *headersCache) tryToDoEviction(shardId uint32) {
 	if int(numHeaders) >= cache.maxHeadersPerShard {
 		cache.lruEviction(shardId)
 	}
-
-	return
 }
 
 func (cache *headersCache) lruEviction(shardId uint32) {

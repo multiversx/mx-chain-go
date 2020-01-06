@@ -257,6 +257,7 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 	fmt.Printf("remove header by shard id and nonce took %s \n", elapsed)
 
 	header, err := headersCacher.GetHeaderByHash(headersHash[500])
+	require.Nil(t, header)
 	require.Error(t, headersCache.ErrHeaderNotFound, err)
 
 	start = time.Now()
@@ -265,6 +266,7 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 	fmt.Printf("remove header by hash took %s \n", elapsed)
 
 	header, err = headersCacher.GetHeaderByHash(headersHash[2012])
+	require.Nil(t, header)
 	require.Error(t, headersCache.ErrHeaderNotFound, err)
 }
 
@@ -358,6 +360,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 	require.Equal(t, &headers[2], header)
 
 	header, err = headersCacher.GetHeaderByHash(headersHashes[1])
+	require.Nil(t, header)
 	require.Equal(t, headersCache.ErrHeaderNotFound, err)
 }
 
