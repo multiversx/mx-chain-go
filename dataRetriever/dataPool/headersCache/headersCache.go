@@ -32,11 +32,10 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
-	//check if pool is full and if it is do eviction
 	cache.tryToDoEviction(headerShardId)
 
-	// add header info in second map
-	added := cache.headersByHash.addElement(headerHash, headerInfo{headerNonce, headerShardId})
+	headerInfo := headerInfo{headerNonce: headerNonce, headerShardId: headerShardId}
+	added := cache.headersByHash.addElement(headerHash, headerInfo)
 	if added {
 		return false
 	}
@@ -50,13 +49,12 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 
 }
 
+//tryToDoEviction will check if pool is full and if it is will do eviction
 func (cache *headersCache) tryToDoEviction(shardId uint32) {
 	numHeaders := cache.getNumHeaders(shardId)
 	if int(numHeaders) >= cache.maxHeadersPerShard {
 		cache.lruEviction(shardId)
 	}
-
-	return
 }
 
 func (cache *headersCache) lruEviction(shardId uint32) {
@@ -118,9 +116,7 @@ func (cache *headersCache) removeHeaderByHash(hash []byte) {
 		return
 	}
 
-	//remove header from first map
 	cache.removeHeaderFromNonceMap(info, hash)
-	//remove header from second map
 	cache.headersByHash.deleteElement(hash)
 }
 
@@ -137,7 +133,6 @@ func (cache *headersCache) removeHeaderFromNonceMap(headerInfo headerInfo, heade
 		return
 	}
 
-	//remove header from header list
 	for index, header := range headers.items {
 		if !bytes.Equal(header.headerHash, headerHash) {
 			continue
@@ -172,7 +167,6 @@ func (cache *headersCache) getHeaderByHash(hash []byte) (data.HeaderHandler, err
 		return nil, ErrHeaderNotFound
 	}
 
-	// update headers timestamp for lru
 	headers.timestamp = time.Now()
 	shard.setListOfHeaders(info.headerNonce, headers)
 
