@@ -101,8 +101,34 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
-// GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
+// GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number, ascending
 func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
+	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+		return txListA.orderNumber < txListB.orderNumber
+	})
+
+	return lists
+}
+
+// GetListsSortedByTotalBytes gets the list of sender addreses, sorted by the total amount of bytes, descending
+func (txMap *txListBySenderMap) GetListsSortedByTotalBytes() []*txListForSender {
+	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+		return txListA.totalBytes > txListB.totalBytes
+	})
+
+	return lists
+}
+
+// GetListsSortedByTotalGas gets the list of sender addreses, sorted by the total amoung of gas, ascending
+func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
+	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+		return txListA.totalGas < txListB.totalGas
+	})
+
+	return lists
+}
+
+func (txMap *txListBySenderMap) getListsSortedBy(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
 	lists := make([]*txListForSender, txMap.counter.Get())
 
 	index := 0
@@ -112,7 +138,7 @@ func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender
 	})
 
 	sort.Slice(lists, func(i, j int) bool {
-		return lists[i].orderNumber < lists[j].orderNumber
+		return less(lists[i], lists[j])
 	})
 
 	return lists

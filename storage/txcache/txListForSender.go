@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -13,6 +14,8 @@ type txListForSender struct {
 	mutex          sync.Mutex
 	copyBatchIndex *list.Element
 	orderNumber    int64
+	totalBytes     core.AtomicCounter
+	totalGas       core.AtomicCounter
 	sender         string
 }
 
@@ -47,6 +50,13 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 	} else {
 		listForSender.items.InsertBefore(newNode, mark)
 	}
+
+	listForSender.onAddedTransaction(tx)
+}
+
+func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHandler) {
+	listForSender.totalBytes.Add(computeTxSize(tx))
+	listForSender.totalGas.Add(computeTxGas(tx))
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -71,9 +81,17 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 	isFound := marker != nil
 	if isFound {
 		listForSender.items.Remove(marker)
+		listForSender.onRemovedListElement(marker)
 	}
 
 	return isFound
+}
+
+func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
+	value := element.Value.(txListForSenderNode)
+
+	listForSender.totalBytes.Subtract(computeTxSize(value.tx))
+	listForSender.totalGas.Subtract(computeTxGas(value.tx))
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
@@ -89,6 +107,7 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 		// Remove node
 		previous = element.Prev()
 		listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
 
 		// Keep track of removed transaction
 		value := element.Value.(txListForSenderNode)

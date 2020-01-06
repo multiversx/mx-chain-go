@@ -335,6 +335,23 @@ func createTx(sender string, nonce uint64) data.TransactionHandler {
 	}
 }
 
+func createTxWithData(sender string, nonce uint64, dataLength uint64) data.TransactionHandler {
+	return &transaction.Transaction{
+		SndAddr: []byte(sender),
+		Nonce:   nonce,
+		Data:    string(make([]byte, dataLength)),
+	}
+}
+
+func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasPrice uint64) data.TransactionHandler {
+	return &transaction.Transaction{
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		Data:     string(make([]byte, dataLength)),
+		GasPrice: gasPrice,
+	}
+}
+
 func createFakeSenderAddress(senderTag int) []byte {
 	bytes := make([]byte, 32)
 	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))

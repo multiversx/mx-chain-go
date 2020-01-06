@@ -70,3 +70,36 @@ func Test_GetListsSortedByOrderNumber(t *testing.T) {
 	require.Equal(t, "bob", lists[1].sender)
 	require.Equal(t, "carol", lists[2].sender)
 }
+
+func Test_GetListsSortedByTotalBytes(t *testing.T) {
+	myMap := newTxListBySenderMap(4)
+
+	myMap.addTx([]byte("a"), createTxWithData("alice", uint64(1), 500))
+	myMap.addTx([]byte("aa"), createTxWithData("alice", uint64(2), 500))
+	myMap.addTx([]byte("b"), createTxWithData("bob", uint64(1), 2000))
+	myMap.addTx([]byte("aaa"), createTxWithData("alice", uint64(2), 500))
+	myMap.addTx([]byte("c"), createTxWithData("carol", uint64(2), 1499))
+
+	lists := myMap.GetListsSortedByTotalBytes()
+
+	require.Equal(t, "bob", lists[0].sender)
+	require.Equal(t, "alice", lists[1].sender)
+	require.Equal(t, "carol", lists[2].sender)
+}
+
+func Test_GetListsSortedByTotalGas(t *testing.T) {
+	myMap := newTxListBySenderMap(4)
+
+	myMap.addTx([]byte("a"), createTxWithGas("alice", uint64(1), 500, 10))
+	myMap.addTx([]byte("aa"), createTxWithGas("alice", uint64(2), 500, 10))
+	myMap.addTx([]byte("b"), createTxWithGas("bob", uint64(1), 500, 20))
+	myMap.addTx([]byte("bb"), createTxWithGas("bob", uint64(1), 500, 20))
+	myMap.addTx([]byte("c"), createTxWithGas("carol", uint64(2), 500, 15))
+	myMap.addTx([]byte("cc"), createTxWithGas("carol", uint64(2), 500, 15))
+
+	lists := myMap.GetListsSortedByTotalGas()
+
+	require.Equal(t, "alice", lists[0].sender)
+	require.Equal(t, "carol", lists[1].sender)
+	require.Equal(t, "bob", lists[2].sender)
+}
