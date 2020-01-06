@@ -211,7 +211,7 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         10,
+		NumSendersToEvictInOneStep:      10,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}
@@ -260,11 +260,11 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 // This seems to be the worst case in terms of eviction complexity
 // Eviction is triggered often and little eviction (only 10 senders) is done
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_10(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         10,
+		NumSendersToEvictInOneStep:      10,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}
@@ -274,11 +274,11 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldest
 	require.Equal(b, int64(240000), cache.CountTx())
 }
 
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_100(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         100,
+		NumSendersToEvictInOneStep:      100,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}
@@ -288,11 +288,11 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldest
 	require.Equal(b, int64(240000), cache.CountTx())
 }
 
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumOldestSendersToEvict_1000(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
+		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}
@@ -306,7 +306,7 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
+		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}
@@ -320,7 +320,7 @@ func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
 		CountThreshold:                  240000,
-		NumOldestSendersToEvict:         1000,
+		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
 		NumTxsToEvictForASenderWithALot: 250,
 	}

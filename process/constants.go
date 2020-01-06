@@ -96,8 +96,8 @@ const MinForkRound = uint64(0)
 // unless the number of senders is larger than this threshold
 const TxPoolThresholdEvictSenders = uint32(1000)
 
-// TxPoolNumOldestSendersToEvict instructs tx pool eviction algorithm to remove this many senders when eviction takes place
-const TxPoolNumOldestSendersToEvict = uint32(500)
+// TxPoolNumSendersToEvictInOneStep instructs tx pool eviction algorithm to remove this many senders when eviction takes place
+const TxPoolNumSendersToEvictInOneStep = uint32(500)
 
 // TxPoolALotOfTransactionsForASender instructs tx pool eviction algorithm to tag a sender with more transactions than this value
 // as a "sender with a lot of transactions"

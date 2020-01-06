@@ -10,7 +10,7 @@ type EvictionConfig struct {
 	NumBytesThreshold               uint32
 	CountThreshold                  uint32
 	ThresholdEvictSenders           uint32
-	NumOldestSendersToEvict         uint32
+	NumSendersToEvictInOneStep      uint32
 	ALotOfTransactionsForASender    uint32
 	NumTxsToEvictForASenderWithALot uint32
 }
@@ -18,7 +18,7 @@ type EvictionConfig struct {
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
 func (cache *TxCache) doEviction() evictionJournal {
-	if !cache.areThereTooManyTxs() {
+	if !cache.areThereTooManyBytes() && !cache.areThereTooManyTxs() {
 		return evictionJournal{}
 	}
 
@@ -78,7 +78,7 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 // evictOldestSenders removes transactions from the cache
 func (cache *TxCache) evictOldestSenders() (uint32, uint32) {
 	listsOrdered := cache.txListBySender.GetListsSortedByOrderNumber()
-	sliceEnd := core.MinUint32(cache.evictionConfig.NumOldestSendersToEvict, uint32(len(listsOrdered)))
+	sliceEnd := core.MinUint32(cache.evictionConfig.NumSendersToEvictInOneStep, uint32(len(listsOrdered)))
 	listsToEvict := listsOrdered[:sliceEnd]
 
 	return cache.evictSendersAndTheirTxs(listsToEvict)
@@ -139,7 +139,7 @@ func (cache *TxCache) evictSendersWhileTooManyBytes() (step uint32, countTxs uin
 // Before starting the loop, the senders are sorted as specified by "sendersSortKind"
 func (cache *TxCache) evictSendersWhile(stopCondition func() bool, sendersSortKind txListBySenderSortKind) (step uint32, countTxs uint32, countSenders uint32) {
 	batchesSource := cache.txListBySender.GetListsSortedBy(sendersSortKind)
-	batchSize := cache.evictionConfig.NumOldestSendersToEvict
+	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
 	for step = 1; stopCondition(); step++ {
