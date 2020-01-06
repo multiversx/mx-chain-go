@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"bytes"
+	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -86,6 +88,10 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 		}
 		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shMbHdr)
 	}
+
+	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
+		return bytes.Compare(shardMiniBlockHeaders[i].Hash, shardMiniBlockHeaders[j].Hash) < 0
+	})
 
 	return shardMiniBlockHeaders, nil
 }
