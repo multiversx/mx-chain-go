@@ -66,6 +66,8 @@ func Test_GetListsSortedByOrderNumber(t *testing.T) {
 
 	lists := myMap.GetListsSortedByOrderNumber()
 
+	require.ElementsMatch(t, myMap.GetListsSortedByOrderNumber(), myMap.GetListsSortedBy(SortByOrderNumberAsc))
+	require.ElementsMatch(t, myMap.GetListsSortedByOrderNumber(), myMap.GetListsSortedBy("foobar"))
 	require.Equal(t, "alice", lists[0].sender)
 	require.Equal(t, "bob", lists[1].sender)
 	require.Equal(t, "carol", lists[2].sender)
@@ -82,6 +84,7 @@ func Test_GetListsSortedByTotalBytes(t *testing.T) {
 
 	lists := myMap.GetListsSortedByTotalBytes()
 
+	require.ElementsMatch(t, myMap.GetListsSortedByTotalBytes(), myMap.GetListsSortedBy(SortByTotalBytesDesc))
 	require.Equal(t, "bob", lists[0].sender)
 	require.Equal(t, "alice", lists[1].sender)
 	require.Equal(t, "carol", lists[2].sender)
@@ -99,6 +102,7 @@ func Test_GetListsSortedByTotalGas(t *testing.T) {
 
 	lists := myMap.GetListsSortedByTotalGas()
 
+	require.ElementsMatch(t, myMap.GetListsSortedByTotalGas(), myMap.GetListsSortedBy(SortByTotalGas))
 	require.Equal(t, "alice", lists[0].sender)
 	require.Equal(t, "carol", lists[1].sender)
 	require.Equal(t, "bob", lists[2].sender)

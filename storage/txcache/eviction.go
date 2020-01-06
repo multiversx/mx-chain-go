@@ -28,7 +28,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 	journal := evictionJournal{}
 
 	if cache.areThereTooManyBytes() {
-		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyTxs()
+		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyBytes()
 	}
 
 	if cache.areThereTooManySenders() {
@@ -122,15 +122,23 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-// evictSendersWhileTooManyTxs removes transactions
-// Eviction happens in ((transaction count) - CountThreshold) / NumOldestSendersToEvict + 1 steps
-// One batch of senders is removed in each step
 func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint32, countSenders uint32) {
-	batchesSource := cache.txListBySender.GetListsSortedByOrderNumber()
+	return cache.evictSendersWhile(cache.areThereTooManyTxs, SortByOrderNumberAsc)
+}
+
+func (cache *TxCache) evictSendersWhileTooManyBytes() (step uint32, countTxs uint32, countSenders uint32) {
+	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortByTotalGas)
+}
+
+// evictSendersWhileTooManyTxs removes transactions in a loop, as long as "stopCondition" is true
+// One batch of senders is removed in each step
+// Before starting the loop, the senders are sorted as specified by "sendersSortKind"
+func (cache *TxCache) evictSendersWhile(stopCondition func() bool, sendersSortKind txListBySenderSortKind) (step uint32, countTxs uint32, countSenders uint32) {
+	batchesSource := cache.txListBySender.GetListsSortedBy(sendersSortKind)
 	batchSize := cache.evictionConfig.NumOldestSendersToEvict
 	batchStart := uint32(0)
 
-	for step = 1; cache.areThereTooManyTxs(); step++ {
+	for step = 1; stopCondition(); step++ {
 		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
 		batch := batchesSource[batchStart:batchEnd]
 

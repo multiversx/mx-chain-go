@@ -101,9 +101,31 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
+type txListBySenderSortKind string
+
+// LRUCache is currently the only supported Cache type
+const (
+	SortByOrderNumberAsc txListBySenderSortKind = "SortByOrderNumberAsc"
+	SortByTotalBytesDesc txListBySenderSortKind = "SortByTotalBytesDesc"
+	SortByTotalGas       txListBySenderSortKind = "SortByTotalGas"
+)
+
+func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind) []*txListForSender {
+	switch sortKind {
+	case SortByOrderNumberAsc:
+		return txMap.GetListsSortedByOrderNumber()
+	case SortByTotalBytesDesc:
+		return txMap.GetListsSortedByTotalBytes()
+	case SortByTotalGas:
+		return txMap.GetListsSortedByTotalGas()
+	default:
+		return txMap.GetListsSortedByOrderNumber()
+	}
+}
+
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number, ascending
 func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
 		return txListA.orderNumber < txListB.orderNumber
 	})
 
@@ -112,7 +134,7 @@ func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender
 
 // GetListsSortedByTotalBytes gets the list of sender addreses, sorted by the total amount of bytes, descending
 func (txMap *txListBySenderMap) GetListsSortedByTotalBytes() []*txListForSender {
-	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
 		return txListA.totalBytes > txListB.totalBytes
 	})
 
@@ -121,14 +143,14 @@ func (txMap *txListBySenderMap) GetListsSortedByTotalBytes() []*txListForSender 
 
 // GetListsSortedByTotalGas gets the list of sender addreses, sorted by the total amoung of gas, ascending
 func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
-	lists := txMap.getListsSortedBy(func(txListA, txListB *txListForSender) bool {
+	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
 		return txListA.totalGas < txListB.totalGas
 	})
 
 	return lists
 }
 
-func (txMap *txListBySenderMap) getListsSortedBy(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
+func (txMap *txListBySenderMap) getListsSortedByFunc(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
 	lists := make([]*txListForSender, txMap.counter.Get())
 
 	index := 0
