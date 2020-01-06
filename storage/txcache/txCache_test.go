@@ -227,6 +227,31 @@ func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	require.Equal(t, int64(240000), cache.CountTx())
 }
 
+func Test_AddWithEviction_SizeAndCount(t *testing.T) {
+	config := EvictionConfig{
+		Enabled:                    true,
+		NumBytesThreshold:          200000,
+		CountThreshold:             500,
+		NumSendersToEvictInOneStep: 1,
+	}
+
+	cache := NewTxCacheWithEviction(16, config)
+
+	// Alice sends 201 transactions of 1000 = 128 + 872 bytes, with gas price 15
+	for i := 0; i < 201; i++ {
+		cache.AddTx([]byte(fmt.Sprintf("alice-%d", i)), createTxWithGas("alice", uint64(i), 872, 15))
+	}
+
+	require.Equal(t, int64(201*(872+estimatedSizeOfBoundedTxFields)), cache.VolumeInBytes())
+	require.Equal(t, int64(201000), cache.VolumeInBytes())
+
+	// Alice sends another transaction
+	// This transaction will cause eviction
+	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(200), 42, 15))
+
+	require.Equal(t, int64(42+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
+}
+
 func Test_NotImplementedFunctions(t *testing.T) {
 	cache := NewTxCache(1)
 
