@@ -61,6 +61,7 @@ func NewInterceptorsContainerFactory(
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
+	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -73,6 +74,9 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilBlockChain
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -483,7 +487,8 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		return nil, nil, err
 	}
 
-	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	// compose header shard topic, for example: shardBlocks_0_META
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err

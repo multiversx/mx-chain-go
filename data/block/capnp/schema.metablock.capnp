@@ -32,6 +32,19 @@ struct ShardDataCapn {
     nonce                 @9: UInt64;
 }
 
+struct FinalizedHeadersCapn {
+	shardId                 @0: UInt32;
+	headerHash              @1: Data;
+	rootHash                @2: Data;
+	firstPendingMetaBlock   @3: Data;
+	lastFinishedMetaBlock   @4: Data;
+	pendingMiniBlockHeaders @5: List(ShardMiniBlockHeaderCapn);
+}
+
+struct EpochStartCapn {
+	lastFinalizedHeaders    @0: List(FinalizedHeadersCapn);
+}
+
 struct MetaBlockCapn {
     nonce                  @0:  UInt64;
     epoch                  @1:  UInt32;
@@ -43,13 +56,14 @@ struct MetaBlockCapn {
     leaderSignature        @7:  Data;
     pubKeysBitmap          @8:  Data;
     prevHash               @9:  Data;
-    prevRandSeed           @10: Data;
+    prevRandSeed           @10:  Data;
     randSeed               @11: Data;
     rootHash               @12: Data;
     validatorStatsRootHash @13: Data;
     txCount                @14: UInt32;
     miniBlockHeaders       @15: List(MiniBlockHeaderCapn);
-    chainid                @16: Data;
+    epochStart             @16: EpochStartCapn;
+    chainid                @17: Data;
 }
 
 ##compile with:

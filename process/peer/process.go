@@ -6,15 +6,19 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/peer")
 
 type validatorActionType uint8
 
@@ -29,7 +33,7 @@ const (
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
-	Economics        *economics.EconomicsData
+	StakeValue       *big.Int
 	Marshalizer      marshal.Marshalizer
 	NodesCoordinator sharding.NodesCoordinator
 	ShardCoordinator sharding.Coordinator
@@ -37,6 +41,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService   dataRetriever.StorageService
 	AdrConv          state.AddressConverter
 	PeerAdapter      state.AccountsAdapter
+	Rater            sharding.RaterHandler
 }
 
 type validatorStatistics struct {
@@ -50,6 +55,8 @@ type validatorStatistics struct {
 	prevShardInfo    map[string]block.ShardData
 	mutPrevShardInfo sync.RWMutex
 	mediator         shardMetaMediator
+	rater            sharding.RaterHandler
+	initialNodes     []*sharding.InitialNode
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -76,11 +83,11 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if arguments.Economics == nil {
+	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if arguments.Economics.StakeValue() == nil {
-		return nil, process.ErrNilEconomicsData
+	if check.IfNil(arguments.Rater) {
+		return nil, process.ErrNilRater
 	}
 
 	vs := &validatorStatistics{
@@ -92,10 +99,27 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
 		prevShardInfo:    make(map[string]block.ShardData),
+		rater:            arguments.Rater,
 	}
 	vs.mediator = vs.createMediator()
 
-	err := vs.saveInitialState(arguments.InitialNodes, arguments.Economics.StakeValue())
+	rater := arguments.Rater
+	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
+
+	if !ok {
+		return nil, process.ErrNilRatingReader
+	}
+	log.Debug("setting ratingReader")
+
+	rr := &RatingReader{
+		getRating: vs.getRating,
+	}
+
+	ratingReaderSetter.SetRatingReader(rr)
+
+	vs.initialNodes = arguments.InitialNodes
+
+	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
@@ -104,18 +128,24 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int) error {
+func (p *validatorStatistics) saveInitialState(
+	in []*sharding.InitialNode,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
 	for _, node := range in {
-		err := p.initializeNode(node, stakeValue)
+		err := p.initializeNode(node, stakeValue, startRating)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err := p.peerAdapter.Commit()
+	hash, err := p.peerAdapter.Commit()
 	if err != nil {
 		return err
 	}
+
+	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
 
 	return nil
 }
@@ -261,7 +291,15 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
+	p.displayRatings()
+
 	return p.peerAdapter.RootHash()
+}
+
+func (p *validatorStatistics) displayRatings() {
+	for _, node := range p.initialNodes {
+		log.Trace("ratings", "pk", node.Address, "tempRating", p.getTempRating(node.PubKey))
+	}
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -296,6 +334,12 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		}
 
 		err = leaderPeerAcc.DecreaseLeaderSuccessRateWithJournal()
+		if err != nil {
+			return err
+		}
+
+		newRating := p.rater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
+		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
 		if err != nil {
 			return err
 		}
@@ -380,7 +424,8 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	return nil
 }
 
-func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int) error {
+func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int,
+	startRating uint32) error {
 	if !p.IsNodeValid(node) {
 		return process.ErrInvalidInitialNodesState
 	}
@@ -390,7 +435,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 		return err
 	}
 
-	err = p.savePeerAccountData(peerAccount, node, stakeValue)
+	err = p.savePeerAccountData(peerAccount, node, stakeValue, startRating)
 	if err != nil {
 		return err
 	}
@@ -421,6 +466,7 @@ func (p *validatorStatistics) savePeerAccountData(
 	peerAccount *state.PeerAccount,
 	data *sharding.InitialNode,
 	stakeValue *big.Int,
+	startRating uint32,
 ) error {
 	err := peerAccount.SetAddressWithJournal([]byte(data.Address))
 	if err != nil {
@@ -442,6 +488,16 @@ func (p *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
+	err = peerAccount.SetRatingWithJournal(startRating)
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetTempRatingWithJournal(startRating)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -453,6 +509,7 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 			return err
 		}
 
+		var newRating uint32
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType :=  p.computeValidatorActionType(isLeader, validatorSigned)
@@ -460,14 +517,17 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		switch actionType {
 		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
+			newRating = p.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 		case leaderFail:
 			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
 		case validatorSuccess:
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+			newRating = p.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())
 		case validatorFail:
 			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
 		}
 
+		err = peerAcc.SetTempRatingWithJournal(newRating)
 		if err != nil {
 			return err
 		}
@@ -658,4 +718,25 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (vs *validatorStatistics) getRating(s string) uint32 {
+	peer, err := vs.GetPeerAccount([]byte(s))
+	if err != nil {
+		log.Debug("Error getting peer account", "error", err)
+		return vs.rater.GetStartRating()
+	}
+
+	return peer.GetRating()
+}
+
+func (vs *validatorStatistics) getTempRating(s string) uint32 {
+	peer, err := vs.GetPeerAccount([]byte(s))
+
+	if err != nil {
+		log.Debug("Error getting peer account", "error", err)
+		return vs.rater.GetStartRating()
+	}
+
+	return peer.GetTempRating()
 }

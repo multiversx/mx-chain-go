@@ -38,8 +38,10 @@ const (
 	SmartContractResultBlock Type = 3
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 4
-	// InvalidBlock identifies identifies an invalid miniblock
+	// InvalidBlock identifies a miniblock holding invalid transactions
 	InvalidBlock Type = 5
+	// ReceiptBlock identifies a miniblock holding receipts
+	ReceiptBlock Type = 6
 )
 
 // String returns the string representation of the Type
@@ -57,6 +59,8 @@ func (bType Type) String() string {
 		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
+	case ReceiptBlock:
+		return "ReceiptBlock"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}
@@ -106,8 +110,10 @@ type Header struct {
 	RootHash               []byte            `capid:"14"`
 	ValidatorStatsRootHash []byte            `capid:"15"`
 	MetaBlockHashes        [][]byte          `capid:"16"`
-	TxCount                uint32            `capid:"17"`
-	ChainID                []byte            `capid:"18"`
+	EpochStartMetaHash     []byte            `capid:"17"`
+	TxCount                uint32            `capid:"18"`
+	ReceiptsHash           []byte            `capid:"19"`
+	ChainID                []byte            `capid:"20"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -147,6 +153,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.EpochStartMetaHash = src.EpochStartMetaHash()
 	dest.ChainID = src.Chainid()
 
 	mbLength := src.MiniBlockHeaders().Len()
@@ -193,6 +200,8 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetSignature(src.Signature)
 	dest.SetLeaderSignature(src.LeaderSignature)
 	dest.SetChainid(src.ChainID)
+	dest.SetEpochStartMetaHash(src.EpochStartMetaHash)
+
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -444,6 +453,16 @@ func (h *Header) GetTxCount() uint32 {
 	return h.TxCount
 }
 
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardId = shId
+}
+
+// GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
+func (h *Header) GetReceiptsHash() []byte {
+	return h.ReceiptsHash
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -557,10 +576,7 @@ func (b Body) IntegrityAndValidity() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b Body) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+	return b == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -569,6 +585,11 @@ func (h *Header) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (h *Header) IsStartOfEpochBlock() bool {
+	return len(h.EpochStartMetaHash) > 0
 }
 
 // ItemsInHeader gets the number of items(hashes) added in block header
@@ -595,4 +616,17 @@ func (h *Header) CheckChainID(reference []byte) error {
 	}
 
 	return nil
+}
+
+// Clone the underlying data
+func (mb *MiniBlock) Clone() *MiniBlock {
+	newMb := &MiniBlock{
+		ReceiverShardID: mb.ReceiverShardID,
+		SenderShardID:   mb.SenderShardID,
+		Type:            mb.Type,
+	}
+	newMb.TxHashes = make([][]byte, len(mb.TxHashes))
+	copy(newMb.TxHashes, mb.TxHashes)
+
+	return newMb
 }

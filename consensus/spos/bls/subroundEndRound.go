@@ -127,12 +127,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		debugError("BroadcastBlock", err)
 	}
 
-	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
-	if err != nil {
-		debugError("BroadcastShardHeader", err)
-	}
-
 	log.Debug("step 3: BlockBody and Header has been committed and broadcast",
 		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
