@@ -122,7 +122,7 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
 	t.Parallel()
 
-	numHeadersToGenerate := 500
+	numHeadersToGenerate := 50
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
 	headersCacher, _ := headersCache.NewHeadersPool(numHeadersToGenerate+1, 10)
@@ -145,7 +145,7 @@ func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
 func TestHeadersCacher_ConcurrentRequests_WithEviction(t *testing.T) {
 	shardId := uint32(0)
 	cacheSize := 2
-	numHeadersToGenerate := 500
+	numHeadersToGenerate := 50
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
@@ -204,7 +204,7 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := 100
-	numHeaders := 500
+	numHeaders := 200
 	shardId := uint32(0)
 	headers, headersHash := createASliceOfHeaders(numHeaders, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 50)
@@ -273,13 +273,13 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 1001
-	numHdrsToGenerate := 1000
+	cacheSize := 101
+	numHdrsToGenerate := 100
 
 	headersShard0, hashesShad0 := createASliceOfHeadersNonce0(numHdrsToGenerate, 0)
 	headersShard1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
 	headersShard2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
-	numElemsToRemove := 500
+	numElemsToRemove := 50
 
 	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numElemsToRemove)
 
@@ -403,9 +403,9 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	t.Parallel()
 
 	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), sharding.MetachainShardId
-	cacheSize := 1000
-	numHeadersToGenerate := 999
-	numElemsToRemove := 500
+	cacheSize := 100
+	numHeadersToGenerate := 99
+	numElemsToRemove := 50
 
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId0)
 	headersShard1, headersHashesShard1 := createASliceOfHeaders(numHeadersToGenerate, shardId1)
