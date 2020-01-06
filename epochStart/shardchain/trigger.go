@@ -203,7 +203,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if t.newEpochHdrReceived == false && !metaHdr.IsStartOfEpochBlock() {
+	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
 
