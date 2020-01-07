@@ -610,7 +610,6 @@ type BlockTracker interface {
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetLastHeader(shardID uint32) data.HeaderHandler
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool

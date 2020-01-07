@@ -307,12 +307,6 @@ var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
 // ErrNotarizedHeadersSliceForShardIsNil signals that the slice holding notarized headers for shard is nil
 var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
 
-// ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
-var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
-
-// ErrNotarizedHeadersSliceForShardIsNil signals that the slice holding notarized headers for shard is nil
-var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
-
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
 
