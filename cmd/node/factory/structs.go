@@ -728,6 +728,8 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	switch cfg.Marshalizer.Type {
 	case "json":
 		return &marshal.JsonMarshalizer{}, nil
+	case "protobuf":
+		return &marshal.GogoProtoMarshalizer{}, nil
 	}
 
 	return nil, errors.New("no marshalizer provided in config file")
