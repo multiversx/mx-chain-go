@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. accountData.proto
 package state
 
 import (
@@ -8,10 +9,7 @@ import (
 
 // Account is the struct used in serialization/deserialization
 type Account struct {
-	Nonce    uint64
-	Balance  *big.Int
-	CodeHash []byte
-	RootHash []byte
+	AccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -29,7 +27,9 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	}
 
 	return &Account{
-		Balance:          big.NewInt(0),
+		AccountData: AccountData{
+			Balance: data.NewProtoBigInt(0),
+		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(nil),
@@ -74,13 +74,13 @@ func (a *Account) GetNonce() uint64 {
 
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
 func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
-	entry, err := NewJournalEntryBalance(a, a.Balance)
+	entry, err := NewJournalEntryBalance(a, a.Balance.Get())
 	if err != nil {
 		return err
 	}
 
 	a.accountTracker.Journalize(entry)
-	a.Balance = balance
+	a.Balance.Set(balance)
 
 	return a.accountTracker.SaveAccount(a)
 }
