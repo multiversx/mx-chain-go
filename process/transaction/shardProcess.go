@@ -185,7 +185,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(cost),
 		SndAddr: tx.SndAddr,
-		Data:    txError.Error(),
+		Data:    []byte(txError.Error()),
 		TxHash:  txHash,
 	}
 
@@ -224,7 +224,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
 		SndAddr: tx.SndAddr,
-		Data:    "refundedGas",
+		Data:    []byte("refundedGas"),
 		TxHash:  txHash,
 	}
 

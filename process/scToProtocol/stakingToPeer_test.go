@@ -372,7 +372,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -432,7 +432,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -492,7 +492,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -552,7 +552,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -612,7 +612,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: stakeValue,
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -679,7 +679,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: stakeValue,
-		Address:  []byte(address),
+		Address:    []byte(address),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 

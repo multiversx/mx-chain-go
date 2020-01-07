@@ -503,7 +503,7 @@ type FeeHandler interface {
 type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
-	GetData() string
+	GetData() []byte
 	GetRecvAddress() []byte
 }
 

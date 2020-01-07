@@ -1704,9 +1704,13 @@ func (sp *shardProcessor) createMiniBlocks(
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
 func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	log.Trace("started creating block header",
-		"round", hdr.GetRound(),
-	)
+	sw := core.NewStopWatch()
+	sw.Start("ApplyBodyToHeader")
+	defer func() {
+		sw.Stop("ApplyBodyToHeader")
+
+		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+	}()
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
@@ -1729,21 +1733,27 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	}
 
 	var err error
+	sw.Start("CreateReceiptsHash")
 	shardHeader.ReceiptsHash, err = sp.txCoordinator.CreateReceiptsHash()
+	sw.Stop("CreateReceiptsHash")
 	if err != nil {
 		return nil, err
 	}
 
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
+	sw.Start("createMiniBlockHeaders")
 	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(newBody)
+	sw.Stop("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err
 	}
 
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
+	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
+	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	if sp.epochStartTrigger.IsEpochStart() {
@@ -1753,7 +1763,9 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
 
+	sw.Start("validatorStatisticsProcessor.RootHash")
 	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
+	sw.Stop("validatorStatisticsProcessor.RootHash")
 	if err != nil {
 		return nil, err
 	}

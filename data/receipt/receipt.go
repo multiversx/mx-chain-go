@@ -12,7 +12,7 @@ import (
 type Receipt struct {
 	Value   *big.Int `capid:"0" json:"value"`
 	SndAddr []byte   `capid:"1" json:"sender"`
-	Data    string   `capid:"2" json:"data,omitempty"`
+	Data    []byte   `capid:"2" json:"data,omitempty"`
 	TxHash  []byte   `capid:"3" json:"txHash"`
 }
 
@@ -52,7 +52,7 @@ func ReceiptCapnToGo(src capnp.ReceiptCapn, dest *Receipt) *Receipt {
 	}
 
 	dest.SndAddr = src.SndAddr()
-	dest.Data = string(src.Data())
+	dest.Data = src.Data()
 	dest.TxHash = src.TxHash()
 
 	return dest
@@ -65,7 +65,7 @@ func ReceiptGoToCapn(seg *capn.Segment, src *Receipt) capnp.ReceiptCapn {
 	value, _ := src.Value.GobEncode()
 	dest.SetValue(value)
 	dest.SetSndAddr(src.SndAddr)
-	dest.SetData([]byte(src.Data))
+	dest.SetData(src.Data)
 	dest.SetTxHash(src.TxHash)
 
 	return dest
@@ -87,7 +87,7 @@ func (rpt *Receipt) GetNonce() uint64 {
 }
 
 // GetData returns the data of the receipt
-func (rpt *Receipt) GetData() string {
+func (rpt *Receipt) GetData() []byte {
 	return rpt.Data
 }
 
@@ -117,7 +117,7 @@ func (rpt *Receipt) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the receipt
-func (rpt *Receipt) SetData(data string) {
+func (rpt *Receipt) SetData(data []byte) {
 	rpt.Data = data
 }
 
