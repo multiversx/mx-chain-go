@@ -100,7 +100,7 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	if state == process.BHProcessed {
-		_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, sharding.MetachainShardId)
 		sfd.computeFinalCheckpoint()
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 		sfd.removePastOrInvalidRecords()
@@ -123,7 +123,7 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
 		return
 	}
 
-	appended := sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	appended := sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, shardID)
 	if appended {
 		sfd.computeFinalCheckpoint()
 	}
@@ -132,6 +132,7 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
 func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
+	shardID uint32,
 ) bool {
 
 	selfNotarizedHeaderAdded := false
@@ -149,8 +150,8 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			state: process.BHNotarized,
 		})
 		if appended {
-			log.Debug("added self notarized header",
-				"shard", selfNotarizedHeaders[i].GetShardID(),
+			log.Debug("added self notarized header in fork detector",
+				"shard", shardID,
 				"round", selfNotarizedHeaders[i].GetRound(),
 				"nonce", selfNotarizedHeaders[i].GetNonce(),
 				"hash", selfNotarizedHeadersHashes[i])

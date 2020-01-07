@@ -97,7 +97,7 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 		return err
 	}
 
-	log.Debug("apply cross notarized header",
+	log.Debug("added cross notarized header in block tracker",
 		"shard", sharding.MetachainShardId,
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
@@ -163,7 +163,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 
 		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
 
-		log.Debug("add self notarized header",
+		log.Debug("added self notarized header in block tracker",
 			"shard", sharding.MetachainShardId,
 			"round", selfNotarizedHeader.GetRound(),
 			"nonce", selfNotarizedHeader.GetNonce(),

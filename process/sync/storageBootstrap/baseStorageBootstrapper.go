@@ -241,7 +241,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 
 		if i > 0 {
-			log.Debug("add self notarized header",
+			log.Debug("added self notarized header in block tracker",
 				"shard", header.GetShardID(),
 				"round", header.GetRound(),
 				"nonce", header.GetNonce(),

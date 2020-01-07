@@ -59,7 +59,7 @@ func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHea
 			return err
 		}
 
-		log.Debug("apply cross notarized header",
+		log.Debug("added cross notarized header in block tracker",
 			"shard", i,
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
