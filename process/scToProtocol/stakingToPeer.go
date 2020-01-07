@@ -333,7 +333,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			storageUpdates, err := stp.argParser.GetStorageUpdates(scr.Data)
+			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
 				return nil, err
 			}
