@@ -25,6 +25,8 @@ func (cache *TxCache) doEviction() evictionJournal {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
+	log.Info("TxCache.doEviction()")
+
 	journal := evictionJournal{}
 
 	if cache.isSizeEvictionEnabled() && cache.areThereTooManyBytes() {

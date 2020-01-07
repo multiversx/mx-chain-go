@@ -16,9 +16,9 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	log.Debug("Eviction journal:")
-	log.Debug("Pass 0:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Debug("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Debug("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
-	log.Debug("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
+	log.Info("Eviction journal:")
+	log.Info("Pass 0:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Info("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Info("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
+	log.Info("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
 }

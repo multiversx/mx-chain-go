@@ -113,7 +113,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		log.Error("RemoveTxByHash detected maps sync inconsistency", "tx", txHash)
+		log.Error("TxCache.RemoveTxByHash() detected maps sync inconsistency", "tx", txHash)
 		return ErrMapsSyncInconsistency
 	}
 
@@ -196,7 +196,7 @@ func (cache *TxCache) RemoveOldest() {
 	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
-// Keys is not implemented
+// Keys returns the tx hashes in the cache
 func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
