@@ -248,28 +248,6 @@ func (bp *baseProcessor) getRootHash() []byte {
 	return rootHash
 }
 
-func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
-		return process.ErrShardIdMissmatch
-	}
-
-	if shardId < bp.shardCoordinator.NumberOfShards() {
-		_, ok := hdr.(*block.Header)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-	}
-
-	if shardId == sharding.MetachainShardId {
-		_, ok := hdr.(*block.MetaBlock)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-	}
-
-	return nil
-}
-
 func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,

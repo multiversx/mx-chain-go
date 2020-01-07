@@ -1067,31 +1067,6 @@ func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandle
 	}
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
-		)
-
-		return err
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", header.GetNonce(),
-			"validators root hash", header.GetValidatorStatsRootHash(),
-		)
-
-		return err
-	}
-
-	return nil
-}
-
 // RevertAccountState reverts the account state for cleanup failed process
 func (mp *metaProcessor) RevertAccountState() {
 	err := mp.accounts.RevertToSnapshot(0)
@@ -1103,22 +1078,6 @@ func (mp *metaProcessor) RevertAccountState() {
 	if err != nil {
 		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
 	}
-}
-
-func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
-	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
-	buff, err := metaBlockStore.Get(header.GetPrevHash())
-	if err != nil {
-		return nil, err
-	}
-
-	prevMetaHeader := &block.MetaBlock{}
-	err = mp.marshalizer.Unmarshal(prevMetaHeader, buff)
-	if err != nil {
-		return nil, err
-	}
-
-	return prevMetaHeader, nil
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
