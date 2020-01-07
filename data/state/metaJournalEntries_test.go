@@ -103,7 +103,7 @@ func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
 	_, err := entry.Revert()
 
 	assert.Nil(t, err)
-	assert.Equal(t, txCount, accnt.TxCount)
+	assert.Equal(t, txCount, accnt.TxCount.Get())
 }
 
 //------- MetaJournalEntryShardRootHash

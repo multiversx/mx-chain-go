@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. metaAccountData.proto
 package state
 
 import (
@@ -6,24 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// MiniBlockData is the data to be saved in shard account for any shard
-type MiniBlockData struct {
-	Hash            []byte
-	ReceiverShardId uint32
-	SenderShardId   uint32
-	TxCount         uint32
-}
-
 // MetaAccount is the struct used in serialization/deserialization
 type MetaAccount struct {
-	Round         uint64
-	Nonce         uint64
-	TxCount       *big.Int
-	CodeHash      []byte
-	RootHash      []byte
-	MiniBlocks    []*MiniBlockData
-	PubKeyLeader  []byte
-	ShardRootHash []byte
+	MetaAccountData
 
 	addressContainer AddressContainer
 	code             []byte
@@ -41,7 +27,9 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 	}
 
 	return &MetaAccount{
-		TxCount:          big.NewInt(0),
+		MetaAccountData: MetaAccountData{
+			TxCount: data.NewProtoBigInt(0),
+		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(nil),
@@ -76,13 +64,13 @@ func (a *MetaAccount) SetRoundWithJournal(round uint64) error {
 
 // SetTxCountWithJournal sets the total tx count for this shard, saving the old txCount before changing
 func (a *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
-	entry, err := NewMetaJournalEntryTxCount(a, a.TxCount)
+	entry, err := NewMetaJournalEntryTxCount(a, a.TxCount.Get())
 	if err != nil {
 		return err
 	}
 
 	a.accountTracker.Journalize(entry)
-	a.TxCount = txCount
+	a.TxCount.Set(txCount)
 
 	return a.accountTracker.SaveAccount(a)
 }
