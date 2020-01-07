@@ -74,6 +74,10 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
+	if header.GetNonce() > mfd.highestNonceReceived() {
+		mfd.setHighestNonceReceived(header.GetNonce())
+	}
+
 	if state == process.BHProposed {
 		mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 		return nil

@@ -28,6 +28,7 @@ type forkInfo struct {
 	checkpoint           []*checkpointInfo
 	finalCheckpoint      *checkpointInfo
 	probableHighestNonce uint64
+	highestNonceReceived uint64
 	shouldForceFork      bool
 	rollBackNonce        uint64
 }
@@ -210,6 +211,7 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
+	bfd.setHighestNonceReceived(probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -271,6 +273,7 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
+	bfd.setHighestNonceReceived(probableHighestNonce)
 	bfd.setShouldForceFork(false)
 }
 
@@ -315,6 +318,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
+	bfd.setHighestNonceReceived(probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) finalCheckpoint() *checkpointInfo {
@@ -337,6 +341,20 @@ func (bfd *baseForkDetector) probableHighestNonce() uint64 {
 	bfd.mutFork.RUnlock()
 
 	return probableHighestNonce
+}
+
+func (bfd *baseForkDetector) setHighestNonceReceived(nonce uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.highestNonceReceived = nonce
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) highestNonceReceived() uint64 {
+	bfd.mutFork.RLock()
+	highestNonceReceived := bfd.fork.highestNonceReceived
+	bfd.mutFork.RUnlock()
+
+	return highestNonceReceived
 }
 
 func (bfd *baseForkDetector) setShouldForceFork(shouldForceFork bool) {
@@ -443,7 +461,7 @@ func (bfd *baseForkDetector) computeForkInfo(
 	lastForkEpoch uint32,
 ) ([]byte, uint64, uint32) {
 
-	if hdrInfo.state == process.BHReceivedTooLate {
+	if hdrInfo.state == process.BHReceivedTooLate && bfd.highestNonceReceived() > hdrInfo.nonce {
 		return lastForkHash, lastForkRound, lastForkEpoch
 	}
 

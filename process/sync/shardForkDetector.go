@@ -78,6 +78,10 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
+	if header.GetNonce() > sfd.highestNonceReceived() {
+		sfd.setHighestNonceReceived(header.GetNonce())
+	}
+
 	if state == process.BHProposed {
 		sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 		return nil
