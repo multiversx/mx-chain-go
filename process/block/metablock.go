@@ -292,18 +292,13 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	rootHashBefore, _ := mp.validatorStatisticsProcessor.RootHash()
-	log.Info("Meta Process UpdatePeerStateBefore", "round", header.GetRound(), "rootHash", rootHashBefore)
-
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Meta Process UpdatePeerStateAfter", "rootHash", validatorStatsRH)
-
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
-		log.Info("Validator stats root hash does not match", "validatorStatsRH", validatorStatsRH,
+		log.Warn("Validator stats root hash does not match", "validatorStatsRH", validatorStatsRH,
 			"headerValidatorStatsRH", header.GetValidatorStatsRootHash())
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
@@ -1637,14 +1632,11 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
-	rootHashBefore, _ := mp.validatorStatisticsProcessor.RootHash()
-	log.Info("Meta UpdatePeerStateBefore", "round", metaHdr.GetRound(), "rootHash", rootHashBefore)
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+
+	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Meta UpdatePeerStateAfter", "rootHash", rootHash)
-	metaHdr.ValidatorStatsRootHash = rootHash
 
 	epochStart, err := mp.createEpochStartForMetablock()
 	if err != nil {

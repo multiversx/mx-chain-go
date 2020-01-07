@@ -760,7 +760,6 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 	}
 
 	if !bytes.Equal(createdReceiptHash, hdr.GetReceiptsHash()) {
-		log.Info("receipt does not match")
 		return process.ErrReceiptsHashMissmatch
 	}
 

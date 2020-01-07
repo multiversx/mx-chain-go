@@ -13,10 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
@@ -136,20 +139,27 @@ func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+	log.Trace("GetStorageData ", "address", accountAddress, "index", index)
+
 	exists, err := bh.AccountExists(accountAddress)
 	if err != nil {
+		log.Trace("GetStorageData return ", "error", err)
 		return nil, err
 	}
 	if !exists {
+		log.Trace("GetStorageData return nil, nil")
 		return make([]byte, 0), nil
 	}
 
 	account, err := bh.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
+		log.Trace("GetStorageData return ", "error", err)
 		return nil, err
 	}
 
-	return account.DataTrieTracker().RetrieveValue(index)
+	value, err := account.DataTrieTracker().RetrieveValue(index)
+	log.Trace("GetStorageData return ", "value", value, "error", err)
+	return value, err
 }
 
 // IsCodeEmpty returns if the code is empty
