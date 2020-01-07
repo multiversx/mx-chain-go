@@ -247,9 +247,23 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	// Alice sends another transaction
 	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(200), 42, 15))
+	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(200), 872, 15))
 
-	require.Equal(t, int64(42+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
+	// Only latest Alice's transaction remains in cache
+	require.Equal(t, int64(872+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
+	// The eviction takes place in pass 0
+	require.Equal(t, uint32(201), cache.evictionJournal.passZeroNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+
+	// Bob and Carol send transactions, with different gas price
+	for i := 0; i < 50; i++ {
+		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 872, 15))
+	}
+
+	for i := 0; i < 50; i++ {
+		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 872, 15))
+	}
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
