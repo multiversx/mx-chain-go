@@ -65,3 +65,7 @@ message Header  {
 	repeated bytes           MetaBlockHashes        = 17;
 	uint32                   TxCount                = 18;
 }
+
+message BodyHelper {
+	repeated MiniBlock MiniBlocks = 1;
+}
