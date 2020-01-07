@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -59,7 +60,7 @@ func NewTxResolver(
 // (for the topic this validator was registered to, usually a request topic)
 func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(txRes.marshalizer, message)
+	err := rd.UnmarshalWith(txRes.marshalizer, message)
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
 func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
-	buffHashes, err := txRes.marshalizer.Marshal(hashes)
+	buffHashes, err := txRes.marshalizer.Marshal(&batch.Batch{hashes})
 	if err != nil {
 		return err
 	}

@@ -112,7 +112,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), nil)
-	assert.Equal(t, dataRetriever.ErrInvalidRequestType, err)
+	assert.NotNil(t, err)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {

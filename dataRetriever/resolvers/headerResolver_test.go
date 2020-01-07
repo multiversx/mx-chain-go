@@ -184,7 +184,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), nil)
-	assert.Equal(t, dataRetriever.ErrResolveTypeUnknown, err)
+	assert.NotNil(t, err)
 
 }
 
