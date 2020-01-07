@@ -18,7 +18,7 @@ func TestTransaction_SaveLoad(t *testing.T) {
 		SndAddr:   []byte("sender_address"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      "tx_data",
+		Data:      []byte("tx_data"),
 		Signature: []byte("signature"),
 	}
 
@@ -34,7 +34,7 @@ func TestTransaction_SaveLoad(t *testing.T) {
 func TestTransaction_GetData(t *testing.T) {
 	t.Parallel()
 
-	data := "data"
+	data := []byte("data")
 	tx := &transaction.Transaction{Data: data}
 
 	assert.Equal(t, data, tx.Data)
@@ -70,7 +70,7 @@ func TestTransaction_GetValue(t *testing.T) {
 func TestTransaction_SetData(t *testing.T) {
 	t.Parallel()
 
-	data := "data"
+	data := []byte("data")
 	tx := &transaction.Transaction{}
 	tx.SetData(data)
 
@@ -118,7 +118,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 		SndAddr:   []byte("sender"),
 		GasPrice:  1234,
 		GasLimit:  5678,
-		Data:      "data",
+		Data:      []byte("data"),
 		Signature: []byte("signature"),
 	}
 
