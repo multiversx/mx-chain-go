@@ -5,9 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/prometheus/common/log"
 	"math/big"
 	"sort"
 	"strconv"
@@ -43,7 +40,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -54,6 +50,8 @@ import (
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -226,53 +224,6 @@ func NewTestProcessorNode(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           IntegrationTestsChainID,
-	}
-
-	tpn.NodeKeys = &TestKeyPair{
-		Sk: sk,
-		Pk: pk,
-	}
-	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	tpn.initDataPools()
-	tpn.initTestNode()
-
-	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
-	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithMemP2P returns a new TestProcessorNode instance with a memory-based messenger
-func NewTestProcessorNodeWithMemP2P(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	network *memp2p.Network,
-) *TestProcessorNode {
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-
-	kg := &mock.KeyGenMock{}
-	sk, pk := kg.GeneratePair()
-
-	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-
-			address := pkAddr
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
-
-			return []sharding.Validator{v}, nil
-		},
-	}
-
-	messenger, _ := memp2p.NewMessenger(network)
-	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -809,13 +760,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		Rater:            rater,
 	}
 
-	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
-
-	if err != nil {
-		log.Warn(fmt.Sprintf("validator statistics creation failed with %s", err.Error()))
-	}
-
-	tpn.ValidatorStatisticsProcessor = validatorStatistics
+	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {

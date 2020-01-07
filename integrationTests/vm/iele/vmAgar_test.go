@@ -9,12 +9,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agar_v1_min.hex"
+var agarioFile = "../../agarioV3.hex"
 
 func TestDeployAgarioContract(t *testing.T) {
 	scCode, err := ioutil.ReadFile(agarioFile)
@@ -194,8 +193,6 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -315,7 +312,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		computedBalance := big.NewInt(0).Set(afterJoinUsersBalances[i])
 		computedBalance.Add(computedBalance, prize)
 
-		assert.Equal(t, computedBalance, existingUserBalance)
+		assert.Equal(t, computedBalance.Uint64(), existingUserBalance.Uint64())
 	}
 
 	transferredBack := big.NewInt(0).Set(prize)
@@ -325,7 +322,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	computedBalance.Sub(computedBalance, transferredBack)
 	balanceOfSC, _ = blockchainHook.GetBalance(scAddressBytes)
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
-	assert.Equal(t, computedBalance, balanceOfSC)
+	assert.Equal(t, computedBalance.Uint64(), balanceOfSC.Uint64())
 }
 
 func BenchmarkAgarioJoinGame(b *testing.B) {

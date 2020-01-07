@@ -25,8 +25,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -159,11 +157,7 @@ func runMultipleRoundsOfTheGame(
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		time.Sleep(stepDelay)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
@@ -173,14 +167,9 @@ func runMultipleRoundsOfTheGame(
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		time.Sleep(stepDelay)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		time.Sleep(stepDelay)
-
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
 

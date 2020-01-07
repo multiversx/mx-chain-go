@@ -156,6 +156,11 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
+		//TODO: delete the next verification when delete from trie bug is repaired
+		if len(v) == 0 {
+			continue
+		}
+
 		flagHasDirtyData = true
 
 		val, err := dataTrie.Get([]byte(k))

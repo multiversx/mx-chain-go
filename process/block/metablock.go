@@ -298,8 +298,10 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
-		log.Warn("Validator stats root hash does not match", "validatorStatsRH", validatorStatsRH,
-			"headerValidatorStatsRH", header.GetValidatorStatsRootHash())
+		log.Debug("validator stats root hash mismatch",
+			"computed", validatorStatsRH,
+			"received", header.GetValidatorStatsRootHash(),
+		)
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}

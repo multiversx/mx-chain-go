@@ -27,8 +27,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
-
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
