@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../../agar_v1_min.hex"
 var stepDelay = time.Second
 
 func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
@@ -83,6 +83,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
 	time.Sleep(stepDelay)
 	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
+	time.Sleep(stepDelay)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
@@ -156,7 +157,6 @@ func runMultipleRoundsOfTheGame(
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
-
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
@@ -167,9 +167,9 @@ func runMultipleRoundsOfTheGame(
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
-
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
+		time.Sleep(stepDelay)
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
 
