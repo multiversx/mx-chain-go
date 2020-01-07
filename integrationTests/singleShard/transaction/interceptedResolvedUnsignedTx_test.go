@@ -52,7 +52,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		Value:   big.NewInt(0),
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		SndAddr: buffPk1,
-		Data:    "tx notarized data",
+		Data:    []byte("tx notarized data"),
 		TxHash:  []byte("tx hash"),
 	}
 
