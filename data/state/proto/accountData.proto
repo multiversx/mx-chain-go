@@ -1,0 +1,20 @@
+// This file holds the data structures related with the functionality of a shard block
+//
+// MiniBlock structure represents the body of a transaction block, holding an array of miniblocks
+// each of the miniblocks has a different destination shard
+// The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message AccountData {
+	uint64 Nonce    = 1;
+	bytes  Balance  = 2 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+	bytes  CodeHash = 3;
+	bytes  RootHash = 4;
+}
