@@ -127,6 +127,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
+
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
