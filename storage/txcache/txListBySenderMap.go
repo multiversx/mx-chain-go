@@ -111,6 +111,8 @@ const (
 )
 
 func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind) []*txListForSender {
+	// TODO-TXCACHE: do partial sort? optimization.
+
 	switch sortKind {
 	case SortByOrderNumberAsc:
 		return txMap.GetListsSortedByOrderNumber()
@@ -146,6 +148,8 @@ func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
 	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
 		return txListA.totalGas < txListB.totalGas
 	})
+
+	// TODO-TXCACHE sort by smarter formula? order and size and gas?
 
 	return lists
 }
