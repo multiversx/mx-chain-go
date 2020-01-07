@@ -13,8 +13,8 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	log.Trace("Eviction journal:")
-	log.Trace("1st pass:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Trace("2nd pass:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
-	log.Trace("3rd pass:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
+	log.Info("Eviction journal:")
+	log.Info("1st pass:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Info("2nd pass:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
+	log.Info("3rd pass:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
 }

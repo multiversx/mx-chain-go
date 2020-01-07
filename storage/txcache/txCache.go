@@ -111,7 +111,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		log.Error("RemoveTxByHash detected maps sync inconsistency", "tx", txHash)
+		log.Error("TxCache.RemoveTxByHash() detected maps sync inconsistency", "tx", txHash)
 		return ErrMapsSyncInconsistency
 	}
 

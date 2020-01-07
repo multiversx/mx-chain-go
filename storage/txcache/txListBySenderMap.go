@@ -67,6 +67,7 @@ func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
+		log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
 		return false
 	}
 
