@@ -1629,8 +1629,8 @@ func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
 	}
 }
 
-// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
-func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+// StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
 		_ = n.Messenger.Bootstrap()
 	}

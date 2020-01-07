@@ -61,7 +61,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(delayP2PBootstrap)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -124,7 +124,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(delayP2PBootstrap)
 
 	round := uint64(0)
 	nonce := uint64(0)

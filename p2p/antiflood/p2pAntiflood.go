@@ -11,9 +11,9 @@ type p2pAntiflood struct {
 	p2p.FloodPreventer
 }
 
-// NewP2pAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
+// NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
-func NewP2pAntiflood(floodPreventer p2p.FloodPreventer) (*p2pAntiflood, error) {
+func NewP2PAntiflood(floodPreventer p2p.FloodPreventer) (*p2pAntiflood, error) {
 	if check.IfNil(floodPreventer) {
 		return nil, p2p.ErrNilFloodPreventer
 	}

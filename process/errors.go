@@ -64,9 +64,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
 
-// ErrNilPublicKey signals that a operation has been attempted with a nil public key
-var ErrNilPublicKey = errors.New("nil public key")
-
 // ErrNilPubKeysBitmap signals that a operation has been attempted with a nil public keys bitmap
 var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
 

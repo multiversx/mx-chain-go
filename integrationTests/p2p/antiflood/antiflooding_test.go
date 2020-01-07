@@ -42,6 +42,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		peerMaxNumProcessMessages,
 		maxMessageSize,
@@ -63,15 +64,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
 	isFlooding.Store(true)
-	go func() {
-		for {
-			peers[flooderIdx].Broadcast(topic, []byte("floodMessage"))
-
-			if !isFlooding.Load().(bool) {
-				return
-			}
-		}
-	}()
+	go floodTheNetwork(peers[flooderIdx], topic, &isFlooding, 10)
 	time.Sleep(broadcastMessageDuration)
 
 	isFlooding.Store(false)
@@ -104,6 +97,7 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		peerMaxNumProcessMessages,
 		maxMessageSize,
@@ -159,6 +153,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	peerMaxMessageSize := uint64(1 << 10) //1KB
 	interceptors, err := createTopicsAndMockInterceptors(
 		peers,
+		nil,
 		topic,
 		maxNumProcessMessages,
 		peerMaxMessageSize,
@@ -180,15 +175,8 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	fmt.Println("flooding the network")
 	isFlooding := atomic.Value{}
 	isFlooding.Store(true)
-	go func() {
-		for {
-			peers[flooderIdx].Broadcast(topic, make([]byte, peerMaxMessageSize+1))
+	go floodTheNetwork(peers[flooderIdx], topic, &isFlooding, peerMaxMessageSize+1)
 
-			if !isFlooding.Load().(bool) {
-				return
-			}
-		}
-	}()
 	time.Sleep(broadcastMessageDuration)
 
 	isFlooding.Store(false)
@@ -222,6 +210,7 @@ func checkMessagesOnPeers(
 
 func createTopicsAndMockInterceptors(
 	peers []p2p.Messenger,
+	blacklistHandlers []antiflood.QuotaStatusHandler,
 	topic string,
 	peerMaxNumMessages uint32,
 	peerMaxSize uint64,
@@ -241,9 +230,13 @@ func createTopicsAndMockInterceptors(
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
+		statusHandlers := []antiflood.QuotaStatusHandler{&nilQuotaStatusHandler{}}
+		if len(blacklistHandlers) == len(peers) {
+			statusHandlers = append(statusHandlers, blacklistHandlers[idx])
+		}
 		interceptors[idx].floodPreventer, _ = antiflood.NewQuotaFloodPreventer(
 			antifloodPool,
-			&nilQuotaStatusHandler{},
+			statusHandlers,
 			peerMaxNumMessages,
 			peerMaxSize,
 			maxNumMessages,

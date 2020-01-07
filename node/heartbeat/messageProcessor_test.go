@@ -182,7 +182,7 @@ func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	t.Parallel()
 
 	hb := heartbeat.Heartbeat{
@@ -215,6 +215,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 	}
 
 	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -226,13 +227,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 		PeerField:      "",
 	}
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	message := &mock.P2PMessageStub{
@@ -247,13 +248,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 
 	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	message := &mock.P2PMessageStub{
@@ -274,13 +275,13 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 		},
 	})
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShouldErr(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	length := 129
@@ -322,6 +323,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 	}
 
 	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -333,18 +335,18 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 		PeerField:      "",
 	}
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2PNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
 
-	ret, err := mon.CreateHeartbeatFromP2pMessage(nil)
+	ret, err := mon.CreateHeartbeatFromP2PMessage(nil)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrNilMessage, err)

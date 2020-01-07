@@ -27,8 +27,8 @@ type p2pQuotaProcessor struct {
 	handler          core.AppStatusHandler
 }
 
-// NewP2pQuotaProcessor creates a new p2pQuotaProcessor instance
-func NewP2pQuotaProcessor(handler core.AppStatusHandler) (*p2pQuotaProcessor, error) {
+// NewP2PQuotaProcessor creates a new p2pQuotaProcessor instance
+func NewP2PQuotaProcessor(handler core.AppStatusHandler) (*p2pQuotaProcessor, error) {
 	if check.IfNil(handler) {
 		return nil, statusHandler.ErrNilAppStatusHandler
 	}
@@ -90,28 +90,28 @@ func (pqp *p2pQuotaProcessor) moveStatisticsInAppStatusHandler(
 	peakNumReceiverPeers uint64,
 ) {
 
-	pqp.handler.SetUInt64Value(core.MetricP2pNetworkNumReceivedMessages, uint64(networkQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pNetworkSizeReceivedMessages, networkQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pNetworkNumProcessedMessages, uint64(networkQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pNetworkSizeProcessedMessages, networkQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PNetworkNumReceivedMessages, uint64(networkQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PNetworkSizeReceivedMessages, networkQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PNetworkNumProcessedMessages, uint64(networkQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PNetworkSizeProcessedMessages, networkQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkNumReceivedMessages, uint64(pqp.peakNetworkQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkSizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkNumProcessedMessages, uint64(pqp.peakNetworkQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakNetworkSizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakNetworkNumReceivedMessages, uint64(pqp.peakNetworkQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakNetworkSizeReceivedMessages, pqp.peakNetworkQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakNetworkNumProcessedMessages, uint64(pqp.peakNetworkQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakNetworkSizeProcessedMessages, pqp.peakNetworkQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pPeerNumReceivedMessages, uint64(peerQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeerSizeReceivedMessages, peerQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pPeerNumProcessedMessages, uint64(peerQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeerSizeProcessedMessages, peerQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeerNumReceivedMessages, uint64(peerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeerSizeReceivedMessages, peerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeerNumProcessedMessages, uint64(peerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeerSizeProcessedMessages, peerQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerNumReceivedMessages, uint64(pqp.peakPeerQuota.numReceivedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerSizeReceivedMessages, pqp.peakPeerQuota.sizeReceivedMessages)
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerxNumProcessedMessages, uint64(pqp.peakPeerQuota.numProcessedMessages))
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakPeerSizeProcessedMessages, pqp.peakPeerQuota.sizeProcessedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakPeerNumReceivedMessages, uint64(pqp.peakPeerQuota.numReceivedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakPeerSizeReceivedMessages, pqp.peakPeerQuota.sizeReceivedMessages)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakPeerxNumProcessedMessages, uint64(pqp.peakPeerQuota.numProcessedMessages))
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakPeerSizeProcessedMessages, pqp.peakPeerQuota.sizeProcessedMessages)
 
-	pqp.handler.SetUInt64Value(core.MetricP2pNumReceiverPeers, numReceiverPeers)
-	pqp.handler.SetUInt64Value(core.MetricP2pPeakNumReceiverPeers, peakNumReceiverPeers)
+	pqp.handler.SetUInt64Value(core.MetricP2PNumReceiverPeers, numReceiverPeers)
+	pqp.handler.SetUInt64Value(core.MetricP2PPeakNumReceiverPeers, peakNumReceiverPeers)
 }
 
 // AddQuota adds a quota statistics

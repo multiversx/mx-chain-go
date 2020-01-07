@@ -13,7 +13,7 @@ import (
 )
 
 var stepDelay = time.Second
-var delayP2pBootstrap = time.Second * 2
+var delayP2PBootstrap = time.Second * 2
 var stepSync = time.Second * 2
 
 func setupSyncNodesOneShardAndMeta(
