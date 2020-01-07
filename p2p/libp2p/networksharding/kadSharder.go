@@ -12,7 +12,7 @@ const (
 	maxMaskBits  = 8
 	fullMaskBits = 0xff
 
-	minInShardConnRatio = 0.65 // the minimum in shard vs total connections ratio
+	minInShardConnRatio = 0.30 // the minimum in shard vs total connections ratio
 )
 
 // kadSharder KAD based sharder
