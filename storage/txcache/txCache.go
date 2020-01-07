@@ -12,10 +12,11 @@ var log = logger.GetOrCreate("txcache")
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender txListBySenderMap
-	txByHash       txByHashMap
-	evictionConfig EvictionConfig
-	evictionMutex  sync.Mutex
+	txListBySender  txListBySenderMap
+	txByHash        txByHashMap
+	evictionConfig  EvictionConfig
+	evictionMutex   sync.Mutex
+	evictionJournal evictionJournal
 }
 
 // NewTxCache creates a new transaction cache
@@ -23,9 +24,10 @@ type TxCache struct {
 func NewTxCache(nChunksHint uint32) *TxCache {
 	// Note: for simplicity, we use the same "nChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
-		txListBySender: newTxListBySenderMap(nChunksHint),
-		txByHash:       newTxByHashMap(nChunksHint),
-		evictionConfig: EvictionConfig{Enabled: false},
+		txListBySender:  newTxListBySenderMap(nChunksHint),
+		txByHash:        newTxByHashMap(nChunksHint),
+		evictionConfig:  EvictionConfig{Enabled: false},
+		evictionJournal: evictionJournal{},
 	}
 
 	return txCache

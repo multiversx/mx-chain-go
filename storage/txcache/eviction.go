@@ -43,6 +43,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 		journal.passThreeNumSteps, journal.passThreeNumTxs, journal.passThreeNumSenders = cache.evictSendersWhileTooManyTxs()
 	}
 
+	cache.evictionJournal = journal
 	journal.display()
 	return journal
 }
