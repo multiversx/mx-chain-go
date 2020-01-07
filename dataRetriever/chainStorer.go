@@ -125,6 +125,17 @@ func (bc *ChainStorer) Destroy() error {
 	return nil
 }
 
+// CloseAll will close all the active units
+func (bc *ChainStorer) CloseAll() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+
+	for _, unit := range bc.chain {
+		unit.Close()
+	}
+
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *ChainStorer) IsInterfaceNil() bool {
 	if bc == nil {
