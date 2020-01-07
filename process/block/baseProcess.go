@@ -774,6 +774,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	round uint64,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
+	highestFinalBlockNonce uint64,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
 	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
@@ -781,7 +782,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	//TODO add end of epoch stuff
 
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
-	highestFinalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
 
 	for i := range selfNotarizedHeaders {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{

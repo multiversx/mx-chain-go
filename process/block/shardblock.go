@@ -38,6 +38,8 @@ type shardProcessor struct {
 	core                   serviceContainer.Core
 	txCounter              *transactionCounter
 	txsPoolsCleaner        process.PoolsCleaner
+
+	lowestNonceInSelfNotarizedHeaders uint64
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -849,7 +851,11 @@ func (sp *shardProcessor) CommitBlock(
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, processedMiniBlocks)
+	if len(selfNotarizedHeaders) > 0 {
+		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
+	}
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
 
