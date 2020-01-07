@@ -252,10 +252,10 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
 	maxRound uint64,
-	cacher storage.Cacher,
+	cacherMaxSize int,
 ) error {
 
-	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
 
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {

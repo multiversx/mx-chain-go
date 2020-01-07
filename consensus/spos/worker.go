@@ -324,7 +324,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if err != nil {
-			log.Trace("add header to fork detector failed",
+			log.Debug("add header to fork detector failed",
 				"error", err)
 			return err
 		}

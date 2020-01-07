@@ -419,16 +419,16 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hdr3 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 
-	notarizedHeaders2 := []data.HeaderHandler{
+	selfNotarizedHeaders2 := []data.HeaderHandler{
 		hdr2,
 	}
-	notarizedHeadersHashes2 := [][]byte{
+	selfNotarizedHeadersHashes2 := [][]byte{
 		hash2,
 	}
-	notarizedHeaders3 := []data.HeaderHandler{
+	selfNotarizedHeaders3 := []data.HeaderHandler{
 		hdr3,
 	}
-	notarizedHeadersHashes3 := [][]byte{
+	selfNotarizedHeadersHashes3 := [][]byte{
 		hash3,
 	}
 
@@ -443,14 +443,14 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		hdr2,
 		hash2,
 		process.BHNotarized,
-		notarizedHeaders2,
-		notarizedHeadersHashes2)
+		selfNotarizedHeaders2,
+		selfNotarizedHeadersHashes2)
 	_ = bfd.AddHeader(
 		hdr3,
 		hash3,
 		process.BHNotarized,
-		notarizedHeaders3,
-		notarizedHeadersHashes3)
+		selfNotarizedHeaders3,
+		selfNotarizedHeadersHashes3)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -525,16 +525,16 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hdr3 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 
-	notarizedHeaders1 := []data.HeaderHandler{
+	selfNotarizedHeaders1 := []data.HeaderHandler{
 		hdr1,
 	}
-	notarizedHeadersHashes1 := [][]byte{
+	selfNotarizedHeadersHashes1 := [][]byte{
 		hash1,
 	}
-	notarizedHeaders3 := []data.HeaderHandler{
+	selfNotarizedHeaders3 := []data.HeaderHandler{
 		hdr3,
 	}
-	notarizedHeadersHashes3 := [][]byte{
+	selfNotarizedHeadersHashes3 := [][]byte{
 		hash3,
 	}
 
@@ -549,14 +549,14 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		hdr3,
 		hash3,
 		process.BHNotarized,
-		notarizedHeaders3,
-		notarizedHeadersHashes3)
+		selfNotarizedHeaders3,
+		selfNotarizedHeadersHashes3)
 	_ = bfd.AddHeader(
 		hdr1,
 		hash1,
 		process.BHNotarized,
-		notarizedHeaders1,
-		notarizedHeadersHashes1)
+		selfNotarizedHeaders1,
+		selfNotarizedHeadersHashes1)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -970,14 +970,14 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 	)
 
 	_ = bfd.AddHeader(
-		&block.Header{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
 		[]byte("hash1"),
 		process.BHProcessed,
 		nil,
 		nil)
 
 	state := process.BHProposed
-	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
+	hdr1 := &block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	rounderMock.RoundIndex = 5
 	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
 	assert.False(t, bfd.ShouldForceFork())
@@ -996,7 +996,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 
 	bfd.SetFinalCheckpoint(0, 0, nil)
 	_ = bfd.AddHeader(
-		&block.Header{PubKeysBitmap: []byte("X"), Nonce: 0, Round: 28},
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 0, Round: 28},
 		[]byte("hash1"),
 		process.BHProcessed,
 		nil,

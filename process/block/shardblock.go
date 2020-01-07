@@ -447,7 +447,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks := sp.getTrackedMetaBlocks(round)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.MetaBlocks())
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.MetaBlocks().MaxSize())
 	if err != nil {
 		log.Debug("requestHeadersIfMissing", "error", err.Error())
 	}
@@ -923,6 +923,7 @@ func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []by
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
+		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error())
 		return nil, nil
 	}
 

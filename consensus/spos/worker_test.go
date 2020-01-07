@@ -32,7 +32,7 @@ func initWorker() *spos.Worker {
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error {
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		return nil
 	}
 	keyGeneratorMock, _, _ := mock.InitKeys()
@@ -660,7 +660,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalsHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		return nil
 	}
 	keyGeneratorMock, _, _ := mock.InitKeys()

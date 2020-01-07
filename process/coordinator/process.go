@@ -415,7 +415,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniVal, _ := tc.miniBlockPool.Peek([]byte(key))
 		if miniVal == nil {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
-			log.Debug("onRequestMiniBlock", "shard", senderShardId, "hash", []byte(key))
 			continue
 		}
 
@@ -437,27 +436,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
-			log.Debug("RequestTransactionsForMiniBlock",
-				"hash", []byte(key),
-				"type", miniBlock.Type,
-				"sender shard", miniBlock.SenderShardID,
-				"receiver shard", miniBlock.ReceiverShardID,
-				"txs in mini block", len(miniBlock.TxHashes),
-				"nb txs requested", requestedTxs,
-			)
 			continue
 		}
 
 		err := tc.processCompleteMiniBlock(preproc, miniBlock, haveTime)
 		if err != nil {
-			log.Debug("processCompleteMiniBlock",
-				"hash", []byte(key),
-				"type", miniBlock.Type,
-				"sender shard", miniBlock.SenderShardID,
-				"receiver shard", miniBlock.ReceiverShardID,
-				"txs in mini block", len(miniBlock.TxHashes),
-				"error", err.Error(),
-			)
 			continue
 		}
 
@@ -473,15 +456,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
-
-	log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
-		"header shard", hdr.GetShardID(),
-		"header round", hdr.GetRound(),
-		"header nonce", hdr.GetNonce(),
-		"nb miniblocks", len(miniBlocks),
-		"nb txs", nrTxAdded,
-		"nb mini blocks processed", nrMiniBlocksProcessed,
-		"nb cross mini blocks", len(crossMiniBlockHashes))
 
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }

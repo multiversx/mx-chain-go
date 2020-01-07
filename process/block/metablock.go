@@ -396,7 +396,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	orderedHdrsPerShard := mp.getTrackedHeaders(round)
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.ShardHeaders())
+		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.ShardHeaders().MaxSize())
 		if err != nil {
 			log.Trace("requestHeadersIfMissing", "error", err.Error())
 			continue
@@ -988,8 +988,8 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		finalHeader, finalHeaderHash := mp.getLastSelfNotarizedHeaderForShard(shardID)
-		mp.blockTracker.AddSelfNotarizedHeader(shardID, finalHeader, finalHeaderHash)
+		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderForShard(shardID)
+		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
 	log.Debug("highest final meta block",
@@ -1048,7 +1048,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderForShard(shardID uint32) (data.HeaderHandler, []byte) {
-	//TODO: Implement mechanism to extract last meta header notarized by the given shard
+	//TODO: Implement mechanism to extract last meta header notarized by the given shard if this info will be needed later
 	return nil, nil
 }
 

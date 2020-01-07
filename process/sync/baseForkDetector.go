@@ -299,7 +299,7 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 	bfd.mutFork.Unlock()
 }
 
-// RestoreToGenesis sets class variables to theirs init values
+// RestoreToGenesis sets class variables to theirs initial values
 func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Lock()
 	bfd.headers = make(map[uint64][]*headerInfo)

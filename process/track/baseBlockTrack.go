@@ -368,7 +368,7 @@ func (bbt *baseBlockTrack) RemoveLastNotarizedHeaders() {
 	bbt.selfNotarizer.removeLastNotarizedHeader()
 }
 
-// RestoreToGenesis sets class variables to theirs init values
+// RestoreToGenesis sets class variables to theirs initial values
 func (bbt *baseBlockTrack) RestoreToGenesis() {
 	bbt.crossNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.selfNotarizer.restoreNotarizedHeadersToGenesis()

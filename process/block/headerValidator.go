@@ -62,15 +62,15 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
+	prevHeaderHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(currHeader.GetPrevHash(), prevHash) {
+	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {
 		log.Trace("header hash does not match",
 			"shard", currHeader.GetShardID(),
-			"local header hash", prevHash,
+			"local header hash", prevHeaderHash,
 			"received header with prev hash", currHeader.GetPrevHash(),
 		)
 		return process.ErrBlockHashDoesNotMatch

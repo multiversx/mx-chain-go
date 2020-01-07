@@ -769,7 +769,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
