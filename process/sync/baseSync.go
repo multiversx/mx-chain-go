@@ -27,6 +27,7 @@ var log = logger.GetOrCreate("process/sync")
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const tryRequestHeaderDelta = uint64(5)
 
 // HdrInfo hold the data related to a header
 type HdrInfo struct {
@@ -295,7 +296,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
 
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
+	shouldTrySync := boot.shouldTrySync()
+
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork && !shouldTrySync
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -315,6 +318,23 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
 	return !isNodeSynchronized
+}
+
+func (boot *baseBootstrap) shouldTrySync() bool {
+
+	currHeader := boot.blkc.GetCurrentBlockHeader()
+	if currHeader == nil {
+		return false
+	}
+
+	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
+	if roundDiff < tryRequestHeaderDelta {
+		return false
+	}
+
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
+
+	return shouldTrySync
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
