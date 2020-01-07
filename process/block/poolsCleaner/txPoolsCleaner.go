@@ -80,6 +80,11 @@ func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 	}
 }
 
+// TODO, tx cache cleanup optimization:
+// Getting all the keys of the cache (see below) can be pretty time consuming especially when the txs pool is full.
+// We can redesign the cleanup for the new cache type so that we improve the processing time.
+// One idea is that when cleaning executed tx hashes for a block, we can remove all the txs with lower nonce from the accounts-txs cache, for the respective account as well.
+// https://github.com/ElrondNetwork/elrond-go/pull/863#discussion_r363641694
 func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
 	atomic.StoreUint64(&tpc.numRemovedTxs, 0)
 

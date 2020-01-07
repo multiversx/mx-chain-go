@@ -189,7 +189,7 @@ func (cache *TxCache) RemoveOldest() {
 	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
-// Keys is not implemented
+// Keys returns the tx hashes in the cache
 func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
