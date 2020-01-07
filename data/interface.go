@@ -1,5 +1,16 @@
 package data
 
+import (
+	gproto "github.com/gogo/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
+)
+
+type GogoProtoObj interface {
+	gproto.Marshaler
+	gproto.Unmarshaler
+	proto.Message
+}
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
