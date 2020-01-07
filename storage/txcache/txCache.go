@@ -140,6 +140,10 @@ func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
 }
 
+func (cache *TxCache) countTxBySender(sender string) int {
+	return cache.txListBySender.countTxBySender(sender)
+}
+
 // forEachSender iterates over the senders in the cache
 func (cache *TxCache) forEachSender(function ForEachSender) {
 	cache.txListBySender.forEach(function)

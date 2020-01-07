@@ -139,12 +139,12 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind data.Transa
 
 // HasMoreThan checks whether the list has more items than specified
 func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
-	return uint32(listForSender.items.Len()) > count
+	return uint32(listForSender.countTx()) > count
 }
 
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
-	return listForSender.items.Len() == 0
+	return listForSender.countTx() == 0
 }
 
 // copyBatchTo copies a batch (usually small) of transactions to a destination slice
@@ -188,7 +188,7 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	result := make([][]byte, listForSender.items.Len())
+	result := make([][]byte, listForSender.countTx())
 
 	index := 0
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
@@ -212,4 +212,8 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 
 	value := back.Value.(txListForSenderNode)
 	return value.tx
+}
+
+func (listForSender *txListForSender) countTx() int {
+	return listForSender.items.Len()
 }

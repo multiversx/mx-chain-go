@@ -247,9 +247,10 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	// Alice sends another transaction
 	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(200), 872, 15))
+	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(201), 872, 15))
 
 	// Only latest Alice's transaction remains in cache
+	require.Equal(t, int64(1), cache.CountTx())
 	require.Equal(t, int64(872+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
 	// The eviction takes place in pass 0
 	require.Equal(t, uint32(201), cache.evictionJournal.passZeroNumTxs)
@@ -257,13 +258,55 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
 
 	// Bob and Carol send transactions, with different gas price
-	for i := 0; i < 50; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 872, 15))
+	for i := 0; i < 100; i++ {
+		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 872, 30))
 	}
 
-	for i := 0; i < 50; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 872, 15))
+	for i := 0; i < 100; i++ {
+		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 872, 20))
 	}
+
+	// 100 from Bob, 100 from Carol, one from Alice
+	require.Equal(t, 1, cache.countTxBySender("alice"))
+	require.Equal(t, 100, cache.countTxBySender("bob"))
+	require.Equal(t, 100, cache.countTxBySender("carol"))
+	require.Equal(t, int64(3), cache.CountSenders())
+	require.Equal(t, int64(201000), cache.VolumeInBytes())
+
+	// Carol sends another transaction
+	// This transaction will cause eviction
+	cache.AddTx([]byte(fmt.Sprintf("carol-foo")), createTxWithGas("carol", uint64(100), 872, 15))
+
+	// Alice's transaction is evicted (lowest total gas), Alice is evicted (no more transactions)
+	// The eviction takes place in pass 0
+	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+
+	// All other transactions (from Bob and Carol) are still in place
+	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
+	require.Equal(t, 0, cache.countTxBySender("alice"))
+	require.Equal(t, 100, cache.countTxBySender("bob"))
+	require.Equal(t, 101, cache.countTxBySender("carol"))
+	require.Equal(t, int64(2), cache.CountSenders())
+	require.Equal(t, int64(201000), cache.VolumeInBytes())
+
+	// Carol sends another transaction
+	// This transaction will cause eviction, again
+	cache.AddTx([]byte(fmt.Sprintf("carol-bar")), createTxWithGas("carol", uint64(101), 872, 15))
+
+	// Carol is evicted (lowest total gas), Bob remains.
+	// Then Carol is added again, with the new transaction (this isn't very good, since lower nonce transactions are evicted, but this is how the cache works)
+	// The eviction takes place in pass 0
+	require.Equal(t, uint32(101), cache.evictionJournal.passZeroNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+
+	// Bob's transactions remain, and Carol has the "bar" transaction
+	require.Equal(t, 100, cache.countTxBySender("bob"))
+	require.Equal(t, 1, cache.countTxBySender("carol"))
+	require.Equal(t, int64(2), cache.CountSenders())
+	require.Equal(t, int64(101000), cache.VolumeInBytes())
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
