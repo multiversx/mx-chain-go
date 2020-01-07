@@ -238,7 +238,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	}
 }
 
-func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepted(t *testing.T) {
+func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

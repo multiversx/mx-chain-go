@@ -227,7 +227,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
