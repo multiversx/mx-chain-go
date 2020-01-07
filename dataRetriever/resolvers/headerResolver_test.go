@@ -26,7 +26,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
@@ -44,7 +44,7 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilHeadersDataPool, err)
@@ -62,7 +62,7 @@ func TestNewHeaderResolver_NilHeadersNoncesPoolShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesDataPool, err)
@@ -80,7 +80,7 @@ func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
@@ -98,7 +98,7 @@ func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesStorage, err)
@@ -116,7 +116,7 @@ func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		nil,
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -134,7 +134,7 @@ func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nil,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
@@ -170,7 +170,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.NotNil(t, hdrRes)
@@ -213,7 +213,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId)
@@ -231,7 +231,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), fromConnectedPeerId)
@@ -272,7 +272,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId)
@@ -320,7 +320,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		&mock.StorerStub{},
 		marshalizerStub,
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId)
@@ -366,7 +366,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId)
@@ -390,7 +390,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), fromConnectedPeerId)
@@ -428,7 +428,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		},
 		&mock.MarshalizerMock{},
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(
@@ -493,7 +493,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(
@@ -565,7 +565,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(
@@ -634,7 +634,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := hdrRes.ProcessReceivedMessage(
@@ -672,7 +672,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested))
@@ -701,7 +701,7 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested))

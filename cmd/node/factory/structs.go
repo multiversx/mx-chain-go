@@ -117,7 +117,7 @@ var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
-var durationSweepP2pBlacklist = time.Second * 5
+var durationSweepP2PBlacklist = time.Second * 5
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -530,7 +530,7 @@ func createAntifloodAndBlackListComponents(
 	maxMessagesPerSecond := mainConfig.Antiflood.MaxMessagesPerSecond
 	maxTotalSizePerSecond := mainConfig.Antiflood.MaxTotalSizePerSecond
 
-	quotaProcessor, err := p2pQuota.NewP2pQuotaProcessor(status)
+	quotaProcessor, err := p2pQuota.NewP2PQuotaProcessor(status)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -541,7 +541,7 @@ func createAntifloodAndBlackListComponents(
 	}
 
 	p2pPeerBlackList := timecache.NewTimeCache(time.Second * time.Duration(peerBanInSeconds))
-	blackListProcessor, err := processAntiflood.NewP2pBlackListProcessor(
+	blackListProcessor, err := processAntiflood.NewP2PBlackListProcessor(
 		blackListCache,
 		p2pPeerBlackList,
 		mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
@@ -576,9 +576,9 @@ func createAntifloodAndBlackListComponents(
 	)
 
 	startResetingFloodPreventer(floodPreventer)
-	startSweepingP2pPeerBlackList(p2pPeerBlackList)
+	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
-	p2pAntiflood, err := antiflood.NewP2pAntiflood(floodPreventer)
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -595,10 +595,10 @@ func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
 	}()
 }
 
-func startSweepingP2pPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
+func startSweepingP2PPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
 	go func() {
 		for {
-			time.Sleep(durationSweepP2pBlacklist)
+			time.Sleep(durationSweepP2PBlacklist)
 			p2pPeerBlackList.Sweep()
 		}
 	}()

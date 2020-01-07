@@ -11,27 +11,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewP2pAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
+func TestNewP2PAntiflood_NilFloodPreventerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood.NewP2pAntiflood(nil)
+	afm, err := antiflood.NewP2PAntiflood(nil)
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, p2p.ErrNilFloodPreventer))
 }
 
-func TestNewP2pAntiflood_ShouldWork(t *testing.T) {
+func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
+	afm, err := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{})
 
 	assert.False(t, check.IfNil(afm))
 	assert.Nil(t, err)
 }
 
-func TestP2pAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
+func TestP2PAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{})
 
 	afm.FloodPreventer = nil
 	assert.True(t, check.IfNil(afm))
@@ -39,26 +39,26 @@ func TestP2pAntiflood_SettingInnerFloodPreventerToNil(t *testing.T) {
 
 //------- CanProcessMessage
 
-func TestP2pAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T) {
+func TestP2PAntiflood_CanProcessMessageNilFloodPreventerShouldError(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{})
 	afm.FloodPreventer = nil
 
 	err := afm.CanProcessMessage(&mock.P2PMessageMock{}, "connected peer")
 	assert.Equal(t, p2p.ErrNilFloodPreventer, err)
 }
 
-func TestP2pAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
+func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{})
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{})
 
 	err := afm.CanProcessMessage(nil, "connected peer")
 	assert.Equal(t, p2p.ErrNilMessage, err)
 }
 
-func TestP2pAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) {
+func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) {
 	t.Parallel()
 
 	messageOriginator := []byte("originator")
@@ -67,7 +67,7 @@ func TestP2pAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 		DataField: []byte("data"),
 		FromField: messageOriginator,
 	}
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			if identifier != fromConnectedPeer.Pretty() {
 				assert.Fail(t, "should have been the connected peer")
@@ -81,7 +81,7 @@ func TestP2pAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
 }
 
-func TestP2pAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) {
+func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) {
 	t.Parallel()
 
 	messageOriginator := []byte("originator")
@@ -91,7 +91,7 @@ func TestP2pAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 		FromField: messageOriginator,
 		PeerField: p2p.PeerID(messageOriginator),
 	}
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			return identifier == fromConnectedPeer.Pretty()
 		},
@@ -104,7 +104,7 @@ func TestP2pAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
 }
 
-func TestP2pAntiflood_ShouldWork(t *testing.T) {
+func TestP2PAntiflood_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	messageOriginator := []byte("originator")
@@ -113,7 +113,7 @@ func TestP2pAntiflood_ShouldWork(t *testing.T) {
 		DataField: []byte("data"),
 		PeerField: p2p.PeerID(messageOriginator),
 	}
-	afm, _ := antiflood.NewP2pAntiflood(&mock.FloodPreventerStub{
+	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
 		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
 			return true
 		},

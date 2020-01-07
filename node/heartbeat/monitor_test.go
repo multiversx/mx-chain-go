@@ -16,7 +16,7 @@ import (
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
-func createMockP2pAntifloodHandler() *mock.P2PAntifloodHandlerStub {
+func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
@@ -38,7 +38,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -57,7 +57,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -76,7 +76,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		nil,
 		&mock.HeartbeatStorerStub{},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -95,7 +95,7 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		nil,
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -113,7 +113,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
 		nil,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, mon)
@@ -164,7 +164,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 			},
 		},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.NotNil(t, mon)
@@ -204,7 +204,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 			},
 		},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.NotNil(t, mon)
@@ -234,7 +234,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		map[uint32][]string{0: {pubKey}},
 		time.Now(),
 		&mock.MessageHandlerStub{
-			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+			CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 				var rcvHb heartbeat.Heartbeat
 				_ = json.Unmarshal(message.Data(), &rcvHb)
 				return &rcvHb, nil
@@ -258,7 +258,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 			},
 		},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -293,7 +293,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		map[uint32][]string{0: {"pk2"}},
 		time.Now(),
 		&mock.MessageHandlerStub{
-			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+			CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 				var rcvHb heartbeat.Heartbeat
 				_ = json.Unmarshal(message.Data(), &rcvHb)
 				return &rcvHb, nil
@@ -317,7 +317,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 			},
 		},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -356,7 +356,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 		time.Now(),
 		&mock.MessageHandlerStub{
-			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+			CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 				var rcvHb heartbeat.Heartbeat
 				_ = json.Unmarshal(message.Data(), &rcvHb)
 				return &rcvHb, nil
@@ -380,7 +380,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 			},
 		},
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	// First send from pk1 from shard 0
@@ -443,7 +443,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		map[uint32][]string{0: {pubKey1, pubKey2}},
 		th.Now(),
 		&mock.MessageHandlerStub{
-			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+			CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 				var rcvHb heartbeat.Heartbeat
 				_ = json.Unmarshal(message.Data(), &rcvHb)
 				return &rcvHb, nil
@@ -451,7 +451,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		},
 		storer,
 		th,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	// First send from pk1

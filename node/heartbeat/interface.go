@@ -14,7 +14,7 @@ type PeerMessenger interface {
 
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
-	CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error)
+	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error)
 	IsInterfaceNil() bool
 }
 

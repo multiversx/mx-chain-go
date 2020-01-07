@@ -16,9 +16,9 @@ type p2pBlackListProcessor struct {
 	numFloodingRounds          uint32
 }
 
-// NewP2pBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
+// NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
 // a flooding peer and mark it accordingly
-func NewP2pBlackListProcessor(
+func NewP2PBlackListProcessor(
 	cacher storage.Cacher,
 	blacklistHandler process.BlackListHandler,
 	thresholdNumReceivedFlood uint32,
@@ -27,10 +27,10 @@ func NewP2pBlackListProcessor(
 ) (*p2pBlackListProcessor, error) {
 
 	if check.IfNil(cacher) {
-		return nil, fmt.Errorf("%w, NewP2pBlackListProcessor", process.ErrNilCacher)
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)
 	}
 	if check.IfNil(blacklistHandler) {
-		return nil, fmt.Errorf("%w, NewP2pBlackListProcessor", process.ErrNilBlackListHandler)
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListHandler)
 	}
 	if thresholdNumReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdNumReceivedFlood == 0", process.ErrInvalidValue)

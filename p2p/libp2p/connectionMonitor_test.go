@@ -64,7 +64,7 @@ func TestNewConnectionMonitor_InvalidTargetCountShouldErr(t *testing.T) {
 	assert.True(t, check.IfNil(cm))
 }
 
-func TestNewConnectionMonitor_NilLibP2pContextShouldErr(t *testing.T) {
+func TestNewConnectionMonitor_NilLibP2PContextShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cm, err := newConnectionMonitor(&mock.ReconnecterStub{}, nil, 3, 1)

@@ -166,7 +166,7 @@ func createBlacklistHandlersAndProcessors(
 		blacklistCache, _ := lrucache.NewCache(5000)
 		blacklistHandlers[i] = timecache.NewTimeCache(time.Minute * 5)
 
-		blacklistProcessors[i], _ = antiflood.NewP2pBlackListProcessor(
+		blacklistProcessors[i], _ = antiflood.NewP2PBlackListProcessor(
 			blacklistCache,
 			blacklistHandlers[i],
 			thresholdNumReceived,
