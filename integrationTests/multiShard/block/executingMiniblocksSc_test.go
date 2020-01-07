@@ -453,7 +453,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	nodeShard0 := nodesMap[0][0]
 	txData := "DEADBEEF@" + hex.EncodeToString(factory.InternalTestingVM) + "@00"
 	dummyTx := &transaction.Transaction{
-		Data: txData,
+		Data: []byte(txData),
 	}
 	gasLimit := nodeShard0.EconomicsData.ComputeGasLimit(dummyTx)
 	gasLimit += integrationTests.OpGasValueForMockVm
