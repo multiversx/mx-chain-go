@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+
+// MiniBlockData is the data to be saved in shard account for any shard
+message MiniBlockData {
+	bytes  Hash            = 1;
+	uint32 ReceiverShardId = 2;
+	uint32 SenderShardId   = 3;
+	uint32 TxCount         = 4;
+}
+
+
+// MetaAccountData is the struct used in serialization/deserialization
+message MetaAccountData {
+	uint64           Round         = 1;
+	uint64           Nonce         = 2;
+	bytes            TxCount       = 3 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"];
+	bytes            CodeHash      = 4;
+	bytes            RootHash      = 5;
+	repeated MiniBlockData MiniBlocks    = 6;
+	bytes            PubKeyLeader  = 7;
+	bytes            ShardRootHash = 8;
+}

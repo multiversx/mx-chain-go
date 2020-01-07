@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+
+
+// TimeStamp is a moment defined by epoch and round
+message TimeStamp {
+	uint64 Epoch = 1;
+	uint64 Round = 2;
+}
+
+// TimePeriod holds start and end time
+message TimePeriod {
+	TimeStamp StartTime = 1 [(gogoproto.nullable) = false];
+	TimeStamp EndTime   = 2 [(gogoproto.nullable) = false];
+}
+
+// SignRate is used to keep the number of success and failed signings
+message SignRate {
+	uint32 NrSuccess = 1;
+	uint32 NrFailure = 2;
+}
+
+
+message PeerAccountData {
+	bytes BLSPublicKey       = 1;
+	bytes SchnorrPublicKey   = 2;
+	bytes Address            = 3;
+	bytes Stake  = 4 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+	TimePeriod  JailTime     = 5 [(gogoproto.nullable) = false];
+	repeated TimePeriod PastJailTimes = 6 [(gogoproto.nullable) = false];
+	uint32 CurrentShardId    = 7;
+	uint32 NextShardId       = 8;
+	bool   NodeInWaitingList = 9;
+	uint64 UnStakedNonce     = 10;
+	SignRate ValidatorSuccessRate = 11 [(gogoproto.nullable) = false];
+	SignRate LeaderSuccessRate    = 12 [(gogoproto.nullable) = false];
+	bytes CodeHash  = 13;
+	uint32 Rating   = 14;
+	bytes  RootHash = 15;
+	uint64 Nonce    = 16;
+
+}

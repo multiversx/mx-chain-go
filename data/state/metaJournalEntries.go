@@ -53,13 +53,13 @@ func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*Met
 
 	return &MetaJournalEntryTxCount{
 		account:    account,
-		oldTxCount: oldTxCount,
+		oldTxCount: new(big.Int).Set(oldTxCount),
 	}, nil
 }
 
 // Revert applies undo operation
 func (jen *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
-	jen.account.TxCount = jen.oldTxCount
+	jen.account.TxCount.Set(jen.oldTxCount)
 
 	return jen.account, nil
 }
