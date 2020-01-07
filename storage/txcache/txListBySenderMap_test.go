@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -69,4 +71,39 @@ func Test_GetListsSortedByOrderNumber(t *testing.T) {
 	require.Equal(t, "alice", lists[0].sender)
 	require.Equal(t, "bob", lists[1].sender)
 	require.Equal(t, "carol", lists[2].sender)
+}
+
+func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
+	myMap := newTxListBySenderMap(4)
+
+	for i := 0; i < 100; i++ {
+		sender := fmt.Sprintf("Sender-%d", i)
+		hash := createFakeTxHash([]byte(sender), 1)
+		myMap.addTx(hash, createTx(sender, uint64(1)))
+	}
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+
+		go func() {
+			for j := 0; j < 100; j++ {
+				myMap.GetListsSortedByOrderNumber()
+			}
+
+			wg.Done()
+		}()
+
+		go func() {
+			for j := 0; j < 1000; j++ {
+				sender := fmt.Sprintf("Sender-%d", j)
+				myMap.removeSender(sender)
+			}
+
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }

@@ -104,12 +104,15 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
 func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	lists := make([]*txListForSender, txMap.counter.Get())
+	counter := txMap.counter.Get()
+	if counter < 1 {
+		return make([]*txListForSender, 0)
+	}
 
-	index := 0
+	lists := make([]*txListForSender, 0, counter)
+
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
-		lists[index] = item.(*txListForSender)
-		index++
+		lists = append(lists, item.(*txListForSender))
 	})
 
 	sort.Slice(lists, func(i, j int) bool {
