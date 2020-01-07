@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../../agar_v1_min.hex"
 var stepDelay = time.Second
 
 func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
@@ -31,7 +31,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
-	numOfNodes := 2
+	numOfNodes := 4
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
@@ -48,7 +48,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 2
+	numPlayers := 10
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)

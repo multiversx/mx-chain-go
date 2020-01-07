@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
 	"sync"
@@ -63,9 +62,6 @@ func (adb *AccountsDB) PutCode(accountHandler AccountHandler, code []byte) error
 	}
 	if check.IfNil(accountHandler) {
 		return ErrNilAccountHandler
-	}
-	if bytes.Equal(accountHandler.GetCode(), code) {
-		return nil
 	}
 
 	codeHash := adb.hasher.Compute(string(code))

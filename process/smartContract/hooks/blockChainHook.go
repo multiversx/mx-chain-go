@@ -139,26 +139,21 @@ func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	log.Trace("GetStorageData ", "address", accountAddress, "index", index)
-
 	exists, err := bh.AccountExists(accountAddress)
 	if err != nil {
-		log.Trace("GetStorageData return ", "error", err)
 		return nil, err
 	}
 	if !exists {
-		log.Trace("GetStorageData return nil, nil")
 		return make([]byte, 0), nil
 	}
 
 	account, err := bh.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
-		log.Trace("GetStorageData return ", "error", err)
 		return nil, err
 	}
 
 	value, err := account.DataTrieTracker().RetrieveValue(index)
-	log.Trace("GetStorageData return ", "value", value, "error", err)
+	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
 	return value, err
 }
 

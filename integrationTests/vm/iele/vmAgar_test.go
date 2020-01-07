@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../../agar_v1_min.hex"
 
 func TestDeployAgarioContract(t *testing.T) {
 	scCode, err := ioutil.ReadFile(agarioFile)
@@ -192,6 +193,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:TRACE")
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
