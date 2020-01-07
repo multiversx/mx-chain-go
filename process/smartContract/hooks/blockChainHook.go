@@ -13,10 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
@@ -149,7 +152,9 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	return account.DataTrieTracker().RetrieveValue(index)
+	value, err := account.DataTrieTracker().RetrieveValue(index)
+	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
+	return value, err
 }
 
 // IsCodeEmpty returns if the code is empty

@@ -71,8 +71,7 @@ type baseProcessor struct {
 	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
 
-	hdrsForCurrBlock                  hdrForBlock
-	lowestNonceInSelfNotarizedHeaders uint64
+	hdrsForCurrBlock hdrForBlock
 
 	appStatusHandler core.AppStatusHandler
 }
@@ -794,15 +793,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
 	}
 
-	if len(selfNotarizedHeaders) > 0 {
-		bp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
-	}
-
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                headerInfo,
 		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
-		HighestFinalBlockNonce:    bp.lowestNonceInSelfNotarizedHeaders,
+		HighestFinalBlockNonce:    highestFinalBlockNonce,
 		ProcessedMiniBlocks:       processedMiniBlocks,
 	}
 
