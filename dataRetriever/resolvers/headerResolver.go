@@ -151,7 +151,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) 
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
 func (hdrRes *HeaderResolver) parseReceivedMessage(message p2p.MessageP2P) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(hdrRes.marshalizer, message)
+	err := rd.UnmarshalWith(hdrRes.marshalizer, message)
 	if err != nil {
 		return nil, err
 	}
