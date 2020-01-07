@@ -70,15 +70,12 @@ func (sw *stopWatch) Stop(identifier string) {
 func (sw *stopWatch) GetMeasurements() []interface{} {
 	data, newIdentifiers := sw.getContainingDuration()
 
-	sw.mut.Lock()
-
 	output := make([]interface{}, 0)
 	for _, identifier := range newIdentifiers {
 		duration := data[identifier]
 		output = append(output, identifier)
 		output = append(output, fmt.Sprintf(MeasurementsLoggerFormat, duration.Seconds()))
 	}
-	sw.mut.Unlock()
 
 	return output
 }
