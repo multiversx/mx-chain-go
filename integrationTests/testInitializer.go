@@ -787,7 +787,7 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 		return tx.Nonce
 	}
 
-	buff, _ := hex.DecodeString(txHandler.GetData())
+	buff := txHandler.GetData()
 	return binary.BigEndian.Uint64(buff)
 }
 
@@ -939,7 +939,7 @@ func CreateAndSendTransaction(
 		Value:    txValue,
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
@@ -956,7 +956,7 @@ func CreateAndSendTransactionWithGasLimit(
 	txValue *big.Int,
 	gasLimit uint64,
 	rcvAddress []byte,
-	txData string,
+	txData []byte,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -1000,7 +1000,7 @@ func generateTransferTx(
 		Value:    valToTransfer,
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
-		Data:     "",
+		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -1023,7 +1023,7 @@ func generateTx(
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
-		Data:     args.data,
+		Data:     []byte(args.data),
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)

@@ -266,7 +266,7 @@ func playersDoTopUp(
 	txValue *big.Int,
 ) {
 	for _, player := range players {
-		createAndSendTx(node, player, txValue, 20000, scAddress, "topUp")
+		createAndSendTx(node, player, txValue, 20000, scAddress, []byte("topUp"))
 	}
 }
 
@@ -279,7 +279,7 @@ func playersDoTransfer(
 	for _, playerToTransfer := range players {
 		for _, player := range players {
 			createAndSendTx(node, player, big.NewInt(0), 20000, scAddress,
-				"transfer@"+hex.EncodeToString(playerToTransfer.Address.Bytes())+"@"+hex.EncodeToString(txValue.Bytes()))
+				[]byte("transfer@"+hex.EncodeToString(playerToTransfer.Address.Bytes())+"@"+hex.EncodeToString(txValue.Bytes())))
 		}
 	}
 }
@@ -290,7 +290,7 @@ func createAndSendTx(
 	txValue *big.Int,
 	gasLimit uint64,
 	rcvAddress []byte,
-	txData string,
+	txData []byte,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    player.Nonce,
