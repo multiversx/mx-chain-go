@@ -15,3 +15,6 @@ var ErrCrossNotarizedHeadersNotifier = errors.New("nil cross notarized header no
 
 // ErrSelfNotarizedHeadersNotifier signals that a nil block notifier handler has been provided
 var ErrSelfNotarizedHeadersNotifier = errors.New("nil self notarized header notifier")
+
+// ErrNotarizedHeaderOffsetIsOutOfBound signals that a requested offset of the notarized header is out of bound
+var ErrNotarizedHeaderOffsetIsOutOfBound = errors.New("requested offset of the notarized header is out of bound")

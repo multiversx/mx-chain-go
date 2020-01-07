@@ -179,21 +179,19 @@ func (bp *blockProcessor) getNextHeader(
 			break
 		}
 
-		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
-			err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
-			if err != nil {
-				continue
-			}
-
-			err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
-			if err != nil {
-				continue
-			}
-
-			headersIndexes = append(headersIndexes, i)
-			bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
-			headersIndexes = headersIndexes[:len(headersIndexes)-1]
+		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
+		if err != nil {
+			continue
 		}
+
+		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
+		if err != nil {
+			continue
+		}
+
+		headersIndexes = append(headersIndexes, i)
+		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
+		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
 }
 
@@ -216,15 +214,13 @@ func (bp *blockProcessor) checkHeaderFinality(
 			break
 		}
 
-		if currHeader.GetNonce() == prevHeader.GetNonce()+1 {
-			err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
-			if err != nil {
-				continue
-			}
-
-			prevHeader = currHeader
-			numFinalityAttestingHeaders += 1
+		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
+		if err != nil {
+			continue
 		}
+
+		prevHeader = currHeader
+		numFinalityAttestingHeaders += 1
 	}
 
 	if numFinalityAttestingHeaders < bp.blockFinality {

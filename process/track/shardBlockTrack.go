@@ -68,12 +68,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	err = bbt.crossNotarizer.initNotarizedHeaders(arguments.StartHeaders)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bbt.selfNotarizer.initNotarizedHeaders(arguments.StartHeaders)
+	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +127,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
+		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
 	}
 

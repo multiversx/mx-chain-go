@@ -67,12 +67,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	err = bbt.crossNotarizer.initNotarizedHeaders(arguments.StartHeaders)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bbt.selfNotarizer.initNotarizedHeaders(arguments.StartHeaders)
+	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +122,7 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := mbt.selfNotarizer.getLastNotarizedHeader(mbt.shardCoordinator.SelfId())
 	if err != nil {
+		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
 	}
 

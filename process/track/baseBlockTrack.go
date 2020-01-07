@@ -246,32 +246,7 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeader(shardID uint32) (data.Hea
 	return bbt.crossNotarizer.getLastNotarizedHeader(shardID)
 }
 
-// GetLastHeader returns the last header received (highest round) for the given shard
-func (bbt *baseBlockTrack) GetLastHeader(shardID uint32) data.HeaderHandler {
-	bbt.mutHeaders.RLock()
-	defer bbt.mutHeaders.RUnlock()
-
-	var lastHeaderForShard data.HeaderHandler
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		return lastHeaderForShard
-	}
-
-	maxRound := uint64(0)
-	for _, headersInfo := range headersForShard {
-		for _, headerInfo := range headersInfo {
-			if headerInfo.header.GetRound() > maxRound {
-				maxRound = headerInfo.header.GetRound()
-				lastHeaderForShard = headerInfo.header
-			}
-		}
-	}
-
-	return lastHeaderForShard
-}
-
-// GetTrackedHeadersForShard returns tracked headers for a given shard
+// GetTrackedHeaders returns tracked headers for a given shard
 func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	return bbt.sortHeadersFromNonce(shardID, 0)
 }
@@ -340,13 +315,37 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardId uint32) bool {
-	header := bbt.GetLastHeader(shardId)
+	header := bbt.getLastHeader(shardId)
 	if check.IfNil(header) {
 		return false
 	}
 
 	isShardStuck := bbt.rounder.Index()-int64(header.GetRound()) >= process.MaxRoundsWithoutCommittedBlock
 	return isShardStuck
+}
+
+func (bbt *baseBlockTrack) getLastHeader(shardID uint32) data.HeaderHandler {
+	bbt.mutHeaders.RLock()
+	defer bbt.mutHeaders.RUnlock()
+
+	var lastHeaderForShard data.HeaderHandler
+
+	headersForShard, ok := bbt.headers[shardID]
+	if !ok {
+		return lastHeaderForShard
+	}
+
+	maxRound := uint64(0)
+	for _, headersInfo := range headersForShard {
+		for _, headerInfo := range headersInfo {
+			if headerInfo.header.GetRound() > maxRound {
+				maxRound = headerInfo.header.GetRound()
+				lastHeaderForShard = headerInfo.header
+			}
+		}
+	}
+
+	return lastHeaderForShard
 }
 
 // RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
@@ -405,6 +404,20 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
+	}
+
+	return nil
+}
+
+func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
+	err := bbt.crossNotarizer.initNotarizedHeaders(startHeaders)
+	if err != nil {
+		return err
+	}
+
+	err = bbt.selfNotarizer.initNotarizedHeaders(startHeaders)
+	if err != nil {
+		return err
 	}
 
 	return nil
