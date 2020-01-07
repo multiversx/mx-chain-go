@@ -151,7 +151,7 @@ func (bfd *baseForkDetector) removePastCheckpoints() {
 
 func (bfd *baseForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 	bfd.mutFork.Lock()
-	var preservedCheckpoint []*checkpointInfo
+	preservedCheckpoint := make([]*checkpointInfo, 0)
 
 	for i := 0; i < len(bfd.fork.checkpoint); i++ {
 		if bfd.fork.checkpoint[i].nonce < nonce {
@@ -214,7 +214,7 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 	bfd.mutFork.Lock()
-	var preservedCheckpoint []*checkpointInfo
+	preservedCheckpoint := make([]*checkpointInfo, 0)
 
 	for i := 0; i < len(bfd.fork.checkpoint); i++ {
 		if bfd.fork.checkpoint[i].nonce == nonce {
@@ -299,8 +299,8 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 	bfd.mutFork.Unlock()
 }
 
-// RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
-func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
+// RestoreToGenesis sets class variables to theirs init values
+func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Lock()
 	bfd.headers = make(map[uint64][]*headerInfo)
 	bfd.mutHeaders.Unlock()
@@ -312,6 +312,9 @@ func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) finalCheckpoint() *checkpointInfo {

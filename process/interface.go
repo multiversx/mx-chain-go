@@ -289,7 +289,7 @@ type ForkDetector interface {
 	ProbableHighestNonce() uint64
 	ResetFork()
 	SetRollBackNonce(nonce uint64)
-	RestoreFinalCheckPointToGenesis()
+	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	IsInterfaceNil() bool
 }
@@ -616,6 +616,6 @@ type BlockTracker interface {
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
-	RestoreHeadersToGenesis()
+	RestoreToGenesis()
 	IsInterfaceNil() bool
 }

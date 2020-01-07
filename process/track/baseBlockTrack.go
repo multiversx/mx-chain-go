@@ -368,8 +368,8 @@ func (bbt *baseBlockTrack) RemoveLastNotarizedHeaders() {
 	bbt.selfNotarizer.removeLastNotarizedHeader()
 }
 
-// RestoreHeadersToGenesis restores notarized headers from tracker lists to genesis
-func (bbt *baseBlockTrack) RestoreHeadersToGenesis() {
+// RestoreToGenesis sets class variables to theirs init values
+func (bbt *baseBlockTrack) RestoreToGenesis() {
 	bbt.crossNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.selfNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.restoreTrackedHeadersToGenesis()

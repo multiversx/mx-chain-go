@@ -42,6 +42,7 @@ func NewShardForkDetector(
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
+	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
@@ -164,22 +165,27 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
 	sfd.mutHeaders.RLock()
 	for nonce, headersInfo := range sfd.headers {
+		if sfd.finalCheckpoint().nonce >= nonce {
+			continue
+		}
+
 		indexBHProcessed, indexBHNotarized := sfd.getProcessedAndNotarizedIndexes(headersInfo)
 		isProcessedBlockAlreadyNotarized := indexBHProcessed != -1 && indexBHNotarized != -1
-		if isProcessedBlockAlreadyNotarized {
-			finalNonce := sfd.finalCheckpoint().nonce
-			if finalNonce < nonce {
-				sameHash := bytes.Equal(headersInfo[indexBHNotarized].hash, headersInfo[indexBHProcessed].hash)
-				if sameHash {
-					checkPointInfo := checkpointInfo{
-						nonce: nonce,
-						round: headersInfo[indexBHNotarized].round,
-						hash:  headersInfo[indexBHNotarized].hash,
-					}
-					sfd.setFinalCheckpoint(&checkPointInfo)
-				}
-			}
+		if !isProcessedBlockAlreadyNotarized {
+			continue
 		}
+
+		sameHash := bytes.Equal(headersInfo[indexBHNotarized].hash, headersInfo[indexBHProcessed].hash)
+		if !sameHash {
+			continue
+		}
+
+		checkPointInfo := checkpointInfo{
+			nonce: nonce,
+			round: headersInfo[indexBHNotarized].round,
+			hash:  headersInfo[indexBHNotarized].hash,
+		}
+		sfd.setFinalCheckpoint(&checkPointInfo)
 	}
 	sfd.mutHeaders.RUnlock()
 }

@@ -192,8 +192,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 	defer func() {
 		if err != nil {
-			st.forkDetector.RestoreFinalCheckPointToGenesis()
-			st.blockTracker.RestoreHeadersToGenesis()
+			st.forkDetector.RestoreToGenesis()
+			st.blockTracker.RestoreToGenesis()
 		}
 	}()
 

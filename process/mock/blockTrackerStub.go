@@ -30,7 +30,7 @@ type BlockTrackerStub struct {
 	RegisterCrossNotarizedHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandlerCalled  func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled           func()
-	RestoreHeadersToGenesisCalled              func()
+	RestoreToGenesisCalled                     func()
 
 	mutCrossNotarizedHeaders sync.RWMutex
 	crossNotarizedHeaders    map[uint32][]*headerInfo
@@ -227,9 +227,9 @@ func (bts *BlockTrackerStub) RemoveLastNotarizedHeaders() {
 	}
 }
 
-func (bts *BlockTrackerStub) RestoreHeadersToGenesis() {
-	if bts.RestoreHeadersToGenesisCalled != nil {
-		bts.RestoreHeadersToGenesisCalled()
+func (bts *BlockTrackerStub) RestoreToGenesis() {
+	if bts.RestoreToGenesisCalled != nil {
+		bts.RestoreToGenesisCalled()
 	}
 }
 

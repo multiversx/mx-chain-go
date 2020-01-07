@@ -40,6 +40,7 @@ func NewMetaForkDetector(
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
+	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
