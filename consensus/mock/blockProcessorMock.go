@@ -5,24 +5,26 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
-	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
-	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func() data.HeaderHandler
+	ProcessBlockCalled                  func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                   func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled            func()
+	RevertStateToBlockCalled            func(header data.HeaderHandler) error
+	CreateGenesisBlockCalled            func(balances map[string]*big.Int) (data.HeaderHandler, error)
+	CreateBlockCalled                   func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled         func(header data.HeaderHandler, body data.BodyHandler) error
+	SetOnRequestTransactionCalled       func(f func(destShardID uint32, txHash []byte))
+	ApplyBodyToHeaderCalled             func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	MarshalizedDataToBroadcastCalled    func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyCalled               func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled             func(dta []byte) data.HeaderHandler
+	AddLastNotarizedHdrCalled           func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled               func() data.HeaderHandler
+	ValidatorStatisticsProcessorCalled  func() process.ValidatorStatisticsProcessor
 }
 
 func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
@@ -94,6 +96,13 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 }
 
 func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+}
+
+func (blProcMock BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
+	if blProcMock.ValidatorStatisticsProcessorCalled != nil {
+		return blProcMock.ValidatorStatisticsProcessorCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
