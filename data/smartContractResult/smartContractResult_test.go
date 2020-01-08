@@ -15,7 +15,7 @@ func TestSmartContractResult_SaveLoad(t *testing.T) {
 		Value:   big.NewInt(1),
 		RcvAddr: []byte("receiver_address"),
 		SndAddr: []byte("sender_address"),
-		Data:    "scr_data",
+		Data:    []byte("scr_data"),
 		Code:    []byte("code"),
 		TxHash:  []byte("scrHash"),
 	}
@@ -32,7 +32,7 @@ func TestSmartContractResult_SaveLoad(t *testing.T) {
 func TestSmartContractResult_GetData(t *testing.T) {
 	t.Parallel()
 
-	data := "data"
+	data := []byte("data")
 	scr := &smartContractResult.SmartContractResult{Data: data}
 
 	assert.Equal(t, data, scr.Data)
@@ -68,7 +68,7 @@ func TestSmartContractResult_GetValue(t *testing.T) {
 func TestSmartContractResult_SetData(t *testing.T) {
 	t.Parallel()
 
-	data := "data"
+	data := []byte("data")
 	scr := &smartContractResult.SmartContractResult{}
 	scr.SetData(data)
 
