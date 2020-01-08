@@ -13,6 +13,6 @@ func estimateTxSize(tx data.TransactionHandler) int64 {
 // estimateTxGas returns an approximation
 func estimateTxGas(tx data.TransactionHandler) int64 {
 	gasPrice := int64(tx.GetGasPrice())
-	sizeOfData := int64(len(tx.GetData()))
-	return gasPrice * sizeOfData
+	gasLimit := int64(tx.GetGasLimit())
+	return gasPrice * gasLimit
 }

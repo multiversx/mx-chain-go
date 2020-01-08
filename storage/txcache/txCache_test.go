@@ -442,12 +442,13 @@ func createTxWithData(sender string, nonce uint64, dataLength uint64) data.Trans
 	}
 }
 
-func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasPrice uint64) data.TransactionHandler {
+func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasLimit uint64) data.TransactionHandler {
 	return &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
 		Data:     make([]byte, dataLength),
-		GasPrice: gasPrice,
+		GasPrice: 1,
+		GasLimit: gasLimit,
 	}
 }
 

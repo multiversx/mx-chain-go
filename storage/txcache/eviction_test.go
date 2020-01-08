@@ -152,9 +152,9 @@ func Test_DoEviction_DoneInPass0(t *testing.T) {
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
-	cache.AddTx([]byte("hash-alice"), createTxWithGas("alice", uint64(1), 800, 1))
-	cache.AddTx([]byte("hash-bob"), createTxWithGas("bob", uint64(1), 400, 1))
-	cache.AddTx([]byte("hash-carol"), createTxWithGas("carol", uint64(1), 500, 1))
+	cache.AddTx([]byte("hash-alice"), createTxWithGas("alice", uint64(1), 800, 8))
+	cache.AddTx([]byte("hash-bob"), createTxWithGas("bob", uint64(1), 400, 4))
+	cache.AddTx([]byte("hash-carol"), createTxWithGas("carol", uint64(1), 500, 5))
 
 	journal := cache.doEviction()
 	require.Equal(t, uint32(2), journal.passZeroNumSteps)
