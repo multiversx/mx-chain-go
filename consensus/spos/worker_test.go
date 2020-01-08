@@ -712,14 +712,13 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
-	assert.Equal(t, process.ErrRandSeedDoesNotMatch, err)
+	assert.Equal(t, spos.ErrInvalidHeader, err)
 }
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testing.T) {
@@ -816,7 +815,6 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -841,7 +839,6 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtUnknown),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -883,7 +880,6 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 		[]byte("X"),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -907,7 +903,6 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		1,
 		[]byte("inconsistent chain ID"),
 	)
@@ -928,7 +923,6 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		-1,
 		chainID,
 	)
@@ -951,7 +945,6 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -974,7 +967,6 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		[]byte(wrk.ConsensusState().SelfPubKey()),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -998,7 +990,6 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1038,7 +1029,6 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1076,7 +1066,6 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1098,7 +1087,6 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 		nil,
 		0,
 		0,
-		0,
 		chainID,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
@@ -1116,7 +1104,6 @@ func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 		nil,
 		0,
 		0,
-		0,
 		chainID,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
@@ -1131,7 +1118,6 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
-		0,
 		0,
 		0,
 		chainID,
@@ -1159,7 +1145,6 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 		nil,
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1179,7 +1164,6 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		nil,
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1205,7 +1189,6 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1228,7 +1211,6 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1248,7 +1230,6 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1269,7 +1250,6 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1294,7 +1274,6 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		-1,
 		chainID,
 	)
@@ -1319,7 +1298,6 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1344,7 +1322,6 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1369,7 +1346,6 @@ func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinis
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitmentHash),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1394,7 +1370,6 @@ func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *t
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBitmap),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1419,7 +1394,6 @@ func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitment),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1444,7 +1418,6 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtSignature),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1469,7 +1442,6 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)
@@ -1504,7 +1476,6 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 		[]byte(cnsGroup[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		1,
 		chainID,
 	)
@@ -1629,7 +1600,6 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 		chainID,
 	)

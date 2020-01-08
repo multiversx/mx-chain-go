@@ -369,7 +369,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		}
 
 		preproc := tc.getPreProcessor(blockType)
-		if preproc == nil || preproc.IsInterfaceNil() {
+		if check.IfNil(preproc) {
 			return process.ErrMissingPreProcessor
 		}
 
@@ -767,7 +767,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 }
 
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
-	allReceiptsHashes := make([]byte, state.HashLength)
+	allReceiptsHashes := make([]byte, 0)
 
 	for _, value := range tc.keysInterimProcs {
 		interProc, ok := tc.interimProcessors[value]
@@ -790,8 +790,5 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
-	if tc == nil {
-		return true
-	}
-	return false
+	return tc == nil
 }

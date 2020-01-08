@@ -7,8 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +23,19 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		},
 		Epoch:              0,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		Marshalizer:        &mock.MarshalizerMock{},
+		Storage: &mock.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) (bytes []byte, err error) {
+						return []byte("hash"), nil
+					},
+					PutCalled: func(key, data []byte) error {
+						return nil
+					},
+				}
+			},
+		},
 	}
 }
 

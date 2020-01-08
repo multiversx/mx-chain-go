@@ -307,6 +307,12 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
+// ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
+var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
+
+// ErrNotarizedHeadersSliceForShardIsNil signals that the slice holding notarized headers for shard is nil
+var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice for shard is nil")
+
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
 
@@ -345,9 +351,6 @@ var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 
 // ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
 var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
-
-// ErrInvalidDataInput signals that the data input is invalid for parsing
-var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
@@ -500,6 +503,9 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
+var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
+
 // ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
 var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
 
@@ -572,11 +578,11 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
-// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
-var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
-
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")
+
+// ErrMinRatingSmallerThanOne signals that the min rating is smaller than the min value of 1
+var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
