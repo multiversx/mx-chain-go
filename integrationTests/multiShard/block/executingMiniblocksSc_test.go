@@ -473,7 +473,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasPrice,
 	)
 
-	_, consensusNodes, _ := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 	shardId0 := uint32(0)
 	leaderPkBytes := consensusNodes[shardId0][0].SpecialAddressHandler.LeaderAddress()
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)

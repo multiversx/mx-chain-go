@@ -33,10 +33,10 @@ type shardProcessor struct {
 
 	chRcvEpochStart chan bool
 
-	processedMiniBlocks    *processedMb.ProcessedMiniBlockTracker
-	core                   serviceContainer.Core
-	txCounter              *transactionCounter
-	txsPoolsCleaner        process.PoolsCleaner
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	core                serviceContainer.Core
+	txCounter           *transactionCounter
+	txsPoolsCleaner     process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object

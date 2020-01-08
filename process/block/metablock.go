@@ -1822,6 +1822,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 
 	mp.epochStartTrigger.Update(round)
 
+	sw := core.NewStopWatch()
 	sw.Start("createEpochStartForMetablock")
 	epochStart, err := mp.createEpochStartForMetablock()
 	sw.Stop("createEpochStartForMetablock")

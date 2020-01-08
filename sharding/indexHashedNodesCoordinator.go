@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"

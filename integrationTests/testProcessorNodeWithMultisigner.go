@@ -207,14 +207,20 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
+			EligibleNodes:           validatorsMap,
+			WaitingNodes:            make(map[uint32][]sharding.Validator, 0),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -238,6 +244,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				uint32(nbShards),
 				shardId,
 				seedAddress,
+				epochStartSubscriber,
 				nodesCoordinator,
 				cp,
 				i,

@@ -1,11 +1,11 @@
 package track
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type shardBlockTrack struct {
@@ -125,7 +125,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 }
 
 func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
