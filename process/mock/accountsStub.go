@@ -43,6 +43,10 @@ func (aam *AccountsStub) Commit() ([]byte, error) {
 	return nil, errNotImplemented
 }
 
+func (aam *AccountsStub) ClosePersister() {
+
+}
+
 func (aam *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	if aam.GetAccountWithJournalCalled != nil {
 		return aam.GetAccountWithJournalCalled(addressContainer)

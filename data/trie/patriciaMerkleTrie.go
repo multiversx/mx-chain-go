@@ -286,6 +286,11 @@ func (tr *patriciaMerkleTrie) String() string {
 	return writer.String()
 }
 
+// ClosePersister will close trie persister
+func (tr *patriciaMerkleTrie) ClosePersister() {
+	_ = tr.db.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	if tr == nil {

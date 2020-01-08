@@ -12,7 +12,8 @@ func (ns *nilStorer) Put(key, data []byte) error {
 	return nil
 }
 
-func (ns *nilStorer) Close() {
+func (ns *nilStorer) Close() error {
+	return nil
 }
 
 func (ns *nilStorer) Get(key []byte) ([]byte, error) {

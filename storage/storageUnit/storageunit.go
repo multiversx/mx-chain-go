@@ -116,9 +116,11 @@ func (s *Unit) Put(key, data []byte) error {
 }
 
 // Close will close unit
-func (s *Unit) Close() {
+func (s *Unit) Close() error {
 	err := s.persister.Close()
 	log.LogIfError(err)
+
+	return nil
 }
 
 // Get searches the key in the cache. In case it is not found, it searches

@@ -21,6 +21,10 @@ type AccountsStub struct {
 	RecreateTrieCalled          func(rootHash []byte) error
 }
 
+func (aam *AccountsStub) ClosePersister() {
+
+}
+
 func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
 	aam.AddJournalEntryCalled(je)
 }

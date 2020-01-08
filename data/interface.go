@@ -110,11 +110,13 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
+	ClosePersister()
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
 type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
+	Close() error
 	IsInterfaceNil() bool
 }

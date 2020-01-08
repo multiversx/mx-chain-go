@@ -203,11 +203,13 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 }
 
 // Close will close PruningStorer
-func (ps *PruningStorer) Close() {
+func (ps *PruningStorer) Close() error {
 	for _, persister := range ps.activePersisters {
 		err := persister.persister.Close()
 		log.LogIfError(err)
 	}
+
+	return nil
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch
