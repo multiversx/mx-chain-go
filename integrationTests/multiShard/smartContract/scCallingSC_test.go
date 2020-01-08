@@ -118,11 +118,11 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,vm/systemsmartcontracts:TRACE")
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
