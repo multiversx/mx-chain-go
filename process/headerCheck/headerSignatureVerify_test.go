@@ -25,6 +25,81 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	}
 }
 
+func TestNewHeaderSigVerifier_NilArgumentsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrSigVerifier, err := NewHeaderSigVerifier(nil)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilArgumentStruct, err)
+}
+
+func TestNewHeaderSigVerifier_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.Hasher = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewHeaderSigVerifier_NilKeyGenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.KeyGen = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilKeyGen, err)
+}
+
+func TestNewHeaderSigVerifier_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.Marshalizer = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewHeaderSigVerifier_NilMultiSigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.MultiSigVerifier = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilMultiSigVerifier, err)
+}
+
+func TestNewHeaderSigVerifier_NilNodesCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.NodesCoordinator = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilNodesCoordinator, err)
+}
+
+func TestNewHeaderSigVerifier_NilSingleSigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.SingleSigVerifier = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilSingleSigner, err)
+}
+
 func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T) {
 	t.Parallel()
 
