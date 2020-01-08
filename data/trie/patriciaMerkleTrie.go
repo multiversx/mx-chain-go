@@ -74,7 +74,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 
 	val, err := tr.root.tryGet(hexKey, tr.trieStorage.Database())
 	if err != nil {
-		log.Debug("trie get", "error", key)
+		log.Trace("trie get", "error", key)
 	}
 
 	return val, err
