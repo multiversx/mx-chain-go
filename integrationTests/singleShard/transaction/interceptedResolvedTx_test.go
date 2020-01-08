@@ -60,7 +60,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasLimit: integrationTests.MinTxGasLimit + txDataCost,
 		GasPrice: integrationTests.MinTxGasPrice,
 	}

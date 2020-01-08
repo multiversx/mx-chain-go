@@ -22,9 +22,6 @@ func (HasherMock) Size() int {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hash *HasherMock) IsInterfaceNil() bool {
-	if hash == nil {
-		return true
-	}
+func (hash HasherMock) IsInterfaceNil() bool {
 	return false
 }

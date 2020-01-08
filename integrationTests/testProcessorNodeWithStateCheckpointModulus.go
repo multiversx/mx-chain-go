@@ -25,13 +25,11 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkAddr := []byte("aaa00000000000000000000000000000")
+	pkBytes := make([]byte, 128)
+	address := make([]byte, 32)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-
-			address := pkAddr
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
-
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -67,6 +65,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
+	tpn.initValidatorStatistics()
+	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -79,6 +79,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestUint64Converter,
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
+		rootHash,
 	)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

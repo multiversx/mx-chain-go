@@ -89,7 +89,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		nodes[idxNodeShard1].OwnAccount.Nonce,
 		factory.IELEVirtualMachine,
 	)
-	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -234,7 +234,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -246,7 +246,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	roundsToWait := 6
+	roundsToWait := 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
@@ -267,12 +267,13 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
+
+	time.Sleep(time.Second)
 
 	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))
@@ -354,7 +355,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	integrationTests.PlayerJoinsGame(
@@ -453,7 +454,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	nodeShard0 := nodesMap[0][0]
 	txData := "DEADBEEF@" + hex.EncodeToString(factory.InternalTestingVM) + "@00"
 	dummyTx := &transaction.Transaction{
-		Data: txData,
+		Data: []byte(txData),
 	}
 	gasLimit := nodeShard0.EconomicsData.ComputeGasLimit(dummyTx)
 	gasLimit += integrationTests.OpGasValueForMockVm
@@ -473,14 +474,15 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	)
 
 	randomness := generateInitialRandomness(uint32(maxShards))
-	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
-	leaderPkBytes := nodeShard0.SpecialAddressHandler.LeaderAddress()
+	_, _, consensusNodes, _ := integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	shardId0 := uint32(0)
+	leaderPkBytes := consensusNodes[shardId0][0].SpecialAddressHandler.LeaderAddress()
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
 
 	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
-	accnt, err := nodeShard0.AccntState.GetExistingAccount(ownerAddr)
+	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerAddr)
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(*state.Account)
 	expectedBalance := big.NewInt(0).Set(initialVal)
@@ -488,9 +490,9 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
 
-	printContainingTxs(nodeShard0, nodeShard0.BlockChain.GetCurrentBlockHeader().(*block.Header))
+	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
 
-	accnt, err = nodeShard0.AccntState.GetExistingAccount(leaderAddress)
+	accnt, err = consensusNodes[shardId0][0].AccntState.GetExistingAccount(leaderAddress)
 	assert.Nil(t, err)
 	leaderAccnt := accnt.(*state.Account)
 	expectedBalance = big.NewInt(0).Set(txCost)

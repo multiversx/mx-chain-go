@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,9 +50,9 @@ func ScCallTxWithParams(
 }
 
 // DeployScTx creates and sends a SC tx
-func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
+func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string, vmType []byte) {
 	fmt.Println("Deploying SC...")
-	data := scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine)
+	data := scCode + "@" + hex.EncodeToString(vmType)
 	txDeploy := generateTx(
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,

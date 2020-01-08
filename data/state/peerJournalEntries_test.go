@@ -36,7 +36,7 @@ func TestPeerJournalEntryAddress_RevertOkValsShouldWork(t *testing.T) {
 	_, err := entry.Revert()
 
 	assert.Nil(t, err)
-	assert.Equal(t, shardRootHash, accnt.Address)
+	assert.Equal(t, shardRootHash, accnt.RewardAddress)
 }
 
 func TestPeerJournalEntrySchnorrPublicKey_NilAccountShouldErr(t *testing.T) {

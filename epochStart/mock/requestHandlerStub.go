@@ -1,57 +1,73 @@
 package mock
 
 type RequestHandlerStub struct {
-	RequestTransactionHandlerCalled   func(destShardID uint32, txHashes [][]byte)
-	RequestScrHandlerCalled           func(destShardID uint32, txHashes [][]byte)
-	RequestRewardTxHandlerCalled      func(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlockHandlerCalled     func(destShardID uint32, miniblockHash []byte)
-	RequestHeaderHandlerCalled        func(destShardID uint32, hash []byte)
-	RequestHeaderHandlerByNonceCalled func(destShardID uint32, nonce uint64)
+	RequestShardHeaderCalled        func(shardId uint32, hash []byte)
+	RequestMetaHeaderCalled         func(hash []byte)
+	RequestMetaHeaderByNonceCalled  func(nonce uint64)
+	RequestShardHeaderByNonceCalled func(shardId uint32, nonce uint64)
+	RequestTransactionHandlerCalled func(destShardID uint32, txHashes [][]byte)
+	RequestScrHandlerCalled         func(destShardID uint32, txHashes [][]byte)
+	RequestRewardTxHandlerCalled    func(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlockHandlerCalled   func(destShardID uint32, miniblockHash []byte)
 }
 
-func (rrh *RequestHandlerStub) RequestTransaction(destShardID uint32, txHashes [][]byte) {
-	if rrh.RequestTransactionHandlerCalled == nil {
+func (rhs *RequestHandlerStub) RequestShardHeader(shardId uint32, hash []byte) {
+	if rhs.RequestShardHeaderCalled == nil {
 		return
 	}
-	rrh.RequestTransactionHandlerCalled(destShardID, txHashes)
+	rhs.RequestShardHeaderCalled(shardId, hash)
 }
 
-func (rrh *RequestHandlerStub) RequestUnsignedTransactions(destShardID uint32, txHashes [][]byte) {
-	if rrh.RequestScrHandlerCalled == nil {
+func (rhs *RequestHandlerStub) RequestMetaHeader(hash []byte) {
+	if rhs.RequestMetaHeaderCalled == nil {
 		return
 	}
-	rrh.RequestScrHandlerCalled(destShardID, txHashes)
+	rhs.RequestMetaHeaderCalled(hash)
 }
 
-func (rrh *RequestHandlerStub) RequestRewardTransactions(destShardID uint32, txHashes [][]byte) {
-	if rrh.RequestRewardTxHandlerCalled == nil {
+func (rhs *RequestHandlerStub) RequestMetaHeaderByNonce(nonce uint64) {
+	if rhs.RequestMetaHeaderByNonceCalled == nil {
 		return
 	}
-	rrh.RequestRewardTxHandlerCalled(destShardID, txHashes)
+	rhs.RequestMetaHeaderByNonceCalled(nonce)
 }
 
-func (rrh *RequestHandlerStub) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
-	if rrh.RequestMiniBlockHandlerCalled == nil {
+func (rhs *RequestHandlerStub) RequestShardHeaderByNonce(shardId uint32, nonce uint64) {
+	if rhs.RequestShardHeaderByNonceCalled == nil {
 		return
 	}
-	rrh.RequestMiniBlockHandlerCalled(shardId, miniblockHash)
+	rhs.RequestShardHeaderByNonceCalled(shardId, nonce)
 }
 
-func (rrh *RequestHandlerStub) RequestHeader(shardId uint32, hash []byte) {
-	if rrh.RequestHeaderHandlerCalled == nil {
+func (rhs *RequestHandlerStub) RequestTransaction(destShardID uint32, txHashes [][]byte) {
+	if rhs.RequestTransactionHandlerCalled == nil {
 		return
 	}
-	rrh.RequestHeaderHandlerCalled(shardId, hash)
+	rhs.RequestTransactionHandlerCalled(destShardID, txHashes)
 }
 
-func (rrh *RequestHandlerStub) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
-	if rrh.RequestHeaderHandlerByNonceCalled == nil {
+func (rhs *RequestHandlerStub) RequestUnsignedTransactions(destShardID uint32, txHashes [][]byte) {
+	if rhs.RequestScrHandlerCalled == nil {
 		return
 	}
-	rrh.RequestHeaderHandlerByNonceCalled(destShardID, nonce)
+	rhs.RequestScrHandlerCalled(destShardID, txHashes)
+}
+
+func (rhs *RequestHandlerStub) RequestRewardTransactions(destShardID uint32, txHashes [][]byte) {
+	if rhs.RequestRewardTxHandlerCalled == nil {
+		return
+	}
+	rhs.RequestRewardTxHandlerCalled(destShardID, txHashes)
+}
+
+func (rhs *RequestHandlerStub) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
+	if rhs.RequestMiniBlockHandlerCalled == nil {
+		return
+	}
+	rhs.RequestMiniBlockHandlerCalled(shardId, miniblockHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rrh *RequestHandlerStub) IsInterfaceNil() bool {
-	return rrh == nil
+func (rhs *RequestHandlerStub) IsInterfaceNil() bool {
+	return rhs == nil
 }

@@ -97,14 +97,14 @@ type TransactionHandler interface {
 
 	GetValue() *big.Int
 	GetNonce() uint64
-	GetData() string
+	GetData() []byte
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
-	SetData(string)
+	SetData([]byte)
 	SetRecvAddress([]byte)
 	SetSndAddress([]byte)
 }
