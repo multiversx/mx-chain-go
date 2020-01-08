@@ -1,9 +1,11 @@
 package txcache
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_AddTx_IncrementsCounter(t *testing.T) {
@@ -14,7 +16,7 @@ func Test_AddTx_IncrementsCounter(t *testing.T) {
 	myMap.addTx([]byte("b"), createTx("bob", uint64(1)))
 
 	// There are 2 senders
-	assert.Equal(t, int64(2), myMap.counter.Get())
+	require.Equal(t, int64(2), myMap.counter.Get())
 }
 
 func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
@@ -27,18 +29,32 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap.addTx([]byte("a"), txAlice1)
 	myMap.addTx([]byte("a"), txAlice2)
 	myMap.addTx([]byte("b"), txBob)
-	assert.Equal(t, int64(2), myMap.counter.Get())
+	require.Equal(t, int64(2), myMap.counter.Get())
 
 	myMap.removeTx(txAlice1)
-	assert.Equal(t, int64(2), myMap.counter.Get())
+	require.Equal(t, int64(2), myMap.counter.Get())
 
 	myMap.removeTx(txAlice2)
 	// All alice's transactions have been removed now
-	assert.Equal(t, int64(1), myMap.counter.Get())
+	require.Equal(t, int64(1), myMap.counter.Get())
 
 	myMap.removeTx(txBob)
 	// Also Bob has no more transactions
-	assert.Equal(t, int64(0), myMap.counter.Get())
+	require.Equal(t, int64(0), myMap.counter.Get())
+}
+
+func Test_RemoveSender(t *testing.T) {
+	myMap := newTxListBySenderMap(1)
+
+	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
+	require.Equal(t, int64(1), myMap.counter.Get())
+
+	// Bob is unknown
+	myMap.removeSender("bob")
+	require.Equal(t, int64(1), myMap.counter.Get())
+
+	myMap.removeSender("alice")
+	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
 func Test_GetListsSortedByOrderNumber(t *testing.T) {
@@ -52,7 +68,42 @@ func Test_GetListsSortedByOrderNumber(t *testing.T) {
 
 	lists := myMap.GetListsSortedByOrderNumber()
 
-	assert.Equal(t, "alice", lists[0].sender)
-	assert.Equal(t, "bob", lists[1].sender)
-	assert.Equal(t, "carol", lists[2].sender)
+	require.Equal(t, "alice", lists[0].sender)
+	require.Equal(t, "bob", lists[1].sender)
+	require.Equal(t, "carol", lists[2].sender)
+}
+
+func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
+	myMap := newTxListBySenderMap(4)
+
+	for i := 0; i < 100; i++ {
+		sender := fmt.Sprintf("Sender-%d", i)
+		hash := createFakeTxHash([]byte(sender), 1)
+		myMap.addTx(hash, createTx(sender, uint64(1)))
+	}
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+
+		go func() {
+			for j := 0; j < 100; j++ {
+				myMap.GetListsSortedByOrderNumber()
+			}
+
+			wg.Done()
+		}()
+
+		go func() {
+			for j := 0; j < 1000; j++ {
+				sender := fmt.Sprintf("Sender-%d", j)
+				myMap.removeSender(sender)
+			}
+
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }
