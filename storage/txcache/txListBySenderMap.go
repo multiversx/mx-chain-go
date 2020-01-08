@@ -109,6 +109,7 @@ const (
 	SortByOrderNumberAsc txListBySenderSortKind = "SortByOrderNumberAsc"
 	SortByTotalBytesDesc txListBySenderSortKind = "SortByTotalBytesDesc"
 	SortByTotalGas       txListBySenderSortKind = "SortByTotalGas"
+	SortBySmartScore     txListBySenderSortKind = "SortBySmartScore"
 )
 
 func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind) []*txListForSender {
@@ -121,6 +122,8 @@ func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind
 		return txMap.GetListsSortedByTotalBytes()
 	case SortByTotalGas:
 		return txMap.GetListsSortedByTotalGas()
+	case SortBySmartScore:
+		return txMap.GetListsSortedBySmartScore()
 	default:
 		return txMap.GetListsSortedByOrderNumber()
 	}
@@ -150,7 +153,14 @@ func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
 		return txListA.totalGas < txListB.totalGas
 	})
 
-	// TODO-TXCACHE sort by smarter formula? order and size and gas?
+	return lists
+}
+
+// GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart eviction score
+func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender {
+	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
+		return txListA.totalGas < txListB.totalGas
+	})
 
 	return lists
 }

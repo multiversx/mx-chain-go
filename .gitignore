@@ -22,3 +22,5 @@ genessis.json
 
 /cross_build
 tags
+cmd/node/db/**
+cmd/node/stats/**
