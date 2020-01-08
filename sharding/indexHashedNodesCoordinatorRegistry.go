@@ -79,7 +79,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(config *Node
 	var epoch int64
 
 	for epochStr, epochValidators := range config.EpochsConfig {
-		epoch, err = strconv.ParseInt(epochStr, 10, 32)
+		epoch, err = strconv.ParseInt(epochStr, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func serializableValidatorsMapToValidatorsMap(
 	result := make(map[uint32][]Validator, len(sValidators))
 
 	for k, v := range sValidators {
-		key, err := strconv.ParseInt(k, 10, 32)
+		key, err := strconv.ParseInt(k, 10, 64)
 		if err != nil {
 			return nil, err
 		}

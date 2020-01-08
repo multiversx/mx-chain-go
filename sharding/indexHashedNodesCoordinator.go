@@ -493,7 +493,11 @@ func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validat
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
 	pubKey := ihgs.selfPubKey
-	selfShard := ihgs.nodesConfig[ihgs.currentEpoch].shardId
+	selfShard := uint32(0)
+	epochNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	if ok {
+		selfShard = epochNodesConfig.shardId
+	}
 
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
