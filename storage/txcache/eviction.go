@@ -18,7 +18,9 @@ type EvictionConfig struct {
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
 func (cache *TxCache) doEviction() evictionJournal {
-	if !cache.areThereTooManyBytes() && !cache.areThereTooManyTxs() {
+	skipSizePass := (cache.isSizeEvictionEnabled() && !cache.areThereTooManyBytes()) || !cache.isSizeEvictionEnabled()
+
+	if skipSizePass && !cache.areThereTooManyTxs() {
 		return evictionJournal{}
 	}
 
