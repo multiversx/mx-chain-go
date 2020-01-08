@@ -216,11 +216,11 @@ func TestPeerAccount_SetAddressWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	address := []byte("address")
-	err = acc.SetAddressWithJournal(address)
+	err = acc.SetRewardAddressWithJournal(address)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, address, acc.Address)
+	assert.Equal(t, address, acc.RewardAddress)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }

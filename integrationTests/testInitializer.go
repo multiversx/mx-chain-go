@@ -43,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -319,11 +318,13 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlock := CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = genesisBlock
 	}
 
 	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
@@ -338,6 +339,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		metaDataPool,
 		economics,
+		rootHash,
 	)
 
 	return genesisBlocks
@@ -356,6 +358,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) data.HeaderHandler {
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
@@ -370,7 +373,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   []byte("validator stats root hash"),
+		ValidatorStatsRootHash:   rootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -395,6 +398,7 @@ func CreateGenesisMetaBlock(
 
 	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
+	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
 
 	return metaHdr
 }
@@ -782,7 +786,7 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 		return tx.Nonce
 	}
 
-	buff, _ := hex.DecodeString(txHandler.GetData())
+	buff := txHandler.GetData()
 	return binary.BigEndian.Uint64(buff)
 }
 
@@ -807,34 +811,6 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-	}
-
-	return nodes
-}
-
-// CreateNodesWithMemP2P creates multiple nodes in different shards
-func CreateNodesWithMemP2P(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	network *memp2p.Network,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), shardId, shardId, network)
-
-			nodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), sharding.MetachainShardId, 0, network)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -932,7 +908,7 @@ func CreateAndSendTransaction(
 		Value:    txValue,
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
@@ -949,7 +925,7 @@ func CreateAndSendTransactionWithGasLimit(
 	txValue *big.Int,
 	gasLimit uint64,
 	rcvAddress []byte,
-	txData string,
+	txData []byte,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -993,7 +969,7 @@ func generateTransferTx(
 		Value:    valToTransfer,
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
-		Data:     "",
+		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -1016,7 +992,7 @@ func generateTx(
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
-		Data:     args.data,
+		Data:     []byte(args.data),
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
@@ -1484,8 +1460,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1494,7 +1470,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()

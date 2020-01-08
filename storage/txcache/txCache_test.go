@@ -50,14 +50,18 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 func Test_RemoveByTxHash(t *testing.T) {
 	cache := NewTxCache(16)
 
-	txHash := []byte("hash-1")
-	tx := createTx("alice", 1)
+	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
+	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
 
-	cache.AddTx(txHash, tx)
-	err := cache.RemoveTxByHash(txHash)
+	err := cache.RemoveTxByHash([]byte("hash-1"))
 	require.Nil(t, err)
+	cache.Remove([]byte("hash-2"))
 
-	foundTx, ok := cache.GetByTxHash(txHash)
+	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
+	require.False(t, ok)
+	require.Nil(t, foundTx)
+
+	foundTx, ok = cache.GetByTxHash([]byte("hash-2"))
 	require.False(t, ok)
 	require.Nil(t, foundTx)
 }
@@ -322,7 +326,6 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	require.False(t, ok)
 	require.False(t, evicted)
 
-	require.NotPanics(t, func() { cache.Remove(nil) })
 	require.NotPanics(t, func() { cache.RemoveOldest() })
 	require.NotPanics(t, func() { cache.RegisterHandler(nil) })
 	require.Zero(t, cache.MaxSize())

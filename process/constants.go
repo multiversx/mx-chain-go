@@ -32,6 +32,10 @@ const (
 	InvalidTransaction
 )
 
+// BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
+// by meta-chain)
+const BlockFinality = 1
+
 // ShardBlockFinality defines the block finality which is used in shards (the real finality in shards is given
 // by meta-chain)
 const ShardBlockFinality = 1
@@ -109,3 +113,7 @@ const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
 
 // TxPoolMinSizeInBytes is the lower limit of the tx cache / eviction parameter "sizeInBytes"
 const TxPoolMinSizeInBytes = uint32(40960)
+
+// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
+// to be stored in advance in block tracker
+const MaxNonceDifferences = uint64(1000)

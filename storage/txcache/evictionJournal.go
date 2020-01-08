@@ -3,6 +3,7 @@ package txcache
 // evictionJournal keeps a short journal about the eviction process
 // This is useful for debugging and reasoning about the eviction
 type evictionJournal struct {
+	evictionPerformed   bool
 	passZeroNumTxs      uint32
 	passZeroNumSenders  uint32
 	passZeroNumSteps    uint32

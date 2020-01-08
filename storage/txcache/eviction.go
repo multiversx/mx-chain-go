@@ -35,18 +35,25 @@ func (cache *TxCache) doEviction() evictionJournal {
 
 	if cache.areThereTooManySenders() {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
+		journal.evictionPerformed = true
 	}
 
 	if cache.areThereTooManyTxs() {
 		journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictHighNonceTransactions()
+		journal.evictionPerformed = true
 	}
 
 	if cache.areThereTooManyTxs() && !cache.areThereJustAFewSenders() {
 		journal.passThreeNumSteps, journal.passThreeNumTxs, journal.passThreeNumSenders = cache.evictSendersWhileTooManyTxs()
+		journal.evictionPerformed = true
 	}
 
 	cache.evictionJournal = journal
-	journal.display()
+
+	if journal.evictionPerformed {
+		journal.display()
+	}
+
 	return journal
 }
 
