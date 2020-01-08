@@ -409,15 +409,11 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
 func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.HeaderHandler) {
-	randomness := metaHeader.GetRandSeed()
+	randomness := metaHeader.GetPrevRandSeed()
 	newEpoch := metaHeader.GetEpoch()
 
-	if newEpoch != ihgs.currentEpoch+1 {
-		return
-	}
-
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	nodesConfig, ok := ihgs.nodesConfig[newEpoch-1]
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
