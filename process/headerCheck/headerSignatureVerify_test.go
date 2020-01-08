@@ -70,7 +70,7 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 	require.True(t, wasCalled)
 }
 
-func TestHeaderSigVerifier_VerifyRandSeedShouldErr(t *testing.T) {
+func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
@@ -116,7 +116,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldEr
 	require.Equal(t, sharding.ErrNilRandomness, err)
 }
 
-func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErr(t *testing.T) {
+func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
@@ -285,7 +285,7 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 	require.Equal(t, ErrWrongSizeBitmap, err)
 }
 
-func TestHeaderSigVerifier_VerifySignatureNotEnoughtSigsShouldErr(t *testing.T) {
+func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
