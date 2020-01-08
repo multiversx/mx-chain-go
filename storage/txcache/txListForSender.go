@@ -214,6 +214,6 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 	return value.tx
 }
 
-func (listForSender *txListForSender) countTx() int {
-	return listForSender.items.Len()
+func (listForSender *txListForSender) countTx() int64 {
+	return int64(listForSender.items.Len())
 }

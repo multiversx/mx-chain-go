@@ -271,9 +271,9 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	}
 
 	// 100 from Bob, 100 from Carol, one from Alice
-	require.Equal(t, 1, cache.countTxBySender("alice"))
-	require.Equal(t, 100, cache.countTxBySender("bob"))
-	require.Equal(t, 100, cache.countTxBySender("carol"))
+	require.Equal(t, int64(1), cache.countTxBySender("alice"))
+	require.Equal(t, int64(100), cache.countTxBySender("bob"))
+	require.Equal(t, int64(100), cache.countTxBySender("carol"))
 	require.Equal(t, int64(3), cache.CountSenders())
 	require.Equal(t, int64(201000), cache.VolumeInBytes())
 
@@ -289,9 +289,9 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	// All other transactions (from Bob and Carol) are still in place
 	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
-	require.Equal(t, 0, cache.countTxBySender("alice"))
-	require.Equal(t, 100, cache.countTxBySender("bob"))
-	require.Equal(t, 101, cache.countTxBySender("carol"))
+	require.Equal(t, int64(0), cache.countTxBySender("alice"))
+	require.Equal(t, int64(100), cache.countTxBySender("bob"))
+	require.Equal(t, int64(101), cache.countTxBySender("carol"))
 	require.Equal(t, int64(2), cache.CountSenders())
 	require.Equal(t, int64(201000), cache.VolumeInBytes())
 
@@ -307,8 +307,8 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
 
 	// Bob's transactions remain, and Carol has the "bar" transaction
-	require.Equal(t, 100, cache.countTxBySender("bob"))
-	require.Equal(t, 1, cache.countTxBySender("carol"))
+	require.Equal(t, int64(100), cache.countTxBySender("bob"))
+	require.Equal(t, int64(1), cache.countTxBySender("carol"))
 	require.Equal(t, int64(2), cache.CountSenders())
 	require.Equal(t, int64(101000), cache.VolumeInBytes())
 }
@@ -438,7 +438,7 @@ func createTxWithData(sender string, nonce uint64, dataLength uint64) data.Trans
 	return &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
-		Data:    string(make([]byte, dataLength)),
+		Data:    make([]byte, dataLength),
 	}
 }
 
@@ -446,7 +446,7 @@ func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasPrice ui
 	return &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
-		Data:     string(make([]byte, dataLength)),
+		Data:     make([]byte, dataLength),
 		GasPrice: gasPrice,
 	}
 }

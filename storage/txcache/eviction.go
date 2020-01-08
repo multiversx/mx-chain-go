@@ -31,6 +31,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 
 	if cache.isSizeEvictionEnabled() && cache.areThereTooManyBytes() {
 		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyBytes()
+		journal.evictionPerformed = true
 	}
 
 	if cache.areThereTooManySenders() {

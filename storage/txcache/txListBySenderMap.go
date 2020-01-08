@@ -131,108 +131,75 @@ func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number, ascending
 func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
-		return txListA.orderNumber < txListB.orderNumber
+	snapshot := txMap.getListsSnapshot()
+
+	sort.Slice(snapshot, func(i, j int) bool {
+		return snapshot[i].orderNumber < snapshot[j].orderNumber
 	})
 
-	return lists
+	return snapshot
 }
 
 // GetListsSortedByTotalBytes gets the list of sender addreses, sorted by the total amount of bytes, descending
 func (txMap *txListBySenderMap) GetListsSortedByTotalBytes() []*txListForSender {
-	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
-		return txListA.totalBytes > txListB.totalBytes
+	snapshot := txMap.getListsSnapshot()
+
+	sort.Slice(snapshot, func(i, j int) bool {
+		return snapshot[i].totalBytes > snapshot[j].totalBytes
 	})
 
-	return lists
+	return snapshot
 }
 
 // GetListsSortedByTotalGas gets the list of sender addreses, sorted by the total amoung of gas, ascending
 func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
-	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
-		return txListA.totalGas < txListB.totalGas
+	snapshot := txMap.getListsSnapshot()
+
+	sort.Slice(snapshot, func(i, j int) bool {
+		return snapshot[i].totalGas < snapshot[j].totalGas
 	})
 
-	return lists
+	return snapshot
 }
 
 // GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart score
-// A low score means that the sender will be evicted
-// A high score means that the sender will not be evicted, most probably
-// Score is:
-// - inversely proportional to sender's tx count
-// - inversely proportional to sender's tx total size
-// - directly proportional to sender's order number
-// - directly proportional to sender's tx total gas
 func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender {
-	// First get bounds for gas and size, in order to normalize the values when computing the score
-	maxGas := int64(0)
-	minGas := int64(0)
-	maxSize := int64(0)
-	minSize := int64(0)
+	snapshot := txMap.getListsSnapshot()
+	computer := newEvictionScoreComputer(snapshot)
 
-	txMap.forEach(func(key string, item *txListForSender) {
-		gas := item.totalGas.Get()
-		size := item.totalBytes.Get()
-
-		if gas > maxGas {
-			maxGas = gas
-		}
-		if gas < minGas {
-			minGas = gas
-		}
-
-		if size > maxSize {
-			maxSize = gas
-		}
-		if size < minSize {
-			minSize = size
-		}
-	})
-
-	// Normalized values are quantized (in the range 0 - 100)
+	// Scores are quantized
 	// This way, sort is also a bit more optimized (less item movement)
 	// And partial, approximate sort is sufficient
-	gasRange := maxGas - minGas
-	sizeRange := maxSize - minSize
-	if gasRange == 0 {
-		gasRange = 1
-	}
-	if sizeRange == 0 {
-		sizeRange = 1
-	}
-
-	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
-		gasA := float64(txListA.totalGas.Get()-minGas) / float64(gasRange)
-		gasB := float64(txListB.totalGas.Get()-minGas) / float64(gasRange)
-
-		scoreA := gasA * float64(txListA.orderNumber) * 100
-		scoreB := gasB * float64(txListB.orderNumber) * 100
-
-		return scoreA < scoreB
+	sort.Slice(snapshot, func(i, j int) bool {
+		return computer.quantizedScores[i] < computer.quantizedScores[j]
 	})
 
-	return lists
+	return snapshot
 }
 
-func (txMap *txListBySenderMap) getListsSortedByFunc(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
+func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
 	counter := txMap.counter.Get()
 	if counter < 1 {
 		return make([]*txListForSender, 0)
 	}
 
-	lists := make([]*txListForSender, 0, counter)
+	snapshot := make([]*txListForSender, 0, counter)
 
 	txMap.forEach(func(key string, item *txListForSender) {
-		lists = append(lists, item)
+		snapshot = append(snapshot, item)
 	})
 
-	sort.Slice(lists, func(i, j int) bool {
-		return less(lists[i], lists[j])
-	})
-
-	return lists
+	return snapshot
 }
+
+// func (txMap *txListBySenderMap) getListsSortedByFunc(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
+
+// 	sort.Slice(lists, func(i, j int) bool {
+// 		return less(lists[i], lists[j])
+// 	})
+
+// 	return lists
+// }
 
 // ForEachSender is an iterator callback
 type ForEachSender func(key string, value *txListForSender)
@@ -250,7 +217,7 @@ func (txMap *txListBySenderMap) clear() {
 	txMap.counter.Set(0)
 }
 
-func (txMap *txListBySenderMap) countTxBySender(sender string) int {
+func (txMap *txListBySenderMap) countTxBySender(sender string) int64 {
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		return 0

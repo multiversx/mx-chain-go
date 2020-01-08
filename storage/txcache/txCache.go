@@ -140,7 +140,7 @@ func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
 }
 
-func (cache *TxCache) countTxBySender(sender string) int {
+func (cache *TxCache) countTxBySender(sender string) int64 {
 	return cache.txListBySender.countTxBySender(sender)
 }
 
