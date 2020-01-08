@@ -101,7 +101,7 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 	return result[:resultFillIndex], resultHashes
 }
 
-// RemoveTxByHash removes
+// RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
@@ -179,9 +179,9 @@ func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool)
 	return false, false
 }
 
-// Remove is not implemented
+// Remove removes tx by hash
 func (cache *TxCache) Remove(key []byte) {
-	log.Error("TxCache.Remove is not implemented")
+	_ = cache.RemoveTxByHash(key)
 }
 
 // RemoveOldest is not implemented
