@@ -1911,11 +1911,20 @@ func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data
 }
 
 func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.Header, processedMetaHdrs []data.HeaderHandler) error {
+	log.Trace("computing validator statistics root hash",
+		"num meta headers", len(processedMetaHdrs),
+	)
 	for _, metaHeader := range processedMetaHdrs {
+		previousHash, _ := sp.validatorStatisticsProcessor.RootHash()
 		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
 		if err != nil {
 			return err
 		}
+
+		log.Trace("computed validator statistics root hash",
+			"previous", previousHash,
+			"computed", rootHash,
+			"meta header nonce", metaHeader.GetNonce())
 
 		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
 			return fmt.Errorf("%w, meta, computed: %s, received: %s, meta header nonce: %d",
