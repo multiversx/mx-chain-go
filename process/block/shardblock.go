@@ -34,10 +34,10 @@ type shardProcessor struct {
 
 	chRcvEpochStart chan bool
 
-	processedMiniBlocks    *processedMb.ProcessedMiniBlockTracker
-	core                   serviceContainer.Core
-	txCounter              *transactionCounter
-	txsPoolsCleaner        process.PoolsCleaner
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	core                serviceContainer.Core
+	txCounter           *transactionCounter
+	txsPoolsCleaner     process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -1918,13 +1918,23 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 		}
 
 		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
-			return process.ErrValidatorStatsRootHashDoesNotMatch
+			return fmt.Errorf("%w, meta, computed: %s, received: %s, meta header nonce: %d",
+				process.ErrValidatorStatsRootHashDoesNotMatch,
+				display.DisplayByteSlice(rootHash),
+				display.DisplayByteSlice(currentHeader.GetValidatorStatsRootHash()),
+				metaHeader.GetNonce(),
+			)
 		}
 	}
 
 	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
 	if !bytes.Equal(vRootHash, currentHeader.GetValidatorStatsRootHash()) {
-		return process.ErrValidatorStatsRootHashDoesNotMatch
+		return fmt.Errorf("%w, shard, computed: %s, received: %s, header nonce: %d",
+			process.ErrValidatorStatsRootHashDoesNotMatch,
+			display.DisplayByteSlice(vRootHash),
+			display.DisplayByteSlice(currentHeader.GetValidatorStatsRootHash()),
+			currentHeader.Nonce,
+		)
 	}
 
 	return nil
