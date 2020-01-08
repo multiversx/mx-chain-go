@@ -41,7 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -53,6 +52,7 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -217,7 +217,6 @@ func NewTestProcessorNode(
 	address[0] = 1
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-
 			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
@@ -239,54 +238,6 @@ func NewTestProcessorNode(
 
 	tpn.blockProcessorInitializer = tpn
 
-	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	tpn.initDataPools()
-	tpn.initTestNode()
-
-	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
-	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithMemP2P returns a new TestProcessorNode instance with a memory-based messenger
-func NewTestProcessorNodeWithMemP2P(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	network *memp2p.Network,
-) *TestProcessorNode {
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-
-	kg := &mock.KeyGenMock{}
-	sk, pk := kg.GeneratePair()
-
-	pkBytes := make([]byte, 128)
-	address := make([]byte, 32)
-	pkBytes[0] = 1
-	address[0] = 1
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
-			return []sharding.Validator{v}, nil
-		},
-	}
-
-	messenger, _ := memp2p.NewMessenger(network)
-	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-	}
-
-	tpn.NodeKeys = &TestKeyPair{
-		Sk: sk,
-		Pk: pk,
-	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
@@ -408,9 +359,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-
 	tpn.initBlockProcessor()
-
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -478,13 +427,13 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				UnBoundPeriod: "5",
 			},
 			RatingSettings: config.RatingSettings{
-				StartRating:                 5,
-				MaxRating:                   10,
+				StartRating:                 500000,
+				MaxRating:                   1000000,
 				MinRating:                   1,
-				ProposerIncreaseRatingStep:  2,
-				ProposerDecreaseRatingStep:  4,
-				ValidatorIncreaseRatingStep: 1,
-				ValidatorDecreaseRatingStep: 2,
+				ProposerDecreaseRatingStep:  3858,
+				ProposerIncreaseRatingStep:  1929,
+				ValidatorDecreaseRatingStep: 61,
+				ValidatorIncreaseRatingStep: 31,
 			},
 		},
 	)
@@ -1103,10 +1052,8 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	buff, _ := TestMarshalizer.Marshal(currHdr)
-
 	prevHash := TestHasher.Compute(string(buff))
 	blockHeader.SetPrevHash(prevHash)
-
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)

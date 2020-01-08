@@ -490,12 +490,10 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenL
 
 	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
 
-	computedLargeIndex := big.NewInt(0)
-	computedLargeIndex.SetBytes(indexHash)
-	lenExpandedEligibleList := big.NewInt(int64(lenList))
+	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
+	lenExpandedEligibleList := uint64(lenList)
 
-	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
-	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, lenExpandedEligibleList).Int64()
+	computedListIndex := computedLargeIndex % lenExpandedEligibleList
 
 	return int(computedListIndex)
 }

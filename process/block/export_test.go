@@ -309,14 +309,6 @@ func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	return sp.getAllMiniBlockDstMeFromMeta(header)
 }
 
-func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
-	return sp.isMiniBlockProcessed(metaBlockHash, miniBlockHash)
-}
-
-func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
-	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
-}
-
 func (bp *baseProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}

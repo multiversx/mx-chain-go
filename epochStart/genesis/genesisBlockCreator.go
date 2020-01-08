@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("core/genesis")
@@ -293,7 +293,7 @@ func deploySystemSmartContracts(
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
 		GasLimit:  0,
-		Data:      hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine),
+		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -345,7 +345,7 @@ func setStakingData(
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,
-				Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
+				Data:      []byte("stake@" + hex.EncodeToString(nodeInfo.PubKey())),
 				Signature: nil,
 			}
 

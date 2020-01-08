@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -37,7 +38,7 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
@@ -2936,15 +2937,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	datapool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  string(txHash1),
+		Data:  txHash1,
 	}, cacheId)
 	datapool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  string(txHash2),
+		Data:  txHash2,
 	}, cacheId)
 	datapool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  string(txHash3),
+		Data:  txHash3,
 	}, cacheId)
 
 	tx1ExecutionResult := uint64(0)
@@ -2954,13 +2955,13 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	txProcessorMock := &mock.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
-			if transaction.Data == string(txHash1) {
+			if bytes.Equal(transaction.Data, txHash1) {
 				tx1ExecutionResult = transaction.Nonce
 			}
-			if transaction.Data == string(txHash2) {
+			if bytes.Equal(transaction.Data, txHash2) {
 				tx2ExecutionResult = transaction.Nonce
 			}
-			if transaction.Data == string(txHash3) {
+			if bytes.Equal(transaction.Data, txHash3) {
 				tx3ExecutionResult = transaction.Nonce
 			}
 
@@ -3141,12 +3142,6 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	err := bp.AddProcessedCrossMiniBlocksFromHeader(blockHeader)
 
 	assert.Nil(t, err)
-	//check WasMiniBlockProcessed for remaining metablocks
-	assert.True(t, bp.IsMiniBlockProcessed(metaBlockHash2, miniblockHashes[2]))
-	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash2, miniblockHashes[3]))
-
-	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash3, miniblockHashes[4]))
-	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash3, miniblockHashes[5]))
 }
 
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.T) {
@@ -3286,7 +3281,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
 	assert.Equal(t, tx, txFromPool)
-	assert.Equal(t, false, sp.IsMiniBlockProcessed(metablockHash, miniblockHash))
 }
 
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {
@@ -4331,7 +4325,6 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		return []byte("cool")
 	}
 	metaHash := hasher.Compute(string(metaBytes))
-	sp.AddProcessedMiniBlock(metaHash, testMBHash)
 	metablockHashes := make([][]byte, 0)
 	metablockHashes = append(metablockHashes, metaHash)
 
@@ -4360,5 +4353,4 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 
 	assert.Equal(t, meta, metaBlockRestored)
 	assert.Nil(t, err)
-	assert.True(t, sp.IsMiniBlockProcessed(metaHash, testMBHash))
 }

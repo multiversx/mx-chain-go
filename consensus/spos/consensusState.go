@@ -222,7 +222,11 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 	// generate bitmap according to set commitment hashes
 	sizeConsensus := len(cns.ConsensusGroup())
 
-	bitmap := make([]byte, sizeConsensus/8+1)
+	bitmapSize := sizeConsensus / 8
+	if sizeConsensus%8 != 0 {
+		bitmapSize++
+	}
+	bitmap := make([]byte, bitmapSize)
 
 	for i := 0; i < sizeConsensus; i++ {
 		pubKey := cns.ConsensusGroup()[i]

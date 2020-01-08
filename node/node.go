@@ -569,7 +569,7 @@ func (n *Node) SendTransaction(
 	value string,
 	gasPrice uint64,
 	gasLimit uint64,
-	transactionData string,
+	transactionData []byte,
 	signature []byte) (string, error) {
 
 	if n.shardCoordinator == nil || n.shardCoordinator.IsInterfaceNil() {
@@ -748,7 +748,7 @@ func (n *Node) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	data []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
 
@@ -787,7 +787,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      data,
+		Data:      []byte(data),
 		Signature: signatureBytes,
 	}, nil
 }
