@@ -171,7 +171,7 @@ func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender 
 	// This way, sort is also a bit more optimized (less item movement)
 	// And partial, approximate sort is sufficient
 	sort.Slice(snapshot, func(i, j int) bool {
-		return computer.quantizedScores[i] < computer.quantizedScores[j]
+		return computer.scoresAsPercents[i] < computer.scoresAsPercents[j]
 	})
 
 	return snapshot
