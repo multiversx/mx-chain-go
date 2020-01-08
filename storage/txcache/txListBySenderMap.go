@@ -156,10 +156,60 @@ func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
 	return lists
 }
 
-// GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart eviction score
+// GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart score
+// A low score means that the sender will be evicted
+// A high score means that the sender will not be evicted, most probably
+// Score is:
+// - inversely proportional to sender's tx count
+// - inversely proportional to sender's tx total size
+// - directly proportional to sender's order number
+// - directly proportional to sender's tx total gas
 func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender {
+	// First get bounds for gas and size, in order to normalize the values when computing the score
+	maxGas := int64(0)
+	minGas := int64(0)
+	maxSize := int64(0)
+	minSize := int64(0)
+
+	txMap.forEach(func(key string, item *txListForSender) {
+		gas := item.totalGas.Get()
+		size := item.totalBytes.Get()
+
+		if gas > maxGas {
+			maxGas = gas
+		}
+		if gas < minGas {
+			minGas = gas
+		}
+
+		if size > maxSize {
+			maxSize = gas
+		}
+		if size < minSize {
+			minSize = size
+		}
+	})
+
+	// Normalized values are quantized (in the range 0 - 100)
+	// This way, sort is also a bit more optimized (less item movement)
+	// And partial, approximate sort is sufficient
+	gasRange := maxGas - minGas
+	sizeRange := maxSize - minSize
+	if gasRange == 0 {
+		gasRange = 1
+	}
+	if sizeRange == 0 {
+		sizeRange = 1
+	}
+
 	lists := txMap.getListsSortedByFunc(func(txListA, txListB *txListForSender) bool {
-		return txListA.totalGas < txListB.totalGas
+		gasA := float64(txListA.totalGas.Get()-minGas) / float64(gasRange)
+		gasB := float64(txListB.totalGas.Get()-minGas) / float64(gasRange)
+
+		scoreA := gasA * float64(txListA.orderNumber) * 100
+		scoreB := gasB * float64(txListB.orderNumber) * 100
+
+		return scoreA < scoreB
 	})
 
 	return lists
@@ -173,8 +223,8 @@ func (txMap *txListBySenderMap) getListsSortedByFunc(less func(txListA, txListB 
 
 	lists := make([]*txListForSender, 0, counter)
 
-	txMap.backingMap.IterCb(func(key string, item interface{}) {
-		lists = append(lists, item.(*txListForSender))
+	txMap.forEach(func(key string, item *txListForSender) {
+		lists = append(lists, item)
 	})
 
 	sort.Slice(lists, func(i, j int) bool {
