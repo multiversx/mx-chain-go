@@ -125,6 +125,65 @@ func CreateNodesWithNodesCoordinator(
 	return nodesMap
 }
 
+// CreateNodesWithNodesCoordinatorAndHeaderSigVerifier returns a map with nodes per shard each using a real nodes coordinator and header sig verifier
+func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+	signer crypto.SingleSigner,
+	keyGen crypto.KeyGenerator,
+) map[uint32][]*TestProcessorNode {
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+	nodesMap := make(map[uint32][]*TestProcessorNode)
+	for shardId, validatorList := range validatorsMap {
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Hasher:                  TestHasher,
+			ShardId:                 shardId,
+			NbShards:                uint32(nbShards),
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+		}
+		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+		if err != nil {
+			fmt.Println("Error creating node coordinator")
+		}
+
+		nodesList := make([]*TestProcessorNode, len(validatorList))
+		args := headerCheck.ArgsHeaderSigVerifier{
+			Marshalizer:       TestMarshalizer,
+			Hasher:            TestHasher,
+			NodesCoordinator:  nodesCoordinator,
+			MultiSigVerifier:  TestMultiSig,
+			SingleSigVerifier: signer,
+			KeyGen:            keyGen,
+		}
+		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+		for i := range validatorList {
+			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
+				uint32(nbShards),
+				shardId,
+				seedAddress,
+				nodesCoordinator,
+				cp,
+				i,
+				nil,
+				headerSig,
+			)
+		}
+		nodesMap[shardId] = nodesList
+	}
+
+	return nodesMap
+}
+
 // CreateNodesWithNodesCoordinatorKeygenAndSingleSigner returns a map with nodes per shard each using a real nodes coordinator
 // and a given single signer for blocks and a given key gen for blocks
 func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
@@ -209,7 +268,7 @@ func ProposeBlockWithConsensusSignature(
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
-	header.SetPrevRandSeed(randomness)
+
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return body, header, txHashes, consensusNodes

@@ -91,8 +91,8 @@ func (scr *RewardTx) GetNonce() uint64 {
 }
 
 // GetData returns the data of the reward transaction
-func (rtx *RewardTx) GetData() string {
-	return ""
+func (rtx *RewardTx) GetData() []byte {
+	return []byte("")
 }
 
 // GetRecvAddress returns the receiver address from the reward transaction
@@ -121,7 +121,7 @@ func (rtx *RewardTx) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the reward transaction
-func (rtx *RewardTx) SetData(data string) {
+func (rtx *RewardTx) SetData(data []byte) {
 }
 
 // SetRecvAddress sets the receiver address of the reward transaction

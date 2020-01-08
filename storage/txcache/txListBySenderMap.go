@@ -67,6 +67,7 @@ func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
+		log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
 		return false
 	}
 
@@ -103,12 +104,15 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 
 // GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
 func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	lists := make([]*txListForSender, txMap.counter.Get())
+	counter := txMap.counter.Get()
+	if counter < 1 {
+		return make([]*txListForSender, 0)
+	}
 
-	index := 0
+	lists := make([]*txListForSender, 0, counter)
+
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
-		lists[index] = item.(*txListForSender)
-		index++
+		lists = append(lists, item.(*txListForSender))
 	})
 
 	sort.Slice(lists, func(i, j int) bool {
@@ -127,4 +131,9 @@ func (txMap *txListBySenderMap) forEach(function ForEachSender) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})
+}
+
+func (txMap *txListBySenderMap) clear() {
+	txMap.backingMap.Clear()
+	txMap.counter.Set(0)
 }
