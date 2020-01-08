@@ -87,6 +87,7 @@ type InterceptedData interface {
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte
+	Type() string
 }
 
 // InterceptorProcessor further validates and saves received data

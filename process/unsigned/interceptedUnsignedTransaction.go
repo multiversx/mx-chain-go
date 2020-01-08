@@ -179,10 +179,12 @@ func (inUTx *InterceptedUnsignedTransaction) Hash() []byte {
 	return inUTx.hash
 }
 
+// Type returns the type of this intercepted data
+func (inUTx *InterceptedUnsignedTransaction) Type() string {
+	return "intercepted unsigned tx"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inUTx *InterceptedUnsignedTransaction) IsInterfaceNil() bool {
-	if inUTx == nil {
-		return true
-	}
-	return false
+	return inUTx == nil
 }

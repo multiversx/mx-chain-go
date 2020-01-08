@@ -159,11 +159,12 @@ func (inRTx *InterceptedRewardTransaction) IsForCurrentShard() bool {
 	return inRTx.isForCurrentShard
 }
 
+// Type returns the type of this intercepted data
+func (inRTx *InterceptedRewardTransaction) Type() string {
+	return "intercepted reward tx"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inRTx *InterceptedRewardTransaction) IsInterfaceNil() bool {
-	if inRTx == nil {
-		return true
-	}
-
-	return false
+	return inRTx == nil
 }

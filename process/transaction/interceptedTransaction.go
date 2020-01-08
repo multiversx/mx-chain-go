@@ -237,10 +237,12 @@ func (inTx *InterceptedTransaction) TotalValue() *big.Int {
 	return result
 }
 
+// Type returns the type of this intercepted data
+func (inTx *InterceptedTransaction) Type() string {
+	return "intercepted tx"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inTx *InterceptedTransaction) IsInterfaceNil() bool {
-	if inTx == nil {
-		return true
-	}
-	return false
+	return inTx == nil
 }
