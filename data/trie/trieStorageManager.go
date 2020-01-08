@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -42,15 +43,68 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig
 		return nil, ErrNilSnapshotDbConfig
 	}
 
+	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(snapshotDbCfg)
+	if err != nil {
+		log.Debug("get snapshot", "error", err.Error())
+	}
+
 	return &trieStorageManager{
 		db:                    db,
 		pruningBuffer:         make([][]byte, 0),
-		snapshots:             make([]storage.Persister, 0),
-		snapshotId:            0,
+		snapshots:             snapshots,
+		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
 		snapshotsBuffer:       newSnapshotsQueue(),
 		dbEvictionWaitingList: ewl,
 	}, nil
+}
+
+func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persister, int, error) {
+	snapshots := make([]storage.Persister, 0)
+	snapshotId := 0
+
+	if !directoryExists(snapshotDbCfg.FilePath) {
+		return snapshots, snapshotId, nil
+	}
+
+	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
+	if err != nil {
+		return snapshots, snapshotId, err
+	}
+
+	for _, f := range files {
+		if !f.IsDir() {
+			continue
+		}
+
+		snapshotName, err := strconv.Atoi(f.Name())
+		if err != nil {
+			return snapshots, snapshotId, err
+		}
+
+		db, err := storageUnit.NewDB(
+			storageUnit.DBType(snapshotDbCfg.Type),
+			path.Join(snapshotDbCfg.FilePath, f.Name()),
+			snapshotDbCfg.BatchDelaySeconds,
+			snapshotDbCfg.MaxBatchSize,
+			snapshotDbCfg.MaxOpenFiles,
+		)
+		if err != nil {
+			return snapshots, snapshotId, err
+		}
+
+		if snapshotName > snapshotId {
+			snapshotId = snapshotName
+		}
+
+		snapshots = append(snapshots, db)
+	}
+
+	if len(snapshots) != 0 {
+		snapshotId++
+	}
+
+	return snapshots, snapshotId, nil
 }
 
 // Database returns the main database
@@ -96,6 +150,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 
 	err := tsm.removeFromDb(rootHash)
 	if err != nil {
+		log.Debug("trie storage manager prune", "error", rootHash)
 		return err
 	}
 
@@ -130,6 +185,7 @@ func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("trie storage manager: mark for eviction", "root", root)
 
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,6 +47,43 @@ func TestNewTrieStorageManagerOkVals(t *testing.T) {
 	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), &config.DBConfig{}, &mock.EvictionWaitingList{})
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
+}
+
+func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
+	t.Parallel()
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := &config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
+	size := uint(100)
+	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
+	trieStorage, _ := NewTrieStorageManager(db, cfg, evictionWaitList)
+	tr, _ := NewTrie(trieStorage, msh, hsh)
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+	tr.TakeSnapshot(rootHash)
+
+	for trieStorage.snapshotsBuffer.len() != 0 {
+		time.Sleep(time.Second)
+	}
+	_ = trieStorage.snapshots[0].Close()
+
+	newTrieStorage, _ := NewTrieStorageManager(memorydb.New(), cfg, evictionWaitList)
+	snapshot := newTrieStorage.GetDbThatContainsHash(rootHash)
+	assert.NotNil(t, snapshot)
+	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
 
 func TestTrieStorageManager_Clone(t *testing.T) {

@@ -72,7 +72,12 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	return tr.root.tryGet(hexKey, tr.trieStorage.Database())
+	val, err := tr.root.tryGet(hexKey, tr.trieStorage.Database())
+	if err != nil {
+		log.Trace("trie get", "error", key)
+	}
+
+	return val, err
 }
 
 // Update updates the value at the given key.
@@ -319,7 +324,12 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		)
 	}
 
-	return tr.recreateFromDb(root)
+	newTr, err := tr.recreateFromDb(root)
+	if err != nil {
+		log.Debug("trie recreate", "error", root)
+	}
+
+	return newTr, err
 }
 
 // DeepClone returns a new trie with all nodes deeply copied
@@ -380,6 +390,7 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 	defer tr.mutOperation.Unlock()
 
 	rootHash = append(rootHash, byte(identifier))
+	log.Trace("trie prune", "root", rootHash)
 	return tr.trieStorage.Prune(rootHash)
 }
 
@@ -387,6 +398,7 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tr.mutOperation.Lock()
 	rootHash = append(rootHash, byte(identifier))
+	log.Trace("trie cancel prune", "root", rootHash)
 	tr.trieStorage.CancelPrune(rootHash)
 	tr.mutOperation.Unlock()
 }
