@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -13,14 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func convertBigIntToBytes(value *big.Int) []byte {
-	return value.Bytes()
-}
-
 func uint64ToBytes(value uint64) []byte {
 	buff := make([]byte, 8)
-
 	binary.BigEndian.PutUint64(buff, value)
+
 	return buff
 }
 
@@ -299,12 +296,12 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 	//element 0 will be first element
 	//element 1 will be the second
 	hasher.ComputeCalled = func(s string) []byte {
-		if string(uint64ToBytes(0))+randomness == s {
-			return convertBigIntToBytes(big.NewInt(0))
+		if strings.Contains(s, "0-") {
+			return uint64ToBytes(0)
 		}
 
-		if string(uint64ToBytes(1))+randomness == s {
-			return convertBigIntToBytes(big.NewInt(1))
+		if strings.Contains(s, "1-") {
+			return uint64ToBytes(1)
 		}
 
 		return nil
@@ -340,11 +337,11 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 	//element 1 will be the first
 	hasher.ComputeCalled = func(s string) []byte {
 		if string(uint64ToBytes(0))+randSource == s {
-			return convertBigIntToBytes(big.NewInt(1))
+			return uint64ToBytes(1)
 		}
 
 		if string(uint64ToBytes(1))+randSource == s {
-			return convertBigIntToBytes(big.NewInt(0))
+			return uint64ToBytes(0)
 		}
 
 		return nil
@@ -390,12 +387,12 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 	//element 0 will be the first
 	//element 1 will be the second as the same index is being returned and 0 is already in list
 	hasher.ComputeCalled = func(s string) []byte {
-		if string(uint64ToBytes(0))+randomness == s {
-			return convertBigIntToBytes(big.NewInt(0))
+		if strings.Contains(s, "0-") {
+			return uint64ToBytes(0)
 		}
 
-		if string(uint64ToBytes(1))+randomness == s {
-			return convertBigIntToBytes(big.NewInt(0))
+		if strings.Contains(s, "1-") {
+			return uint64ToBytes(1)
 		}
 
 		return nil
@@ -434,23 +431,22 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	// for index 4, hasher will return 0 which will translate to 0, 0 is already picked, 1 is already picked, 2 is already picked,
 	//      3 is the 4-th element
 	// for index 5, hasher will return 9 which will translate to 9, so 9, 0, 1, 2, 3 are already picked, 4 is the 5-th element
-	script := make(map[string]*big.Int)
+	script := make(map[string]uint64)
 
-	script[string(uint64ToBytes(0))+randomnessWithRound] = big.NewInt(11) //will translate to 1, add 1
-	script[string(uint64ToBytes(1))+randomnessWithRound] = big.NewInt(1)  //will translate to 1, add 2
-	script[string(uint64ToBytes(2))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 9
-	script[string(uint64ToBytes(3))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 0
-	script[string(uint64ToBytes(4))+randomnessWithRound] = big.NewInt(0)  //will translate to 0, add 3
-	script[string(uint64ToBytes(5))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 4
+	script[string(uint64ToBytes(0))+randomnessWithRound] = 11 //will translate to 1, add 1
+	script[string(uint64ToBytes(1))+randomnessWithRound] = 1  //will translate to 1, add 2
+	script[string(uint64ToBytes(2))+randomnessWithRound] = 9  //will translate to 9, add 9
+	script[string(uint64ToBytes(3))+randomnessWithRound] = 9  //will translate to 9, add 0
+	script[string(uint64ToBytes(4))+randomnessWithRound] = 0  //will translate to 0, add 3
+	script[string(uint64ToBytes(5))+randomnessWithRound] = 9  //will translate to 9, add 4
 
 	hasher.ComputeCalled = func(s string) []byte {
 		val, ok := script[s]
-
 		if !ok {
 			assert.Fail(t, "should have not got here")
 		}
 
-		return convertBigIntToBytes(val)
+		return uint64ToBytes(val)
 	}
 
 	validator0 := mock.NewValidatorMock(big.NewInt(1), 1, []byte("pk0"), []byte("addr0"))
