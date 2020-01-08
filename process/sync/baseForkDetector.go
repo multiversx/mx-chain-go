@@ -211,7 +211,6 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
-	bfd.setHighestNonceReceived(probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {

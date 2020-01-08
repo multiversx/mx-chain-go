@@ -2,7 +2,6 @@ package sync
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -470,9 +469,6 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 	}
 }
 
-func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
-	return boot.forkInfo.IsDetected &&
-		boot.forkInfo.Nonce != math.MaxUint64 &&
-		boot.forkInfo.Round != math.MaxUint64 &&
-		boot.forkInfo.Hash != nil
+func (boot *MetaBootstrap) isForkTriggeredByHighestChain() bool {
+	return false
 }

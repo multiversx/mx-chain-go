@@ -638,7 +638,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
 		}
 
-		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
+		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByHighestChain()
 		if shouldAddHeaderToBlackList {
 			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
 		}
