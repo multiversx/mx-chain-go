@@ -224,17 +224,9 @@ func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
 	return inTx.sndAddr
 }
 
-// TotalValue returns the maximum cost of transaction
-// totalValue = txValue + gasPrice*gasLimit
-func (inTx *InterceptedTransaction) TotalValue() *big.Int {
-	result := big.NewInt(0).Set(inTx.tx.Value)
-	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
-	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))
-	mulTxCost := big.NewInt(0)
-	mulTxCost = mulTxCost.Mul(gasPrice, gasLimit)
-	result = result.Add(result, mulTxCost)
-
-	return result
+// Fee returns the estimated cost of the transaction
+func (inTx *InterceptedTransaction) Fee() *big.Int {
+	return inTx.feeHandler.ComputeFee(inTx.tx)
 }
 
 // Type returns the type of this intercepted data

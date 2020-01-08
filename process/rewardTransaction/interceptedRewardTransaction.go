@@ -112,11 +112,9 @@ func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
 	return inRTx.rTx.GetNonce()
 }
 
-// TotalValue returns the maximum cost of transaction
-// totalValue = txValue + gasPrice*gasLimit
-func (inRTx *InterceptedRewardTransaction) TotalValue() *big.Int {
-	copiedVal := big.NewInt(0).Set(inRTx.rTx.Value)
-	return copiedVal
+// Fee represents the reward transaction fee. It is always 0
+func (inRTx *InterceptedRewardTransaction) Fee() *big.Int {
+	return big.NewInt(0)
 }
 
 // SenderAddress returns the transaction sender address

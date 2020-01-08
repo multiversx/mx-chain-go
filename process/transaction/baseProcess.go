@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,6 +16,7 @@ type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
+	economicsFee     process.FeeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -124,6 +126,11 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrLowerNonceInTransaction
 	}
 
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return err
+	}
+
 	cost := big.NewInt(0)
 	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	cost.Add(cost, tx.Value)
@@ -138,8 +145,21 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 	}
 
 	if stAcc.Balance.Cmp(cost) < 0 {
-		return process.ErrInsufficientFunds
+		return txProc.checkTxFee(tx, stAcc)
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) checkTxFee(tx *transaction.Transaction, stAcc *state.Account) error {
+	txFee := txProc.economicsFee.ComputeFee(tx)
+	if stAcc.Balance.Cmp(txFee) < 0 {
+		return fmt.Errorf("%w, has: %s, wanted: %s",
+			process.ErrInsufficientFee,
+			stAcc.Balance.String(),
+			txFee.String(),
+		)
+	}
+
+	return process.ErrInsufficientFunds
 }

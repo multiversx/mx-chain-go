@@ -216,6 +216,20 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		txHashes = txHashes[:0]
 	}
 	forBlock.mutTxsForBlock.Unlock()
+
+	for shard, txHashInfoSlice := range missingTxsForShard {
+		for _, txHashInfo := range txHashInfoSlice {
+			for _, hash := range txHashInfo.txHashes {
+				log.Trace("missing txs",
+					"block type", currType.String(),
+					"sender shard id", shard,
+					"receiver shard id", txHashInfo.receiverShardID,
+					"hash", hash,
+				)
+			}
+		}
+	}
+
 	return missingTxsForShard
 }
 
