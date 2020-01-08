@@ -436,7 +436,6 @@ type RequestHandler interface {
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
-	RequestHeader(shardId uint32, hash []byte)
 	RequestTrieNodes(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
 }

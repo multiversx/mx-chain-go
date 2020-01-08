@@ -522,6 +522,5 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
 		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes
 
-
 	assert.Equal(t, totalResolvers, container.Len())
 }
