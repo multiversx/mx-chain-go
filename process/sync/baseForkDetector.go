@@ -211,6 +211,11 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.RemoveHeader",
+		"nonce", nonce,
+		"hash", hash,
+		"probable highest nonce", probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -227,6 +232,10 @@ func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 
 	bfd.fork.checkpoint = preservedCheckpoint
 	bfd.mutFork.Unlock()
+
+	log.Debug("forkDetector.removeCheckpointWithNonce",
+		"nonce", nonce,
+		"last check point nonce", bfd.lastCheckpoint().nonce)
 }
 
 // append adds a new header in the slice found in nonce position
@@ -272,8 +281,11 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
-	bfd.setHighestNonceReceived(probableHighestNonce)
+	//bfd.setHighestNonceReceived(probableHighestNonce)
 	bfd.setShouldForceFork(false)
+
+	log.Debug("forkDetector.ResetFork",
+		"probable highest nonce", probableHighestNonce)
 }
 
 func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {
@@ -308,16 +320,12 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Unlock()
 
 	bfd.mutFork.Lock()
-	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
-	bfd.mutFork.Unlock()
-
 	checkpoint := &checkpointInfo{}
-	bfd.setFinalCheckpoint(checkpoint)
-	bfd.addCheckpoint(checkpoint)
-
-	probableHighestNonce := bfd.computeProbableHighestNonce()
-	bfd.setProbableHighestNonce(probableHighestNonce)
-	bfd.setHighestNonceReceived(probableHighestNonce)
+	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
+	bfd.fork.finalCheckpoint = checkpoint
+	bfd.fork.probableHighestNonce = 0
+	bfd.fork.highestNonceReceived = 0
+	bfd.mutFork.Unlock()
 }
 
 func (bfd *baseForkDetector) finalCheckpoint() *checkpointInfo {

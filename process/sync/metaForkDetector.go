@@ -75,6 +75,9 @@ func (mfd *metaForkDetector) AddHeader(
 	}
 
 	if header.GetNonce() > mfd.highestNonceReceived() {
+		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
+			"nonce", header.GetNonce(),
+			"highest nonce received", mfd.highestNonceReceived())
 		mfd.setHighestNonceReceived(header.GetNonce())
 	}
 
@@ -107,6 +110,16 @@ func (mfd *metaForkDetector) AddHeader(
 
 	probableHighestNonce := mfd.computeProbableHighestNonce()
 	mfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.AddHeader",
+		"nonce", header.GetNonce(),
+		"hash", headerHash,
+		"state", state,
+		"probable highest nonce", mfd.probableHighestNonce(),
+		"last check point nonce", mfd.lastCheckpoint().nonce,
+		"final check point nonce", mfd.finalCheckpoint().nonce)
+
+	mfd.setShouldForceFork(false)
 
 	return nil
 }
