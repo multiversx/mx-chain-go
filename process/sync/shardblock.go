@@ -114,7 +114,8 @@ func NewShardBootstrap(
 	//should be then removed from ShardBootstrap
 
 	//there is one header topic so it is ok to save it
-	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
+	//TODO make use of requestHandler
+	hdrResolver, err := resolversFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}

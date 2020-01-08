@@ -33,9 +33,11 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			BurnPercentage:      0.8,
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock: "100000",
-			MinGasPrice:         "18446744073709551615",
-			MinGasLimit:         "500",
+			MaxGasLimitPerBlock:  "100000",
+			MinGasPrice:          "18446744073709551615",
+			MinGasLimit:          "500",
+			GasPerDataByte:       "1",
+			DataLimitForBaseCalc: "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
 			StakeValue:    "500000000",
@@ -292,7 +294,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -356,7 +358,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
-		Data:     "1",
+		Data:     []byte("1"),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -440,6 +442,18 @@ func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 
 	assert.Nil(t, economicsData)
 	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
+}
+
+func TestEconomicsData_RatingsDataMinSmallerThanOne(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 0
+	economicsConfig.RatingSettings.MaxRating = 8
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
 func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {

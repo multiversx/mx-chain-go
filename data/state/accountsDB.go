@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
 	"sync"
@@ -61,7 +60,7 @@ func (adb *AccountsDB) PutCode(accountHandler AccountHandler, code []byte) error
 	if code == nil {
 		return ErrNilCode
 	}
-	if accountHandler == nil || accountHandler.IsInterfaceNil() {
+	if check.IfNil(accountHandler) {
 		return ErrNilAccountHandler
 	}
 
@@ -157,22 +156,23 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		originalValue := trackableDataTrie.OriginalValue([]byte(k))
+		//TODO: delete the next verification when delete from trie bug is repaired
+		if len(v) == 0 {
+			continue
+		}
 
-		if !bytes.Equal(v, originalValue) {
-			flagHasDirtyData = true
+		flagHasDirtyData = true
 
-			val, err := dataTrie.Get([]byte(k))
-			if err != nil {
-				return err
-			}
+		val, err := dataTrie.Get([]byte(k))
+		if err != nil {
+			return err
+		}
 
-			oldValues[k] = val
+		oldValues[k] = val
 
-			err = dataTrie.Update([]byte(k), v)
-			if err != nil {
-				return err
-			}
+		err = dataTrie.Update([]byte(k), v)
+		if err != nil {
+			return err
 		}
 	}
 

@@ -75,7 +75,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			SpecialAddressHandler:        specialAddressHandler,
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			StartHeaders:                 genesisBlocks,
-			RequestHandler:               &mock.RequestHandlerMock{},
+			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
@@ -307,14 +307,6 @@ func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	header *block.Header,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(header)
-}
-
-func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
-	return sp.isMiniBlockProcessed(metaBlockHash, miniBlockHash)
-}
-
-func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
-	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 }
 
 func (bp *baseProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {

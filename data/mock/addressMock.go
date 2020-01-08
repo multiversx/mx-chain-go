@@ -24,7 +24,7 @@ func NewAddressMock() *AddressMock {
 	buff := make([]byte, HasherMock{}.Size())
 
 	mutex.Lock()
-	r.Read(buff)
+	_, _ = r.Read(buff)
 	mutex.Unlock()
 
 	return &AddressMock{bytes: buff}
@@ -42,8 +42,5 @@ func (address *AddressMock) Bytes() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (address *AddressMock) IsInterfaceNil() bool {
-	if address == nil {
-		return true
-	}
-	return false
+	return address == nil
 }

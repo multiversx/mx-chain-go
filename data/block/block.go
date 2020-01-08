@@ -617,3 +617,16 @@ func (h *Header) CheckChainID(reference []byte) error {
 
 	return nil
 }
+
+// Clone the underlying data
+func (mb *MiniBlock) Clone() *MiniBlock {
+	newMb := &MiniBlock{
+		ReceiverShardID: mb.ReceiverShardID,
+		SenderShardID:   mb.SenderShardID,
+		Type:            mb.Type,
+	}
+	newMb.TxHashes = make([][]byte, len(mb.TxHashes))
+	copy(newMb.TxHashes, mb.TxHashes)
+
+	return newMb
+}

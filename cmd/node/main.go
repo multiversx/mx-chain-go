@@ -220,12 +220,6 @@ VERSION:
 		Value: "",
 	}
 
-	// usePrometheus joins the node for prometheus monitoring if set
-	usePrometheus = cli.BoolFlag{
-		Name:  "use-prometheus",
-		Usage: "Will make the node available for prometheus and grafana monitoring",
-	}
-
 	//useLogView is used when termui interface is not needed.
 	useLogView = cli.BoolFlag{
 		Name:  "use-log-view",
@@ -358,7 +352,6 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
-		usePrometheus,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -631,7 +624,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -853,11 +846,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
-		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        statusHandlersInfo.UsePrometheus,
-		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
-		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
+		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
+		PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 	}
 
 	ef.SetSyncer(syncer)
@@ -1051,12 +1041,14 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	if err != nil {
-		return nil, err
-	}
+	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
+	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
+	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	return nodesCoordinator, nil
+	return baseNodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
