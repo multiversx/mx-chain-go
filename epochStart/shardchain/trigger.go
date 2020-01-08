@@ -25,10 +25,11 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool           dataRetriever.PoolsHolder
-	Storage            dataRetriever.StorageService
-	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.StartOfEpochNotifier
+	DataPool            dataRetriever.PoolsHolder
+	Storage             dataRetriever.StorageService
+	RequestHandler      epochStart.RequestHandler
+	EpochStartNotifier  epochStart.StartOfEpochNotifier
+	EpochChangeNotifier epochStart.StartOfEpochNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -62,8 +63,9 @@ type trigger struct {
 	hasher          hashing.Hasher
 	headerValidator epochStart.HeaderValidator
 
-	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.StartOfEpochNotifier
+	requestHandler      epochStart.RequestHandler
+	epochStartNotifier  epochStart.StartOfEpochNotifier
+	epochChangeNotifier epochStart.StartOfEpochNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -101,6 +103,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.EpochChangeNotifier) {
+		return nil, epochStart.ErrNilEpochStartNotifier
+	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
@@ -136,6 +141,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
+		epochChangeNotifier:         args.EpochChangeNotifier,
 	}
 	return newTrigger, nil
 }
@@ -236,6 +242,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+			t.epochChangeNotifier.NotifyAll(meta)
 		}
 	}
 }
