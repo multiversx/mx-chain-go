@@ -2,7 +2,7 @@ package core
 
 import "sync/atomic"
 
-// AtomicCounter is
+// AtomicCounter is an atomic counter
 type AtomicCounter int64
 
 // Set sets counter

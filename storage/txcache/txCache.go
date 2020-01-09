@@ -3,6 +3,7 @@ package txcache
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -12,11 +13,12 @@ var log = logger.GetOrCreate("txcache")
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender  txListBySenderMap
-	txByHash        txByHashMap
-	evictionConfig  EvictionConfig
-	evictionMutex   sync.Mutex
-	evictionJournal evictionJournal
+	txListBySender          txListBySenderMap
+	txByHash                txByHashMap
+	evictionConfig          EvictionConfig
+	evictionMutex           sync.Mutex
+	evictionJournal         evictionJournal
+	maybeEvictionInProgress core.AtomicFlag
 }
 
 // NewTxCache creates a new transaction cache
@@ -48,6 +50,10 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 	added = false
 
 	if check.IfNil(tx) {
+		return
+	}
+
+	if cache.maybeEvictionInProgress.IsSet() {
 		return
 	}
 
