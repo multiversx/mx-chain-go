@@ -30,6 +30,8 @@ func (cache *TxCache) doEviction() evictionJournal {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
+	log.Info("TxCache.doEviction()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+
 	if cache.areThereTooManySenders() {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
 		journal.evictionPerformed = true
@@ -105,6 +107,8 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 }
 
 func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
+	log.Info("TxCache.doEvictItems()", "senders", sendersToEvict)
+
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
 	return

@@ -242,33 +242,34 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	cache := NewTxCacheWithEviction(16, config)
 
-	// Alice sends 201 transactions of 1000 = 128 + 872 bytes, with gas price 15
+	// Alice sends 201 transactions of 1000 bytes, with gas price 15
 	for i := 0; i < 201; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("alice-%d", i)), createTxWithGas("alice", uint64(i), 872, 15))
+		cache.AddTx([]byte(fmt.Sprintf("alice-%d", i)), createTxWithGas("alice", uint64(i), 1000, 15))
 	}
 
-	require.Equal(t, int64(201*(872+estimatedSizeOfBoundedTxFields)), cache.VolumeInBytes())
+	require.Equal(t, int64(201*1000), cache.VolumeInBytes())
 	require.Equal(t, int64(201000), cache.VolumeInBytes())
 
 	// Alice sends another transaction
 	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(201), 872, 15))
+	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(201), 1000, 15))
 
 	// Only latest Alice's transaction remains in cache
 	require.Equal(t, int64(1), cache.CountTx())
-	require.Equal(t, int64(872+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
-	// The eviction takes place in pass 0
+	require.Equal(t, int64(1), cache.countTxBySender("alice"))
+	require.Equal(t, int64(1000), cache.VolumeInBytes())
+	// The eviction takes place in pass four
 	require.Equal(t, uint32(201), cache.evictionJournal.passFourNumTxs)
 	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
 	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// Bob and Carol send transactions, with different gas price
 	for i := 0; i < 100; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 872, 30))
+		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 1000, 30))
 	}
 
 	for i := 0; i < 100; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 872, 20))
+		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 1000, 20))
 	}
 
 	// 100 from Bob, 100 from Carol, one from Alice
@@ -280,27 +281,27 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	// Carol sends another transaction
 	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("carol-foo")), createTxWithGas("carol", uint64(100), 872, 15))
+	cache.AddTx([]byte(fmt.Sprintf("carol-foo")), createTxWithGas("carol", uint64(100), 1000, 15))
 
-	// Alice's transaction is evicted (lowest total gas), Alice is evicted (no more transactions)
-	// The eviction takes place in pass 0
-	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumTxs)
+	// Bob is evicted (lowest score)
+	// The eviction takes place in pass four
+	require.Equal(t, uint32(100), cache.evictionJournal.passFourNumTxs)
 	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
 	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
-	// All other transactions (from Bob and Carol) are still in place
+	// All other transactions (from Alice and Carol) are still in place
 	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
-	require.Equal(t, int64(0), cache.countTxBySender("alice"))
-	require.Equal(t, int64(100), cache.countTxBySender("bob"))
+	require.Equal(t, int64(1), cache.countTxBySender("alice"))
+	require.Equal(t, int64(0), cache.countTxBySender("bob"))
 	require.Equal(t, int64(101), cache.countTxBySender("carol"))
 	require.Equal(t, int64(2), cache.CountSenders())
-	require.Equal(t, int64(201000), cache.VolumeInBytes())
+	require.Equal(t, int64(102000), cache.VolumeInBytes())
 
 	// Carol sends another transaction
 	// This transaction will cause eviction, again
-	cache.AddTx([]byte(fmt.Sprintf("carol-bar")), createTxWithGas("carol", uint64(101), 872, 15))
+	cache.AddTx([]byte(fmt.Sprintf("carol-bar")), createTxWithGas("carol", uint64(101), 1000, 15))
 
-	// Carol is evicted (lowest total gas), Bob remains.
+	// Bob is evicted (lowest score).
 	// Then Carol is added again, with the new transaction (this isn't very good, since lower nonce transactions are evicted, but this is how the cache works)
 	// The eviction takes place in pass 0
 	require.Equal(t, uint32(101), cache.evictionJournal.passFourNumTxs)
@@ -428,29 +429,31 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 	}
 }
 
-func createTx(sender string, nonce uint64) data.TransactionHandler {
+func createTx(sender string, nonce uint64) *transaction.Transaction {
 	return &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
 	}
 }
 
-func createTxWithData(sender string, nonce uint64, dataLength uint64) data.TransactionHandler {
+func createTxWithData(sender string, nonce uint64, dataLength uint64) *transaction.Transaction {
+	payloadLength := int(dataLength) - int(estimatedSizeOfBoundedTxFields)
+	if payloadLength < 0 {
+		panic("createTxWithData(): invalid length for dummy tx")
+	}
+
 	return &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
-		Data:    make([]byte, dataLength),
+		Data:    make([]byte, payloadLength),
 	}
 }
 
-func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasLimit uint64) data.TransactionHandler {
-	return &transaction.Transaction{
-		SndAddr:  []byte(sender),
-		Nonce:    nonce,
-		Data:     make([]byte, dataLength),
-		GasPrice: 1,
-		GasLimit: gasLimit,
-	}
+func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasLimit uint64) *transaction.Transaction {
+	tx := createTxWithData(sender, nonce, dataLength)
+	tx.GasPrice = 1
+	tx.GasLimit = gasLimit
+	return tx
 }
 
 func createFakeSenderAddress(senderTag int) []byte {

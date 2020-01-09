@@ -120,7 +120,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
 	config := EvictionConfig{
-		NumBytesThreshold:          (numBytesPerTx + estimatedSizeOfBoundedTxFields) * 100,
+		NumBytesThreshold:          numBytesPerTx * 100,
 		NumSendersToEvictInOneStep: 20,
 	}
 
