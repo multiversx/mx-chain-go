@@ -130,6 +130,7 @@ type Trie interface {
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }
 
@@ -166,5 +167,6 @@ type StorageManager interface {
 	MarkForEviction([]byte, [][]byte) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	Clone() StorageManager
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }

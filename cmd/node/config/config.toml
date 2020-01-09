@@ -344,5 +344,6 @@
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
 
-[StateCheckpointConfig]
+[StateTrieConfig]
     RoundsModulus = 100
+    PruningEnabled = false

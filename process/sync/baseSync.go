@@ -704,12 +704,15 @@ func (boot *baseBootstrap) rollBackOneBlock(
 			return err
 		}
 
-		boot.accounts.CancelPrune(prevHeader.GetRootHash())
+		if boot.accounts.IsPruningEnabled() {
+			boot.accounts.CancelPrune(prevHeader.GetRootHash())
 
-		if !bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
-			errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
-			if errNotCritical != nil {
-				log.Debug(errNotCritical.Error())
+			if !bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
+				log.Trace("header will be pruned", "root hash", currHeader.GetRootHash())
+				errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
+				if errNotCritical != nil {
+					log.Debug(errNotCritical.Error())
+				}
 			}
 		}
 	} else {

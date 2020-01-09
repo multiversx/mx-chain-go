@@ -252,7 +252,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl, true)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{

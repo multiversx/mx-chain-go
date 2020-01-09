@@ -70,7 +70,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl, true)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})

@@ -19,8 +19,9 @@ import (
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	db            data.DBWriteCacher
-	pruningBuffer [][]byte
+	db             data.DBWriteCacher
+	pruningBuffer  [][]byte
+	pruningEnabled bool
 
 	snapshots       []storage.Persister
 	snapshotId      int
@@ -32,11 +33,11 @@ type trieStorageManager struct {
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
-func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
+func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher, pruningEnabled bool) (*trieStorageManager, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
 	}
-	if check.IfNil(ewl) {
+	if check.IfNil(ewl) && pruningEnabled {
 		return nil, ErrNilEvictionWaitingList
 	}
 	if snapshotDbCfg == nil {
@@ -51,6 +52,7 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig
 	return &trieStorageManager{
 		db:                    db,
 		pruningBuffer:         make([][]byte, 0),
+		pruningEnabled:        pruningEnabled,
 		snapshots:             snapshots,
 		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
@@ -130,6 +132,7 @@ func (tsm *trieStorageManager) Clone() data.StorageManager {
 	return &trieStorageManager{
 		db:                    tsm.db,
 		pruningBuffer:         tsm.pruningBuffer,
+		pruningEnabled:        tsm.pruningEnabled,
 		snapshots:             tsm.snapshots,
 		snapshotId:            tsm.snapshotId,
 		snapshotDbCfg:         tsm.snapshotDbCfg,
@@ -142,6 +145,11 @@ func (tsm *trieStorageManager) Clone() data.StorageManager {
 func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if !tsm.pruningEnabled {
+		log.Trace("trie storage manager - prune: trie storage pruning is disabled")
+		return nil
+	}
 
 	if tsm.snapshotsBuffer.len() != 0 {
 		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
@@ -161,6 +169,11 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if !tsm.pruningEnabled {
+		log.Trace("trie storage manager - cancel prune: trie storage pruning is disabled")
+		return
+	}
 
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 }
@@ -185,6 +198,11 @@ func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if !tsm.pruningEnabled {
+		log.Trace("trie storage manager - mark for eviction: trie storage pruning is disabled")
+		return nil
+	}
 	log.Trace("trie storage manager: mark for eviction", "root", root)
 
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
@@ -279,6 +297,10 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 }
 
 func (tsm *trieStorageManager) removeKeysFromDb(keys [][]byte) {
+	if !tsm.pruningEnabled {
+		return
+	}
+
 	for i := range keys {
 		tsm.storageOperationMutex.Lock()
 		err := tsm.removeFromDb(keys[i])
@@ -340,7 +362,7 @@ func newSnapshotTrie(
 		return nil, err
 	}
 
-	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{})
+	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +402,11 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 func directoryExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// IsPruningEnabled returns true if the trie pruning is enabled
+func (tsm *trieStorageManager) IsPruningEnabled() bool {
+	return tsm.pruningEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

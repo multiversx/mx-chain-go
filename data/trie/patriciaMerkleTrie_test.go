@@ -45,7 +45,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList, true)
 
 	return trieStorageManager, marshalizer, hasher
 }

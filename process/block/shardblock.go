@@ -813,6 +813,10 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	for i := range finalHeaders {
+		if !sp.accounts.IsPruningEnabled() {
+			break
+		}
+
 		sp.saveState(finalHeaders[i])
 
 		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
@@ -833,6 +837,7 @@ func (sp *shardProcessor) CommitBlock(
 			continue
 		}
 
+		log.Trace("final header will be pruned", "root hash", rootHash)
 		errNotCritical = sp.accounts.PruneTrie(rootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())

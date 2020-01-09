@@ -25,6 +25,7 @@ type AccountsStub struct {
 	SnapshotStateCalled         func(rootHash []byte) error
 	SetStateCheckpointCalled    func(rootHash []byte) error
 	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -167,6 +168,14 @@ func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 	if aam.SetStateCheckpointCalled != nil {
 		aam.SetStateCheckpointCalled(rootHash)
 	}
+}
+
+func (aam *AccountsStub) IsPruningEnabled() bool {
+	if aam.IsPruningEnabledCalled != nil {
+		aam.IsPruningEnabledCalled()
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

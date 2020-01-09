@@ -213,6 +213,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		hasher,
 		args.pathManager,
 		args.shardId,
+		args.config.StateTrieConfig.PruningEnabled,
 	)
 	if err != nil {
 		return nil, errors.New("error creating trie: " + err.Error())
@@ -301,6 +302,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		args.core.Hasher,
 		args.pathManager,
 		shardId,
+		args.config.StateTrieConfig.PruningEnabled,
 	)
 	if err != nil {
 		return nil, err
@@ -922,6 +924,7 @@ func getTrie(
 	hasher hashing.Hasher,
 	pathManager storage.PathManagerHandler,
 	shardId string,
+	pruningEnabled bool,
 ) (data.Trie, error) {
 
 	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, cfg.DB.FilePath))
@@ -937,25 +940,28 @@ func getTrie(
 		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
-	evictionDb, err := storageUnit.NewDB(
-		storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
-		evictionWaitingListCfg.DB.MaxBatchSize,
-		evictionWaitingListCfg.DB.BatchDelaySeconds,
-		evictionWaitingListCfg.DB.MaxOpenFiles,
-	)
-	if err != nil {
-		return nil, errors.New("error creating evictionDb: " + err.Error())
+	var ewl data.DBRemoveCacher
+	if pruningEnabled {
+		evictionDb, err := storageUnit.NewDB(
+			storageUnit.DBType(evictionWaitingListCfg.DB.Type),
+			filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
+			evictionWaitingListCfg.DB.MaxBatchSize,
+			evictionWaitingListCfg.DB.BatchDelaySeconds,
+			evictionWaitingListCfg.DB.MaxOpenFiles,
+		)
+		if err != nil {
+			return nil, errors.New("error creating evictionDb: " + err.Error())
+		}
+
+		ewl, err = evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
+		if err != nil {
+			return nil, errors.New("error creating evictionWaitingList: " + err.Error())
+		}
 	}
 
 	snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, snapshotDbCfg.FilePath)
 
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
-	if err != nil {
-		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
-	}
-
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl, pruningEnabled)
 	if err != nil {
 		return nil, errors.New("error creating trieStorage: " + err.Error())
 	}
@@ -2300,13 +2306,7 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
-	cacheSize := uint(100)
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(cacheSize, memorydb.New(), marshalizer)
-	if err != nil {
-		return nil, err
-	}
-
-	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, nil, false)
 	if err != nil {
 		return nil, err
 	}

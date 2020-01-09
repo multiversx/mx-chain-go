@@ -525,3 +525,8 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 
 	return leaves, nil
 }
+
+// IsPruningEnabled returns true if state pruning is enabled
+func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
+	return tr.trieStorage.IsPruningEnabled()
+}
