@@ -26,17 +26,7 @@ type NodesCoordinatorRegistry struct {
 	CurrentEpoch uint32                      `json:"currentEpoch"`
 }
 
-func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	data, err := ihgs.nodesCoordinatorToRegistry()
-	if err != nil {
-		return err
-	}
-
-	key = append([]byte(keyPrefix), key...)
-
-	return ihgs.bootStorer.Put(key, data)
-}
-
+// LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	key = append([]byte(keyPrefix), key...)
 
@@ -55,10 +45,34 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	return ihgs.registryToNodesCoordinator(config)
+	ihgs.currentEpoch = config.CurrentEpoch
+
+	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
+	if err != nil {
+		return err
+	}
+
+	ihgs.mutNodesConfig.Lock()
+	ihgs.nodesConfig = nodesConfig
+	ihgs.mutNodesConfig.Unlock()
+
+	return nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() ([]byte, error) {
+func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
+	registry := ihgs.nodesCoordinatorToRegistry()
+
+	data, err := json.Marshal(registry)
+	if err != nil {
+		return err
+	}
+
+	key = append([]byte(keyPrefix), key...)
+
+	return ihgs.bootStorer.Put(key, data)
+}
+
+func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 
@@ -71,41 +85,42 @@ func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() ([]byte, e
 		registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidators(epochNodesData)
 	}
 
-	return json.Marshal(registry)
+	return registry
 }
 
-func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(config *NodesCoordinatorRegistry) error {
+func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
+	config *NodesCoordinatorRegistry,
+) (map[uint32]*epochNodesConfig, error) {
 	var err error
 	var epoch int64
+	result := make(map[uint32]*epochNodesConfig)
 
 	for epochStr, epochValidators := range config.EpochsConfig {
 		epoch, err = strconv.ParseInt(epochStr, 10, 64)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var nodesConfig *epochNodesConfig
 
 		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		nbShards := uint32(len(nodesConfig.eligibleMap))
 		if nbShards <= 1 {
-			return ErrInvalidNumberOfShards
+			return nil, ErrInvalidNumberOfShards
 		}
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
 		nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
-		ihgs.nodesConfig[epoch32] = nodesConfig
+		result[epoch32] = nodesConfig
 	}
 
-	ihgs.currentEpoch = config.CurrentEpoch
-
-	return nil
+	return result, nil
 }
 
 func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidators {
