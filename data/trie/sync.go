@@ -106,6 +106,11 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 	return nil
 }
 
+// RootHash returns the synced trie roothash
+func (ts *trieSyncer) Trie() data.Trie {
+	return ts.trie
+}
+
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	n, ok := ts.interceptedNodes.Get(hash)
 	if ok {

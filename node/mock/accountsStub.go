@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -39,6 +40,10 @@ func (aam *AccountsStub) GetAccountWithJournal(addressContainer state.AddressCon
 
 func (aam *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	return aam.GetExistingAccountCalled(addressContainer)
+}
+
+func (aam *AccountsStub) CopyRecreateTrie(rootHash []byte) (data.Trie, error) {
+	return nil, nil
 }
 
 func (aam *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {

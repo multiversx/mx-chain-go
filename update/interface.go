@@ -1,6 +1,7 @@
 package update
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
@@ -8,6 +9,7 @@ import (
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte) error
+	Trie() data.Trie
 	IsInterfaceNil() bool
 }
 
