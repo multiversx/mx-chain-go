@@ -17,20 +17,20 @@ type EvictionConfig struct {
 
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction() evictionJournal {
+func (cache *TxCache) doEviction() {
 	tooManyBytes := cache.areThereTooManyBytes()
 	tooManyTxs := cache.areThereTooManyTxs()
 	tooManySenders := cache.areThereTooManySenders()
 	journal := evictionJournal{}
 
 	if !tooManyBytes && !tooManyTxs && !tooManySenders {
-		return journal
+		return
 	}
 
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
-	log.Info("TxCache.doEviction()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	log.Debug("TxCache.doEviction()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 
 	if cache.areThereTooManySenders() {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
@@ -57,8 +57,6 @@ func (cache *TxCache) doEviction() evictionJournal {
 	if journal.evictionPerformed {
 		journal.display()
 	}
-
-	return journal
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -107,7 +105,7 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 }
 
 func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
-	log.Info("TxCache.doEvictItems()", "senders", sendersToEvict)
+	log.Debug("TxCache.doEvictItems()", "txs", len(txsToEvict), "senders", len(sendersToEvict))
 
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
@@ -134,6 +132,10 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 			sendersToEvict = append(sendersToEvict, key)
 		}
 	})
+
+	if len(txsToEvict) == 0 {
+		return 0, 0
+	}
 
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
