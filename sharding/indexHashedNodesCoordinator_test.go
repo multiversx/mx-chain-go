@@ -3,7 +3,6 @@ package sharding
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"strconv"
 	"strings"
 	"testing"
