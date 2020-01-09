@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "systemSmartContracts";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message StakingData {
+	uint64   StartNonce    = 1 [(gogoproto.jsontag) = "StartNonce"];
+	bool     Staked        = 2 [(gogoproto.jsontag) = "Staked"];
+	uint64   UnStakedNonce = 3 [(gogoproto.jsontag) = "UnStakedNonce"];
+	bytes    BlsPubKey     = 4 [(gogoproto.jsontag) = "BlsPubKey"];
+	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"];
+}

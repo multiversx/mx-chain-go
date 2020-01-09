@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. staking.proto
 package systemSmartContracts
 
 import (
@@ -5,6 +6,7 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -14,14 +16,6 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const initialStakeKey = "initialStake"
-
-type StakingData struct {
-	StartNonce    uint64   `json:"StartNonce"`
-	Staked        bool     `json:"Staked"`
-	UnStakedNonce uint64   `json:"UnStakedNonce"`
-	BlsPubKey     []byte   `json:"BlsPubKey"`
-	StakeValue    *big.Int `json:"StakeValue"`
-}
 
 type stakingSC struct {
 	eei           vm.SystemEI
@@ -112,7 +106,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		Staked:        false,
 		BlsPubKey:     nil,
 		UnStakedNonce: 0,
-		StakeValue:    big.NewInt(0).Set(stakeValue),
+		StakeValue:    data.NewProtoBigIntFromBigInt(stakeValue),
 	}
 	data := r.eei.GetStorage(args.CallerAddr)
 
@@ -222,7 +216,7 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	r.eei.SetStorage(args.CallerAddr, nil)
 
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
-	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
+	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue.Get(), nil)
 	if err != nil {
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
@@ -264,9 +258,9 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
+	stakedValue := big.NewInt(0).Set(registrationData.StakeValue.Get())
 	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
-	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
+	registrationData.StakeValue.Set(stakedValue.Sub(stakedValue, slashValue))
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
