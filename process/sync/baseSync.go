@@ -332,7 +332,7 @@ func (boot *baseBootstrap) shouldTrySync() bool {
 		return false
 	}
 
-	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0
+	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0 && !process.IsInProperRound(boot.rounder.Index())
 
 	return shouldTrySync
 }
@@ -366,6 +366,7 @@ func checkBootstrapNilParameters(
 	forkDetector process.ForkDetector,
 	resolversFinder dataRetriever.ResolversContainer,
 	shardCoordinator sharding.Coordinator,
+
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
