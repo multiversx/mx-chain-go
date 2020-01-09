@@ -342,6 +342,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      10,
 		ALotOfTransactionsForASender:    1000,
@@ -356,6 +357,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      100,
 		ALotOfTransactionsForASender:    1000,
@@ -370,6 +372,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
@@ -384,6 +387,7 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
@@ -398,6 +402,7 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,
 		ALotOfTransactionsForASender:    1000,
