@@ -173,7 +173,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 15
+	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
