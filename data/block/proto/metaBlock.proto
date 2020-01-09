@@ -12,7 +12,7 @@ import "block.proto";
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
 enum  PeerAction {
 	InvalidAction      = 0;
-	PeerRegistrantion  = 1;
+	PeerRegistration   = 1;
 	PeerUnstaking      = 2;
 	PeerDeregistration = 3;
 	PeerJailed         = 4;

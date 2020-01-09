@@ -261,11 +261,11 @@ func (stp *stakingToPeer) createPeerChangeData(
 		PublicKey:   account.BLSPublicKey,
 		Action:      0,
 		TimeStamp:   nonce,
-		ValueChange: &data.ProtoBigInt{},
+		ValueChange: data.NewProtoBigInt(0),
 	}
 
 	if len(account.BLSPublicKey) == 0 {
-		actualPeerChange.Action = block.PeerRegistrantion
+		actualPeerChange.Action = block.PeerRegistration
 		actualPeerChange.TimeStamp = stakingData.StartNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
 
@@ -289,7 +289,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 	}
 
 	if stakingData.StartNonce == nonce {
-		actualPeerChange.Action = block.PeerRegistrantion
+		actualPeerChange.Action = block.PeerRegistration
 	}
 
 	if stakingData.UnStakedNonce == nonce {

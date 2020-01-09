@@ -181,7 +181,7 @@ func (p *validatorStatistics) updatePeerState(
 		}
 	}
 
-	if peerChange.Action == block.PeerRegistrantion && peerChange.TimeStamp != account.Nonce {
+	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
 		err := account.SetNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
