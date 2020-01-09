@@ -200,14 +200,18 @@ type ShardIdHashMap interface {
 	IsInterfaceNil() bool
 }
 
-// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
-type Uint64SyncMapCacher interface {
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
 	Clear()
-	Get(nonce uint64) (ShardIdHashMap, bool)
-	Merge(nonce uint64, src ShardIdHashMap)
-	Remove(nonce uint64, shardId uint32)
-	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
-	Has(nonce uint64, shardId uint32) bool
+	AddHeader(headerHash []byte, header data.HeaderHandler)
+	RemoveHeaderByHash(headerHash []byte)
+	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
+	GetHeaderByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	RegisterHandler(handler func(shardHeaderHash []byte))
+	Keys(shardId uint32) []uint64
+	Len() int
+	MaxSize() int
 	IsInterfaceNil() bool
 }
 
@@ -216,6 +220,17 @@ type TransactionCacher interface {
 	Clean()
 	GetTx(txHash []byte) (data.TransactionHandler, error)
 	AddTx(txHash []byte, tx data.TransactionHandler)
+	IsInterfaceNil() bool
+}
+
+// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
+type Uint64SyncMapCacher interface {
+	Clear()
+	Get(nonce uint64) (ShardIdHashMap, bool)
+	Merge(nonce uint64, src ShardIdHashMap)
+	Remove(nonce uint64, shardId uint32)
+	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
+	Has(nonce uint64, shardId uint32) bool
 	IsInterfaceNil() bool
 }
 
