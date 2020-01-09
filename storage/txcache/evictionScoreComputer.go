@@ -108,26 +108,13 @@ func (computer *evictionScoreComputer) computeScores() {
 // - directly proportional to sender's order number
 // - directly proportional to sender's tx total gas
 func (computer *evictionScoreComputer) computeScore(txList *txListForSender) float64 {
-	// Normalize score parameters, interval [0..1]
-	// TODO: refactor, add "normalizer" component
-	orderNumber := float64(txList.orderNumber-computer.minOrderNumber) / float64(computer.orderNumberRange)
-	gas := float64(txList.totalGas.Get()-computer.minGas) / float64(computer.gasRange)
-	txCount := float64(txList.countTx()-computer.minTxCount) / float64(computer.txCountRange)
-	size := float64(txList.totalBytes.Get()-computer.minSize) / float64(computer.sizeRange)
-
-	orderNumber = notTooSmall(orderNumber)
-	gas = notTooSmall(gas)
-	txCount = notTooSmall(txCount)
-	size = notTooSmall(size)
+	// Normalize score parameters, interval [1..2]
+	orderNumber := float64(txList.orderNumber-computer.minOrderNumber)/float64(computer.orderNumberRange) + 1
+	gas := float64(txList.totalGas.Get()-computer.minGas)/float64(computer.gasRange) + 1
+	txCount := float64(txList.countTx()-computer.minTxCount)/float64(computer.txCountRange) + 1
+	size := float64(txList.totalBytes.Get()-computer.minSize)/float64(computer.sizeRange) + 1
 
 	return orderNumber * gas / txCount / size
-}
-
-func notTooSmall(value float64) float64 {
-	if value > 0.01 {
-		return value
-	}
-	return 0.01
 }
 
 func (computer *evictionScoreComputer) convertScoresToPercents() {
@@ -149,4 +136,11 @@ func (computer *evictionScoreComputer) convertScoresToPercents() {
 		computer.scoresAsPercents[i] = int64(((score - minScore) * 100) / scoreRange)
 
 	}
+}
+
+func notTooSmall(value float64) float64 {
+	if value > 0.01 {
+		return value
+	}
+	return 0.01
 }

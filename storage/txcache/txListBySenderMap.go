@@ -107,25 +107,17 @@ type txListBySenderSortKind string
 // LRUCache is currently the only supported Cache type
 const (
 	SortByOrderNumberAsc txListBySenderSortKind = "SortByOrderNumberAsc"
-	SortByTotalBytesDesc txListBySenderSortKind = "SortByTotalBytesDesc"
-	SortByTotalGas       txListBySenderSortKind = "SortByTotalGas"
-	SortBySmartScore     txListBySenderSortKind = "SortBySmartScore"
+	SortBySmartScoreAsc  txListBySenderSortKind = "SortBySmartScoreAsc"
 )
 
 func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind) []*txListForSender {
-	// TODO-TXCACHE: do partial sort? optimization.
-
 	switch sortKind {
 	case SortByOrderNumberAsc:
 		return txMap.GetListsSortedByOrderNumber()
-	case SortByTotalBytesDesc:
-		return txMap.GetListsSortedByTotalBytes()
-	case SortByTotalGas:
-		return txMap.GetListsSortedByTotalGas()
-	case SortBySmartScore:
+	case SortBySmartScoreAsc:
 		return txMap.GetListsSortedBySmartScore()
 	default:
-		return txMap.GetListsSortedByOrderNumber()
+		return txMap.GetListsSortedBySmartScore()
 	}
 }
 
@@ -135,28 +127,6 @@ func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender
 
 	sort.Slice(snapshot, func(i, j int) bool {
 		return snapshot[i].orderNumber < snapshot[j].orderNumber
-	})
-
-	return snapshot
-}
-
-// GetListsSortedByTotalBytes gets the list of sender addreses, sorted by the total amount of bytes, descending
-func (txMap *txListBySenderMap) GetListsSortedByTotalBytes() []*txListForSender {
-	snapshot := txMap.getListsSnapshot()
-
-	sort.Slice(snapshot, func(i, j int) bool {
-		return snapshot[i].totalBytes > snapshot[j].totalBytes
-	})
-
-	return snapshot
-}
-
-// GetListsSortedByTotalGas gets the list of sender addreses, sorted by the total amoung of gas, ascending
-func (txMap *txListBySenderMap) GetListsSortedByTotalGas() []*txListForSender {
-	snapshot := txMap.getListsSnapshot()
-
-	sort.Slice(snapshot, func(i, j int) bool {
-		return snapshot[i].totalGas < snapshot[j].totalGas
 	})
 
 	return snapshot
@@ -191,15 +161,6 @@ func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
 
 	return snapshot
 }
-
-// func (txMap *txListBySenderMap) getListsSortedByFunc(less func(txListA, txListB *txListForSender) bool) []*txListForSender {
-
-// 	sort.Slice(lists, func(i, j int) bool {
-// 		return less(lists[i], lists[j])
-// 	})
-
-// 	return lists
-// }
 
 // ForEachSender is an iterator callback
 type ForEachSender func(key string, value *txListForSender)

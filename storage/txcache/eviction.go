@@ -150,7 +150,7 @@ func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint3
 }
 
 func (cache *TxCache) evictSendersWhileTooManyBytes() (step uint32, countTxs uint32, countSenders uint32) {
-	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortBySmartScore)
+	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortBySmartScoreAsc)
 }
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "stopCondition" is true

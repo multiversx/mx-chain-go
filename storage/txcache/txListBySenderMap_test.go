@@ -75,38 +75,20 @@ func Test_GetListsSortedByOrderNumber(t *testing.T) {
 	require.Equal(t, "carol", lists[2].sender)
 }
 
-func Test_GetListsSortedByTotalBytes(t *testing.T) {
+func Test_GetListsSortedBySmartScore(t *testing.T) {
 	myMap := newTxListBySenderMap(4)
 
-	myMap.addTx([]byte("a"), createTxWithData("alice", uint64(1), 500))
-	myMap.addTx([]byte("aa"), createTxWithData("alice", uint64(2), 500))
-	myMap.addTx([]byte("b"), createTxWithData("bob", uint64(1), 2000))
-	myMap.addTx([]byte("aaa"), createTxWithData("alice", uint64(2), 500))
-	myMap.addTx([]byte("c"), createTxWithData("carol", uint64(2), 1499))
+	myMap.addTx([]byte("a"), createTxWithGas("alice", uint64(1), 500, 100))
+	myMap.addTx([]byte("aa"), createTxWithGas("alice", uint64(2), 500, 100))
+	myMap.addTx([]byte("b"), createTxWithGas("bob", uint64(1), 2000, 100))
+	myMap.addTx([]byte("aaa"), createTxWithGas("alice", uint64(2), 1000, 100))
+	myMap.addTx([]byte("c"), createTxWithGas("carol", uint64(2), 8000, 1))
 
-	lists := myMap.GetListsSortedByTotalBytes()
+	lists := myMap.GetListsSortedBySmartScore()
 
-	require.ElementsMatch(t, myMap.GetListsSortedByTotalBytes(), myMap.GetListsSortedBy(SortByTotalBytesDesc))
-	require.Equal(t, "bob", lists[0].sender)
+	require.ElementsMatch(t, myMap.GetListsSortedBySmartScore(), myMap.GetListsSortedBy(SortBySmartScoreAsc))
+	require.Equal(t, "carol", lists[0].sender)
 	require.Equal(t, "alice", lists[1].sender)
-	require.Equal(t, "carol", lists[2].sender)
-}
-
-func Test_GetListsSortedByTotalGas(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
-
-	myMap.addTx([]byte("a"), createTxWithGas("alice", uint64(1), 500, 10))
-	myMap.addTx([]byte("aa"), createTxWithGas("alice", uint64(2), 500, 10))
-	myMap.addTx([]byte("b"), createTxWithGas("bob", uint64(1), 500, 20))
-	myMap.addTx([]byte("bb"), createTxWithGas("bob", uint64(1), 500, 20))
-	myMap.addTx([]byte("c"), createTxWithGas("carol", uint64(2), 500, 15))
-	myMap.addTx([]byte("cc"), createTxWithGas("carol", uint64(2), 500, 15))
-
-	lists := myMap.GetListsSortedByTotalGas()
-
-	require.ElementsMatch(t, myMap.GetListsSortedByTotalGas(), myMap.GetListsSortedBy(SortByTotalGas))
-	require.Equal(t, "alice", lists[0].sender)
-	require.Equal(t, "carol", lists[1].sender)
 	require.Equal(t, "bob", lists[2].sender)
 }
 
@@ -127,8 +109,7 @@ func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 		go func() {
 			for j := 0; j < 100; j++ {
 				myMap.GetListsSortedByOrderNumber()
-				myMap.GetListsSortedByTotalBytes()
-				myMap.GetListsSortedByTotalGas()
+				myMap.GetListsSortedBySmartScore()
 			}
 
 			wg.Done()

@@ -28,8 +28,8 @@ func Test_Scores_WithRespectToOrderNumber(t *testing.T) {
 
 	computer := newEvictionScoreComputer(lists)
 
-	require.EqualValues(t, []float64{1, 50, 100}, computer.scores)
-	require.EqualValues(t, []int64{0, 49, 100}, computer.scoresAsPercents)
+	require.EqualValues(t, []float64{1, 1.5, 2}, computer.scores)
+	require.EqualValues(t, []int64{0, 50, 100}, computer.scoresAsPercents)
 }
 
 func Test_Scores_WithRespectToSize(t *testing.T) {
@@ -54,6 +54,6 @@ func Test_Scores_WithRespectToSize(t *testing.T) {
 
 	computer := newEvictionScoreComputer(lists)
 
-	require.EqualValues(t, []float64{1, 0.5, 2}, computer.scores)
-	require.EqualValues(t, []int64{33, 0, 100}, computer.scoresAsPercents)
+	require.EqualValues(t, []float64{1, 0.75, 1.3333333333333333}, computer.scores)
+	require.EqualValues(t, []int64{42, 0, 100}, computer.scoresAsPercents)
 }
