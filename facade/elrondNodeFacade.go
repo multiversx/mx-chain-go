@@ -190,7 +190,7 @@ func (ef *ElrondNodeFacade) sourceLimiterReset(reset resetHandler) {
 	for {
 		time.Sleep(time.Second * time.Duration(ef.wsAntifloodConfig.SameSourceResetIntervalInSec))
 
-		log.Debug("calling reset on WS source limiter")
+		log.Trace("calling reset on WS source limiter")
 		reset.Reset()
 	}
 }
