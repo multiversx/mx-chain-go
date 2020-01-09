@@ -1,10 +1,14 @@
 package facade
 
 import (
+	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/api"
+	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -25,6 +29,11 @@ const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
 
+type resetHandler interface {
+	Reset()
+	IsInterfaceNil() bool
+}
+
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node                   NodeWrapper
@@ -33,22 +42,39 @@ type ElrondNodeFacade struct {
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 *config.FacadeConfig
 	restAPIServerDebugMode bool
+	wsAntifloodConfig      config.WebServerAntifloodConfig
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServerDebugMode bool) *ElrondNodeFacade {
-	if node == nil || node.IsInterfaceNil() {
-		return nil
+func NewElrondNodeFacade(
+	node NodeWrapper,
+	apiResolver ApiResolver,
+	restAPIServerDebugMode bool,
+	wsAntifloodConfig config.WebServerAntifloodConfig,
+) (*ElrondNodeFacade, error) {
+
+	if check.IfNil(node) {
+		return nil, ErrNilNode
 	}
-	if apiResolver == nil || apiResolver.IsInterfaceNil() {
-		return nil
+	if check.IfNil(apiResolver) {
+		return nil, ErrNilApiResolver
+	}
+	if wsAntifloodConfig.SimultaneousRequests == 0 {
+		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
+	}
+	if wsAntifloodConfig.SameSourceRequests == 0 {
+		return nil, fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
+	}
+	if wsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
+		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
 
 	return &ElrondNodeFacade{
 		node:                   node,
 		apiResolver:            apiResolver,
 		restAPIServerDebugMode: restAPIServerDebugMode,
-	}
+		wsAntifloodConfig:      wsAntifloodConfig,
+	}, nil
 }
 
 // SetSyncer sets the current syncer
@@ -67,6 +93,7 @@ func (ef *ElrondNodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 }
 
 // SetConfig sets the configuration options for the facade
+// TODO inject this on the constructor and add tests for bad config values
 func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
 	ef.config = facadeConfig
 }
@@ -119,13 +146,52 @@ func (ef *ElrondNodeFacade) startRest() {
 		log.Debug("web server is off")
 		break
 	default:
-		log.Debug("starting web server")
-		err := api.Start(ef)
+		log.Debug("creating web server limiters")
+		limiters, err := ef.createMiddlewareLimiters()
 		if err != nil {
-			log.Debug("could not start webserver",
+			log.Error("error creating web server limiters",
+				"error", err.Error(),
+			)
+			log.Error("web server is off")
+			return
+		}
+
+		log.Debug("starting web server",
+			"SimultaneousRequests", ef.wsAntifloodConfig.SimultaneousRequests,
+			"SameSourceRequests", ef.wsAntifloodConfig.SameSourceRequests,
+			"SameSourceResetIntervalInSec", ef.wsAntifloodConfig.SameSourceResetIntervalInSec,
+		)
+
+		err = api.Start(ef, limiters...)
+		if err != nil {
+			log.Error("could not start webserver",
 				"error", err.Error(),
 			)
 		}
+	}
+}
+
+func (ef *ElrondNodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
+	sourceLimiter, err := middleware.NewSourceThrottler(ef.wsAntifloodConfig.SameSourceRequests)
+	if err != nil {
+		return nil, err
+	}
+	go ef.sourceLimiterReset(sourceLimiter)
+
+	globalLimiter, err := middleware.NewGlobalThrottler(ef.wsAntifloodConfig.SimultaneousRequests)
+	if err != nil {
+		return nil, err
+	}
+
+	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
+}
+
+func (ef *ElrondNodeFacade) sourceLimiterReset(reset resetHandler) {
+	for {
+		time.Sleep(time.Second * time.Duration(ef.wsAntifloodConfig.SameSourceResetIntervalInSec))
+
+		log.Trace("calling reset on WS source limiter")
+		reset.Reset()
 	}
 }
 

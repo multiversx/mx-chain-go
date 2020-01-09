@@ -194,6 +194,13 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
+// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+type WebServerAntifloodConfig struct {
+	SimultaneousRequests         uint32
+	SameSourceRequests           uint32
+	SameSourceResetIntervalInSec uint32
+}
+
 // BlackListConfig will hold the p2p peer black list threshold values
 type BlackListConfig struct {
 	ThresholdNumMessagesPerSecond uint32
@@ -210,4 +217,5 @@ type AntifloodConfig struct {
 	PeerMaxTotalSizePerSecond uint64
 	MaxMessagesPerSecond      uint32
 	MaxTotalSizePerSecond     uint64
+	WebServer                 WebServerAntifloodConfig
 }
