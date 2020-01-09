@@ -17,10 +17,12 @@ func NewProtoBigInt(x int64) *ProtoBigInt {
 
 // NewProtoBigInt allocates and returns a new ProtoBigInt set to bi.
 func NewProtoBigIntFromBigInt(bi *big.Int) *ProtoBigInt {
-	t := ProtoBigInt{}
-	if bi != nil {
-		t.i.Set(bi)
+	if bi == nil {
+		return nil
 	}
+
+	t := ProtoBigInt{}
+	t.i.Set(bi)
 	return &t
 }
 

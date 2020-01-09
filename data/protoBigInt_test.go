@@ -87,13 +87,13 @@ func TestProtoBigInt_MarshalTo(t *testing.T) {
 
 	t.Run("Small", func(t *testing.T) {
 		v0 := ProtoBigInt{}
-		v0.Get().SetInt64(-2019)
+		v0.Get().SetInt64(-2020)
 		data := make([]byte, v0.Size()-1)
 		data_len, err := v0.MarshalTo(data)
 
 		assert.NotNil(t, err)
 		assert.Equal(t, 0, data_len)
-		assert.Equal(t, int64(-2019), v0.Get().Int64())
+		assert.Equal(t, int64(-2020), v0.Get().Int64())
 	})
 }
 
@@ -107,7 +107,6 @@ func TestProtoBigInt_MarshalJSON(t *testing.T) {
 			assert.Nil(t, err)
 
 			v1 := ProtoBigInt{}
-			t.Log(data)
 			err = v1.UnmarshalJSON(data)
 
 			assert.Nil(t, err)

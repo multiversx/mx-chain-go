@@ -152,7 +152,7 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = nil
-	tx.Value = data.NewProtoBigInt(44)
+	tx.Value = data.NewProtoBigInt(45)
 
 	_, err = tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
