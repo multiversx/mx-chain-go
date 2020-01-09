@@ -235,7 +235,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
-		log.Debug("random seed does not match", ": local block random seed is %s and node received block with previous random seed %s\n",
+		log.Debug("random seed does not match",
 			"local random seed", currentBlockHeader.GetRandSeed(),
 			"received previous random seed", headerHandler.GetPrevRandSeed())
 

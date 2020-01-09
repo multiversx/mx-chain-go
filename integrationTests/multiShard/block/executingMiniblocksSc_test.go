@@ -246,7 +246,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	roundsToWait := 6
+	roundsToWait := 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
@@ -267,12 +267,13 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
+
+	time.Sleep(time.Second)
 
 	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))

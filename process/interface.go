@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -59,7 +60,7 @@ type TxValidatorHandler interface {
 	SenderShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
-	TotalValue() *big.Int
+	Fee() *big.Int
 }
 
 // HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
@@ -86,6 +87,7 @@ type InterceptedData interface {
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte
+	Type() string
 }
 
 // InterceptorProcessor further validates and saves received data
@@ -215,7 +217,7 @@ type BlockProcessor interface {
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
-	ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{})
+	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler

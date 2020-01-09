@@ -2053,6 +2053,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())

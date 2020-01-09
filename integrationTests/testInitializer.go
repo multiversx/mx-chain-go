@@ -36,13 +36,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -59,6 +59,7 @@ import (
 
 var stepDelay = time.Second
 var p2pBootstrapStepDelay = 5 * time.Second
+var log = logger.GetOrCreate("integrationtests")
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -323,11 +324,13 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlock := CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = genesisBlock
 	}
 
 	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
@@ -342,6 +345,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		metaDataPool,
 		economics,
+		rootHash,
 	)
 
 	return genesisBlocks
@@ -360,6 +364,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	metaDataPool dataRetriever.MetaPoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) data.HeaderHandler {
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
@@ -374,7 +379,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		MetaDatapool:             metaDataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   []byte("validator stats root hash"),
+		ValidatorStatsRootHash:   rootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -397,8 +402,11 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.MetaDatapool = newMetaDataPool
 	}
 
-	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	log.LogIfError(err)
+
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
+	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
 
 	return metaHdr
 }
@@ -819,34 +827,6 @@ func CreateNodes(
 	return nodes
 }
 
-// CreateNodesWithMemP2P creates multiple nodes in different shards
-func CreateNodesWithMemP2P(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	network *memp2p.Network,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), shardId, shardId, network)
-
-			nodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithMemP2P(uint32(numOfShards), sharding.MetachainShardId, 0, network)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-	}
-
-	return nodes
-}
-
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
 func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
@@ -890,7 +870,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := make([]uint64, len(senders))
 		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
 			receiverPubKey := shardReceiversPublicKeys[i]
-			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
+			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -985,7 +965,8 @@ type txArgs struct {
 	gasLimit uint64
 }
 
-func generateTransferTx(
+// GenerateTransferTx will generate a move balance transaction
+func GenerateTransferTx(
 	nonce uint64,
 	senderPrivateKey crypto.PrivateKey,
 	receiverPublicKey crypto.PublicKey,
@@ -1426,6 +1407,7 @@ func ProposeAndSyncOneBlock(
 	round uint64,
 	nonce uint64,
 ) (uint64, uint64) {
+
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
