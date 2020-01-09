@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -817,6 +818,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
+		cryptoComponents.MessageSignVerifier,
 	)
 	if err != nil {
 		return err
@@ -1284,6 +1286,7 @@ func createApiResolver(
 	statusMetrics external.StatusMetricsHandler,
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
+	messageSigVerifier vm.MessageSignVerifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1299,7 +1302,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier)
 		if err != nil {
 			return nil, err
 		}

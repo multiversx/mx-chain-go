@@ -1,47 +1,76 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
 type systemSCFactory struct {
-	systemEI          vm.SystemEI
-	validatorSettings process.ValidatorSettingsHandler
+	systemEI          vm.ContextHandler
+	validatorSettings vm.ValidatorSettingsHandler
+	sigVerifier       vm.MessageSignVerifier
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
 func NewSystemSCFactory(
-	systemEI vm.SystemEI,
-	validatorSettings process.ValidatorSettingsHandler,
+	systemEI vm.ContextHandler,
+	validatorSettings vm.ValidatorSettingsHandler,
+	sigVerifier vm.MessageSignVerifier,
 ) (*systemSCFactory, error) {
-	if systemEI == nil || systemEI.IsInterfaceNil() {
+	if check.IfNil(systemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if validatorSettings == nil || validatorSettings.IsInterfaceNil() {
+	if check.IfNil(validatorSettings) {
 		return nil, vm.ErrNilEconomicsData
+	}
+	if check.IfNil(sigVerifier) {
+		return nil, vm.ErrNilMessageSignVerifier
 	}
 
 	return &systemSCFactory{
 		systemEI:          systemEI,
-		validatorSettings: validatorSettings}, nil
+		validatorSettings: validatorSettings,
+		sigVerifier:       sigVerifier}, nil
 }
 
 // Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
-	sc, err := systemSmartContracts.NewStakingSmartContract(
+	staking, err := systemSmartContracts.NewStakingSmartContract(
 		scf.validatorSettings.StakeValue(),
-		scf.validatorSettings.UnBoundPeriod(),
+		scf.validatorSettings.UnBondPeriod(),
 		scf.systemEI,
+		AuctionSCAddress,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = scContainer.Add(StakingSCAddress, sc)
+	err = scContainer.Add(StakingSCAddress, staking)
+	if err != nil {
+		return nil, err
+	}
+
+	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
+		Eei:               scf.systemEI,
+		SigVerifier:       scf.sigVerifier,
+		ValidatorSettings: scf.validatorSettings,
+		StakingSCAddress:  StakingSCAddress,
+		AuctionSCAddress:  AuctionSCAddress,
+	}
+	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(AuctionSCAddress, auction)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scf.systemEI.SetSystemSCContainer(scContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +80,5 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 
 // IsInterfaceNil checks whether the underlying object is nil
 func (scf *systemSCFactory) IsInterfaceNil() bool {
-	if scf == nil {
-		return true
-	}
-	return false
+	return scf == nil
 }

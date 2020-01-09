@@ -35,6 +35,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
+		&mock.MessageSignVerifierMock{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -64,8 +65,12 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:    "500",
-				UnBoundPeriod: "1000",
+				StakeValue:     "500",
+				UnBondPeriod:   "1000",
+				TotalSupply:    "200000000000",
+				MinStepValue:   "100000",
+				NumNodes:       1000,
+				AuctionEnabled: true,
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 5,
@@ -82,6 +87,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		economicsData,
+		&mock.MessageSignVerifierMock{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
