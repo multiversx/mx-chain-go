@@ -151,7 +151,7 @@ func NewMetaBootstrap(
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.headers.RegisterHandler(boot.receivedHeader)
+	boot.headers.RegisterHandler(boot.processReceivedHeader)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 
 	boot.chStopSync = make(chan bool)
@@ -184,16 +184,6 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 	}
 
 	return block.Body(miniBlocks), nil
-}
-
-func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
-		return
-	}
-
-	boot.processReceivedHeader(header, headerHash)
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -412,17 +402,14 @@ func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.He
 	return blockBody, nil
 }
 
-func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint32, nonce uint64) {
+func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(hash []byte, nonce uint64) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	if nonce < nextBlockNonce || nonce > maxNonce {
 		return
 	}
 
-	header, _, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		boot.headers)
-
+	header, err := process.GetMetaHeaderFromPool(hash, boot.headers)
 	if err != nil {
 		log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
 		return

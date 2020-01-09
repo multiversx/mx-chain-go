@@ -1030,7 +1030,6 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	//shardId := sharding.MetachainShardId
 
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -1047,7 +1046,6 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	//shardId := sharding.MetachainShardId
 
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -1064,7 +1062,6 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	//shardId := sharding.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.HeadersCacherStub{

@@ -190,7 +190,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
 			return cs
 		},

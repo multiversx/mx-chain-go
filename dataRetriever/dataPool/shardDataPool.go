@@ -1,6 +1,7 @@
 package dataPool
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -26,25 +27,25 @@ func NewShardedDataPool(
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
 
-	if transactions == nil || transactions.IsInterfaceNil() {
+	if check.IfNil(transactions) {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
+	if check.IfNil(unsignedTransactions) {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
 	}
-	if rewardTransactions == nil || rewardTransactions.IsInterfaceNil() {
+	if check.IfNil(rewardTransactions) {
 		return nil, dataRetriever.ErrNilRewardTransactionPool
 	}
-	if headers == nil || headers.IsInterfaceNil() {
+	if check.IfNil(headers) {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	if miniBlocks == nil || miniBlocks.IsInterfaceNil() {
+	if check.IfNil(miniBlocks) {
 		return nil, dataRetriever.ErrNilTxBlockDataPool
 	}
-	if peerChangesBlocks == nil || peerChangesBlocks.IsInterfaceNil() {
+	if check.IfNil(peerChangesBlocks) {
 		return nil, dataRetriever.ErrNilPeerChangeBlockDataPool
 	}
-	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
+	if check.IfNil(currBlockTxs) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
 

@@ -1,13 +1,14 @@
 package dataPool
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type metaDataPool struct {
 	miniBlocks           storage.Cacher
-	shardHeaders         dataRetriever.HeadersPool
+	headers              dataRetriever.HeadersPool
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	currBlockTxs         dataRetriever.TransactionCacher
@@ -21,25 +22,25 @@ func NewMetaDataPool(
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*metaDataPool, error) {
-	if miniBlocks == nil || miniBlocks.IsInterfaceNil() {
+	if check.IfNil(miniBlocks) {
 		return nil, dataRetriever.ErrNilMiniBlockHashesPool
 	}
-	if headersCacher == nil || headersCacher.IsInterfaceNil() {
+	if check.IfNil(headersCacher) {
 		return nil, dataRetriever.ErrNilShardHeaderPool
 	}
-	if transactions == nil || transactions.IsInterfaceNil() {
+	if check.IfNil(transactions) {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
+	if check.IfNil(unsignedTransactions) {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
 	}
-	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
+	if check.IfNil(currBlockTxs) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
 
 	return &metaDataPool{
 		miniBlocks:           miniBlocks,
-		shardHeaders:         headersCacher,
+		headers:              headersCacher,
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
 		currBlockTxs:         currBlockTxs,
@@ -56,9 +57,9 @@ func (mdp *metaDataPool) MiniBlocks() storage.Cacher {
 	return mdp.miniBlocks
 }
 
-// Headers returns the holder for shard headers
+// Headers returns the holder for shard/meta headers
 func (mdp *metaDataPool) Headers() dataRetriever.HeadersPool {
-	return mdp.shardHeaders
+	return mdp.headers
 }
 
 // Transactions returns the holder for transactions which interact with the metachain

@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -471,7 +472,7 @@ func checkGetHeaderWithNonceParamsForNil(
 	if err != nil {
 		return err
 	}
-	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
+	if check.IfNil(uint64Converter) {
 		return ErrNilUint64Converter
 	}
 
@@ -502,7 +503,7 @@ func getHeaderFromPool(
 	headersCacher dataRetriever.HeadersPool,
 ) (interface{}, error) {
 
-	if headersCacher == nil || headersCacher.IsInterfaceNil() {
+	if check.IfNil(headersCacher) {
 		return nil, ErrNilCacher
 	}
 
@@ -520,11 +521,11 @@ func getHeaderFromPoolWithNonce(
 	headersCacher dataRetriever.HeadersPool,
 ) (interface{}, []byte, error) {
 
-	if headersCacher == nil || headersCacher.IsInterfaceNil() {
+	if check.IfNil(headersCacher) {
 		return nil, nil, ErrNilCacher
 	}
 
-	headers, hashes, err := headersCacher.GetHeaderByNonceAndShardId(nonce, shardId)
+	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		return nil, nil, ErrMissingHeader
 	}

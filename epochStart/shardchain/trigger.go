@@ -398,17 +398,23 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
-	headers, hashes, err := t.headersPool.GetHeaderByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
 	if err != nil {
 		return nil
 	}
 
-	//TODO what should do when we get more than one headers
-	header, hash := headers[len(headers)-1], hashes[len(hashes)-1]
-	hdrWithNonce, ok := header.(*block.MetaBlock)
-	if ok && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
-		t.mapHashHdr[string(hash)] = hdrWithNonce
-		t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hash))
+	for i, header := range headers {
+		if !bytes.Equal(header.GetPrevHash(), prevHash) {
+			continue
+		}
+
+		hdrWithNonce, ok := header.(*block.MetaBlock)
+		if !ok {
+			return nil
+		}
+
+		t.mapHashHdr[string(hashes[i])] = hdrWithNonce
+		t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hashes[i]))
 		return hdrWithNonce
 	}
 
@@ -493,7 +499,7 @@ func (t *trigger) Update(_ uint64) {
 func (t *trigger) SetFinalityAttestingRound(_ uint64) {
 }
 
-// SetLastEpochStartRound sets the round when the current epoch started
+// SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(_ uint64) {
 }
 

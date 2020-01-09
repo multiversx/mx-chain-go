@@ -32,8 +32,8 @@ func (bp *baseProcessor) CheckBlockValidity(
 	return bp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 }
 
-func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
-	sp.receivedMetaBlock(metaBlockHash)
+func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
+	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
@@ -104,8 +104,8 @@ func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error 
 	return mp.removeBlockInfoFromPool(header)
 }
 
-func (mp *metaProcessor) ReceivedShardHeader(shardHeaderHash []byte) {
-	mp.receivedShardHeader(shardHeaderHash)
+func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHeaderHash []byte) {
+	mp.receivedShardHeader(header, shardHeaderHash)
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []byte) {
@@ -256,7 +256,6 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-		sp.getMetaHeaderFromPoolWithNonce,
 		sp.dataPool.Headers())
 }
 

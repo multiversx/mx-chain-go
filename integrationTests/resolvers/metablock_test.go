@@ -2,12 +2,14 @@ package resolvers
 
 import (
 	"bytes"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 //------- Request resolve by hash
@@ -28,7 +30,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
 				rm.done()
@@ -61,7 +63,7 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 
 	//setup header received event
 	nRequester.MetaDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
 				rm.done()
@@ -94,7 +96,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received meta header", "hash", key)
 				rm.done()
@@ -129,7 +131,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -164,7 +166,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 
 	//setup header received event
 	nRequester.MetaDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -199,7 +201,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()

@@ -715,7 +715,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	removeHdrWasCalled := false
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{}, nil
@@ -760,7 +760,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return nil, errors.New("err")
@@ -2188,7 +2188,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			if hdrNonce == 1 {
@@ -2347,7 +2347,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
@@ -2439,7 +2439,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
@@ -2568,7 +2568,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{
@@ -2652,7 +2652,7 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
 		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{

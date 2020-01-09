@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -29,7 +30,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingShard(t *testin
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -62,7 +63,7 @@ func TestRequestResolveShardHeadersByHashRequestingMetaResolvingShard(t *testing
 
 	//setup header received event
 	nRequester.MetaDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -95,7 +96,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -130,7 +131,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingShard(t *testi
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -165,7 +166,7 @@ func TestRequestResolveShardHeadersByNonceRequestingMetaResolvingShard(t *testin
 
 	//setup header received event
 	nRequester.MetaDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()
@@ -200,7 +201,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 
 	//setup header received event
 	nRequester.ShardDataPool.Headers().RegisterHandler(
-		func(key []byte) {
+		func(header data.HeaderHandler, key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received header", "hash", key)
 				rm.done()

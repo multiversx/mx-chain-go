@@ -834,7 +834,6 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, headersCa
 func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	shardId uint32,
 	finality uint32,
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
 	headersCacher dataRetriever.HeadersPool,
 ) uint32 {
 	requestedHeaders := uint32(0)
@@ -847,7 +846,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, headersCacher, shardId, i)
+		headers, headersHashes := bp.getHeadersFromPools(headersCacher, shardId, i)
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
@@ -930,26 +929,29 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 
 	nonces := headersCacher.Keys(shardId)
 	for _, nonceFromCache := range nonces {
-		if nonceFromCache > nonce {
+		if nonceFromCache >= nonce {
 			continue
 		}
 
-		if !shouldRemoveBlockBody {
-			headersCacher.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
-			continue
-		}
-
-		headers, _, err := headersCacher.GetHeaderByNonceAndShardId(nonceFromCache, shardId)
-		if err != nil {
-			continue
-		}
-
-		errNotCritical := bp.removeBlockBodyOfHeader(headers[len(headers)-1])
-		if errNotCritical != nil {
-			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+		if shouldRemoveBlockBody {
+			bp.removeBlocksBody(nonceFromCache, shardId, headersCacher)
 		}
 
 		headersCacher.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
+	}
+}
+
+func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32, headersCacher dataRetriever.HeadersPool) {
+	headers, _, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	if err != nil {
+		return
+	}
+
+	for _, header := range headers {
+		errNotCritical := bp.removeBlockBodyOfHeader(header)
+		if errNotCritical != nil {
+			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+		}
 	}
 }
 
@@ -986,18 +988,15 @@ func (bp *baseProcessor) removeHeaderFromPools(
 		return
 	}
 
-	if !check.IfNil(headersCacher) {
-		headersCacher.RemoveHeaderByHash(headerHash)
-	}
+	headersCacher.RemoveHeaderByHash(headerHash)
 }
 
 func (bp *baseProcessor) getHeadersFromPools(
-	_ func(uint64, uint32) (data.HeaderHandler, []byte, error),
 	headersCacher dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) ([]data.HeaderHandler, [][]byte) {
-	headers, headersHashes, err := headersCacher.GetHeaderByNonceAndShardId(nonce, shardId)
+	headers, headersHashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		headers = make([]data.HeaderHandler, 0)
 		headersHashes = make([][]byte, 0)

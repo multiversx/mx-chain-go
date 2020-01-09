@@ -3,7 +3,6 @@ package sync_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 			RemoveHeaderByHashCalled: func(headerHash []byte) {
 
 			},
-			RegisterHandlerCalled: func(handler func(shardHeaderHash []byte)) {
+			RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
 
 			},
 			GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -713,7 +713,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 		sds.AddCalled = func(headerHash []byte, header data.HeaderHandler) {
 			assert.Fail(t, "should have not reached this point")
 		}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 			wasCalled++
 		}
 
@@ -986,7 +986,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 			return nil, errors.New("err")
 		}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 			time.Sleep(10 * time.Millisecond)
 		}
 
@@ -1077,7 +1077,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 			return nil, nil, errors.New("err")
 		}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
@@ -1174,7 +1174,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 			return nil, nil, errors.New("err")
 		}
 
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
@@ -1513,7 +1513,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
-		bs.ReceivedHeaders(hash1)
+		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
 	}
 
@@ -1594,7 +1594,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
-		bs.ReceivedHeaders(hash2)
+		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil, false)
 	}
 
@@ -1668,7 +1668,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 			return nil, nil, errors.New("err")
 		}
 
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
@@ -1724,7 +1724,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	pools := createMockMetaPools()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(key, addedHash) {
@@ -1789,7 +1789,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		&mock.EpochStartTriggerStub{},
 	)
 
-	bs.ReceivedHeaders(addedHash)
+	bs.ReceivedHeaders(addedHdr, addedHash)
 
 	time.Sleep(500 * time.Millisecond)
 	assert.True(t, wasAdded)
@@ -1868,7 +1868,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 		&mock.EpochStartTriggerStub{},
 	)
 
-	bs.ReceivedHeaders(addedHash)
+	bs.ReceivedHeaders(addedHdr, addedHash)
 	time.Sleep(500 * time.Millisecond)
 	assert.False(t, wasAdded)
 }
@@ -2178,7 +2178,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
-	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
@@ -2337,7 +2337,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
-	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())

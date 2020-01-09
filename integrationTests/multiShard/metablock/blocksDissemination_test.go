@@ -64,7 +64,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the shard header
+	//all node should have received the meta header
 	for _, n := range nodes {
 		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterHdrRecv))
 	}

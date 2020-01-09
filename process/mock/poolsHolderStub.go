@@ -6,8 +6,7 @@ import (
 )
 
 type PoolsHolderStub struct {
-	HeadersCalled func() dataRetriever.HeadersPool
-	//HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
+	HeadersCalled              func() dataRetriever.HeadersPool
 	PeerChangesBlocksCalled    func() storage.Cacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier

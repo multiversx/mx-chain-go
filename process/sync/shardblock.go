@@ -151,7 +151,7 @@ func NewShardBootstrap(
 	boot.setRequestedMiniBlocks(nil)
 
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
-	boot.headers.RegisterHandler(boot.receivedHeaders)
+	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.chStopSync = make(chan bool)
 
@@ -183,16 +183,6 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 	}
 
 	return block.Body(miniBlocks), nil
-}
-
-func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
-	header, err := process.GetShardHeaderFromPool(headerHash, boot.headers)
-	if err != nil {
-		log.Trace("GetShardHeaderFromPool", "error", err.Error())
-		return
-	}
-
-	boot.processReceivedHeader(header, headerHash)
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -369,18 +359,14 @@ func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.Head
 	return process.GetShardHeaderFromPool(headerHash, boot.headers)
 }
 
-func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardId uint32, nonce uint64) {
+func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHash []byte, nonce uint64) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	if nonce < nextBlockNonce || nonce > maxNonce {
 		return
 	}
 
-	header, _, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		shardId,
-		boot.headers)
-
+	header, err := process.GetShardHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
 		log.Trace("GetShardHeaderFromPoolWithNonce", "error", err.Error())
 		return

@@ -186,16 +186,15 @@ func wireUpHandler(
 	//wire up a received handler
 	chanDone1 := make(chan struct{}, 1)
 	chanDone2 := make(chan struct{}, 1)
-	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().GetHeaderByHash(key)
+	nRequester.ShardDataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
 
-		if reflect.DeepEqual(hdrStored, hdr1) && hdr1.GetSignature() != nil {
+		if reflect.DeepEqual(header, hdr1) && hdr1.GetSignature() != nil {
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			chanDone1 <- struct{}{}
 		}
 
-		if reflect.DeepEqual(hdrStored, hdr2) && hdr2.GetSignature() != nil {
+		if reflect.DeepEqual(header, hdr2) && hdr2.GetSignature() != nil {
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			chanDone2 <- struct{}{}
 		}

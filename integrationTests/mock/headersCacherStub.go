@@ -2,6 +2,7 @@ package mock
 
 import (
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -36,7 +37,7 @@ func (hcs *HeadersCacherStub) RemoveHeaderByNonceAndShardId(hdrNonce uint64, sha
 	}
 }
 
-func (hcs *HeadersCacherStub) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+func (hcs *HeadersCacherStub) GetHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
 	if hcs.GetHeaderByNonceAndShardIdCalled != nil {
 		return hcs.GetHeaderByNonceAndShardIdCalled(hdrNonce, shardId)
 	}

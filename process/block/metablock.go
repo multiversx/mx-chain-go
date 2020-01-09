@@ -1305,18 +1305,8 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
-func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
-	shardHeaderPool := mp.dataPool.Headers()
-	if shardHeaderPool == nil {
-		return
-	}
-
-	obj, err := shardHeaderPool.GetHeaderByHash(shardHeaderHash)
-	if err != nil {
-		return
-	}
-
-	shardHeader, ok := obj.(*block.Header)
+func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	shardHeader, ok := headerHandler.(*block.Header)
 	if !ok {
 		return
 	}
@@ -1325,14 +1315,14 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		"shard", shardHeader.ShardId,
 		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,
-		"hash", shardHeaderHash,
+		"hash", headerHash,
 	)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	haveMissingShardHeaders := mp.hdrsForCurrBlock.missingHdrs > 0 || mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
 	if haveMissingShardHeaders {
-		hdrInfoForHash := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
+		hdrInfoForHash := mp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)]
 		receivedMissingShardHeader := hdrInfoForHash != nil && (hdrInfoForHash.hdr == nil || hdrInfoForHash.hdr.IsInterfaceNil())
 		if receivedMissingShardHeader {
 			hdrInfoForHash.hdr = shardHeader
@@ -1375,8 +1365,9 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
-		shardHeaderPool.RemoveHeaderByHash(shardHeaderHash)
+	headers := mp.dataPool.Headers()
+	if mp.isHeaderOutOfRange(shardHeader, headers) || isShardHeaderWithOldEpochAndBadRound {
+		headers.RemoveHeaderByHash(headerHash)
 
 		return
 	}
@@ -1394,7 +1385,6 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
 			shardId,
 			mp.shardBlockFinality,
-			mp.getShardHeaderFromPoolWithNonce,
 			mp.dataPool.Headers(),
 		)
 
@@ -1819,37 +1809,38 @@ func (mp *metaProcessor) getSortedHeadersPerShard(round uint64) (map[uint32][]*h
 	for shardId := uint32(0); shardId < numShards; shardId++ {
 		noncesKeys := shardBlocksPool.Keys(shardId)
 		for _, nonce := range noncesKeys {
-			headers, hashes, err := shardBlocksPool.GetHeaderByNonceAndShardId(nonce, shardId)
+			headers, hashes, err := shardBlocksPool.GetHeadersByNonceAndShardId(nonce, shardId)
 			if err != nil {
 				continue
 			}
 
-			//TODO what should i go if a got more than one header
-			hdrHandler, hash := headers[len(headers)-1], hashes[len(hashes)-1]
+			for i := 0; i < len(headers); i++ {
+				hdrHandler, hash := headers[i], hashes[i]
 
-			hdr, ok := hdrHandler.(*block.Header)
-			if !ok {
-				continue
-			}
-			if hdr.GetRound() > round {
-				continue
-			}
+				hdr, ok := hdrHandler.(*block.Header)
+				if !ok {
+					continue
+				}
+				if hdr.GetRound() > round {
+					continue
+				}
 
-			currShardId := hdr.ShardId
-			if mp.lastNotarizedHdrForShard(currShardId) == nil {
-				continue
-			}
+				currShardId := hdr.ShardId
+				if mp.lastNotarizedHdrForShard(currShardId) == nil {
+					continue
+				}
 
-			if hdr.GetRound() <= mp.lastNotarizedHdrForShard(currShardId).GetRound() {
-				continue
-			}
+				if hdr.GetRound() <= mp.lastNotarizedHdrForShard(currShardId).GetRound() {
+					continue
+				}
 
-			if hdr.GetNonce() <= mp.lastNotarizedHdrForShard(currShardId).GetNonce() {
-				continue
-			}
+				if hdr.GetNonce() <= mp.lastNotarizedHdrForShard(currShardId).GetNonce() {
+					continue
+				}
 
-			hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
-				&hashAndHdr{hdr: hdr, hash: hash})
+				hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
+					&hashAndHdr{hdr: hdr, hash: hash})
+			}
 		}
 	}
 	mp.mutNotarizedHdrs.RUnlock()

@@ -95,18 +95,10 @@ type Config struct {
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
-	StateBlockBodyDataPool      CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
-	BlockHeaderDataPool         CacheConfig
-	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	MetaBlockBodyDataPool       CacheConfig
-
-	MiniBlockHeaderHashesDataPool CacheConfig
-	ShardHeadersDataPool          CacheConfig
-	MetaHeaderNoncesDataPool      CacheConfig
 
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig

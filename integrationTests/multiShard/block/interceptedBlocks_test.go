@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -160,7 +161,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	chanReceived := make(chan struct{}, 1000)
 	node4Meta.MetaDataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
 	node1Shard0.ShardDataPool.Headers().Clear()
-	node1Shard0.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
+	node1Shard0.ShardDataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		chanReceived <- struct{}{}
 	})
 

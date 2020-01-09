@@ -80,7 +80,6 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519(
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 // MinTxGasPrice defines minimum gas price required by a transaction
-//TODO refactor all tests to pass with a non zero value
 var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
@@ -961,7 +960,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
-	hdrHandlers := func(key []byte) {
+	hdrHandlers := func(header data.HeaderHandler, key []byte) {
 		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
 	}
 
@@ -1078,17 +1077,16 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 		return nil, errors.New("invalid data pool")
 	}
 
-	headerObjects, _, err := tpn.ShardDataPool.Headers().GetHeaderByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
+	headerObjects, _, err := tpn.ShardDataPool.Headers().GetHeadersByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no header found for hash %s", err.Error()))
+		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, tpn.ShardCoordinator.SelfId(), err.Error()))
 	}
 
-	//TODO what should we do if there are more headers
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.Header)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for hash"))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for nonce and shard id %d %d", nonce, tpn.ShardCoordinator.SelfId()))
 	}
 
 	return header, nil
@@ -1155,17 +1153,16 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 		return nil, errors.New("invalid data pool")
 	}
 
-	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeaderByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no header found for hash %s", err.Error()))
+		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, sharding.MetachainShardId, err.Error()))
 	}
 
-	//TODO what should we do if there are more headers
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.MetaBlock)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for hash"))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, sharding.MetachainShardId))
 	}
 
 	return header, nil

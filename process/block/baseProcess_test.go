@@ -162,7 +162,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
 			cs.RemoveHeaderByHashCalled = func(key []byte) {
 			}
@@ -208,7 +208,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
 			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 				if bytes.Equal([]byte("hdr_hash1"), hash) {

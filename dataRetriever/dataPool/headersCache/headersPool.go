@@ -1,9 +1,10 @@
 package headersCache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
+	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
@@ -14,7 +15,7 @@ type headersPool struct {
 	cache                *headersCache
 	mutAddedDataHandlers sync.RWMutex
 	mutHeadersPool       sync.RWMutex
-	addedDataHandlers    []func(shardHeaderHash []byte)
+	addedDataHandlers    []func(headerHandler data.HeaderHandler, headerHash []byte)
 }
 
 // NewHeadersPool will create a new items cacher
@@ -30,7 +31,7 @@ func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, erro
 		cache:                headersCache,
 		mutAddedDataHandlers: sync.RWMutex{},
 		mutHeadersPool:       sync.RWMutex{},
-		addedDataHandlers:    make([]func(shardHeaderHash []byte), 0),
+		addedDataHandlers:    make([]func(headerHandler data.HeaderHandler, headerHash []byte), 0),
 	}, nil
 }
 
@@ -38,12 +39,15 @@ func checkHeadersPoolConfig(hdrsPoolConfig config.HeadersPoolConfig) error {
 	maxHdrsPerShard := hdrsPoolConfig.MaxHeadersPerShard
 	numElementsToRemove := hdrsPoolConfig.NumElementsToRemoveOnEviction
 
-	if maxHdrsPerShard <= 0 || numElementsToRemove <= 0 {
-		return ErrInvalidHeadersCacheParameter
+	if maxHdrsPerShard <= 0 {
+		return fmt.Errorf("%w, maxHdrsPerShard should be greater than 0", ErrInvalidHeadersCacheParameter)
+	}
+	if numElementsToRemove <= 0 {
+		return fmt.Errorf("%w, numElementsToRemove should be greater than 0", ErrInvalidHeadersCacheParameter)
 	}
 
 	if maxHdrsPerShard < numElementsToRemove {
-		return ErrInvalidHeadersCacheParameter
+		return fmt.Errorf("%w, maxHdrsPerShard should be greater than numElementsToRemove", ErrInvalidHeadersCacheParameter)
 	}
 
 	return nil
@@ -57,14 +61,14 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	added := pool.cache.addHeader(headerHash, header)
 
 	if added {
-		pool.callAddedDataHandlers(headerHash)
+		pool.callAddedDataHandlers(header, headerHash)
 	}
 }
 
-func (pool *headersPool) callAddedDataHandlers(key []byte) {
+func (pool *headersPool) callAddedDataHandlers(headerHandler data.HeaderHandler, headerHash []byte) {
 	pool.mutAddedDataHandlers.RLock()
 	for _, handler := range pool.addedDataHandlers {
-		go handler(key)
+		go handler(headerHandler, headerHash)
 	}
 	pool.mutAddedDataHandlers.RUnlock()
 }
@@ -85,8 +89,8 @@ func (pool *headersPool) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId 
 	_ = pool.cache.removeHeaderByNonceAndShardId(hdrNonce, shardId)
 }
 
-// GetHeaderByNonceAndShardId will return a list of items from pool
-func (pool *headersPool) GetHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+// GetHeadersByNonceAndShardId will return a list of items from pool
+func (pool *headersPool) GetHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
 
@@ -123,7 +127,7 @@ func (pool *headersPool) Clear() {
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (pool *headersPool) RegisterHandler(handler func(shardHeaderHash []byte)) {
+func (pool *headersPool) RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte)) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return

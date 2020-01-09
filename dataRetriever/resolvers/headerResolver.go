@@ -109,7 +109,6 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
-
 	// Search the nonce-key pair in cache-storage
 	hash, err := hdrRes.hdrNoncesStorage.Get(key)
 	if err != nil {
@@ -120,12 +119,11 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 			return nil, dataRetriever.ErrInvalidNonceByteSlice
 		}
 
-		headers, _, err := hdrRes.headers.GetHeaderByNonceAndShardId(nonce, hdrRes.TargetShardID())
+		headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
 		if err != nil {
 			return nil, err
 		}
 
-		//TODO what should I do if I get more than one header
 		hdr := headers[len(headers)-1]
 		buff, err := hdrRes.marshalizer.Marshal(hdr)
 		if err != nil {

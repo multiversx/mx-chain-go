@@ -207,9 +207,9 @@ type HeadersPool interface {
 	AddHeader(headerHash []byte, header data.HeaderHandler)
 	RemoveHeaderByHash(headerHash []byte)
 	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
-	GetHeaderByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	GetHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
-	RegisterHandler(handler func(shardHeaderHash []byte))
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
 	Keys(shardId uint32) []uint64
 	Len() int
 	MaxSize() int

@@ -1083,10 +1083,8 @@ func createMetaDataPoolFromConfig(
 	}
 
 	return dataPool.NewMetaDataPool(
-		//metaBlockBody,
 		txBlockBody,
 		shardHeaders,
-		//headersNonces,
 		txPool,
 		uTxPool,
 		currBlockTxs,

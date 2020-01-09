@@ -93,7 +93,7 @@ type baseBootstrap struct {
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	requestsWithTimeout   uint32
 
-	requestMiniBlocks func(uint32, uint64)
+	requestMiniBlocks func(hash []byte, nonce uint64)
 
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
@@ -157,13 +157,13 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
 
-	go boot.requestMiniBlocks(headerHandler.GetShardID(), headerHandler.GetNonce())
+	go boot.requestMiniBlocks(headerHash, headerHandler.GetNonce())
 
-	boot.computeReceivedHeaderByNonce(headerHandler, headerHash)
-	boot.computeReceivedHeaderByHash(headerHandler, headerHash)
+	boot.confirmHeaderReceivedByNonce(headerHandler, headerHash)
+	boot.confirmHeaderReceivedByHash(headerHandler, headerHash)
 }
 
-func (boot *baseBootstrap) computeReceivedHeaderByNonce(headerHandler data.HeaderHandler, hdrHash []byte) {
+func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.HeaderHandler, hdrHash []byte) {
 	boot.mutRcvHdrNonce.Lock()
 	n := boot.requestedHeaderNonce()
 	if n != nil && *n == headerHandler.GetNonce() {
@@ -183,7 +183,7 @@ func (boot *baseBootstrap) computeReceivedHeaderByNonce(headerHandler data.Heade
 	boot.mutRcvHdrNonce.Unlock()
 }
 
-func (boot *baseBootstrap) computeReceivedHeaderByHash(headerHandler data.HeaderHandler, hdrHash []byte) {
+func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.HeaderHandler, hdrHash []byte) {
 	boot.mutRcvHdrHash.Lock()
 	hash := boot.requestedHeaderHash()
 	if hash != nil && bytes.Equal(hash, hdrHash) {
@@ -303,13 +303,13 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	boot.headers.RemoveHeaderByNonceAndShardId(header.GetNonce(), header.GetShardID())
-
 	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {
 		log.Debug("CalculateHash", "error", err.Error())
 		return nil
 	}
+
+	boot.headers.RemoveHeaderByHash(hash)
 
 	return hash
 }

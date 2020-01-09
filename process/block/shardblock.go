@@ -861,8 +861,6 @@ func (sp *shardProcessor) CommitBlock(
 	log.Debug("pools info",
 		"headers", sp.dataPool.Headers().Len(),
 		"headers capacity", sp.dataPool.Headers().MaxSize(),
-		"metablocks", sp.dataPool.Headers().Len(),
-		"metablocks capacity", sp.dataPool.Headers().MaxSize(),
 		"miniblocks", sp.dataPool.MiniBlocks().Len(),
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
@@ -1216,18 +1214,13 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 // receivedMetaBlock is a callback function when a new metablock was received
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
-func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
+func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
 	metaBlocksPool := sp.dataPool.Headers()
 	if metaBlocksPool == nil {
 		return
 	}
 
-	obj, err := metaBlocksPool.GetHeaderByHash(metaBlockHash)
-	if err != nil {
-		return
-	}
-
-	metaBlock, ok := obj.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return
 	}
@@ -1258,7 +1251,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				sharding.MetachainShardId,
 				sp.metaBlockFinality,
-				sp.getMetaHeaderFromPoolWithNonce,
 				sp.dataPool.Headers())
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
@@ -1328,7 +1320,6 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			sharding.MetachainShardId,
 			sp.metaBlockFinality,
-			sp.getMetaHeaderFromPoolWithNonce,
 			sp.dataPool.Headers())
 	}
 
@@ -1434,29 +1425,32 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 
 	noncesKeys := metaBlocksPool.Keys(sharding.MetachainShardId)
 	for _, key := range noncesKeys {
-		metaHeaders, metaHeadersHeshes, err := metaBlocksPool.GetHeaderByNonceAndShardId(key, sharding.MetachainShardId)
+		metaHeaders, metaHeadersHeshes, err := metaBlocksPool.GetHeadersByNonceAndShardId(key, sharding.MetachainShardId)
 		if err != nil {
 			continue
 		}
 
-		metaHeader, metaHdrHash := metaHeaders[len(metaHeaders)-1], metaHeadersHeshes[len(metaHeadersHeshes)-1]
+		for i := 0; i < len(metaHeaders); i++ {
+			metaHeader, metaHdrHash := metaHeaders[i], metaHeadersHeshes[i]
 
-		hdr, ok := metaHeader.(*block.MetaBlock)
-		if !ok {
-			continue
+			hdr, ok := metaHeader.(*block.MetaBlock)
+			if !ok {
+				continue
+			}
+
+			if hdr.GetRound() > round {
+				continue
+			}
+			if hdr.GetRound() <= lastHdr.GetRound() {
+				continue
+			}
+			if hdr.GetNonce() <= lastHdr.GetNonce() {
+				continue
+			}
+
+			orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: metaHdrHash})
 		}
 
-		if hdr.GetRound() > round {
-			continue
-		}
-		if hdr.GetRound() <= lastHdr.GetRound() {
-			continue
-		}
-		if hdr.GetNonce() <= lastHdr.GetNonce() {
-			continue
-		}
-
-		orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: metaHdrHash})
 	}
 
 	if len(orderedMetaBlocks) > 1 {
@@ -1920,18 +1914,6 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained
-}
-
-func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
-	nonce uint64,
-	_ uint32,
-) (data.HeaderHandler, []byte, error) {
-
-	metaHeader, metaHeaderHash, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		sp.dataPool.Headers())
-
-	return metaHeader, metaHeaderHash, err
 }
 
 func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data.HeaderHandler) error {
