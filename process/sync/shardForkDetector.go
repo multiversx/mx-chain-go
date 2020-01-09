@@ -79,14 +79,12 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	if header.GetNonce() > sfd.highestNonceReceived() {
-		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
-			"nonce", header.GetNonce(),
-			"highest nonce received", sfd.highestNonceReceived())
 		sfd.setHighestNonceReceived(header.GetNonce())
+		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
+			"highest nonce received", sfd.highestNonceReceived())
 	}
 
 	if state == process.BHProposed {
-		sfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 		return nil
 	}
 
@@ -117,14 +115,13 @@ func (sfd *shardForkDetector) AddHeader(
 	sfd.setProbableHighestNonce(probableHighestNonce)
 
 	log.Debug("forkDetector.AddHeader",
+		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 		"state", state,
 		"probable highest nonce", sfd.probableHighestNonce(),
 		"last check point nonce", sfd.lastCheckpoint().nonce,
 		"final check point nonce", sfd.finalCheckpoint().nonce)
-
-	sfd.setShouldForceFork(false)
 
 	return nil
 }

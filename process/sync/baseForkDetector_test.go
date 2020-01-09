@@ -201,7 +201,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
 		rounderMock,
 		&mock.BlackListHandlerStub{},
@@ -229,7 +229,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
 		rounderMock,
 		&mock.BlackListHandlerStub{},
@@ -259,7 +259,7 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcessedShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewShardForkDetector(
 		rounderMock,
 		&mock.BlackListHandlerStub{},
@@ -817,14 +817,8 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
-	assert.True(t, receivedTooLate)
-
 	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality)
 	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
-	assert.False(t, receivedTooLate)
-
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -837,11 +831,6 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality - 1)
 	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
-	assert.True(t, receivedTooLate)
-
-	sfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced, nil)
-	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 
@@ -858,14 +847,8 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
-	assert.True(t, receivedTooLate)
-
 	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality)
 	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
-	assert.False(t, receivedTooLate)
-
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -878,11 +861,6 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.BlockFinality - 1)
 	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
-	assert.True(t, receivedTooLate)
-
-	mfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced, nil)
-	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 
@@ -932,33 +910,18 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
 }
 
-func TestBaseForkDetector_ActivateForcedForkIfNeededStateNotProposedShouldNotActivate(t *testing.T) {
+func TestBaseForkDetector_IsConsensusStuckNotSyncingShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
 
-	state := process.BHReceived
-	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
+	bfd.SetProbableHighestNonce(1)
 
-	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
-	assert.False(t, bfd.ShouldForceFork())
+	assert.False(t, bfd.IsConsensusStuck())
 }
 
-func TestBaseForkDetector_ActivateForcedForkIfNeededNotSyncingShouldNotActivate(t *testing.T) {
-	t.Parallel()
-
-	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
-
-	state := process.BHProposed
-	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
-
-	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
-	assert.False(t, bfd.ShouldForceFork())
-}
-
-func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNotActivate(t *testing.T) {
+func TestBaseForkDetector_IsConsensusStuckNoncesDifferencesNotEnoughShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
@@ -969,21 +932,11 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 		0,
 	)
 
-	_ = bfd.AddHeader(
-		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
-		[]byte("hash1"),
-		process.BHProcessed,
-		nil,
-		nil)
-
-	state := process.BHProposed
-	hdr1 := &block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
-	rounderMock.RoundIndex = 5
-	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
-	assert.False(t, bfd.ShouldForceFork())
+	rounderMock.RoundIndex = 10
+	assert.False(t, bfd.IsConsensusStuck())
 }
 
-func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T) {
+func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
@@ -994,36 +947,27 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 		0,
 	)
 
-	bfd.SetFinalCheckpoint(0, 0, nil)
-	_ = bfd.AddHeader(
-		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 0, Round: 28},
-		[]byte("hash1"),
-		process.BHProcessed,
-		nil,
-		nil)
+	rounderMock.RoundIndex = 11
+	assert.False(t, bfd.IsConsensusStuck())
+}
+
+func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerStub{},
+		0,
+	)
 
 	// last checkpoint will be (round = 0 , nonce = 0)
-	// round difference is higher than 20
-	// nonce difference is 1
-	// round index is divisible by 5
-	// => should activate force fork
-	state := process.BHProposed
-	hdr1 := &block.Header{Nonce: 1, Round: 29, PubKeysBitmap: []byte("X")}
-	rounderMock.RoundIndex = 30
-	bfd.ActivateForcedForkOnConsensusStuckIfNeeded(hdr1, state)
-	assert.True(t, bfd.ShouldForceFork())
-}
-
-func TestBaseForkDetector_ResetFork(t *testing.T) {
-	t.Parallel()
-
-	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{}, 0)
-
-	bfd.SetShouldForceFork(true)
-	assert.True(t, bfd.ShouldForceFork())
-	bfd.ResetFork()
-	assert.False(t, bfd.ShouldForceFork())
+	// round difference is higher than 10
+	// round index is divisible by RoundModulusTrigger -> 5
+	// => consensus is stuck
+	rounderMock.RoundIndex = 20
+	assert.True(t, bfd.IsConsensusStuck())
 }
 
 func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {

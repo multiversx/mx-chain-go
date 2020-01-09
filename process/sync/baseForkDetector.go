@@ -29,7 +29,6 @@ type forkInfo struct {
 	finalCheckpoint      *checkpointInfo
 	probableHighestNonce uint64
 	highestNonceReceived uint64
-	shouldForceFork      bool
 	rollBackNonce        uint64
 }
 
@@ -281,8 +280,8 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
+	//TODO: Should be analyzed if reset to probable highest nonce should be also done for highest nonce received by calling
 	//bfd.setHighestNonceReceived(probableHighestNonce)
-	bfd.setShouldForceFork(false)
 
 	log.Debug("forkDetector.ResetFork",
 		"probable highest nonce", probableHighestNonce)
@@ -364,20 +363,6 @@ func (bfd *baseForkDetector) highestNonceReceived() uint64 {
 	return highestNonceReceived
 }
 
-func (bfd *baseForkDetector) setShouldForceFork(shouldForceFork bool) {
-	bfd.mutFork.Lock()
-	bfd.fork.shouldForceFork = shouldForceFork
-	bfd.mutFork.Unlock()
-}
-
-func (bfd *baseForkDetector) shouldForceFork() bool {
-	bfd.mutFork.RLock()
-	shouldForceFork := bfd.fork.shouldForceFork
-	bfd.mutFork.RUnlock()
-
-	return shouldForceFork
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	return bfd == nil
@@ -394,7 +379,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 
 	forkInfo := process.NewForkInfo()
 
-	if bfd.shouldForceFork() {
+	if bfd.isConsensusStuck() {
 		forkInfo.IsDetected = true
 		return forkInfo
 	}
@@ -542,28 +527,21 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	return isHeaderReceivedTooLate
 }
 
-func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-) {
+func (bfd *baseForkDetector) isConsensusStuck() bool {
 	if bfd.isSyncing() {
-		return
+		return false
 	}
 
-	lastCheckpointRound := bfd.lastCheckpoint().round
-	lastCheckpointNonce := bfd.lastCheckpoint().nonce
-
-	roundsDifference := int64(header.GetRound()) - int64(lastCheckpointRound)
-	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
-	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-
-	isConsensusStuck := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
-		noncesDifference <= 1 &&
-		isInProperRound
-
-	if isConsensusStuck {
-		bfd.setShouldForceFork(true)
+	roundsDifference := bfd.rounder.Index() - int64(bfd.lastCheckpoint().round)
+	if roundsDifference <= process.MaxRoundsWithoutCommittedBlock {
+		return false
 	}
+
+	if !process.IsInProperRound(bfd.rounder.Index()) {
+		return false
+	}
+
+	return true
 }
 
 func (bfd *baseForkDetector) isSyncing() bool {

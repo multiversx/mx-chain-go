@@ -86,19 +86,8 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *baseForkDetector) ActivateForcedForkOnConsensusStuckIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-) {
-	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
-}
-
-func (bfd *baseForkDetector) ShouldForceFork() bool {
-	return bfd.shouldForceFork()
-}
-
-func (bfd *baseForkDetector) SetShouldForceFork(shouldForceFork bool) {
-	bfd.setShouldForceFork(shouldForceFork)
+func (bfd *baseForkDetector) IsConsensusStuck() bool {
+	return bfd.isConsensusStuck()
 }
 
 func (hi *headerInfo) Hash() []byte {
