@@ -25,11 +25,12 @@ type checkpointInfo struct {
 }
 
 type forkInfo struct {
-	checkpoint           []*checkpointInfo
-	finalCheckpoint      *checkpointInfo
-	probableHighestNonce uint64
-	highestNonceReceived uint64
-	rollBackNonce        uint64
+	checkpoint              []*checkpointInfo
+	finalCheckpoint         *checkpointInfo
+	probableHighestNonce    uint64
+	highestNonceReceived    uint64
+	rollBackNonce           uint64
+	lastRoundWithForcedFork int64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -59,6 +60,20 @@ func (bfd *baseForkDetector) getRollBackNonce() uint64 {
 	bfd.mutFork.RUnlock()
 
 	return nonce
+}
+
+func (bfd *baseForkDetector) setLastRoundWithForcedFork(round int64) {
+	bfd.mutFork.Lock()
+	bfd.fork.lastRoundWithForcedFork = round
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) lastRoundWithForcedFork() int64 {
+	bfd.mutFork.RLock()
+	round := bfd.fork.lastRoundWithForcedFork
+	bfd.mutFork.RUnlock()
+
+	return round
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -282,6 +297,8 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.setProbableHighestNonce(probableHighestNonce)
 	//TODO: Should be analyzed if reset to probable highest nonce should be also done for highest nonce received by calling
 	//bfd.setHighestNonceReceived(probableHighestNonce)
+
+	bfd.setLastRoundWithForcedFork(bfd.rounder.Index())
 
 	log.Debug("forkDetector.ResetFork",
 		"probable highest nonce", probableHighestNonce)
@@ -528,6 +545,10 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 }
 
 func (bfd *baseForkDetector) isConsensusStuck() bool {
+	if bfd.lastRoundWithForcedFork() == bfd.rounder.Index() {
+		return false
+	}
+
 	if bfd.isSyncing() {
 		return false
 	}
