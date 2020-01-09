@@ -27,6 +27,7 @@ type persisterData struct {
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
+	pruningEnabled        bool
 	lock                  sync.RWMutex
 	shardCoordinator      sharding.Coordinator
 	fullArchive           bool
@@ -114,6 +115,7 @@ func initPruningStorer(
 	persistersMapByEpoch[args.StartingEpoch] = persisters[0]
 
 	pdb := &PruningStorer{
+		pruningEnabled:        args.PruningEnabled,
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
 		activePersisters:      persisters,
@@ -407,37 +409,39 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
+	// if pruning is not enabled, don't create new persisters, but use the same one instead
+	if ps.pruningEnabled {
+		ps.lock.Lock()
+		defer ps.lock.Unlock()
 
-	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
-	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
-	//filePath := ps.getNewFilePath(epoch)
-	db, err := ps.persisterFactory.Create(filePath)
-	if err != nil {
-		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
-		return err
-	}
+		shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
+		filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
+		db, err := ps.persisterFactory.Create(filePath)
+		if err != nil {
+			log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
+			return err
+		}
 
-	newPersister := &persisterData{
-		persister: db,
-		path:      filePath,
-		isClosed:  false,
-	}
+		newPersister := &persisterData{
+			persister: db,
+			path:      filePath,
+			isClosed:  false,
+		}
 
-	singleItemPersisters := []*persisterData{newPersister}
-	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
-	ps.persistersMapByEpoch[epoch] = newPersister
+		singleItemPersisters := []*persisterData{newPersister}
+		ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
+		ps.persistersMapByEpoch[epoch] = newPersister
 
-	err = ps.activePersisters[0].persister.Init()
-	if err != nil {
-		return err
-	}
+		err = ps.activePersisters[0].persister.Init()
+		if err != nil {
+			return err
+		}
 
-	err = ps.closeAndDestroyPersisters(epoch)
-	if err != nil {
-		log.Debug("closing and destroying old persister", "error", err.Error())
-		return err
+		err = ps.closeAndDestroyPersisters(epoch)
+		if err != nil {
+			log.Debug("closing and destroying old persister", "error", err.Error())
+			return err
+		}
 	}
 
 	return nil
