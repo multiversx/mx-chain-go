@@ -359,16 +359,16 @@ func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.Head
 	return process.GetShardHeaderFromPool(headerHash, boot.headers)
 }
 
-func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHash []byte, nonce uint64) {
+func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	if nonce < nextBlockNonce || nonce > maxNonce {
+	if headerHandler.GetNonce() < nextBlockNonce || headerHandler.GetNonce() > maxNonce {
 		return
 	}
 
-	header, err := process.GetShardHeaderFromPool(headerHash, boot.headers)
-	if err != nil {
-		log.Trace("GetShardHeaderFromPoolWithNonce", "error", err.Error())
+	header, ok := headerHandler.(*block.Header)
+	if !ok {
+		log.Trace("cannot convert headerHandler in block.Header")
 		return
 	}
 

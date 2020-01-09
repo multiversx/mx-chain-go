@@ -93,7 +93,7 @@ type baseBootstrap struct {
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	requestsWithTimeout   uint32
 
-	requestMiniBlocks func(hash []byte, nonce uint64)
+	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
@@ -157,7 +157,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
 
-	go boot.requestMiniBlocks(headerHash, headerHandler.GetNonce())
+	go boot.requestMiniBlocks(headerHandler)
 
 	boot.confirmHeaderReceivedByNonce(headerHandler, headerHash)
 	boot.confirmHeaderReceivedByHash(headerHandler, headerHash)

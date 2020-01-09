@@ -157,8 +157,8 @@ func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandle
 	boot.processReceivedHeader(headerHandler, headerHash)
 }
 
-func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(hash []byte, nonce uint64) {
-	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(hash, nonce)
+func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
+	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler)
 }
 
 func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state process.BlockHeaderState, finality int64) bool {

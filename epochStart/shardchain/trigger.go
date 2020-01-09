@@ -410,7 +410,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 
 		hdrWithNonce, ok := header.(*block.MetaBlock)
 		if !ok {
-			return nil
+			continue
 		}
 
 		t.mapHashHdr[string(hashes[i])] = hdrWithNonce

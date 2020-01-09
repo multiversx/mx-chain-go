@@ -402,16 +402,16 @@ func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.He
 	return blockBody, nil
 }
 
-func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(hash []byte, nonce uint64) {
+func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	if nonce < nextBlockNonce || nonce > maxNonce {
+	if headerHandler.GetNonce() < nextBlockNonce || headerHandler.GetNonce() > maxNonce {
 		return
 	}
 
-	header, err := process.GetMetaHeaderFromPool(hash, boot.headers)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Trace("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 

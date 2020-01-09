@@ -1306,6 +1306,11 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	headers := mp.dataPool.Headers()
+	if headers == nil {
+		return
+	}
+
 	shardHeader, ok := headerHandler.(*block.Header)
 	if !ok {
 		return
@@ -1365,7 +1370,6 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, h
 			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	headers := mp.dataPool.Headers()
 	if mp.isHeaderOutOfRange(shardHeader, headers) || isShardHeaderWithOldEpochAndBadRound {
 		headers.RemoveHeaderByHash(headerHash)
 
@@ -1952,19 +1956,6 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
-}
-
-func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
-	nonce uint64,
-	shardId uint32,
-) (data.HeaderHandler, []byte, error) {
-
-	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
-		nonce,
-		shardId,
-		mp.dataPool.Headers())
-
-	return shardHeader, shardHeaderHash, err
 }
 
 func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {

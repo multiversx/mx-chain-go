@@ -2951,7 +2951,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 
 	requestDataWasCalled := false
 	hdrHash := []byte("hash")
-	hdr := &block.Header{Round: 5}
+	hdr := &block.Header{Round: 5, Nonce: 1}
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
@@ -3061,6 +3061,6 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		&mock.RequestedItemsHandlerStub{},
 	)
 
-	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(hdrHash, uint64(1))
+	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(hdr)
 	assert.True(t, requestDataWasCalled)
 }
