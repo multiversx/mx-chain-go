@@ -60,7 +60,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 }
 
 func verifyConfig(config storageUnit.CacheConfig) error {
-	if config.SizeInBytes != 0 && config.SizeInBytes < process.TxPoolMinSizeInBytes {
+	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
 	if config.Size < 1 {
