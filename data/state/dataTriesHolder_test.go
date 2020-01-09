@@ -62,7 +62,7 @@ func TestDataTriesHolder_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	dth := state.NewDataTriesHolder()
-	numTries := 1000
+	numTries := 50
 
 	wg := sync.WaitGroup{}
 	wg.Add(numTries)
