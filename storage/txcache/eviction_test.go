@@ -144,7 +144,36 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-func Test_DoEviction_DoneInPass0(t *testing.T) {
+func Test_DoEviction_DoneInPass1(t *testing.T) {
+	config := EvictionConfig{
+		NumBytesThreshold:          40960,
+		CountThreshold:             2,
+		NumSendersToEvictInOneStep: 2,
+	}
+
+	cache := NewTxCacheWithEviction(16, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
+	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
+
+	journal := cache.doEviction()
+	require.Equal(t, uint32(2), journal.passOneNumTxs)
+	require.Equal(t, uint32(2), journal.passOneNumSenders)
+	require.Equal(t, uint32(0), journal.passTwoNumTxs)
+	require.Equal(t, uint32(0), journal.passTwoNumSenders)
+	require.Equal(t, uint32(0), journal.passThreeNumTxs)
+	require.Equal(t, uint32(0), journal.passThreeNumSenders)
+	require.Equal(t, uint32(0), journal.passFourNumTxs)
+	require.Equal(t, uint32(0), journal.passFourNumSenders)
+
+	// Alice and Bob evicted. Carol still there.
+	_, ok := cache.GetByTxHash([]byte("hash-carol"))
+	require.True(t, ok)
+	require.Equal(t, int64(1), cache.CountSenders())
+	require.Equal(t, int64(1), cache.CountTx())
+}
+
+func Test_DoEviction_DoneInPassFour(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          1500,
@@ -157,9 +186,9 @@ func Test_DoEviction_DoneInPass0(t *testing.T) {
 	cache.AddTx([]byte("hash-carol"), createTxWithGas("carol", uint64(1), 500, 5))
 
 	journal := cache.doEviction()
-	require.Equal(t, uint32(2), journal.passZeroNumSteps)
-	require.Equal(t, uint32(2), journal.passZeroNumTxs)
-	require.Equal(t, uint32(2), journal.passZeroNumSenders)
+	require.Equal(t, uint32(2), journal.passFourNumSteps)
+	require.Equal(t, uint32(2), journal.passFourNumTxs)
+	require.Equal(t, uint32(2), journal.passFourNumSenders)
 	require.Equal(t, uint32(0), journal.passOneNumTxs)
 	require.Equal(t, uint32(0), journal.passOneNumSenders)
 	require.Equal(t, uint32(0), journal.passTwoNumTxs)
@@ -167,35 +196,7 @@ func Test_DoEviction_DoneInPass0(t *testing.T) {
 	require.Equal(t, uint32(0), journal.passThreeNumTxs)
 	require.Equal(t, uint32(0), journal.passThreeNumSenders)
 
-	// Bob and Carol evicted (lower total gas). Alice still there.
-	_, ok := cache.GetByTxHash([]byte("hash-alice"))
-	require.True(t, ok)
-	require.Equal(t, int64(1), cache.CountSenders())
-	require.Equal(t, int64(1), cache.CountTx())
-}
-
-func Test_DoEviction_DoneInPass1(t *testing.T) {
-	config := EvictionConfig{
-		CountThreshold:             2,
-		NumSendersToEvictInOneStep: 2,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
-	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
-	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
-
-	journal := cache.doEviction()
-	require.Equal(t, uint32(0), journal.passZeroNumTxs)
-	require.Equal(t, uint32(0), journal.passZeroNumSenders)
-	require.Equal(t, uint32(2), journal.passOneNumTxs)
-	require.Equal(t, uint32(2), journal.passOneNumSenders)
-	require.Equal(t, uint32(0), journal.passTwoNumTxs)
-	require.Equal(t, uint32(0), journal.passTwoNumSenders)
-	require.Equal(t, uint32(0), journal.passThreeNumTxs)
-	require.Equal(t, uint32(0), journal.passThreeNumSenders)
-
-	// Alice and Bob evicted. Carol still there.
+	// Alice and Bob evicted (lower score). Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
 	require.Equal(t, int64(1), cache.CountSenders())

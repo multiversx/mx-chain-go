@@ -4,9 +4,6 @@ package txcache
 // This is useful for debugging and reasoning about the eviction
 type evictionJournal struct {
 	evictionPerformed   bool
-	passZeroNumTxs      uint32
-	passZeroNumSenders  uint32
-	passZeroNumSteps    uint32
 	passOneNumTxs       uint32
 	passOneNumSenders   uint32
 	passTwoNumTxs       uint32
@@ -14,12 +11,15 @@ type evictionJournal struct {
 	passThreeNumTxs     uint32
 	passThreeNumSenders uint32
 	passThreeNumSteps   uint32
+	passFourNumTxs      uint32
+	passFourNumSenders  uint32
+	passFourNumSteps    uint32
 }
 
 func (journal *evictionJournal) display() {
-	log.Info("Eviction journal:")
-	log.Info("Pass 0:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Info("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Info("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
-	log.Info("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
+	log.Debug("Eviction journal:")
+	log.Debug("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Debug("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
+	log.Debug("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
+	log.Debug("Pass 4:", "steps", journal.passFourNumSteps, "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
 }

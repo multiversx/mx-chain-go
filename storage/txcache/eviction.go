@@ -18,23 +18,17 @@ type EvictionConfig struct {
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
 func (cache *TxCache) doEviction() evictionJournal {
-	skipSizePass := (cache.isSizeEvictionEnabled() && !cache.areThereTooManyBytes()) || !cache.isSizeEvictionEnabled()
+	tooManyBytes := cache.areThereTooManyBytes()
+	tooManyTxs := cache.areThereTooManyTxs()
+	tooManySenders := cache.areThereTooManySenders()
+	journal := evictionJournal{}
 
-	if skipSizePass && !cache.areThereTooManyTxs() {
-		return evictionJournal{}
+	if !tooManyBytes && !tooManyTxs && !tooManySenders {
+		return journal
 	}
 
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
-
-	log.Info("TxCache.doEviction()")
-
-	journal := evictionJournal{}
-
-	if cache.isSizeEvictionEnabled() && cache.areThereTooManyBytes() {
-		journal.passZeroNumSteps, journal.passZeroNumTxs, journal.passZeroNumSenders = cache.evictSendersWhileTooManyBytes()
-		journal.evictionPerformed = true
-	}
 
 	if cache.areThereTooManySenders() {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
@@ -51,6 +45,11 @@ func (cache *TxCache) doEviction() evictionJournal {
 		journal.evictionPerformed = true
 	}
 
+	if cache.areThereTooManyBytes() {
+		journal.passFourNumSteps, journal.passFourNumTxs, journal.passFourNumSenders = cache.evictSendersWhileTooManyBytes()
+		journal.evictionPerformed = true
+	}
+
 	cache.evictionJournal = journal
 
 	if journal.evictionPerformed {
@@ -58,10 +57,6 @@ func (cache *TxCache) doEviction() evictionJournal {
 	}
 
 	return journal
-}
-
-func (cache *TxCache) isSizeEvictionEnabled() bool {
-	return cache.evictionConfig.NumBytesThreshold > 0
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -144,7 +139,7 @@ func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint3
 }
 
 func (cache *TxCache) evictSendersWhileTooManyBytes() (step uint32, countTxs uint32, countSenders uint32) {
-	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortByTotalGas)
+	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortBySmartScore)
 }
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "stopCondition" is true

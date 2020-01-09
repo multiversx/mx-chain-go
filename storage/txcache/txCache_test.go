@@ -214,6 +214,7 @@ func Test_Keys(t *testing.T) {
 func Test_AddWithEviction_UniformDistribution(t *testing.T) {
 	config := EvictionConfig{
 		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      10,
 		ALotOfTransactionsForASender:    1000,
@@ -257,9 +258,9 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	require.Equal(t, int64(1), cache.CountTx())
 	require.Equal(t, int64(872+estimatedSizeOfBoundedTxFields), cache.VolumeInBytes())
 	// The eviction takes place in pass 0
-	require.Equal(t, uint32(201), cache.evictionJournal.passZeroNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+	require.Equal(t, uint32(201), cache.evictionJournal.passFourNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// Bob and Carol send transactions, with different gas price
 	for i := 0; i < 100; i++ {
@@ -283,9 +284,9 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 
 	// Alice's transaction is evicted (lowest total gas), Alice is evicted (no more transactions)
 	// The eviction takes place in pass 0
-	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// All other transactions (from Bob and Carol) are still in place
 	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
@@ -302,9 +303,9 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	// Carol is evicted (lowest total gas), Bob remains.
 	// Then Carol is added again, with the new transaction (this isn't very good, since lower nonce transactions are evicted, but this is how the cache works)
 	// The eviction takes place in pass 0
-	require.Equal(t, uint32(101), cache.evictionJournal.passZeroNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passZeroNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passZeroNumSteps)
+	require.Equal(t, uint32(101), cache.evictionJournal.passFourNumTxs)
+	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// Bob's transactions remain, and Carol has the "bar" transaction
 	require.Equal(t, int64(100), cache.countTxBySender("bob"))
