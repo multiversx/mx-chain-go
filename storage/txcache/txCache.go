@@ -225,3 +225,7 @@ func (cache *TxCache) VolumeInBytes() int64 {
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
 }
+
+func (cache *TxCache) displayState() {
+	log.Debug("TxCache.state:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+}

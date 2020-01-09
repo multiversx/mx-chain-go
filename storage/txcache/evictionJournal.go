@@ -21,5 +21,5 @@ func (journal *evictionJournal) display() {
 	log.Debug("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
 	log.Debug("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders)
 	log.Debug("Pass 3:", "steps", journal.passThreeNumSteps, "txs", journal.passThreeNumTxs, "senders", journal.passThreeNumSenders)
-	log.Debug("Pass 4:", "steps", journal.passFourNumSteps, "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Debug("Pass 4:", "steps", journal.passFourNumSteps, "txs", journal.passFourNumTxs, "senders", journal.passFourNumSenders)
 }

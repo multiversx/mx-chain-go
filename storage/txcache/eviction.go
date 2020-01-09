@@ -30,7 +30,8 @@ func (cache *TxCache) doEviction() {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
-	log.Debug("TxCache.doEviction()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	log.Debug("TxCache.doEviction()")
+	cache.displayState()
 
 	if cache.areThereTooManySenders() {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
@@ -56,6 +57,7 @@ func (cache *TxCache) doEviction() {
 
 	if journal.evictionPerformed {
 		journal.display()
+		cache.displayState()
 	}
 }
 

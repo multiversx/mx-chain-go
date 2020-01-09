@@ -296,23 +296,6 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	require.Equal(t, int64(101), cache.countTxBySender("carol"))
 	require.Equal(t, int64(2), cache.CountSenders())
 	require.Equal(t, int64(102000), cache.VolumeInBytes())
-
-	// Carol sends another transaction
-	// This transaction will cause eviction, again
-	cache.AddTx([]byte(fmt.Sprintf("carol-bar")), createTxWithGas("carol", uint64(101), 1000, 15))
-
-	// Bob is evicted (lowest score).
-	// Then Carol is added again, with the new transaction (this isn't very good, since lower nonce transactions are evicted, but this is how the cache works)
-	// The eviction takes place in pass 0
-	require.Equal(t, uint32(101), cache.evictionJournal.passFourNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
-
-	// Bob's transactions remain, and Carol has the "bar" transaction
-	require.Equal(t, int64(100), cache.countTxBySender("bob"))
-	require.Equal(t, int64(1), cache.countTxBySender("carol"))
-	require.Equal(t, int64(2), cache.CountSenders())
-	require.Equal(t, int64(101000), cache.VolumeInBytes())
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
