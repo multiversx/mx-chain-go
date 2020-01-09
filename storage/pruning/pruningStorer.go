@@ -410,38 +410,40 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
-	if ps.pruningEnabled {
-		ps.lock.Lock()
-		defer ps.lock.Unlock()
+	if !ps.pruningEnabled {
+		return nil
+	}
 
-		shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
-		filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
-		db, err := ps.persisterFactory.Create(filePath)
-		if err != nil {
-			log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
-			return err
-		}
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
-		newPersister := &persisterData{
-			persister: db,
-			path:      filePath,
-			isClosed:  false,
-		}
+	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
+	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
+	db, err := ps.persisterFactory.Create(filePath)
+	if err != nil {
+		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
+		return err
+	}
 
-		singleItemPersisters := []*persisterData{newPersister}
-		ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
-		ps.persistersMapByEpoch[epoch] = newPersister
+	newPersister := &persisterData{
+		persister: db,
+		path:      filePath,
+		isClosed:  false,
+	}
 
-		err = ps.activePersisters[0].persister.Init()
-		if err != nil {
-			return err
-		}
+	singleItemPersisters := []*persisterData{newPersister}
+	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
+	ps.persistersMapByEpoch[epoch] = newPersister
 
-		err = ps.closeAndDestroyPersisters(epoch)
-		if err != nil {
-			log.Debug("closing and destroying old persister", "error", err.Error())
-			return err
-		}
+	err = ps.activePersisters[0].persister.Init()
+	if err != nil {
+		return err
+	}
+
+	err = ps.closeAndDestroyPersisters(epoch)
+	if err != nil {
+		log.Debug("closing and destroying old persister", "error", err.Error())
+		return err
 	}
 
 	return nil
