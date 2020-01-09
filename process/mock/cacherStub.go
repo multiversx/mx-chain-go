@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/data"
+
 type CacherStub struct {
 	ClearCalled           func()
 	PutCalled             func(key []byte, value interface{}) (evicted bool)
@@ -69,4 +71,8 @@ func (cs *CacherStub) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (cs *CacherStub) GetTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
+	panic("CacherStub.GetTransactions is not implemented")
 }

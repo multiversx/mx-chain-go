@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -215,7 +216,7 @@ type BlockProcessor interface {
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
-	ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{})
+	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -505,7 +506,7 @@ type FeeHandler interface {
 type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
-	GetData() string
+	GetData() []byte
 	GetRecvAddress() []byte
 }
 

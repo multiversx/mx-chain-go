@@ -21,7 +21,7 @@ func (lh *shardMediator) loadPreviousShardHeaders(header, previousHeader *block.
 	return lh.vs.loadPreviousShardHeaders(header, previousHeader)
 }
 
-func (lh *metaMediator) loadPreviousShardHeaders(header, previousHeader *block.MetaBlock) error {
+func (lh *metaMediator) loadPreviousShardHeaders(header, _ *block.MetaBlock) error {
 	if lh.vs == nil {
 		return process.ErrNilMediator
 	}
