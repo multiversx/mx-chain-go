@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -297,8 +298,10 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
-		log.Debug("Validator stats root hash does not match", "validatorStatsRH", validatorStatsRH,
-			"headerValidatorStatsRH", header.GetValidatorStatsRootHash())
+		log.Debug("validator stats root hash mismatch",
+			"computed", validatorStatsRH,
+			"received", header.GetValidatorStatsRootHash(),
+		)
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}
@@ -1049,7 +1052,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ map[string]map[string]struct{}) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandler data.ChainHandler) {
@@ -1530,7 +1533,6 @@ func (mp *metaProcessor) createShardInfo(
 		return shardInfo, nil
 	}
 
-	log.Debug("creating shard info has been started")
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for hdrHash, hdrInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
 		shardHdr, ok := hdrInfo.hdr.(*block.Header)
@@ -1573,8 +1575,8 @@ func (mp *metaProcessor) createShardInfo(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	log.Debug("creating shard info has been finished",
-		"created shard data", len(shardInfo),
+	log.Debug("created shard data",
+		"size", len(shardInfo),
 	)
 	return shardInfo, nil
 }
@@ -1587,9 +1589,14 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
-	log.Debug("started creating block header",
-		"round", hdr.GetRound(),
-	)
+	sw := core.NewStopWatch()
+	sw.Start("ApplyBodyToHeader")
+	defer func() {
+		sw.Stop("ApplyBodyToHeader")
+
+		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+	}()
+
 	metaHdr, ok := hdr.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
@@ -1606,12 +1613,16 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		}
 	}()
 
+	sw.Start("createShardInfo")
 	shardInfo, err := mp.createShardInfo(hdr.GetRound())
+	sw.Stop("createShardInfo")
 	if err != nil {
 		return nil, err
 	}
 
+	sw.Start("createPeerInfo")
 	peerInfo, err := mp.createPeerInfo()
+	sw.Stop("createPeerInfo")
 	if err != nil {
 		return nil, err
 	}
@@ -1632,7 +1643,9 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return nil, err
 	}
 
+	sw.Start("CreateReceiptsHash")
 	metaHdr.ReceiptsHash, err = mp.txCoordinator.CreateReceiptsHash()
+	sw.Stop("CreateReceiptsHash")
 	if err != nil {
 		return nil, err
 	}
@@ -1645,12 +1658,12 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	sw.Start("UpdatePeerState")
+	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
 	}
-
-	metaHdr.ValidatorStatsRootHash = rootHash
 
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
@@ -1817,7 +1830,10 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 
 	mp.epochStartTrigger.Update(round)
 
+	sw := core.NewStopWatch()
+	sw.Start("createEpochStartForMetablock")
 	epochStart, err := mp.createEpochStartForMetablock()
+	sw.Stop("createEpochStartForMetablock")
 	if err == nil {
 		metaHeader.EpochStart = *epochStart
 	} else {

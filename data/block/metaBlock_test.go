@@ -15,7 +15,7 @@ import (
 func TestPeerData_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
 		PublicKey:   []byte("public key"),
-		Action:      block.PeerRegistrantion,
+		Action:      block.PeerRegistration,
 		TimeStamp:   uint64(1234),
 		ValueChange: big.NewInt(1),
 		Address:     []byte("address"),
@@ -92,7 +92,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
 		Address:     []byte("address"),
 		PublicKey:   []byte("public key"),
-		Action:      block.PeerRegistrantion,
+		Action:      block.PeerRegistration,
 		TimeStamp:   uint64(1234),
 		ValueChange: big.NewInt(1),
 	}

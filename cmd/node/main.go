@@ -620,6 +620,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
@@ -1052,12 +1053,14 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	if err != nil {
-		return nil, err
-	}
+	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
+	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
+	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	return nodesCoordinator, nil
+	return baseNodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {

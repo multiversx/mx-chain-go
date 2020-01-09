@@ -131,7 +131,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		return err
 	}
 
-	for key := range affectedStates {
+	for _, key := range affectedStates {
 		blsPubKey := []byte(key)
 		peerAcc, err := stp.getPeerAccount(blsPubKey)
 		if err != nil {
@@ -164,7 +164,12 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 				return err
 			}
 
-			return stp.peerState.RemoveAccount(adrSrc)
+			err = stp.peerState.RemoveAccount(adrSrc)
+			if err != nil {
+				return err
+			}
+
+			continue
 		}
 
 		var stakingData systemSmartContracts.StakingData
@@ -173,12 +178,12 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.createPeerChangeData(stakingData, peerAcc, nonce)
+		err = stp.createPeerChangeData(stakingData, peerAcc, nonce, blsPubKey)
 		if err != nil {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc)
+		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -192,7 +197,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 	defer stp.mutPeerChanges.Unlock()
 
 	actualPeerChange := block.PeerData{
-		Address:     account.Address,
+		Address:     account.RewardAddress,
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
@@ -211,9 +216,17 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
+	blsPubKey []byte,
 ) error {
-	if !bytes.Equal(stakingData.Address, account.Address) {
-		err := account.SetSchnorrPublicKeyWithJournal(stakingData.Address)
+	if !bytes.Equal(stakingData.Address, account.RewardAddress) {
+		err := account.SetRewardAddressWithJournal(stakingData.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bytes.Equal(blsPubKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -252,22 +265,25 @@ func (stp *stakingToPeer) createPeerChangeData(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
 	nonce uint64,
+	blsKey []byte,
 ) error {
 	stp.mutPeerChanges.Lock()
 	defer stp.mutPeerChanges.Unlock()
 
 	actualPeerChange := block.PeerData{
-		Address:     account.Address,
+		Address:     account.RewardAddress,
 		PublicKey:   account.BLSPublicKey,
 		Action:      0,
 		TimeStamp:   nonce,
 		ValueChange: big.NewInt(0),
 	}
 
-	if len(account.BLSPublicKey) == 0 {
-		actualPeerChange.Action = block.PeerRegistrantion
+	if len(account.RewardAddress) == 0 {
+		actualPeerChange.Action = block.PeerRegistration
 		actualPeerChange.TimeStamp = stakingData.StartNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
+		actualPeerChange.Address = stakingData.Address
+		actualPeerChange.PublicKey = blsKey
 
 		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
 		if err != nil {
@@ -289,7 +305,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 	}
 
 	if stakingData.StartNonce == nonce {
-		actualPeerChange.Action = block.PeerRegistrantion
+		actualPeerChange.Action = block.PeerRegistration
 	}
 
 	if stakingData.UnStakedNonce == nonce {
@@ -306,8 +322,8 @@ func (stp *stakingToPeer) createPeerChangeData(
 	return nil
 }
 
-func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]struct{}, error) {
-	affectedStates := make(map[string]struct{})
+func (stp *stakingToPeer) getAllModifiedStates(body block.Body) ([]string, error) {
+	affectedStates := make([]string, 0)
 
 	for _, miniBlock := range body {
 		if miniBlock.Type != block.SmartContractResultBlock {
@@ -332,13 +348,13 @@ func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]stru
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			storageUpdates, err := stp.argParser.GetStorageUpdates(scr.Data)
+			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
 				return nil, err
 			}
 
 			for _, storageUpdate := range storageUpdates {
-				affectedStates[string(storageUpdate.Offset)] = struct{}{}
+				affectedStates = append(affectedStates, string(storageUpdate.Offset))
 			}
 		}
 	}

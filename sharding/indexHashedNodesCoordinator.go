@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -420,15 +419,11 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
 func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.HeaderHandler) {
-	randomness := metaHeader.GetRandSeed()
+	randomness := metaHeader.GetPrevRandSeed()
 	newEpoch := metaHeader.GetEpoch()
 
-	if newEpoch != ihgs.currentEpoch+1 {
-		return
-	}
-
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
+	nodesConfig, ok := ihgs.nodesConfig[newEpoch-1]
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -525,12 +520,10 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenL
 
 	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
 
-	computedLargeIndex := big.NewInt(0)
-	computedLargeIndex.SetBytes(indexHash)
-	lenExpandedEligibleList := big.NewInt(int64(lenList))
+	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
+	lenExpandedEligibleList := uint64(lenList)
 
-	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
-	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, lenExpandedEligibleList).Int64()
+	computedListIndex := computedLargeIndex % lenExpandedEligibleList
 
 	return int(computedListIndex)
 }

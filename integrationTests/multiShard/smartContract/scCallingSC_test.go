@@ -3,6 +3,7 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,8 +26,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -122,22 +121,34 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
 	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+
+	for _, nds := range nodesMap {
+		nodes = append(nodes, nds...)
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
+	}
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -205,6 +216,16 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	}
 }
 
+func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
+}
+
 func putDeploySCToDataPool(
 	fileName string,
 	pubkey []byte,
@@ -226,7 +247,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 

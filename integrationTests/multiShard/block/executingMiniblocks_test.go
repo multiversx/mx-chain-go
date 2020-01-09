@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -199,7 +198,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, "")
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, []byte(""))
 		}
 
 		time.Sleep(2 * time.Second)
@@ -279,7 +278,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	for _, node := range nodes {
 		for j := uint64(0); j < nrTxsToSend; j++ {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, "")
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, []byte(""))
 		}
 	}
 

@@ -400,7 +400,7 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 		if err != nil {
 			log.Warn("change epoch in storer", "error", err.Error())
 		}
-	}, nil)
+	}, func(hdr data.HeaderHandler) {})
 
 	handler.RegisterHandler(subscribeHandler)
 }

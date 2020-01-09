@@ -24,7 +24,7 @@ func NewPeerJournalEntryAddress(account *PeerAccount, oldAddress []byte) (*PeerJ
 
 // Revert applies undo operation
 func (pje *PeerJournalEntryAddress) Revert() (AccountHandler, error) {
-	pje.account.Address = pje.oldAddress
+	pje.account.RewardAddress = pje.oldAddress
 
 	return pje.account, nil
 }
