@@ -1,13 +1,13 @@
 package storageBootstrap
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type shardStorageBootstrapper struct {
@@ -92,19 +92,19 @@ func (ssb *shardStorageBootstrapper) applyNotarizedBlocks(
 		return nil
 	}
 
-	if lastNotarized[sharding.MetachainShardId] == nil {
+	if lastNotarized[core.MetachainShardId] == nil {
 		return sync.ErrNilNotarizedHeader
 	}
-	if lastNotarized[sharding.MetachainShardId].Hash == nil {
+	if lastNotarized[core.MetachainShardId].Hash == nil {
 		return sync.ErrNilHash
 	}
 
-	metaBlock, err := process.GetMetaHeaderFromStorage(lastNotarized[sharding.MetachainShardId].Hash, ssb.marshalizer, ssb.store)
+	metaBlock, err := process.GetMetaHeaderFromStorage(lastNotarized[core.MetachainShardId].Hash, ssb.marshalizer, ssb.store)
 	if err != nil {
 		return err
 	}
 
-	ssb.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
+	ssb.blkExecutor.AddLastNotarizedHdr(core.MetachainShardId, metaBlock)
 
 	return nil
 }

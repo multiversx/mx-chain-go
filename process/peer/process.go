@@ -154,7 +154,7 @@ func (vs *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 }
 
 func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
-	if vs.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if vs.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}
 
@@ -252,7 +252,18 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		header.GetShardID(),
+		epoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -278,6 +289,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
+		epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -314,6 +326,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
 	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
@@ -330,7 +343,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
+		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardId, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
@@ -393,9 +406,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(header, previousHeader d
 		return err
 	}
 
-	for _, h := range metaHeader.ShardInfo {
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
-		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
+	for _, h := range metaHeader.ShardInfo {
+		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -422,6 +440,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header, previousHeader d
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
+			epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -688,7 +707,7 @@ func (vs *validatorStatistics) buildShardDataKey(sh block.ShardData) string {
 }
 
 func (vs *validatorStatistics) createMediator() shardMetaMediator {
-	if vs.shardCoordinator.SelfId() < sharding.MetachainShardId {
+	if vs.shardCoordinator.SelfId() < core.MetachainShardId {
 		return &shardMediator{
 			vs: vs,
 		}

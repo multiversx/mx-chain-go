@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -289,7 +290,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	nonce++
 
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() == core.MetachainShardId {
 			continue
 		}
 

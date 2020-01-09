@@ -1,53 +1,52 @@
-package sharding_test
+package sharding
 
 import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestValidator_NewValidatorShouldFailOnNilStake(t *testing.T) {
 	t.Parallel()
 
-	validator, err := sharding.NewValidator(nil, 0, []byte("pk1"), []byte("addr1"))
+	validator, err := NewValidator(nil, 0, []byte("pk1"), []byte("addr1"))
 
 	assert.Nil(t, validator)
-	assert.Equal(t, sharding.ErrNilStake, err)
+	assert.Equal(t, ErrNilStake, err)
 }
 
 func TestValidator_NewValidatorShouldFailOnNegativeStake(t *testing.T) {
 	t.Parallel()
 
-	validator, err := sharding.NewValidator(big.NewInt(-1), 0, []byte("pk1"), []byte("addr1"))
+	validator, err := NewValidator(big.NewInt(-1), 0, []byte("pk1"), []byte("addr1"))
 
 	assert.Nil(t, validator)
-	assert.Equal(t, sharding.ErrNegativeStake, err)
+	assert.Equal(t, ErrNegativeStake, err)
 }
 
 func TestValidator_NewValidatorShouldFailOnNilPublickKey(t *testing.T) {
 	t.Parallel()
 
-	validator, err := sharding.NewValidator(big.NewInt(0), 0, nil, []byte("addr1"))
+	validator, err := NewValidator(big.NewInt(0), 0, nil, []byte("addr1"))
 
 	assert.Nil(t, validator)
-	assert.Equal(t, sharding.ErrNilPubKey, err)
+	assert.Equal(t, ErrNilPubKey, err)
 }
 
 func TestValidator_NewValidatorShouldFailOnNilAddress(t *testing.T) {
 	t.Parallel()
 
-	validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte("pk1"), nil)
+	validator, err := NewValidator(big.NewInt(0), 0, []byte("pk1"), nil)
 
 	assert.Nil(t, validator)
-	assert.Equal(t, sharding.ErrNilAddress, err)
+	assert.Equal(t, ErrNilAddress, err)
 }
 
 func TestValidator_NewValidatorShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
+	validator, err := NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
 
 	assert.NotNil(t, validator)
 	assert.Nil(t, err)
@@ -56,7 +55,7 @@ func TestValidator_NewValidatorShouldWork(t *testing.T) {
 func TestValidator_StakeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, _ := sharding.NewValidator(big.NewInt(1), 0, []byte("pk1"), []byte("addr1"))
+	validator, _ := NewValidator(big.NewInt(1), 0, []byte("pk1"), []byte("addr1"))
 
 	assert.Equal(t, big.NewInt(1), validator.Stake())
 }
@@ -64,7 +63,7 @@ func TestValidator_StakeShouldWork(t *testing.T) {
 func TestValidator_PubKeyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, _ := sharding.NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
+	validator, _ := NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
 
 	assert.Equal(t, []byte("pk1"), validator.PubKey())
 }
@@ -72,7 +71,7 @@ func TestValidator_PubKeyShouldWork(t *testing.T) {
 func TestValidator_AddressShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, _ := sharding.NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
+	validator, _ := NewValidator(big.NewInt(0), 0, []byte("pk1"), []byte("addr1"))
 
 	assert.Equal(t, []byte("addr1"), validator.Address())
 }

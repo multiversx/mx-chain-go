@@ -54,7 +54,7 @@ func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
 }
 
-func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
+func (blProcMock *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 

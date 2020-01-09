@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +54,7 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
 	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -87,7 +87,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
 	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
@@ -129,7 +129,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	//add header with nonce 0 in pool
 	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
 	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
+	syncMap.Store(core.MetachainShardId, hash)
 	nResolver.ShardDataPool.HeadersNonces().Merge(headerNonce, syncMap)
 
 	//setup header received event
@@ -160,14 +160,14 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(shardId, sharding.MetachainShardId)
+	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
 	_, _ = nResolver.ShardDataPool.MetaBlocks().HasOrAdd(hash, header)
 	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
+	syncMap.Store(core.MetachainShardId, hash)
 	nResolver.ShardDataPool.HeadersNonces().Merge(headerNonce, syncMap)
 
 	//setup header received event
@@ -198,14 +198,14 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
-	nResolver, nRequester := createResolverRequester(sharding.MetachainShardId, shardId)
+	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
 	header, hash := createShardHeader(headerNonce, integrationTests.IntegrationTestsChainID)
 
 	//add header with nonce 0 in pool
 	_, _ = nResolver.MetaDataPool.MetaBlocks().HasOrAdd(hash, header)
 	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(sharding.MetachainShardId, hash)
+	syncMap.Store(core.MetachainShardId, hash)
 	nResolver.MetaDataPool.HeadersNonces().Merge(headerNonce, syncMap)
 
 	//setup header received event

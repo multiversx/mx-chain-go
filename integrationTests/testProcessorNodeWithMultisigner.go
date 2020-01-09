@@ -14,6 +14,7 @@ import (
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -26,6 +27,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
 	initialNodeAddr string,
+	epochStartNotifier notifier.EpochStartNotifier,
 	nodesCoordinator sharding.NodesCoordinator,
 	cp *CryptoParams,
 	keyIndex int,
@@ -62,7 +64,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		fmt.Println("Error generating multisigner")
 	}
 	accountShardId := nodeShardId
-	if nodeShardId == sharding.MetachainShardId {
+	if nodeShardId == core.MetachainShardId {
 		accountShardId = 0
 	}
 
@@ -71,6 +73,8 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	} else {
 		tpn.OwnAccount = ownAccount
 	}
+
+	tpn.EpochStartNotifier = epochStartNotifier
 	tpn.initDataPools()
 	tpn.initTestNode()
 
@@ -89,40 +93,103 @@ func CreateNodesWithNodesCoordinator(
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
+
 	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Hasher:                  TestHasher,
-			ShardId:                 shardId,
-			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-		}
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
-		if err != nil {
-			fmt.Println("Error creating node coordinator")
-		}
-
 		nodesList := make([]*TestProcessorNode, len(validatorList))
+		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
+
 		for i := range validatorList {
-			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
+			nodesList[i] = createNode(
+				nodesPerShard,
+				nbMetaNodes,
+				shardConsensusGroupSize,
+				metaConsensusGroupSize,
 				shardId,
-				seedAddress,
-				nodesCoordinator,
-				cp,
+				nbShards,
+				validatorsMap,
+				waitingMap,
 				i,
-				nil,
-				&mock.HeaderSigVerifierStub{},
+				seedAddress,
+				cp,
 			)
 		}
-		nodesMap[shardId] = nodesList
+
+		for i := range waitingMap[shardId] {
+			nodesListWaiting[i] = createNode(
+				nodesPerShard,
+				nbMetaNodes,
+				shardConsensusGroupSize,
+				metaConsensusGroupSize,
+				shardId,
+				nbShards,
+				validatorsMap,
+				waitingMap,
+				i,
+				seedAddress,
+				cpWaiting,
+			)
+		}
+
+		nodesMap[shardId] = append(nodesList, nodesListWaiting...)
 	}
 
 	return nodesMap
+}
+
+func createNode(
+	nodesPerShard int,
+	nbMetaNodes int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	shardId uint32,
+	nbShards int,
+	validatorsMap map[uint32][]sharding.Validator,
+	waitingMap map[uint32][]sharding.Validator,
+	keyIndex int,
+	seedAddress string,
+	cp *CryptoParams,
+) *TestProcessorNode {
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+
+	nodeKeys := cp.Keys[shardId][keyIndex]
+	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+
+	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Hasher:                  TestHasher,
+		Shuffler:                nodeShuffler,
+		EpochStartSubscriber:    epochStartSubscriber,
+		ShardId:                 shardId,
+		NbShards:                uint32(nbShards),
+		EligibleNodes:           validatorsMap,
+		WaitingNodes:            waitingMap,
+		SelfPublicKey:           pubKeyBytes,
+	}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	if err != nil {
+		fmt.Println("Error creating node coordinator")
+	}
+
+	return NewTestProcessorNodeWithCustomNodesCoordinator(
+		uint32(nbShards),
+		shardId,
+		seedAddress,
+		epochStartSubscriber,
+		nodesCoordinator,
+		cp,
+		keyIndex,
+		nil,
+		&mock.HeaderSigVerifierStub{},
+	)
 }
 
 // CreateNodesWithNodesCoordinatorAndHeaderSigVerifier returns a map with nodes per shard each using a real nodes coordinator and header sig verifier
@@ -140,14 +207,20 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
+			EligibleNodes:           validatorsMap,
+			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -171,6 +244,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				uint32(nbShards),
 				shardId,
 				seedAddress,
+				epochStartSubscriber,
 				nodesCoordinator,
 				cp,
 				i,
@@ -199,15 +273,26 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
+			EligibleNodes:           validatorsMap,
+			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -223,19 +308,24 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				shardCoordinator,
 				shardId,
 				singleSigner,
-				keyGenForBlocks)
+				keyGenForBlocks,
+			)
+
 			args := headerCheck.ArgsHeaderSigVerifier{
 				Marshalizer:       TestMarshalizer,
 				Hasher:            TestHasher,
 				NodesCoordinator:  nodesCoordinator,
 				MultiSigVerifier:  TestMultiSig,
 				SingleSigVerifier: singleSigner,
-				KeyGen:            keyGenForBlocks}
+				KeyGen:            keyGenForBlocks,
+			}
+
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
 				seedAddress,
+				epochStartSubscriber,
 				nodesCoordinator,
 				cp,
 				i,
@@ -256,10 +346,11 @@ func ProposeBlockWithConsensusSignature(
 	round uint64,
 	nonce uint64,
 	randomness []byte,
+	epoch uint32,
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
-
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId)
+
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
@@ -268,7 +359,7 @@ func ProposeBlockWithConsensusSignature(
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
-
+	header.SetPrevRandSeed(randomness)
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return body, header, txHashes, consensusNodes
@@ -336,13 +427,11 @@ func DoConsensusSigningOnBlock(
 func AllShardsProposeBlock(
 	round uint64,
 	nonce uint64,
-	prevRandomness map[uint32][]byte,
 	nodesMap map[uint32][]*TestProcessorNode,
 ) (
 	map[uint32]data.BodyHandler,
 	map[uint32]data.HeaderHandler,
 	map[uint32][]*TestProcessorNode,
-	map[uint32][]byte,
 ) {
 
 	body := make(map[uint32]data.BodyHandler)
@@ -352,7 +441,17 @@ func AllShardsProposeBlock(
 
 	// propose blocks
 	for i := range nodesMap {
-		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness[i])
+		currentBlockHeader := nodesMap[i][0].BlockChain.GetCurrentBlockHeader()
+		if currentBlockHeader == nil {
+			currentBlockHeader = nodesMap[i][0].BlockChain.GetGenesisHeader()
+		}
+
+		// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+		epoch := currentBlockHeader.GetEpoch()
+		prevRandomness := currentBlockHeader.GetRandSeed()
+		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
+			i, nodesMap, round, nonce, prevRandomness, epoch,
+		)
 		newRandomness[i] = header[i].GetRandSeed()
 	}
 
@@ -364,7 +463,7 @@ func AllShardsProposeBlock(
 
 	time.Sleep(2 * time.Second)
 
-	return body, header, consensusNodes, newRandomness
+	return body, header, consensusNodes
 }
 
 // SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round

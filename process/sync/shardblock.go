@@ -115,7 +115,7 @@ func NewShardBootstrap(
 
 	//there is one header topic so it is ok to save it
 	//TODO make use of requestHandler
-	hdrResolver, err := resolversFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
+	hdrResolver, err := resolversFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}

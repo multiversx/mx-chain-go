@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -25,7 +26,7 @@ func NewTestSyncNode(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
 			validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("add"), []byte("add"))
 			return []sharding.Validator{validator}, nil
 		},
@@ -100,7 +101,7 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 		buffHeader, _ := TestMarshalizer.Marshal(header)
 		headerHash := TestHasher.Compute(string(buffHeader))
 
-		if shardId == sharding.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 			_ = metablockStorer.Put(headerHash, buffHeader)
 		} else {
@@ -144,7 +145,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 	}
 
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, 0)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector

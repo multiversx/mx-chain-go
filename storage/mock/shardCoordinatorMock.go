@@ -1,8 +1,8 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type ShardCoordinatorMock struct {
@@ -39,7 +39,7 @@ func (scm *ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.Add
 }
 
 func (scm *ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
-	if destShardID == sharding.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		return "_0_META"
 	}
 

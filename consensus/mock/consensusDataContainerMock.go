@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -26,6 +27,7 @@ type ConsensusCoreMock struct {
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector sharding.NodesCoordinator
+	epochStartSubscriber   epochStart.EpochStartSubscriber
 }
 
 func (ccm *ConsensusCoreMock) Blockchain() data.ChainHandler {
@@ -74,6 +76,10 @@ func (ccm *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 
 func (ccm *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return ccm.validatorGroupSelector
+}
+
+func (ccm *ConsensusCoreMock) EpochStartSubscriber() epochStart.EpochStartSubscriber {
+	return ccm.epochStartSubscriber
 }
 
 func (ccm *ConsensusCoreMock) SetBlockchain(blockChain data.ChainHandler) {

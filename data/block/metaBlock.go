@@ -7,9 +7,9 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	capn "github.com/glycerine/go-capnproto"
 )
 
@@ -475,7 +475,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
-	return sharding.MetachainShardId
+	return core.MetachainShardId
 }
 
 // GetNonce return header nonce

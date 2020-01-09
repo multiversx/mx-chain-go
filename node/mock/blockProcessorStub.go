@@ -96,7 +96,7 @@ func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round u
 }
 
 // CreateNewHeader creates a new header
-func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+func (blProcMock BlockProcessorStub) CreateNewHeader(_ uint64) data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 

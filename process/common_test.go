@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -919,7 +919,7 @@ func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.CacherStub{
@@ -1245,7 +1245,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1279,7 +1279,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1313,7 +1313,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.CacherStub{
@@ -1881,7 +1881,7 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 
 	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		storageService,
 		uint64Converter,
 		marshalizer)

@@ -13,8 +13,8 @@ const NodeTypeObserver NodeType = "observer"
 // NodeTypeValidator signals that a node is running as validator node
 const NodeTypeValidator NodeType = "validator"
 
-// pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
-const pkPrefixSize = 12
+// PkPrefixSize specifies the max numbers of chars to be displayed from one publc key
+const PkPrefixSize = 12
 
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
@@ -197,3 +197,6 @@ const MetricCommunityPercentage = "erd_metric_community_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erc_metric_denomination_coefficient"
+
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)

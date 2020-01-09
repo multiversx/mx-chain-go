@@ -341,7 +341,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
+	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != core.MetachainShardId {
 		return process.ErrShardIdMissmatch
 	}
 
@@ -352,7 +352,7 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 		}
 	}
 
-	if shardId == sharding.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		_, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			return process.ErrWrongTypeAssertion
@@ -496,11 +496,11 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		bp.notarizedHdrs[i] = append(bp.notarizedHdrs[i], hdr)
 	}
 
-	hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+	hdr, ok := startHeaders[core.MetachainShardId].(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	bp.notarizedHdrs[sharding.MetachainShardId] = append(bp.notarizedHdrs[sharding.MetachainShardId], hdr)
+	bp.notarizedHdrs[core.MetachainShardId] = append(bp.notarizedHdrs[core.MetachainShardId], hdr)
 
 	return nil
 }
@@ -873,7 +873,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 }
 
 func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
-	if targetShardID == sharding.MetachainShardId {
+	if targetShardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
 		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)

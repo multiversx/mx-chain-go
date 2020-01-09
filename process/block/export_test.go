@@ -254,7 +254,7 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	return sp.requestMissingFinalityAttestingHeaders(
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 		sp.metaBlockFinality,
 		sp.getMetaHeaderFromPoolWithNonce,
 		sp.dataPool.MetaBlocks())

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type resolverRequestHandler struct {
@@ -73,7 +72,7 @@ func NewMetaResolverRequestHandler(
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
 		requestedItemsHandler: requestedItemsHandler,
-		shardID:               sharding.MetachainShardId,
+		shardID:               core.MetachainShardId,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
 
@@ -236,7 +235,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
-	key := []byte(fmt.Sprintf("%d-%d", sharding.MetachainShardId, nonce))
+	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
@@ -280,9 +279,9 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardId uint32) (dataRetriever.HeaderResolver, error) {
-	isMetachainNode := rrh.shardID == sharding.MetachainShardId
+	isMetachainNode := rrh.shardID == core.MetachainShardId
 	shardIdMissmatch := rrh.shardID != shardId
-	requestOnMetachain := shardId == sharding.MetachainShardId
+	requestOnMetachain := shardId == core.MetachainShardId
 	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest
@@ -290,7 +289,7 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardId uint32) (dataR
 
 	//requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
 	//the cross shard id
-	crossShardId := sharding.MetachainShardId
+	crossShardId := core.MetachainShardId
 	if isMetachainNode {
 		crossShardId = shardId
 	}

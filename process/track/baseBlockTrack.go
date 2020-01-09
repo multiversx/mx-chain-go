@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -207,7 +208,7 @@ func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 		bbt.displayHeadersForShard(shardID)
 	}
 
-	bbt.displayHeadersForShard(sharding.MetachainShardId)
+	bbt.displayHeadersForShard(core.MetachainShardId)
 }
 
 func (bbt *baseBlockTrack) displayHeadersForShard(shardID uint32) {

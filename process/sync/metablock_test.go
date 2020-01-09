@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -19,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -1020,7 +1020,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 			if u == 2 && dataAvailable {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
+				syncMap.Store(core.MetachainShardId, hash)
 
 				return syncMap, true
 			}
@@ -1127,7 +1127,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 2 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
+				syncMap.Store(core.MetachainShardId, hash)
 
 				return syncMap, true
 			}
@@ -1242,7 +1242,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 2 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
+				syncMap.Store(core.MetachainShardId, hash)
 
 				return syncMap, true
 			}
@@ -1725,7 +1725,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 0 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
+				syncMap.Store(core.MetachainShardId, hash)
 
 				return syncMap, true
 			}
@@ -2012,7 +2012,7 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 	newHdrNonce := uint64(6)
 
 	remFlags := &removedFlags{}
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
@@ -2097,7 +2097,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	}
 
 	pools := createMockMetaPools()
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	//data pool headers
 	pools.MetaBlocksCalled = func() storage.Cacher {
@@ -2270,7 +2270,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 
 	pools := createMockMetaPools()
-	shardId := sharding.MetachainShardId
+	shardId := core.MetachainShardId
 
 	//data pool headers
 	pools.MetaBlocksCalled = func() storage.Cacher {

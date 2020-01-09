@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -268,7 +269,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	}
 
 	//tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneTxInterceptor(identifierTx)
 	if err != nil {
@@ -335,7 +336,7 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneUnsignedTxInterceptor(identifierTx)
 	if err != nil {
@@ -403,7 +404,7 @@ func (icf *interceptorsContainerFactory) generateRewardTxInterceptors() ([]strin
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
@@ -488,7 +489,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
@@ -517,7 +518,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {

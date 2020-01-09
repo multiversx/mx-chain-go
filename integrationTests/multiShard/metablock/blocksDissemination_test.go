@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -159,7 +159,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		nodes[i+1].MetaDataPool.MetaBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
 
 		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
+		syncMap.Store(core.MetachainShardId, metaHeaderHash2)
 		nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
 	}
 

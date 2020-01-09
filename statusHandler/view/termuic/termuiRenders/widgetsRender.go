@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	ui "github.com/gizak/termui/v3"
@@ -109,7 +108,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	shardIdStr := fmt.Sprintf("%d", shardId)
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		shardIdStr = "meta"
 	}
 	wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
@@ -136,7 +135,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	countConsensus := wr.presenter.GetCountConsensus()
 	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
 
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		consensusInfo = fmt.Sprintf("Count consensus participant: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
 
 	} else {
@@ -209,7 +208,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	rows[1] = []string{fmt.Sprintf("%s", remainingTimeMessage)}
 
 	shardId := wr.presenter.GetShardId()
-	if shardId == uint64(sharding.MetachainShardId) {
+	if shardId == uint64(core.MetachainShardId) {
 		numShardHeadersInPool := wr.presenter.GetNumShardHeadersInPool()
 		rows[2] = []string{fmt.Sprintf("Number of shard headers in pool: %d", numShardHeadersInPool)}
 		numShardHeaderProcessed := wr.presenter.GetNumShardHeadersProcessed()
@@ -271,7 +270,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
 
 	shardId := wr.presenter.GetShardId()
-	if shardId != uint64(sharding.MetachainShardId) {
+	if shardId != uint64(core.MetachainShardId) {
 		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
 		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlockInShard)
 	}

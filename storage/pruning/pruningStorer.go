@@ -395,12 +395,12 @@ func (ps *PruningStorer) DestroyUnit() error {
 
 // registerHandler will register a new function to the epoch start notifier
 func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
-	subscribeHandler := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {
+	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		err := ps.changeEpoch(hdr.GetEpoch())
 		if err != nil {
 			log.Warn("change epoch in storer", "error", err.Error())
 		}
-	})
+	}, func(hdr data.HeaderHandler) {})
 
 	handler.RegisterHandler(subscribeHandler)
 }
