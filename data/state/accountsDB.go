@@ -101,6 +101,11 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 // ClosePersister will close trie persister
 func (adb *AccountsDB) ClosePersister() {
 	adb.mainTrie.ClosePersister()
+
+	trees := adb.dataTries.GetAll()
+	for _, trie := range trees {
+		trie.ClosePersister()
+	}
 }
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
