@@ -94,7 +94,7 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 
@@ -461,7 +461,7 @@ func AllShardsProposeBlock(
 		consensusNodes[i][0].CommitBlock(body[i], header[i])
 	}
 
-	time.Sleep(4 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	return body, header, consensusNodes
 }
@@ -476,5 +476,5 @@ func SyncAllShardsWithRoundBlock(
 	for shard, nodeList := range nodesMap {
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
-	time.Sleep(4 * time.Second)
+	time.Sleep(2 * time.Second)
 }
