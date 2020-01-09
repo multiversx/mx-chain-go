@@ -107,8 +107,8 @@ func (computer *evictionScoreComputer) computeScores() {
 // - inversely proportional to sender's tx total size
 // - directly proportional to sender's order number
 // - directly proportional to sender's tx total gas
+// Score parameters are normalized to interval [1..2]
 func (computer *evictionScoreComputer) computeScore(txList *txListForSender) float64 {
-	// Normalize score parameters, interval [1..2]
 	orderNumber := float64(txList.orderNumber-computer.minOrderNumber)/float64(computer.orderNumberRange) + 1
 	gas := float64(txList.totalGas.Get()-computer.minGas)/float64(computer.gasRange) + 1
 	txCount := float64(txList.countTx()-computer.minTxCount)/float64(computer.txCountRange) + 1
@@ -134,7 +134,6 @@ func (computer *evictionScoreComputer) convertScoresToPercents() {
 
 	for i, score := range computer.scores {
 		computer.scoresAsPercents[i] = int64(((score - minScore) * 100) / scoreRange)
-
 	}
 }
 
