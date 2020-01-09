@@ -33,7 +33,7 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 
 	if mp.floodPreventer != nil {
-		af, _ := antiflood.NewP2pAntiflood(mp.floodPreventer)
+		af, _ := antiflood.NewP2PAntiflood(mp.floodPreventer)
 		err := af.CanProcessMessage(message, fromConnectedPeer)
 		if err != nil {
 			return err

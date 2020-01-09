@@ -22,7 +22,7 @@ const roundTimeDuration = 100 * time.Millisecond
 
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
 
-func createMockP2pAntifloodHandler() *mock.P2PAntifloodHandlerStub {
+func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
@@ -78,7 +78,7 @@ func initWorker() *spos.Worker {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	return sposWorker
@@ -128,7 +128,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -167,7 +167,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -206,7 +206,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -245,7 +245,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -284,7 +284,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -322,7 +322,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -360,7 +360,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -398,7 +398,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -436,7 +436,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -474,7 +474,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -512,7 +512,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -550,7 +550,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -588,7 +588,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		nil,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, wrk)
@@ -705,7 +705,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.NotNil(t, wrk)
@@ -766,7 +766,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		syncTimerMock,
 		headerSigVerifier,
 		chainID,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	hdr := &block.Header{}

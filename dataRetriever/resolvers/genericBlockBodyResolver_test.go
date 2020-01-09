@@ -15,7 +15,7 @@ import (
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
-func createMockP2pAntifloodHandler() *mock.P2PAntifloodHandlerStub {
+func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
@@ -33,7 +33,7 @@ func TestNewGenericBlockBodyResolver_NilSenderResolverShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
@@ -48,7 +48,7 @@ func TestNewGenericBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilBlockBodyPool, err)
@@ -63,7 +63,7 @@ func TestNewGenericBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) 
 		&mock.CacherStub{},
 		nil,
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilBlockBodyStorage, err)
@@ -78,7 +78,7 @@ func TestNewGenericBlockBodyResolver_NilBlockMArshalizerShouldErr(t *testing.T) 
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		nil,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -108,7 +108,7 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, err)
@@ -145,7 +145,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
@@ -160,7 +160,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId)
@@ -203,7 +203,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 			},
 		},
 		marshalizer,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := gbbRes.ProcessReceivedMessage(
@@ -255,7 +255,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 			},
 		},
 		marshalizer,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := gbbRes.ProcessReceivedMessage(
@@ -301,7 +301,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 		cache,
 		store,
 		marshalizer,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	err := gbbRes.ProcessReceivedMessage(
@@ -345,7 +345,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 		cache,
 		store,
 		marshalizer,
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	_ = gbbRes.ProcessReceivedMessage(
@@ -375,7 +375,7 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		createMockP2pAntifloodHandler(),
+		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested))

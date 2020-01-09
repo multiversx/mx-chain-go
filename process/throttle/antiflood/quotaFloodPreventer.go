@@ -24,7 +24,7 @@ type quota struct {
 type quotaFloodPreventer struct {
 	mutOperation       *sync.RWMutex
 	cacher             storage.Cacher
-	statusHandler      QuotaStatusHandler
+	statusHandlers     []QuotaStatusHandler
 	maxMessagesPerPeer uint32
 	maxSizePerPeer     uint64
 	maxMessages        uint32
@@ -35,7 +35,7 @@ type quotaFloodPreventer struct {
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
 func NewQuotaFloodPreventer(
 	cacher storage.Cacher,
-	statusHandler QuotaStatusHandler,
+	statusHandlers []QuotaStatusHandler,
 	maxMessagesPerPeer uint32,
 	maxTotalSizePerPeer uint64,
 	maxMessages uint32,
@@ -45,8 +45,10 @@ func NewQuotaFloodPreventer(
 	if check.IfNil(cacher) {
 		return nil, process.ErrNilCacher
 	}
-	if check.IfNil(statusHandler) {
-		return nil, process.ErrNilQuotaStatusHandler
+	for _, statusHandler := range statusHandlers {
+		if check.IfNil(statusHandler) {
+			return nil, process.ErrNilQuotaStatusHandler
+		}
 	}
 	if maxMessagesPerPeer < minMessages {
 		return nil, fmt.Errorf("%w raised in NewCountersMap, maxMessagesPerPeer: provided %d, minimum %d",
@@ -80,7 +82,7 @@ func NewQuotaFloodPreventer(
 	return &quotaFloodPreventer{
 		mutOperation:       &sync.RWMutex{},
 		cacher:             cacher,
-		statusHandler:      statusHandler,
+		statusHandlers:     statusHandlers,
 		maxMessagesPerPeer: maxMessagesPerPeer,
 		maxSizePerPeer:     maxTotalSizePerPeer,
 		maxMessages:        maxMessages,
@@ -174,12 +176,18 @@ func (qfp *quotaFloodPreventer) Reset() {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	qfp.statusHandler.ResetStatistics()
+	qfp.resetStatusHandlers()
 	qfp.createStatistics()
 
 	//TODO change this if cacher.Clear() is time consuming
 	qfp.cacher.Clear()
 	qfp.globalQuota = &quota{}
+}
+
+func (qfp *quotaFloodPreventer) resetStatusHandlers() {
+	for _, statusHandler := range qfp.statusHandlers {
+		statusHandler.ResetStatistics()
+	}
 }
 
 // createStatistics is useful to benchmark the system when running
@@ -196,7 +204,7 @@ func (qfp quotaFloodPreventer) createStatistics() {
 			continue
 		}
 
-		qfp.statusHandler.AddQuota(
+		qfp.addQuota(
 			string(k),
 			q.numReceivedMessages,
 			q.sizeReceivedMessages,
@@ -205,12 +213,35 @@ func (qfp quotaFloodPreventer) createStatistics() {
 		)
 	}
 
-	qfp.statusHandler.SetGlobalQuota(
+	qfp.setGlobalQuota(
 		qfp.globalQuota.numReceivedMessages,
 		qfp.globalQuota.sizeReceivedMessages,
 		qfp.globalQuota.numProcessedMessages,
 		qfp.globalQuota.sizeProcessedMessages,
 	)
+}
+
+func (qfp *quotaFloodPreventer) addQuota(
+	identifier string,
+	numReceived uint32,
+	sizeReceived uint64,
+	numProcessed uint32,
+	sizeProcessed uint64,
+) {
+	for _, statusHandler := range qfp.statusHandlers {
+		statusHandler.AddQuota(identifier, numReceived, sizeReceived, numProcessed, sizeProcessed)
+	}
+}
+
+func (qfp *quotaFloodPreventer) setGlobalQuota(
+	numReceived uint32,
+	sizeReceived uint64,
+	numProcessed uint32,
+	sizeProcessed uint64,
+) {
+	for _, statusHandler := range qfp.statusHandlers {
+		statusHandler.SetGlobalQuota(numReceived, sizeReceived, numProcessed, sizeProcessed)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

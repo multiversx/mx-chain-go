@@ -214,7 +214,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		return err
 	}
 
-	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
+	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
 		return err
 	}

@@ -74,7 +74,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
-	antifloodThrottle "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	processAntiflood "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -84,7 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -117,6 +117,7 @@ var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
+var durationSweepP2PBlacklist = time.Second * 5
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -490,7 +491,14 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 		return nil, err
 	}
 
-	antifloodHandler, err := createAntifloodComponent(mainConfig, core.StatusHandler)
+	antifloodHandler, p2pPeerBlackList, err := createAntifloodAndBlackListComponents(mainConfig, core.StatusHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.ApplyOptions(
+		libp2p.WithPeerBlackList(p2pPeerBlackList),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -501,11 +509,20 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 	}, nil
 }
 
-func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHandler) (consensus.P2PAntifloodHandler, error) {
+func createAntifloodAndBlackListComponents(
+	mainConfig *config.Config,
+	status core.AppStatusHandler,
+) (consensus.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
+
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxMessagesPerSecond
@@ -513,33 +530,60 @@ func createAntifloodComponent(mainConfig *config.Config, status core.AppStatusHa
 	maxMessagesPerSecond := mainConfig.Antiflood.MaxMessagesPerSecond
 	maxTotalSizePerSecond := mainConfig.Antiflood.MaxTotalSizePerSecond
 
-	log.Debug("started antiflood component",
-		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
-		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
-		"maxMessagesPerSecond", maxMessagesPerSecond,
-		"maxTotalSizePerSecond", core.ConvertBytes(maxTotalSizePerSecond),
-	)
-
-	quotaProcessor, err := p2pQuota.NewP2pQuotaProcessor(status)
+	quotaProcessor, err := p2pQuota.NewP2PQuotaProcessor(status)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	floodPreventer, err := antifloodThrottle.NewQuotaFloodPreventer(
+	peerBanInSeconds := mainConfig.Antiflood.BlackList.PeerBanDurationInSeconds
+	if peerBanInSeconds == 0 {
+		return nil, nil, fmt.Errorf("Antiflood.BlackList.PeerBanDurationInSeconds should be greater than 0")
+	}
+
+	p2pPeerBlackList := timecache.NewTimeCache(time.Second * time.Duration(peerBanInSeconds))
+	blackListProcessor, err := processAntiflood.NewP2PBlackListProcessor(
+		blackListCache,
+		p2pPeerBlackList,
+		mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
+		mainConfig.Antiflood.BlackList.ThresholdSizePerSecond,
+		mainConfig.Antiflood.BlackList.NumFloodingRounds,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	floodPreventer, err := processAntiflood.NewQuotaFloodPreventer(
 		antifloodCache,
-		quotaProcessor,
+		[]processAntiflood.QuotaStatusHandler{quotaProcessor, blackListProcessor},
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
 		maxMessagesPerSecond,
 		maxTotalSizePerSecond,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	startResetingFloodPreventer(floodPreventer)
+	log.Debug("started antiflood & blacklist components",
+		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
+		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
+		"maxMessagesPerSecond", maxMessagesPerSecond,
+		"maxTotalSizePerSecond", core.ConvertBytes(maxTotalSizePerSecond),
+		"peerBanDurationInSeconds", peerBanInSeconds,
+		"thresholdNumMessagesPerSecond", mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
+		"thresholdSizePerSecond", mainConfig.Antiflood.BlackList.ThresholdSizePerSecond,
+		"numFloodingRounds", mainConfig.Antiflood.BlackList.NumFloodingRounds,
+	)
 
-	return antiflood.NewP2pAntiflood(floodPreventer)
+	startResetingFloodPreventer(floodPreventer)
+	startSweepingP2PPeerBlackList(p2pPeerBlackList)
+
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return p2pAntiflood, p2pPeerBlackList, nil
 }
 
 func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
@@ -547,6 +591,15 @@ func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
 		for {
 			time.Sleep(time.Second)
 			floodPreventer.Reset()
+		}
+	}()
+}
+
+func startSweepingP2PPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
+	go func() {
+		for {
+			time.Sleep(durationSweepP2PBlacklist)
+			p2pPeerBlackList.Sweep()
 		}
 	}()
 }

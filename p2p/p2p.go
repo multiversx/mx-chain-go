@@ -34,6 +34,15 @@ func (pid PeerID) Pretty() string {
 	return base58.Encode(pid.Bytes())
 }
 
+// Config is a DTO used for config passing variables
+type Config struct {
+	BlacklistHandler BlacklistHandler
+}
+
+// Option represents a functional configuration parameter that can operate
+//  over the networkMessenger struct.
+type Option func(*Config) error
+
 // ContextProvider defines an interface for providing context to various messenger components
 type ContextProvider interface {
 	Context() context.Context
@@ -51,7 +60,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork() <-chan struct{}
+	ReconnectToNetwork()
 	Pause()  // pause the peer discovery
 	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
@@ -60,6 +69,8 @@ type Reconnecter interface {
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
+
+	ApplyOptions(opts ...Option) error
 
 	// ID is the Messenger's unique peer identifier across the network (a
 	// string). It is derived from the public key of the P2P credentials.
@@ -198,5 +209,20 @@ type FloodPreventer interface {
 	AccumulateGlobal(identifier string, size uint64) bool
 	Accumulate(identifier string, size uint64) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+type BlacklistHandler interface {
+	Has(key string) bool
+	IsInterfaceNil() bool
+}
+
+// ConnectionMonitor defines what a peer-management component should do
+type ConnectionMonitor interface {
+	HandleConnectedPeer(pid PeerID) error
+	HandleDisconnectedPeer(pid PeerID)
+	DoReconnectionBlocking()
+	CheckConnectionsBlocking()
 	IsInterfaceNil() bool
 }

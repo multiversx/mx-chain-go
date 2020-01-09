@@ -68,6 +68,11 @@ func NewMessenger(network *Network) (*Messenger, error) {
 	return messenger, nil
 }
 
+// ApplyOptions does not apply any option provided in this implementation
+func (messenger *Messenger) ApplyOptions(_ ...p2p.Option) error {
+	return nil
+}
+
 // ID returns the P2P ID of the messenger
 func (messenger *Messenger) ID() p2p.PeerID {
 	return messenger.p2pID

@@ -32,6 +32,10 @@ const (
 	InvalidTransaction
 )
 
+// BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
+// by meta-chain)
+const BlockFinality = 1
+
 // ShardBlockFinality defines the block finality which is used in shards (the real finality in shards is given
 // by meta-chain)
 const ShardBlockFinality = 1
@@ -86,3 +90,7 @@ const MaxNoncesWithoutCrossNotarized = 100
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
+
+// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
+// to be stored in advance in block tracker
+const MaxNonceDifferences = uint64(1000)
