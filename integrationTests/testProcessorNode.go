@@ -184,7 +184,6 @@ type TestProcessorNode struct {
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	blockProcessorInitializer    BlockProcessorInitializer
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node

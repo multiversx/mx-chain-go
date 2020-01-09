@@ -220,7 +220,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,
-			WaitingNodes:            make(map[uint32][]sharding.Validator, 0),
+			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
