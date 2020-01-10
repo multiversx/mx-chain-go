@@ -48,6 +48,15 @@ func Test_findTx(t *testing.T) {
 	assert.Nil(t, noElementWithD)
 }
 
+func Test_findTx_CoverNonceComparisonOptimization(t *testing.T) {
+	list := newTxListForSender(".", 0)
+	list.AddTx([]byte("A"), createTx(".", 42))
+
+	// Find one with a lower nonce, not added to cache
+	noElement := list.findListElementWithTx(createTx(".", 41))
+	assert.Nil(t, noElement)
+}
+
 func Test_RemoveTransaction(t *testing.T) {
 	list := newTxListForSender(".", 0)
 	tx := createTx(".", 1)
@@ -109,24 +118,25 @@ func Test_CopyBatchTo(t *testing.T) {
 	}
 
 	destination := make([]data.TransactionHandler, 1000)
+	destinationHashes := make([][]byte, 1000)
 
 	// First batch
-	copied := list.copyBatchTo(true, destination, 50)
+	copied := list.copyBatchTo(true, destination, destinationHashes, 50)
 	assert.Equal(t, 50, copied)
 	assert.NotNil(t, destination[49])
 	assert.Nil(t, destination[50])
 
 	// Second batch
-	copied = list.copyBatchTo(false, destination[50:], 50)
+	copied = list.copyBatchTo(false, destination[50:], destinationHashes[50:], 50)
 	assert.Equal(t, 50, copied)
 	assert.NotNil(t, destination[99])
 
 	// No third batch
-	copied = list.copyBatchTo(false, destination, 50)
+	copied = list.copyBatchTo(false, destination, destinationHashes, 50)
 	assert.Equal(t, 0, copied)
 
 	// Restart copy
-	copied = list.copyBatchTo(true, destination, 12345)
+	copied = list.copyBatchTo(true, destination, destinationHashes, 12345)
 	assert.Equal(t, 100, copied)
 }
 
@@ -139,11 +149,13 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 
 	// When empty destination
 	destination := make([]data.TransactionHandler, 0)
-	copied := list.copyBatchTo(true, destination, 10)
+	destinationHashes := make([][]byte, 0)
+	copied := list.copyBatchTo(true, destination, destinationHashes, 10)
 	assert.Equal(t, 0, copied)
 
 	// When small destination
 	destination = make([]data.TransactionHandler, 5)
-	copied = list.copyBatchTo(false, destination, 10)
+	destinationHashes = make([][]byte, 5)
+	copied = list.copyBatchTo(false, destination, destinationHashes, 10)
 	assert.Equal(t, 5, copied)
 }

@@ -2,9 +2,7 @@ package block
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,9 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,6 +27,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
+	singleSigner := &singlesig.BlsSingleSigner{}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -67,7 +65,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nonce := uint64(1)
 
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
-
+	header = fillHeaderFields(nodesMap[0][0], header, singleSigner)
 	nodesMap[0][0].BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
@@ -180,7 +178,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := getBlockSingleSignerStub()
+	singleSigner := &singlesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
@@ -214,9 +212,12 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	nodeToSendFrom := nodesMap[0][0]
 
-	nodesMap[0][0].BroadcastBlock(body, header)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	header.SetPrevRandSeed(randomness)
+	header = fillHeaderFields(nodeToSendFrom, header, singleSigner)
+	nodeToSendFrom.BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
 
@@ -238,7 +239,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	}
 }
 
-func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepted(t *testing.T) {
+func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -253,7 +254,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepte
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	singleSigner := getBlockSingleSignerStub()
+	singleSigner := &singlesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
@@ -307,25 +308,17 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepte
 	}
 }
 
-func getBlockSingleSignerStub() crypto.SingleSigner {
-	singleSigner := singlesig.BlsSingleSigner{}
-	return &mock.SignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return singleSigner.Sign(private, msg)
-		},
-		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			// if rand seed is verified, return nil if the message contains "random seed"
-			if strings.Contains(string(msg), "random seed") {
-				return nil
-			}
-			// if leader signature is verified, return nil if the signature contains "leader sign"
-			if strings.Contains(string(sig), "leader sign") {
-				var hdr block.Header
-				// if the marshalized struct is a header, everything is ok
-				err := json.Unmarshal(msg, &hdr)
-				return err
-			}
-			return singleSigner.Verify(public, msg, sig)
-		},
-	}
+func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) data.HeaderHandler {
+	leaderSk := proposer.NodeKeys.Sk
+
+	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
+	hdr.SetRandSeed(randSeed)
+
+	hdrClone := hdr.Clone()
+	hdrClone.SetLeaderSignature(nil)
+	headerJsonBytes, _ := integrationTests.TestMarshalizer.Marshal(hdrClone)
+	leaderSign, _ := signer.Sign(leaderSk, headerJsonBytes)
+	hdr.SetLeaderSignature(leaderSign)
+
+	return hdr
 }
