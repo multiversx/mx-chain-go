@@ -120,7 +120,7 @@ func (s *Unit) Close() error {
 	err := s.persister.Close()
 	log.LogIfError(err)
 
-	return nil
+	return err
 }
 
 // Get searches the key in the cache. In case it is not found, it searches

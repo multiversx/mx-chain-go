@@ -287,8 +287,8 @@ func (tr *patriciaMerkleTrie) String() string {
 }
 
 // ClosePersister will close trie persister
-func (tr *patriciaMerkleTrie) ClosePersister() {
-	_ = tr.db.Close()
+func (tr *patriciaMerkleTrie) ClosePersister() error {
+	return tr.db.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

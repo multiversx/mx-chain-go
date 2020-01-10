@@ -21,8 +21,8 @@ type TrieStub struct {
 	GetAllLeavesCalled func() (map[string][]byte, error)
 }
 
-func (ts *TrieStub) ClosePersister() {
-
+func (ts *TrieStub) ClosePersister() error {
+	return nil
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {

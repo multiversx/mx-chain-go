@@ -106,7 +106,7 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
-	ClosePersister()
+	ClosePersister() error
 	IsInterfaceNil() bool
 }
 

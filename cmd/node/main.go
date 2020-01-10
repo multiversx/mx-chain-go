@@ -869,9 +869,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("terminating at user's signal...")
 
 	log.Info("closing all store units....")
-	dataComponents.Store.CloseAll()
-	coreComponents.Trie.ClosePersister()
-	stateComponents.PeerAccounts.ClosePersister()
+	_ = dataComponents.Store.CloseAll()
+	_ = coreComponents.Trie.ClosePersister()
+	_ = stateComponents.PeerAccounts.ClosePersister()
 
 	if rm != nil {
 		err = rm.Close()

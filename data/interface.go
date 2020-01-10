@@ -110,7 +110,7 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsInterfaceNil() bool
-	ClosePersister()
+	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

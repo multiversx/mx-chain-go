@@ -21,69 +21,69 @@ type AccountsStub struct {
 	RecreateTrieCalled          func(rootHash []byte) error
 }
 
-func (aam *AccountsStub) ClosePersister() {
-
+func (as *AccountsStub) ClosePersister() error {
+	return nil
 }
 
-func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	aam.AddJournalEntryCalled(je)
+func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
+	as.AddJournalEntryCalled(je)
 }
 
-func (aam *AccountsStub) Commit() ([]byte, error) {
-	return aam.CommitCalled()
+func (as *AccountsStub) Commit() ([]byte, error) {
+	return as.CommitCalled()
 }
 
-func (aam *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-	return aam.GetAccountWithJournalCalled(addressContainer)
+func (as *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+	return as.GetAccountWithJournalCalled(addressContainer)
 }
 
-func (aam *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-	return aam.GetExistingAccountCalled(addressContainer)
+func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+	return as.GetExistingAccountCalled(addressContainer)
 }
 
-func (aam *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
-	return aam.HasAccountStateCalled(addressContainer)
+func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
+	return as.HasAccountStateCalled(addressContainer)
 }
 
-func (aam *AccountsStub) JournalLen() int {
-	return aam.JournalLenCalled()
+func (as *AccountsStub) JournalLen() int {
+	return as.JournalLenCalled()
 }
 
-func (aam *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
-	return aam.PutCodeCalled(accountHandler, code)
+func (as *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
+	return as.PutCodeCalled(accountHandler, code)
 }
 
-func (aam *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
-	return aam.RemoveAccountCalled(addressContainer)
+func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
+	return as.RemoveAccountCalled(addressContainer)
 }
 
-func (aam *AccountsStub) RemoveCode(codeHash []byte) error {
-	return aam.RemoveCodeCalled(codeHash)
+func (as *AccountsStub) RemoveCode(codeHash []byte) error {
+	return as.RemoveCodeCalled(codeHash)
 }
 
-func (aam *AccountsStub) RevertToSnapshot(snapshot int) error {
-	return aam.RevertToSnapshotCalled(snapshot)
+func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
+	return as.RevertToSnapshotCalled(snapshot)
 }
 
-func (aam *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
-	return aam.SaveAccountStateCalled(journalizedAccountHandler)
+func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
+	return as.SaveAccountStateCalled(journalizedAccountHandler)
 }
 
-func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
-	return aam.SaveDataTrieCalled(journalizedAccountHandler)
+func (as *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
+	return as.SaveDataTrieCalled(journalizedAccountHandler)
 }
 
-func (aam *AccountsStub) RootHash() ([]byte, error) {
-	return aam.RootHashCalled()
+func (as *AccountsStub) RootHash() ([]byte, error) {
+	return as.RootHashCalled()
 }
 
-func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
-	return aam.RecreateTrieCalled(rootHash)
+func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
+	return as.RecreateTrieCalled(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (aam *AccountsStub) IsInterfaceNil() bool {
-	if aam == nil {
+func (as *AccountsStub) IsInterfaceNil() bool {
+	if as == nil {
 		return true
 	}
 	return false

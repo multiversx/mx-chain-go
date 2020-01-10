@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // AccountsDB is the struct used for accessing accounts
@@ -99,13 +100,27 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 }
 
 // ClosePersister will close trie persister
-func (adb *AccountsDB) ClosePersister() {
-	adb.mainTrie.ClosePersister()
+func (adb *AccountsDB) ClosePersister() error {
+	closedSuccessfully := true
+
+	err := adb.mainTrie.ClosePersister()
+	if err != nil {
+		closedSuccessfully = false
+	}
 
 	trees := adb.dataTries.GetAll()
 	for _, trie := range trees {
-		trie.ClosePersister()
+		err := trie.ClosePersister()
+		if err != nil {
+			closedSuccessfully = false
+		}
 	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
 }
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"

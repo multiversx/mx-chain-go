@@ -263,7 +263,7 @@ type StorageService interface {
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
 	//CloseAll will close all the units
-	CloseAll()
+	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

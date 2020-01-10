@@ -15,13 +15,14 @@ type ChainStorerStub struct {
 	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
 	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
 	DestroyCalled   func() error
-	CloseAllCalled  func()
+	CloseAllCalled  func() error
 }
 
-func (bc *ChainStorerStub) CloseAll() {
+func (bc *ChainStorerStub) CloseAll() error {
 	if bc.CloseAllCalled != nil {
-		bc.CloseAllCalled()
+		return bc.CloseAllCalled()
 	}
+	return nil
 }
 
 // AddStorer will add a new storer to the chain map
