@@ -2,9 +2,18 @@ package update
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
+
+type StateSyncer interface {
+	SyncAllState(epoch uint32) error
+	IsInterfaceNil() bool
+	GetAllTries() (map[string]data.Trie, error)
+	GetAllTransactions() (map[string]data.TransactionHandler, error)
+	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
+}
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
@@ -41,8 +50,10 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EpochHandler defines the functionality needed by sync all state from epochTrigger
-type EpochHandler interface {
+// EpochStartVerifier defines the functionality needed by sync all state from epochTrigger
+type EpochStartVerifier interface {
+	IsEpochStart() bool
+	ReceivedHeader(header data.HeaderHandler)
 	Epoch() uint32
 	IsInterfaceNil() bool
 }

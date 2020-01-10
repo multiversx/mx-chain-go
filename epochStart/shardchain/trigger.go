@@ -66,9 +66,8 @@ type trigger struct {
 	hasher          hashing.Hasher
 	headerValidator epochStart.HeaderValidator
 
-	requestHandler      epochStart.RequestHandler
-	epochStartNotifier  epochStart.StartOfEpochNotifier
-	epochChangeNotifier epochStart.StartOfEpochNotifier
+	requestHandler     epochStart.RequestHandler
+	epochStartNotifier epochStart.StartOfEpochNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -106,9 +105,6 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
-	if check.IfNil(args.EpochChangeNotifier) {
-		return nil, epochStart.ErrNilEpochStartNotifier
-	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
@@ -144,7 +140,6 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
-		epochChangeNotifier:         args.EpochChangeNotifier,
 	}
 	return newTrigger, nil
 }
@@ -245,7 +240,6 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
-			t.epochChangeNotifier.NotifyAll(meta)
 
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
@@ -281,7 +275,7 @@ func (t *trigger) isMetaBlockValid(_ string, metaHdr *block.MetaBlock) bool {
 	return true
 }
 
-func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
+func (t *trigger) IsMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.Round
 	currHdr := metaHdr
@@ -324,7 +318,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
-	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
+	isMetaHdrFinal, finalityAttestingRound := t.IsMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
 }
 
