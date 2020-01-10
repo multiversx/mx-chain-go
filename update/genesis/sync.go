@@ -45,12 +45,11 @@ type pendingTransactions struct {
 }
 
 type headersToSync struct {
-	mutMeta           sync.Mutex
-	metaBlockToSync   *block.MetaBlock
-	finalityAttesting *block.MetaBlock
-	chReceivedAll     chan bool
-	metaBlockStorage  update.HistoryStorer
-	metaBlockPool     storage.Cacher
+	mutMeta          sync.Mutex
+	metaBlockToSync  *block.MetaBlock
+	chReceivedAll    chan bool
+	metaBlockStorage update.HistoryStorer
+	metaBlockPool    storage.Cacher
 }
 
 type syncState struct {
@@ -631,6 +630,14 @@ func (ss *syncState) getTransactionFromPoolOrStorage(hash []byte) (data.Transact
 	}
 
 	return tx, true
+}
+
+func (ss *syncState) GetMetaBlock() *block.MetaBlock {
+	ss.headers.mutMeta.Lock()
+	meta := ss.headers.metaBlockToSync
+	ss.headers.mutMeta.Unlock()
+
+	return meta
 }
 
 func (ss *syncState) GetAllTries() (map[string]data.Trie, error) {
