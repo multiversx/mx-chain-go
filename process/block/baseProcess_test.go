@@ -172,7 +172,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
-			cs.KeysCalled = func(shardId uint32) []uint64 {
+			cs.NoncesCalled = func(shardId uint32) []uint64 {
 				return nil
 			}
 			return cs
@@ -223,7 +223,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				return 1000
 			}
 			cs.RemoveHeaderByHashCalled = func(key []byte) {}
-			cs.KeysCalled = func(shardId uint32) []uint64 {
+			cs.NoncesCalled = func(shardId uint32) []uint64 {
 				return nil
 			}
 			return cs

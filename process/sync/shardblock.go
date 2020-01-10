@@ -368,7 +368,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Trace("cannot convert headerHandler in block.Header")
+		log.Warn("cannot convert headerHandler in block.Header")
 		return
 	}
 

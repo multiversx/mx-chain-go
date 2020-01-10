@@ -10,7 +10,7 @@ type HeadersCacherStub struct {
 	GetHeaderByHashCalled               func(hash []byte) (data.HeaderHandler, error)
 	ClearCalled                         func()
 	RegisterHandlerCalled               func(handler func(header data.HeaderHandler, shardHeaderHash []byte))
-	KeysCalled                          func(shardId uint32) []uint64
+	NoncesCalled                        func(shardId uint32) []uint64
 	LenCalled                           func() int
 	MaxSizeCalled                       func() int
 }
@@ -59,9 +59,9 @@ func (hcs *HeadersCacherStub) RegisterHandler(handler func(header data.HeaderHan
 	}
 }
 
-func (hcs *HeadersCacherStub) Keys(shardId uint32) []uint64 {
-	if hcs.KeysCalled != nil {
-		return hcs.KeysCalled(shardId)
+func (hcs *HeadersCacherStub) Nonces(shardId uint32) []uint64 {
+	if hcs.NoncesCalled != nil {
+		return hcs.NoncesCalled(shardId)
 	}
 	return nil
 }

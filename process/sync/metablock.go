@@ -411,7 +411,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Trace("cannot convert headerHandler in block.MetaBlock")
+		log.Warn("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 

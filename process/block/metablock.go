@@ -1811,7 +1811,7 @@ func (mp *metaProcessor) getSortedHeadersPerShard(round uint64) (map[uint32][]*h
 
 	hashAndBlockMap := make(map[uint32][]*hashAndHdr)
 	for shardId := uint32(0); shardId < numShards; shardId++ {
-		noncesKeys := shardBlocksPool.Keys(shardId)
+		noncesKeys := shardBlocksPool.Nonces(shardId)
 		for _, nonce := range noncesKeys {
 			headers, hashes, err := shardBlocksPool.GetHeadersByNonceAndShardId(nonce, shardId)
 			if err != nil {

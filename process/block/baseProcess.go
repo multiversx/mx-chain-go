@@ -927,7 +927,7 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	nonces := headersCacher.Keys(shardId)
+	nonces := headersCacher.Nonces(shardId)
 	for _, nonceFromCache := range nonces {
 		if nonceFromCache >= nonce {
 			continue

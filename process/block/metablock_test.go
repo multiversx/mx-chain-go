@@ -731,7 +731,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		cs.MaxSizeCalled = func() int {
 			return 1000
 		}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return nil
 		}
 		return cs
@@ -2207,7 +2207,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
@@ -2366,7 +2366,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
@@ -2459,7 +2459,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
@@ -2585,7 +2585,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 			return 0
 		}
 		cs.RemoveHeaderByHashCalled = func(key []byte) {}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
@@ -2669,7 +2669,7 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 			return 0
 		}
 		cs.RemoveHeaderByHashCalled = func(key []byte) {}
-		cs.KeysCalled = func(shardId uint32) []uint64 {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {

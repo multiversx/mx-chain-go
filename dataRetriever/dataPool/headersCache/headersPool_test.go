@@ -528,7 +528,7 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	fmt.Printf("get items by hash took %s \n", elapsed)
 }
 
-func TestHeadersPool_Keys(t *testing.T) {
+func TestHeadersPool_Nonces(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(0)
@@ -551,7 +551,7 @@ func TestHeadersPool_Keys(t *testing.T) {
 	require.Equal(t, numHeadersToGenerate, headersCacher.Len())
 
 	// get all keys and sort then to can verify if are ok
-	nonces := headersCacher.Keys(shardId)
+	nonces := headersCacher.Nonces(shardId)
 	sort.Slice(nonces, func(i, j int) bool {
 		return nonces[i] < nonces[j]
 	})

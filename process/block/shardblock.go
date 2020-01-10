@@ -47,8 +47,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
-	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
+	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
+	}
+	if check.IfNil(arguments.DataPool.Headers()) {
+		return nil, process.ErrNilHeadersDataPool
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -1423,7 +1426,7 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 
 	orderedMetaBlocks := make([]*hashAndHdr, 0)
 
-	noncesKeys := metaBlocksPool.Keys(sharding.MetachainShardId)
+	noncesKeys := metaBlocksPool.Nonces(sharding.MetachainShardId)
 	for _, key := range noncesKeys {
 		metaHeaders, metaHeadersHeshes, err := metaBlocksPool.GetHeadersByNonceAndShardId(key, sharding.MetachainShardId)
 		if err != nil {

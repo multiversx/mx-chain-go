@@ -138,8 +138,8 @@ func (pool *headersPool) RegisterHandler(handler func(headerHandler data.HeaderH
 	pool.mutAddedDataHandlers.Unlock()
 }
 
-// Keys will return a slice of all items nonce that are in pool
-func (pool *headersPool) Keys(shardId uint32) []uint64 {
+// Nonces will return a slice of all items nonce that are in pool
+func (pool *headersPool) Nonces(shardId uint32) []uint64 {
 	pool.mutHeadersPool.RLock()
 	defer pool.mutHeadersPool.RUnlock()
 
