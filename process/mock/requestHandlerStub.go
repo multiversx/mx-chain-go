@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/dataRetriever"
+
 type RequestHandlerStub struct {
 	RequestShardHeaderCalled        func(shardId uint32, hash []byte)
 	RequestMetaHeaderCalled         func(hash []byte)
@@ -9,6 +11,10 @@ type RequestHandlerStub struct {
 	RequestScrHandlerCalled         func(destShardID uint32, txHashes [][]byte)
 	RequestRewardTxHandlerCalled    func(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlockHandlerCalled   func(destShardID uint32, miniblockHash []byte)
+}
+
+func (rhs *RequestHandlerStub) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	return nil
 }
 
 func (rhs *RequestHandlerStub) RequestShardHeader(shardId uint32, hash []byte) {

@@ -114,7 +114,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		for j := 0; j < numMetaNodes; j++ {
 			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, senderShard)
 			assert.Nil(t, err)
-			_ = resolver.RequestDataFromHash(shardHeaderHash)
+			_ = resolver.RequestDataFromHash(shardHeaderHash, 0)
 		}
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -138,7 +138,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.RequestDataFromHash(metaHeaderHash)
+		_ = resolver.RequestDataFromHash(metaHeaderHash, 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
@@ -166,7 +166,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
+		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce(), 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 

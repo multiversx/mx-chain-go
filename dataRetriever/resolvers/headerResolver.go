@@ -93,9 +93,9 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		buff, err = hdrRes.resolveHeaderFromHash(rd.Value)
+		buff, err = hdrRes.resolveHeaderFromHash(rd)
 	case dataRetriever.NonceType:
-		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
+		buff, err = hdrRes.resolveHeaderFromNonce(rd)
 	case dataRetriever.EpochType:
 		buff, err = hdrRes.resolveHeaderFromEpoch(rd.Value)
 	default:
@@ -113,18 +113,18 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 	return hdrRes.Send(buff, message.Peer())
 }
 
-func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
+func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
 
 	// Search the nonce-key pair in cache-storage
-	hash, err := hdrRes.hdrNoncesStorage.Get(key)
+	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
 	}
 
 	// Search the nonce-key pair in data pool
 	if hash == nil {
-		nonceBytes, err := hdrRes.nonceConverter.ToUint64(key)
+		nonceBytes, err := hdrRes.nonceConverter.ToUint64(rd.Value)
 		if err != nil {
 			return nil, dataRetriever.ErrInvalidNonceByteSlice
 		}
@@ -146,14 +146,20 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 		}
 	}
 
-	return hdrRes.resolveHeaderFromHash(hash)
+	newRd := &dataRetriever.RequestData{
+		Type:  rd.Type,
+		Value: hash,
+		Epoch: rd.Epoch,
+	}
+
+	return hdrRes.resolveHeaderFromHash(newRd)
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)
-func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, ok := hdrRes.headers.Peek(key)
+func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
+	value, ok := hdrRes.headers.Peek(rd.Value)
 	if !ok {
-		return hdrRes.hdrStorage.Get(key)
+		return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
 	buff, err := hdrRes.marshalizer.Marshal(value)
@@ -195,7 +201,7 @@ func (hdrRes *HeaderResolver) parseReceivedMessage(message p2p.MessageP2P) (*dat
 }
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte) error {
+func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
@@ -203,10 +209,11 @@ func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte) error {
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64) error {
+func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+		Epoch: epoch,
 	})
 }
 

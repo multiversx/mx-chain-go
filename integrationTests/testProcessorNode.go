@@ -457,6 +457,11 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
+	epochHandler := &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 0
+		},
+	}
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
 			tpn.ShardCoordinator,
@@ -474,6 +479,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
+			epochHandler,
 			100,
 		)
 	} else {
@@ -493,6 +499,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
+			epochHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
 		)

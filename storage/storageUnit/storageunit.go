@@ -93,20 +93,20 @@ type Unit struct {
 }
 
 // Put adds data to both cache and persistence medium and updates the bloom filter
-func (s *Unit) Put(key, data []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) Put(key, data []byte) error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	s.cacher.Put(key, data)
+	u.cacher.Put(key, data)
 
-	err := s.persister.Put(key, data)
+	err := u.persister.Put(key, data)
 	if err != nil {
-		s.cacher.Remove(key)
+		u.cacher.Remove(key)
 		return err
 	}
 
-	if s.bloomFilter != nil {
-		s.bloomFilter.Add(key)
+	if u.bloomFilter != nil {
+		u.bloomFilter.Add(key)
 	}
 
 	return err
@@ -116,25 +116,25 @@ func (s *Unit) Put(key, data []byte) error {
 // for the key in bloom filter first and if found
 // it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
-func (s *Unit) Get(key []byte) ([]byte, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) Get(key []byte) ([]byte, error) {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	v, ok := s.cacher.Get(key)
+	v, ok := u.cacher.Get(key)
 	var err error
 
 	if !ok {
 		// not found in cache
 		// search it in second persistence medium
-		if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-			v, err = s.persister.Get(key)
+		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
+			v, err = u.persister.Get(key)
 
 			if err != nil {
 				return nil, err
 			}
 
 			// if found in persistence unit, add it in cache
-			s.cacher.Put(key, v)
+			u.cacher.Put(key, v)
 		} else {
 			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 		}
@@ -143,57 +143,72 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 	return v.([]byte), nil
 }
 
+// GetFromEpoch will call the Get method as this storer doesn't handle epochs
+func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
+	return u.Get(key)
+}
+
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
-func (s *Unit) Has(key []byte) error {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+func (u *Unit) Has(key []byte) error {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 
-	has := s.cacher.Has(key)
+	has := u.cacher.Has(key)
 	if has {
 		return nil
 	}
 
-	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-		return s.persister.Has(key)
+	if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
+		return u.persister.Has(key)
 	}
 
 	return storage.ErrKeyNotFound
 }
 
-// Remove removes the data associated to the given key from both cache and persistence medium
-func (s *Unit) Remove(key []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// SearchFirst will call the Get method as this storer doesn't handle epochs
+func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
+	return u.Get(key)
+}
 
-	s.cacher.Remove(key)
-	err := s.persister.Remove(key)
+// HasInEpoch will call the Has method as this storer doesn't handle epochs
+func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
+	return u.Has(key)
+}
+
+// Remove removes the data associated to the given key from both cache and persistence medium
+func (u *Unit) Remove(key []byte) error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
+
+	u.cacher.Remove(key)
+	err := u.persister.Remove(key)
 
 	return err
 }
 
 // ClearCache cleans up the entire cache
-func (s *Unit) ClearCache() {
-	s.cacher.Clear()
+func (u *Unit) ClearCache() {
+	u.cacher.Clear()
 }
 
 // DestroyUnit cleans up the bloom filter, the cache, and the db
-func (s *Unit) DestroyUnit() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) DestroyUnit() error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	if s.bloomFilter != nil {
-		s.bloomFilter.Clear()
+	if u.bloomFilter != nil {
+		u.bloomFilter.Clear()
 	}
 
-	s.cacher.Clear()
-	return s.persister.Destroy()
+	u.cacher.Clear()
+	return u.persister.Destroy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *Unit) IsInterfaceNil() bool {
-	if s == nil {
+func (u *Unit) IsInterfaceNil() bool {
+	if u == nil {
 		return true
 	}
 	return false

@@ -37,6 +37,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 	rrh, err := NewMetaResolverRequestHandler(
 		nil,
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		100,
 	)
 
@@ -50,11 +51,25 @@ func TestNewMetaResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		nil,
+		&mock.EpochHandlerStub{},
 		100,
 	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
+}
+
+func TestNewMetaResolverRequestHandlerNilEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		&mock.RequestedItemsHandlerStub{},
+		nil,
+		100,
+	)
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrNilEpochHandler, err)
 }
 
 func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
@@ -63,6 +78,7 @@ func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		0,
 	)
 
@@ -76,6 +92,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 	rrh, err := NewMetaResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		100,
 	)
 	assert.Nil(t, err)
@@ -90,6 +107,7 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 	rrh, err := NewShardResolverRequestHandler(
 		nil,
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -104,6 +122,7 @@ func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		nil,
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -112,12 +131,28 @@ func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
 }
 
+func TestNewShardResolverRequestHandlerNilEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		&mock.RequestedItemsHandlerStub{},
+		nil,
+		1,
+		0,
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrNilEpochHandler, err)
+}
+
 func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		0,
 		0,
 	)
@@ -132,6 +167,7 @@ func TestNewShardResolverRequestHandler(t *testing.T) {
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -160,6 +196,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -186,6 +223,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -198,7 +236,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
-		RequestDataFromHashArrayCalled: func(hashes [][]byte) error {
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
 		},
@@ -211,6 +249,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -239,7 +278,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 	errExpected := errors.New("expected error")
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
-		RequestDataFromHashArrayCalled: func(hashes [][]byte) error {
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return errExpected
 		},
@@ -252,6 +291,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -287,6 +327,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -306,7 +347,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 
 	errExpected := errors.New("expected error")
 	mbResolver := &mock.ResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
@@ -318,6 +359,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -330,7 +372,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 
 	wasCalled := false
 	mbResolver := &mock.ResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -343,6 +385,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -364,6 +407,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 				return true
 			},
 		},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -377,6 +421,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -389,7 +434,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 
 	wasCalled := false
 	mbResolver := &mock.HeaderResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -402,6 +447,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -423,6 +469,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotR
 				return true
 			},
 		},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -435,7 +482,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 
 	wasCalled := false
 	mbResolver := &mock.ResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -448,6 +495,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -462,7 +510,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 
 	wasCalled := false
 	mbResolver := &mock.HeaderResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -475,6 +523,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -496,6 +545,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 				return true
 			},
 		},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -509,6 +559,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -535,6 +586,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -554,7 +606,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 
 	errExpected := errors.New("expected error")
 	hdrResolver := &mock.ResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
@@ -566,6 +618,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -585,7 +638,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 
 	errExpected := errors.New("expected error")
 	hdrResolver := &mock.HeaderResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
@@ -597,6 +650,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -609,7 +663,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 
 	wasCalled := false
 	hdrResolver := &mock.HeaderResolverStub{
-		RequestDataFromNonceCalled: func(nonce uint64) error {
+		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -622,6 +676,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -643,6 +698,7 @@ func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRe
 				return true
 			},
 		},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -655,7 +711,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 
 	wasCalled := false
 	hdrResolver := &mock.HeaderResolverStub{
-		RequestDataFromNonceCalled: func(nonce uint64) error {
+		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil
 		},
@@ -668,6 +724,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		100,
 		0,
 	)
@@ -697,6 +754,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -723,6 +781,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -735,7 +794,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
-		RequestDataFromHashArrayCalled: func(hashes [][]byte) error {
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
 		},
@@ -748,6 +807,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -776,7 +836,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	errExpected := errors.New("expected error")
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
-		RequestDataFromHashArrayCalled: func(hashes [][]byte) error {
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return errExpected
 		},
@@ -789,6 +849,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)
@@ -811,7 +872,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
-		RequestDataFromHashArrayCalled: func(hashes [][]byte) error {
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
 		},
@@ -824,6 +885,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.EpochHandlerStub{},
 		1,
 		0,
 	)

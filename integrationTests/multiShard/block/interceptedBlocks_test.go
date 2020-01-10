@@ -179,7 +179,7 @@ func requestAndRetrieveMetaHeader(
 ) *block.MetaBlock {
 
 	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
-	_ = resolver.RequestDataFromHash(hash)
+	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {
 	case <-chanReceived:

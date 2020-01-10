@@ -41,7 +41,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingShard(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -74,7 +74,7 @@ func TestRequestResolveShardHeadersByHashRequestingMetaResolvingShard(t *testing
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, shardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -107,7 +107,7 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -147,7 +147,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingShard(t *testi
 	log.LogIfError(err)
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce)
+	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -185,7 +185,7 @@ func TestRequestResolveShardHeadersByNonceRequestingMetaResolvingShard(t *testin
 	log.LogIfError(err)
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce)
+	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -223,7 +223,7 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 	log.LogIfError(err)
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce)
+	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()

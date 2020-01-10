@@ -16,6 +16,7 @@ import (
 type resolverRequestHandler struct {
 	resolversFinder       dataRetriever.ResolversFinder
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	epochHandler          dataRetriever.EpochHandler
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
@@ -27,6 +28,7 @@ var log = logger.GetOrCreate("dataretriever/requesthandlers")
 func NewShardResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	epochHandler dataRetriever.EpochHandler,
 	maxTxsToRequest int,
 	shardID uint32,
 ) (*resolverRequestHandler, error) {
@@ -37,6 +39,9 @@ func NewShardResolverRequestHandler(
 	if check.IfNil(requestedItemsHandler) {
 		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
+	if check.IfNil(epochHandler) {
+		return nil, dataRetriever.ErrNilEpochHandler
+	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
@@ -44,6 +49,7 @@ func NewShardResolverRequestHandler(
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
 		requestedItemsHandler: requestedItemsHandler,
+		epochHandler:          epochHandler,
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
@@ -57,6 +63,7 @@ func NewShardResolverRequestHandler(
 func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	epochHandler dataRetriever.EpochHandler,
 	maxTxsToRequest int,
 ) (*resolverRequestHandler, error) {
 
@@ -66,6 +73,9 @@ func NewMetaResolverRequestHandler(
 	if check.IfNil(requestedItemsHandler) {
 		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
+	if check.IfNil(epochHandler) {
+		return nil, dataRetriever.ErrNilEpochHandler
+	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
@@ -73,11 +83,22 @@ func NewMetaResolverRequestHandler(
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
 		requestedItemsHandler: requestedItemsHandler,
+		epochHandler:          epochHandler,
 		shardID:               sharding.MetachainShardId,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
 
 	return rrh, nil
+}
+
+// SetEpochHandler will update the epoch handler (used for the null object pattern)
+func (rrh *resolverRequestHandler) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	if check.IfNil(epochHandler) {
+		return fmt.Errorf("%w raised when trying to set on request handler", dataRetriever.ErrNilEpochHandler)
+	}
+
+	rrh.epochHandler = epochHandler
+	return nil
 }
 
 // RequestTransaction method asks for transactions from the connected peers
@@ -116,7 +137,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		}
 
 		for _, batch := range sliceBatches {
-			err = txResolver.RequestDataFromHashArray(batch)
+			err = txResolver.RequestDataFromHashArray(batch, rrh.epochHandler.Epoch())
 			if err != nil {
 				log.Debug("requesting tx batch", "error", err.Error())
 			}
@@ -155,7 +176,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	err = resolver.RequestDataFromHash(miniblockHash)
+	err = resolver.RequestDataFromHash(miniblockHash, rrh.epochHandler.Epoch())
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -178,7 +199,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardId uint32, hash []byt
 		return
 	}
 
-	err = headerResolver.RequestDataFromHash(hash)
+	err = headerResolver.RequestDataFromHash(hash, rrh.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestShardHeader", "error", err.Error())
 		return
@@ -201,7 +222,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, rrh.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestMetaHeader, RequestDataFromHash", "error", err.Error())
 		return
@@ -225,7 +246,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 		return
 	}
 
-	err = headerResolver.RequestDataFromNonce(nonce)
+	err = headerResolver.RequestDataFromNonce(nonce, rrh.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestShardHeaderByNonce", "error", err.Error())
 		return
@@ -249,7 +270,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	err = headerResolver.RequestDataFromNonce(nonce)
+	err = headerResolver.RequestDataFromNonce(nonce, rrh.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestMetaHeaderByNonce", "error", err.Error())
 		return

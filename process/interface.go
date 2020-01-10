@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"math/big"
 	"time"
 
@@ -427,6 +428,7 @@ type DataPacker interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
+	SetEpochHandler(epochHandler dataRetriever.EpochHandler) error
 	RequestShardHeader(shardId uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)

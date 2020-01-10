@@ -52,7 +52,7 @@ const (
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte) error
+	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
@@ -60,7 +60,7 @@ type Resolver interface {
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromNonce(nonce uint64, epoch uint32) error
 	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
 }
@@ -68,7 +68,7 @@ type HeaderResolver interface {
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
-	RequestDataFromHashArray(hashes [][]byte) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }

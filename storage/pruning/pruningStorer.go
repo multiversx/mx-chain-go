@@ -260,6 +260,25 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 }
 
+// SearchFirst will search a given key in all the active persisters, from the newest to the oldest
+func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	for _, pd := range ps.activePersisters {
+		res, err := pd.persister.Get(key)
+		if err == nil {
+			return res, nil
+		}
+	}
+
+	log.Debug("SearchFirst - key not found",
+		"key", base64.StdEncoding.EncodeToString(key),
+		"num active persisters", len(ps.activePersisters))
+
+	return nil, fmt.Errorf("%w - SearchFirst", storage.ErrKeyNotFound)
+}
+
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db

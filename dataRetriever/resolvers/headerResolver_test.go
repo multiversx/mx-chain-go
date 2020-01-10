@@ -289,7 +289,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	wasSent := false
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
 			wasGotFromStorage = true
 			return make([]byte, 0), nil
@@ -330,7 +330,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -367,7 +367,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		headersNonces,
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -431,7 +431,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headersNonces,
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -479,7 +479,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	marshalizer := &mock.MarshalizerMock{}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, hash) {
 			wasResolved = true
 			return make([]byte, 0), nil
@@ -502,7 +502,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headersNonces,
 		store,
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -549,7 +549,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	marshalizer := &mock.MarshalizerMock{}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, []byte("aaaa")) {
 			return nil, errExpected
 		}
@@ -570,7 +570,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headersNonces,
 		store,
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -615,7 +615,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 		nonceConverter,
 	)
 
-	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested))
+	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested, 0))
 	assert.True(t, wasRequested)
 }
 
@@ -643,6 +643,6 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 		nonceConverter,
 	)
 
-	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested))
+	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasRequested)
 }
