@@ -48,7 +48,7 @@ func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wgChanWasWritten := sync.WaitGroup{}
-	numConcurrentWrites := 100
+	numConcurrentWrites := 50
 	wg.Add(numConcurrentWrites)
 	wgChanWasWritten.Add(numConcurrentWrites)
 	for i := 0; i < numConcurrentWrites; i++ {
