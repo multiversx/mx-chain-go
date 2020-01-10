@@ -46,7 +46,7 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
-// MarshalizerConfig
+// MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
 	Type           string `json:"type"`
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
@@ -129,6 +129,7 @@ type NodeConfig struct {
 
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
+	Enabled             bool
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
@@ -166,7 +167,6 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
-	NetworkID                  string
 	StatusPollingIntervalSec   int
 }
 

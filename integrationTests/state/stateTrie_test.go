@@ -155,12 +155,12 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	wg := sync.WaitGroup{}
-	wg.Add(2000)
+	wg.Add(100)
 
 	addresses := make([]state.AddressContainer, 0)
 
-	//generating 2000 different addresses
-	for len(addresses) < 2000 {
+	//generating 100 different addresses
+	for len(addresses) < 100 {
 		addr := integrationTests.CreateRandomAddress()
 
 		found := false
@@ -176,7 +176,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 50; i++ {
 		go func(idx int) {
 			accnt, err := adb.GetExistingAccount(addresses[idx*2])
 
