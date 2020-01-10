@@ -61,7 +61,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]u
 	return nil, nil
 }
 
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 

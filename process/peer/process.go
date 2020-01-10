@@ -102,7 +102,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	log.Debug("setting ratingReader")
 
 	rr := &RatingReader{
-		getRating: vs.getRating,
+		getRating:                  vs.getRating,
+		updateRatingFromTempRating: vs.updateRatingFromTempRating,
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
@@ -300,14 +301,21 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	vs.displayRatings()
+	vs.displayRatings(header.GetEpoch())
 
 	return vs.peerAdapter.RootHash()
 }
 
-func (vs *validatorStatistics) displayRatings() {
-	for _, node := range vs.initialNodes {
-		log.Trace("ratings", "pk", node.Address, "tempRating", vs.getTempRating(node.PubKey))
+func (vs *validatorStatistics) displayRatings(epoch uint32) {
+	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Debug("Could not get ValidatorPublicKeys", "epoch", epoch)
+		return
+	}
+	for shardId, list := range validatorPKs {
+		for _, pk := range list {
+			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardId)
+		}
 	}
 }
 
@@ -456,7 +464,7 @@ func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeV
 		return process.ErrInvalidInitialNodesState
 	}
 
-	peerAccount, err := vs.generatePeerAccount(node)
+	peerAccount, err := vs.getOrCreatePeerAccount(node)
 	if err != nil {
 		return err
 	}
@@ -469,7 +477,7 @@ func (vs *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeV
 	return nil
 }
 
-func (vs *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
+func (vs *validatorStatistics) getOrCreatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
 	address, err := vs.adrConv.CreateAddressFromHex(node.PubKey)
 	if err != nil {
 		return nil, err
@@ -741,4 +749,18 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	}
 
 	return peer.GetTempRating()
+}
+
+func (vs *validatorStatistics) updateRatingFromTempRating(s string) {
+	peer, err := vs.GetPeerAccount([]byte(s))
+
+	if err != nil {
+		log.Debug("Error getting peer account", "error", err)
+	}
+
+	err = peer.SetRatingWithJournal(vs.getTempRating(s))
+
+	if err != nil {
+		log.Debug("Error setting rating with journal on peer account", "error", err)
+	}
 }

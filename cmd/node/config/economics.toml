@@ -21,10 +21,40 @@
     UnBoundPeriod = "100000"
 
 [RatingSettings]
-    StartRating = 50
-    MaxRating = 100
+    StartRating = 500000
+    MaxRating = 1000000
     MinRating = 1
-    ProposerIncreaseRatingStep = 2
-    ProposerDecreaseRatingStep = 4
-    ValidatorIncreaseRatingStep = 1
-    ValidatorDecreaseRatingStep = 2
+    ProposerIncreaseRatingStep = 1929
+    ProposerDecreaseRatingStep = 3858
+    ValidatorIncreaseRatingStep = 31
+    ValidatorDecreaseRatingStep = 61
+    [[RatingSettings.Chance]]
+    MaxThreshold = 100000
+    ChancePercent = 0
+    [[RatingSettings.Chance]]
+    MaxThreshold = 200000
+    ChancePercent = 80
+    [[RatingSettings.Chance]]
+    MaxThreshold = 300000
+    ChancePercent = 85
+    [[RatingSettings.Chance]]
+    MaxThreshold = 400000
+    ChancePercent = 90
+    [[RatingSettings.Chance]]
+    MaxThreshold = 500000
+    ChancePercent = 95
+    [[RatingSettings.Chance]]
+    MaxThreshold = 600000
+    ChancePercent = 100
+    [[RatingSettings.Chance]]
+    MaxThreshold = 700000
+    ChancePercent = 105
+    [[RatingSettings.Chance]]
+    MaxThreshold = 800000
+    ChancePercent = 110
+    [[RatingSettings.Chance]]
+    MaxThreshold = 900000
+    ChancePercent = 115
+    [[RatingSettings.Chance]]
+    MaxThreshold = 1000000
+    ChancePercent = 120

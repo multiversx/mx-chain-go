@@ -39,6 +39,7 @@ type RatingSettings struct {
 	ProposerDecreaseRatingStep  uint32
 	ValidatorIncreaseRatingStep uint32
 	ValidatorDecreaseRatingStep uint32
+	Chance                      []Chance
 }
 
 //RatingValue will hold different rating options with increase and decresea steps
@@ -54,4 +55,10 @@ type ConfigEconomics struct {
 	FeeSettings        FeeSettings
 	ValidatorSettings  ValidatorSettings
 	RatingSettings     RatingSettings
+}
+
+//RatingValue will hold different rating options with increase and decresea steps
+type Chance struct {
+	MaxThreshold  uint32
+	ChancePercent uint32
 }

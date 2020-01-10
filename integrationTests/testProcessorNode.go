@@ -1,12 +1,10 @@
 package integrationTests
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -194,6 +192,8 @@ type TestProcessorNode struct {
 	CounterTxRecv  int32
 	CounterMetaRcv int32
 
+	InitialNodes []*sharding.InitialNode
+
 	ChainID []byte
 }
 
@@ -285,28 +285,10 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		peerDataPool = tpn.ShardDataPool
 	}
 
-	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
-			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
-				NodeInfo: sharding.NodeInfo{},
-			}
-			initialNodes = append(initialNodes, n)
-		}
-	}
-
-	sort.Slice(initialNodes, func(i, j int) bool {
-		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
-	})
-
 	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
+		InitialNodes:     tpn.InitialNodes,
 		PeerAdapter:      tpn.PeerState,
 		AdrConv:          TestAddressConverterBLS,
 		NodesCoordinator: tpn.NodesCoordinator,
@@ -428,6 +410,48 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				ProposerIncreaseRatingStep:  1929,
 				ValidatorDecreaseRatingStep: 61,
 				ValidatorIncreaseRatingStep: 31,
+				Chance: []config.Chance{
+					{
+						MaxThreshold:  100000,
+						ChancePercent: 0,
+					},
+					{
+						MaxThreshold:  200000,
+						ChancePercent: 16,
+					},
+					{
+						MaxThreshold:  300000,
+						ChancePercent: 17,
+					},
+					{
+						MaxThreshold:  400000,
+						ChancePercent: 18,
+					},
+					{
+						MaxThreshold:  500000,
+						ChancePercent: 19,
+					},
+					{
+						MaxThreshold:  600000,
+						ChancePercent: 20,
+					},
+					{
+						MaxThreshold:  700000,
+						ChancePercent: 21,
+					},
+					{
+						MaxThreshold:  800000,
+						ChancePercent: 22,
+					},
+					{
+						MaxThreshold:  900000,
+						ChancePercent: 23,
+					},
+					{
+						MaxThreshold:  1000000,
+						ChancePercent: 24,
+					},
+				},
 			},
 		},
 	)

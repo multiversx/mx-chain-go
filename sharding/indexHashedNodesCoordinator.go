@@ -30,7 +30,6 @@ type EpochStartSubscriber interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	doExpandEligibleList    func(validators []Validator, mut *sync.RWMutex) []Validator
 	hasher                  hashing.Hasher
 	shuffler                NodesShuffler
 	epochStartSubscriber    EpochStartSubscriber
@@ -69,8 +68,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 	}
-
-	ihgs.doExpandEligibleList = ihgs.expandEligibleList
 
 	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
@@ -147,6 +144,22 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesConfig.shardId = ihgs.computeShardForPublicKey(nodesConfig)
 	ihgs.nodesConfig[epoch] = nodesConfig
 
+	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
+
+	for shardId, validators := range eligible {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Eligible", "shardId", shardId, "pk", pk)
+		}
+	}
+
+	for shardId, validators := range waiting {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Waiting", "shardId", shardId, "pk", pk)
+		}
+	}
+
 	return nil
 }
 
@@ -182,7 +195,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	epoch uint32,
 ) (validatorsGroup []Validator, err error) {
 	var eligibleShardList []Validator
-	var mut *sync.RWMutex
 
 	if randomness == nil {
 		return nil, ErrNilRandomness
@@ -191,7 +203,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
 		eligibleShardList = nodesConfig.eligibleMap[shardId]
-		mut = &nodesConfig.mutNodesMaps
 	}
 	ihgs.mutNodesConfig.RUnlock()
 
@@ -206,8 +217,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
-	// TODO: pre-compute eligible list and update only on epoch/checkpoint change.
-	expandedList := ihgs.doExpandEligibleList(eligibleShardList, mut)
+	expandedList := eligibleShardList
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -349,8 +359,8 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 	return publicKeys, nil
 }
 
-// GetAllValidatorsPublicKeys will return all validators public keys for all shards
-func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+// GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
@@ -380,7 +390,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 ) ([]uint64, error) {
 	signersIndexes := make([]uint64, 0)
 
-	validatorsPubKeys, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	validatorsPubKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -452,11 +462,6 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 		}
 	}
 	ihgs.mutNodesConfig.Unlock()
-}
-
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
-	//TODO implement an expand eligible list variant
-	return validators
 }
 
 func (ihgs *indexHashedNodesCoordinator) computeShardForPublicKey(nodesConfig *epochNodesConfig) uint32 {
