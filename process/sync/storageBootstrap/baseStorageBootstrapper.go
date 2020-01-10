@@ -202,12 +202,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"shard", bootInfos[i].LastHeader.ShardId,
 			"nonce", bootInfos[i].LastHeader.Nonce)
 
-		crossNotarizedHeadersHashes := make(map[uint32][]byte, len(bootInfos[i].LastCrossNotarizedHeaders))
-		for _, crossNotarizedHeader := range bootInfos[i].LastCrossNotarizedHeaders {
-			crossNotarizedHeadersHashes[crossNotarizedHeader.ShardId] = crossNotarizedHeader.Hash
-		}
-
-		err = st.bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeadersHashes)
+		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)
 		if err != nil {
 			log.Debug("cannot apply cross notarized headers", "error", err.Error())
 			return err

@@ -680,14 +680,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	blockTracker, err := newBlockTracker(
-		args.core.Hasher,
+		args,
 		headerValidator,
-		args.core.Marshalizer,
+		requestHandler,
 		rounder,
-		args.shardCoordinator,
-		args.data.Store,
-		args.data.Datapool,
-		args.data.MetaDatapool,
 		genesisBlocks,
 	)
 	if err != nil {
@@ -1636,40 +1632,37 @@ func createInMemoryShardCoordinatorAndAccount(
 }
 
 func newBlockTracker(
-	hasher hashing.Hasher,
+	processArgs *processComponentsFactoryArgs,
 	headerValidator process.HeaderConstructionValidator,
-	marshalizer marshal.Marshalizer,
+	requestHandler process.RequestHandler,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	store dataRetriever.StorageService,
-	datapool dataRetriever.PoolsHolder,
-	metaDatapool dataRetriever.MetaPoolsHolder,
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) (process.BlockTracker, error) {
 
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:           hasher,
+		Hasher:           processArgs.core.Hasher,
 		HeaderValidator:  headerValidator,
-		Marshalizer:      marshalizer,
+		Marshalizer:      processArgs.core.Marshalizer,
+		RequestHandler:   requestHandler,
 		Rounder:          rounder,
-		ShardCoordinator: shardCoordinator,
-		Store:            store,
+		ShardCoordinator: processArgs.shardCoordinator,
+		Store:            processArgs.data.Store,
 		StartHeaders:     genesisBlocks,
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    datapool,
+			PoolsHolder:    processArgs.data.Datapool,
 		}
 
 		return track.NewShardBlockTrack(arguments)
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if processArgs.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    metaDatapool,
+			PoolsHolder:    processArgs.data.MetaDatapool,
 		}
 
 		return track.NewMetaBlockTrack(arguments)

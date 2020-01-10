@@ -55,7 +55,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerStub(startHeaders),
+			BlockTracker: mock.NewBlockTrackerMock(startHeaders),
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScQueryMock{},
@@ -1088,7 +1088,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	arguments.DataPool = pool
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1192,7 +1192,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	arguments.DataPool = pool
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1342,7 +1342,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	arguments.DataPool = pool
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1514,7 +1514,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -1605,7 +1605,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      arguments.Hasher,
@@ -1668,7 +1668,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
-	assert.Equal(t, process.ErrWrongNonceInBlock, err)
+	assert.Contains(t, err.Error(), process.ErrWrongNonceInBlock.Error())
 
 	shDataCurr = block.ShardData{ShardID: 0, HeaderHash: currHash}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
@@ -1705,7 +1705,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -1734,7 +1734,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
-	assert.Equal(t, process.ErrWrongNonceInBlock, err)
+	assert.Contains(t, err.Error(), process.ErrWrongNonceInBlock.Error())
 }
 
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {
@@ -1757,7 +1757,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := startHeaders[0].GetRandSeed()
@@ -1813,7 +1813,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -1922,7 +1922,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -2515,7 +2515,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hash2 := []byte("hash2")
 
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 
 	hdr := startHeaders[0].(*block.Header)
 	hdr.MetaBlockHashes = [][]byte{hash1, hash2}

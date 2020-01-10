@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
 type metaStorageBootstrapper struct {
@@ -47,26 +48,21 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 	return msb == nil
 }
 
-func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeadersHashes map[uint32][]byte) error {
-	for i := uint32(0); i < msb.shardCoordinator.NumberOfShards(); i++ {
-		hash, ok := crossNotarizedHeadersHashes[i]
-		if !ok {
-			continue
-		}
-
-		header, err := process.GetShardHeaderFromStorage(hash, msb.marshalizer, msb.store)
+func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
+	for _, crossNotarizedHeader := range crossNotarizedHeaders {
+		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("added cross notarized header in block tracker",
-			"shard", i,
+			"shard", crossNotarizedHeader.ShardId,
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
-			"hash", hash)
+			"hash", crossNotarizedHeader.Hash)
 
-		msb.blockTracker.AddCrossNotarizedHeader(i, header, hash)
-		msb.blockTracker.AddTrackedHeader(header, hash)
+		msb.blockTracker.AddCrossNotarizedHeader(crossNotarizedHeader.ShardId, header, crossNotarizedHeader.Hash)
+		msb.blockTracker.AddTrackedHeader(header, crossNotarizedHeader.Hash)
 	}
 
 	return nil
@@ -123,6 +119,5 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 }
 
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
-	return selfNotarizedHeaders, nil
+	return []data.HeaderHandler{}, nil
 }

@@ -718,7 +718,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
-	assert.Equal(t, spos.ErrInvalidHeader, err)
+	assert.Contains(t, err.Error(), spos.ErrInvalidHeader.Error())
 }
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testing.T) {
@@ -888,7 +888,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, spos.ErrSenderNotOk, err)
+	assert.Contains(t, err.Error(), spos.ErrSenderNotOk.Error())
 }
 
 func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShouldErr(t *testing.T) {
@@ -953,7 +953,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, spos.ErrInvalidSignature, err)
+	assert.Contains(t, err.Error(), spos.ErrInvalidSignature.Error())
 }
 
 func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {

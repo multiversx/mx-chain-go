@@ -65,65 +65,26 @@ func (sfd *shardForkDetector) AddHeader(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) error {
+	return sfd.addHeader(
+		header,
+		headerHash,
+		state,
+		selfNotarizedHeaders,
+		selfNotarizedHeadersHashes,
+		sfd.doJobOnBHProcessed,
+	)
+}
 
-	if check.IfNil(header) {
-		return ErrNilHeader
-	}
-	if headerHash == nil {
-		return ErrNilHash
-	}
-
-	err := sfd.checkBlockBasicValidity(header, headerHash, state)
-	if err != nil {
-		return err
-	}
-
-	if header.GetNonce() > sfd.highestNonceReceived() {
-		sfd.setHighestNonceReceived(header.GetNonce())
-		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
-			"highest nonce received", sfd.highestNonceReceived())
-	}
-
-	if state == process.BHProposed {
-		return nil
-	}
-
-	isHeaderReceivedTooLate := sfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
-	if isHeaderReceivedTooLate {
-		state = process.BHReceivedTooLate
-	}
-
-	appended := sfd.append(&headerInfo{
-		epoch: header.GetEpoch(),
-		nonce: header.GetNonce(),
-		round: header.GetRound(),
-		hash:  headerHash,
-		state: state,
-	})
-	if !appended {
-		return nil
-	}
-
-	if state == process.BHProcessed {
-		_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, sharding.MetachainShardId)
-		sfd.computeFinalCheckpoint()
-		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
-		sfd.removePastOrInvalidRecords()
-	}
-
-	probableHighestNonce := sfd.computeProbableHighestNonce()
-	sfd.setProbableHighestNonce(probableHighestNonce)
-
-	log.Debug("forkDetector.AddHeader",
-		"round", header.GetRound(),
-		"nonce", header.GetNonce(),
-		"hash", headerHash,
-		"state", state,
-		"probable highest nonce", sfd.probableHighestNonce(),
-		"last check point nonce", sfd.lastCheckpoint().nonce,
-		"final check point nonce", sfd.finalCheckpoint().nonce)
-
-	return nil
+func (sfd *shardForkDetector) doJobOnBHProcessed(
+	header data.HeaderHandler,
+	headerHash []byte,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) {
+	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, sharding.MetachainShardId)
+	sfd.computeFinalCheckpoint()
+	sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
+	sfd.removePastOrInvalidRecords()
 }
 
 // ReceivedSelfNotarizedHeaders is a registered call handler through which fork detector is notified when metachain
@@ -133,7 +94,8 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) {
-	if shardID != sharding.MetachainShardId || len(selfNotarizedHeaders) == 0 {
+	// accept only self notarized headers by meta
+	if shardID != sharding.MetachainShardId {
 		return
 	}
 
@@ -178,9 +140,11 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
+	finalCheckpoint := sfd.finalCheckpoint()
+
 	sfd.mutHeaders.RLock()
 	for nonce, headersInfo := range sfd.headers {
-		if sfd.finalCheckpoint().nonce >= nonce {
+		if finalCheckpoint.nonce >= nonce {
 			continue
 		}
 
@@ -195,14 +159,15 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 			continue
 		}
 
-		checkPointInfo := checkpointInfo{
+		finalCheckpoint = &checkpointInfo{
 			nonce: nonce,
 			round: headersInfo[indexBHNotarized].round,
 			hash:  headersInfo[indexBHNotarized].hash,
 		}
-		sfd.setFinalCheckpoint(&checkPointInfo)
 	}
 	sfd.mutHeaders.RUnlock()
+
+	sfd.setFinalCheckpoint(finalCheckpoint)
 }
 
 func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*headerInfo) (int, int) {

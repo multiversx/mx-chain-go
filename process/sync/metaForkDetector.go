@@ -58,65 +58,26 @@ func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) error {
+	return mfd.addHeader(
+		header,
+		headerHash,
+		state,
+		selfNotarizedHeaders,
+		selfNotarizedHeadersHashes,
+		mfd.doJobOnBHProcessed,
+	)
+}
+
+func (mfd *metaForkDetector) doJobOnBHProcessed(
+	header data.HeaderHandler,
+	headerHash []byte,
 	_ []data.HeaderHandler,
 	_ [][]byte,
-) error {
-
-	if check.IfNil(header) {
-		return ErrNilHeader
-	}
-	if headerHash == nil {
-		return ErrNilHash
-	}
-
-	err := mfd.checkBlockBasicValidity(header, headerHash, state)
-	if err != nil {
-		return err
-	}
-
-	if header.GetNonce() > mfd.highestNonceReceived() {
-		mfd.setHighestNonceReceived(header.GetNonce())
-		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
-			"highest nonce received", mfd.highestNonceReceived())
-	}
-
-	if state == process.BHProposed {
-		return nil
-	}
-
-	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
-	if isHeaderReceivedTooLate {
-		state = process.BHReceivedTooLate
-	}
-
-	appended := mfd.append(&headerInfo{
-		epoch: header.GetEpoch(),
-		nonce: header.GetNonce(),
-		round: header.GetRound(),
-		hash:  headerHash,
-		state: state,
-	})
-	if !appended {
-		return nil
-	}
-
-	if state == process.BHProcessed {
-		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
-		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
-		mfd.removePastOrInvalidRecords()
-	}
-
-	probableHighestNonce := mfd.computeProbableHighestNonce()
-	mfd.setProbableHighestNonce(probableHighestNonce)
-
-	log.Debug("forkDetector.AddHeader",
-		"round", header.GetRound(),
-		"nonce", header.GetNonce(),
-		"hash", headerHash,
-		"state", state,
-		"probable highest nonce", mfd.probableHighestNonce(),
-		"last check point nonce", mfd.lastCheckpoint().nonce,
-		"final check point nonce", mfd.finalCheckpoint().nonce)
-
-	return nil
+) {
+	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+	mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
+	mfd.removePastOrInvalidRecords()
 }

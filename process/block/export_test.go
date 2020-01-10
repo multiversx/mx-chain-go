@@ -88,7 +88,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerStub(genesisBlocks),
+			BlockTracker: mock.NewBlockTrackerMock(genesisBlocks),
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

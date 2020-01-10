@@ -390,7 +390,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerStub(startHeaders),
+			BlockTracker: mock.NewBlockTrackerMock(startHeaders),
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

@@ -1319,6 +1319,7 @@ func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderCon
 		Hasher:           TestHasher,
 		HeaderValidator:  headerValidator,
 		Marshalizer:      TestMarshalizer,
+		RequestHandler:   tpn.RequestHandler,
 		Rounder:          tpn.Rounder,
 		ShardCoordinator: tpn.ShardCoordinator,
 		Store:            tpn.Storage,

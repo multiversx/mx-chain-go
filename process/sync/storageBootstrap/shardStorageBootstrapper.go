@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -86,25 +86,26 @@ func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandl
 	return block.Body(miniBlocks), nil
 }
 
-func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeadersHashes map[uint32][]byte) error {
-	hash, ok := crossNotarizedHeadersHashes[sharding.MetachainShardId]
-	if !ok {
-		return sync.ErrNilNotarizedHeader
+func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
+	for _, crossNotarizedHeader := range crossNotarizedHeaders {
+		if crossNotarizedHeader.ShardId != sharding.MetachainShardId {
+			continue
+		}
+
+		metaBlock, err := process.GetMetaHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("added cross notarized header in block tracker",
+			"shard", sharding.MetachainShardId,
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
+			"hash", crossNotarizedHeader.Hash)
+
+		ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock, crossNotarizedHeader.Hash)
+		ssb.blockTracker.AddTrackedHeader(metaBlock, crossNotarizedHeader.Hash)
 	}
-
-	metaBlock, err := process.GetMetaHeaderFromStorage(hash, ssb.marshalizer, ssb.store)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("added cross notarized header in block tracker",
-		"shard", sharding.MetachainShardId,
-		"round", metaBlock.GetRound(),
-		"nonce", metaBlock.GetNonce(),
-		"hash", hash)
-
-	ssb.blockTracker.AddCrossNotarizedHeader(sharding.MetachainShardId, metaBlock, hash)
-	ssb.blockTracker.AddTrackedHeader(metaBlock, hash)
 
 	return nil
 }
