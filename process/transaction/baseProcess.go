@@ -144,14 +144,6 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(cost) < 0 {
-		return txProc.checkTxFee(tx, stAcc)
-	}
-
-	return nil
-}
-
-func (txProc *baseTxProcessor) checkTxFee(tx *transaction.Transaction, stAcc *state.Account) error {
 	txFee := txProc.economicsFee.ComputeFee(tx)
 	if stAcc.Balance.Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
@@ -161,5 +153,9 @@ func (txProc *baseTxProcessor) checkTxFee(tx *transaction.Transaction, stAcc *st
 		)
 	}
 
-	return process.ErrInsufficientFunds
+	if stAcc.Balance.Cmp(cost) < 0 {
+		return process.ErrInsufficientFunds
+	}
+
+	return nil
 }

@@ -1901,6 +1901,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		data.Datapool,
 		state.AddressConverter,
+		economics,
 	)
 	if err != nil {
 		return nil, err

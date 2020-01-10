@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -19,6 +20,7 @@ type TxPoolsCleaner struct {
 	addrConverter    state.AddressConverter
 	numRemovedTxs    uint64
 	canDoClean       chan struct{}
+	economicsFee     process.FeeHandler
 }
 
 // NewTxsPoolsCleaner will return a new transaction pools cleaner
@@ -27,23 +29,27 @@ func NewTxsPoolsCleaner(
 	shardCoordinator sharding.Coordinator,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
+	economicsFee process.FeeHandler,
 ) (*TxPoolsCleaner, error) {
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
 
 	transactionPool := dataPool.Transactions()
-	if transactionPool == nil || transactionPool.IsInterfaceNil() {
+	if check.IfNil(transactionPool) {
 		return nil, process.ErrNilTransactionPool
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	canDoClean := make(chan struct{}, 1)
@@ -55,6 +61,7 @@ func NewTxsPoolsCleaner(
 		addrConverter:    addrConverter,
 		numRemovedTxs:    0,
 		canDoClean:       canDoClean,
+		economicsFee:     economicsFee,
 	}, nil
 }
 
@@ -128,15 +135,40 @@ func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
 				continue
 			}
 
-			accountNonce := accountHandler.GetNonce()
-			txNonce := tx.Nonce
-			lowerNonceInTx := txNonce < accountNonce
-			if lowerNonceInTx {
+			account, ok := accountHandler.(*state.Account)
+			if !ok {
+				txsPool.Remove(key)
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+				continue
+			}
+
+			shouldClean := tpc.checkTransaction(account, tx)
+			if shouldClean {
 				txsPool.Remove(key)
 				atomic.AddUint64(&tpc.numRemovedTxs, 1)
 			}
+
+			//TODO maybe integrate here a TTL mechanism on each stored transactions as to not store transactions indefinitely
 		}
 	}
+}
+
+func (tpc *TxPoolsCleaner) checkTransaction(
+	account *state.Account,
+	tx *transaction.Transaction,
+) bool {
+	accountNonce := account.GetNonce()
+	txNonce := tx.Nonce
+	if txNonce < accountNonce {
+		return true
+	}
+
+	txFee := tpc.economicsFee.ComputeFee(tx)
+	if account.Balance.Cmp(txFee) < 0 {
+		return true
+	}
+
+	return false
 }
 
 // NumRemovedTxs will return the number of removed txs from pools

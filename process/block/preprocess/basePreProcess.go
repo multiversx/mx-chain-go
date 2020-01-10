@@ -217,6 +217,16 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	}
 	forBlock.mutTxsForBlock.Unlock()
 
+	bpp.displayMissingTransactions(missingTxsForShard, currType)
+
+	return missingTxsForShard
+}
+
+func (bpp *basePreProcess) displayMissingTransactions(
+	missingTxsForShard map[uint32][]*txsHashesInfo,
+	currType block.Type,
+) {
+
 	for shard, txHashInfoSlice := range missingTxsForShard {
 		for _, txHashInfo := range txHashInfoSlice {
 			for _, hash := range txHashInfo.txHashes {
@@ -229,8 +239,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 			}
 		}
 	}
-
-	return missingTxsForShard
 }
 
 func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {
