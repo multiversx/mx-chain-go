@@ -2,7 +2,9 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // TestBootstrapper extends the Bootstrapper interface with some functions intended to be used only in tests
@@ -22,7 +24,19 @@ type TestEpochStartTrigger interface {
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
 
-// BlockProcessorInitializer offers initialization for block processor
-type BlockProcessorInitializer interface {
-	InitBlockProcessor()
+type NodesCoordinatorFactory interface {
+	CreateNodesCoordinator(
+		nodesPerShard int,
+		nbMetaNodes int,
+		shardConsensusGroupSize int,
+		metaConsensusGroupSize int,
+		shardId uint32,
+		nbShards int,
+		validatorsMap map[uint32][]sharding.Validator,
+		waitingMap map[uint32][]sharding.Validator,
+		keyIndex int,
+		cp *CryptoParams,
+		epochStartSubscriber sharding.EpochStartSubscriber,
+		hasher hashing.Hasher,
+	) sharding.NodesCoordinator
 }

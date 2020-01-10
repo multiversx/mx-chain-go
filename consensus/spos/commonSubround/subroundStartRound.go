@@ -285,13 +285,13 @@ func (sr *SubroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 }
 
 func (sr *SubroundStartRound) changeEpoch(header data.HeaderHandler) {
-	publicKeysPrevEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch() - 1)
+	publicKeysPrevEpoch, err := sr.NodesCoordinator().GetAllEligibleValidatorsPublicKeys(header.GetEpoch() - 1)
 	if err != nil {
 		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch()-1, err.Error()))
 		return
 	}
 
-	publicKeysNewEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch())
+	publicKeysNewEpoch, err := sr.NodesCoordinator().GetAllEligibleValidatorsPublicKeys(header.GetEpoch())
 	if err != nil {
 		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch(), err.Error()))
 		return

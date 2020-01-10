@@ -1,12 +1,10 @@
 package integrationTests
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -52,7 +50,6 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -184,6 +181,7 @@ type TestProcessorNode struct {
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rater                        sharding.RaterHandler
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -193,6 +191,8 @@ type TestProcessorNode struct {
 	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
+
+	InitialNodes []*sharding.InitialNode
 
 	ChainID []byte
 }
@@ -285,28 +285,13 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		peerDataPool = tpn.ShardDataPool
 	}
 
-	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
-			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
-				NodeInfo: sharding.NodeInfo{},
-			}
-			initialNodes = append(initialNodes, n)
-		}
+	nodesWithRater, ok := tpn.NodesCoordinator.(*NodesWithRater)
+	if ok {
+		tpn.Rater = nodesWithRater.RaterHandler
 	}
 
-	sort.Slice(initialNodes, func(i, j int) bool {
-		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
-	})
-
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
+		InitialNodes:     tpn.InitialNodes,
 		PeerAdapter:      tpn.PeerState,
 		AdrConv:          TestAddressConverterBLS,
 		NodesCoordinator: tpn.NodesCoordinator,
@@ -315,7 +300,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		StorageService:   tpn.Storage,
 		Marshalizer:      TestMarshalizer,
 		StakeValue:       big.NewInt(500),
-		Rater:            rater,
+		Rater:            tpn.Rater,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -393,10 +378,17 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
+	economicsData := CreateEconomicsData()
+
+	tpn.EconomicsData = &economics.TestEconomicsData{
+		EconomicsData: economicsData,
+	}
+}
+
+func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
-
 	economicsData, _ := economics.NewEconomicsData(
 		&config.ConfigEconomics{
 			EconomicsAddresses: config.EconomicsAddresses{
@@ -428,13 +420,52 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				ProposerIncreaseRatingStep:  1929,
 				ValidatorDecreaseRatingStep: 61,
 				ValidatorIncreaseRatingStep: 31,
+				Chance: []config.Chance{
+					{
+						MaxThreshold:  100000,
+						ChancePercent: 0,
+					},
+					{
+						MaxThreshold:  200000,
+						ChancePercent: 16,
+					},
+					{
+						MaxThreshold:  300000,
+						ChancePercent: 17,
+					},
+					{
+						MaxThreshold:  400000,
+						ChancePercent: 18,
+					},
+					{
+						MaxThreshold:  500000,
+						ChancePercent: 19,
+					},
+					{
+						MaxThreshold:  600000,
+						ChancePercent: 20,
+					},
+					{
+						MaxThreshold:  700000,
+						ChancePercent: 21,
+					},
+					{
+						MaxThreshold:  800000,
+						ChancePercent: 22,
+					},
+					{
+						MaxThreshold:  900000,
+						ChancePercent: 23,
+					},
+					{
+						MaxThreshold:  1000000,
+						ChancePercent: 24,
+					},
+				},
 			},
 		},
 	)
-
-	tpn.EconomicsData = &economics.TestEconomicsData{
-		EconomicsData: economicsData,
-	}
+	return economicsData
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {

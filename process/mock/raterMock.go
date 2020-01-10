@@ -11,13 +11,15 @@ type RaterMock struct {
 	IncreaseValidator uint32
 	DecreaseValidator uint32
 
-	GetRatingCalled                func(string) uint32
-	GetStartRatingCalled           func() uint32
-	ComputeIncreaseProposerCalled  func(val uint32) uint32
-	ComputeDecreaseProposerCalled  func(val uint32) uint32
-	ComputeIncreaseValidatorCalled func(val uint32) uint32
-	ComputeDecreaseValidatorCalled func(val uint32) uint32
-	RatingReader                   sharding.RatingReader
+	GetRatingCalled                  func(string) uint32
+	UpdateRatingFromTempRatingCalled func(string)
+	GetStartRatingCalled             func() uint32
+	ComputeIncreaseProposerCalled    func(val uint32) uint32
+	ComputeDecreaseProposerCalled    func(val uint32) uint32
+	ComputeIncreaseValidatorCalled   func(val uint32) uint32
+	ComputeDecreaseValidatorCalled   func(val uint32) uint32
+	GetChancesCalled                 func(val uint32) uint32
+	RatingReader                     sharding.RatingReader
 }
 
 func GetNewMockRater() *RaterMock {
@@ -25,7 +27,8 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetRatingCalled = func(s string) uint32 {
 		return raterMock.StartRating
 	}
-
+	raterMock.UpdateRatingFromTempRatingCalled = func(s string) {
+	}
 	raterMock.GetStartRatingCalled = func() uint32 {
 		return raterMock.StartRating
 	}
@@ -40,6 +43,9 @@ func GetNewMockRater() *RaterMock {
 	}
 	raterMock.ComputeDecreaseValidatorCalled = func(val uint32) uint32 {
 		return raterMock.computeRating(val, int32(0-raterMock.DecreaseValidator))
+	}
+	raterMock.GetChancesCalled = func(val uint32) uint32 {
+		return raterMock.StartRating
 	}
 
 	return raterMock
@@ -61,8 +67,8 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
 }
 
-func (rm *RaterMock) GetRatings([]string) map[string]uint32 {
-	return make(map[string]uint32)
+func (rm *RaterMock) UpdateRatingFromTempRating(pk string) {
+	rm.UpdateRatingFromTempRatingCalled(pk)
 }
 
 func (rm *RaterMock) GetStartRating() uint32 {
@@ -87,6 +93,10 @@ func (rm *RaterMock) ComputeDecreaseValidator(val uint32) uint32 {
 
 func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
 	rm.RatingReader = reader
+}
+
+func (rm *RaterMock) GetChance(rating uint32) uint32 {
+	return rm.GetChancesCalled(rating)
 }
 
 func (rm *RaterMock) IsInterfaceNil() bool {

@@ -1,10 +1,11 @@
 package mock
 
 type RaterMock struct {
-	ComputeRatingCalled  func(string, uint32) uint32
-	GetRatingCalled      func(string) uint32
-	GetRatingsCalled     func([]string) map[string]uint32
-	GetStartRatingCalled func() uint32
+	ComputeRatingCalled              func(string, uint32) uint32
+	GetRatingCalled                  func(string) uint32
+	UpdateRatingFromTempRatingCalled func(string)
+	GetStartRatingCalled             func() uint32
+	GetChancesCalled                 func(uint32) uint32
 }
 
 func (rm *RaterMock) ComputeRating(ratingOptionKey string, previousValue uint32) uint32 {
@@ -21,11 +22,10 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 	return 1
 }
 
-func (rm *RaterMock) GetRatings(pks []string) map[string]uint32 {
-	if rm.GetRatingsCalled == nil {
-		return rm.GetRatingsCalled(pks)
+func (rm *RaterMock) UpdateRatingFromTempRating(pk string) {
+	if rm.UpdateRatingFromTempRatingCalled != nil {
+		rm.UpdateRatingFromTempRatingCalled(pk)
 	}
-	return make(map[string]uint32)
 }
 
 func (rm *RaterMock) IsInterfaceNil() bool {
@@ -33,8 +33,15 @@ func (rm *RaterMock) IsInterfaceNil() bool {
 }
 
 func (rm *RaterMock) GetStartRating() uint32 {
-	if rm.GetStartRatingCalled == nil {
+	if rm.GetStartRatingCalled != nil {
 		return rm.GetStartRatingCalled()
+	}
+	return 5
+}
+
+func (rm *RaterMock) GetChance(rating uint32) uint32 {
+	if rm.GetChancesCalled != nil {
+		return rm.GetChancesCalled(rating)
 	}
 	return 5
 }

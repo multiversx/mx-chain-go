@@ -1,10 +1,12 @@
 package rating
 
 import (
+	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"sort"
 )
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
@@ -17,6 +19,7 @@ type BlockSigningRater struct {
 	proposerDecreaseRatingStep  int32
 	validatorIncreaseRatingStep int32
 	validatorDecreaseRatingStep int32
+	ratingChances               []sharding.RatingChance
 }
 
 //NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
@@ -27,6 +30,32 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
+	if ratingsData.Chances() == nil || len(ratingsData.Chances()) == 0 {
+		return nil, errors.ErrNoChancesProvided
+	}
+
+	ratingChances := make([]sharding.RatingChance, len(ratingsData.Chances()))
+
+	for i, chance := range ratingsData.Chances() {
+		ratingChances[i] = &Chance{
+			maxThreshold:     chance.MaxThreshold,
+			chancePercentage: chance.ChancePercent,
+		}
+	}
+
+	sort.Slice(ratingChances, func(i, j int) bool {
+		return ratingChances[i].GetMaxThreshold() < ratingChances[j].GetMaxThreshold()
+	})
+
+	for i := 1; i < len(ratingChances); i++ {
+		if ratingChances[i-1].GetMaxThreshold() == ratingChances[i].GetMaxThreshold() {
+			return nil, errors.ErrDupplicateThreshold
+		}
+	}
+
+	if ratingChances[len(ratingChances)-1].GetMaxThreshold() != ratingsData.MaxRating() {
+		return nil, errors.ErrNoChancesForMaxThreshold
+	}
 
 	return &BlockSigningRater{
 		startRating:                 ratingsData.StartRating(),
@@ -36,7 +65,8 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
 		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
 		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
-		RatingReader:                &NilRatingReader{},
+		RatingReader:                NewNilRatingReader(ratingsData.StartRating()),
+		ratingChances:               ratingChances,
 	}, nil
 }
 
@@ -57,9 +87,9 @@ func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
-//GetRatings gets all the ratings that the current rater has
-func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
-	return bsr.RatingReader.GetRatings(addresses)
+//UpdateRatingFromTempRating returns the TempRating for the specified public key
+func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pk string) {
+	bsr.RatingReader.UpdateRatingFromTempRating(pk)
 }
 
 //SetRatingReader sets the Reader that can read ratings
@@ -97,4 +127,18 @@ func (bsr *BlockSigningRater) ComputeIncreaseValidator(val uint32) uint32 {
 //ComputeDecreaseValidator computes the new rating for the decreaseValidator
 func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
 	return bsr.computeRating(bsr.validatorDecreaseRatingStep, val)
+}
+
+//GetChance returns the RatingChance for the pk
+func (bsr *BlockSigningRater) GetChance(currentRating uint32) uint32 {
+	chance := bsr.ratingChances[0].GetChancePercentage()
+	for i := 1; i < len(bsr.ratingChances); i++ {
+		currentChance := bsr.ratingChances[i]
+		if currentRating > currentChance.GetMaxThreshold() {
+			continue
+		}
+		chance = currentChance.GetChancePercentage()
+		break
+	}
+	return chance
 }

@@ -668,6 +668,7 @@ func SyncBlock(
 
 		err := n.SyncNode(round)
 		if err != nil {
+			fmt.Errorf("SyncNode on round %v could not be synced. Error: %s", round, err.Error())
 			assert.Fail(t, err.Error())
 			return
 		}

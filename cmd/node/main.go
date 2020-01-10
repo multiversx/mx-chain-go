@@ -882,7 +882,7 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 		return
 	}
 
-	validatorsPubKeys, _ := coordinator.GetAllValidatorsPublicKeys(0)
+	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
 
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
@@ -1050,12 +1050,12 @@ func createNodesCoordinator(
 
 	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
 	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	//if err != nil {
-	//	return nil, err
-	//}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	if err != nil {
+		return nil, err
+	}
 
-	return baseNodesCoordinator, nil
+	return nodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
