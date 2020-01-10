@@ -25,7 +25,7 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
 	assert.Nil(t, err)
 
-	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
@@ -40,7 +40,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
 	assert.Nil(t, err)
 
-	assert.Equal(t, vmOutput.ReturnCode, vmcommon.ContractInvalid)
+	assert.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
@@ -60,8 +60,8 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedBytes := []byte{100}
-	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-	assertReturnData(t, vmOutput, expectedBytes)
+	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	assertReturnData(t, vmOutput, vmcommon.Ok, expectedBytes)
 }
 
 func TestSCAbortExecution_Abort(t *testing.T) {
@@ -81,8 +81,7 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 
 	assert.Equal(t, 1, len(vmOutput.ReturnData))
 	expectedBytes := []byte{98}
-	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-	assertReturnData(t, vmOutput, expectedBytes)
+	assertReturnData(t, vmOutput, vmcommon.UserError, expectedBytes)
 }
 
 func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []byte) {
@@ -117,8 +116,13 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 	return wasmVM, scAddressBytes
 }
 
-func assertReturnData(t *testing.T, vmOutput *vmcommon.VMOutput, expectedBytes []byte) {
-	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode, vmOutput.ReturnCode)
+func assertReturnData(
+	t *testing.T,
+	vmOutput *vmcommon.VMOutput,
+	expectedReturnCode vmcommon.ReturnCode,
+	expectedBytes []byte,
+) {
+	assert.Equal(t, expectedReturnCode, vmOutput.ReturnCode, vmOutput.ReturnCode)
 	if len(vmOutput.ReturnData) == 0 {
 		assert.True(t, expectedBytes == nil)
 		return
