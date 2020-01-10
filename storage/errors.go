@@ -79,5 +79,5 @@ var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to sav
 // ErrInvalidNumberOfActivePersisters signals that an invalid number of active persisters has been provided
 var ErrInvalidNumberOfActivePersisters = errors.New("invalid number of active persisters")
 
-//ErrClosingPersisters signals that not all persisters was closed
+//ErrClosingPersisters signals that not all persisters were closed
 var ErrClosingPersisters = errors.New("cannot close all the persisters")

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -23,6 +24,8 @@ type AccountsDB struct {
 	entries    []JournalEntry
 	mutEntries sync.RWMutex
 }
+
+var log = logger.GetOrCreate("state")
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
@@ -104,6 +107,7 @@ func (adb *AccountsDB) ClosePersister() error {
 	closedSuccessfully := true
 
 	err := adb.mainTrie.ClosePersister()
+	log.LogIfError(err)
 	if err != nil {
 		closedSuccessfully = false
 	}
@@ -111,6 +115,7 @@ func (adb *AccountsDB) ClosePersister() error {
 	trees := adb.dataTries.GetAll()
 	for _, trie := range trees {
 		err := trie.ClosePersister()
+		log.LogIfError(err)
 		if err != nil {
 			closedSuccessfully = false
 		}

@@ -83,8 +83,5 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (as *AccountsStub) IsInterfaceNil() bool {
-	if as == nil {
-		return true
-	}
-	return false
+	return as == nil
 }
