@@ -41,6 +41,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		},
 	}
 	return &pruning.StorerArgs{
+		PruningEnabled:        true,
 		Identifier:            "id",
 		FullArchive:           false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
@@ -356,6 +357,36 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	res, err = ps.GetFromEpoch(testKey, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
+}
+
+func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PruningEnabled = false
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers, _ := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 1
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// change the epoch multiple times
+	_ = ps.ChangeEpoch(1)
+	_ = ps.ChangeEpoch(2)
+	_ = ps.ChangeEpoch(3)
+
+	assert.Equal(t, 1, len(persistersByPath))
 }
 
 func TestRegex(t *testing.T) {
