@@ -8,13 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/track")
@@ -25,15 +25,13 @@ type headerInfo struct {
 }
 
 type baseBlockTrack struct {
-	hasher            hashing.Hasher
-	headerValidator   process.HeaderConstructionValidator
-	marshalizer       marshal.Marshalizer
-	rounder           consensus.Rounder
-	shardCoordinator  sharding.Coordinator
-	metaBlocksPool    storage.Cacher
-	shardHeadersPool  storage.Cacher
-	headersNoncesPool dataRetriever.Uint64SyncMapCacher
-	store             dataRetriever.StorageService
+	hasher           hashing.Hasher
+	headerValidator  process.HeaderConstructionValidator
+	marshalizer      marshal.Marshalizer
+	rounder          consensus.Rounder
+	shardCoordinator sharding.Coordinator
+	headersPool      dataRetriever.HeadersPool
+	store            dataRetriever.StorageService
 
 	blockProcessor                blockProcessorHandler
 	crossNotarizer                blockNotarizerHandler
@@ -45,10 +43,10 @@ type baseBlockTrack struct {
 	headers    map[uint32]map[uint64][]*headerInfo
 }
 
-func (bbt *baseBlockTrack) receivedShardHeader(shardHeaderHash []byte) {
-	shardHeader, err := process.GetShardHeaderFromPool(shardHeaderHash, bbt.shardHeadersPool)
-	if err != nil {
-		log.Trace("GetShardHeaderFromPool", "error", err.Error())
+func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
+	shardHeader, ok := headerHandler.(*block.Header)
+	if !ok {
+		log.Warn("cannot convert data.HeaderHandler in *block.Header")
 		return
 	}
 
@@ -67,10 +65,10 @@ func (bbt *baseBlockTrack) receivedShardHeader(shardHeaderHash []byte) {
 	bbt.blockProcessor.processReceivedHeader(shardHeader)
 }
 
-func (bbt *baseBlockTrack) receivedMetaBlock(metaBlockHash []byte) {
-	metaBlock, err := process.GetMetaHeaderFromPool(metaBlockHash, bbt.metaBlocksPool)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
+func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Warn("cannot convert data.HeaderHandler in *block.Metablock")
 		return
 	}
 
