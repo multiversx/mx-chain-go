@@ -1540,7 +1540,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	forkDetector, _ := sync.NewMetaForkDetector(
 		rounder,
 		&mock.BlackListHandlerStub{},
-		&mock.BlockTrackerStub{},
+		&mock.BlockTrackerMock{},
 		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1615,7 +1615,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	forkDetector, _ := sync.NewMetaForkDetector(
 		rounder,
 		&mock.BlackListHandlerStub{},
-		&mock.BlockTrackerStub{},
+		&mock.BlockTrackerMock{},
 		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()

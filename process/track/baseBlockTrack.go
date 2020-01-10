@@ -396,6 +396,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
+	if check.IfNil(arguments.RequestHandler) {
+		return process.ErrNilRequestHandler
+	}
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}

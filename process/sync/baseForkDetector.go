@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -206,10 +207,8 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	hdrsInfo := bfd.headers[nonce]
 	for _, hdrInfo := range hdrsInfo {
-		if hdrInfo.state != process.BHNotarized {
-			if bytes.Equal(hash, hdrInfo.hash) {
-				continue
-			}
+		if hdrInfo.state != process.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
+			continue
 		}
 
 		preservedHdrsInfo = append(preservedHdrsInfo, hdrInfo)
@@ -295,9 +294,6 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
-	//TODO: Should be analyzed if reset to probable highest nonce should be also done for highest nonce received by calling
-	//bfd.setHighestNonceReceived(probableHighestNonce)
-
 	bfd.setLastRoundWithForcedFork(bfd.rounder.Index())
 
 	log.Debug("forkDetector.ResetFork",
@@ -616,4 +612,70 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
 	genesisTime := int64(headerHandler.GetTimeStamp() - headerHandler.GetRound()*uint64(bfd.rounder.TimeDuration().Seconds()))
 	return genesisTime
+}
+
+func (bfd *baseForkDetector) addHeader(
+	header data.HeaderHandler,
+	headerHash []byte,
+	state process.BlockHeaderState,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
+) error {
+
+	if check.IfNil(header) {
+		return ErrNilHeader
+	}
+	if headerHash == nil {
+		return ErrNilHash
+	}
+
+	err := bfd.checkBlockBasicValidity(header, headerHash, state)
+	if err != nil {
+		return err
+	}
+
+	if header.GetNonce() > bfd.highestNonceReceived() {
+		bfd.setHighestNonceReceived(header.GetNonce())
+		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
+			"highest nonce received", bfd.highestNonceReceived())
+	}
+
+	if state == process.BHProposed {
+		return nil
+	}
+
+	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
+	if isHeaderReceivedTooLate {
+		state = process.BHReceivedTooLate
+	}
+
+	appended := bfd.append(&headerInfo{
+		epoch: header.GetEpoch(),
+		nonce: header.GetNonce(),
+		round: header.GetRound(),
+		hash:  headerHash,
+		state: state,
+	})
+	if !appended {
+		return nil
+	}
+
+	if state == process.BHProcessed {
+		doJobOnBHProcessed(header, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.AddHeader",
+		"round", header.GetRound(),
+		"nonce", header.GetNonce(),
+		"hash", headerHash,
+		"state", state,
+		"probable highest nonce", bfd.probableHighestNonce(),
+		"last check point nonce", bfd.lastCheckpoint().nonce,
+		"final check point nonce", bfd.finalCheckpoint().nonce)
+
+	return nil
 }

@@ -78,6 +78,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 
 	blockProcessor, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&mbt,
 		crossNotarizer,

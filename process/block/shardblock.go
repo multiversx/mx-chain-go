@@ -392,8 +392,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
-			log.Debug("checkMetaHeadersValidityAndFinality -> isHdrConstructionValid")
-			return err
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
 		}
 
 		lastCrossNotarizedHeader = metaHdr
@@ -937,20 +936,20 @@ func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []by
 }
 
 func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(shardId)
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := sp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(processedHdrs); i++ {
-		if lastCrossNotarizedHeader.GetNonce() < processedHdrs[i].GetNonce() {
-			lastCrossNotarizedHeader = processedHdrs[i]
+	lenProcessedHdrs := len(processedHdrs)
+	if lenProcessedHdrs > 0 {
+		if lastCrossNotarizedHeader.GetNonce() < processedHdrs[lenProcessedHdrs-1].GetNonce() {
+			lastCrossNotarizedHeader = processedHdrs[lenProcessedHdrs-1]
+			lastCrossNotarizedHeaderHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader)
+			if err != nil {
+				return err
+			}
 		}
-	}
-
-	lastCrossNotarizedHeaderHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader)
-	if err != nil {
-		return err
 	}
 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
@@ -1605,6 +1604,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+
+	return miniBlocks, txsAdded, hdrsAdded, nil
+}
+
+func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaHdr data.HeaderHandler) {
 	log.Debug("meta hdrs added",
 		"nb", hdrsAdded,
 		"lastMetaHdr", lastMetaHdr.GetNonce(),
@@ -1617,8 +1622,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}
-
-	return miniBlocks, txsAdded, hdrsAdded, nil
 }
 
 func (sp *shardProcessor) createMiniBlocks(

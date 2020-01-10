@@ -2214,7 +2214,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerStub{})
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerMock{})
 }
 
 func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
@@ -3337,7 +3337,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -3489,7 +3489,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -3620,7 +3620,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
-	arguments.BlockTracker = mock.NewBlockTrackerStub(startHeaders)
+	arguments.BlockTracker = mock.NewBlockTrackerMock(startHeaders)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")
@@ -3973,7 +3973,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.BlockTracker = &mock.BlockTrackerStub{}
+	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -4032,7 +4032,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.BlockTracker = &mock.BlockTrackerStub{}
+	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -4089,7 +4089,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.BlockTracker = &mock.BlockTrackerStub{}
+	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -4176,7 +4176,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	arguments.DataPool = poolMock
 	arguments.Store = storer
 	arguments.ShardCoordinator = shardC
-	arguments.BlockTracker = &mock.BlockTrackerStub{}
+	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	miniblockHashes := make(map[string]uint32, 0)

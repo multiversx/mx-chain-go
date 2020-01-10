@@ -1938,7 +1938,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	forkDetector, _ := sync.NewShardForkDetector(
 		rounder,
 		&mock.BlackListHandlerStub{},
-		&mock.BlockTrackerStub{},
+		&mock.BlockTrackerMock{},
 		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2019,7 +2019,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	forkDetector, _ := sync.NewShardForkDetector(
 		rounder,
 		&mock.BlackListHandlerStub{},
-		&mock.BlockTrackerStub{},
+		&mock.BlockTrackerMock{},
 		0,
 	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
