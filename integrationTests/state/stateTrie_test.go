@@ -273,7 +273,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	store := integrationTests.CreateMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl, true)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
@@ -332,7 +332,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, &config.DBConfig{}, ewl, true)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, &config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1022,7 +1022,7 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl, true)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1097,7 +1097,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl, true)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1134,7 +1134,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl, true)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1278,8 +1278,9 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	expectedErr := fmt.Errorf("trie recreate error: %w, for root %v", trie.ErrHashNotFound, core.ToB64(rootHashOfRollbackedBlock))
 	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-	assert.Equal(t, trie.ErrHashNotFound, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1405,8 +1406,9 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	expectedErr := fmt.Errorf("trie recreate error: %w, for root %v", trie.ErrHashNotFound, core.ToB64(rootHashOfFirstBlock))
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	assert.Equal(t, trie.ErrHashNotFound, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {

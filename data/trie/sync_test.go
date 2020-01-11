@@ -47,7 +47,7 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, memorydb.New(), marshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList, true)
+	trieStorage, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hasher)
 
 	syncTrie := initTrie()

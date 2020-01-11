@@ -940,28 +940,38 @@ func getTrie(
 		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
-	var ewl data.DBRemoveCacher
-	if pruningEnabled {
-		evictionDb, err := storageUnit.NewDB(
-			storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-			filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
-			evictionWaitingListCfg.DB.MaxBatchSize,
-			evictionWaitingListCfg.DB.BatchDelaySeconds,
-			evictionWaitingListCfg.DB.MaxOpenFiles,
-		)
+	if !pruningEnabled {
+		trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 		if err != nil {
-			return nil, errors.New("error creating evictionDb: " + err.Error())
+			return nil, errors.New("error creating trieStorage: " + err.Error())
 		}
 
-		ewl, err = evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
-		if err != nil {
-			return nil, errors.New("error creating evictionWaitingList: " + err.Error())
-		}
+		return trie.NewTrie(
+			trieStorage,
+			marshalizer,
+			hasher,
+		)
+	}
+
+	evictionDb, err := storageUnit.NewDB(
+		storageUnit.DBType(evictionWaitingListCfg.DB.Type),
+		filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
+		evictionWaitingListCfg.DB.MaxBatchSize,
+		evictionWaitingListCfg.DB.BatchDelaySeconds,
+		evictionWaitingListCfg.DB.MaxOpenFiles,
+	)
+	if err != nil {
+		return nil, errors.New("error creating evictionDb: " + err.Error())
+	}
+
+	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
+	if err != nil {
+		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
 	}
 
 	snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, snapshotDbCfg.FilePath)
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl, pruningEnabled)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl)
 	if err != nil {
 		return nil, errors.New("error creating trieStorage: " + err.Error())
 	}
@@ -2306,7 +2316,7 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
-	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, nil, false)
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	if err != nil {
 		return nil, err
 	}

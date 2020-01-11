@@ -1,11 +1,14 @@
 package trie
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -19,9 +22,8 @@ import (
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	db             data.DBWriteCacher
-	pruningBuffer  [][]byte
-	pruningEnabled bool
+	db            data.DBWriteCacher
+	pruningBuffer [][]byte
 
 	snapshots       []storage.Persister
 	snapshotId      int
@@ -33,11 +35,11 @@ type trieStorageManager struct {
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
-func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher, pruningEnabled bool) (*trieStorageManager, error) {
+func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig, ewl data.DBRemoveCacher) (*trieStorageManager, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
 	}
-	if check.IfNil(ewl) && pruningEnabled {
+	if check.IfNil(ewl) {
 		return nil, ErrNilEvictionWaitingList
 	}
 	if snapshotDbCfg == nil {
@@ -52,7 +54,6 @@ func NewTrieStorageManager(db data.DBWriteCacher, snapshotDbCfg *config.DBConfig
 	return &trieStorageManager{
 		db:                    db,
 		pruningBuffer:         make([][]byte, 0),
-		pruningEnabled:        pruningEnabled,
 		snapshots:             snapshots,
 		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
@@ -132,7 +133,6 @@ func (tsm *trieStorageManager) Clone() data.StorageManager {
 	return &trieStorageManager{
 		db:                    tsm.db,
 		pruningBuffer:         tsm.pruningBuffer,
-		pruningEnabled:        tsm.pruningEnabled,
 		snapshots:             tsm.snapshots,
 		snapshotId:            tsm.snapshotId,
 		snapshotDbCfg:         tsm.snapshotDbCfg,
@@ -146,11 +146,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	if !tsm.pruningEnabled {
-		log.Trace("trie storage manager - prune: trie storage pruning is disabled")
-		return nil
-	}
-
+	log.Trace("trie storage manager prune", "root", rootHash)
 	if tsm.snapshotsBuffer.len() != 0 {
 		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
 		return nil
@@ -158,8 +154,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 
 	err := tsm.removeFromDb(rootHash)
 	if err != nil {
-		log.Debug("trie storage manager prune", "error", rootHash)
-		return err
+		return fmt.Errorf("trie storage manager prune error: %w, for root %v", err, core.ToB64(rootHash))
 	}
 
 	return nil
@@ -170,11 +165,7 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	if !tsm.pruningEnabled {
-		log.Trace("trie storage manager - cancel prune: trie storage pruning is disabled")
-		return
-	}
-
+	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 }
 
@@ -199,10 +190,6 @@ func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) err
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	if !tsm.pruningEnabled {
-		log.Trace("trie storage manager - mark for eviction: trie storage pruning is disabled")
-		return nil
-	}
 	log.Trace("trie storage manager: mark for eviction", "root", root)
 
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
@@ -297,10 +284,6 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 }
 
 func (tsm *trieStorageManager) removeKeysFromDb(keys [][]byte) {
-	if !tsm.pruningEnabled {
-		return
-	}
-
 	for i := range keys {
 		tsm.storageOperationMutex.Lock()
 		err := tsm.removeFromDb(keys[i])
@@ -362,7 +345,7 @@ func newSnapshotTrie(
 		return nil, err
 	}
 
-	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{}, false)
+	trieStorage, err := NewTrieStorageManager(db, &config.DBConfig{}, &mock.EvictionWaitingList{})
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +389,7 @@ func directoryExists(path string) bool {
 
 // IsPruningEnabled returns true if the trie pruning is enabled
 func (tsm *trieStorageManager) IsPruningEnabled() bool {
-	return tsm.pruningEnabled
+	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
