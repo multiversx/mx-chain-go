@@ -8,11 +8,12 @@ import (
 )
 
 type StateSyncer interface {
+	GetMetaBlock() *block.MetaBlock
 	SyncAllState(epoch uint32) error
-	IsInterfaceNil() bool
 	GetAllTries() (map[string]data.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
+	IsInterfaceNil() bool
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
@@ -70,5 +71,17 @@ type HistoryStorer interface {
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	HasInEpoch(key []byte, epoch uint32) error
 
+	IsInterfaceNil() bool
+}
+
+type MultiFileWriter interface {
+	NewFile(name string) error
+	Write(fileName string, key string, value []byte) error
+	IsInterfaceNil() bool
+}
+
+type MultiFileReader interface {
+	GetFileNames() []string
+	ReadNextItem(fileName string) (string, []byte, error)
 	IsInterfaceNil() bool
 }
