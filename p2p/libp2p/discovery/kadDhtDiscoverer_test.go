@@ -337,7 +337,7 @@ func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
 
 	host := &mock.ConnectableHostStub{
 		IDCalled: func() peer.ID {
-			return peer.ID("local peer")
+			return "local peer"
 		},
 		PeerstoreCalled: func() peerstore.Peerstore {
 			return nil

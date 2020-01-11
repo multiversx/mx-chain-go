@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	initReconnectMul   = 20
 	kadDhtName         = "kad-dht discovery"
 	minWatchdogTimeout = time.Second
 )
@@ -157,28 +156,17 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		<-chanStartBootstrap
 
 		go func() {
-			i := 1
 			for {
 				kdd.mutKadDht.RLock()
 				kadDht := kdd.kadDHT
-				initConns := kdd.initConns
 				kdd.mutKadDht.RUnlock()
 
-				if initConns {
-					var err error = nil
-					if kadDht != nil {
-						err = kadDht.Bootstrap(ctx)
-					}
-					if err == kbucket.ErrLookupFailure {
-						<-kdd.ReconnectToNetwork()
-					}
-					i = 1
-				} else {
-					i++
-					if (i % initReconnectMul) == 0 {
-						<-kdd.ReconnectToNetwork()
-						i = 1
-					}
+				var err = error(nil)
+				if kadDht != nil {
+					err = kadDht.Bootstrap(ctx)
+				}
+				if err == kbucket.ErrLookupFailure {
+					<-kdd.ReconnectToNetwork()
 				}
 				select {
 				case <-time.After(kdd.refreshInterval):

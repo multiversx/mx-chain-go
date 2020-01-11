@@ -1,13 +1,10 @@
 package libp2p
 
 import (
-	"math"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -24,14 +21,10 @@ type libp2pConnectionMonitor struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
-	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
-	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
-	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
-	mutSharder                 sync.RWMutex
-	sharder                    ns.Sharder
+	sharder                    Sharder
 }
 
-func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
+func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int) (*libp2pConnectionMonitor, error) {
 	if thresholdMinConnectedPeers < 0 {
 		return nil, p2p.ErrInvalidValue
 	}
@@ -40,16 +33,6 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}, 0),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
-		thresholdDiscoveryResume:   0,
-		thresholdDiscoveryPause:    math.MaxInt32,
-		thresholdConnTrim:          math.MaxInt32,
-		sharder:                    &ns.NoSharder{},
-	}
-
-	if targetConnCount > 0 {
-		cm.thresholdDiscoveryResume = targetConnCount * 4 / 5
-		cm.thresholdDiscoveryPause = targetConnCount
-		cm.thresholdConnTrim = targetConnCount * 6 / 5
 	}
 
 	if reconnecter != nil {
@@ -82,30 +65,17 @@ func (lcm *libp2pConnectionMonitor) kickWatchdog() {
 
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) > lcm.thresholdConnTrim {
-		lcm.mutSharder.RLock()
-		sorted, isBalanced := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
-		lcm.mutSharder.RUnlock()
-		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
-			_ = netw.ClosePeer(sorted[i])
-		}
-		lcm.doReconn()
-		if isBalanced && lcm.reconnecter != nil {
-			lcm.reconnecter.Pause()
+	if lcm.sharder != nil {
+		evicted := lcm.sharder.ComputeEvictList(conn.RemotePeer(), netw.Peers())
+		for _, pid := range evicted {
+			_ = netw.ClosePeer(pid)
 		}
 	}
-	lcm.kickWatchdog()
 }
 
 // Disconnected is called when a connection closed
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, _ network.Conn) {
 	lcm.doReconnectionIfNeeded(netw)
-
-	if len(netw.Conns()) < lcm.thresholdDiscoveryResume && lcm.reconnecter != nil {
-		lcm.reconnecter.Resume()
-		lcm.doReconn()
-	}
-	lcm.kickWatchdog()
 }
 
 func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
@@ -136,14 +106,12 @@ func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network
 }
 
 // SetSharder sets the sharder that is able to sort the peers by their distance
-func (lcm *libp2pConnectionMonitor) SetSharder(sharder ns.Sharder) error {
+func (lcm *libp2pConnectionMonitor) SetSharder(sharder Sharder) error {
 	if check.IfNil(sharder) {
 		return p2p.ErrNilSharder
 	}
 
-	lcm.mutSharder.Lock()
 	lcm.sharder = sharder
-	lcm.mutSharder.Unlock()
 
 	return nil
 }

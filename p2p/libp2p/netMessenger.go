@@ -64,6 +64,7 @@ type networkMessenger struct {
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutineThrottler
 	ip                  *identityProvider
+	targetConnCount     int
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -157,14 +158,15 @@ func createMessenger(
 	reconnecter, _ := peerDiscoverer.(p2p.Reconnecter)
 
 	netMes := networkMessenger{
-		ctxProvider:    lctx,
-		pb:             pb,
-		topics:         make(map[string]*pubsub.Topic),
-		processors:     make(map[string]p2p.MessageProcessor),
-		outgoingPLB:    outgoingPLB,
-		peerDiscoverer: peerDiscoverer,
+		ctxProvider:     lctx,
+		pb:              pb,
+		topics:          make(map[string]*pubsub.Topic),
+		processors:      make(map[string]p2p.MessageProcessor),
+		outgoingPLB:     outgoingPLB,
+		peerDiscoverer:  peerDiscoverer,
+		targetConnCount: targetConnCount,
 	}
-	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers)
 	if err != nil {
 		return nil, err
 
@@ -608,27 +610,42 @@ func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
 
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
 // between p2p.PeerID and shardId
-func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver, prioBits uint32) error {
+func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver, _ uint32) error {
 	if check.IfNil(peerShardResolver) {
 		return p2p.ErrNilPeerShardResolver
 	}
 
-	kadSharder, err := networksharding.NewKadSharder(prioBits, peerShardResolver)
+	lks, err := networksharding.NewListKadSharder(
+		peerShardResolver,
+		peer.ID(netMes.ID()),
+		netMes.targetConnCount,
+		netMes.targetConnCount/2,
+		netMes.targetConnCount/2,
+	)
 	if err != nil {
 		return err
 	}
 
-	return netMes.connMonitor.SetSharder(kadSharder)
+	return netMes.connMonitor.SetSharder(lks)
 }
 
 // GetConnectedPeersInfo gets the current connected peers information
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
 	peerInfo := &p2p.ConnectedPeersInfo{}
-	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
+	sharder := netMes.connMonitor.sharder
+	if sharder == nil {
+		return &p2p.ConnectedPeersInfo{
+			UnknownPeers:    make([]string, 0),
+			IntraShardPeers: make([]string, 0),
+			CrossShardPeers: make([]string, 0),
+		}
+	}
 
+	peerResolver := sharder.PeerShardResolver()
+	selfId := peerResolver.ByID(netMes.ID())
 	for _, p := range peers {
-		shard := netMes.connMonitor.sharder.GetShard(p)
+		shard := peerResolver.ByID(p2p.PeerID(p))
 		conns := netMes.ctxProvider.connHost.Network().ConnsToPeer(p)
 		connString := "[invalid connection string]"
 		if len(conns) > 0 {
@@ -638,7 +655,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		switch shard {
 		case sharding.UnknownShardId:
 			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
-		case crt:
+		case selfId:
 			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)
 		default:
 			peerInfo.CrossShardPeers = append(peerInfo.CrossShardPeers, connString)

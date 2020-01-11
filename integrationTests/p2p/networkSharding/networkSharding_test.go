@@ -2,6 +2,7 @@ package networkSharding
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,21 +50,21 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 
 	startNodes(nodesMap)
 
-	t.Log("Delaying for node bootstrap and topic announcement...")
+	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(p2pBootstrapStepDelay)
 
-	for i := 0; i < 15; i++ {
-		t.Log("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+	for i := 0; i < 23; i++ {
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
 
-	sendMessageOnGlobalTopic(t, nodesMap)
-	sendMessagesOnIntraShardTopic(t, nodesMap)
-	sendMessagesOnCrossShardTopic(t, nodesMap)
+	sendMessageOnGlobalTopic(nodesMap)
+	sendMessagesOnIntraShardTopic(nodesMap)
+	sendMessagesOnCrossShardTopic(nodesMap)
 
-	for i := 0; i < 10; i++ {
-		t.Log("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+	for i := 0; i < 2; i++ {
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
@@ -96,14 +97,14 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 	}
 }
 
-func sendMessageOnGlobalTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending a message on global topic")
+func sendMessageOnGlobalTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending a message on global topic")
 	nodesMap[0][0].Messenger.Broadcast(integrationTests.GlobalTopic, []byte("global message"))
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnIntraShardTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending a message on intra shard topic")
+func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending a message on intra shard topic")
 	for _, nodes := range nodesMap {
 		n := nodes[0]
 
@@ -114,8 +115,8 @@ func sendMessagesOnIntraShardTopic(t *testing.T, nodesMap map[uint32][]*integrat
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnCrossShardTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending messages on cross shard topics")
+func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending messages on cross shard topics")
 
 	for shardIdSrc, nodes := range nodesMap {
 		n := nodes[0]
