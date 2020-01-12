@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,11 +52,9 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 	}
 
 	ns := mock.NetworkStub{
-		ConnsCalled: func() []network.Conn {
+		PeersCall: func() []peer.ID {
 			//only one connection which is under the threshold
-			return []network.Conn{
-				&mock.ConnStub{},
-			}
+			return []peer.ID{"mock"}
 		},
 	}
 
@@ -71,78 +69,87 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 	}
 }
 
-func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
-	//t.Parallel()
-	//
-	//pauseCallCount := 0
-	//resumeCallCount := 0
-	//
-	//rc := mock.ReconnecterStub{
-	//	ReconnectToNetworkCalled: func() <-chan struct{} {
-	//		ch := make(chan struct{})
-	//		defer func() { ch <- struct{}{} }()
-	//		return ch
-	//	},
-	//	PauseCall:  func() { pauseCallCount++ },
-	//	ResumeCall: func() { resumeCallCount++ },
-	//}
-	//
-	//cm, _ := newLibp2pConnectionMonitor(&rc, 3, 10)
-	//
-	//assert.NotNil(t, cm)
-	//assert.Equal(t, 8, cm.thresholdDiscoveryResume)
-	//assert.Equal(t, 10, cm.thresholdDiscoveryPause)
-	//assert.Equal(t, 12, cm.thresholdConnTrim)
-	//
-	//netFact := func(cnt int) network.Network {
-	//	cntr := cnt
-	//	currentCount := &cntr
-	//	return &mock.NetworkStub{
-	//		ConnsCalled: func() []network.Conn {
-	//			return make([]network.Conn, *currentCount)
-	//		},
-	//
-	//		PeersCall: func() []peer.ID {
-	//			return make([]peer.ID, *currentCount)
-	//		},
-	//
-	//		ClosePeerCall: func(peer.ID) error {
-	//			*currentCount--
-	//			return nil
-	//		},
-	//	}
-	//}
-	//
-	//assert.Equal(t, 0, pauseCallCount)
-	//assert.Equal(t, 0, resumeCallCount)
-	//
-	//cm.Connected(netFact(5), nil)
-	//assert.Equal(t, 0, pauseCallCount)
-	//assert.Equal(t, 0, resumeCallCount)
-	//
-	//cm.Connected(netFact(9), nil)
-	//assert.Equal(t, 0, pauseCallCount)
-	//assert.Equal(t, 0, resumeCallCount)
-	//
-	//// this is triggering a trim and pause
-	//cm.Connected(netFact(13), nil)
-	//assert.Equal(t, 1, pauseCallCount)
-	//assert.Equal(t, 0, resumeCallCount)
-	//
-	//// this should not resume
-	//cm.Connected(netFact(9), nil)
-	//assert.Equal(t, 1, pauseCallCount)
-	//assert.Equal(t, 0, resumeCallCount)
-	//
-	//cm.Disconnected(netFact(5), nil)
-	//assert.Equal(t, 1, pauseCallCount)
-	//assert.Equal(t, 1, resumeCallCount)
-	//
-	//cm.Connected(netFact(13), nil)
-	//assert.Equal(t, 2, pauseCallCount)
-	//assert.Equal(t, 1, resumeCallCount)
-	//
-	//cm.Disconnected(netFact(5), nil)
-	//assert.Equal(t, 2, pauseCallCount)
-	//assert.Equal(t, 2, resumeCallCount)
+func TestLibp2pConnectionMonitor_ConnectedNilSharderShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have panic")
+		}
+	}()
+
+	cm, _ := newLibp2pConnectionMonitor(nil, 3)
+
+	cm.Connected(nil, nil)
+}
+
+func TestLibp2pConnectionMonitor_ConnectedWithSharderShouldCallEvictAndClosePeer(t *testing.T) {
+	t.Parallel()
+
+	evictedPid := []peer.ID{"evicted"}
+	numComputeWasCalled := 0
+	numClosedWasCalled := 0
+	cm, _ := newLibp2pConnectionMonitor(nil, 3)
+	err := cm.SetSharder(&mock.SharderStub{
+		ComputeEvictListCalled: func(pid peer.ID, connected []peer.ID) []peer.ID {
+			numComputeWasCalled++
+			return evictedPid
+		},
+	})
+	assert.Nil(t, err)
+
+	cm.Connected(
+		&mock.NetworkStub{
+			ClosePeerCall: func(id peer.ID) error {
+				numClosedWasCalled++
+				return nil
+			},
+			PeersCall: func() []peer.ID {
+				return nil
+			},
+		},
+		&mock.ConnStub{
+			RemotePeerCalled: func() peer.ID {
+				return ""
+			},
+		},
+	)
+
+	assert.Equal(t, 1, numClosedWasCalled)
+	assert.Equal(t, 1, numComputeWasCalled)
+}
+
+func TestLibp2pConnectionMonitor_EmptyFuncsShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have panic")
+		}
+	}()
+
+	netw := &mock.NetworkStub{
+		PeersCall: func() []peer.ID {
+			return make([]peer.ID, 0)
+		},
+	}
+
+	cm, _ := newLibp2pConnectionMonitor(nil, 3)
+
+	cm.ClosedStream(netw, nil)
+	cm.Disconnected(netw, nil)
+	cm.Listen(netw, nil)
+	cm.ListenClose(netw, nil)
+	cm.OpenedStream(netw, nil)
+}
+
+func TestLibp2pConnectionMonitor_SetSharderNilSharderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cm, _ := newLibp2pConnectionMonitor(nil, 3)
+	err := cm.SetSharder(nil)
+
+	assert.Equal(t, p2p.ErrNilSharder, err)
 }

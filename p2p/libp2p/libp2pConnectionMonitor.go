@@ -9,10 +9,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-const (
-	watchdogTimeout = 5 * time.Minute
-)
-
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
 var DurationBetweenReconnectAttempts = time.Second * 5
@@ -37,7 +33,6 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 
 	if reconnecter != nil {
 		go cm.doReconnection()
-		_ = reconnecter.StartWatchdog(watchdogTimeout)
 	}
 
 	return cm, nil
@@ -54,12 +49,6 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 	select {
 	case lcm.chDoReconnect <- struct{}{}:
 	default:
-	}
-}
-
-func (lcm *libp2pConnectionMonitor) kickWatchdog() {
-	if lcm.reconnecter != nil {
-		_ = lcm.reconnecter.KickWatchdog()
 	}
 }
 
@@ -102,7 +91,7 @@ func (lcm *libp2pConnectionMonitor) doReconnection() {
 }
 
 func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network) bool {
-	return len(netw.Conns()) >= lcm.thresholdMinConnectedPeers
+	return len(netw.Peers()) >= lcm.thresholdMinConnectedPeers
 }
 
 // SetSharder sets the sharder that is able to sort the peers by their distance

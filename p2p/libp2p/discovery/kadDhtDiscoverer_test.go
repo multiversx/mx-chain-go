@@ -29,24 +29,6 @@ func createDummyHost() libp2p2.ConnectableHost {
 	return libp2p2.NewConnectableHost(h)
 }
 
-func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
-	initialPeersList := []string{"peer1", "peer2"}
-	interval := 4 * time.Second
-	randezVous := "randez vous"
-
-	kdd := NewKadDhtPeerDiscoverer(interval, randezVous, initialPeersList)
-
-	assert.Equal(t, interval, kdd.RefreshInterval())
-	assert.Equal(t, randezVous, kdd.RandezVous())
-	assert.Equal(t, initialPeersList, kdd.InitialPeersList())
-
-	assert.False(t, kdd.IsDiscoveryPaused())
-	kdd.Pause()
-	assert.True(t, kdd.IsDiscoveryPaused())
-	kdd.Resume()
-	assert.False(t, kdd.IsDiscoveryPaused())
-}
-
 //------- Bootstrap
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *testing.T) {
@@ -75,8 +57,6 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	if !testing.Short() {
-		time.Sleep(interval * 2)
-		kdd.Pause()
 		time.Sleep(interval * 20)
 	}
 }
@@ -276,49 +256,6 @@ func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, ctx == kdd.ContextProvider())
-}
-
-//----------- Watchdog
-
-func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	interval := time.Second
-	kdd := NewKadDhtPeerDiscoverer(interval, "", nil)
-
-	// starting with no context fails (no panic)
-	err := kdd.StartWatchdog(interval)
-	assert.NotNil(t, err)
-
-	err = kdd.StopWatchdog()
-	assert.NotNil(t, err)
-
-	err = kdd.KickWatchdog()
-	assert.NotNil(t, err)
-
-	err = kdd.ApplyContext(ctx)
-	assert.Nil(t, err)
-
-	err = kdd.StartWatchdog(interval / 2)
-	assert.NotNil(t, err)
-
-	s1 := kdd.StartWatchdog(interval)
-	s2 := kdd.StartWatchdog(interval)
-
-	assert.Nil(t, s1)
-	assert.Equal(t, s2, p2p.ErrWatchdogAlreadyStarted)
-
-	if !testing.Short() {
-		//kick
-		_ = kdd.KickWatchdog()
-		kdd.Pause()
-		assert.True(t, kdd.IsDiscoveryPaused())
-		time.Sleep(interval / 2)
-		assert.True(t, kdd.IsDiscoveryPaused())
-		time.Sleep(interval)
-		assert.False(t, kdd.IsDiscoveryPaused())
-	}
-
-	_ = kdd.StopWatchdog()
 }
 
 //---------- Protocols
