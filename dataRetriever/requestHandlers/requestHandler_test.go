@@ -395,6 +395,37 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 	assert.True(t, wasCalled)
 }
 
+func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t *testing.T) {
+	t.Parallel()
+
+	expectedEpoch := uint32(7)
+	epochHandler := &mock.EpochHandlerStub{
+		EpochCalled: func() uint32 {
+			return expectedEpoch
+		},
+	}
+	mbResolver := &mock.ResolverStub{
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+			assert.Equal(t, expectedEpoch, epoch)
+			return nil
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return mbResolver, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		epochHandler,
+		1,
+		0,
+	)
+
+	rrh.RequestMiniBlock(0, []byte("mbHash"))
+}
+
 //------- RequestShardHeader
 
 func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {

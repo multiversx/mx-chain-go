@@ -16,13 +16,14 @@ var log = logger.GetOrCreate("dataretriever/resolvers")
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
-	headers          storage.Cacher
-	hdrNonces        dataRetriever.Uint64SyncMapCacher
-	hdrStorage       storage.Storer
-	hdrNoncesStorage storage.Storer
-	marshalizer      marshal.Marshalizer
-	nonceConverter   typeConverters.Uint64ByteSliceConverter
-	epochHandler     dataRetriever.EpochHandler
+	headers              storage.Cacher
+	hdrNonces            dataRetriever.Uint64SyncMapCacher
+	hdrStorage           storage.Storer
+	hdrNoncesStorage     storage.Storer
+	marshalizer          marshal.Marshalizer
+	nonceConverter       typeConverters.Uint64ByteSliceConverter
+	epochHandler         dataRetriever.EpochHandler
+	epochProviderByNonce dataRetriever.EpochProviderByNonce
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -58,15 +59,17 @@ func NewHeaderResolver(
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
+	epochHandler := &nilEpochHandler{}
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender: senderResolver,
-		headers:             headers,
-		hdrNonces:           headersNonces,
-		hdrStorage:          hdrStorage,
-		hdrNoncesStorage:    headersNoncesStorage,
-		marshalizer:         marshalizer,
-		nonceConverter:      nonceConverter,
-		epochHandler:        &nilEpochHandler{},
+		TopicResolverSender:  senderResolver,
+		headers:              headers,
+		hdrNonces:            headersNonces,
+		hdrStorage:           hdrStorage,
+		hdrNoncesStorage:     headersNoncesStorage,
+		marshalizer:          marshalizer,
+		nonceConverter:       nonceConverter,
+		epochHandler:         epochHandler,
+		epochProviderByNonce: NewFakeEpochProviderByNonce(epochHandler),
 	}
 
 	return hdrResolver, nil
@@ -116,31 +119,22 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
 
-	// Search the nonce-key pair in cache-storage
-	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, rd.Epoch)
+	nonce, err := hdrRes.nonceConverter.ToUint64(rd.Value)
 	if err != nil {
-		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
+		return nil, dataRetriever.ErrInvalidNonceByteSlice
+	}
+	epoch, err := hdrRes.epochProviderByNonce.EpochForNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
+	if err != nil {
+		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
 	}
 
 	// Search the nonce-key pair in data pool
 	if hash == nil {
-		nonceBytes, err := hdrRes.nonceConverter.ToUint64(rd.Value)
-		if err != nil {
-			return nil, dataRetriever.ErrInvalidNonceByteSlice
-		}
-
-		value, ok := hdrRes.hdrNonces.Get(nonceBytes)
-		if ok {
-			value.Range(func(shardId uint32, existingHash []byte) bool {
-				if shardId == hdrRes.TargetShardID() {
-					hash = existingHash
-					return false
-				}
-
-				return true
-			})
-		}
-
+		hash = hdrRes.searchInCache(nonce)
 		if len(hash) == 0 {
 			return nil, nil
 		}
@@ -149,10 +143,27 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	newRd := &dataRetriever.RequestData{
 		Type:  rd.Type,
 		Value: hash,
-		Epoch: rd.Epoch,
+		Epoch: epoch,
 	}
 
 	return hdrRes.resolveHeaderFromHash(newRd)
+}
+
+func (hdrRes *HeaderResolver) searchInCache(nonce uint64) []byte {
+	var hash []byte
+	value, ok := hdrRes.hdrNonces.Get(nonce)
+	if ok {
+		value.Range(func(shardId uint32, existingHash []byte) bool {
+			if shardId == hdrRes.TargetShardID() {
+				hash = existingHash
+				return false
+			}
+
+			return true
+		})
+	}
+
+	return hash
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)

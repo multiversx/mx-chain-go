@@ -113,6 +113,12 @@ type EpochHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
+type EpochProviderByNonce interface {
+	EpochForNonce(nonce uint64) (uint32, error)
+	IsInterfaceNil() bool
+}
+
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []p2p.PeerID

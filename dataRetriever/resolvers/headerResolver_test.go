@@ -342,6 +342,37 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
 }
 
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorrectEpoch(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	expectedEpoch := uint32(7)
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				assert.Equal(t, expectedEpoch, epoch)
+				return nil, nil
+			},
+		},
+		marshalizer,
+		mock.NewNonceHashConverterMock(),
+	)
+
+	buff, _ := marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.NonceType,
+			Value: []byte("aaa"),
+			Epoch: expectedEpoch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: buff}
+	_ = hdrRes.ProcessReceivedMessage(msg, nil)
+}
+
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {
 	t.Parallel()
 
