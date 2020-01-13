@@ -21,7 +21,7 @@ type Transaction struct {
 	SenderShard   uint32        `json:"senderShard"`
 	GasPrice      uint64        `json:"gasPrice"`
 	GasLimit      uint64        `json:"gasLimit"`
-	Data          string        `json:"data"`
+	Data          []byte        `json:"data"`
 	Signature     string        `json:"signature"`
 	Timestamp     time.Duration `json:"timestamp"`
 	Status        string        `json:"status"`
