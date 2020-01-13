@@ -14,6 +14,7 @@ type MetaPoolsHolderFake struct {
 	metaBlocks    storage.Cacher
 	miniBlocks    storage.Cacher
 	shardHeaders  storage.Cacher
+	trieNodes     storage.Cacher
 	headersNonces dataRetriever.Uint64SyncMapCacher
 	transactions  dataRetriever.ShardedDataCacherNotifier
 	unsigned      dataRetriever.ShardedDataCacherNotifier
@@ -30,6 +31,7 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	mphf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	cacheShardHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.headersNonces, _ = dataPool.NewNonceSyncMapCacher(
@@ -69,6 +71,10 @@ func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
 		return mphf.ShardHeadersCalled()
 	}
 	return mphf.shardHeaders
+}
+
+func (mphf *MetaPoolsHolderFake) TrieNodes() storage.Cacher {
+	return mphf.trieNodes
 }
 
 func (mphf *MetaPoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {

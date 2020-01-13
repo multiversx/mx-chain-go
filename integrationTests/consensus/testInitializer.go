@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -178,9 +180,8 @@ func createTestBlockChain() data.ChainHandler {
 
 func createMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
 
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit
 }
 
@@ -215,6 +216,9 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -226,6 +230,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		trieNodes,
 		currTxs,
 	)
 
@@ -236,8 +241,21 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
 
-	tr, _ := trie.NewTrie(store, marsh, hasher)
+	// TODO change this implementation with a factory
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := &config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
+
+	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

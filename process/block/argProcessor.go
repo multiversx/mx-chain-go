@@ -41,8 +41,9 @@ type ArgBaseProcessor struct {
 // new instances of shard processor
 type ArgShardProcessor struct {
 	ArgBaseProcessor
-	DataPool        dataRetriever.PoolsHolder
-	TxsPoolsCleaner process.PoolsCleaner
+	DataPool               dataRetriever.PoolsHolder
+	TxsPoolsCleaner        process.PoolsCleaner
+	StateCheckpointModulus uint
 }
 
 // ArgMetaProcessor holds all dependencies required by the process data factory in order to create

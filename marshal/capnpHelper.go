@@ -1,4 +1,4 @@
-package data
+package marshal
 
 import (
 	"io"

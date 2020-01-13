@@ -23,6 +23,7 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -39,6 +40,7 @@ func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -61,6 +63,7 @@ func TestNewShardedDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -77,6 +80,7 @@ func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.Uint64SyncMapCacherStub{},
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -99,6 +103,7 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -116,6 +121,7 @@ func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		nil,
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -137,6 +143,7 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -156,10 +163,31 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMetaBlockPool, err)
+	assert.Nil(t, tdp)
+}
+
+func TestNewShardedDataPool_NilTrieNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		nil,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilTrieNodesPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -172,6 +200,7 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	txBlocks := &mock.CacherStub{}
 	peersBlock := &mock.CacherStub{}
 	metaChainBlocks := &mock.CacherStub{}
+	trieNodes := &mock.CacherStub{}
 	tdp, err := dataPool.NewShardedDataPool(
 		transactions,
 		scResults,
@@ -181,6 +210,7 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 		txBlocks,
 		peersBlock,
 		metaChainBlocks,
+		trieNodes,
 		&mock.TxForCurrentBlockStub{},
 	)
 
