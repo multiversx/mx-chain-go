@@ -371,8 +371,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		sw.Add(swInner)
-
+		swInner.Start("ComputeDecreaseAllValidators")
 		for j := 1; j < len(consensusGroup); j++ {
 			validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
 			if verr != nil {
@@ -383,7 +382,15 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 			if verr != nil {
 				return verr
 			}
+
+			newRating = vs.rater.ComputeDecreaseValidator(validatorPeerAccount.GetTempRating())
+			verr = validatorPeerAccount.SetTempRatingWithJournal(newRating)
+			if verr != nil {
+				return verr
+			}
 		}
+		swInner.Stop("ComputeDecreaseAllValidators")
+		sw.Add(swInner)
 	}
 
 	return nil
@@ -728,7 +735,7 @@ func (vs *validatorStatistics) createMediator() shardMetaMediator {
 	}
 }
 
-func (p *validatorStatistics) computeValidatorActionType(isLeader, validatorSigned bool) validatorActionType {
+func (vs *validatorStatistics) computeValidatorActionType(isLeader, validatorSigned bool) validatorActionType {
 	if isLeader && validatorSigned {
 		return leaderSuccess
 	}
