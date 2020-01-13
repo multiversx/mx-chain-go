@@ -24,6 +24,7 @@ type AccountsStub struct {
 	SnapshotStateCalled         func(rootHash []byte)
 	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
@@ -100,6 +101,10 @@ func (aam *AccountsStub) SnapshotState(rootHash []byte) {
 
 func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 	aam.SetStateCheckpointCalled(rootHash)
+}
+
+func (aam *AccountsStub) IsPruningEnabled() bool {
+	return aam.IsPruningEnabledCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
