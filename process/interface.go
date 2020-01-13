@@ -224,6 +224,7 @@ type BlockProcessor interface {
 	RestoreLastNotarizedHrdsToGenesis()
 	SetNumProcessedObj(numObj uint64)
 	ValidatorStatisticsProcessor() ValidatorStatisticsProcessor
+	ApplyValidatorStatistics(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

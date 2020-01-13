@@ -1651,13 +1651,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	//sw.Start("UpdatePeerState")
-	//metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
-	//sw.Stop("UpdatePeerState")
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	sw.Start("createEpochStartForMetablock")
 	epochStart, err := mp.createEpochStartForMetablock()
 	sw.Stop("createEpochStartForMetablock")
@@ -1671,6 +1664,18 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
 	return body, nil
+}
+
+// ApplyValidatorStatistics calculates the new statistics root hash and updates the metachain header with the new value
+func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	vrh, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	header.SetValidatorStatsRootHash(vrh)
+
+	return nil
 }
 
 func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
