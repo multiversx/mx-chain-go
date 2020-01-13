@@ -3,6 +3,7 @@ package networksharding
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -209,4 +210,18 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, unknownPids[0], evictList[0])
+}
+
+//------- computeDistance
+
+func TestComputeDistance(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, uint64(0), computeDistance("", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistance("a", "").Uint64())
+	assert.Equal(t, uint64(0), computeDistance("a", "a").Uint64())
+	assert.Equal(t, uint64(1), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
+	assert.Equal(t, uint64(255), computeDistance(peer.ID([]byte{0}), peer.ID([]byte{255})).Uint64())
+	expectedResult := big.NewInt(0).SetBytes([]byte{255, 127})
+	assert.Equal(t, expectedResult.Uint64(), computeDistance(peer.ID([]byte{0, 128}), peer.ID([]byte{255, 255})).Uint64())
 }

@@ -76,7 +76,7 @@ func (lks *listKadSharder) ComputeEvictList(pid peer.ID, connected []peer.ID) []
 	if sum <= lks.maxPeerCount {
 		return evictionProposed
 	}
-	unknownShard, e = lks.evict(unknownShard, lks.maxPeerCount+1-len(intraShard)-len(crossShard))
+	_, e = lks.evict(unknownShard, lks.maxPeerCount+1-len(intraShard)-len(crossShard))
 
 	return append(evictionProposed, e...)
 }
