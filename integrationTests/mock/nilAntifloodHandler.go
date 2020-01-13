@@ -12,6 +12,11 @@ func (nah *NilAntifloodHandler) CanProcessMessage(message p2p.MessageP2P, fromCo
 	return nil
 }
 
+// CanProcessMessageOnTopic will always return nil, allowing messages to go to interceptors
+func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nah *NilAntifloodHandler) IsInterfaceNil() bool {
 	return nah == nil
