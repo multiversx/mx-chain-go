@@ -94,6 +94,7 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData) error
 	Save(data InterceptedData) error
+	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 
@@ -436,6 +437,7 @@ type RequestHandler interface {
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestTrieNodes(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
 }
 

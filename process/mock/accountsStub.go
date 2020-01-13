@@ -21,6 +21,11 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -139,10 +144,41 @@ func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
+func (aam *AccountsStub) PruneTrie(rootHash []byte) error {
+	if aam.PruneTrieCalled != nil {
+		return aam.PruneTrieCalled(rootHash)
+	}
+
+	return errNotImplemented
+}
+
+func (aam *AccountsStub) CancelPrune(rootHash []byte) {
+	if aam.CancelPruneCalled != nil {
+		aam.CancelPruneCalled(rootHash)
+	}
+}
+
+func (aam *AccountsStub) SnapshotState(rootHash []byte) {
+	if aam.SnapshotStateCalled != nil {
+		aam.SnapshotStateCalled(rootHash)
+	}
+}
+
+func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+	if aam.SetStateCheckpointCalled != nil {
+		aam.SetStateCheckpointCalled(rootHash)
+	}
+}
+
+func (aam *AccountsStub) IsPruningEnabled() bool {
+	if aam.IsPruningEnabledCalled != nil {
+		aam.IsPruningEnabledCalled()
+	}
+
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (aam *AccountsStub) IsInterfaceNil() bool {
-	if aam == nil {
-		return true
-	}
-	return false
+	return aam == nil
 }

@@ -374,13 +374,17 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	copy(jEntries, adb.entries)
 	adb.mutEntries.RUnlock()
 
+	oldHashes := make([][]byte, 0)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
+		oldTrieHashes := dataTries[i].ResetOldHashes()
 		err := dataTries[i].Commit()
 		if err != nil {
 			return nil, err
 		}
+
+		oldHashes = append(oldHashes, oldTrieHashes...)
 	}
 	adb.dataTries.Reset()
 
@@ -388,6 +392,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.clearJournal()
 
 	//Step 3. commit main trie
+	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err := adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
@@ -457,10 +462,32 @@ func (adb *AccountsDB) clearJournal() {
 	adb.mutEntries.Unlock()
 }
 
+// PruneTrie removes old values from the trie database
+func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
+	return adb.mainTrie.Prune(rootHash, data.OldRoot)
+}
+
+// CancelPrune clears the trie's evictionWaitingList
+func (adb *AccountsDB) CancelPrune(rootHash []byte) {
+	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
+}
+
+// SnapshotState triggers the snapshotting process of the state trie
+func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+	adb.mainTrie.TakeSnapshot(rootHash)
+}
+
+// SetStateCheckpoint sets a checkpoint for the state trie
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mainTrie.SetCheckpoint(rootHash)
+}
+
+// IsPruningEnabled returns true if state pruning is enabled
+func (adb *AccountsDB) IsPruningEnabled() bool {
+	return adb.mainTrie.IsPruningEnabled()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
-	if adb == nil {
-		return true
-	}
-	return false
+	return adb == nil
 }

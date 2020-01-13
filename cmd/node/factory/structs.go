@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -203,9 +204,24 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	merkleTrie, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.pathManager, args.shardId)
+	trieFactoryArgs := factory.TrieFactoryArgs{
+		Cfg:                    args.config.AccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
-		return nil, errors.New("error creating trie: " + err.Error())
+		return nil, err
+	}
+
+	merkleTrie, err := trieFactory.Create()
+	if err != nil {
+		return nil, err
 	}
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
@@ -283,13 +299,23 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	} else {
 		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
 	}
-	peerAccountsTrie, err := getTrie(
-		args.config.PeerAccountsTrieStorage,
-		args.core.Marshalizer,
-		args.core.Hasher,
-		args.pathManager,
-		shardId,
-	)
+
+	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
+		Cfg:                    args.config.PeerAccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            args.core.Marshalizer,
+		Hasher:                 args.core.Hasher,
+		PathManager:            args.pathManager,
+		ShardId:                shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -493,26 +519,27 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents        *coreComponentsFactoryArgs
-	genesisConfig         *sharding.Genesis
-	economicsData         *economics.EconomicsData
-	nodesConfig           *sharding.NodesSetup
-	gasSchedule           map[string]map[string]uint64
-	syncer                ntp.SyncTimer
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	data                  *Data
-	core                  *Core
-	crypto                *Crypto
-	state                 *State
-	network               *Network
-	coreServiceContainer  serviceContainer.Core
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	epochStartNotifier    EpochStartNotifier
-	epochStart            *config.EpochStartConfig
-	startEpochNum         uint32
-	rater                 sharding.RaterHandler
-	sizeCheckDelta        uint32
+	coreComponents         *coreComponentsFactoryArgs
+	genesisConfig          *sharding.Genesis
+	economicsData          *economics.EconomicsData
+	nodesConfig            *sharding.NodesSetup
+	gasSchedule            map[string]map[string]uint64
+	syncer                 ntp.SyncTimer
+	shardCoordinator       sharding.Coordinator
+	nodesCoordinator       sharding.NodesCoordinator
+	data                   *Data
+	core                   *Core
+	crypto                 *Crypto
+	state                  *State
+	network                *Network
+	coreServiceContainer   serviceContainer.Core
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	epochStartNotifier     EpochStartNotifier
+	epochStart             *config.EpochStartConfig
+	startEpochNum          uint32
+	rater                  sharding.RaterHandler
+	sizeCheckDelta         uint32
+	stateCheckpointModulus uint
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -537,28 +564,30 @@ func NewProcessComponentsFactoryArgs(
 	startEpochNum uint32,
 	rater sharding.RaterHandler,
 	sizeCheckDelta uint32,
+	stateCheckpointModulus uint,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:        coreComponents,
-		genesisConfig:         genesisConfig,
-		economicsData:         economicsData,
-		nodesConfig:           nodesConfig,
-		gasSchedule:           gasSchedule,
-		syncer:                syncer,
-		shardCoordinator:      shardCoordinator,
-		nodesCoordinator:      nodesCoordinator,
-		data:                  data,
-		core:                  core,
-		crypto:                crypto,
-		state:                 state,
-		network:               network,
-		coreServiceContainer:  coreServiceContainer,
-		requestedItemsHandler: requestedItemsHandler,
-		epochStartNotifier:    epochStartNotifier,
-		epochStart:            epochStart,
-		startEpochNum:         startEpochNum,
-		rater:                 rater,
-		sizeCheckDelta:        sizeCheckDelta,
+		coreComponents:         coreComponents,
+		genesisConfig:          genesisConfig,
+		economicsData:          economicsData,
+		nodesConfig:            nodesConfig,
+		gasSchedule:            gasSchedule,
+		syncer:                 syncer,
+		shardCoordinator:       shardCoordinator,
+		nodesCoordinator:       nodesCoordinator,
+		data:                   data,
+		core:                   core,
+		crypto:                 crypto,
+		state:                  state,
+		network:                network,
+		coreServiceContainer:   coreServiceContainer,
+		requestedItemsHandler:  requestedItemsHandler,
+		epochStartNotifier:     epochStartNotifier,
+		epochStart:             epochStart,
+		startEpochNum:          startEpochNum,
+		rater:                  rater,
+		sizeCheckDelta:         sizeCheckDelta,
+		stateCheckpointModulus: stateCheckpointModulus,
 	}
 }
 
@@ -899,28 +928,6 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(
-	cfg config.StorageConfig,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) (data.Trie, error) {
-
-	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
-	dbConfig.FilePath = pathManager.PathForStatic(shardId, cfg.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(cfg.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(cfg.Bloom),
-	)
-	if err != nil {
-		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
-	}
-
-	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher)
-}
-
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
@@ -1054,6 +1061,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	currBlockTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
@@ -1068,6 +1082,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		trieNodes,
 		currBlockTxs,
 	)
 }
@@ -1094,6 +1109,13 @@ func createMetaDataPoolFromConfig(
 	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating shardHeaders")
+		return nil, err
+	}
+
+	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
 		return nil, err
 	}
 
@@ -1129,6 +1151,7 @@ func createMetaDataPoolFromConfig(
 		metaBlockBody,
 		txBlockBody,
 		shardHeaders,
+		trieNodes,
 		headersNonces,
 		txPool,
 		uTxPool,
@@ -1320,6 +1343,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 		sizeCheckDelta,
 	)
 	if err != nil {
@@ -1381,6 +1405,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 		sizeCheckDelta,
 	)
 	if err != nil {
@@ -1676,6 +1701,7 @@ func newBlockProcessor(
 			validatorStatisticsProcessor,
 			bootStorer,
 			processArgs.gasSchedule,
+			processArgs.stateCheckpointModulus,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1719,6 +1745,7 @@ func newShardBlockProcessor(
 	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
+	stateCheckpointModulus uint,
 ) (process.BlockProcessor, error) {
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
@@ -1938,9 +1965,10 @@ func newShardBlockProcessor(
 		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-		DataPool:         data.Datapool,
-		TxsPoolsCleaner:  txPoolsCleaner,
+		ArgBaseProcessor:       argumentsBaseProcessor,
+		DataPool:               data.Datapool,
+		TxsPoolsCleaner:        txPoolsCleaner,
+		StateCheckpointModulus: stateCheckpointModulus,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
@@ -2235,8 +2263,12 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+	if err != nil {
+		return nil, err
+	}
 
-	tr, err := trie.NewTrie(createMemUnit(), marshalizer, hasher)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -2256,13 +2288,7 @@ func createMemUnit() storage.Storer {
 		return nil
 	}
 
-	persist, err := memorydb.New()
-	if err != nil {
-		log.Error("error creating persister for mem unit " + err.Error())
-		return nil
-	}
-
-	unit, err := storageUnit.NewStorageUnit(cache, persist)
+	unit, err := storageUnit.NewStorageUnit(cache, memorydb.New())
 	if err != nil {
 		log.Error("error creating unit " + err.Error())
 		return nil
@@ -2310,6 +2336,11 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
+	trieNodesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
 	currTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
@@ -2319,6 +2350,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		metaBlocks,
 		txBlockBody,
 		shardHeaders,
+		trieNodesCacher,
 		shardHeadersNonces,
 		txPool,
 		uTxPool,

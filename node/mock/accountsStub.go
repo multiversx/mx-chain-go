@@ -19,6 +19,11 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
@@ -77,10 +82,27 @@ func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return aam.RecreateTrieCalled(rootHash)
 }
 
+func (aam *AccountsStub) PruneTrie(rootHash []byte) error {
+	return aam.PruneTrieCalled(rootHash)
+}
+
+func (aam *AccountsStub) CancelPrune(rootHash []byte) {
+	aam.CancelPruneCalled(rootHash)
+}
+
+func (aam *AccountsStub) SnapshotState(rootHash []byte) {
+	aam.SnapshotStateCalled(rootHash)
+}
+
+func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+	aam.SetStateCheckpointCalled(rootHash)
+}
+
+func (aam *AccountsStub) IsPruningEnabled() bool {
+	return aam.IsPruningEnabledCalled()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (aam *AccountsStub) IsInterfaceNil() bool {
-	if aam == nil {
-		return true
-	}
-	return false
+	return aam == nil
 }
