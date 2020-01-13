@@ -58,7 +58,7 @@ type syncState struct {
 	shardCoordinator sharding.Coordinator
 	trieSyncers      update.TrieSyncContainer
 	epochHandler     update.EpochStartVerifier
-	requestHandler   process.RequestHandler
+	requestHandler   update.RequestHandler
 	headerValidator  process.HeaderConstructionValidator
 
 	tries        map[string]data.Trie
@@ -119,6 +119,9 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 	}
 	if check.IfNil(args.HeaderValidator) {
 		return nil, process.ErrNilHeaderValidator
+	}
+	if check.IfNil(args.AccountHandlers) {
+		return nil, update.ErrNilActiveAccountHandlersContainer
 	}
 
 	ss := &syncState{

@@ -28,11 +28,10 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool            dataRetriever.PoolsHolder
-	Storage             dataRetriever.StorageService
-	RequestHandler      epochStart.RequestHandler
-	EpochStartNotifier  epochStart.StartOfEpochNotifier
-	EpochChangeNotifier epochStart.StartOfEpochNotifier
+	DataPool           dataRetriever.PoolsHolder
+	Storage            dataRetriever.StorageService
+	RequestHandler     epochStart.RequestHandler
+	EpochStartNotifier epochStart.StartOfEpochNotifier
 
 	Epoch    uint32
 	Validity uint64

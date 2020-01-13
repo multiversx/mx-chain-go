@@ -57,7 +57,17 @@ func (si *stateImport) ImportAll() error {
 		}
 	}
 
+	si.reader.Finish()
+
 	err = si.processTransactions()
+	if err != nil {
+		return err
+	}
+
+	err = si.createGenesisBlocks()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -239,16 +249,17 @@ func (si *stateImport) importTrie(fileName string) error {
 }
 
 func (si *stateImport) processTransactions() error {
+	// TODO: implement
+	return nil
+}
+
+func (si *stateImport) createGenesisBlocks() error {
+	// TODO: implement
 	return nil
 }
 
 func (si *stateImport) GetAllGenesisBlocks() map[uint32]data.HeaderHandler {
 	return si.genesisHeaders
-}
-
-func (si *stateImport) ImportDataFor(shId uint32) error {
-
-	return nil
 }
 
 func (si *stateImport) IsInterfaceNil() bool {

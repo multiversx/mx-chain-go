@@ -74,6 +74,7 @@ type HistoryStorer interface {
 	IsInterfaceNil() bool
 }
 
+// MultiFileWriter writes the pushed data in several files in a buffered way
 type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
@@ -81,9 +82,33 @@ type MultiFileWriter interface {
 	IsInterfaceNil() bool
 }
 
+// MultiFileReaders reads data from several files in a buffered way
 type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
 	Finish()
+	IsInterfaceNil() bool
+}
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestStartOfEpochMetaBlock(epoch uint32)
+	IsInterfaceNil() bool
+}
+
+// ExportHandler defines the methods to export the current state of the blockchain
+type ExportHandler interface {
+	ExportAll(epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ImportHandler defines the methods to import the full state of the blockchain
+type ImportHandler interface {
+	ImportAll() error
+	GetAllGenesisBlocks() map[uint32]data.HeaderHandler
 	IsInterfaceNil() bool
 }

@@ -21,3 +21,5 @@ var ErrNilDataReader = errors.New("nil data reader")
 var ErrInvalidFolderName = errors.New("invalid folder name")
 
 var ErrNilStorage = errors.New("nil storage")
+
+var ErrNilActiveAccountHandlersContainer = errors.New("nil active account handlers container")
