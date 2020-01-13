@@ -293,21 +293,8 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	if header.PubKeysBitmap == nil {
-		return nil
-	}
-
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
-		log.Debug("validator stats root hash mismatch",
-			"computed", validatorStatsRH,
-			"received", header.GetValidatorStatsRootHash(),
-		)
-		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}
 
@@ -1674,6 +1661,30 @@ func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) err
 	}
 
 	header.SetValidatorStatsRootHash(vrh)
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
+	// If PubKeysBitmap this method is called from process in consensus before the bitmap is actually added
+	//  to the header, thus we cannot update the peer state yet
+	if header.PubKeysBitmap == nil {
+		return nil
+	}
+
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
+		log.Debug("validator stats root hash mismatch",
+			"computed", validatorStatsRH,
+			"received", header.GetValidatorStatsRootHash(),
+		)
+		err = process.ErrValidatorStatsRootHashDoesNotMatch
+		return err
+	}
 
 	return nil
 }
