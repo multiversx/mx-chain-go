@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p"
@@ -55,7 +56,7 @@ type networkMessenger struct {
 	ctxProvider         *Libp2pContext
 	pb                  *pubsub.PubSub
 	ds                  p2p.DirectSender
-	connMonitor         *libp2pConnectionMonitor
+	connMonitor         *connectionMonitor.libp2pConnectionMonitor
 	peerDiscoverer      p2p.PeerDiscoverer
 	mutTopics           sync.RWMutex
 	topics              map[string]*pubsub.Topic
@@ -164,7 +165,7 @@ func createMessenger(
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
 	}
-	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+	netMes.connMonitor, err = connectionMonitor.newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
 	if err != nil {
 		return nil, err
 
