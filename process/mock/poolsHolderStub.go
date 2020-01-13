@@ -6,8 +6,7 @@ import (
 )
 
 type PoolsHolderStub struct {
-	HeadersCalled              func() storage.Cacher
-	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
+	HeadersCalled              func() dataRetriever.HeadersPool
 	PeerChangesBlocksCalled    func() storage.Cacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
@@ -21,12 +20,8 @@ func (phs *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return phs.CurrBlockTxsCalled()
 }
 
-func (phs *PoolsHolderStub) Headers() storage.Cacher {
+func (phs *PoolsHolderStub) Headers() dataRetriever.HeadersPool {
 	return phs.HeadersCalled()
-}
-
-func (phs *PoolsHolderStub) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phs.HeadersNoncesCalled()
 }
 
 func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
