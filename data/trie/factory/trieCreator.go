@@ -22,7 +22,7 @@ type trieCreator struct {
 
 // NewTrieFactory creates a new trie factory
 func NewTrieFactory(
-	args *TrieFactoryArgs,
+	args TrieFactoryArgs,
 ) (*trieCreator, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, trie.ErrNilMarshalizer

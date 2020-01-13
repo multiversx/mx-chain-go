@@ -203,7 +203,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	trieFactoryArgs := &factory.TrieFactoryArgs{
+	trieFactoryArgs := factory.TrieFactoryArgs{
 		Cfg:                    args.config.AccountsTrieStorage,
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
 		SnapshotDbCfg:          args.config.TrieSnapshotDB,
@@ -299,7 +299,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
 	}
 
-	peerAccountsTrieFactoryArguments := &factory.TrieFactoryArgs{
+	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
 		Cfg:                    args.config.PeerAccountsTrieStorage,
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
 		SnapshotDbCfg:          args.config.TrieSnapshotDB,
