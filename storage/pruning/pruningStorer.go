@@ -272,11 +272,11 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 		}
 	}
 
-	log.Debug("SearchFirst - key not found",
-		"key", base64.StdEncoding.EncodeToString(key),
-		"num active persisters", len(ps.activePersisters))
-
-	return nil, fmt.Errorf("%w - SearchFirst", storage.ErrKeyNotFound)
+	return nil, fmt.Errorf("%w - SearchFirst, key = %s, num active persisters = %d",
+		storage.ErrKeyNotFound,
+		base64.StdEncoding.EncodeToString(key),
+		len(ps.activePersisters),
+	)
 }
 
 // Has checks if the key is in the Unit.

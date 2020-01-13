@@ -208,10 +208,7 @@ func (u *Unit) DestroyUnit() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (u *Unit) IsInterfaceNil() bool {
-	if u == nil {
-		return true
-	}
-	return false
+	return u == nil
 }
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
