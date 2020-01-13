@@ -121,14 +121,17 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 			return 1
 		}}
 
-	nc, _ := NewIndexHashedNodesCoordinator(arguments)
+	nc, err := NewIndexHashedNodesCoordinator(arguments)
+	assert.Nil(t, err)
+	assert.Equal(t, false, raterCalled)
+	assert.Equal(t, false, chancesCalled)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
+	assert.Equal(t, true, raterCalled)
+	assert.Equal(t, true, chancesCalled)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list2))
-	assert.Equal(t, false, raterCalled)
-	assert.Equal(t, false, chancesCalled)
 }
 
 func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"math/big"
 	"strconv"
 	"sync/atomic"
@@ -288,6 +289,8 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	nodesWithRater, ok := tpn.NodesCoordinator.(*NodesWithRater)
 	if ok {
 		tpn.Rater = nodesWithRater.RaterHandler
+	} else {
+		tpn.Rater, _ = rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
