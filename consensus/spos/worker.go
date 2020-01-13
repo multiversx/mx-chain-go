@@ -255,6 +255,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
+	// TopicIDs is a slice but contains a single element, so the topic ID is the first entry in the slice
+	topicIDs := message.TopicIDs()
+	if topicIDs != nil && len(topicIDs) > 0 {
+		err = wrk.antifloodHandler.CanProcessMessageOnTopic(message, fromConnectedPeer, topicIDs[0])
+		if err != nil {
+			return err
+		}
+	}
+
 	cnsDta := &consensus.Message{}
 	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {

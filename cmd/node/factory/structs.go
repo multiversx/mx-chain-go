@@ -564,6 +564,11 @@ func createAntifloodAndBlackListComponents(
 		return nil, nil, err
 	}
 
+	topicFloodPreventer, err := processAntiflood.NewTopicFloodPreventer(peerMaxMessagesPerSecond)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	log.Debug("started antiflood & blacklist components",
 		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
 		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
@@ -578,7 +583,7 @@ func createAntifloodAndBlackListComponents(
 	startResetingFloodPreventer(floodPreventer)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
-	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer)
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}

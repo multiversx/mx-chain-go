@@ -91,6 +91,9 @@ var ErrInvalidValue = errors.New("invalid value")
 // ErrNilFloodPreventer signals that a nil flood preventer has been provided
 var ErrNilFloodPreventer = errors.New("nil flood preventer")
 
+// ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
+var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
+
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
 
