@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -19,6 +20,8 @@ type trieCreator struct {
 	msh         marshal.Marshalizer
 	hsh         hashing.Hasher
 }
+
+var log = logger.GetOrCreate("trie")
 
 // NewTrieFactory creates a new trie factory
 func NewTrieFactory(
@@ -47,6 +50,7 @@ func NewTrieFactory(
 		return nil, err
 	}
 
+	log.Trace("trie pruning status", "enabled", args.PruningEnabled)
 	if !args.PruningEnabled {
 		trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 		if err != nil {

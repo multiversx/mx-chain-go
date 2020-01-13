@@ -130,7 +130,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // copyBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []data.TransactionHandler, batchSize int) int {
+func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []data.TransactionHandler, destinationHashes [][]byte, batchSize int) int {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
@@ -156,6 +156,7 @@ func (listForSender *txListForSender) copyBatchTo(withReset bool, destination []
 
 		value := element.Value.(txListForSenderNode)
 		destination[copied] = value.tx
+		destinationHashes[copied] = value.txHash
 		element = element.Next()
 	}
 
