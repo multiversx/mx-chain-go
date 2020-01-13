@@ -4,24 +4,24 @@ import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 
 //TODO: implement a real epoch provider by nonce
 
-// fakeEpochProviderByNonce will use the epoch handler to return the current epoch
-type fakeEpochProviderByNonce struct {
+// simpleEpochProviderByNonce will use the epoch handler to return the current epoch
+type simpleEpochProviderByNonce struct {
 	epochHandler dataRetriever.EpochHandler
 }
 
-// NewFakeEpochProviderByNonce will return a new instance of fakeEpochProviderByNonce
-func NewFakeEpochProviderByNonce(epochHandler dataRetriever.EpochHandler) *fakeEpochProviderByNonce {
-	return &fakeEpochProviderByNonce{
+// NewSimpleEpochProviderByNonce will return a new instance of simpleEpochProviderByNonce
+func NewSimpleEpochProviderByNonce(epochHandler dataRetriever.EpochHandler) *simpleEpochProviderByNonce {
+	return &simpleEpochProviderByNonce{
 		epochHandler: epochHandler,
 	}
 }
 
 // EpochForNonce will return the current epoch from the epoch handler
-func (fepbn *fakeEpochProviderByNonce) EpochForNonce(nonce uint64) (uint32, error) {
-	return fepbn.epochHandler.Epoch(), nil
+func (sepbn *simpleEpochProviderByNonce) EpochForNonce(nonce uint64) (uint32, error) {
+	return sepbn.epochHandler.Epoch(), nil
 }
 
 // IsInterfaceNil returns true if there is not value under the interface
-func (fepbn *fakeEpochProviderByNonce) IsInterfaceNil() bool {
-	return fepbn == nil
+func (sepbn *simpleEpochProviderByNonce) IsInterfaceNil() bool {
+	return sepbn == nil
 }

@@ -69,7 +69,7 @@ func NewHeaderResolver(
 		marshalizer:          marshalizer,
 		nonceConverter:       nonceConverter,
 		epochHandler:         epochHandler,
-		epochProviderByNonce: NewFakeEpochProviderByNonce(epochHandler),
+		epochProviderByNonce: NewSimpleEpochProviderByNonce(epochHandler),
 	}
 
 	return hdrResolver, nil
@@ -123,10 +123,12 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	if err != nil {
 		return nil, dataRetriever.ErrInvalidNonceByteSlice
 	}
+
 	epoch, err := hdrRes.epochProviderByNonce.EpochForNonce(nonce)
 	if err != nil {
 		return nil, err
 	}
+
 	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
