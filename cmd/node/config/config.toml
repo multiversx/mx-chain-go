@@ -346,5 +346,5 @@
 
 [StateTrieConfig]
     RoundsModulus = 100
-    # TODO: change this true when bugs are fixed
+    # TODO: change this to true when pruning bugs are fixed
     PruningEnabled = false
