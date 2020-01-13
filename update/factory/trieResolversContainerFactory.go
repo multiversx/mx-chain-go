@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -18,68 +17,42 @@ import (
 const emptyExcludePeersOnTopic = ""
 
 type resolversContainerFactory struct {
-	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.PoolsHolder
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	intRandomizer            dataRetriever.IntRandomizer
-	dataPacker               dataRetriever.DataPacker
-	trieDataGetter           dataRetriever.TrieDataGetter
+	shardCoordinator  sharding.Coordinator
+	messenger         dataRetriever.TopicMessageHandler
+	marshalizer       marshal.Marshalizer
+	intRandomizer     dataRetriever.IntRandomizer
+	dataTrieContainer update.DataTriesContainer
+}
+
+type ArgsNewResolversContainerFactory struct {
+	ShardCoordinator  sharding.Coordinator
+	Messenger         dataRetriever.TopicMessageHandler
+	Marshalizer       marshal.Marshalizer
+	DataTrieContainer update.DataTriesContainer
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
-func NewResolversContainerFactory(
-	shardCoordinator sharding.Coordinator,
-	messenger dataRetriever.TopicMessageHandler,
-	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.PoolsHolder,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-	dataPacker dataRetriever.DataPacker,
-	trieDataGetter dataRetriever.TrieDataGetter,
-	sizeCheckDelta uint32,
-) (*resolversContainerFactory, error) {
+func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resolversContainerFactory, error) {
 
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if check.IfNil(messenger) {
+	if check.IfNil(args.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if check.IfNil(store) {
-		return nil, dataRetriever.ErrNilTxStorage
-	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if sizeCheckDelta > 0 {
-		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
-	}
-	if check.IfNil(dataPools) {
-		return nil, dataRetriever.ErrNilDataPoolHolder
-	}
-	if check.IfNil(uint64ByteSliceConverter) {
-		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
-	}
-	if check.IfNil(dataPacker) {
-		return nil, dataRetriever.ErrNilDataPacker
-	}
-	if trieDataGetter == nil || trieDataGetter.IsInterfaceNil() {
+	if check.IfNil(args.DataTrieContainer) {
 		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
 	return &resolversContainerFactory{
-		shardCoordinator:         shardCoordinator,
-		messenger:                messenger,
-		store:                    store,
-		marshalizer:              marshalizer,
-		dataPools:                dataPools,
-		uint64ByteSliceConverter: uint64ByteSliceConverter,
-		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:               dataPacker,
-		trieDataGetter:           trieDataGetter,
+		shardCoordinator:  args.ShardCoordinator,
+		messenger:         args.Messenger,
+		marshalizer:       args.Marshalizer,
+		intRandomizer:     &random.ConcurrentSafeIntRandomizer{},
+		dataTrieContainer: args.DataTrieContainer,
 	}, nil
 }
 

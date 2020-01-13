@@ -23,3 +23,5 @@ var ErrInvalidFolderName = errors.New("invalid folder name")
 var ErrNilStorage = errors.New("nil storage")
 
 var ErrNilActiveAccountHandlersContainer = errors.New("nil active account handlers container")
+
+var ErrNilDataTrieContainer = errors.New("nil data trie container")

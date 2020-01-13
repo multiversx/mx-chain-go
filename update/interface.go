@@ -3,7 +3,6 @@ package update
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
@@ -23,17 +22,6 @@ type TrieSyncer interface {
 	IsInterfaceNil() bool
 }
 
-// AccountsHandlerContainer keep a list of AccountsAdapters
-type AccountsHandlerContainer interface {
-	Get(key string) (state.AccountsAdapter, error)
-	Add(key string, val state.AccountsAdapter) error
-	AddMultiple(keys []string, interceptors []state.AccountsAdapter) error
-	Replace(key string, val state.AccountsAdapter) error
-	Remove(key string)
-	Len() int
-	IsInterfaceNil() bool
-}
-
 // TrieSyncerContainer keep a list of TrieSyncer
 type TrieSyncContainer interface {
 	Get(key string) (TrieSyncer, error)
@@ -42,6 +30,14 @@ type TrieSyncContainer interface {
 	Replace(key string, val TrieSyncer) error
 	Remove(key string)
 	Len() int
+	IsInterfaceNil() bool
+}
+
+// DataTriesContainer is used to store multiple tries
+type DataTriesContainer interface {
+	Put([]byte, data.Trie)
+	Get([]byte) data.Trie
+	GetAllTries() map[string]data.Trie
 	IsInterfaceNil() bool
 }
 

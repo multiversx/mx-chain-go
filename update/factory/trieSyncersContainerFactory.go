@@ -1,41 +1,32 @@
 package factory
 
 import (
-	"path"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 )
 
 type ArgsNewTrieSyncersContainerFactory struct {
-	StorageConfig      config.StorageConfig
 	CacheConfig        config.CacheConfig
 	SyncFolder         string
 	ResolversContainer dataRetriever.ResolversContainer
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
+	DataTrieContainer  update.DataTriesContainer
 	ShardCoordinator   sharding.Coordinator
 }
 
 type trieSyncersContainerFactory struct {
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
 	shardCoordinator   sharding.Coordinator
-	trieStorage        data.StorageManager
 	trieCacher         storage.Cacher
+	trieContainer      update.DataTriesContainer
 	resolversContainer dataRetriever.ResolversContainer
 }
 
@@ -49,27 +40,8 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, sharding.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, data.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, sharding.ErrNilHasher
-	}
-
-	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
-	dbConfig.FilePath = path.Join(args.SyncFolder, "syncTries")
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(args.StorageConfig.Bloom),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.DataTrieContainer) {
+		return nil, update.ErrNilDataTrieContainer
 	}
 
 	trieCacher, err := storageUnit.NewCache(storageUnit.CacheType(args.CacheConfig.Type),
@@ -81,12 +53,10 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 	}
 
 	t := &trieSyncersContainerFactory{
-		marshalizer:        args.Marshalizer,
-		hasher:             args.Hasher,
 		shardCoordinator:   args.ShardCoordinator,
-		trieStorage:        trieStorage,
 		trieCacher:         trieCacher,
 		resolversContainer: args.ResolversContainer,
+		trieContainer:      args.DataTrieContainer,
 	}
 
 	return t, nil
@@ -126,9 +96,9 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 		return err
 	}
 
-	dataTrie, err := trie.NewTrie(t.trieStorage, t.marshalizer, t.hasher)
-	if err != nil {
-		return err
+	dataTrie := t.trieContainer.Get([]byte(trieId))
+	if check.IfNil(dataTrie) {
+		return update.ErrNilDataTrieContainer
 	}
 
 	trieSyncer, err := trie.NewTrieSyncer(resolver, t.trieCacher, dataTrie, time.Minute)

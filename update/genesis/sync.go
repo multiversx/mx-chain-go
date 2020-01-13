@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -61,10 +62,10 @@ type syncState struct {
 	requestHandler   update.RequestHandler
 	headerValidator  process.HeaderConstructionValidator
 
-	tries        map[string]data.Trie
+	tries        update.DataTriesContainer
 	syncingEpoch uint32
 
-	activeAccountsAdapters update.AccountsHandlerContainer
+	activeDataTries update.DataTriesContainer
 
 	miniBlocks   pendingMiniBlocks
 	transactions pendingTransactions
@@ -82,7 +83,7 @@ type ArgsNewSyncState struct {
 	DataPools        dataRetriever.PoolsHolder
 	RequestHandler   process.RequestHandler
 	HeaderValidator  process.HeaderConstructionValidator
-	AccountHandlers  update.AccountsHandlerContainer
+	ActiveDataTries  update.DataTriesContainer
 }
 
 // NewSyncState creates a complete syncer which saves the state of the blockchain with pending values as well
@@ -120,21 +121,21 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 	if check.IfNil(args.HeaderValidator) {
 		return nil, process.ErrNilHeaderValidator
 	}
-	if check.IfNil(args.AccountHandlers) {
+	if check.IfNil(args.ActiveDataTries) {
 		return nil, update.ErrNilActiveAccountHandlersContainer
 	}
 
 	ss := &syncState{
-		hasher:                 args.Hasher,
-		marshalizer:            args.Marshalizer,
-		shardCoordinator:       args.ShardCoordinator,
-		trieSyncers:            args.TrieSyncers,
-		epochHandler:           args.EpochHandler,
-		requestHandler:         args.RequestHandler,
-		headerValidator:        args.HeaderValidator,
-		tries:                  make(map[string]data.Trie),
-		syncingEpoch:           0,
-		activeAccountsAdapters: args.AccountHandlers,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		shardCoordinator: args.ShardCoordinator,
+		trieSyncers:      args.TrieSyncers,
+		epochHandler:     args.EpochHandler,
+		requestHandler:   args.RequestHandler,
+		headerValidator:  args.HeaderValidator,
+		tries:            state.NewDataTriesHolder(),
+		syncingEpoch:     0,
+		activeDataTries:  args.ActiveDataTries,
 	}
 
 	ss.headers = headersToSync{
@@ -322,25 +323,26 @@ func (ss *syncState) syncTrieOfType(accountType factory.Type, shardId uint32, ro
 		return err
 	}
 
-	ss.tries[accAdapterIdentifier] = trieSyncer.Trie()
+	ss.tries.Put([]byte(accAdapterIdentifier), trieSyncer.Trie())
 	return nil
 }
 
 func (ss *syncState) tryRecreateTrie(id string, rootHash []byte) bool {
-	savedTrie, ok := ss.tries[id]
-	if ok {
+	savedTrie := ss.tries.Get([]byte(id))
+	if !check.IfNil(savedTrie) {
 		currHash, err := savedTrie.Root()
 		if err == nil && bytes.Equal(currHash, rootHash) {
 			return true
 		}
 	}
 
-	accounts, err := ss.activeAccountsAdapters.Get(id)
-	if err != nil {
+	activeTrie := ss.activeDataTries.Get([]byte(id))
+	if check.IfNil(activeTrie) {
 		return false
 	}
 
-	trie, err := accounts.CopyRecreateTrie(rootHash)
+	activeTrie.SetCheckpoint(rootHash)
+	trie, err := activeTrie.Recreate(rootHash)
 	if err != nil {
 		return false
 	}
@@ -350,7 +352,7 @@ func (ss *syncState) tryRecreateTrie(id string, rootHash []byte) bool {
 		return false
 	}
 
-	ss.tries[id] = trie
+	ss.tries.Put([]byte(id), trie)
 	return true
 }
 
@@ -644,7 +646,7 @@ func (ss *syncState) GetMetaBlock() *block.MetaBlock {
 }
 
 func (ss *syncState) GetAllTries() (map[string]data.Trie, error) {
-	return ss.tries, nil
+	return ss.tries.GetAllTries(), nil
 }
 
 func (ss *syncState) GetAllTransactions() (map[string]data.TransactionHandler, error) {
