@@ -372,7 +372,7 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
