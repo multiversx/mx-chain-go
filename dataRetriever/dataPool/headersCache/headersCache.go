@@ -2,9 +2,10 @@ package headersCache
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -18,7 +19,7 @@ type headersCache struct {
 	maxHeadersPerShard int
 }
 
-func newHeadersCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersCache {
+func newHeadersCache(numMaxHeaderPerShard int, numHeadersToRemove int) *headersCache {
 	return &headersCache{
 		headersNonceCache:  make(map[uint32]listOfHeadersByNonces),
 		headersCounter:     make(numHeadersByShard),
@@ -29,6 +30,10 @@ func newHeadersCache(numHeadersToRemove int, numMaxHeaderPerShard int) *headersC
 }
 
 func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandler) bool {
+	if check.IfNil(header) || len(headerHash) == 0 {
+		return false
+	}
+
 	headerShardId := header.GetShardID()
 	headerNonce := header.GetNonce()
 
@@ -111,6 +116,10 @@ func (cache *headersCache) removeHeaderByNonceAndShardId(headerNonce uint64, sha
 }
 
 func (cache *headersCache) removeHeaderByHash(hash []byte) {
+	if len(hash) == 0 {
+		return
+	}
+
 	info, ok := cache.headersByHash.getElement(hash)
 	if !ok {
 		return

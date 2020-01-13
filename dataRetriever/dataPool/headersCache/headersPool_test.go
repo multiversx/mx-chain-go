@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
@@ -18,7 +19,11 @@ import (
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 100},
+	)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -40,7 +45,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	require.Equal(t, testHdr2, header)
 
 	expectedHeaders := []data.HeaderHandler{testHdr1, testHdr2}
-	headers, _, err := headersCacher.GetHeaderByNonceAndShardId(nonce, shardId)
+	headers, _, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	require.Nil(t, err)
 	require.Equal(t, expectedHeaders, headers)
 }
@@ -48,7 +53,11 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 func Test_RemoveHeaderByHash(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 100},
+	)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -75,7 +84,11 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 100},
+	)
 
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -103,7 +116,11 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 
 	numHeadersToGenerate := 1001
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
-	headersCacher, _ := headersCache.NewHeadersPool(900, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            900,
+			NumElementsToRemoveOnEviction: 100},
+	)
 
 	for i := 0; i < numHeadersToGenerate; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
@@ -125,7 +142,11 @@ func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
 	numHeadersToGenerate := 50
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
-	headersCacher, _ := headersCache.NewHeadersPool(numHeadersToGenerate+1, 10)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            numHeadersToGenerate + 1,
+			NumElementsToRemoveOnEviction: 10},
+	)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -148,7 +169,11 @@ func TestHeadersCacher_ConcurrentRequests_WithEviction(t *testing.T) {
 	numHeadersToGenerate := 50
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 1},
+	)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -188,7 +213,11 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 	hash1, hash2, hash3 := []byte("hash1"), []byte("hash2"), []byte("hash3")
 	header1, header2, header3 := &block.Header{Nonce: 0}, &block.Header{Nonce: 0}, &block.Header{Nonce: 1}
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 1},
+	)
 	headersCacher.AddHeader(hash1, header1)
 	headersCacher.AddHeader(hash2, header2)
 	headersCacher.AddHeader(hash3, header3)
@@ -207,7 +236,12 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	numHeaders := 200
 	shardId := uint32(0)
 	headers, headersHash := createASliceOfHeaders(numHeaders, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 50)
+
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 50},
+	)
 
 	var waitgroup sync.WaitGroup
 	for i := 0; i < numHeaders; i++ {
@@ -230,7 +264,11 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 	shardId := uint32(0)
 
 	headers, headersHash := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 50)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 50},
+	)
 
 	start := time.Now()
 	for i := 0; i < numHeadersToGenerate; i++ {
@@ -246,7 +284,7 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 	fmt.Printf("get header by hash took %s \n", elapsed)
 
 	start = time.Now()
-	d, _, _ := headersCacher.GetHeaderByNonceAndShardId(uint64(100), shardId)
+	d, _, _ := headersCacher.GetHeadersByNonceAndShardId(uint64(100), shardId)
 	elapsed = time.Since(start)
 	fmt.Printf("get header by shard id and nonce took %s \n", elapsed)
 	require.Equal(t, &headers[100], d[0])
@@ -273,15 +311,18 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *testing.T) {
 	t.Parallel()
 
-	cacheSize := 101
-	numHdrsToGenerate := 100
+	cacheSize := 51
+	numHdrsToGenerate := 50
 
 	headersShard0, hashesShad0 := createASliceOfHeadersNonce0(numHdrsToGenerate, 0)
 	headersShard1, hashesShad1 := createASliceOfHeaders(numHdrsToGenerate, 1)
 	headersShard2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
-	numElemsToRemove := 50
-
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numElemsToRemove)
+	numElemsToRemove := 25
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: numElemsToRemove},
+	)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()
@@ -338,7 +379,11 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 	numHeadersToGenerate := 3
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 1},
+	)
 
 	for i := 0; i < numHeadersToGenerate-1; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
@@ -372,14 +417,18 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 	numHeadersToGenerate := 100
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, 1)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: 1},
+	)
 
 	for i := 0; i < numHeadersToGenerate-1; i++ {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
 		time.Sleep(time.Microsecond)
 	}
 
-	headersFromCache, _, err := headersCacher.GetHeaderByNonceAndShardId(0, shardId)
+	headersFromCache, _, err := headersCacher.GetHeadersByNonceAndShardId(0, shardId)
 	require.Nil(t, err)
 	require.Equal(t, &headers[0], headersFromCache[0])
 
@@ -403,16 +452,20 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	t.Parallel()
 
 	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), sharding.MetachainShardId
-	cacheSize := 100
-	numHeadersToGenerate := 99
-	numElemsToRemove := 50
+	cacheSize := 50
+	numHeadersToGenerate := 49
+	numElemsToRemove := 25
 
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId0)
 	headersShard1, headersHashesShard1 := createASliceOfHeaders(numHeadersToGenerate, shardId1)
 	headersShard2, headersHashesShard2 := createASliceOfHeaders(numHeadersToGenerate, shardId2)
 	headersShardMeta, headersHashesShardMeta := createASliceOfHeaders(numHeadersToGenerate, shardMeta)
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numElemsToRemove)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: numElemsToRemove},
+	)
 
 	var waitgroup sync.WaitGroup
 	start := time.Now()
@@ -475,7 +528,7 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	fmt.Printf("get items by hash took %s \n", elapsed)
 }
 
-func TestHeadersPool_Keys(t *testing.T) {
+func TestHeadersPool_Nonces(t *testing.T) {
 	t.Parallel()
 
 	shardId := uint32(0)
@@ -484,7 +537,11 @@ func TestHeadersPool_Keys(t *testing.T) {
 	numHeadersToRemove := 100
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId)
 
-	headersCacher, _ := headersCache.NewHeadersPool(cacheSize, numHeadersToRemove)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            cacheSize,
+			NumElementsToRemoveOnEviction: numHeadersToRemove},
+	)
 
 	for i := 0; i < numHeadersToGenerate; i++ {
 		headersCacher.AddHeader(headersHashesShard0[i], &headersShard0[i])
@@ -494,7 +551,7 @@ func TestHeadersPool_Keys(t *testing.T) {
 	require.Equal(t, numHeadersToGenerate, headersCacher.Len())
 
 	// get all keys and sort then to can verify if are ok
-	nonces := headersCacher.Keys(shardId)
+	nonces := headersCacher.Nonces(shardId)
 	sort.Slice(nonces, func(i, j int) bool {
 		return nonces[i] < nonces[j]
 	})
@@ -508,11 +565,14 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
-
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 100},
+	)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	handler := func(hash []byte) {
+	handler := func(header data.HeaderHandler, hash []byte) {
 		wasCalled = true
 		wg.Done()
 	}
@@ -528,7 +588,11 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 func TestHeadersPool_Clear(t *testing.T) {
 	t.Parallel()
 
-	headersCacher, _ := headersCache.NewHeadersPool(1000, 100)
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 10},
+	)
 	header, hash := createASliceOfHeaders(1, 0)
 	headersCacher.AddHeader(hash[0], &header[0])
 
