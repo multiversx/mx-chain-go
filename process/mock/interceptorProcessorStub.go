@@ -15,6 +15,9 @@ func (ips *InterceptorProcessorStub) Save(data process.InterceptedData) error {
 	return ips.SaveCalled(data)
 }
 
+func (ips *InterceptorProcessorStub) SignalEndOfProcessing(data []process.InterceptedData) {
+}
+
 func (ips *InterceptorProcessorStub) IsInterfaceNil() bool {
 	if ips == nil {
 		return true

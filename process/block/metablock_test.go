@@ -1763,6 +1763,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Equal(t, 0, len(highestNonceHdrs))
+	assert.Nil(t, err)
 
 	pool.ShardHeaders().Put(currHash, currHdr)
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)

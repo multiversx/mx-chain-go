@@ -57,8 +57,5 @@ func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duratio
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rndm *RounderStub) IsInterfaceNil() bool {
-	if rndm == nil {
-		return true
-	}
-	return false
+	return rndm == nil
 }
