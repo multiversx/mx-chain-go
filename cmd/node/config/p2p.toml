@@ -49,6 +49,8 @@
     #phase but will accept connections and will do the network discovery if another peer connects to it
     InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]
 
+    Type = "kad dht with lists"
+
 [Sharding]
     # Number of ptiority bits used
     PrioBits = 4
