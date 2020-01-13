@@ -131,14 +131,6 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return err
 	}
 
-	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
-
-	if cost.Cmp(big.NewInt(0)) == 0 {
-		return nil
-	}
-
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -152,6 +144,10 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 			txFee.String(),
 		)
 	}
+
+	cost := big.NewInt(0)
+	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost.Add(cost, tx.Value)
 
 	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds

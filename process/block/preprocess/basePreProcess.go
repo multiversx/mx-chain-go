@@ -223,11 +223,11 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 }
 
 func (bpp *basePreProcess) displayMissingTransactions(
-	missingTxsForShard map[uint32][]*txsHashesInfo,
+	missingTxsFromShard map[uint32][]*txsHashesInfo,
 	currType block.Type,
 ) {
 
-	for shard, txHashInfoSlice := range missingTxsForShard {
+	for shard, txHashInfoSlice := range missingTxsFromShard {
 		for _, txHashInfo := range txHashInfoSlice {
 			for _, hash := range txHashInfo.txHashes {
 				log.Trace("missing txs",

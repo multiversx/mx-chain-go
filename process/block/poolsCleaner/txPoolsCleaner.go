@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // TxPoolsCleaner represents a pools cleaner that check if a transaction should be in pool
@@ -103,53 +104,57 @@ func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
 		cacherId := process.ShardCacherIdentifier(shardId, destShardId)
 		txsPool := transactions.ShardDataStore(cacherId)
 
-		for _, key := range txsPool.Keys() {
-			if !haveTime() {
-				return
-			}
+		tpc.cleanDataStore(txsPool, haveTime)
+	}
+}
 
-			obj, ok := txsPool.Peek(key)
-			if !ok {
-				continue
-			}
-
-			tx, ok := obj.(*transaction.Transaction)
-			if !ok {
-				atomic.AddUint64(&tpc.numRemovedTxs, 1)
-				txsPool.Remove(key)
-				continue
-			}
-
-			sndAddr := tx.GetSndAddress()
-			addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
-			if err != nil {
-				txsPool.Remove(key)
-				atomic.AddUint64(&tpc.numRemovedTxs, 1)
-				continue
-			}
-
-			accountHandler, err := tpc.accounts.GetExistingAccount(addr)
-			if err != nil {
-				txsPool.Remove(key)
-				atomic.AddUint64(&tpc.numRemovedTxs, 1)
-				continue
-			}
-
-			account, ok := accountHandler.(*state.Account)
-			if !ok {
-				txsPool.Remove(key)
-				atomic.AddUint64(&tpc.numRemovedTxs, 1)
-				continue
-			}
-
-			shouldClean := tpc.invalidTransaction(account, tx)
-			if shouldClean {
-				txsPool.Remove(key)
-				atomic.AddUint64(&tpc.numRemovedTxs, 1)
-			}
-
-			//TODO maybe integrate here a TTL mechanism on each stored transactions as to not store transactions indefinitely
+func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func() bool) {
+	for _, key := range txsPool.Keys() {
+		if !haveTime() {
+			return
 		}
+
+		obj, ok := txsPool.Peek(key)
+		if !ok {
+			continue
+		}
+
+		tx, ok := obj.(*transaction.Transaction)
+		if !ok {
+			atomic.AddUint64(&tpc.numRemovedTxs, 1)
+			txsPool.Remove(key)
+			continue
+		}
+
+		sndAddr := tx.GetSndAddress()
+		addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
+		if err != nil {
+			txsPool.Remove(key)
+			atomic.AddUint64(&tpc.numRemovedTxs, 1)
+			continue
+		}
+
+		accountHandler, err := tpc.accounts.GetExistingAccount(addr)
+		if err != nil {
+			txsPool.Remove(key)
+			atomic.AddUint64(&tpc.numRemovedTxs, 1)
+			continue
+		}
+
+		account, ok := accountHandler.(*state.Account)
+		if !ok {
+			txsPool.Remove(key)
+			atomic.AddUint64(&tpc.numRemovedTxs, 1)
+			continue
+		}
+
+		shouldClean := tpc.invalidTransaction(account, tx)
+		if shouldClean {
+			txsPool.Remove(key)
+			atomic.AddUint64(&tpc.numRemovedTxs, 1)
+		}
+
+		//TODO maybe integrate here a TTL mechanism on each stored transactions as to not store transactions indefinitely
 	}
 }
 
