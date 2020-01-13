@@ -83,8 +83,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	mbt.blockProcessor = blockProcessor
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	mbt.headersPool.RegisterHandler(mbt.receivedMetaBlock)
-	mbt.headersPool.RegisterHandler(mbt.receivedShardHeader)
+	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 
 	return &mbt, nil
 }

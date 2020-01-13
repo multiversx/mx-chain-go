@@ -43,6 +43,15 @@ type baseBlockTrack struct {
 	headers    map[uint32]map[uint64][]*headerInfo
 }
 
+func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() == sharding.MetachainShardId {
+		bbt.receivedMetaBlock(headerHandler, headerHash)
+		return
+	}
+
+	bbt.receivedShardHeader(headerHandler, headerHash)
+}
+
 func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
 	shardHeader, ok := headerHandler.(*block.Header)
 	if !ok {
