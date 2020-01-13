@@ -115,8 +115,8 @@ func (adb *AccountsDB) ClosePersister() error {
 	trees := adb.dataTries.GetAll()
 	for _, trie := range trees {
 		err := trie.ClosePersister()
-		log.LogIfError(err)
 		if err != nil {
+			log.Error("cannot close accounts trie persister", err)
 			closedSuccessfully = false
 		}
 	}
