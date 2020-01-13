@@ -22,7 +22,7 @@ var durStartGoRoutine = time.Second
 func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := newLibp2pConnectionMonitor(nil, -1, 0)
+	cm, err := NewLibp2pConnectionMonitor(nil, -1, 0)
 
 	assert.Equal(t, p2p.ErrInvalidValue, err)
 	assert.Nil(t, cm)
@@ -31,7 +31,7 @@ func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T)
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm, err := newLibp2pConnectionMonitor(nil, 3, 0)
+	cm, err := NewLibp2pConnectionMonitor(nil, 3, 0)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, cm)
@@ -42,7 +42,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 
 	chReconnectCalled := make(chan struct{}, 1)
 
-	rs := mock.ReconnecterStub{
+	rs := mock.ReconnecterWithPauseAndResumeStub{
 		ReconnectToNetworkCalled: func() <-chan struct{} {
 			ch := make(chan struct{}, 1)
 			ch <- struct{}{}
@@ -62,7 +62,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm, _ := newLibp2pConnectionMonitor(&rs, 3, 0)
+	cm, _ := NewLibp2pConnectionMonitor(&rs, 3, 0)
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(&ns, nil)
 
@@ -76,7 +76,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 func TestNewLibp2pConnectionMonitor_DefaultTriming(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := newLibp2pConnectionMonitor(nil, 3, 0)
+	cm, _ := NewLibp2pConnectionMonitor(nil, 3, 0)
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 0, cm.thresholdDiscoveryResume)
@@ -90,7 +90,7 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 	pauseCallCount := 0
 	resumeCallCount := 0
 
-	rc := mock.ReconnecterStub{
+	rc := mock.ReconnecterWithPauseAndResumeStub{
 		ReconnectToNetworkCalled: func() <-chan struct{} {
 			ch := make(chan struct{})
 			defer func() { ch <- struct{}{} }()
@@ -100,7 +100,7 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 		ResumeCall: func() { resumeCallCount++ },
 	}
 
-	cm, _ := newLibp2pConnectionMonitor(&rc, 3, 10)
+	cm, _ := NewLibp2pConnectionMonitor(&rc, 3, 10)
 
 	assert.NotNil(t, cm)
 	assert.Equal(t, 8, cm.thresholdDiscoveryResume)

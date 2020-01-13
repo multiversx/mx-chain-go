@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -41,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+	discoveryFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/p2p/memp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -85,6 +87,28 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShar
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewKadDhtPeerDiscoverer(stepDelay, shardKadTopic, []string{initialAddr}),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateMessengerWithKadDht creates a new libp2p messenger with provided configuration
+func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+
+	peerDiscoveryFactory := discoveryFactory.NewPeerDiscovererFactory(p2pConfig)
+	peerDiscovery, _ := peerDiscoveryFactory.CreatePeerDiscoverer()
+
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
+		ctx,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
+		peerDiscovery,
 	)
 	if err != nil {
 		fmt.Println(err.Error())

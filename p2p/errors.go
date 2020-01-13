@@ -114,3 +114,10 @@ var ErrNilSignerVerifier = errors.New("nil signer-verifier")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrIncompatibleMethodCalled signals that the program called a method that should not have been called
+// this is an indication that a previous setup was not properly done
+var ErrIncompatibleMethodCalled = errors.New("incompatible method called")

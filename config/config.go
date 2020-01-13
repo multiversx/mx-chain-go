@@ -1,5 +1,14 @@
 package config
 
+const (
+	// KadDhtVariantPrioBits is the variant that uses priority bits
+	KadDhtVariantPrioBits = "kad dht with prio bits"
+	// KadDhtVariantWithLists is the variant that uses lists
+	KadDhtVariantWithLists = "kad dht with lists"
+)
+
+type KadDhtType string
+
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Size   uint32 `json:"size"`
@@ -144,6 +153,7 @@ type KadDhtPeerDiscoveryConfig struct {
 	RefreshIntervalInSec int
 	RandezVous           string
 	InitialPeerList      []string
+	Type                 KadDhtType
 }
 
 // ShardingConfig will hold the network sharding config settings
