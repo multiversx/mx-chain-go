@@ -204,13 +204,6 @@ VERSION:
 		Usage: "Start the rest API engine in debug mode",
 	}
 
-	// networkID defines the version of the network. If set, will override the same parameter from config.toml
-	networkID = cli.StringFlag{
-		Name:  "network-id",
-		Usage: "The network version, overriding the one from config.toml",
-		Value: "",
-	}
-
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
 	// the NodeDisplayName from config.toml
 	nodeDisplayName = cli.StringFlag{
@@ -345,7 +338,6 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
-		networkID,
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
@@ -501,10 +493,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
-	}
-
-	if ctx.IsSet(networkID.Name) {
-		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
 	}
 
 	if ctx.IsSet(nodeDisplayName.Name) {

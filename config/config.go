@@ -166,7 +166,6 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
-	NetworkID                  string
 	StatusPollingIntervalSec   int
 }
 
