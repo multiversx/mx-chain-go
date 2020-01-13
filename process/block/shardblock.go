@@ -644,7 +644,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		"epoch", initialHdrData.GetEpoch(),
 	)
 
-	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
+	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1468,7 +1468,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 	return miniBlockMetaHashes, nil
 }
 
-func (sp *shardProcessor) getLongestMetaChainFromLastNotarized(round uint64) ([]data.HeaderHandler, [][]byte, error) {
+func (sp *shardProcessor) getLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
@@ -1480,10 +1480,6 @@ func (sp *shardProcessor) getLongestMetaChainFromLastNotarized(round uint64) ([]
 	orderedMetaBlocksHashes := make([][]byte, 0)
 
 	for i := 0; i < len(hdrsForShard); i++ {
-		if hdrsForShard[i].GetRound() > round {
-			continue
-		}
-
 		orderedMetaBlocks = append(orderedMetaBlocks, hdrsForShard[i])
 		orderedMetaBlocksHashes = append(orderedMetaBlocksHashes, hdrsHashesForShard[i])
 	}
@@ -1499,7 +1495,6 @@ func (sp *shardProcessor) getTrackedMetaBlocks(round uint64) []data.HeaderHandle
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -1507,7 +1502,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	txsAdded := uint32(0)
 	hdrsAdded := uint32(0)
 
-	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.getLongestMetaChainFromLastNotarized(round)
+	sw := core.NewStopWatch()
+	sw.Start("getLongestMetaChainFromLastNotarized")
+	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.getLongestMetaChainFromLastNotarized()
+	sw.Stop("getLongestMetaChainFromLastNotarized")
+	log.Debug("measurements getLongestMetaChainFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1626,7 +1625,6 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 
 func (sp *shardProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.Body, error) {
 
@@ -1647,7 +1645,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	startTime := time.Now()
-	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,

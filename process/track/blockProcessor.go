@@ -257,15 +257,15 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		highestNonceInLongestChain = longestChainHeaders[nbLongestChainHeaders-1].GetNonce()
 	}
 
+	if highestNonceReceived <= highestNonceInLongestChain+bp.blockFinality {
+		return
+	}
+
 	log.Debug("requestHeadersIfNeeded",
 		"shard", lastNotarizedHeader.GetShardID(),
 		"last notarized nonce", lastNotarizedHeader.GetNonce(),
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
-
-	if highestNonceReceived <= highestNonceInLongestChain+bp.blockFinality {
-		return
-	}
 
 	shardID := lastNotarizedHeader.GetShardID()
 	fromNonce := highestNonceInLongestChain + 1

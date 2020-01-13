@@ -89,6 +89,13 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	state process.BlockHeaderState,
 ) error {
 
+	if check.IfNil(header) {
+		return ErrNilHeader
+	}
+	if headerHash == nil {
+		return ErrNilHash
+	}
+
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
@@ -363,9 +370,16 @@ func (bfd *baseForkDetector) probableHighestNonce() uint64 {
 }
 
 func (bfd *baseForkDetector) setHighestNonceReceived(nonce uint64) {
+	if nonce <= bfd.highestNonceReceived() {
+		return
+	}
+
 	bfd.mutFork.Lock()
 	bfd.fork.highestNonceReceived = nonce
 	bfd.mutFork.Unlock()
+
+	log.Debug("forkDetector.setHighestNonceReceived",
+		"highest nonce received", nonce)
 }
 
 func (bfd *baseForkDetector) highestNonceReceived() uint64 {
@@ -623,26 +637,27 @@ func (bfd *baseForkDetector) addHeader(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) error {
 
-	if check.IfNil(header) {
-		return ErrNilHeader
-	}
-	if headerHash == nil {
-		return ErrNilHash
-	}
-
 	err := bfd.checkBlockBasicValidity(header, headerHash, state)
 	if err != nil {
 		return err
 	}
 
-	if header.GetNonce() > bfd.highestNonceReceived() {
-		bfd.setHighestNonceReceived(header.GetNonce())
-		log.Debug("forkDetector.AddHeader.setHighestNonceReceived",
-			"highest nonce received", bfd.highestNonceReceived())
-	}
+	bfd.processReceivedBlock(header, headerHash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes, doJobOnBHProcessed)
+	return nil
+}
+
+func (bfd *baseForkDetector) processReceivedBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+	state process.BlockHeaderState,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
+) {
+	bfd.setHighestNonceReceived(header.GetNonce())
 
 	if state == process.BHProposed {
-		return nil
+		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
@@ -658,7 +673,7 @@ func (bfd *baseForkDetector) addHeader(
 		state: state,
 	})
 	if !appended {
-		return nil
+		return
 	}
 
 	if state == process.BHProcessed {
@@ -677,5 +692,5 @@ func (bfd *baseForkDetector) addHeader(
 		"last check point nonce", bfd.lastCheckpoint().nonce,
 		"final check point nonce", bfd.finalCheckpoint().nonce)
 
-	return nil
+	return
 }

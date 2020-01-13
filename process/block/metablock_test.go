@@ -1668,7 +1668,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
-	assert.Contains(t, err.Error(), process.ErrWrongNonceInBlock.Error())
+	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
 
 	shDataCurr = block.ShardData{ShardID: 0, HeaderHash: currHash}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
@@ -1734,7 +1734,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
-	assert.Contains(t, err.Error(), process.ErrWrongNonceInBlock.Error())
+	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
 }
 
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {

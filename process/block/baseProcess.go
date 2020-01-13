@@ -757,15 +757,23 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
-	crossNotarizedHeader, _, _ := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
-	if check.IfNil(crossNotarizedHeader) {
-		return
+	crossNotarizedNonce := uint64(0)
+	selfNotarizedNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+
+	if shardID != bp.shardCoordinator.SelfId() {
+		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+		if err != nil {
+			log.Debug("cleanupBlockTrackerPoolsForShard", "error", err.Error())
+			return
+		}
+
+		crossNotarizedNonce = crossNotarizedHeader.GetNonce()
 	}
 
 	bp.blockTracker.CleanupHeadersBehindNonce(
 		shardID,
-		bp.forkDetector.GetHighestFinalBlockNonce(),
-		crossNotarizedHeader.GetNonce(),
+		selfNotarizedNonce,
+		crossNotarizedNonce,
 	)
 }
 

@@ -451,7 +451,7 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 	return blockBody, nil
 }
 
-func (boot *ShardBootstrap) isForkTriggeredByHighestChain() bool {
+func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce != math.MaxUint64 &&
 		boot.forkInfo.Round == process.MinForkRound &&

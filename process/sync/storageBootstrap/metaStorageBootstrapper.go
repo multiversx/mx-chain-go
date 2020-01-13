@@ -119,5 +119,6 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 }
 
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
-	return []data.HeaderHandler{}, nil
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	return selfNotarizedHeaders, nil
 }

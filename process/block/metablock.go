@@ -570,7 +570,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
+	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +585,6 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 
 func (mp *metaProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.Body, error) {
 
@@ -608,7 +607,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -647,7 +646,6 @@ func (mp *metaProcessor) createMiniBlocks(
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -655,7 +653,11 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	txsAdded := uint32(0)
 	hdrsAdded := uint32(0)
 
-	orderedHdrs, orderedHdrsHashes, _, err := mp.getLongestShardsChainFromLastNotarized(round)
+	sw := core.NewStopWatch()
+	sw.Start("getLongestShardsChainFromLastNotarized")
+	orderedHdrs, orderedHdrsHashes, _, err := mp.getLongestShardsChainFromLastNotarized()
+	sw.Stop("getLongestShardsChainFromLastNotarized")
+	log.Debug("measurements getLongestShardsChainFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1779,7 +1781,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getLongestShardsChainFromLastNotarized(round uint64) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+func (mp *metaProcessor) getLongestShardsChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
 
@@ -1810,9 +1812,6 @@ func (mp *metaProcessor) getLongestShardsChainFromLastNotarized(round uint64) ([
 			hdrsForShard := hdrsMap[shardID]
 			hdrsHashesForShard := hdrsHashesMap[shardID]
 			if i >= len(hdrsForShard) {
-				continue
-			}
-			if hdrsForShard[i].GetRound() > round {
 				continue
 			}
 

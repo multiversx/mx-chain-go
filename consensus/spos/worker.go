@@ -320,8 +320,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if err != nil {
-			return fmt.Errorf("%w : add received header from consensus topic to fork detector failed",
-				err)
+			log.Debug("add received header from consensus topic to fork detector failed",
+				"error", err.Error())
+			//we should not return error here because the other peers connected to self might need this message
+			//to advance the consensus
 		}
 	}
 

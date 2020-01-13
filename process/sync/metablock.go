@@ -469,6 +469,6 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 	}
 }
 
-func (boot *MetaBootstrap) isForkTriggeredByHighestChain() bool {
+func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 	return false
 }
