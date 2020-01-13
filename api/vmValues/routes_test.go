@@ -161,10 +161,10 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	errExpected := errors.New("no return data")
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return nil, errExpected
+			return &vmcommon.VMOutput{}, nil
 		},
 	}
 
@@ -185,6 +185,94 @@ func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 	assert.Contains(t, response.Error, errExpected.Error())
 
 	statusCode = doPost(&facade, "/vm-values/int", request, &response)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Contains(t, response.Error, errExpected.Error())
+}
+
+func TestGetDataValue_WhenBadAddress_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("not a valid hex string")
+	facade := mock.Facade{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{}, nil
+		},
+	}
+
+	request := VMValueRequest{
+		ScAddress: "DUMMY",
+		FuncName:  "function",
+		Args:      []string{},
+	}
+
+	response := simpleResponse{}
+
+	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Contains(t, response.Error, errExpected.Error())
+}
+
+func TestGetDataValue_WhenBadArguments_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("not a valid hex string")
+	facade := mock.Facade{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{}, nil
+		},
+	}
+
+	request := VMValueRequest{
+		ScAddress: DummyScAddress,
+		FuncName:  "function",
+		Args:      []string{"AA", "ZZ"},
+	}
+
+	response := simpleResponse{}
+
+	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Contains(t, response.Error, errExpected.Error())
+}
+
+func TestGetDataValue_WhenNoVMReturnData_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	facade := mock.Facade{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+			return nil, errExpected
+		},
+	}
+
+	request := VMValueRequest{
+		ScAddress: DummyScAddress,
+		FuncName:  "function",
+		Args:      []string{},
+	}
+
+	response := simpleResponse{}
+
+	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Contains(t, response.Error, errExpected.Error())
+}
+
+func TestGetDataValue_WhenBadFacade_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("invalid app context")
+	var facade interface{}
+
+	request := VMValueRequest{
+		ScAddress: DummyScAddress,
+		FuncName:  "function",
+		Args:      []string{},
+	}
+
+	response := simpleResponse{}
+
+	statusCode := doPost(&facade, "/vm-values/query", request, &response)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
 }
