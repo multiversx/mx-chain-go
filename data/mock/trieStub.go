@@ -27,6 +27,7 @@ type TrieStub struct {
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
 	GetAllLeavesCalled       func() (map[string][]byte, error)
+	IsPruningEnabledCalled   func() bool
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -170,4 +171,11 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 		return ts.DatabaseCalled()
 	}
 	return nil
+}
+
+func (ts *TrieStub) IsPruningEnabled() bool {
+	if ts.IsPruningEnabledCalled != nil {
+		return ts.IsPruningEnabledCalled()
+	}
+	return false
 }

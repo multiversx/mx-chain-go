@@ -94,7 +94,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
-	StateCheckpointConfig   CheckpointConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -203,7 +203,8 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// CheckpointConfig will hold information about state checkpoint
-type CheckpointConfig struct {
-	RoundsModulus uint
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }

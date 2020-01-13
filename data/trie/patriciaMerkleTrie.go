@@ -2,9 +2,11 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -74,10 +76,11 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 
 	val, err := tr.root.tryGet(hexKey, tr.trieStorage.Database())
 	if err != nil {
-		log.Trace("trie get", "error", key)
+		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
+		return nil, err
 	}
 
-	return val, err
+	return val, nil
 }
 
 // Update updates the value at the given key.
@@ -326,10 +329,11 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 
 	newTr, err := tr.recreateFromDb(root)
 	if err != nil {
-		log.Debug("trie recreate", "error", root)
+		err = fmt.Errorf("trie recreate error: %w, for root %v", err, core.ToB64(root))
+		return nil, err
 	}
 
-	return newTr, err
+	return newTr, nil
 }
 
 // DeepClone returns a new trie with all nodes deeply copied
@@ -390,7 +394,6 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 	defer tr.mutOperation.Unlock()
 
 	rootHash = append(rootHash, byte(identifier))
-	log.Trace("trie prune", "root", rootHash)
 	return tr.trieStorage.Prune(rootHash)
 }
 
@@ -398,7 +401,6 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tr.mutOperation.Lock()
 	rootHash = append(rootHash, byte(identifier))
-	log.Trace("trie cancel prune", "root", rootHash)
 	tr.trieStorage.CancelPrune(rootHash)
 	tr.mutOperation.Unlock()
 }
@@ -524,4 +526,9 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	}
 
 	return leaves, nil
+}
+
+// IsPruningEnabled returns true if state pruning is enabled
+func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
+	return tr.trieStorage.IsPruningEnabled()
 }

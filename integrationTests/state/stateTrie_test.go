@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -1279,7 +1280,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-	assert.Equal(t, trie.ErrHashNotFound, err)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1406,7 +1407,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	assert.Equal(t, trie.ErrHashNotFound, err)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {

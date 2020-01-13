@@ -482,6 +482,11 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	adb.mainTrie.SetCheckpoint(rootHash)
 }
 
+// IsPruningEnabled returns true if state pruning is enabled
+func (adb *AccountsDB) IsPruningEnabled() bool {
+	return adb.mainTrie.IsPruningEnabled()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
 	return adb == nil
