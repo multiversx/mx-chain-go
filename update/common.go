@@ -83,7 +83,7 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 	accType := factory.UserAccount
 	for currType := range factory.Types {
 		if currType == int(accTypeUint64) {
-			accType = currType
+			accType = factory.Type(currType)
 			break
 		}
 	}
@@ -154,7 +154,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	accType := factory.UserAccount
 	for currType := range factory.Types {
 		if currType == int(accTypeUint64) {
-			accType = currType
+			accType = factory.Type(currType)
 			break
 		}
 	}

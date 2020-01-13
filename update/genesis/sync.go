@@ -71,7 +71,7 @@ type syncState struct {
 	headers      headersToSync
 }
 
-// Arguments for the NewSync
+// ArgsNewSyncState for the NewSync
 type ArgsNewSyncState struct {
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
@@ -235,11 +235,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
-	return nil
+	return errFound
 }
 
 func (ss *syncState) syncShard(shardData block.EpochStartShardData, wg *sync.WaitGroup) error {
 	defer wg.Done()
+
 	err := ss.syncTrieOfType(factory.UserAccount, shardData.ShardId, shardData.RootHash)
 	if err != nil {
 		return err
@@ -249,7 +250,7 @@ func (ss *syncState) syncShard(shardData block.EpochStartShardData, wg *sync.Wai
 	_ = process.EmptyChannel(ss.miniBlocks.chReceivedAll)
 
 	ss.miniBlocks.mutPendingMb.Lock()
-	ss.transactions.mutPendingTx.Lock()
+	//ss.transactions.mutPendingTx.Lock()
 
 	requestedMBs := 0
 	requestedTxs := 0
@@ -269,7 +270,7 @@ func (ss *syncState) syncShard(shardData block.EpochStartShardData, wg *sync.Wai
 		ss.requestHandler.RequestMiniBlock(mbHeader.SenderShardID, mbHeader.Hash)
 	}
 
-	ss.transactions.mutPendingTx.Unlock()
+	//ss.transactions.mutPendingTx.Unlock()
 	ss.miniBlocks.mutPendingMb.Unlock()
 
 	if requestedMBs > 0 {
@@ -356,12 +357,12 @@ func (ss *syncState) syncMeta(meta *block.MetaBlock, wg *sync.WaitGroup) error {
 
 	err := ss.syncTrieOfType(factory.UserAccount, sharding.MetachainShardId, meta.RootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = ss.syncTrieOfType(factory.ValidatorAccount, sharding.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
@@ -550,6 +551,9 @@ func (ss *syncState) getTransactionFromPool(txHash []byte) (data.TransactionHand
 	mb := ss.transactions.mapHashes[string(txHash)]
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	shardTxStore := ss.transactions.txPools[mb.Type].ShardDataStore(storeId)
+	if shardTxStore == nil {
+		return nil, false
+	}
 
 	val, ok := shardTxStore.Peek(txHash)
 	if !ok {

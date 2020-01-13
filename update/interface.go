@@ -34,7 +34,7 @@ type AccountsHandlerContainer interface {
 	IsInterfaceNil() bool
 }
 
-// TrieSyncerContainer keep a list of TrieSyncer
+// TrieSyncContainer keep a list of TrieSyncer
 type TrieSyncContainer interface {
 	Get(key string) (TrieSyncer, error)
 	Add(key string, val TrieSyncer) error
