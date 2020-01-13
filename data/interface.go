@@ -170,3 +170,9 @@ type StorageManager interface {
 	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }
+
+// TrieFactory creates new tries
+type TrieFactory interface {
+	Create() (Trie, error)
+	IsInterfaceNil() bool
+}

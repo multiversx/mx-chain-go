@@ -704,6 +704,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 			return err
 		}
 
+		// TODO check if pruning should be done on rollback
 		if boot.accounts.IsPruningEnabled() {
 			boot.accounts.CancelPrune(prevHeader.GetRootHash())
 

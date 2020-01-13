@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -1278,9 +1279,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	expectedErr := fmt.Errorf("trie recreate error: %w, for root %v", trie.ErrHashNotFound, core.ToB64(rootHashOfRollbackedBlock))
 	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-	assert.Equal(t, expectedErr, err)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1406,9 +1406,8 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	expectedErr := fmt.Errorf("trie recreate error: %w, for root %v", trie.ErrHashNotFound, core.ToB64(rootHashOfFirstBlock))
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	assert.Equal(t, expectedErr, err)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {
