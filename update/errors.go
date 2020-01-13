@@ -13,3 +13,11 @@ var ErrNoFileToImport = errors.New("no files to import")
 var ErrEndOfFile = errors.New("end of file")
 
 var ErrHashMissmatch = errors.New("hash missmatch")
+
+var ErrNilDataWriter = errors.New("nil data writer")
+
+var ErrNilDataReader = errors.New("nil data reader")
+
+var ErrInvalidFolderName = errors.New("invalid folder name")
+
+var ErrNilStorage = errors.New("nil storage")

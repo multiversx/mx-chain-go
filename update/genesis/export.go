@@ -96,6 +96,8 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		}
 	}
 
+	se.writer.Finish()
+
 	return nil
 }
 

@@ -77,11 +77,13 @@ type HistoryStorer interface {
 type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
+	Finish()
 	IsInterfaceNil() bool
 }
 
 type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
+	Finish()
 	IsInterfaceNil() bool
 }
