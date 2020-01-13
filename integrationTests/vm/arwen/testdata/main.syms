@@ -1,3 +1,16 @@
 int64finish
 int64getArgument
 signalError
+bigIntGetBytes
+writeLog
+getNumArguments
+getCaller
+bigIntNew
+bigIntGetUnsignedArgument
+bigIntStorageStore
+bigIntStorageLoad
+bigIntFinish
+getArgument
+bigIntCmp
+bigIntSub
+bigIntAdd
