@@ -77,9 +77,10 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	val, err := tr.root.tryGet(hexKey, tr.trieStorage.Database())
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
+		return nil, err
 	}
 
-	return val, err
+	return val, nil
 }
 
 // Update updates the value at the given key.
@@ -329,9 +330,10 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	newTr, err := tr.recreateFromDb(root)
 	if err != nil {
 		err = fmt.Errorf("trie recreate error: %w, for root %v", err, core.ToB64(root))
+		return nil, err
 	}
 
-	return newTr, err
+	return newTr, nil
 }
 
 // DeepClone returns a new trie with all nodes deeply copied

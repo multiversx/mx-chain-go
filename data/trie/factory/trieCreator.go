@@ -22,32 +22,32 @@ type trieCreator struct {
 
 // NewTrieFactory creates a new trie factory
 func NewTrieFactory(
-	args *trieFactoryArgs,
+	args *TrieFactoryArgs,
 ) (*trieCreator, error) {
-	if check.IfNil(args.marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, trie.ErrNilMarshalizer
 	}
-	if check.IfNil(args.hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, trie.ErrNilHasher
 	}
-	if check.IfNil(args.pathManager) {
+	if check.IfNil(args.PathManager) {
 		return nil, trie.ErrNilPathManager
 	}
 
-	trieStoragePath, mainDb := path.Split(args.pathManager.PathForStatic(args.shardId, args.cfg.DB.FilePath))
+	trieStoragePath, mainDb := path.Split(args.PathManager.PathForStatic(args.ShardId, args.Cfg.DB.FilePath))
 
-	dbConfig := storageFactory.GetDBFromConfig(args.cfg.DB)
+	dbConfig := storageFactory.GetDBFromConfig(args.Cfg.DB)
 	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(args.cfg.Cache),
+		storageFactory.GetCacherFromConfig(args.Cfg.Cache),
 		dbConfig,
-		storageFactory.GetBloomFromConfig(args.cfg.Bloom),
+		storageFactory.GetBloomFromConfig(args.Cfg.Bloom),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if !args.pruningEnabled {
+	if !args.PruningEnabled {
 		trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 		if err != nil {
 			return nil, err
@@ -55,38 +55,38 @@ func NewTrieFactory(
 
 		return &trieCreator{
 			trieStorage: trieStorage,
-			msh:         args.marshalizer,
-			hsh:         args.hasher,
+			msh:         args.Marshalizer,
+			hsh:         args.Hasher,
 		}, nil
 	}
 
 	evictionDb, err := storageUnit.NewDB(
-		storageUnit.DBType(args.evictionWaitingListCfg.DB.Type),
-		filepath.Join(trieStoragePath, args.evictionWaitingListCfg.DB.FilePath),
-		args.evictionWaitingListCfg.DB.MaxBatchSize,
-		args.evictionWaitingListCfg.DB.BatchDelaySeconds,
-		args.evictionWaitingListCfg.DB.MaxOpenFiles,
+		storageUnit.DBType(args.EvictionWaitingListCfg.DB.Type),
+		filepath.Join(trieStoragePath, args.EvictionWaitingListCfg.DB.FilePath),
+		args.EvictionWaitingListCfg.DB.MaxBatchSize,
+		args.EvictionWaitingListCfg.DB.BatchDelaySeconds,
+		args.EvictionWaitingListCfg.DB.MaxOpenFiles,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(args.evictionWaitingListCfg.Size, evictionDb, args.marshalizer)
+	ewl, err := evictionWaitingList.NewEvictionWaitingList(args.EvictionWaitingListCfg.Size, evictionDb, args.Marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	args.snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, args.snapshotDbCfg.FilePath)
+	args.SnapshotDbCfg.FilePath = filepath.Join(trieStoragePath, args.SnapshotDbCfg.FilePath)
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &args.snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &args.SnapshotDbCfg, ewl)
 	if err != nil {
 		return nil, err
 	}
 
 	return &trieCreator{
 		trieStorage: trieStorage,
-		msh:         args.marshalizer,
-		hsh:         args.hasher,
+		msh:         args.Marshalizer,
+		hsh:         args.Hasher,
 	}, nil
 }
 

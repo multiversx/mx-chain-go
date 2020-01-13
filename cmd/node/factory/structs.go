@@ -203,16 +203,16 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	trieFactoryArgs := factory.NewTrieFactoryArgs(
-		args.config.AccountsTrieStorage,
-		args.config.EvictionWaitingList,
-		args.config.TrieSnapshotDB,
-		marshalizer,
-		hasher,
-		args.pathManager,
-		args.shardId,
-		args.config.StateTrieConfig.PruningEnabled,
-	)
+	trieFactoryArgs := &factory.TrieFactoryArgs{
+		Cfg:                    args.config.AccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
 		return nil, err
@@ -299,16 +299,16 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
 	}
 
-	peerAccountsTrieFactoryArguments := factory.NewTrieFactoryArgs(
-		args.config.PeerAccountsTrieStorage,
-		args.config.EvictionWaitingList,
-		args.config.TrieSnapshotDB,
-		args.core.Marshalizer,
-		args.core.Hasher,
-		args.pathManager,
-		shardId,
-		args.config.StateTrieConfig.PruningEnabled,
-	)
+	peerAccountsTrieFactoryArguments := &factory.TrieFactoryArgs{
+		Cfg:                    args.config.PeerAccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            args.core.Marshalizer,
+		Hasher:                 args.core.Hasher,
+		PathManager:            args.pathManager,
+		ShardId:                shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
 	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
 	if err != nil {
 		return nil, err
