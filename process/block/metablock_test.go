@@ -636,6 +636,14 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			return 0
 		},
 	}
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
+	arguments.BlockTracker = blockTrackerMock
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	blkc, _ := blockchain.NewMetaChain(
@@ -758,6 +766,13 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.ForkDetector = fd
 	arguments.Store = store
 	arguments.Hasher = hasher
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
+	arguments.BlockTracker = blockTrackerMock
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	removeHdrWasCalled := false

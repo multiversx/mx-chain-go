@@ -157,13 +157,6 @@ func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint
 		return btm.GetCrossNotarizedHeaderCalled(shardID, offset)
 	}
 
-	nbCrossNotarizedHeaders := len(btm.crossNotarizedHeaders[shardID])
-	if nbCrossNotarizedHeaders > 0 {
-		return btm.crossNotarizedHeaders[shardID][nbCrossNotarizedHeaders-1].header,
-			btm.crossNotarizedHeaders[shardID][nbCrossNotarizedHeaders-1].hash,
-			nil
-	}
-
 	return nil, nil, nil
 }
 

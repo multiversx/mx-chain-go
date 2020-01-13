@@ -1578,6 +1578,13 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 			return nil
 		},
 	}
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.Header{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	arguments.BlockTracker = blockTrackerMock
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	blkc, _ := blockchain.NewBlockChain(
@@ -1645,6 +1652,13 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.Header{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
+	arguments.BlockTracker = blockTrackerMock
 	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 
@@ -1891,6 +1905,13 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.Hasher = hasher
 	arguments.Accounts = accounts
 	arguments.ForkDetector = fd
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.Header{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	arguments.BlockTracker = blockTrackerMock
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	blkc := createTestBlockchain()
@@ -2014,6 +2035,13 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 			}
 		},
 	}
+	blockTrackerMock := &mock.BlockTrackerMock{
+		GetCrossNotarizedHeaderCalled: func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+			return &block.Header{}, []byte("hash"), nil
+		},
+	}
+	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	arguments.BlockTracker = blockTrackerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 

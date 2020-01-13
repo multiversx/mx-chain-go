@@ -365,7 +365,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
-	startHeaders := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -598,7 +598,7 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 	sp, _ := blproc.NewShardProcessor(arguments)
 	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := sp.SaveLastNotarizedHeader(3, prHdrs)
+	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
 	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
