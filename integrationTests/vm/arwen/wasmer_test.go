@@ -81,7 +81,8 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 
 	assert.Equal(t, 1, len(vmOutput.ReturnData))
 	expectedBytes := []byte{98}
-	assertReturnData(t, vmOutput, vmcommon.UserError, expectedBytes)
+	assertReturnData(t, vmOutput, vmcommon.Ok, expectedBytes)
+	assert.Equal(t, "1", vmOutput.ReturnMessage)
 }
 
 func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []byte) {
