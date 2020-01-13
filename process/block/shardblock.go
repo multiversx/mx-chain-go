@@ -33,10 +33,10 @@ type shardProcessor struct {
 
 	chRcvEpochStart chan bool
 
-	processedMiniBlocks    *processedMb.ProcessedMiniBlockTracker
-	core                   serviceContainer.Core
-	txCounter              *transactionCounter
-	txsPoolsCleaner        process.PoolsCleaner
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	core                serviceContainer.Core
+	txCounter           *transactionCounter
+	txsPoolsCleaner     process.PoolsCleaner
 
 	lowestNonceInSelfNotarizedHeaders uint64
 }
@@ -449,12 +449,14 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 
 	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.MetaBlocks().MaxSize())
 	if err != nil {
-		log.Debug("requestHeadersIfMissing", "error", err.Error())
+		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
 	}
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
-		log.Debug("GetLastCrossNotarizedHeader", "error", err.Error())
+		log.Debug("checkAndRequestIfMetaHeadersMissing",
+			"shard", sharding.MetachainShardId,
+			"error", err.Error())
 		return
 	}
 
@@ -1330,6 +1332,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
+		log.Debug("receivedMetaBlock",
+			"shard", sharding.MetachainShardId,
+			"error", err.Error())
 		return
 	}
 

@@ -573,8 +573,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 }
 
 func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher storage.Cacher) bool {
-	lastCrossNotarizedHeader, _, _ := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
-	if check.IfNil(lastCrossNotarizedHeader) {
+	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
+	if err != nil {
+		log.Debug("isHeaderOutOfRange",
+			"shard", header.GetShardID(),
+			"error", err.Error())
 		return false
 	}
 
@@ -666,8 +669,12 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 	notarizedHeadersPool storage.Cacher,
 	noncesToFinal uint64,
 ) {
-	crossNotarizedHeader, _, _ := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
-	if check.IfNil(crossNotarizedHeader) {
+	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
+	if err != nil {
+		log.Trace("cleanupPoolsForShard",
+			"shard", shardID,
+			"nonces to final", noncesToFinal,
+			"error", err.Error())
 		return
 	}
 
@@ -757,13 +764,16 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
-	crossNotarizedNonce := uint64(0)
 	selfNotarizedNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	crossNotarizedNonce := uint64(0)
 
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
 		if err != nil {
-			log.Debug("cleanupBlockTrackerPoolsForShard", "error", err.Error())
+			log.Trace("cleanupBlockTrackerPoolsForShard",
+				"shard", shardID,
+				"nonces to final", noncesToFinal,
+				"error", err.Error())
 			return
 		}
 
@@ -835,8 +845,11 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, _ := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-	if check.IfNil(lastCrossNotarizedHeader) {
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+	if err != nil {
+		log.Debug("getLastCrossNotarizedHeadersForShard",
+			"shard", shardID,
+			"error", err.Error())
 		return nil
 	}
 

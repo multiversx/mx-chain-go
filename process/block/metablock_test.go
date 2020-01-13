@@ -641,7 +641,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			return &block.MetaBlock{}, []byte("hash"), nil
 		},
 	}
-	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
+	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
 	arguments.BlockTracker = blockTrackerMock
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -771,7 +771,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			return &block.MetaBlock{}, []byte("hash"), nil
 		},
 	}
-	blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
+	_ = blockTrackerMock.InitCrossNotarizedHeaders(createGenesisBlocks(arguments.ShardCoordinator))
 	arguments.BlockTracker = blockTrackerMock
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

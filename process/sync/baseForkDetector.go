@@ -691,6 +691,4 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"probable highest nonce", bfd.probableHighestNonce(),
 		"last check point nonce", bfd.lastCheckpoint().nonce,
 		"final check point nonce", bfd.finalCheckpoint().nonce)
-
-	return
 }
