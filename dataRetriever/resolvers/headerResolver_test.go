@@ -261,7 +261,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	wasSent := false
 
 	store := &mock.StorerStub{}
-	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
 			wasGotFromStorage = true
 			return make([]byte, 0), nil
