@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"path"
-	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -36,7 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -44,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -205,17 +204,24 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	merkleTrie, err := getTrie(
-		args.config.AccountsTrieStorage,
-		args.config.EvictionWaitingList,
-		args.config.TrieSnapshotDB,
-		marshalizer,
-		hasher,
-		args.pathManager,
-		args.shardId,
-	)
+	trieFactoryArgs := factory.TrieFactoryArgs{
+		Cfg:                    args.config.AccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
-		return nil, errors.New("error creating trie: " + err.Error())
+		return nil, err
+	}
+
+	merkleTrie, err := trieFactory.Create()
+	if err != nil {
+		return nil, err
 	}
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
@@ -293,15 +299,23 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	} else {
 		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
 	}
-	peerAccountsTrie, err := getTrie(
-		args.config.PeerAccountsTrieStorage,
-		args.config.EvictionWaitingList,
-		args.config.TrieSnapshotDB,
-		args.core.Marshalizer,
-		args.core.Hasher,
-		args.pathManager,
-		shardId,
-	)
+
+	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
+		Cfg:                    args.config.PeerAccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            args.core.Marshalizer,
+		Hasher:                 args.core.Hasher,
+		PathManager:            args.pathManager,
+		ShardId:                shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -914,59 +928,6 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(
-	cfg config.StorageConfig,
-	evictionWaitingListCfg config.EvictionWaitingListConfig,
-	snapshotDbCfg config.DBConfig,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) (data.Trie, error) {
-
-	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, cfg.DB.FilePath))
-
-	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
-	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(cfg.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(cfg.Bloom),
-	)
-	if err != nil {
-		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
-	}
-
-	evictionDb, err := storageUnit.NewDB(
-		storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
-		evictionWaitingListCfg.DB.MaxBatchSize,
-		evictionWaitingListCfg.DB.BatchDelaySeconds,
-		evictionWaitingListCfg.DB.MaxOpenFiles,
-	)
-	if err != nil {
-		return nil, errors.New("error creating evictionDb: " + err.Error())
-	}
-
-	snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, snapshotDbCfg.FilePath)
-
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, marshalizer)
-	if err != nil {
-		return nil, errors.New("error creating evictionWaitingList: " + err.Error())
-	}
-
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &snapshotDbCfg, ewl)
-	if err != nil {
-		return nil, errors.New("error creating trieStorage: " + err.Error())
-	}
-
-	return trie.NewTrie(
-		trieStorage,
-		marshalizer,
-		hasher,
-	)
-}
-
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
@@ -1042,7 +1003,7 @@ func createShardDataPoolFromConfig(
 
 	log.Debug("creatingShardDataPool from config")
 
-	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -1169,7 +1130,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -2300,13 +2261,7 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
-	cacheSize := uint(100)
-	ewl, err := evictionWaitingList.NewEvictionWaitingList(cacheSize, memorydb.New(), marshalizer)
-	if err != nil {
-		return nil, err
-	}
-
-	trieStorage, err := trie.NewTrieStorageManager(createMemUnit(), &config.DBConfig{}, ewl)
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	if err != nil {
 		return nil, err
 	}
@@ -2369,7 +2324,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
-	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	txPool, err := txpool.CreateTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
 	if err != nil {
 		return nil, err
 	}

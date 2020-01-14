@@ -812,34 +812,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	for i := range finalHeaders {
-		sp.saveState(finalHeaders[i])
-
-		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
-		}
-
-		var prevHeader block.Header
-		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
-		}
-
-		rootHash := prevHeader.GetRootHash()
-		if rootHash == nil {
-			continue
-		}
-
-		errNotCritical = sp.accounts.PruneTrie(rootHash)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
-
-		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
-	}
+	sp.updateStateStorage(finalHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -914,6 +887,43 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
+	// TODO add pruning on metachain. Refactor the pruning mechanism (remove everything before final nonce).
+	for i := range finalHeaders {
+		if !sp.accounts.IsPruningEnabled() {
+			break
+		}
+
+		sp.saveState(finalHeaders[i])
+
+		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		var prevHeader block.Header
+		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		rootHash := prevHeader.GetRootHash()
+		if rootHash == nil {
+			continue
+		}
+
+		log.Trace("final header will be pruned", "root hash", rootHash)
+		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+
+		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
+	}
 }
 
 func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
