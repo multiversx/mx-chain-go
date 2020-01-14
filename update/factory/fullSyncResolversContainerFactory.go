@@ -14,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-const emptyExcludePeersOnTopic = ""
-
 type resolversContainerFactory struct {
 	shardCoordinator  sharding.Coordinator
 	messenger         dataRetriever.TopicMessageHandler
