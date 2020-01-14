@@ -182,26 +182,6 @@ func TestShardedData_MergeShardStores(t *testing.T) {
 	assert.Nil(t, sd.ShardDataStore("1"))
 }
 
-func TestShardedData_MoveData(t *testing.T) {
-	t.Parallel()
-
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
-
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
-	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, "2")
-	sd.AddData([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, "2")
-	sd.AddData([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, "2")
-	sd.AddData([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, "2")
-
-	sd.MoveData("2", "3", [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
-
-	assert.Equal(t, 3, sd.ShardDataStore("2").Len(),
-		"Mini pool for shard 2 should have 3 elements")
-	assert.Equal(t, 2, sd.ShardDataStore("3").Len(),
-		"Mini pool for shard 3 should have 2 elements")
-}
-
 func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	t.Parallel()
 

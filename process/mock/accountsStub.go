@@ -23,8 +23,8 @@ type AccountsStub struct {
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 	PruneTrieCalled             func(rootHash []byte) error
-	SnapshotStateCalled         func(rootHash []byte) error
-	SetStateCheckpointCalled    func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
 	IsPruningEnabledCalled      func() bool
 }
