@@ -93,6 +93,11 @@ type RequestHandler interface {
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestShardHeader(shardId uint32, hash []byte)
+	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderByNonce(nonce uint64)
+	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
+	RequestTrieNodes(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
 }
 
