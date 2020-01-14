@@ -50,7 +50,7 @@ func NewDataPool(
 	if check.IfNil(currBlockTxs) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
-	if trieNodes == nil || trieNodes.IsInterfaceNil() {
+	if check.IfNil(trieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
 

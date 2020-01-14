@@ -387,7 +387,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	}
 
 	datapool, err = createShardDataPoolFromConfig(args.config)
-	if datapool == nil {
+	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
 
@@ -1408,6 +1408,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		}
 
 		newStore, newBlkc, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		if err != nil {
+			return nil, err
+		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
