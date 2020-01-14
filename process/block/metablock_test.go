@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -520,9 +519,6 @@ func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
 func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("aaa")
-	ShardID := sharding.MetachainShardId
-
 	mdp := initMetaDataPool()
 	accounts := &mock.AccountsStub{}
 	accounts.RevertToSnapshotCalled = func(snapshot int) error {
@@ -532,16 +528,6 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	arguments.DataPool = mdp
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		cs := &mock.Uint64SyncMapCacherStub{}
-		cs.GetCalled = func(key uint64) (dataRetriever.ShardIdHashMap, bool) {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(ShardID, hash)
-
-			return syncMap, true
-		}
-		return cs
-	}
 	mp.AddHdrHashToRequestedList(&block.Header{}, []byte("header_hash"))
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
@@ -655,34 +641,6 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	accounts := &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
-		},
-	}
-	hdr := createMetaBlockHeader()
-	body := block.Body{}
-	store := initStore()
-
-	arguments := createMockMetaArguments()
-	arguments.Accounts = accounts
-	arguments.Store = store
-	arguments.DataPool = mdp
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return nil
-	}
-	blkc := createTestBlockchain()
-	err := mp.CommitBlock(blkc, hdr, body)
-
-	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
-}
-
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -706,11 +664,8 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	arguments.Hasher = hasher
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	mdp.ShardHeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
+	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
 			MaxSizeCalled: func() int {
 				return 1000
 			},
@@ -776,14 +731,14 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	removeHdrWasCalled := false
-	mdp.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return &block.Header{}, true
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+			return &block.Header{}, nil
 		}
-		cs.RemoveCalled = func(key []byte) {
+		cs.RemoveHeaderByHashCalled = func(key []byte) {
 			if bytes.Equal(key, []byte("hdr_hash1")) {
 				removeHdrWasCalled = true
 			}
@@ -794,7 +749,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		cs.MaxSizeCalled = func() int {
 			return 1000
 		}
-		cs.KeysCalled = func() [][]byte {
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return nil
 		}
 		return cs
@@ -821,17 +776,12 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	mdp.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		}
-		cs.RemoveCalled = func(key []byte) {
-		}
-		cs.LenCalled = func() int {
-			return 0
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+			return nil, errors.New("err")
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -973,7 +923,7 @@ func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 	mp.AddHdrHashToRequestedList(nil, hdrHash3)
 
 	//received txHash2
-	pool.ShardHeaders().Put(hdrHash2, hdr2)
+	pool.Headers().AddHeader(hdrHash2, hdr2)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -1014,17 +964,17 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	//put the existing headers inside datapool
-	pool.ShardHeaders().Put(hdrHash1, &block.Header{
+	pool.Headers().AddHeader(hdrHash1, &block.Header{
 		Round:            1,
 		Nonce:            45,
 		ShardId:          0,
 		MiniBlockHeaders: miniBlockHeaders1})
-	pool.ShardHeaders().Put(hdrHash2, &block.Header{
+	pool.Headers().AddHeader(hdrHash2, &block.Header{
 		Round:            2,
 		Nonce:            45,
 		ShardId:          1,
 		MiniBlockHeaders: miniBlockHeaders2})
-	pool.ShardHeaders().Put(hdrHash3, &block.Header{
+	pool.Headers().AddHeader(hdrHash3, &block.Header{
 		Round:            3,
 		Nonce:            45,
 		ShardId:          2,
@@ -1245,8 +1195,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	pool.ShardHeaders().Put(hdrHash1, headers[0])
-	pool.ShardHeaders().Put(hdrHash11, headers[1])
+	pool.Headers().AddHeader(hdrHash1, headers[0])
+	pool.Headers().AddHeader(hdrHash11, headers[1])
 	arguments.BlockTracker.AddTrackedHeader(headers[0], hdrHash1)
 
 	// header shard 1
@@ -1270,8 +1220,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	pool.ShardHeaders().Put(hdrHash2, headers[2])
-	pool.ShardHeaders().Put(hdrHash22, headers[3])
+	pool.Headers().AddHeader(hdrHash2, headers[2])
+	pool.Headers().AddHeader(hdrHash22, headers[3])
 	arguments.BlockTracker.AddTrackedHeader(headers[2], hdrHash2)
 
 	// header shard 2
@@ -1295,8 +1245,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	pool.ShardHeaders().Put(hdrHash3, headers[4])
-	pool.ShardHeaders().Put(hdrHash33, headers[5])
+	pool.Headers().AddHeader(hdrHash3, headers[4])
+	pool.Headers().AddHeader(hdrHash33, headers[5])
 	arguments.BlockTracker.AddTrackedHeader(headers[4], hdrHash3)
 
 	mp.SetShardBlockFinality(1)
@@ -1395,8 +1345,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	pool.ShardHeaders().Put(hdrHash1, headers[0])
-	pool.ShardHeaders().Put(hdrHash11, headers[1])
+	pool.Headers().AddHeader(hdrHash1, headers[0])
+	pool.Headers().AddHeader(hdrHash11, headers[1])
 	arguments.BlockTracker.AddTrackedHeader(headers[0], hdrHash1)
 
 	// header shard 1
@@ -1420,8 +1370,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	pool.ShardHeaders().Put(hdrHash2, headers[2])
-	pool.ShardHeaders().Put(hdrHash22, headers[3])
+	pool.Headers().AddHeader(hdrHash2, headers[2])
+	pool.Headers().AddHeader(hdrHash22, headers[3])
 	arguments.BlockTracker.AddTrackedHeader(headers[2], hdrHash2)
 
 	// header shard 2
@@ -1445,8 +1395,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	pool.ShardHeaders().Put(hdrHash3, headers[4])
-	pool.ShardHeaders().Put(hdrHash33, headers[5])
+	pool.Headers().AddHeader(hdrHash3, headers[4])
+	pool.Headers().AddHeader(hdrHash33, headers[5])
 	arguments.BlockTracker.AddTrackedHeader(headers[4], hdrHash3)
 
 	mp.SetShardBlockFinality(1)
@@ -1506,7 +1456,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	err := mp.RestoreBlockIntoPools(mhdr, body)
 
-	hdrFromPool, _ := pool.ShardHeaders().Get(hdrHash)
+	hdrFromPool, _ := pool.Headers().GetHeaderByHash(hdrHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &hdr, hdrFromPool)
 }
@@ -1579,8 +1529,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// wrong header type in pool and defer called
-	pool.ShardHeaders().Put(currHash, metaHdr)
-	pool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.Headers().AddHeader(currHash, metaHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	mp.SetHdrForCurrentBlock(currHash, metaHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
@@ -1590,8 +1540,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// put headers in pool
-	pool.ShardHeaders().Put(currHash, currHdr)
-	pool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
@@ -1660,9 +1610,9 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	pool.ShardHeaders().Put(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
-	pool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.Headers().AddHeader(prevHash, prevHdr)
 	wrongCurrHdr := &block.Header{
 		Round:        11,
 		Nonce:        48,
@@ -1672,7 +1622,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	wrongCurrHash, _ := mp.ComputeHeaderHash(wrongCurrHdr)
-	pool.ShardHeaders().Put(wrongCurrHash, wrongCurrHdr)
+	pool.Headers().AddHeader(wrongCurrHash, wrongCurrHdr)
 
 	metaHdr := &block.MetaBlock{Round: 20}
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: wrongCurrHash}
@@ -1740,7 +1690,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		PrevHash:     []byte("prevhash"),
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	pool.ShardHeaders().Put(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: currHash}
@@ -1804,7 +1754,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	assert.Equal(t, 0, len(highestNonceHdrs))
 	assert.Nil(t, err)
 
-	pool.ShardHeaders().Put(currHash, currHdr)
+	pool.Headers().AddHeader(currHash, currHdr)
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	highestNonceHdrs, err = mp.CheckShardHeadersValidity(metaHdr)
 	assert.NotNil(t, highestNonceHdrs)
@@ -1871,7 +1821,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	prevHash, _ = mp.ComputeHeaderHash(nextWrongHdr)
-	pool.ShardHeaders().Put(prevHash, nextWrongHdr)
+	pool.Headers().AddHeader(prevHash, nextWrongHdr)
 
 	mp.SetShardBlockFinality(0)
 	metaHdr := &block.MetaBlock{Round: 1}
@@ -1913,7 +1863,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		RootHash:     []byte("currRootHash")}
 
 	nextHash, _ := mp.ComputeHeaderHash(nextHdr)
-	pool.ShardHeaders().Put(nextHash, nextHdr)
+	pool.Headers().AddHeader(nextHash, nextHdr)
 	mp.SetHdrForCurrentBlock(nextHash, nextHdr, false)
 
 	metaHdr.Round = 20
@@ -2161,25 +2111,24 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(hdrHash1Bytes, key) {
-				return hdr1, true
+		cs.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			if hdrNonce == 1 {
+				return hdr1, [][]byte{hdrHash1Bytes}, nil
 			}
-			if bytes.Equal(hdrHash2Bytes, key) {
-				return hdr2, true
+			if hdrNonce == 2 {
+				return hdr2, [][]byte{hdrHash2Bytes}, nil
 			}
-			return nil, false
+			return nil, nil, errors.New("err")
 		}
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -2317,30 +2266,29 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
 				return &block.Header{
 					Nonce:            1,
 					Round:            1,
 					PrevRandSeed:     []byte("roothash"),
 					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 1}},
-				}, true
+				}, nil
 			}
 			if bytes.Equal(hdrHash2Bytes, key) {
-				return &block.Header{Nonce: 2, Round: 2}, true
+				return &block.Header{Nonce: 2, Round: 2}, nil
 			}
-			return nil, false
+			return nil, errors.New("err")
 		}
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -2410,11 +2358,11 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
 				return &block.Header{
 					PrevHash:         []byte("hash1"),
@@ -2422,19 +2370,18 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 					Round:            1,
 					PrevRandSeed:     []byte("roothash"),
 					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
-				}, true
+				}, nil
 			}
 			if bytes.Equal(hrdHash2Bytes, key) {
-				return &block.Header{Nonce: 2, Round: 2}, true
+				return &block.Header{Nonce: 2, Round: 2}, nil
 			}
-			return nil, false
+			return nil, errors.New("err")
 		}
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{hdrHash1Bytes, hrdHash2Bytes}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -2544,11 +2491,11 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{
 				PrevHash:         []byte("hash1"),
 				Nonce:            1,
@@ -2556,14 +2503,15 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 				PrevRandSeed:     []byte("roothash"),
 				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
 				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
-			}, true
+			}, nil
 		}
+
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		cs.RemoveHeaderByHashCalled = func(key []byte) {}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
@@ -2627,11 +2575,11 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dPool.ShardHeadersCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 		}
-		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 			return &block.Header{
 				PrevHash:         []byte("hash1"),
 				Nonce:            2,
@@ -2639,14 +2587,15 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 				PrevRandSeed:     []byte("roothash"),
 				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
 				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
-			}, true
+			}, nil
 		}
+
 		cs.LenCalled = func() int {
 			return 0
 		}
-		cs.RemoveCalled = func(key []byte) {}
-		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		cs.RemoveHeaderByHashCalled = func(key []byte) {}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000

@@ -1,9 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -11,17 +12,14 @@ import (
 )
 
 type MetaPoolsHolderFake struct {
-	metaBlocks    storage.Cacher
-	miniBlocks    storage.Cacher
-	shardHeaders  storage.Cacher
+	miniBlocks   storage.Cacher
 	trieNodes     storage.Cacher
-	headersNonces dataRetriever.Uint64SyncMapCacher
-	transactions  dataRetriever.ShardedDataCacherNotifier
-	unsigned      dataRetriever.ShardedDataCacherNotifier
-	currTxs       dataRetriever.TransactionCacher
+	shardHeaders dataRetriever.HeadersPool
+	transactions dataRetriever.ShardedDataCacherNotifier
+	unsigned     dataRetriever.ShardedDataCacherNotifier
+	currTxs      dataRetriever.TransactionCacher
 
-	MetaBlocksCalled   func() storage.Cacher
-	ShardHeadersCalled func() storage.Cacher
+	ShardHeadersCalled func() dataRetriever.HeadersPool
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
@@ -29,16 +27,9 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.transactions, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 1})
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	mphf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-
-	cacheShardHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.headersNonces, _ = dataPool.NewNonceSyncMapCacher(
-		cacheShardHdrNonces,
-		uint64ByteSlice.NewBigEndianConverter(),
-	)
 	mphf.currTxs, _ = dataPool.NewCurrentBlockPool()
+	mphf.shardHeaders, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
+	mphf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	return mphf
 }
@@ -55,30 +46,19 @@ func (mphf *MetaPoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDat
 	return mphf.unsigned
 }
 
-func (mphf *MetaPoolsHolderFake) MetaBlocks() storage.Cacher {
-	if mphf.MetaBlocksCalled != nil {
-		return mphf.MetaBlocksCalled()
-	}
-	return mphf.metaBlocks
-}
-
 func (mphf *MetaPoolsHolderFake) MiniBlocks() storage.Cacher {
 	return mphf.miniBlocks
-}
-
-func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
-	if mphf.ShardHeadersCalled != nil {
-		return mphf.ShardHeadersCalled()
-	}
-	return mphf.shardHeaders
 }
 
 func (mphf *MetaPoolsHolderFake) TrieNodes() storage.Cacher {
 	return mphf.trieNodes
 }
 
-func (mphf *MetaPoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return mphf.headersNonces
+func (mphf *MetaPoolsHolderFake) Headers() dataRetriever.HeadersPool {
+	if mphf.ShardHeadersCalled != nil {
+		return mphf.ShardHeadersCalled()
+	}
+	return mphf.shardHeaders
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

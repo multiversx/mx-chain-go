@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -26,32 +25,24 @@ import (
 
 func createMockMetaPools() *mock.MetaPoolsHolderStub {
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
-				return false, false
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{
+			AddCalled: func(headerHash []byte, header data.HeaderHandler) {
+
 			},
-			RegisterHandlerCalled: func(func(key []byte)) {},
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
+			RemoveHeaderByHashCalled: func(headerHash []byte) {
+
 			},
-			RemoveCalled: func(key []byte) {
-				return
+			RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
+
+			},
+			GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+				return nil, nil
 			},
 		}
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{
-			GetCalled: func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-				return nil, false
-			},
-			RegisterHandlerCalled: func(handler func(nonce uint64, shardId uint32, hash []byte)) {},
-			RemoveCalled:          func(nonce uint64, shardId uint32) {},
-			MergeCalled:           func(u uint64, src dataRetriever.ShardIdHashMap) {},
-		}
-		return hnc
-	}
+
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
@@ -168,7 +159,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return nil
 	}
 
@@ -717,26 +708,16 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	wasCalled := 0
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-
-		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.AddCalled = func(headerHash []byte, header data.HeaderHandler) {
 			assert.Fail(t, "should have not reached this point")
-			return false, false
 		}
-
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 			wasCalled++
 		}
 
-		return hnc
+		return sds
 	}
 
 	blkc := initBlockchain()
@@ -989,45 +970,27 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	hash := []byte("aaa")
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
 
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.GetHeaderByHashCalled = func(hashS []byte) (handler data.HeaderHandler, e error) {
 			mutDataAvailable.RLock()
 			defer mutDataAvailable.RUnlock()
 
-			if bytes.Equal(hash, key) && dataAvailable {
+			if bytes.Equal(hash, hashS) && dataAvailable {
 				return &block.MetaBlock{
 					Nonce:    2,
 					Round:    1,
-					RootHash: []byte("bbb")}, true
+					RootHash: []byte("bbb")}, nil
 			}
 
-			return nil, false
+			return nil, errors.New("err")
 		}
-
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
+			time.Sleep(10 * time.Millisecond)
 		}
 
 		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-			mutDataAvailable.RLock()
-			defer mutDataAvailable.RUnlock()
-
-			if u == 2 && dataAvailable {
-				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
-
-				return syncMap, true
-			}
-
-			return nil, false
-		}
-		return hnc
 	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1084,7 +1047,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	dataAvailable = true
 	mutDataAvailable.Unlock()
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	bs.StopSync()
 }
@@ -1102,39 +1065,22 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	hash := []byte("aaa")
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(hash, key) {
-				return &block.MetaBlock{
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			if hdrNonce == 2 {
+				return []data.HeaderHandler{&block.MetaBlock{
 					Nonce:    2,
 					Round:    1,
-					RootHash: []byte("bbb")}, true
+					RootHash: []byte("bbb")}}, [][]byte{hash}, nil
 			}
 
-			return nil, false
+			return nil, nil, errors.New("err")
 		}
-
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if u == 2 {
-				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
-
-				return syncMap, true
-			}
-
-			return nil, false
-		}
-		return hnc
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{
@@ -1215,42 +1161,23 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	hash := []byte("aaa")
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(hash, key) {
-				return &block.MetaBlock{
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			if hdrNonce == 2 {
+				return []data.HeaderHandler{&block.MetaBlock{
 					Nonce:    2,
 					Round:    1,
-					RootHash: []byte("bbb")}, true
+					RootHash: []byte("bbb")}}, [][]byte{hash}, nil
 			}
 
-			return nil, false
+			return nil, nil, errors.New("err")
 		}
 
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-		sds.RemoveCalled = func(key []byte) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if u == 2 {
-				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
-
-				return syncMap, true
-			}
-
-			return nil, false
-		}
-		hnc.RemoveCalled = func(nonce uint64, shardId uint32) {}
-		return hnc
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1329,7 +1256,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -1457,7 +1384,6 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		&mock.RequestedItemsHandlerStub{},
 		&mock.EpochStartTriggerStub{},
 	)
-
 	assert.False(t, bs.ShouldSync())
 }
 
@@ -1529,8 +1455,19 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	}
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
+			if bytes.Equal(key, hash1) {
+				return &hdr1, nil
+			}
+			if bytes.Equal(key, hash2) {
+				return &hdr2, nil
+			}
+
+			return nil, errors.New("err")
+		}
+		return sds
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1579,8 +1516,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
-		bs.ReceivedHeader(hash1)
+		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
@@ -1604,8 +1541,19 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	}
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
+			if bytes.Equal(key, hash1) {
+				return &hdr1, nil
+			}
+			if bytes.Equal(key, hash2) {
+				return &hdr2, nil
+			}
+
+			return nil, errors.New("err")
+		}
+		return sds
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1654,10 +1602,12 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
-		bs.ReceivedHeader(hash2)
+		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
 	}
+
+	time.Sleep(500 * time.Millisecond)
 
 	shouldSync = bs.ShouldSync()
 	assert.False(t, shouldSync)
@@ -1674,11 +1624,14 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	forkDetector.CheckForkCalled = func() *process.ForkInfo {
 		return process.NewForkInfo()
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1701,7 +1654,9 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		&mock.EpochStartTriggerStub{},
 	)
 
-	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
+	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
+
+	time.Sleep(500 * time.Millisecond)
 	assert.NotNil(t, bs)
 	assert.Nil(t, hdr)
 }
@@ -1713,40 +1668,28 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	hash := []byte("aaa")
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(hash, key) {
-				return hdr, true
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			if hdrNonce == 0 {
+				return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 			}
-			return nil, false
+			return nil, nil, errors.New("err")
 		}
 
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-			if u == 0 {
-				syncMap := &dataPool.ShardIdHashSyncMap{}
-				syncMap.Store(sharding.MetachainShardId, hash)
 
-				return syncMap, true
-			}
-
-			return nil, false
-		}
-
-		return hnc
-	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
+	}
+
 	account := &mock.AccountsStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1774,7 +1717,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		&mock.EpochStartTriggerStub{},
 	)
 
-	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
+	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
 	assert.NotNil(t, bs)
 	assert.True(t, hdr == hdr2)
 }
@@ -1788,17 +1731,18 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	addedHdr := &block.MetaBlock{}
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
 		}
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(key, addedHash) {
-				return addedHdr, true
+				return addedHdr, nil
 			}
 
-			return nil, false
+			return nil, errors.New("err")
 		}
+
 		return sds
 	}
 
@@ -1822,8 +1766,13 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		wasAdded = true
 		return nil
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
+	}
 
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = sharding.MetachainShardId
+
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
@@ -1849,8 +1798,9 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		&mock.EpochStartTriggerStub{},
 	)
 
-	bs.ReceivedHeader(addedHash)
+	bs.ReceivedHeaders(addedHdr, addedHash)
 
+	time.Sleep(500 * time.Millisecond)
 	assert.True(t, wasAdded)
 }
 
@@ -1927,8 +1877,8 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 		&mock.EpochStartTriggerStub{},
 	)
 
-	bs.ReceivedHeader(addedHash)
-
+	bs.ReceivedHeaders(addedHdr, addedHash)
+	time.Sleep(500 * time.Millisecond)
 	assert.False(t, wasAdded)
 }
 
@@ -2021,21 +1971,18 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 	newHdrNonce := uint64(6)
 
 	remFlags := &removedFlags{}
-	shardId := sharding.MetachainShardId
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return createHeadersDataPool(newHdrHash, remFlags)
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.RemoveHeaderByHashCalled = func(headerHash []byte) {
+			if bytes.Equal(headerHash, newHdrHash) {
+				remFlags.flagHdrRemovedFromHeaders = true
+			}
+		}
+		return sds
 	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return createHeadersNoncesDataPool(
-			newHdrNonce,
-			newHdrHash,
-			newHdrNonce,
-			remFlags,
-			shardId,
-		)
-	}
+
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2106,21 +2053,16 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	}
 
 	pools := createMockMetaPools()
-	shardId := sharding.MetachainShardId
 
 	//data pool headers
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return createHeadersDataPool(currentHdrHash, remFlags)
-	}
-	//data pool headers-nonces
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return createHeadersNoncesDataPool(
-			currentHdrNonce,
-			currentHdrHash,
-			currentHdrNonce,
-			remFlags,
-			shardId,
-		)
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.RemoveHeaderByHashCalled = func(headerHash []byte) {
+			if bytes.Equal(headerHash, currentHdrHash) {
+				remFlags.flagHdrRemovedFromHeaders = true
+			}
+		}
+		return sds
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
@@ -2245,8 +2187,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
-	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
@@ -2279,21 +2220,16 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 
 	pools := createMockMetaPools()
-	shardId := sharding.MetachainShardId
 
 	//data pool headers
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return createHeadersDataPool(currentHdrHash, remFlags)
-	}
-	//data pool headers-nonces
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return createHeadersNoncesDataPool(
-			currentHdrNonce,
-			currentHdrHash,
-			currentHdrNonce,
-			remFlags,
-			shardId,
-		)
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.RemoveHeaderByHashCalled = func(headerHash []byte) {
+			if bytes.Equal(headerHash, currentHdrHash) {
+				remFlags.flagHdrRemovedFromHeaders = true
+			}
+		}
+		return sds
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
@@ -2410,8 +2346,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
-	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
@@ -2541,23 +2476,8 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockMetaPools()
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-
-		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-			return false, false
-		}
-
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-
-		return hnc
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 
 	blkc := initBlockchain()
