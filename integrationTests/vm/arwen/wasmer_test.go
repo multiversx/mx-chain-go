@@ -95,10 +95,10 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 	scCode, err := getBytecode(wasm_filename)
 	assert.Nil(t, err)
 
-	scCodeString := hex.EncodeToString(scCode)
-
 	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
 	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	scCodeString := hex.EncodeToString(scCode)
 
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
@@ -106,7 +106,7 @@ func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
 	)
 	err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
@@ -149,7 +149,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		GasPrice:    uint64(0),
 		GasProvided: uint64(0xffffffffffffffff),
 		Arguments:   arguments,
-		CallType: vmcommon.DirectCall,
+		CallType:    vmcommon.DirectCall,
 	}
 }
 
