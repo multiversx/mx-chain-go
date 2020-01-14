@@ -40,11 +40,9 @@ func generateTestCache() storage.Cacher {
 }
 
 func generateTestUnit() storage.Storer {
-	memDB, _ := memorydb.New()
-
 	storer, _ := storageUnit.NewStorageUnit(
 		generateTestCache(),
-		memDB,
+		memorydb.New(),
 	)
 
 	return storer
@@ -163,6 +161,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
+			}
+			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, err error) {
+				return nil, err
 			}
 			cs.RemoveHeaderByHashCalled = func(key []byte) {
 			}

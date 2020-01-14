@@ -35,8 +35,5 @@ func (ss *StorerStub) DestroyUnit() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *StorerStub) IsInterfaceNil() bool {
-	if ss == nil {
-		return true
-	}
-	return false
+	return ss == nil
 }

@@ -12,6 +12,7 @@ type PoolsHolderStub struct {
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
 	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled           func() storage.Cacher
+	TrieNodesCalled            func() storage.Cacher
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 }
 
@@ -43,10 +44,11 @@ func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacher
 	return phs.RewardTransactionsCalled()
 }
 
+func (phs *PoolsHolderStub) TrieNodes() storage.Cacher {
+	return phs.TrieNodesCalled()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (phs *PoolsHolderStub) IsInterfaceNil() bool {
-	if phs == nil {
-		return true
-	}
-	return false
+	return phs == nil
 }

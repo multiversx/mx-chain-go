@@ -55,6 +55,9 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache, Shards: 1}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -64,6 +67,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		hdrPool,
 		txBlockBody,
 		peerChangeBlockBody,
+		trieNodes,
 		currTxs,
 	)
 

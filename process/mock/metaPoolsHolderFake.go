@@ -13,6 +13,7 @@ import (
 
 type MetaPoolsHolderFake struct {
 	miniBlocks   storage.Cacher
+	trieNodes     storage.Cacher
 	shardHeaders dataRetriever.HeadersPool
 	transactions dataRetriever.ShardedDataCacherNotifier
 	unsigned     dataRetriever.ShardedDataCacherNotifier
@@ -28,6 +29,7 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.currTxs, _ = dataPool.NewCurrentBlockPool()
 	mphf.shardHeaders, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
+	mphf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	return mphf
 }
@@ -46,6 +48,10 @@ func (mphf *MetaPoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDat
 
 func (mphf *MetaPoolsHolderFake) MiniBlocks() storage.Cacher {
 	return mphf.miniBlocks
+}
+
+func (mphf *MetaPoolsHolderFake) TrieNodes() storage.Cacher {
+	return mphf.trieNodes
 }
 
 func (mphf *MetaPoolsHolderFake) Headers() dataRetriever.HeadersPool {

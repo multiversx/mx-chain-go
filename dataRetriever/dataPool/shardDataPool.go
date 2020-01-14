@@ -13,6 +13,7 @@ type shardedDataPool struct {
 	headers              dataRetriever.HeadersPool
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
+	trieNodes            storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
 }
 
@@ -24,6 +25,7 @@ func NewShardedDataPool(
 	headers dataRetriever.HeadersPool,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
+	trieNodes storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
 
@@ -48,6 +50,9 @@ func NewShardedDataPool(
 	if check.IfNil(currBlockTxs) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
+	if trieNodes == nil || trieNodes.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilTrieNodesPool
+	}
 
 	return &shardedDataPool{
 		transactions:         transactions,
@@ -56,6 +61,7 @@ func NewShardedDataPool(
 		headers:              headers,
 		miniBlocks:           miniBlocks,
 		peerChangesBlocks:    peerChangesBlocks,
+		trieNodes:            trieNodes,
 		currBlockTxs:         currBlockTxs,
 	}, nil
 }
@@ -93,6 +99,11 @@ func (tdp *shardedDataPool) MiniBlocks() storage.Cacher {
 // PeerChangesBlocks returns the holder for peer changes block bodies
 func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 	return tdp.peerChangesBlocks
+}
+
+// TrieNodes returns the holder for trie nodes
+func (tdp *shardedDataPool) TrieNodes() storage.Cacher {
+	return tdp.trieNodes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

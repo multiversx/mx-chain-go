@@ -18,6 +18,7 @@ type PoolsHolderMock struct {
 	headers              dataRetriever.HeadersPool
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
+	trieNodes            storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
 }
 
@@ -30,6 +31,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.currBlockTxs, _ = dataPool.NewCurrentBlockPool()
+	phf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	return phf
 }
@@ -68,6 +70,10 @@ func (phm *PoolsHolderMock) SetTransactions(transactions dataRetriever.ShardedDa
 
 func (phm *PoolsHolderMock) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
 	phm.unsignedTransactions = scrs
+}
+
+func (phm *PoolsHolderMock) TrieNodes() storage.Cacher {
+	return phm.trieNodes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

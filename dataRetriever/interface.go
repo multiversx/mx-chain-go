@@ -231,6 +231,7 @@ type PoolsHolder interface {
 	Headers() HeadersPool
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
+	TrieNodes() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
@@ -239,6 +240,7 @@ type PoolsHolder interface {
 type MetaPoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	Headers() HeadersPool
+	TrieNodes() storage.Cacher
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
@@ -269,6 +271,12 @@ type StorageService interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TrieDataGetter returns requested data from the trie
+type TrieDataGetter interface {
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

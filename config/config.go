@@ -66,6 +66,12 @@ type NTPConfig struct {
 	Version             int
 }
 
+// EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
+type EvictionWaitingListConfig struct {
+	Size uint     `json:"size"`
+	DB   DBConfig `json:"db"`
+}
+
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs int64
@@ -92,6 +98,9 @@ type Config struct {
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -99,7 +108,7 @@ type Config struct {
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-
+	TrieNodesDataPool           CacheConfig
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
@@ -190,4 +199,10 @@ type ElasticSearchConfig struct {
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
+}
+
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }

@@ -186,18 +186,34 @@
         Size = 75000
         Type = "LRU"
     [AccountsTrieStorage.DB]
-        FilePath = "AccountsTrie"
+        FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+
+[EvictionWaitingList]
+    Size = 100
+    [EvictionWaitingList.DB]
+        FilePath = "EvictionWaitingList"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 5
+        MaxBatchSize = 10000
+        MaxOpenFiles = 10
+
+[TrieSnapshotDB]
+     FilePath = "TrieSnapshot"
+     Type = "LvlDBSerial"
+     BatchDelaySeconds = 15
+     MaxBatchSize = 40000
+     MaxOpenFiles = 10
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
         Size = 75000
         Type = "LRU"
     [PeerAccountsTrieStorage.DB]
-        FilePath = "PeerAccountsTrie"
+        FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000
@@ -223,6 +239,10 @@
     Size = 75000
     Type = "FIFOSharded"
     Shards = 16
+
+[TrieNodesDataPool]
+    Size = 50000
+    Type = "LRU"
 
 [UnsignedTransactionDataPool]
     Size = 75000
@@ -299,3 +319,8 @@
    Port = 123
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
+
+[StateTrieConfig]
+    RoundsModulus = 100
+    # TODO: change this to true when pruning bugs are fixed
+    PruningEnabled = false

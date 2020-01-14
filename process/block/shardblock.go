@@ -37,6 +37,7 @@ type shardProcessor struct {
 	core                   serviceContainer.Core
 	txCounter              *transactionCounter
 	txsPoolsCleaner        process.PoolsCleaner
+	stateCheckpointModulus uint
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -90,11 +91,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp := shardProcessor{
-		core:            arguments.Core,
-		baseProcessor:   base,
-		dataPool:        arguments.DataPool,
-		txCounter:       NewTransactionCounter(),
-		txsPoolsCleaner: arguments.TxsPoolsCleaner,
+		core:                   arguments.Core,
+		baseProcessor:          base,
+		dataPool:               arguments.DataPool,
+		txCounter:              NewTransactionCounter(),
+		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
+		stateCheckpointModulus: arguments.StateCheckpointModulus,
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
@@ -797,6 +799,8 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
+	sp.updateStateStorage(finalHeaders)
+
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
 		"nonce", highestFinalBlockNonce,
@@ -868,6 +872,55 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersPool)
 
 	return nil
+}
+
+func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
+	// TODO add pruning on metachain. Refactor the pruning mechanism (remove everything before final nonce).
+	for i := range finalHeaders {
+		if !sp.accounts.IsPruningEnabled() {
+			break
+		}
+
+		sp.saveState(finalHeaders[i])
+
+		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		var prevHeader block.Header
+		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		rootHash := prevHeader.GetRootHash()
+		if rootHash == nil {
+			continue
+		}
+
+		log.Trace("final header will be pruned", "root hash", rootHash)
+		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+
+		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
+	}
+}
+
+func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
+	if finalHeader.IsStartOfEpochBlock() {
+		sp.accounts.SnapshotState(finalHeader.GetRootHash())
+		return
+	}
+
+	// TODO generate checkpoint on a trigger
+	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
+	}
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
