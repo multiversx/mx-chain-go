@@ -176,9 +176,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.NoncesCalled = func(shardId uint32) []uint64 {
 				return nil
 			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			}
 			return cs
 		},
 	}

@@ -451,7 +451,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.MetaBlocks().MaxSize())
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.Headers().MaxSize())
 	if err != nil {
 		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
 	}
@@ -1351,7 +1351,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool) {
+	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool.MaxSize()) {
 		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
 
 		return

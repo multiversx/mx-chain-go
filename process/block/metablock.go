@@ -1238,9 +1238,9 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
-func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	headers := mp.dataPool.Headers()
-	if headers == nil {
+func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
+	shardHeadersPool := mp.dataPool.Headers()
+	if shardHeadersPool == nil {
 		return
 	}
 
@@ -1253,14 +1253,14 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, h
 		"shard", shardHeader.ShardId,
 		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,
-		"hash", headerHash,
+		"hash", shardHeaderHash,
 	)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	haveMissingShardHeaders := mp.hdrsForCurrBlock.missingHdrs > 0 || mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
 	if haveMissingShardHeaders {
-		hdrInfoForHash := mp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)]
+		hdrInfoForHash := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		receivedMissingShardHeader := hdrInfoForHash != nil && (hdrInfoForHash.hdr == nil || hdrInfoForHash.hdr.IsInterfaceNil())
 		if receivedMissingShardHeader {
 			hdrInfoForHash.hdr = shardHeader
@@ -1301,8 +1301,8 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, h
 			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	if mp.isHeaderOutOfRange(shardHeader, headers) || isShardHeaderWithOldEpochAndBadRound {
-		headers.RemoveHeaderByHash(headerHash)
+	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) || isShardHeaderWithOldEpochAndBadRound {
+		shardHeadersPool.RemoveHeaderByHash(shardHeaderHash)
 
 		return
 	}

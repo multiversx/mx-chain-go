@@ -1074,7 +1074,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1}
-	pool.ShardHeaders().Put(hdrHash1, hdr1)
+	pool.Headers().AddHeader(hdrHash1, hdr1)
 	arguments.BlockTracker.AddTrackedHeader(hdr1, hdrHash1)
 
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(1).(*block.Header))
@@ -1085,7 +1085,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2}
-	pool.ShardHeaders().Put(hdrHash2, hdr2)
+	pool.Headers().AddHeader(hdrHash2, hdr2)
 	arguments.BlockTracker.AddTrackedHeader(hdr2, hdrHash2)
 
 	prevHash, _ = mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(2).(*block.Header))
@@ -1096,7 +1096,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		PrevRandSeed:     prevRandSeed,
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3}
-	pool.ShardHeaders().Put(hdrHash3, hdr3)
+	pool.Headers().AddHeader(hdrHash3, hdr3)
 	arguments.BlockTracker.AddTrackedHeader(hdr3, hdrHash3)
 
 	mp.SetShardBlockFinality(0)
@@ -2117,10 +2117,10 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		}
 		cs.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			if hdrNonce == 1 {
-				return hdr1, [][]byte{hdrHash1Bytes}, nil
+				return []data.HeaderHandler{hdr1}, [][]byte{hdrHash1Bytes}, nil
 			}
 			if hdrNonce == 2 {
-				return hdr2, [][]byte{hdrHash2Bytes}, nil
+				return []data.HeaderHandler{hdr2}, [][]byte{hdrHash2Bytes}, nil
 			}
 			return nil, nil, errors.New("err")
 		}

@@ -1516,7 +1516,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
@@ -1602,7 +1602,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
 	}

@@ -1788,7 +1788,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
@@ -1882,7 +1882,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
@@ -2121,87 +2121,6 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	bs.ReceivedHeaders(addedHdr, addedHash)
 
 	assert.True(t, wasAdded)
-}
-
-func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *testing.T) {
-	t.Parallel()
-
-	addedHash := []byte("hash")
-	addedHdr := &block.Header{}
-
-	pools := createMockPools()
-
-	wasAdded := false
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
-			return errors.New("processed")
-		}
-
-		if !bytes.Equal(hash, addedHash) {
-			return errors.New("hash mismatch")
-		}
-
-		if !reflect.DeepEqual(header, addedHdr) {
-			return errors.New("header mismatch")
-		}
-
-		wasAdded = true
-		return nil
-	}
-
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	headerStorage := &mock.StorerStub{}
-	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
-		if bytes.Equal(key, addedHash) {
-			buff, _ := marshalizer.Marshal(addedHdr)
-
-			return buff, nil
-		}
-
-		return nil, nil
-	}
-
-	store := createFullStore()
-	store.AddStorer(dataRetriever.BlockHeaderUnit, headerStorage)
-
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
-
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {},
-	})
-
-	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		store,
-		blkc,
-		rnd,
-		&mock.BlockProcessorMock{},
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-		&mock.BoostrapStorerMock{},
-		&mock.StorageBootstrapperMock{},
-		&mock.RequestedItemsHandlerStub{},
-	)
-
-	bs.ReceivedHeaders(addedHash)
-
-	assert.False(t, wasAdded)
 }
 
 //------- RollBack

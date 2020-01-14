@@ -571,7 +571,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 	return nil
 }
 
-func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, headersCacher dataRetriever.HeadersPool) bool {
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacherMaxSize int) bool {
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
 	if err != nil {
 		log.Debug("isHeaderOutOfRange",
@@ -580,7 +580,7 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, headersCa
 		return false
 	}
 
-	allowedSize := uint64(float64(headersCacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
 	isHeaderOutOfRange := header.GetNonce() > lastCrossNotarizedHeader.GetNonce()+allowedSize
 
 	return isHeaderOutOfRange
@@ -661,7 +661,7 @@ func (bp *baseProcessor) cleanupPools(
 
 func (bp *baseProcessor) cleanupPoolsForShard(
 	shardID uint32,
-	headersPool storage.Cacher,
+	headersPool dataRetriever.HeadersPool,
 	noncesToFinal uint64,
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
@@ -705,7 +705,7 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 			bp.removeBlocksBody(nonceFromCache, shardId, headersPool)
 		}
 
-		headersCacher.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
+		headersPool.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
 	}
 }
 
@@ -740,40 +740,6 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
-	noncesToFinal := bp.getNoncesToFinal(headerHandler)
-
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
-	}
-
-	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
-}
-
-func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
-	selfNotarizedNonce := bp.forkDetector.GetHighestFinalBlockNonce()
-	crossNotarizedNonce := uint64(0)
-
-	if shardID != bp.shardCoordinator.SelfId() {
-		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
-		if err != nil {
-			log.Trace("cleanupBlockTrackerPoolsForShard",
-				"shard", shardID,
-				"nonces to final", noncesToFinal,
-				"error", err.Error())
-			return
-		}
-
-		crossNotarizedNonce = crossNotarizedHeader.GetNonce()
-	}
-
-	bp.blockTracker.CleanupHeadersBehindNonce(
-		shardID,
-		selfNotarizedNonce,
-		crossNotarizedNonce,
-	)
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
