@@ -71,6 +71,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 
 	blockProcessor, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&sbt,
 		crossNotarizer,

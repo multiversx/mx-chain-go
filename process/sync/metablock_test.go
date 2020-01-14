@@ -799,7 +799,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 			Hash:       []byte("hash"),
 		}
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
+	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
@@ -1213,8 +1213,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {}
-	forkDetector.ResetProbableHighestNonceCalled = func() {}
+	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {}
 	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
 		return nil
 	}
@@ -1467,7 +1466,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	assert.True(t, bs.ShouldSync())
 }
 
-func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
+func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
 	t.Parallel()
 
 	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
@@ -1501,7 +1500,12 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{}, 0)
+	forkDetector, _ := sync.NewMetaForkDetector(
+		rounder,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -1531,22 +1535,22 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		&mock.EpochStartTriggerStub{},
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil, false)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
-		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
+		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
-	assert.False(t, shouldSync)
-	assert.False(t, bs.IsForkDetected())
+	assert.True(t, shouldSync)
+	assert.True(t, bs.IsForkDetected())
 }
 
 func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
@@ -1583,7 +1587,12 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{}, 0)
+	forkDetector, _ := sync.NewMetaForkDetector(
+		rounder,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -1613,17 +1622,17 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		&mock.EpochStartTriggerStub{},
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil, false)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
 	assert.True(t, bs.IsForkDetected())
 
 	if shouldSync && bs.IsForkDetected() {
-		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		forkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
-		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil, false)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
 	}
 
 	time.Sleep(500 * time.Millisecond)
@@ -1771,7 +1780,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -1838,7 +1847,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}

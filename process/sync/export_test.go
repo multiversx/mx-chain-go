@@ -54,8 +54,8 @@ func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
 }
 
-func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
-	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
+	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round, hash: hash})
 }
 
 func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
@@ -82,19 +82,8 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *baseForkDetector) ActivateForcedForkIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-) {
-	bfd.activateForcedForkIfNeeded(header, state)
-}
-
-func (bfd *baseForkDetector) ShouldForceFork() bool {
-	return bfd.shouldForceFork()
-}
-
-func (bfd *baseForkDetector) SetShouldForceFork(shouldForceFork bool) {
-	bfd.setShouldForceFork(shouldForceFork)
+func (bfd *baseForkDetector) IsConsensusStuck() bool {
+	return bfd.isConsensusStuck()
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -169,12 +158,12 @@ func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 	bfd.setProbableHighestNonce(nonce)
 }
 
-func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
+func (sfd *shardForkDetector) ComputeFinalCheckpoint() {
+	sfd.computeFinalCheckpoint()
 }
 
-func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
-	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
+func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64, hash []byte) {
+	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce, hash: hash})
 }
 
 func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {

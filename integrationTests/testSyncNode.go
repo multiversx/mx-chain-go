@@ -120,6 +120,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
+	tpn.initBlockTracker(headerValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -130,7 +132,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		NodesCoordinator:             tpn.NodesCoordinator,
 		SpecialAddressHandler:        tpn.SpecialAddressHandler,
 		Uint64Converter:              TestUint64Converter,
-		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
@@ -143,10 +144,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
+		BlockTracker: tpn.BlockTracker,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
@@ -162,7 +164,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
