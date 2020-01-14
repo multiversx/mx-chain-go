@@ -277,7 +277,8 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 		return
 	}
 
-	err = resolver.RequestDataFromHash(hash)
+	// epoch doesn't matter because that parameter is not used in trie's resolver
+	err = resolver.RequestDataFromHash(hash, 0)
 	if err != nil {
 		log.Debug(err.Error())
 	}

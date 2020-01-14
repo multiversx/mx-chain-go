@@ -16,7 +16,7 @@ var log = logger.GetOrCreate("dataretriever/resolvers")
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
-	headers                          dataRetriever.HeadersPool
+	headers              dataRetriever.HeadersPool
 	hdrStorage           storage.Storer
 	hdrNoncesStorage     storage.Storer
 	marshalizer          marshal.Marshalizer
@@ -125,13 +125,13 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
-
-	// Search the nonce-key pair in data pool
-	if hash == nil {
-		hash = hdrRes.searchInCache(nonce)
-		if len(hash) == 0 {
-			return nil, nil
+		// Search the nonce-key pair in data pool
+		hdrBytes, err := hdrRes.searchInCache(nonce)
+		if err != nil {
+			return nil, err
 		}
+
+		return hdrBytes, nil
 	}
 
 	newRd := &dataRetriever.RequestData{
@@ -143,27 +143,26 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	return hdrRes.resolveHeaderFromHash(newRd)
 }
 
-func (hdrRes *HeaderResolver) searchInCache(nonce uint64) []byte {
-	var hash []byte
-	value, ok := hdrRes.hdrNonces.Get(nonce)
-	if ok {
-		value.Range(func(shardId uint32, existingHash []byte) bool {
-			if shardId == hdrRes.TargetShardID() {
-				hash = existingHash
-				return false
-			}
-
-			return true
-		})
+func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
+	headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
+	if err != nil {
+		return nil, err
 	}
 
-	return hash
+	// TODO maybe we can return a slice of headers
+	hdr := headers[len(headers)-1]
+	buff, err := hdrRes.marshalizer.Marshal(hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
-	value, ok := hdrRes.headers.Peek(rd.Value)
-	if !ok {
+	value, err := hdrRes.headers.GetHeaderByHash(rd.Value)
+	if err != nil {
 		return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
@@ -210,6 +209,7 @@ func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) err
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
+		Epoch: epoch,
 	})
 }
 

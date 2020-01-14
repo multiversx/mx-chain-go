@@ -72,7 +72,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 }
 
 // RequestDataFromHash requests trie nodes from other peers having input a trie node hash
-func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
+func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,

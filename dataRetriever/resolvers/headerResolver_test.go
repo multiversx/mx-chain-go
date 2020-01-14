@@ -319,8 +319,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 	expectedEpoch := uint32(7)
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
