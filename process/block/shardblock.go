@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -33,11 +32,13 @@ type shardProcessor struct {
 
 	chRcvEpochStart chan bool
 
-	processedMiniBlocks    *processedMb.ProcessedMiniBlockTracker
-	core                   serviceContainer.Core
-	txCounter              *transactionCounter
-	txsPoolsCleaner        process.PoolsCleaner
-	stateCheckpointModulus uint
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	core                serviceContainer.Core
+	txCounter           *transactionCounter
+	txsPoolsCleaner     process.PoolsCleaner
+
+	stateCheckpointModulus            uint
+	lowestNonceInSelfNotarizedHeaders uint64
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -79,11 +80,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:              arguments.HeaderValidator,
 		bootStorer:                   arguments.BootStorer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
-	}
-
-	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
-	if err != nil {
-		return nil, err
+		blockTracker:                 arguments.BlockTracker,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -118,9 +115,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 
-	sp.metaBlockFinality = process.MetaBlockFinality
-
-	sp.lastHdrs = make(mapShardHeader)
+	sp.metaBlockFinality = process.BlockFinality
 
 	return &sp, nil
 }
@@ -150,6 +145,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 		return err
 	}
+
+	log.Trace("started processing block",
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
@@ -382,7 +382,7 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
-	tmpNotedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -393,15 +393,15 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	}
 
 	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
-		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, tmpNotedHdr)
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
 		}
 
-		tmpNotedHdr = metaHdr
+		lastCrossNotarizedHeader = metaHdr
 	}
 
-	err = sp.checkMetaHdrFinality(tmpNotedHdr)
+	err = sp.checkMetaHdrFinality(lastCrossNotarizedHeader)
 	if err != nil {
 		return err
 	}
@@ -429,8 +429,8 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
-				go sp.removeHeaderFromPools(metaHdr, sp.dataPool.Headers())
-				log.Trace("isHdrConstructionValid", "error", err.Error())
+				log.Debug("checkMetaHdrFinality -> isHdrConstructionValid",
+					"error", err.Error())
 				continue
 			}
 
@@ -449,39 +449,28 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 }
 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
-	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
+	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
+
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.Headers().MaxSize())
 	if err != nil {
-		log.Trace("getOrderedMetaBlocks", "error", err.Error())
+		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
+	}
+
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	if err != nil {
+		log.Debug("checkAndRequestIfMetaHeadersMissing",
+			"shard", sharding.MetachainShardId,
+			"error", err.Error())
 		return
 	}
 
-	sortedHdrs := make([]data.HeaderHandler, 0, len(orderedMetaBlocks))
 	for i := 0; i < len(orderedMetaBlocks); i++ {
-		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
-		if !ok {
-			continue
-		}
-		sortedHdrs = append(sortedHdrs, hdr)
-	}
-
-	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId, round, sp.dataPool.Headers())
-	if err != nil {
-		log.Debug("requestHeadersIfMissing", "error", err.Error())
-	}
-
-	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
-	if err != nil {
-		log.Debug("getLastNotarizedHdr", "error", err.Error())
-		return
-	}
-
-	for i := 0; i < len(sortedHdrs); i++ {
-		isMetaBlockOutOfRange := sortedHdrs[i].GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+		isMetaBlockOutOfRange := orderedMetaBlocks[i].GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
 		if isMetaBlockOutOfRange {
 			break
 		}
 
-		sp.txCoordinator.RequestMiniBlocks(sortedHdrs[i])
+		sp.txCoordinator.RequestMiniBlocks(orderedMetaBlocks[i])
 	}
 
 	return
@@ -563,7 +552,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
-	sp.removeLastNotarized()
+	sp.blockTracker.RemoveLastNotarizedHeaders()
 
 	return nil
 }
@@ -627,6 +616,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	log.Trace("started creating block body",
+		"round", initialHdrData.GetRound(),
+	)
+
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
@@ -649,7 +642,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		"epoch", initialHdrData.GetEpoch(),
 	)
 
-	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
+	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -755,10 +748,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	finalHeaders, finalHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	selfNotarizedHeaders, selfNotarizedHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
 	if err != nil {
 		return err
 	}
+
+	sp.cleanupBlockTrackerPools(headerHandler)
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
@@ -776,9 +771,9 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	log.Info("shard block has been committed successfully",
-		"nonce", header.Nonce,
-		"round", header.Round,
 		"epoch", header.Epoch,
+		"round", header.Round,
+		"nonce", header.Nonce,
 		"hash", headerHash,
 	)
 
@@ -792,23 +787,23 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("removeProcessedMetaBlocksFromPool", "error", errNotCritical.Error())
 	}
 
-	isMetachainStuck := sp.isShardStuck(sharding.MetachainShardId)
-
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, isMetachainStuck)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if errNotCritical != nil {
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	sp.updateStateStorage(finalHeaders)
+	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
+
+	selfNotarizedHeader, selfNotarizedHeaderHash := sp.getLastSelfNotarizedHeader()
+	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
+
+	sp.updateStateStorage(selfNotarizedHeaders)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
 		"nonce", highestFinalBlockNonce,
 		"shard", sp.shardCoordinator.SelfId(),
 	)
-
-	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
-	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
 
@@ -825,16 +820,17 @@ func (sp *shardProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
-	metaHeader, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
+
 	saveMetricsForACommittedBlock(
 		sp.appStatusHandler,
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
-		metaHeader,
+		lastCrossNotarizedHeader,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -845,7 +841,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	processedMiniBlocks := sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice()
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
+	if len(selfNotarizedHeaders) > 0 {
+		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
+	}
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
 
@@ -858,6 +858,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.shardCoordinator.SelfId(),
 		sp.dataPool,
 		sp.appStatusHandler,
+		sp.blockTracker,
 	)
 
 	sp.blockSizeThrottler.Succeed(header.Round)
@@ -869,7 +870,7 @@ func (sp *shardProcessor) CommitBlock(
 		"miniblocks capacity", sp.dataPool.MiniBlocks().MaxSize(),
 	)
 
-	go sp.cleanupPools(headersPool)
+	go sp.cleanupPools(headerHandler, headersPool)
 
 	return nil
 }
@@ -954,9 +955,43 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 		log.Debug("blockchain is wrongly constructed",
 			"reverted to nonce", nonce)
 
-		sp.forkDetector.SetForkNonce(nonce)
+		sp.forkDetector.SetRollBackNonce(nonce)
 		return process.ErrEpochDoesNotMatch
 	}
+
+	return nil
+}
+
+func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []byte) {
+	hash := sp.forkDetector.GetHighestFinalBlockHash()
+	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+	if err != nil {
+		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error())
+		return nil, nil
+	}
+
+	return header, hash
+}
+
+func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := sp.blockTracker.GetLastCrossNotarizedHeader(shardId)
+	if err != nil {
+		return err
+	}
+
+	lenProcessedHdrs := len(processedHdrs)
+	if lenProcessedHdrs > 0 {
+		if lastCrossNotarizedHeader.GetNonce() < processedHdrs[lenProcessedHdrs-1].GetNonce() {
+			lastCrossNotarizedHeader = processedHdrs[lenProcessedHdrs-1]
+			lastCrossNotarizedHeaderHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
+	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
 
 	return nil
 }
@@ -985,8 +1020,6 @@ func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
 func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	processedHdrs []data.HeaderHandler,
 ) ([]data.HeaderHandler, [][]byte, error) {
-
-	process.SortHeadersByNonce(processedHdrs)
 
 	ownShIdHdrs := make([]data.HeaderHandler, 0, len(processedHdrs))
 
@@ -1203,7 +1236,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 }
 
 func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	lastNotarizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -1214,7 +1247,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		hdr := processedMetaHdrs[i]
 
 		// remove process finished
-		if hdr.GetNonce() > lastNotarizedMetaHdr.GetNonce() {
+		if hdr.GetNonce() > lastCrossNotarizedHeader.GetNonce() {
 			continue
 		}
 
@@ -1300,7 +1333,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				sharding.MetachainShardId,
 				sp.metaBlockFinality,
-				sp.dataPool.Headers())
+			)
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
 			}
@@ -1318,22 +1351,24 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	sp.setLastHdrForShard(metaBlock.GetShardID(), metaBlock)
-
-	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool) {
+	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool.MaxSize()) {
 		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
 
 		return
 	}
 
-	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
+		log.Debug("receivedMetaBlock",
+			"shard", sharding.MetachainShardId,
+			"error", err.Error())
 		return
 	}
-	if metaBlock.GetNonce() <= lastNotarizedHdr.GetNonce() {
+
+	if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
 		return
 	}
-	if metaBlock.GetRound() <= lastNotarizedHdr.GetRound() {
+	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
 		return
 	}
 
@@ -1342,7 +1377,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.chRcvEpochStart <- true
 	}
 
-	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
 	if isMetaBlockOutOfRange {
 		return
 	}
@@ -1369,7 +1404,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			sharding.MetachainShardId,
 			sp.metaBlockFinality,
-			sp.dataPool.Headers())
+		)
 	}
 
 	requestedHdrs := sp.hdrsForCurrBlock.missingHdrs
@@ -1422,7 +1457,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header *block.Header) e
 }
 
 func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (map[string][]byte, error) {
-	lastHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -1442,10 +1477,10 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 		if metaBlock.GetRound() > header.Round {
 			continue
 		}
-		if metaBlock.GetRound() <= lastHdr.GetRound() {
+		if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
 			continue
 		}
-		if metaBlock.GetNonce() <= lastHdr.GetNonce() {
+		if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
 			continue
 		}
 
@@ -1459,100 +1494,9 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 	return miniBlockMetaHashes, nil
 }
 
-func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
-	metaBlocksPool := sp.dataPool.Headers()
-	if metaBlocksPool == nil {
-		return nil, process.ErrNilMetaBlocksPool
-	}
-
-	lastHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
-	if err != nil {
-		return nil, err
-	}
-
-	orderedMetaBlocks := make([]*hashAndHdr, 0)
-
-	noncesKeys := metaBlocksPool.Nonces(sharding.MetachainShardId)
-	for _, key := range noncesKeys {
-		metaHeaders, metaHeadersHeshes, err := metaBlocksPool.GetHeadersByNonceAndShardId(key, sharding.MetachainShardId)
-		if err != nil {
-			continue
-		}
-
-		for i := 0; i < len(metaHeaders); i++ {
-			metaHeader, metaHdrHash := metaHeaders[i], metaHeadersHeshes[i]
-
-			hdr, ok := metaHeader.(*block.MetaBlock)
-			if !ok {
-				continue
-			}
-
-			if hdr.GetRound() > round {
-				continue
-			}
-			if hdr.GetRound() <= lastHdr.GetRound() {
-				continue
-			}
-			if hdr.GetNonce() <= lastHdr.GetNonce() {
-				continue
-			}
-
-			orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: metaHdrHash})
-		}
-
-	}
-
-	if len(orderedMetaBlocks) > 1 {
-		sort.Slice(orderedMetaBlocks, func(i, j int) bool {
-			return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
-		})
-	}
-
-	return orderedMetaBlocks, nil
-}
-
-// isMetaHeaderFinal verifies if meta is trully final, in order to not do rollbacks
-func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
-	if currHdr == nil || currHdr.IsInterfaceNil() {
-		return false
-	}
-	if sortedHdrs == nil {
-		return false
-	}
-
-	// verify if there are "K" block after current to make this one final
-	lastVerifiedHdr := currHdr
-	nextBlocksVerified := uint32(0)
-
-	for i := startPos; i < len(sortedHdrs); i++ {
-		if nextBlocksVerified >= sp.metaBlockFinality {
-			return true
-		}
-
-		// found a header with the next nonce
-		tmpHdr := sortedHdrs[i].hdr
-		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := sp.headerValidator.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
-			if err != nil {
-				continue
-			}
-
-			lastVerifiedHdr = tmpHdr
-			nextBlocksVerified += 1
-		}
-	}
-
-	if nextBlocksVerified >= sp.metaBlockFinality {
-		return true
-	}
-
-	return false
-}
-
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
@@ -1560,7 +1504,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	txsAdded := uint32(0)
 	hdrsAdded := uint32(0)
 
-	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
+	sw := core.NewStopWatch()
+	sw.Start("ComputeLongestMetaChainFromLastNotarized")
+	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized()
+	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
+	log.Debug("measurements ComputeLongestMetaChainFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1569,7 +1517,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		"num metablocks", len(orderedMetaBlocks),
 	)
 
-	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1599,25 +1547,18 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
-		if !ok {
-			continue
+		currMetaHdr := orderedMetaBlocks[i]
+		if currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
+			log.Debug("skip searching",
+				"last meta hdr nonce", lastMetaHdr.GetNonce(),
+				"curr meta hdr nonce", currMetaHdr.GetNonce())
+			break
 		}
 
-		err = sp.headerValidator.IsHeaderConstructionValid(hdr, lastMetaHdr)
-		if err != nil {
-			continue
-		}
-
-		isFinal := sp.isMetaHeaderFinal(hdr, orderedMetaBlocks, i+1)
-		if !isFinal {
-			continue
-		}
-
-		if len(hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocks[i].hash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
+		if len(currMetaHdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+			sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocksHashes[i])] = &hdrInfo{hdr: currMetaHdr, usedInBlock: true}
 			hdrsAdded++
-			lastMetaHdr = hdr
+			lastMetaHdr = currMetaHdr
 			continue
 		}
 
@@ -1633,9 +1574,9 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			uint32(len(miniBlocks)))
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocks[i].hash))
+			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocksHashes[i]))
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-				hdr,
+				currMetaHdr,
 				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
@@ -1646,25 +1587,46 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			txsAdded = txsAdded + currTxsAdded
 
 			if currTxsAdded > 0 {
-				sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocks[i].hash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
+				sp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedMetaBlocksHashes[i])] = &hdrInfo{hdr: currMetaHdr, usedInBlock: true}
 				hdrsAdded++
 			}
 
 			if !hdrProcessFinished {
+				log.Debug("meta block cannot be fully processed",
+					"round", currMetaHdr.GetRound(),
+					"nonce", currMetaHdr.GetNonce(),
+					"hash", orderedMetaBlocksHashes[i])
+
 				break
 			}
 
-			lastMetaHdr = hdr
+			lastMetaHdr = currMetaHdr
 		}
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+
 	return miniBlocks, txsAdded, hdrsAdded, nil
+}
+
+func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaHdr data.HeaderHandler) {
+	log.Debug("meta hdrs added",
+		"nb", hdrsAdded,
+		"lastMetaHdr", lastMetaHdr.GetNonce(),
+	)
+
+	if hdrsAdded == 0 {
+		fromNonce := lastMetaHdr.GetNonce() + 1
+		toNonce := fromNonce + uint64(sp.metaBlockFinality)
+		for nonce := fromNonce; nonce <= toNonce; nonce++ {
+			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+		}
+	}
 }
 
 func (sp *shardProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
-	round uint64,
 	haveTime func() bool,
 ) (block.Body, error) {
 
@@ -1685,7 +1647,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	startTime := time.Now()
-	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
@@ -1901,10 +1863,7 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
-	if sp == nil {
-		return true
-	}
-	return false
+	return sp == nil
 }
 
 func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
@@ -1949,6 +1908,7 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 	return nil
 }
 
+// GetBlockBodyFromPool returns block body from pool for a given header
 func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	miniBlockPool := sp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {
