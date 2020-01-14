@@ -40,16 +40,14 @@ func (t *trigger) LoadState(key []byte) error {
 	return nil
 }
 
-// saveState saves the trigger state
+// saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
 	registry := &TriggerRegistry{}
 
-	t.mutTrigger.RLock()
 	registry.PrevEpochStartRound = t.prevEpochStartRound
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound
-	t.mutTrigger.RUnlock()
 
 	data, err := json.Marshal(registry)
 	if err != nil {

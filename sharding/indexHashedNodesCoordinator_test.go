@@ -444,7 +444,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	t.Parallel()
 
 	hasher := &mock.HasherStub{}
-
+	selfPubKey := []byte("key")
 	randomness := "randomness"
 	randomnessWithRound := genRandSource(0, randomness)
 
@@ -466,6 +466,10 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	script[string(uint64ToBytes(5))+randomnessWithRound] = 9  //will translate to 9, add 4
 
 	hasher.ComputeCalled = func(s string) []byte {
+		if s == string(selfPubKey) {
+			return []byte(s)
+		}
+
 		val, ok := script[s]
 		if !ok {
 			assert.Fail(t, "should have not got here")
@@ -516,9 +520,10 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            make(map[uint32][]Validator),
-		SelfPublicKey:           []byte("key"),
+		SelfPublicKey:           selfPubKey,
 	}
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	assert.Nil(t, err)
 
 	list2, err := ihgs.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
