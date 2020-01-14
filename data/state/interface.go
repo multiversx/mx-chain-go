@@ -127,4 +127,5 @@ type TriesHolder interface {
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()
+	IsInterfaceNil() bool
 }

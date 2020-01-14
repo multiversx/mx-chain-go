@@ -3,6 +3,7 @@ package shard
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -24,7 +25,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
-	trieDataGetter           dataRetriever.TrieDataGetter
+	trieDataGetter           state.TriesHolder
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -36,7 +37,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
-	trieDataGetter dataRetriever.TrieDataGetter,
+	trieDataGetter state.TriesHolder,
 	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
@@ -64,7 +65,7 @@ func NewResolversContainerFactory(
 	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
-	if trieDataGetter == nil || trieDataGetter.IsInterfaceNil() {
+	if check.IfNil(trieDataGetter) {
 		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
@@ -556,9 +557,10 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dat
 		return nil, err
 	}
 
+	trie := rcf.trieDataGetter.Get([]byte(topic))
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
-		rcf.trieDataGetter,
+		trie,
 		rcf.marshalizer,
 	)
 	if err != nil {

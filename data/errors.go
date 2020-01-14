@@ -4,12 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNilHeadersDataPool signals that a nil header pool has been provided
-var ErrNilHeadersDataPool = errors.New("nil headers data pool")
-
-// ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
-var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
-
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
@@ -57,3 +51,9 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrNilPeerAccounts signals that peer accounts is nil
+var ErrNilPeerAccounts = errors.New("nil peer accounts")
+
+// ErrNilUserAccounts signals that user accounts is nil
+var ErrNilUserAccounts = errors.New("nil user accounts")
