@@ -52,9 +52,6 @@ var ErrInvalidHash = errors.New("the received hash is invalid")
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
 
-// ErrTrieNotCommitted signals that the trie is dirty
-var ErrTrieNotCommitted = errors.New("trie is not committed")
-
 // ErrHashNotFound signals that the given hash was not found in db or snapshots
 var ErrHashNotFound = errors.New("hash not found")
 
@@ -66,3 +63,6 @@ var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
 
 // ErrNilSnapshotDbConfig is raised when a nil snapshot db config is provided
 var ErrNilSnapshotDbConfig = errors.New("nil snapshot db config provided")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")

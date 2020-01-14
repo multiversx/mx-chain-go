@@ -33,7 +33,7 @@ func TestNewTrieStorageManagerNilSnapshotDbConfig(t *testing.T) {
 	assert.Equal(t, ErrNilSnapshotDbConfig, err)
 }
 
-func TestNewTrieStorageManagerNilEwl(t *testing.T) {
+func TestNewTrieStorageManagerNilEwlAndPruningEnabled(t *testing.T) {
 	t.Parallel()
 
 	ts, err := NewTrieStorageManager(mock.NewMemDbMock(), &config.DBConfig{}, nil)

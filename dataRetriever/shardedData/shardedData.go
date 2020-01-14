@@ -194,21 +194,6 @@ func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
 	sd.mutShardedDataStore.Unlock()
 }
 
-// MoveData will move all given data associated with the sourceCacheId to the destCacheId
-func (sd *shardedData) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
-	sourceStore := sd.ShardDataStore(sourceCacheId)
-
-	if sourceStore != nil {
-		for _, key := range key {
-			val, ok := sourceStore.Get(key)
-			if ok {
-				sd.AddData(key, val, destCacheId)
-				sd.RemoveData(key, sourceCacheId)
-			}
-		}
-	}
-}
-
 // Clear will delete all shard stores and associated data
 func (sd *shardedData) Clear() {
 	sd.mutShardedDataStore.Lock()

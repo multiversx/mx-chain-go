@@ -46,7 +46,7 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
-// MarshalizerConfig
+// MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
 	Type           string `json:"type"`
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
@@ -94,7 +94,7 @@ type Config struct {
 	PeerAccountsTrieStorage StorageConfig
 	TrieSnapshotDB          DBConfig
 	EvictionWaitingList     EvictionWaitingListConfig
-	StateCheckpointConfig   CheckpointConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
@@ -139,6 +139,7 @@ type NodeConfig struct {
 
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
+	Enabled             bool
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
@@ -176,7 +177,6 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
-	NetworkID                  string
 	StatusPollingIntervalSec   int
 }
 
@@ -203,7 +203,8 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// CheckpointConfig will hold information about state checkpoint
-type CheckpointConfig struct {
-	RoundsModulus uint
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }
