@@ -125,6 +125,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	return &sp, nil
 }
 
+func (sp *shardProcessor) setEpochForRequestHandler(headerHandler data.HeaderHandler) {
+	if headerHandler != nil {
+		sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+	}
+}
+
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlock(
 	chainHandler data.ChainHandler,
@@ -132,6 +138,8 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
+
+	sp.setEpochForRequestHandler(headerHandler)
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
@@ -653,6 +661,8 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
+
+	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }

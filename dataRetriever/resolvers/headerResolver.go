@@ -117,12 +117,16 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 		return nil, dataRetriever.ErrInvalidNonceByteSlice
 	}
 
-	epoch, err := hdrRes.epochProviderByNonce.EpochForNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
+	epoch := rd.Epoch
 
-	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
+	// TODO : uncomment this when epoch provider by nonce is complete
+	//epoch, err = hdrRes.epochProviderByNonce.EpochForNonce(nonce)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
+	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
 		// Search the nonce-key pair in data pool
@@ -163,7 +167,11 @@ func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
 	value, err := hdrRes.headers.GetHeaderByHash(rd.Value)
 	if err != nil {
-		return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
+		return hdrRes.hdrStorage.SearchFirst(rd.Value)
+
+		// TODO : uncomment this when epoch provider by nonce is complete
+
+		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
 	buff, err := hdrRes.marshalizer.Marshal(value)

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -429,7 +428,7 @@ type DataPacker interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
-	SetEpochHandler(epochHandler dataRetriever.EpochHandler) error
+	SetEpoch(epoch uint32)
 	RequestShardHeader(shardId uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
