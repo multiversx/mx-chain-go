@@ -371,6 +371,7 @@ func checkBootstrapNilParameters(
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
+	bootStorer process.BootStorer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) error {
 	if check.IfNil(blkc) {
@@ -408,6 +409,9 @@ func checkBootstrapNilParameters(
 	}
 	if check.IfNil(watcher) {
 		return process.ErrNilNetworkWatcher
+	}
+	if check.IfNil(bootStorer) {
+		return process.ErrNilBootStorer
 	}
 	if check.IfNil(requestedItemsHandler) {
 		return dataRetriever.ErrNilRequestedItemsHandler

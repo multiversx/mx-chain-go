@@ -233,7 +233,17 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 	}
 
-	return st.nodesCoordinator.LoadState([]byte(bootInfos[0].NodesCoordinatorConfigKey))
+	if st.nodesCoordinator.IsInterfaceNil() {
+		return data.ErrNilNodesCoordinator
+	}
+
+	err = st.nodesCoordinator.LoadState(bootInfos[len(bootInfos)-1].NodesCoordinatorConfigKey)
+	if err != nil {
+		log.Debug("cannot load nodes coordinator state", "error", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.BootstrapHeaderInfo) {

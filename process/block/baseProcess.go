@@ -1095,7 +1095,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		LastFinals:                lastFinals,
 		HighestFinalNonce:         highestFinalNonce,
 		ProcessedMiniBlocks:       args.processedMiniBlocks,
-		NodesCoordinatorConfigKey: string(args.nodesCoordinatorConfigKey),
+		NodesCoordinatorConfigKey: args.nodesCoordinatorConfigKey,
 	}
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)

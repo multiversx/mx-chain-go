@@ -74,6 +74,7 @@ func NewShardBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		bootStorer,
 		requestedItemsHandler,
 	)
 	if err != nil {

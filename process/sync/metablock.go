@@ -76,6 +76,7 @@ func NewMetaBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		bootStorer,
 		requestedItemsHandler,
 	)
 	if err != nil {

@@ -66,6 +66,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		mutNodesMaps: sync.RWMutex{},
 	}
 
+	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
+
 	ihgs := &indexHashedNodesCoordinator{
 		hasher:                  arguments.Hasher,
 		shuffler:                arguments.Shuffler,
@@ -74,6 +76,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		selfPubKey:              arguments.SelfPublicKey,
 		nodesConfig:             nodesConfig,
 		currentEpoch:            arguments.Epoch,
+		savedStateKey:           savedKey,
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 	}
@@ -83,6 +86,12 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	err = ihgs.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
 	if err != nil {
 		return nil, err
+	}
+
+	err = ihgs.saveState(ihgs.savedStateKey)
+	if err != nil {
+		log.Error("saving initial nodes coordinator config failed",
+			"error", err.Error())
 	}
 
 	ihgs.epochStartSubscriber.RegisterHandler(ihgs)

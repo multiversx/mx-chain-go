@@ -38,7 +38,7 @@ type BootstrapData struct {
 	LastNotarizedHeaders      []BootstrapHeaderInfo
 	LastFinals                []BootstrapHeaderInfo
 	ProcessedMiniBlocks       []MiniBlocksInMeta
-	NodesCoordinatorConfigKey string
+	NodesCoordinatorConfigKey []byte
 	HighestFinalNonce         uint64
 	LastRound                 int64
 }

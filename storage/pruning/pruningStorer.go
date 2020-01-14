@@ -93,25 +93,10 @@ func initPruningStorer(
 		return nil, err
 	}
 
-	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), args.StartingEpoch, args.Identifier)
-	if len(shardIdStr) > 0 {
-		filePath = filePath + shardIdStr
-		args.Identifier += shardIdStr
-	}
-	db, err = args.PersisterFactory.Create(filePath)
+	persisters, persistersMapByEpoch, err := initPersistersInEpoch(args, shardIdStr)
 	if err != nil {
 		return nil, err
 	}
-
-	var persisters []*persisterData
-	persisters = append(persisters, &persisterData{
-		persister: db,
-		path:      filePath,
-		isClosed:  false,
-	})
-
-	persistersMapByEpoch := make(map[uint32]*persisterData)
-	persistersMapByEpoch[args.StartingEpoch] = persisters[0]
 
 	pdb := &PruningStorer{
 		identifier:            args.Identifier,
@@ -137,14 +122,75 @@ func initPruningStorer(
 		pdb.bloomFilter = bf
 	}
 
-	err = pdb.activePersisters[0].persister.Init()
-	if err != nil {
-		return nil, err
-	}
-
 	pdb.registerHandler(args.Notifier)
 
 	return pdb, nil
+}
+
+func initPersistersInEpoch(
+	args *StorerArgs,
+	shardIdStr string,
+) ([]*persisterData, map[uint32]*persisterData, error) {
+	var db storage.Persister
+	var err error
+	var persisters []*persisterData
+	persistersMapByEpoch := make(map[uint32]*persisterData)
+
+	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
+	if oldestEpochKeep < 0 {
+		oldestEpochKeep = 0
+	}
+	oldestEpochActive := int64(args.StartingEpoch) - int64(args.NumOfActivePersisters) + 1
+	if oldestEpochActive < 0 {
+		oldestEpochActive = 0
+	}
+
+	if oldestEpochActive < oldestEpochKeep {
+		return nil, nil, fmt.Errorf("invalid epochs configuration")
+	}
+
+	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+
+		// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
+		// e.g. determined from directories in persister path or taken from boot storer
+		filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), uint32(epoch), args.Identifier)
+		if len(shardIdStr) > 0 {
+			filePath = filePath + shardIdStr
+			args.Identifier += shardIdStr
+		}
+
+		db, err = args.PersisterFactory.Create(filePath)
+		if err != nil {
+			log.Debug("persister create error", "error", err.Error())
+			return nil, nil, err
+		}
+
+		p := &persisterData{
+			persister: db,
+			path:      filePath,
+			isClosed:  false,
+		}
+
+		err = p.persister.Init()
+		if err != nil {
+			log.Debug("init old persister", "error", err.Error())
+			return nil, nil, err
+		}
+
+		persistersMapByEpoch[uint32(epoch)] = p
+
+		if epoch < oldestEpochActive {
+			err = p.persister.Close()
+			if err != nil {
+				log.Debug("persister.Close()", "error", err.Error())
+			}
+		} else {
+			persisters = append(persisters, p)
+			log.Debug("appended a pruning active persister")
+		}
+	}
+
+	return persisters, persistersMapByEpoch, nil
 }
 
 // Put adds data to both cache and persistence medium and updates the bloom filter

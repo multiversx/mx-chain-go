@@ -28,9 +28,11 @@ type NodesCoordinatorRegistry struct {
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	key = append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(keyPrefix), key...)
 
-	data, err := ihgs.bootStorer.Get(key)
+	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
+
+	data, err := ihgs.bootStorer.Get(ncInternalkey)
 	if err != nil {
 		return err
 	}
@@ -42,7 +44,7 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	}
 
 	ihgs.mutSavedStateKey.Lock()
-	ihgs.savedStateKey = key
+	ihgs.savedStateKey = ncInternalkey
 	ihgs.mutSavedStateKey.Unlock()
 
 	ihgs.currentEpoch = config.CurrentEpoch
@@ -61,15 +63,16 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 	registry := ihgs.nodesCoordinatorToRegistry()
-
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
 
-	key = append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(keyPrefix), key...)
 
-	return ihgs.bootStorer.Put(key, data)
+	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
+
+	return ihgs.bootStorer.Put(ncInternalkey, data)
 }
 
 func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
