@@ -16,8 +16,7 @@ var log = logger.GetOrCreate("dataretriever/resolvers")
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
-	headers              storage.Cacher
-	hdrNonces            dataRetriever.Uint64SyncMapCacher
+	headers                          dataRetriever.HeadersPool
 	hdrStorage           storage.Storer
 	hdrNoncesStorage     storage.Storer
 	marshalizer          marshal.Marshalizer
@@ -29,8 +28,7 @@ type HeaderResolver struct {
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	headers storage.Cacher,
-	headersNonces dataRetriever.Uint64SyncMapCacher,
+	headers dataRetriever.HeadersPool,
 	hdrStorage storage.Storer,
 	headersNoncesStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
@@ -42,9 +40,6 @@ func NewHeaderResolver(
 	}
 	if check.IfNil(headers) {
 		return nil, dataRetriever.ErrNilHeadersDataPool
-	}
-	if check.IfNil(headersNonces) {
-		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
 	if check.IfNil(hdrStorage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
@@ -63,7 +58,6 @@ func NewHeaderResolver(
 	hdrResolver := &HeaderResolver{
 		TopicResolverSender:  senderResolver,
 		headers:              headers,
-		hdrNonces:            headersNonces,
 		hdrStorage:           hdrStorage,
 		hdrNoncesStorage:     headersNoncesStorage,
 		marshalizer:          marshalizer,
@@ -118,7 +112,6 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
-
 	nonce, err := hdrRes.nonceConverter.ToUint64(rd.Value)
 	if err != nil {
 		return nil, dataRetriever.ErrInvalidNonceByteSlice
@@ -132,7 +125,6 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
-	}
 
 	// Search the nonce-key pair in data pool
 	if hash == nil {

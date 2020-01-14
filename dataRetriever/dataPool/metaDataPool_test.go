@@ -17,27 +17,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
 		nil,
 		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockStub{},
-	)
-
-	assert.Equal(t, dataRetriever.ErrNilMetaBlockPool, err)
-	assert.Nil(t, tdp)
-}
-
-func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp, err := dataPool.NewMetaDataPool(
-		&mock.CacherStub{},
-		nil,
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -54,8 +34,6 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -70,10 +48,8 @@ func TestNewMetaDataPool_NilTrieNodesShouldErr(t *testing.T) {
 
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
 		nil,
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -83,33 +59,13 @@ func TestNewMetaDataPool_NilTrieNodesShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
-func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp, err := dataPool.NewMetaDataPool(
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		nil,
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockStub{},
-	)
-
-	assert.Equal(t, dataRetriever.ErrNilMetaBlockNoncesPool, err)
-	assert.Nil(t, tdp)
-}
-
 func TestNewMetaDataPool_NilTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -125,9 +81,7 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.TxForCurrentBlockStub{},
@@ -140,20 +94,16 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	t.Parallel()
 
-	metaBlocks := &mock.CacherStub{}
-	shardHeaders := &mock.CacherStub{}
+	headers := &mock.HeadersCacherStub{}
 	miniBlocks := &mock.CacherStub{}
-	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
 	transactions := &mock.ShardedDataStub{}
 	unsigned := &mock.ShardedDataStub{}
 	trieNodes := &mock.CacherStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(
-		metaBlocks,
 		miniBlocks,
-		shardHeaders,
 		trieNodes,
-		hdrsNonces,
+		headers,
 		transactions,
 		unsigned,
 		&mock.TxForCurrentBlockStub{},
@@ -161,10 +111,8 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 
 	assert.Nil(t, err)
 	//pointer checking
-	assert.True(t, metaBlocks == tdp.MetaBlocks())
-	assert.True(t, shardHeaders == tdp.ShardHeaders())
+	assert.True(t, headers == tdp.Headers())
 	assert.True(t, miniBlocks == tdp.MiniBlocks())
-	assert.True(t, hdrsNonces == tdp.HeadersNonces())
 	assert.True(t, transactions == tdp.Transactions())
 	assert.True(t, unsigned == tdp.UnsignedTransactions())
 }

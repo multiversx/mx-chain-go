@@ -51,8 +51,7 @@ func (ni *notarizedInfo) reset() {
 }
 
 type baseBootstrap struct {
-	headers       storage.Cacher
-	headersNonces dataRetriever.Uint64SyncMapCacher
+	headers dataRetriever.HeadersPool
 
 	blkc        data.ChainHandler
 	blkExecutor process.BlockProcessor
@@ -95,7 +94,7 @@ type baseBootstrap struct {
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	requestsWithTimeout   uint32
 
-	requestMiniBlocks func(uint32, uint64)
+	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
@@ -143,6 +142,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if boot.shardCoordinator.SelfId() != headerHandler.GetShardID() {
+		return
+	}
+
 	log.Trace("received header from network",
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
@@ -155,14 +158,36 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
 
-	boot.mutRcvHdrHash.Lock()
-	hash := boot.requestedHeaderHash()
-	if hash == nil {
-		boot.mutRcvHdrHash.Unlock()
+	go boot.requestMiniBlocks(headerHandler)
+
+	boot.confirmHeaderReceivedByNonce(headerHandler, headerHash)
+	boot.confirmHeaderReceivedByHash(headerHandler, headerHash)
+}
+
+func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.HeaderHandler, hdrHash []byte) {
+	boot.mutRcvHdrNonce.Lock()
+	n := boot.requestedHeaderNonce()
+	if n != nil && *n == headerHandler.GetNonce() {
+		log.Debug("received requested header from network",
+			"shard", headerHandler.GetShardID(),
+			"round", headerHandler.GetRound(),
+			"nonce", headerHandler.GetNonce(),
+			"hash", hdrHash,
+		)
+		boot.setRequestedHeaderNonce(nil)
+		boot.mutRcvHdrNonce.Unlock()
+		boot.chRcvHdrNonce <- true
+
 		return
 	}
 
-	if bytes.Equal(hash, headerHash) {
+	boot.mutRcvHdrNonce.Unlock()
+}
+
+func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.HeaderHandler, hdrHash []byte) {
+	boot.mutRcvHdrHash.Lock()
+	hash := boot.requestedHeaderHash()
+	if hash != nil && bytes.Equal(hash, hdrHash) {
 		log.Debug("received requested header from network",
 			"shard", headerHandler.GetShardID(),
 			"round", headerHandler.GetRound(),
@@ -172,50 +197,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		boot.setRequestedHeaderHash(nil)
 		boot.mutRcvHdrHash.Unlock()
 		boot.chRcvHdrHash <- true
-	} else {
-		boot.mutRcvHdrHash.Unlock()
-	}
-}
 
-// receivedHeaderNonce method is a call back function which is called when a new header is added
-// in the block headers pool
-func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
-	if boot.shardCoordinator.SelfId() != shardId {
 		return
 	}
-
-	log.Trace("received header from network",
-		"shard", shardId,
-		"nonce", nonce,
-		"hash", hash,
-	)
-
-	err := boot.addReceivedHeaderToForkDetector(hash)
-	if err != nil {
-		log.Debug("addReceivedHeaderToForkDetector", "error", err.Error())
-	}
-
-	go boot.requestMiniBlocks(shardId, nonce)
-
-	boot.mutRcvHdrNonce.Lock()
-	n := boot.requestedHeaderNonce()
-	if n == nil {
-		boot.mutRcvHdrNonce.Unlock()
-		return
-	}
-
-	if *n == nonce {
-		log.Debug("received requested header from network",
-			"shard", shardId,
-			"nonce", nonce,
-			"hash", hash,
-		)
-		boot.setRequestedHeaderNonce(nil)
-		boot.mutRcvHdrNonce.Unlock()
-		boot.chRcvHdrNonce <- true
-	} else {
-		boot.mutRcvHdrNonce.Unlock()
-	}
+	boot.mutRcvHdrHash.Unlock()
 }
 
 // AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
@@ -319,13 +304,13 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	boot.headersNonces.Remove(header.GetNonce(), header.GetShardID())
-
 	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {
 		log.Debug("CalculateHash", "error", err.Error())
 		return nil
 	}
+
+	boot.headers.RemoveHeaderByHash(hash)
 
 	return hash
 }
