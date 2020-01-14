@@ -439,6 +439,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 	require.Equal(t, &headers[0], header)
 
 	header, err = headersCacher.GetHeaderByHash(headersHashes[1])
+	require.Nil(t, header)
 	require.Equal(t, headersCache.ErrHeaderNotFound, err)
 
 	for i := 2; i <= cacheSize; i++ {
