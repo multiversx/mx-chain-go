@@ -18,6 +18,14 @@ func NewStorerMock() *StorerMock {
 	}
 }
 
+func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
+	return sm.Get(key)
+}
+
+func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
+	return sm.Has(key)
+}
+
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
@@ -38,11 +46,11 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
-func (sm *StorerMock) Has(key []byte) error {
+func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
-func (sm *StorerMock) Remove(key []byte) error {
+func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 

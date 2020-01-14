@@ -83,7 +83,7 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 	accType := factory.UserAccount
 	for currType := range factory.Types {
 		if currType == int(accTypeUint64) {
-			accType = currType
+			accType = factory.Type(currType)
 			break
 		}
 	}
@@ -102,7 +102,7 @@ func CreateRootHashKey(trieIdentifier string) string {
 }
 
 func CreateTrieIdentifier(shID uint32, accountType factory.Type) string {
-	return fmt.Sprint("tr%s%d%s%d", atSep, shID, atSep, accountType)
+	return fmt.Sprint("tr", atSep, shID, atSep, accountType)
 }
 
 func CreateMiniBlockKey(key string) string {
@@ -154,7 +154,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	accType := factory.UserAccount
 	for currType := range factory.Types {
 		if currType == int(accTypeUint64) {
-			accType = currType
+			accType = factory.Type(currType)
 			break
 		}
 	}

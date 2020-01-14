@@ -92,6 +92,14 @@ type Unit struct {
 	bloomFilter storage.BloomFilter
 }
 
+func (s *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
+	return s.Get(key)
+}
+
+func (s *Unit) HasInEpoch(key []byte, _ uint32) error {
+	return s.Has(key)
+}
+
 // Put adds data to both cache and persistence medium and updates the bloom filter
 func (u *Unit) Put(key, data []byte) error {
 	u.lock.Lock()
