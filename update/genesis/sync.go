@@ -235,6 +235,10 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
+	if errFound != nil {
+		return errFound
+	}
+
 	return nil
 }
 

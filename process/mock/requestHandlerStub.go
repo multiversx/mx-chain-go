@@ -1,15 +1,23 @@
 package mock
 
 type RequestHandlerStub struct {
-	RequestShardHeaderCalled        func(shardId uint32, hash []byte)
-	RequestMetaHeaderCalled         func(hash []byte)
-	RequestMetaHeaderByNonceCalled  func(nonce uint64)
-	RequestShardHeaderByNonceCalled func(shardId uint32, nonce uint64)
-	RequestTransactionHandlerCalled func(destShardID uint32, txHashes [][]byte)
-	RequestScrHandlerCalled         func(destShardID uint32, txHashes [][]byte)
-	RequestRewardTxHandlerCalled    func(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlockHandlerCalled   func(destShardID uint32, miniblockHash []byte)
-	RequestTrieNodesCalled          func(shardId uint32, hash []byte)
+	RequestShardHeaderCalled           func(shardId uint32, hash []byte)
+	RequestMetaHeaderCalled            func(hash []byte)
+	RequestMetaHeaderByNonceCalled     func(nonce uint64)
+	RequestShardHeaderByNonceCalled    func(shardId uint32, nonce uint64)
+	RequestTransactionHandlerCalled    func(destShardID uint32, txHashes [][]byte)
+	RequestScrHandlerCalled            func(destShardID uint32, txHashes [][]byte)
+	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlockHandlerCalled      func(destShardID uint32, miniblockHash []byte)
+	RequestTrieNodesCalled             func(shardId uint32, hash []byte)
+	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
+}
+
+func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(epoch uint32) {
+	if rhs.RequestStartOfEpochMetaBlockCalled == nil {
+		return
+	}
+	rhs.RequestStartOfEpochMetaBlockCalled(epoch)
 }
 
 func (rhs *RequestHandlerStub) RequestShardHeader(shardId uint32, hash []byte) {
