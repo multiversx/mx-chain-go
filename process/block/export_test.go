@@ -88,7 +88,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerMock(genesisBlocks),
+			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -264,10 +264,6 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
-}
-
-func (sp *shardProcessor) GetTrackedMetaBlocks(round uint64) []data.HeaderHandler {
-	return sp.getTrackedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(

@@ -201,6 +201,61 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 	return bbt.blockProcessor.computeLongestChain(shardID, header)
 }
 
+// ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
+func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
+
+	return hdrsForShard, hdrsHashesForShard, nil
+}
+
+// ComputeLongestShardsChainsFromLastNotarized returns the longest valid chains for all shards from theirs last cross notarized headers
+func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+	hdrsMap := make(map[uint32][]data.HeaderHandler)
+	hdrsHashesMap := make(map[uint32][][]byte)
+
+	lastCrossNotarizedHeaders, err := bbt.GetLastCrossNotarizedHeadersForAllShards()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	maxHdrLen := 0
+	for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
+		hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID])
+
+		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
+		hdrsHashesMap[shardID] = append(hdrsHashesMap[shardID], hdrsHashesForShard...)
+
+		tmpHdrLen := len(hdrsForShard)
+		if maxHdrLen < tmpHdrLen {
+			maxHdrLen = tmpHdrLen
+		}
+	}
+
+	orderedHeaders := make([]data.HeaderHandler, 0)
+	orderedHeadersHashes := make([][]byte, 0)
+
+	// copy from map to lists - equality between number of headers per shard
+	for i := 0; i < maxHdrLen; i++ {
+		for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
+			hdrsForShard := hdrsMap[shardID]
+			hdrsHashesForShard := hdrsHashesMap[shardID]
+			if i >= len(hdrsForShard) {
+				continue
+			}
+
+			orderedHeaders = append(orderedHeaders, hdrsForShard[i])
+			orderedHeadersHashes = append(orderedHeadersHashes, hdrsHashesForShard[i])
+		}
+	}
+
+	return orderedHeaders, orderedHeadersHashes, hdrsMap, nil
+}
+
 // DisplayTrackedHeaders displays tracked headers
 func (bbt *baseBlockTrack) DisplayTrackedHeaders() {
 	for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
@@ -246,9 +301,38 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeader(shardID uint32) (data.Hea
 	return bbt.crossNotarizer.getLastNotarizedHeader(shardID)
 }
 
+// GetLastCrossNotarizedHeadersForAllShards returns last cross notarized headers for all shards
+func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error) {
+	lastCrossNotarizedHeaders := make(map[uint32]data.HeaderHandler, bbt.shardCoordinator.NumberOfShards())
+
+	// save last committed header for verification
+	for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
+		lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(shardID)
+		if err != nil {
+			return nil, err
+		}
+
+		lastCrossNotarizedHeaders[shardID] = lastCrossNotarizedHeader
+	}
+
+	return lastCrossNotarizedHeaders, nil
+}
+
 // GetTrackedHeaders returns tracked headers for a given shard
 func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	return bbt.sortHeadersFromNonce(shardID, 0)
+}
+
+// GetTrackedHeadersForAllShards returns tracked headers for all shards
+func (bbt *baseBlockTrack) GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler {
+	trackedHeaders := make(map[uint32][]data.HeaderHandler)
+
+	for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
+		trackedHeadersForShard, _ := bbt.GetTrackedHeaders(shardID)
+		trackedHeaders[shardID] = append(trackedHeaders[shardID], trackedHeadersForShard...)
+	}
+
+	return trackedHeaders
 }
 
 func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {

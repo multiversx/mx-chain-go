@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type headerInfo struct {
@@ -16,22 +17,27 @@ type headerInfo struct {
 }
 
 type BlockTrackerMock struct {
-	AddTrackedHeaderCalled                     func(header data.HeaderHandler, hash []byte)
-	AddCrossNotarizedHeaderCalled              func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
-	AddSelfNotarizedHeaderCalled               func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
-	CleanupHeadersBehindNonceCalled            func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
-	ComputeLongestChainCalled                  func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	DisplayTrackedHeadersCalled                func()
-	GetCrossNotarizedHeaderCalled              func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetLastCrossNotarizedHeaderCalled          func(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetTrackedHeadersCalled                    func(shardID uint32) ([]data.HeaderHandler, [][]byte)
-	GetTrackedHeadersWithNonceCalled           func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
-	IsShardStuckCalled                         func(shardId uint32) bool
-	RegisterCrossNotarizedHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
-	RegisterSelfNotarizedHeadersHandlerCalled  func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
-	RemoveLastNotarizedHeadersCalled           func()
-	RestoreToGenesisCalled                     func()
+	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
+	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
+	AddSelfNotarizedHeaderCalled                      func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
+	CleanupHeadersBehindNonceCalled                   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	ComputeLongestChainCalled                         func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	ComputeLongestMetaChainFromLastNotarizedCalled    func() ([]data.HeaderHandler, [][]byte, error)
+	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
+	DisplayTrackedHeadersCalled                       func()
+	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
+	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
+	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
+	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	IsShardStuckCalled                                func(shardId uint32) bool
+	RegisterCrossNotarizedHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RemoveLastNotarizedHeadersCalled                  func()
+	RestoreToGenesisCalled                            func()
 
+	shardCoordinator         sharding.Coordinator
 	mutCrossNotarizedHeaders sync.RWMutex
 	crossNotarizedHeaders    map[uint32][]*headerInfo
 
@@ -39,8 +45,10 @@ type BlockTrackerMock struct {
 	headers    map[uint32][]*headerInfo
 }
 
-func NewBlockTrackerMock(startHeaders map[uint32]data.HeaderHandler) *BlockTrackerMock {
-	bts := BlockTrackerMock{}
+func NewBlockTrackerMock(shardCoordinator sharding.Coordinator, startHeaders map[uint32]data.HeaderHandler) *BlockTrackerMock {
+	bts := BlockTrackerMock{
+		shardCoordinator: shardCoordinator,
+	}
 	bts.headers = make(map[uint32][]*headerInfo)
 	_ = bts.InitCrossNotarizedHeaders(startHeaders)
 	return &bts
@@ -146,6 +154,59 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 	return headers, hashes
 }
 
+func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
+
+	return hdrsForShard, hdrsHashesForShard, nil
+}
+
+func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+	hdrsMap := make(map[uint32][]data.HeaderHandler)
+	hdrsHashesMap := make(map[uint32][][]byte)
+
+	lastCrossNotarizedHeaders, err := btm.GetLastCrossNotarizedHeadersForAllShards()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	maxHdrLen := 0
+	for shardID := uint32(0); shardID < btm.shardCoordinator.NumberOfShards(); shardID++ {
+		hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID])
+
+		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
+		hdrsHashesMap[shardID] = append(hdrsHashesMap[shardID], hdrsHashesForShard...)
+
+		tmpHdrLen := len(hdrsForShard)
+		if maxHdrLen < tmpHdrLen {
+			maxHdrLen = tmpHdrLen
+		}
+	}
+
+	orderedHeaders := make([]data.HeaderHandler, 0)
+	orderedHeadersHashes := make([][]byte, 0)
+
+	// copy from map to lists - equality between number of headers per shard
+	for i := 0; i < maxHdrLen; i++ {
+		for shardID := uint32(0); shardID < btm.shardCoordinator.NumberOfShards(); shardID++ {
+			hdrsForShard := hdrsMap[shardID]
+			hdrsHashesForShard := hdrsHashesMap[shardID]
+			if i >= len(hdrsForShard) {
+				continue
+			}
+
+			orderedHeaders = append(orderedHeaders, hdrsForShard[i])
+			orderedHeadersHashes = append(orderedHeadersHashes, hdrsHashesForShard[i])
+		}
+	}
+
+	return orderedHeaders, orderedHeadersHashes, hdrsMap, nil
+}
+
 func (btm *BlockTrackerMock) DisplayTrackedHeaders() {
 	if btm.DisplayTrackedHeadersCalled != nil {
 		btm.DisplayTrackedHeadersCalled()
@@ -180,6 +241,22 @@ func (btm *BlockTrackerMock) GetLastCrossNotarizedHeader(shardID uint32) (data.H
 	return headerInfo.header, headerInfo.hash, nil
 }
 
+func (btm *BlockTrackerMock) GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error) {
+	lastCrossNotarizedHeaders := make(map[uint32]data.HeaderHandler, btm.shardCoordinator.NumberOfShards())
+
+	// save last committed header for verification
+	for shardID := uint32(0); shardID < btm.shardCoordinator.NumberOfShards(); shardID++ {
+		lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(shardID)
+		if err != nil {
+			return nil, err
+		}
+
+		lastCrossNotarizedHeaders[shardID] = lastCrossNotarizedHeader
+	}
+
+	return lastCrossNotarizedHeaders, nil
+}
+
 func (btm *BlockTrackerMock) lastCrossNotarizedHdrForShard(shardID uint32) *headerInfo {
 	crossNotarizedHeadersCount := len(btm.crossNotarizedHeaders[shardID])
 	if crossNotarizedHeadersCount > 0 {
@@ -195,6 +272,17 @@ func (btm *BlockTrackerMock) GetTrackedHeaders(shardID uint32) ([]data.HeaderHan
 	}
 
 	return nil, nil
+}
+
+func (btm *BlockTrackerMock) GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler {
+	trackedHeaders := make(map[uint32][]data.HeaderHandler)
+
+	for shardID := uint32(0); shardID < btm.shardCoordinator.NumberOfShards(); shardID++ {
+		trackedHeadersForShard, _ := btm.GetTrackedHeaders(shardID)
+		trackedHeaders[shardID] = append(trackedHeaders[shardID], trackedHeadersForShard...)
+	}
+
+	return trackedHeaders
 }
 
 func (btm *BlockTrackerMock) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {

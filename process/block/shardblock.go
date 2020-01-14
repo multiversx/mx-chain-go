@@ -447,7 +447,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 }
 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
-	orderedMetaBlocks := sp.getTrackedMetaBlocks(round)
+	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
 
 	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.MetaBlocks().MaxSize())
 	if err != nil {
@@ -1520,30 +1520,6 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 	return miniBlockMetaHashes, nil
 }
 
-func (sp *shardProcessor) getLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdrsForShard, hdrsHashesForShard := sp.blockTracker.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
-
-	orderedMetaBlocks := make([]data.HeaderHandler, 0)
-	orderedMetaBlocksHashes := make([][]byte, 0)
-
-	for i := 0; i < len(hdrsForShard); i++ {
-		orderedMetaBlocks = append(orderedMetaBlocks, hdrsForShard[i])
-		orderedMetaBlocksHashes = append(orderedMetaBlocksHashes, hdrsHashesForShard[i])
-	}
-
-	return orderedMetaBlocks, orderedMetaBlocksHashes, nil
-}
-
-func (sp *shardProcessor) getTrackedMetaBlocks(round uint64) []data.HeaderHandler {
-	hdrsForShard, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
-	return hdrsForShard
-}
-
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
@@ -1555,10 +1531,10 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	hdrsAdded := uint32(0)
 
 	sw := core.NewStopWatch()
-	sw.Start("getLongestMetaChainFromLastNotarized")
-	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.getLongestMetaChainFromLastNotarized()
-	sw.Stop("getLongestMetaChainFromLastNotarized")
-	log.Debug("measurements getLongestMetaChainFromLastNotarized", sw.GetMeasurements()...)
+	sw.Start("ComputeLongestMetaChainFromLastNotarized")
+	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized()
+	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
+	log.Debug("measurements ComputeLongestMetaChainFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}

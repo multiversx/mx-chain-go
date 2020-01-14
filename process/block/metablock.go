@@ -396,12 +396,12 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
-	orderedHdrsPerShard := mp.getTrackedHeaders(round)
+	orderedHdrsPerShard := mp.blockTracker.GetTrackedHeadersForAllShards()
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.ShardHeaders().MaxSize())
 		if err != nil {
-			log.Trace("requestHeadersIfMissing", "error", err.Error())
+			log.Trace("checkAndRequestIfShardHeadersMissing", "error", err.Error())
 			continue
 		}
 	}
@@ -655,10 +655,10 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	hdrsAdded := uint32(0)
 
 	sw := core.NewStopWatch()
-	sw.Start("getLongestShardsChainFromLastNotarized")
-	orderedHdrs, orderedHdrsHashes, _, err := mp.getLongestShardsChainFromLastNotarized()
-	sw.Stop("getLongestShardsChainFromLastNotarized")
-	log.Debug("measurements getLongestShardsChainFromLastNotarized", sw.GetMeasurements()...)
+	sw.Start("ComputeLongestShardsChainsFromLastNotarized")
+	orderedHdrs, orderedHdrsHashes, _, err := mp.blockTracker.ComputeLongestShardsChainsFromLastNotarized()
+	sw.Stop("ComputeLongestShardsChainsFromLastNotarized")
+	log.Debug("measurements ComputeLongestShardsChainsFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -667,7 +667,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	lastShardHdr, err := mp.getLastCrossNotarizedHeaders()
+	lastShardHdr, err := mp.blockTracker.GetLastCrossNotarizedHeadersForAllShards()
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1782,59 +1782,6 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getLongestShardsChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
-	hdrsMap := make(map[uint32][]data.HeaderHandler)
-	hdrsHashesMap := make(map[uint32][][]byte)
-
-	lastCrossNotarizedHeaders, err := mp.getLastCrossNotarizedHeaders()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	maxHdrLen := 0
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		hdrsForShard, hdrsHashesForShard := mp.blockTracker.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID])
-
-		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
-		hdrsHashesMap[shardID] = append(hdrsHashesMap[shardID], hdrsHashesForShard...)
-
-		tmpHdrLen := len(hdrsForShard)
-		if maxHdrLen < tmpHdrLen {
-			maxHdrLen = tmpHdrLen
-		}
-	}
-
-	orderedHeaders := make([]data.HeaderHandler, 0)
-	orderedHeadersHashes := make([][]byte, 0)
-
-	// copy from map to lists - equality between number of headers per shard
-	for i := 0; i < maxHdrLen; i++ {
-		for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-			hdrsForShard := hdrsMap[shardID]
-			hdrsHashesForShard := hdrsHashesMap[shardID]
-			if i >= len(hdrsForShard) {
-				continue
-			}
-
-			orderedHeaders = append(orderedHeaders, hdrsForShard[i])
-			orderedHeadersHashes = append(orderedHeadersHashes, hdrsHashesForShard[i])
-		}
-	}
-
-	return orderedHeaders, orderedHeadersHashes, hdrsMap, nil
-}
-
-func (mp *metaProcessor) getTrackedHeaders(round uint64) map[uint32][]data.HeaderHandler {
-	hdrsMap := make(map[uint32][]data.HeaderHandler)
-
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		hdrsForShard, _ := mp.blockTracker.GetTrackedHeaders(shardID)
-		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
-	}
-
-	return hdrsMap
-}
-
 func getTxCount(shardInfo []block.ShardData) uint32 {
 	txs := uint32(0)
 	for i := 0; i < len(shardInfo); i++ {
@@ -1913,20 +1860,4 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 	}
 
 	return block.Body(miniBlocks), nil
-}
-
-func (mp *metaProcessor) getLastCrossNotarizedHeaders() (map[uint32]data.HeaderHandler, error) {
-	lastCrossNotarizedHeaders := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
-
-	// save last committed header for verification
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if err != nil {
-			return nil, err
-		}
-
-		lastCrossNotarizedHeaders[shardID] = lastCrossNotarizedHeader
-	}
-
-	return lastCrossNotarizedHeaders, nil
 }
