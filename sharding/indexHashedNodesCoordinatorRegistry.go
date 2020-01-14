@@ -44,7 +44,7 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	}
 
 	ihgs.mutSavedStateKey.Lock()
-	ihgs.savedStateKey = ncInternalkey
+	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
 	ihgs.currentEpoch = config.CurrentEpoch

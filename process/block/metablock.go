@@ -1029,10 +1029,13 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
+	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
+
 	args := bootStorerDataArgs{
-		headerInfo:                headerInfo,
-		round:                     header.Round,
-		nodesCoordinatorConfigKey: nodesCoordinatorKey,
+		headerInfo:                 headerInfo,
+		round:                      header.Round,
+		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
+		epochStartTriggerConfigKey: epochStartKey,
 	}
 
 	mp.prepareDataForBootStorer(args)

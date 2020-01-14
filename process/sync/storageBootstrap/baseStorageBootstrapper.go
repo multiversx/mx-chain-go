@@ -29,19 +29,21 @@ type ArgsStorageBootstrapper struct {
 	BootstrapRoundIndex uint64
 	ShardCoordinator    sharding.Coordinator
 	NodesCoordinator    sharding.NodesCoordinator
+	EpochStartTrigger   process.EpochStartTriggerHandler
 	ResolversFinder     dataRetriever.ResolversFinder
 }
 
 type storageBootstrapper struct {
-	bootStorer       process.BootStorer
-	forkDetector     process.ForkDetector
-	blkExecutor      process.BlockProcessor
-	blkc             data.ChainHandler
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
+	bootStorer        process.BootStorer
+	forkDetector      process.ForkDetector
+	blkExecutor       process.BlockProcessor
+	blkc              data.ChainHandler
+	marshalizer       marshal.Marshalizer
+	store             dataRetriever.StorageService
+	uint64Converter   typeConverters.Uint64ByteSliceConverter
+	shardCoordinator  sharding.Coordinator
+	nodesCoordinator  sharding.NodesCoordinator
+	epochStartTrigger process.EpochStartTriggerHandler
 
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
@@ -240,6 +242,12 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	err = st.nodesCoordinator.LoadState(bootInfos[len(bootInfos)-1].NodesCoordinatorConfigKey)
 	if err != nil {
 		log.Debug("cannot load nodes coordinator state", "error", err.Error())
+		return err
+	}
+
+	err = st.epochStartTrigger.LoadState(bootInfos[len(bootInfos)-1].EpochStartTriggerConfigKey)
+	if err != nil {
+		log.Debug("cannot load epoch start trigger state", "error", err.Error())
 		return err
 	}
 

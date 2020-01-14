@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -39,10 +40,11 @@ type trigger struct {
 	roundsPerEpoch              uint64
 	minRoundsBetweenEpochs      uint64
 	epochStartMetaHash          []byte
+	triggerStateKey             []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
 	epochStartNotifier          epochStart.EpochStartNotifier
-	metaHdrStorage              storage.Storer
+	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
 }
 
@@ -73,9 +75,9 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilStorageService
 	}
 
-	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaHdrStorage) {
-		return nil, epochStart.ErrNilMetaHdrStorage
+	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if check.IfNil(triggerStorage) {
+		return nil, epochStart.ErrNilTriggerStorage
 	}
 
 	return &trigger{
@@ -88,7 +90,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
 		epochStartNotifier:          args.EpochStartNotifier,
-		metaHdrStorage:              metaHdrStorage,
+		triggerStorage:              triggerStorage,
 		marshalizer:                 args.Marshalizer,
 	}, nil
 }
@@ -141,6 +143,7 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 
 	t.currEpochStartRound = t.currentRound
 	t.isEpochStart = true
+	t.saveCurrentState(round)
 
 	return nil
 }
@@ -164,6 +167,7 @@ func (t *trigger) Update(round uint64) {
 		t.epoch += 1
 		t.isEpochStart = true
 		t.currEpochStartRound = t.currentRound
+		t.saveCurrentState(round)
 	}
 }
 
@@ -186,15 +190,16 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
-	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if err != nil {
-		log.Debug("SetProcessed put into metaHdrStorage", "error", err.Error())
+		log.Debug("SetProcessed put into triggerStorage", "error", err.Error())
 	}
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
 	t.epochStartNotifier.NotifyAll(metaBlock)
+	t.saveCurrentState(metaBlock.Round)
 	t.isEpochStart = false
 }
 
@@ -205,6 +210,7 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 
 	if round > t.currEpochStartRound {
 		t.epochFinalityAttestingRound = round
+		t.saveCurrentState(round)
 	}
 }
 
@@ -214,9 +220,9 @@ func (t *trigger) Revert() {
 	defer t.mutTrigger.Unlock()
 
 	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
-	err := t.metaHdrStorage.Remove([]byte(epochStartIdentifier))
+	err := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if err != nil {
-		log.Debug("Revert remove from metaHdrStorage", "error", err.Error())
+		log.Debug("Revert remove from triggerStorage", "error", err.Error())
 	}
 
 	t.isEpochStart = true
@@ -239,12 +245,17 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochStartMetaHash
 }
 
+// GetSavedStateKey returns the last saved trigger state key
+func (t *trigger) GetSavedStateKey() []byte {
+	return t.triggerStateKey
+}
+
 // SetEpochStartMetaHdrHash sets the epoch start meta header hase
 func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 	t.epochStartMetaHash = metaHdrHash
 }
 
-// SetLastEpochStartRound sets the round when the current epoch started
+// SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
 	t.currentRound = round
@@ -254,4 +265,13 @@ func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 // IsInterfaceNil return true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
+}
+
+// needs to be called under locked mutex
+func (t *trigger) saveCurrentState(round uint64) {
+	t.triggerStateKey = []byte(fmt.Sprint(round))
+	err := t.saveState(t.triggerStateKey)
+	if err != nil {
+		log.Debug("error saving trigger state", "error", err)
+	}
 }

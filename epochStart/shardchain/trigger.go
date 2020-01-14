@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -42,6 +43,7 @@ type trigger struct {
 	currentRoundIndex           int64
 	epochStartRound             uint64
 	epochMetaBlockHash          []byte
+	triggerStateKey             []byte
 	isEpochStart                bool
 	finality                    uint64
 	validity                    uint64
@@ -57,6 +59,7 @@ type trigger struct {
 	metaHdrPool         storage.Cacher
 	metaHdrNonces       dataRetriever.Uint64SyncMapCacher
 	metaHdrStorage      storage.Storer
+	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
 	uint64Converter     typeConverters.Uint64ByteSliceConverter
 
@@ -106,7 +109,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
-		return nil, epochStart.ErrNilMetaHdrStorage
+		return nil, epochStart.ErrNilMetaBlockStorage
+	}
+
+	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if check.IfNil(triggerStorage) {
+		return nil, epochStart.ErrNilTriggerStorage
 	}
 
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
@@ -130,6 +138,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		metaHdrPool:                 args.DataPool.MetaBlocks(),
 		metaHdrNonces:               args.DataPool.HeadersNonces(),
 		metaHdrStorage:              metaHdrStorage,
+		triggerStorage:              triggerStorage,
 		metaNonceHdrStorage:         metaHdrNoncesStorage,
 		uint64Converter:             args.Uint64Converter,
 		marshalizer:                 args.Marshalizer,
@@ -471,6 +480,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
+
+	t.saveCurrentState(header.GetRound())
 }
 
 // Revert sets the start of epoch back to true
@@ -490,6 +501,11 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 
+// GetSavedStateKey returns the last saved trigger state key
+func (t *trigger) GetSavedStateKey() []byte {
+	return t.triggerStateKey
+}
+
 // Update updates the end-of-epoch trigger
 func (t *trigger) Update(_ uint64) {
 }
@@ -505,4 +521,13 @@ func (t *trigger) SetCurrentEpochStartRound(_ uint64) {
 // IsInterfaceNil returns true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
+}
+
+// needs to be called under locked mutex
+func (t *trigger) saveCurrentState(round uint64) {
+	t.triggerStateKey = []byte(fmt.Sprint(round))
+	err := t.saveState(t.triggerStateKey)
+	if err != nil {
+		log.Debug("error saving trigger state", "error", err)
+	}
 }

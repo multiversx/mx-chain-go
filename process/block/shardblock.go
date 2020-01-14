@@ -888,13 +888,16 @@ func (sp *shardProcessor) CommitBlock(
 	processedMiniBlocks := sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice()
 
 	nodesCoordinatorKey := sp.nodesCoordinator.GetSavedStateKey()
+	epochStartKey := sp.epochStartTrigger.GetSavedStateKey()
+
 	args := bootStorerDataArgs{
-		headerInfo:                headerInfo,
-		round:                     header.Round,
-		lastFinalHdrs:             finalHeaders,
-		lastFinalHashes:           finalHeadersHashes,
-		processedMiniBlocks:       processedMiniBlocks,
-		nodesCoordinatorConfigKey: nodesCoordinatorKey,
+		headerInfo:                 headerInfo,
+		round:                      header.Round,
+		lastFinalHdrs:              finalHeaders,
+		lastFinalHashes:            finalHeadersHashes,
+		processedMiniBlocks:        processedMiniBlocks,
+		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
+		epochStartTriggerConfigKey: epochStartKey,
 	}
 
 	sp.prepareDataForBootStorer(args)

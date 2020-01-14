@@ -18,14 +18,15 @@ type shardStorageBootstrapper struct {
 // NewShardStorageBootstrapper is method used to create a nes storage bootstrapper
 func NewShardStorageBootstrapper(arguments ArgsStorageBootstrapper) (*shardStorageBootstrapper, error) {
 	base := &storageBootstrapper{
-		bootStorer:       arguments.BootStorer,
-		forkDetector:     arguments.ForkDetector,
-		blkExecutor:      arguments.BlockProcessor,
-		blkc:             arguments.ChainHandler,
-		marshalizer:      arguments.Marshalizer,
-		store:            arguments.Store,
-		shardCoordinator: arguments.ShardCoordinator,
-		nodesCoordinator: arguments.NodesCoordinator,
+		bootStorer:        arguments.BootStorer,
+		forkDetector:      arguments.ForkDetector,
+		blkExecutor:       arguments.BlockProcessor,
+		blkc:              arguments.ChainHandler,
+		marshalizer:       arguments.Marshalizer,
+		store:             arguments.Store,
+		shardCoordinator:  arguments.ShardCoordinator,
+		nodesCoordinator:  arguments.NodesCoordinator,
+		epochStartTrigger: arguments.EpochStartTrigger,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,

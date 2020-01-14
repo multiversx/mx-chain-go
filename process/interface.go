@@ -379,6 +379,8 @@ type EpochStartTriggerHandler interface {
 	SetProcessed(header data.HeaderHandler)
 	Revert()
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64

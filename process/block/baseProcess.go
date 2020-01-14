@@ -86,12 +86,13 @@ type baseProcessor struct {
 }
 
 type bootStorerDataArgs struct {
-	headerInfo                bootstrapStorage.BootstrapHeaderInfo
-	round                     uint64
-	lastFinalHdrs             []data.HeaderHandler
-	lastFinalHashes           [][]byte
-	processedMiniBlocks       []bootstrapStorage.MiniBlocksInMeta
-	nodesCoordinatorConfigKey []byte
+	headerInfo                 bootstrapStorage.BootstrapHeaderInfo
+	round                      uint64
+	lastFinalHdrs              []data.HeaderHandler
+	lastFinalHashes            [][]byte
+	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
+	nodesCoordinatorConfigKey  []byte
+	epochStartTriggerConfigKey []byte
 }
 
 func checkForNils(
@@ -1090,12 +1091,13 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		LastHeader:                args.headerInfo,
-		LastNotarizedHeaders:      lastNotarizedHdrs,
-		LastFinals:                lastFinals,
-		HighestFinalNonce:         highestFinalNonce,
-		ProcessedMiniBlocks:       args.processedMiniBlocks,
-		NodesCoordinatorConfigKey: args.nodesCoordinatorConfigKey,
+		LastHeader:                 args.headerInfo,
+		LastNotarizedHeaders:       lastNotarizedHdrs,
+		LastFinals:                 lastFinals,
+		HighestFinalNonce:          highestFinalNonce,
+		ProcessedMiniBlocks:        args.processedMiniBlocks,
+		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
+		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
