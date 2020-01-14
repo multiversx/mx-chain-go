@@ -1107,8 +1107,8 @@ func createMetaDataPoolFromConfig(
 
 	return dataPool.NewMetaDataPool(
 		txBlockBody,
-		shardHeaders,
 		trieNodes,
+		shardHeaders,
 		txPool,
 		uTxPool,
 		currBlockTxs,
@@ -2286,8 +2286,8 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 
 	dPool, err := dataPool.NewMetaDataPool(
 		txBlockBody,
-		shardHeaders,
 		trieNodesCacher,
+		shardHeaders,
 		txPool,
 		uTxPool,
 		currTxs,

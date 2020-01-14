@@ -35,7 +35,7 @@ func (mphs *MetaPoolsHolderStub) Headers() dataRetriever.HeadersPool {
 }
 
 func (mphs *MetaPoolsHolderStub) TrieNodes() storage.Cacher {
-	return mphs.ShardHeadersCalled()
+	return mphs.TrieNodesCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

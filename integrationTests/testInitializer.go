@@ -152,8 +152,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 
 	dPool, _ := dataPool.NewMetaDataPool(
 		txBlockBody,
-		headers,
 		trieNodes,
+		headers,
 		txPool,
 		uTxPool,
 		currTxs,
@@ -1648,20 +1648,16 @@ func emptyNodeDataPool(node *TestProcessorNode) {
 }
 
 func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
-	sdp.HeadersNonces().Clear()
 	sdp.Headers().Clear()
 	sdp.UnsignedTransactions().Clear()
 	sdp.Transactions().Clear()
-	sdp.MetaBlocks().Clear()
 	sdp.MiniBlocks().Clear()
 	sdp.PeerChangesBlocks().Clear()
 }
 
 func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
-	holder.HeadersNonces().Clear()
-	holder.MetaBlocks().Clear()
+	holder.Headers().Clear()
 	holder.MiniBlocks().Clear()
-	holder.ShardHeaders().Clear()
 }
 
 // UpdateRound updates the round for every node

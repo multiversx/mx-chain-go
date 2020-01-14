@@ -32,8 +32,8 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
-		nil,
 		&mock.CacherStub{},
+		nil,
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
@@ -47,9 +47,9 @@ func TestNewMetaDataPool_NilTrieNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewMetaDataPool(
-		&mock.HeadersCacherStub{},
+		&mock.CacherStub{},
 		nil,
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.TxForCurrentBlockStub{},
