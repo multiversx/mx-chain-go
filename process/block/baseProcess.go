@@ -71,6 +71,7 @@ type baseProcessor struct {
 	bootStorer                   process.BootStorer
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
 	requestHandler               process.RequestHandler
+	dataPool                     dataRetriever.PoolsHolder
 
 	hdrsForCurrBlock hdrForBlock
 

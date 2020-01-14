@@ -236,17 +236,6 @@ type PoolsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// MetaPoolsHolder defines getter for data pools for metachain
-type MetaPoolsHolder interface {
-	MiniBlocks() storage.Cacher
-	Headers() HeadersPool
-	TrieNodes() storage.Cacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
-	CurrentBlockTxs() TransactionCacher
-	IsInterfaceNil() bool
-}
-
 // StorageService is the interface for data storage unit provided services
 type StorageService interface {
 	// GetStorer returns the storer from the chain map

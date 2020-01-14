@@ -27,7 +27,6 @@ const maxCleanTime = time.Second
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool          dataRetriever.PoolsHolder
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
@@ -79,6 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:              arguments.HeaderValidator,
 		bootStorer:                   arguments.BootStorer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
+		dataPool:                     arguments.DataPool,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -93,7 +93,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp := shardProcessor{
 		core:                   arguments.Core,
 		baseProcessor:          base,
-		dataPool:               arguments.DataPool,
 		txCounter:              NewTransactionCounter(),
 		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,

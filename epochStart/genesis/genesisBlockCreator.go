@@ -91,7 +91,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	MetaDatapool             dataRetriever.MetaPoolsHolder
+	MetaDatapool             dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
 }
 

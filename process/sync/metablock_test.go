@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockMetaPools() *mock.MetaPoolsHolderStub {
-	pools := &mock.MetaPoolsHolderStub{}
+func createMockMetaPools() *mock.PoolsHolderStub {
+	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{
 			AddCalled: func(headerHash []byte, header data.HeaderHandler) {

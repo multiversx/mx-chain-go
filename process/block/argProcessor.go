@@ -36,13 +36,13 @@ type ArgBaseProcessor struct {
 	HeaderValidator              process.HeaderConstructionValidator
 	Rounder                      consensus.Rounder
 	BootStorer                   process.BootStorer
+	DataPool                     dataRetriever.PoolsHolder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
 	ArgBaseProcessor
-	DataPool               dataRetriever.PoolsHolder
 	TxsPoolsCleaner        process.PoolsCleaner
 	StateCheckpointModulus uint
 }
@@ -51,7 +51,6 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool           dataRetriever.MetaPoolsHolder
 	PendingMiniBlocks  process.PendingMiniBlocksHandler
 	SCDataGetter       external.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler

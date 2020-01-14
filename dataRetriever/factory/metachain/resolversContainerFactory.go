@@ -20,7 +20,7 @@ type resolversContainerFactory struct {
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.MetaPoolsHolder
+	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
@@ -33,7 +33,7 @@ func NewResolversContainerFactory(
 	messenger dataRetriever.TopicMessageHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.MetaPoolsHolder,
+	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
 	trieDataGetter dataRetriever.TrieDataGetter,

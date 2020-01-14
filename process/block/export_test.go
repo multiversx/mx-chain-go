@@ -88,8 +88,9 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 					return nil
 				},
 			},
+			DataPool: tdp,
 		},
-		DataPool:        tdp,
+
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProcessor, err := NewShardProcessor(arguments)

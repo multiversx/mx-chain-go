@@ -33,5 +33,5 @@ type ArgShardTracker struct {
 // new instances of meta block tracker
 type ArgMetaTracker struct {
 	ArgBaseTracker
-	PoolsHolder dataRetriever.MetaPoolsHolder
+	PoolsHolder dataRetriever.PoolsHolder
 }

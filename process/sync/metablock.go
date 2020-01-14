@@ -30,7 +30,7 @@ type MetaBootstrap struct {
 
 // NewMetaBootstrap creates a new Bootstrap object
 func NewMetaBootstrap(
-	poolsHolder dataRetriever.MetaPoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	rounder consensus.Rounder,

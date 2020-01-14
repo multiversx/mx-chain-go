@@ -121,7 +121,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
-	dPool, _ := dataPool.NewShardedDataPool(
+	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardsTxPool,
@@ -129,33 +129,6 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 		txBlockBody,
 		peerChangeBlockBody,
 		trieNodes,
-		currTxs,
-	)
-
-	return dPool
-}
-
-// CreateTestMetaDataPool creates a test data pool for meta nodes
-func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
-	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	headers, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewMetaDataPool(
-		txBlockBody,
-		trieNodes,
-		headers,
-		txPool,
-		uTxPool,
 		currTxs,
 	)
 
@@ -326,7 +299,7 @@ func CreateGenesisBlocks(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
@@ -347,7 +320,7 @@ func CreateGenesisBlocks(
 		marshalizer,
 		hasher,
 		uint64Converter,
-		metaDataPool,
+		dataPool,
 		economics,
 		rootHash,
 	)
@@ -366,7 +339,7 @@ func CreateGenesisMetaBlock(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
@@ -381,7 +354,7 @@ func CreateGenesisMetaBlock(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64Converter,
-		MetaDatapool:             metaDataPool,
+		MetaDatapool:             dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 	}
@@ -393,7 +366,8 @@ func CreateGenesisMetaBlock(
 		)
 
 		newStore := CreateMetaStore(newShardCoordinator)
-		newMetaDataPool := CreateTestMetaDataPool()
+
+		newMetaDataPool := CreateTestShardDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
@@ -1246,7 +1220,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	neededTxs := make([][]byte, 0)
 
 	for i := 0; i < len(generatedTxHashes); i++ {
-		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
+		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
@@ -1399,7 +1373,7 @@ func ProposeAndSyncBlocks(
 			proposerNode := nodes[idProposer]
 			numTxsInPool = GetNumTxsWithDst(
 				proposerNode.ShardCoordinator.SelfId(),
-				proposerNode.ShardDataPool,
+				proposerNode.DataPool,
 				proposerNode.ShardCoordinator.NumberOfShards(),
 			)
 
@@ -1639,11 +1613,8 @@ func EmptyDataPools(nodes []*TestProcessorNode, shardId uint32) {
 }
 
 func emptyNodeDataPool(node *TestProcessorNode) {
-	if node.ShardDataPool != nil {
-		emptyShardDataPool(node.ShardDataPool)
-	}
-	if node.MetaDataPool != nil {
-		emptyMetaDataPool(node.MetaDataPool)
+	if node.DataPool != nil {
+		emptyShardDataPool(node.DataPool)
 	}
 }
 
@@ -1653,11 +1624,6 @@ func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
 	sdp.Transactions().Clear()
 	sdp.MiniBlocks().Clear()
 	sdp.PeerChangesBlocks().Clear()
-}
-
-func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
-	holder.Headers().Clear()
-	holder.MiniBlocks().Clear()
 }
 
 // UpdateRound updates the round for every node

@@ -638,7 +638,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 	vs.mutPrevShardInfo.Lock()
 	defer vs.mutPrevShardInfo.Unlock()
 
-	metaDataPool, ok := vs.dataPool.(dataRetriever.MetaPoolsHolder)
+	metaDataPool, ok := vs.dataPool.(dataRetriever.PoolsHolder)
 	if !ok {
 		return process.ErrInvalidMetaPoolHolder
 	}

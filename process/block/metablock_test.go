@@ -54,8 +54,9 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
+			DataPool: mdp,
 		},
-		DataPool:           mdp,
+
 		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
@@ -887,7 +888,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	arguments := createMockMetaArguments()
 	arguments.DataPool = pool
 	arguments.Store = initStore()
@@ -919,7 +920,7 @@ func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -996,7 +997,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1089,7 +1090,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1235,7 +1236,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1393,7 +1394,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	marshalizerMock := &mock.MarshalizerMock{}
 	body := block.Body{}
 	hdr := block.Header{Nonce: 1}
@@ -1430,7 +1431,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
@@ -1520,7 +1521,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
@@ -1620,7 +1621,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
@@ -1670,7 +1671,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
@@ -1726,7 +1727,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
@@ -1834,7 +1835,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
@@ -1932,7 +1933,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 
 	arguments := createMockMetaArguments()

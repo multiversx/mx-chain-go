@@ -183,8 +183,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	return sdp
 }
 
-func initMetaDataPool() *mock.MetaPoolsHolderStub {
-	mdp := &mock.MetaPoolsHolderStub{
+func initMetaDataPool() *mock.PoolsHolderStub {
+	mdp := &mock.PoolsHolderStub{
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
@@ -346,8 +346,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
+			DataPool: initDataPool([]byte("")),
 		},
-		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
