@@ -65,7 +65,6 @@ func NewInterceptorsContainerFactory(
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
-	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -76,9 +75,6 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStore
-	}
-	if sizeCheckDelta > 0 {
-		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer

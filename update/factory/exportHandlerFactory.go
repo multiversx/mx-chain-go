@@ -56,6 +56,7 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig config.StorageConfig
 	exportTriesCacheConfig   config.CacheConfig
 	exportStateStorageConfig config.StorageConfig
+	interceptorsContainer    process.InterceptorsContainer
 }
 
 func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
