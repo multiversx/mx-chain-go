@@ -366,9 +366,16 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				return nil, nil, expectedErr
 			},
 		},
-		&mock.StorerStub{},
+		&mock.StorerStub{
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
+		},
 		&mock.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -415,6 +422,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -479,6 +489,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
 		},
 		marshalizer,
 		nonceConverter,
@@ -534,6 +547,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		store,
 		&mock.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},

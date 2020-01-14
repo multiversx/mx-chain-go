@@ -657,10 +657,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = requestHandler.SetEpochHandler(epochStartTrigger)
-	if err != nil {
-		return nil, err
-	}
+	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
 	if err != nil {
@@ -783,7 +780,6 @@ func newRequestHandler(
 		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
 			resolversFinder,
 			requestedItemsHandler,
-			epochStart.NewNilEpochHandler(),
 			MaxTxsToRequest,
 			shardCoordinator.SelfId(),
 		)
@@ -798,7 +794,6 @@ func newRequestHandler(
 		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 			resolversFinder,
 			requestedItemsHandler,
-			epochStart.NewNilEpochHandler(),
 			MaxTxsToRequest,
 		)
 		if err != nil {

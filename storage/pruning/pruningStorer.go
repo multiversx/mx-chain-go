@@ -265,12 +265,19 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
+	var res []byte
+	var err error
 	for _, pd := range ps.activePersisters {
-		res, err := pd.persister.Get(key)
+		res, err = pd.persister.Get(key)
 		if err == nil {
 			return res, nil
 		}
 	}
+
+	log.Debug("SearchFirst error",
+		"last err", err,
+		"num active persisters", len(ps.activePersisters),
+		"key", base64.StdEncoding.EncodeToString(key))
 
 	return nil, fmt.Errorf("%w - SearchFirst, key = %s, num active persisters = %d",
 		storage.ErrKeyNotFound,
@@ -428,8 +435,10 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	log.Debug("PruningStorer - change epoch", "epoch", epoch)
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
+		log.Debug("PruningStorer - change epoch - pruning is disabled")
 		return nil
 	}
 
