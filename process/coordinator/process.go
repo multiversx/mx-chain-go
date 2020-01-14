@@ -396,8 +396,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
 
-	if hdr == nil || hdr.IsInterfaceNil() {
-		return miniBlocks, nrTxAdded, true
+	if check.IfNil(hdr) {
+		return miniBlocks, nrTxAdded, false
 	}
 
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
@@ -424,7 +424,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
-		if preproc == nil || preproc.IsInterfaceNil() {
+		if check.IfNil(preproc) {
 			continue
 		}
 
@@ -456,6 +456,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
+
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 

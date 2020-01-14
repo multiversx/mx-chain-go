@@ -150,3 +150,6 @@ var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in Node")
+
+// ErrNilBlockTracker signals that a nil block tracker has been provided
+var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
