@@ -7,6 +7,12 @@ type CacheConfig struct {
 	Shards uint32 `json:"shards"`
 }
 
+//HeadersPoolConfig will map the headers cache configuration
+type HeadersPoolConfig struct {
+	MaxHeadersPerShard            int
+	NumElementsToRemoveOnEviction int
+}
+
 // DBConfig will map the json db configuration
 type DBConfig struct {
 	FilePath          string `json:"file"`
@@ -60,6 +66,12 @@ type NTPConfig struct {
 	Version             int
 }
 
+// EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
+type EvictionWaitingListConfig struct {
+	Size uint     `json:"size"`
+	DB   DBConfig `json:"db"`
+}
+
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs int64
@@ -86,22 +98,17 @@ type Config struct {
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
-	StateBlockBodyDataPool      CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
-	BlockHeaderDataPool         CacheConfig
-	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	MetaBlockBodyDataPool       CacheConfig
-
-	MiniBlockHeaderHashesDataPool CacheConfig
-	ShardHeadersDataPool          CacheConfig
-	MetaHeaderNoncesDataPool      CacheConfig
-
+	TrieNodesDataPool           CacheConfig
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
@@ -117,7 +124,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig NTPConfig
+	NTPConfig         NTPConfig
+	HeadersPoolConfig HeadersPoolConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -191,4 +199,10 @@ type ElasticSearchConfig struct {
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
+}
+
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }

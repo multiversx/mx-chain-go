@@ -79,7 +79,7 @@ func NewPeerAccount(
 		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(nil),
+		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
 	}, nil
 }
 
