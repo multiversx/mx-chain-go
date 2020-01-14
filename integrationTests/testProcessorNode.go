@@ -114,6 +114,8 @@ var IntegrationTestsChainID = []byte("integration tests chain ID")
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
+const stateCheckpointModulus = 100
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -143,6 +145,7 @@ type TestProcessorNode struct {
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
+	StateTrie     data.Trie
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
@@ -282,7 +285,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.NodesCoordinator,
 	)
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(factory2.UserAccount)
+	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory2.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
@@ -307,7 +310,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initBlockProcessor()
+	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -471,6 +474,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			tpn.StateTrie,
 			100,
 		)
 
@@ -491,6 +495,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			tpn.StateTrie,
 			100,
 		)
 
@@ -777,7 +782,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
-func (tpn *TestProcessorNode) initBlockProcessor() {
+func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
@@ -890,9 +895,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.ShardDataPool,
-			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
+			ArgBaseProcessor:       argumentsBase,
+			DataPool:               tpn.ShardDataPool,
+			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
+			StateCheckpointModulus: stateCheckpointModulus,
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

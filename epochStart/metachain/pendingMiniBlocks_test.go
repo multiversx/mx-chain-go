@@ -133,6 +133,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	shdMbHdrs, err := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
+	assert.Nil(t, err)
 
 	err = pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
@@ -141,6 +142,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	shdMbHdrs, err = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
+	assert.Nil(t, err)
 }
 
 func TestPendingMiniBlockHeaders_PendingMiniBlockHeaders(t *testing.T) {

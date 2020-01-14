@@ -1,9 +1,6 @@
 package trie
 
 import (
-	"io"
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -15,58 +12,37 @@ const firstByte = 0
 const maxTrieLevelAfterCommit = 6
 const hexTerminator = 16
 
-type node interface {
-	getHash() []byte
-	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
-	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
-	isCollapsed() bool
-	isPosCollapsed(pos int) bool
-	isDirty() bool
-	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(level byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	resolveCollapsed(pos byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) error
-	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
-	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	tryGet(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
-	getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
-	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
-	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
-	reduceNode(pos int) node
-	isEmptyOrNil() error
-	print(writer io.Writer, index int)
-	deepClone() node
-	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
+type baseNode struct {
+	hash   []byte
+	dirty  bool
+	marsh  marshal.Marshalizer
+	hasher hashing.Hasher
 }
 
 type branchNode struct {
 	protobuf.CollapsedBn
 	children [nrOfChildren]node
-	hash     []byte
-	dirty    bool
+	*baseNode
 }
 
 type extensionNode struct {
 	protobuf.CollapsedEn
 	child node
-	hash  []byte
-	dirty bool
+	*baseNode
 }
 
 type leafNode struct {
 	protobuf.CollapsedLn
-	hash  []byte
-	dirty bool
+	*baseNode
 }
 
-func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
-	err := n.hashChildren(marshalizer, hasher)
+func hashChildrenAndNode(n node) ([]byte, error) {
+	err := n.hashChildren()
 	if err != nil {
 		return nil, err
 	}
 
-	hashed, err := n.hashNode(marshalizer, hasher)
+	hashed, err := n.hashNode()
 	if err != nil {
 		return nil, err
 	}
@@ -74,33 +50,33 @@ func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing
 	return hashed, nil
 }
 
-func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
-	encNode, err := n.getEncodedNode(marshalizer)
+func encodeNodeAndGetHash(n node) ([]byte, error) {
+	encNode, err := n.getEncodedNode()
 	if err != nil {
 		return nil, err
 	}
 
-	hash := hasher.Compute(string(encNode))
+	hash := n.getHasher().Compute(string(encNode))
 
 	return hash, nil
 }
 
-func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	key := n.getHash()
 	if key == nil {
-		err := n.setHash(marshalizer, hasher)
+		err := n.setHash()
 		if err != nil {
 			return err
 		}
 		key = n.getHash()
 	}
 
-	n, err := n.getCollapsed(marshalizer, hasher)
+	n, err := n.getCollapsed()
 	if err != nil {
 		return err
 	}
 
-	val, err := n.getEncodedNode(marshalizer)
+	val, err := n.getEncodedNode()
 	if err != nil {
 		return err
 	}
@@ -110,28 +86,28 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.
 	return err
 }
 
-func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		return nil, err
 	}
 
-	node, err := decodeNode(encChild, marshalizer)
+	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
 
-	return node, nil
+	return decodedNode, nil
 }
 
-func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err := n.resolveCollapsed(pos, db, marshalizer)
+		err = n.resolveCollapsed(pos, db)
 		if err != nil {
 			return err
 		}
@@ -163,7 +139,7 @@ func hasValidHash(n node) (bool, error) {
 	return true, nil
 }
 
-func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
+func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	if encNode == nil || len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
@@ -171,32 +147,33 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
 	nodeType := encNode[len(encNode)-1]
 	encNode = encNode[:len(encNode)-1]
 
-	node, err := getEmptyNodeOfType(nodeType)
+	newNode, err := getEmptyNodeOfType(nodeType)
 	if err != nil {
 		return nil, err
 	}
 
-	err = marshalizer.Unmarshal(node, encNode)
+	err = marshalizer.Unmarshal(newNode, encNode)
 	if err != nil {
 		return nil, err
 	}
 
-	return node, nil
+	newNode.setMarshalizer(marshalizer)
+	newNode.setHasher(hasher)
+
+	return newNode, nil
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {
-	var decNode node
 	switch t {
 	case extension:
-		decNode = &extensionNode{}
+		return &extensionNode{baseNode: &baseNode{}}, nil
 	case leaf:
-		decNode = &leafNode{}
+		return &leafNode{baseNode: &baseNode{}}, nil
 	case branch:
-		decNode = newBranchNode()
+		return &branchNode{baseNode: &baseNode{}}, nil
 	default:
 		return nil, ErrInvalidNode
 	}
-	return decNode, nil
 }
 
 func childPosOutOfRange(pos byte) bool {
