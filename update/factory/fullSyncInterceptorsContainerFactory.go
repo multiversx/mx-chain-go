@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -24,12 +23,7 @@ const numGoRoutines = 2000
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
-	addrConverter          state.AddressConverter
-	singleSigner           crypto.SingleSigner
-	keyGen                 crypto.KeyGenerator
 	maxTxNonceDeltaAllowed int
-	txFeeHandler           process.FeeHandler
-	txInterceptorThrottler process.InterceptorThrottler
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
@@ -39,7 +33,6 @@ type interceptorsContainerFactory struct {
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
 	blackList              process.BlackListHandler
-	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 }

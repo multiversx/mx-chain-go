@@ -126,7 +126,7 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 	if !ok {
 		// not found in cache
 		// search it in second persistence medium
-		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) == true {
+		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
 			v, err = u.persister.Get(key)
 
 			if err != nil {
@@ -155,7 +155,7 @@ func (u *Unit) Has(key []byte) error {
 		return nil
 	}
 
-	if u.bloomFilter == nil || u.bloomFilter.MayContain(key) == true {
+	if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
 		return u.persister.Has(key)
 	}
 
@@ -208,10 +208,7 @@ func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (u *Unit) IsInterfaceNil() bool {
-	if u == nil {
-		return true
-	}
-	return false
+	return u == nil
 }
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
