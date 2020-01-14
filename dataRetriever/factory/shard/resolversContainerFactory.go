@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	factoryTries "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -519,7 +520,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -528,7 +529,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes)
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.PeerAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -539,7 +540,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, err
@@ -557,7 +558,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dat
 		return nil, err
 	}
 
-	trie := rcf.trieDataGetter.Get([]byte(topic))
+	trie := rcf.trieDataGetter.Get([]byte(trieId))
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
 		trie,

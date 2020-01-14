@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const UserAccountTrie = "userAccount"
+const PeerAccountTrie = "peerAccount"
+
 // TrieFactoryArgs holds arguments for creating a trie factory
 type TrieFactoryArgs struct {
 	Cfg                    config.StorageConfig

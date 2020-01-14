@@ -51,9 +51,3 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
-
-// ErrNilPeerAccounts signals that peer accounts is nil
-var ErrNilPeerAccounts = errors.New("nil peer accounts")
-
-// ErrNilUserAccounts signals that user accounts is nil
-var ErrNilUserAccounts = errors.New("nil user accounts")
