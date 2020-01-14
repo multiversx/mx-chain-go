@@ -8,11 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
 	initReconnectMul = 20
+	//TODO take this from p2p.toml
+	bucketSize              = 100
+	autoRefreshRoutingTable = time.Minute
 )
 
 const kadDhtName = "kad-dht discovery"
@@ -70,11 +74,24 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
+	defaultOptions := opts.Defaults
+	customOptions := func(opt *opts.Options) error {
+		err := defaultOptions(opt)
+		if err != nil {
+			return err
+		}
+
+		opt.BucketSize = bucketSize
+		opt.RoutingTable.RefreshPeriod = autoRefreshRoutingTable
+
+		return nil
+	}
+
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
+	kademliaDHT, err := dht.New(ctx, h, customOptions)
 	if err != nil {
 		return err
 	}
