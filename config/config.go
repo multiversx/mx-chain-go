@@ -7,6 +7,12 @@ type CacheConfig struct {
 	Shards uint32 `json:"shards"`
 }
 
+//HeadersPoolConfig will map the headers cache configuration
+type HeadersPoolConfig struct {
+	MaxHeadersPerShard            int
+	NumElementsToRemoveOnEviction int
+}
+
 // DBConfig will map the json db configuration
 type DBConfig struct {
 	FilePath          string `json:"file"`
@@ -98,20 +104,11 @@ type Config struct {
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
-	StateBlockBodyDataPool      CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
-	BlockHeaderDataPool         CacheConfig
-	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	MetaBlockBodyDataPool       CacheConfig
 	TrieNodesDataPool           CacheConfig
-
-	MiniBlockHeaderHashesDataPool CacheConfig
-	ShardHeadersDataPool          CacheConfig
-	MetaHeaderNoncesDataPool      CacheConfig
-
 	EpochStartConfig EpochStartConfig
 	Logger           LoggerConfig
 	Address          AddressConfig
@@ -127,7 +124,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig NTPConfig
+	NTPConfig         NTPConfig
+	HeadersPoolConfig HeadersPoolConfig
 }
 
 // NodeConfig will hold basic p2p settings

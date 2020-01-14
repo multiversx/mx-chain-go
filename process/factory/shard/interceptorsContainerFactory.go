@@ -477,10 +477,9 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.Headers(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -586,10 +585,9 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaBlocks(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

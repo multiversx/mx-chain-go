@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -509,10 +507,10 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
 	maxRound uint64,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 ) error {
 
-	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(headersCacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
 
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
@@ -818,13 +816,13 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 	return nil
 }
 
-func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher storage.Cacher) bool {
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, headersCacher dataRetriever.HeadersPool) bool {
 	lastNotarizedHdr, err := bp.getLastNotarizedHdr(header.GetShardID())
 	if err != nil {
 		return false
 	}
 
-	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(headersCacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
 	isHeaderOutOfRange := header.GetNonce() > lastNotarizedHdr.GetNonce()+allowedSize
 
 	return isHeaderOutOfRange
@@ -836,8 +834,7 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher st
 func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	shardId uint32,
 	finality uint32,
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 ) uint32 {
 	requestedHeaders := uint32(0)
 	missingFinalityAttestingHeaders := uint32(0)
@@ -849,7 +846,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, cacher, shardId, i)
+		headers, headersHashes := bp.getHeadersFromPools(headersCacher, shardId, i)
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
@@ -891,14 +888,11 @@ func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
 }
 
 func (bp *baseProcessor) cleanupPools(
-	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
-	headersPool storage.Cacher,
-	notarizedHeadersPool storage.Cacher,
+	headersPool dataRetriever.HeadersPool,
 ) {
 	bp.removeHeadersBehindNonceFromPools(
 		true,
 		headersPool,
-		headersNoncesPool,
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
@@ -910,8 +904,7 @@ func (bp *baseProcessor) cleanupPools(
 
 		bp.removeHeadersBehindNonceFromPools(
 			false,
-			notarizedHeadersPool,
-			headersNoncesPool,
+			headersPool,
 			shardId,
 			lastNotarizedHdr.GetNonce())
 	}
@@ -921,8 +914,7 @@ func (bp *baseProcessor) cleanupPools(
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	shouldRemoveBlockBody bool,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) {
@@ -931,39 +923,35 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	if check.IfNil(cacher) {
+	if check.IfNil(headersCacher) {
 		return
 	}
 
-	for _, key := range cacher.Keys() {
-		val, _ := cacher.Peek(key)
-		if val == nil {
-			continue
-		}
-
-		hdr, ok := val.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if hdr.GetShardID() != shardId || hdr.GetNonce() >= nonce {
+	nonces := headersCacher.Nonces(shardId)
+	for _, nonceFromCache := range nonces {
+		if nonceFromCache >= nonce {
 			continue
 		}
 
 		if shouldRemoveBlockBody {
-			errNotCritical := bp.removeBlockBodyOfHeader(hdr)
-			if errNotCritical != nil {
-				log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
-			}
+			bp.removeBlocksBody(nonceFromCache, shardId, headersCacher)
 		}
 
-		cacher.Remove(key)
+		headersCacher.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
+	}
+}
 
-		if check.IfNil(uint64SyncMapCacher) {
-			continue
+func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32, headersCacher dataRetriever.HeadersPool) {
+	headers, _, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	if err != nil {
+		return
+	}
+
+	for _, header := range headers {
+		errNotCritical := bp.removeBlockBodyOfHeader(header)
+		if errNotCritical != nil {
+			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
 		}
-
-		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
 	}
 }
 
@@ -988,8 +976,7 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 
 func (bp *baseProcessor) removeHeaderFromPools(
 	header data.HeaderHandler,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 ) {
 
 	if check.IfNil(header) {
@@ -1001,65 +988,21 @@ func (bp *baseProcessor) removeHeaderFromPools(
 		return
 	}
 
-	if !check.IfNil(cacher) {
-		cacher.Remove(headerHash)
-	}
-
-	if !check.IfNil(uint64SyncMapCacher) {
-		syncMap, ok := uint64SyncMapCacher.Get(header.GetNonce())
-		if !ok {
-			return
-		}
-
-		hash, ok := syncMap.Load(header.GetShardID())
-		if hash == nil || !ok {
-			return
-		}
-
-		if bytes.Equal(headerHash, hash) {
-			uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
-		}
-	}
+	headersCacher.RemoveHeaderByHash(headerHash)
 }
 
 func (bp *baseProcessor) getHeadersFromPools(
-	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) ([]data.HeaderHandler, [][]byte) {
-
-	keys := cacher.Keys()
-	headers := make([]data.HeaderHandler, 0, len(keys)+1)
-	headersHashes := make([][]byte, 0, len(keys)+1)
-
-	//TODO: This for could be deleted when the implementation of the new cache will be done
-	for _, headerHash := range keys {
-		val, _ := cacher.Peek(headerHash)
-		if val == nil {
-			continue
-		}
-
-		header, ok := val.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if header.GetShardID() == shardId && header.GetNonce() == nonce {
-			headers = append(headers, header)
-			headersHashes = append(headersHashes, headerHash)
-		}
-	}
-
-	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
+	headers, headersHashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
-		return headers, headersHashes
+		headers = make([]data.HeaderHandler, 0)
+		headersHashes = make([][]byte, 0)
 	}
 
-	headers = append(headers, header)
-	headersHashes = append(headersHashes, headerHash)
-
-	return headers, sliceUtil.TrimSliceSliceByte(headersHashes)
+	return headers, headersHashes
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(
