@@ -1,4 +1,4 @@
-package metachain
+package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -171,25 +170,7 @@ func NewInterceptorsContainerFactory(
 func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
 	container := containers.NewInterceptorsContainer()
 
-	keys, interceptorSlice, err := icf.generateMetablockInterceptor()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	keys, interceptorSlice, err = icf.generateShardHeaderInterceptors()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	keys, interceptorSlice, err = icf.generateTxInterceptors()
+	keys, interceptorSlice, err := icf.generateTxInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -242,111 +223,6 @@ func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	}
 
 	return interceptor, icf.messenger.RegisterMessageProcessor(topic, interceptor)
-}
-
-//------- Metablock interceptor
-
-func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]string, []process.Interceptor, error) {
-	identifierHdr := factory.MetachainBlocksTopic
-
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(icf.argInterceptorFactory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaBlocks(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
-	}
-	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//only one metachain header topic
-	interceptor, err := processInterceptors.NewSingleDataInterceptor(
-		hdrFactory,
-		hdrProcessor,
-		icf.globalThrottler,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
-}
-
-//------- Shard header interceptors
-
-func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
-	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
-
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
-		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		keys[int(idx)] = identifierHeader
-		interceptorSlice[int(idx)] = interceptor
-	}
-
-	return keys, interceptorSlice, nil
-}
-
-func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return nil, err
-	}
-
-	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(icf.argInterceptorFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.ShardHeaders(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
-	}
-	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
-	if err != nil {
-		return nil, err
-	}
-
-	interceptor, err := processInterceptors.NewSingleDataInterceptor(
-		hdrFactory,
-		hdrProcessor,
-		icf.globalThrottler,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Tx interceptors
@@ -443,7 +319,6 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 }
 
 func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
-	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
 		return nil, err
@@ -562,6 +437,17 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
+	for i := uint32(0); i < icf.shardCoordinator.NumberOfShards(); i++ {
+		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+	}
+
 	return keys, trieInterceptors, nil
 }
 
@@ -591,8 +477,5 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
-	if icf == nil {
-		return true
-	}
-	return false
+	return icf == nil
 }

@@ -94,32 +94,18 @@ func NewExporter(args ArgsExporter) (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	argsNewActiveAccounts := ArgsNewActiveAccountHandlersFactory{
-		PeerAccounts:     args.PeerAccounts,
-		AccountsAdapter:  args.AccountsAdapter,
-		ShardCoordinator: args.ShardCoordinator,
-	}
-	accountHandlerContainerFactory, err := NewActiveAccountsContainerFactory(argsNewActiveAccounts)
-	if err != nil {
-		return nil, err
-	}
-
-	accountsContainer, err := accountHandlerContainerFactory.Create()
-	if err != nil {
-		return nil, err
-	}
 
 	argsSyncState := genesis.ArgsNewSyncState{
 		Hasher:           args.Hasher,
 		Marshalizer:      args.Marshalizer,
 		ShardCoordinator: args.ShardCoordinator,
-		TrieSyncers:      nil,
+		TrieSyncers:      trieSyncersContainer,
 		EpochHandler:     epochHandler,
 		Storages:         args.StorageService,
 		DataPools:        args.DataPool,
 		RequestHandler:   args.RequestHandler,
 		HeaderValidator:  args.HeaderValidator,
-		AccountHandlers:  accountsContainer,
+		ActiveDataTries:  activeDataTriesContainer,
 	}
 	stateSyncer, err := genesis.NewSyncState(argsSyncState)
 	if err != nil {

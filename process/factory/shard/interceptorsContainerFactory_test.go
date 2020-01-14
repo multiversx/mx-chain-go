@@ -894,7 +894,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.TrieNodesTopic),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
