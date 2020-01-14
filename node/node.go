@@ -406,6 +406,11 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
+	if err != nil {
+		return nil, err
+	}
+
 	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -436,7 +441,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.forkDetector,
 		n.resolversFinder,
 		n.shardCoordinator,
-		n.accounts,
+		accountsWrapper,
 		n.blackListHandler,
 		n.messenger,
 		n.bootStorer,
@@ -557,7 +562,7 @@ func (n *Node) SendTransaction(
 	value string,
 	gasPrice uint64,
 	gasLimit uint64,
-	transactionData string,
+	transactionData []byte,
 	signature []byte) (string, error) {
 
 	if n.shardCoordinator == nil || n.shardCoordinator.IsInterfaceNil() {
@@ -736,7 +741,7 @@ func (n *Node) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	data []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
 
@@ -775,7 +780,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      data,
+		Data:      []byte(data),
 		Signature: signatureBytes,
 	}, nil
 }

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -145,7 +144,7 @@ func generateAndSendBulkSmartContractResults(
 		}
 		buff := make([]byte, 8)
 		binary.BigEndian.PutUint64(buff, nonce)
-		uTx.Data = hex.EncodeToString(buff)
+		uTx.Data = buff
 
 		uTxBytes, _ := marshalizer.Marshal(uTx)
 		unsigedTxs = append(unsigedTxs, uTxBytes)

@@ -10,10 +10,12 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -60,17 +62,18 @@ func CreateEmptyAddress() state.AddressContainer {
 
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
 
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit
 }
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
 
-	tr, _ := trie.NewTrie(store, marsh, testHasher)
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
@@ -381,7 +384,7 @@ func CreateTx(
 		Value:    value,
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
@@ -396,7 +399,7 @@ func CreateDeployTx(
 	value *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
-	scCodeAndVMType string,
+	scCodeAndVMType []byte,
 ) *dataTransaction.Transaction {
 
 	return &dataTransaction.Transaction{
@@ -495,7 +498,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "topUp@00",
+		Data:     []byte("topUp@00"),
 	}
 }
 
@@ -513,7 +516,7 @@ func CreateTransferTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
+		Data:     []byte("transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
 }
 
@@ -531,6 +534,6 @@ func CreateTransferTokenTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     "transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
+		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
 }

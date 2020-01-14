@@ -168,7 +168,7 @@ func runWASMVMBenchmark(
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -192,7 +192,7 @@ func runWASMVMBenchmark(
 		SndAddr:   alice,
 		GasPrice:  0,
 		GasLimit:  gasLimit,
-		Data:      "_main",
+		Data:      []byte("_main"),
 		Signature: nil,
 	}
 
@@ -256,7 +256,7 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
 	)
 
 	err = txProc.ProcessTransaction(tx)
@@ -328,7 +328,7 @@ func TestWASMNamespacing(t *testing.T) {
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -357,7 +357,7 @@ func TestWASMNamespacing(t *testing.T) {
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      "main",
+		Data:      []byte("main"),
 		Signature: nil,
 	}
 
@@ -386,7 +386,7 @@ func TestWASMMetering(t *testing.T) {
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:      []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 		Signature: nil,
 	}
 
@@ -415,7 +415,7 @@ func TestWASMMetering(t *testing.T) {
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      "_main",
+		Data:      []byte("_main"),
 		Signature: nil,
 	}
 
@@ -470,7 +470,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes())),
 	)
 
 	err = txProc.ProcessTransaction(tx)
@@ -558,7 +558,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes())),
 	)
 
 	err = txProc.ProcessTransaction(tx)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 type BlockProcessorMock struct {
@@ -25,7 +26,7 @@ type BlockProcessorMock struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
 
 }
 

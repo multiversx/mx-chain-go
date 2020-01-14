@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -251,11 +252,11 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 
 	isSCResultReturningFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
 	if isSCResultReturningFromCrossShardCall {
-		dataToParse = "callBack" + tx.GetData()
+		dataToParse = append([]byte("callBack"), tx.GetData()...)
 		sc.isAsyncCallBack = true
 	}
 
-	err := sc.argsParser.ParseData(dataToParse)
+	err := sc.argsParser.ParseData(string(dataToParse))
 	if err != nil {
 		return err
 	}
@@ -532,6 +533,8 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
+	sortVMOutputInsideData(vmOutput)
+
 	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
 	if err != nil {
 		return nil, nil, err
@@ -578,6 +581,23 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
+func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) {
+	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
+		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
+	})
+	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
+		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
+	})
+	sort.Slice(vmOutput.OutputAccounts, func(i, j int) bool {
+		return bytes.Compare(vmOutput.OutputAccounts[i].Address, vmOutput.OutputAccounts[j].Address) < 0
+	})
+	for _, outAcc := range vmOutput.OutputAccounts {
+		sort.Slice(outAcc.StorageUpdates, func(i, j int) bool {
+			return bytes.Compare(outAcc.StorageUpdates[i].Offset, outAcc.StorageUpdates[j].Offset) < 0
+		})
+	}
+}
+
 func (sc *scProcessor) createSCRsWhenError(
 	tx data.TransactionHandler,
 	returnCode string,
@@ -598,7 +618,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		RcvAddr: rcvAddress,
 		SndAddr: tx.GetRecvAddress(),
 		Code:    nil,
-		Data:    "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash),
+		Data:    []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
 		TxHash:  txHash,
 	}
 
@@ -635,7 +655,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRecvAddress()
 	result.Code = outAcc.Code
-	result.Data = string(outAcc.Data) + sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
+	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.TxHash = txHash
@@ -689,9 +709,9 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.GasLimit = vmOutput.GasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
 
-	scTx.Data = "@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String()))
+	scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
 	for _, retData := range vmOutput.ReturnData {
-		scTx.Data += "@" + hex.EncodeToString(retData)
+		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
@@ -735,6 +755,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		for j := 0; j < len(outAcc.StorageUpdates); j++ {
 			storeUpdate := outAcc.StorageUpdates[j]
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+
+			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
 		if len(outAcc.StorageUpdates) > 0 {
@@ -752,7 +774,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 				return err
 			}
 
-			log.Debug("created SC address", "address", hex.EncodeToString(outAcc.Address))
+			log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
 		}
 
 		// change nonce only if there is a change
@@ -901,7 +923,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	if len(scr.Data) > 0 {
-		storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
+		storageUpdates, err := sc.argsParser.GetStorageUpdates(string(scr.Data))
 		if err != nil {
 			log.Debug("storage updates could not be parsed")
 		}
