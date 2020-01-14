@@ -226,15 +226,15 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		}
 	}()
 
-	for _, shardData := range meta.EpochStart.LastFinalizedHeaders {
-		go func() {
+	for _, shData := range meta.EpochStart.LastFinalizedHeaders {
+		go func(shardData block.EpochStartShardData) {
 			err := ss.syncShard(shardData, &wg)
 			if err != nil {
 				mutErr.Lock()
 				errFound = err
 				mutErr.Unlock()
 			}
-		}()
+		}(shData)
 	}
 
 	wg.Wait()
@@ -594,9 +594,7 @@ func (ss *syncState) getMiniBlockFromPoolOrStorage(hash []byte) (*block.MiniBloc
 }
 
 func (ss *syncState) getDataFromStorage(hash []byte, storer update.HistoryStorer) ([]byte, error) {
-	var err error
-	currData := make([]byte, 0)
-	currData, err = storer.Get(hash)
+	currData, err := storer.Get(hash)
 	if err != nil {
 		currData, err = storer.GetFromEpoch(hash, ss.syncingEpoch)
 		if err != nil {

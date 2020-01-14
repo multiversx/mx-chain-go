@@ -81,6 +81,10 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 	}
 
 	toExportMBs, err := se.stateSyncer.GetAllMiniBlocks()
+	if err != nil {
+		return err
+	}
+
 	for key, mb := range toExportMBs {
 		err := se.exportMBs(key, mb)
 		if err != nil {
@@ -89,6 +93,10 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 	}
 
 	toExportTransactions, err := se.stateSyncer.GetAllTransactions()
+	if err != nil {
+		return err
+	}
+
 	for key, tx := range toExportTransactions {
 		err := se.exportTx(key, tx)
 		if err != nil {
