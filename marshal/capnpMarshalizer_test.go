@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,7 +15,7 @@ import (
 type dataGenerator interface {
 	// GenerateDummyArray generates an array of data of the implementer type
 	// The implementer needs to implement CapnpHelper as well
-	GenerateDummyArray() []data.CapnpHelper
+	GenerateDummyArray() []marshal.CapnpHelper
 }
 
 type Header struct {
@@ -55,7 +54,7 @@ func benchMarshal(b *testing.B, m marshal.Marshalizer, obj dataGenerator) {
 	}
 }
 
-func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, validate bool) {
+func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, validate bool, sizeCheck bool) {
 	b.StopTimer()
 	dArray := obj.(dataGenerator).GenerateDummyArray()
 	l := len(dArray)
@@ -69,12 +68,16 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 		serialized[i] = t
 	}
 
+	if sizeCheck {
+		m = marshal.NewSizeCheckUnmarshalizer(m, 100)
+	}
+
 	b.ReportAllocs()
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		n := i % l
-		err := m.Unmarshal(obj.(data.CapnpHelper), serialized[n])
+		err := m.Unmarshal(obj.(marshal.CapnpHelper), serialized[n])
 
 		assert.Nil(b, err)
 
@@ -102,25 +105,37 @@ func BenchmarkJsonTransactionMarshal(b *testing.B) {
 func BenchmarkCapnprotoTransactionUnmarshalNoValidate(b *testing.B) {
 	tx := &Transaction{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, tx, false)
+	benchUnmarshal(b, cmr, tx, false, false)
+}
+
+func BenchmarkCapnprotoTransactionUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	tx := &Transaction{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, tx, false, true)
 }
 
 func BenchmarkJsonTransactionUnmarshalNoValidate(b *testing.B) {
 	tx := &Transaction{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, tx, false)
+	benchUnmarshal(b, jmr, tx, false, false)
+}
+
+func BenchmarkJsonTransactionUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	tx := &Transaction{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, tx, false, true)
 }
 
 func BenchmarkCapnprotoTransactionUnmarshalValidate(b *testing.B) {
 	tx := &Transaction{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, tx, true)
+	benchUnmarshal(b, cmr, tx, true, false)
 }
 
 func BenchmarkJsonTransactionUnmarshalValidate(b *testing.B) {
 	tx := &Transaction{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, tx, true)
+	benchUnmarshal(b, jmr, tx, true, false)
 }
 
 func BenchmarkCapnprotoMiniBlocksMarshal(b *testing.B) {
@@ -138,25 +153,37 @@ func BenchmarkJsonMiniBlocksMarshal(b *testing.B) {
 func BenchmarkCapnprotoMiniBlocksUnmarshalNoValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, false)
+	benchUnmarshal(b, cmr, bl, false, false)
+}
+
+func BenchmarkCapnprotoMiniBlocksUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	bl := &MiniBlock{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, bl, false, true)
 }
 
 func BenchmarkJsonMiniBlocksUnmarshalNoValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, false)
+	benchUnmarshal(b, jmr, bl, false, false)
+}
+
+func BenchmarkJsonMiniBlocksUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	bl := &MiniBlock{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, bl, false, true)
 }
 
 func BenchmarkCapnprotoMiniBlocksUnmarshalValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
+	benchUnmarshal(b, cmr, bl, true, false)
 }
 
 func BenchmarkJsonMiniBlocksUnmarshalValidate(b *testing.B) {
 	bl := &MiniBlock{}
 	cmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
+	benchUnmarshal(b, cmr, bl, true, false)
 }
 
 func BenchmarkCapnprotoHeaderMarshal(b *testing.B) {
@@ -174,30 +201,42 @@ func BenchmarkJsonHeaderMarshal(b *testing.B) {
 func BenchmarkCapnprotoHeaderUnmarshalNoValidate(b *testing.B) {
 	h := &Header{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, h, false)
+	benchUnmarshal(b, cmr, h, false, false)
+}
+
+func BenchmarkCapnprotoHeaderUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	h := &Header{}
+	cmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, cmr, h, false, true)
 }
 
 func BenchmarkJsonHeaderUnmarshalNoValidate(b *testing.B) {
 	h := &Header{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, h, false)
+	benchUnmarshal(b, jmr, h, false, false)
+}
+
+func BenchmarkJsonHeaderUnmarshalNoValidate_SizeCheck(b *testing.B) {
+	h := &Header{}
+	jmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, jmr, h, false, true)
 }
 
 func BenchmarkCapnprotoHeaderUnmarshalValidate(b *testing.B) {
 	h := &Header{}
 	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, h, true)
+	benchUnmarshal(b, cmr, h, true, false)
 }
 
 func BenchmarkJsonHeaderUnmarshalValidate(b *testing.B) {
 	h := &Header{}
 	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, h, true)
+	benchUnmarshal(b, jmr, h, true, false)
 }
 
 // GenerateDummyArray is used to generate an array of MiniBlockHeaders with dummy data
-func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
-	sBlocks := make([]data.CapnpHelper, 0, 1000)
+func (sBlock *MiniBlock) GenerateDummyArray() []marshal.CapnpHelper {
+	sBlocks := make([]marshal.CapnpHelper, 0, 1000)
 
 	for i := 0; i < 1000; i++ {
 		lenTxHashes := rand.Intn(20) + 1
@@ -218,8 +257,8 @@ func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 }
 
 // GenerateDummyArray is used to generate an array of block headers with dummy data
-func (h *Header) GenerateDummyArray() []data.CapnpHelper {
-	headers := make([]data.CapnpHelper, 0, 1000)
+func (h *Header) GenerateDummyArray() []marshal.CapnpHelper {
+	headers := make([]marshal.CapnpHelper, 0, 1000)
 
 	mbh := block.MiniBlockHeader{
 		Hash:            []byte("mini block header"),
@@ -257,8 +296,8 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 }
 
 // GenerateDummyArray is used to generate an array of transactions with dummy data
-func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
-	transactions := make([]data.CapnpHelper, 0, 1000)
+func (tx *Transaction) GenerateDummyArray() []marshal.CapnpHelper {
+	transactions := make([]marshal.CapnpHelper, 0, 1000)
 
 	val := big.NewInt(0)
 	_ = val.GobDecode([]byte(RandomStr(32)))
@@ -272,9 +311,8 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),
 				GasLimit:  uint64(rand.Int63n(10000)),
-				Data:      RandomStr(32),
+				Data:      []byte(RandomStr(32)),
 				Signature: []byte(RandomStr(32)),
-				Challenge: []byte(RandomStr(32)),
 			},
 		})
 	}

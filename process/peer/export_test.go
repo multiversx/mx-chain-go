@@ -7,37 +7,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-func (p *validatorStatistics) CheckForMissedBlocks(
+func (vs *validatorStatistics) CheckForMissedBlocks(
 	currentHeaderRound uint64,
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
 ) error {
-	return p.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed ,shardId)
+	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId)
 }
 
-func (p *validatorStatistics) SaveInitialState(in []*sharding.InitialNode, stakeValue *big.Int) error {
-	return p.saveInitialState(in, stakeValue)
+func (vs *validatorStatistics) SaveInitialState(in []*sharding.InitialNode, stakeValue *big.Int, initialRating uint32) error {
+	return vs.saveInitialState(in, stakeValue, initialRating)
 }
 
-func (p *validatorStatistics) GetMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
-	return p.getMatchingPrevShardData(currentShardData, shardInfo)
+func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
+	return vs.getMatchingPrevShardData(currentShardData, shardInfo)
 }
 
-func (p *validatorStatistics) LoadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
-	return p.loadPreviousShardHeaders(currentHeader, previousHeader)
+func (vs *validatorStatistics) LoadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
+	return vs.loadPreviousShardHeaders(currentHeader, previousHeader)
 }
 
-func (p *validatorStatistics) LoadPreviousShardHeadersMeta(currentHeader, previousHeader *block.MetaBlock) error {
-	return p.loadPreviousShardHeadersMeta(currentHeader)
+func (vs *validatorStatistics) LoadPreviousShardHeadersMeta(currentHeader, _ *block.MetaBlock) error {
+	return vs.loadPreviousShardHeadersMeta(currentHeader)
 }
 
-func (p *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
-	p.mutPrevShardInfo.RLock()
-	defer p.mutPrevShardInfo.RUnlock()
-	return p.prevShardInfo
+func (vs *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
+	vs.mutPrevShardInfo.RLock()
+	defer vs.mutPrevShardInfo.RUnlock()
+	return vs.prevShardInfo
 }
 
-func (p *validatorStatistics) BuildShardDataKey(sh block.ShardData) string {
-	return p.buildShardDataKey(sh)
+func (vs *validatorStatistics) BuildShardDataKey(sh block.ShardData) string {
+	return vs.buildShardDataKey(sh)
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testSizeCheckDelta = 100
+
 func TestWithMessenger_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -42,7 +44,7 @@ func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithMarshalizer(nil)
+	opt := WithMarshalizer(nil, testSizeCheckDelta)
 	err := opt(node)
 
 	assert.Nil(t, node.marshalizer)
@@ -56,10 +58,11 @@ func TestWithMarshalizer_ShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	opt := WithMarshalizer(marshalizer)
+	opt := WithMarshalizer(marshalizer, testSizeCheckDelta)
 	err := opt(node)
 
 	assert.True(t, node.marshalizer == marshalizer)
+	assert.True(t, node.sizeCheckDelta == testSizeCheckDelta)
 	assert.Nil(t, err)
 }
 
@@ -541,6 +544,32 @@ func TestWithShardCoordinator_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.shardCoordinator == shardCoordinator)
+	assert.Nil(t, err)
+}
+
+func TestWithBlockTracker_NilBlockTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlockTracker(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.blockTracker)
+	assert.Equal(t, ErrNilBlockTracker, err)
+}
+
+func TestWithBlockTracker_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blockTracker := &mock.BlockTrackerStub{}
+
+	opt := WithBlockTracker(blockTracker)
+	err := opt(node)
+
+	assert.True(t, node.blockTracker == blockTracker)
 	assert.Nil(t, err)
 }
 

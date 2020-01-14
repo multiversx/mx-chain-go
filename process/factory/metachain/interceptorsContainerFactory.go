@@ -66,6 +66,7 @@ func NewInterceptorsContainerFactory(
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
+	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -76,6 +77,9 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStore
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -213,6 +217,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
+	keys, interceptorSlice, err = icf.generateTrieNodesInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -248,10 +262,9 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaBlocks(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -284,9 +297,9 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
+	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
+		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)
 		if err != nil {
 			return nil, nil, err
@@ -313,10 +326,9 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.ShardHeaders(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -515,6 +527,43 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		txFactory,
 		txBlockBodyProcessor,
+		icf.globalThrottler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierTrieNodes}, []process.Interceptor{interceptor}, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(icf.dataPool.TrieNodes())
+	if err != nil {
+		return nil, err
+	}
+
+	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(icf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
+		icf.marshalizer,
+		trieNodesFactory,
+		trieNodesProcessor,
 		icf.globalThrottler,
 	)
 	if err != nil {

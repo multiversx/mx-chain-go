@@ -73,6 +73,10 @@ type PeerAccountHandler interface {
 	DecreaseLeaderSuccessRateWithJournal() error
 	IncreaseValidatorSuccessRateWithJournal() error
 	DecreaseValidatorSuccessRateWithJournal() error
+	GetRating() uint32
+	SetRatingWithJournal(uint322 uint32) error
+	GetTempRating() uint32
+	SetTempRatingWithJournal(uint322 uint32) error
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -102,6 +106,11 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
+	PruneTrie(rootHash []byte) error
+	CancelPrune(rootHash []byte)
+	SnapshotState(rootHash []byte)
+	SetStateCheckpoint(rootHash []byte)
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }
 

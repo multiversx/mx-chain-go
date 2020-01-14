@@ -7,47 +7,55 @@ import (
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error
-	RemoveHeadersCalled             func(nonce uint64, hash []byte)
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	RemoveHeaderCalled              func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled func() uint64
+	GetHighestFinalBlockHashCalled  func() []byte
 	ProbableHighestNonceCalled      func() uint64
-	ResetProbableHighestNonceCalled func()
 	ResetForkCalled                 func()
 	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
+	SetRollBackNonceCalled          func(nonce uint64)
+	RestoreToGenesisCalled          func()
 }
 
-func (f *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
-
+func (fdm *ForkDetectorMock) RestoreToGenesis() {
+	fdm.RestoreToGenesisCalled()
 }
 
 // AddHeader is a mock implementation for AddHeader
-func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
-	return f.AddHeaderCalled(header, hash, state, finalHeaders, finalHeadersHashes, isNotarizedShardStuck)
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 }
 
-// RemoveHeaders is a mock implementation for RemoveHeaders
-func (f *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
-	f.RemoveHeadersCalled(nonce, hash)
+// RemoveHeader is a mock implementation for RemoveHeader
+func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
+	fdm.RemoveHeaderCalled(nonce, hash)
 }
 
 // CheckFork is a mock implementation for CheckFork
-func (f *ForkDetectorMock) CheckFork() *process.ForkInfo {
-	return f.CheckForkCalled()
+func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
+	return fdm.CheckForkCalled()
 }
 
 // GetHighestFinalBlockNonce is a mock implementation for GetHighestFinalBlockNonce
-func (f *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return f.GetHighestFinalBlockNonceCalled()
+func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
+	return fdm.GetHighestFinalBlockNonceCalled()
+}
+
+func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
+	return fdm.GetHighestFinalBlockHashCalled()
 }
 
 // ProbableHighestNonce is a mock implementation for GetProbableHighestNonce
-func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return f.ProbableHighestNonceCalled()
+func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
+	return fdm.ProbableHighestNonceCalled()
 }
 
-func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
-	fdm.ResetProbableHighestNonceCalled()
+func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
+	if fdm.SetRollBackNonceCalled != nil {
+		fdm.SetRollBackNonceCalled(nonce)
+	}
 }
 
 func (fdm *ForkDetectorMock) ResetFork() {
@@ -60,8 +68,5 @@ func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
-	if fdm == nil {
-		return true
-	}
-	return false
+	return fdm == nil
 }

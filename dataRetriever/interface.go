@@ -35,10 +35,12 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	// MiniBlockHeaderUnit is the miniblock header data unit identifier
+	MiniBlockHeaderUnit UnitType = 11
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 11
+	BootstrapUnit UnitType = 12
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 12
+	StatusMetricsUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -59,6 +61,8 @@ type Resolver interface {
 type HeaderResolver interface {
 	Resolver
 	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromEpoch(identifier []byte) error
+	SetEpochHandler(epochHandler EpochHandler) error
 }
 
 // MiniBlocksResolver defines what a mini blocks resolver should do
@@ -100,6 +104,12 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines the functionality to get the current epoch
+type EpochHandler interface {
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
@@ -176,7 +186,6 @@ type ShardedDataCacherNotifier interface {
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
-	MoveData(sourceCacheID, destCacheID string, key [][]byte)
 	Clear()
 	ClearShardStore(cacheId string)
 	CreateShardStore(cacheId string)
@@ -191,14 +200,18 @@ type ShardIdHashMap interface {
 	IsInterfaceNil() bool
 }
 
-// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
-type Uint64SyncMapCacher interface {
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
 	Clear()
-	Get(nonce uint64) (ShardIdHashMap, bool)
-	Merge(nonce uint64, src ShardIdHashMap)
-	Remove(nonce uint64, shardId uint32)
-	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
-	Has(nonce uint64, shardId uint32) bool
+	AddHeader(headerHash []byte, header data.HeaderHandler)
+	RemoveHeaderByHash(headerHash []byte)
+	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
+	GetHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	Nonces(shardId uint32) []uint64
+	Len() int
+	MaxSize() int
 	IsInterfaceNil() bool
 }
 
@@ -215,21 +228,19 @@ type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
-	Headers() storage.Cacher
-	HeadersNonces() Uint64SyncMapCacher
+	Headers() HeadersPool
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
-	MetaBlocks() storage.Cacher
+	TrieNodes() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain
 type MetaPoolsHolder interface {
-	MetaBlocks() storage.Cacher
 	MiniBlocks() storage.Cacher
-	ShardHeaders() storage.Cacher
-	HeadersNonces() Uint64SyncMapCacher
+	Headers() HeadersPool
+	TrieNodes() storage.Cacher
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
@@ -260,6 +271,12 @@ type StorageService interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TrieDataGetter returns requested data from the trie
+type TrieDataGetter interface {
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

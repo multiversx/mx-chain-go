@@ -88,6 +88,9 @@ var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
 // ErrNilResolversFinder signals that a nil resolvers finder has been provided
 var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
+// ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
+var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
+
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")
 
@@ -147,3 +150,6 @@ var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in Node")
+
+// ErrNilBlockTracker signals that a nil block tracker has been provided
+var ErrNilBlockTracker = errors.New("trying to set nil block tracker")

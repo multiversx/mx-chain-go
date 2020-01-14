@@ -18,9 +18,8 @@ type Transaction struct {
 	SndAddr   []byte   `capid:"3" json:"sender"`
 	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
 	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
-	Data      string   `capid:"6" json:"data,omitempty"`
+	Data      []byte   `capid:"6" json:"data,omitempty"`
 	Signature []byte   `capid:"7" json:"signature,omitempty"`
-	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -73,8 +72,6 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 	dest.Data = src.Data()
 	// Signature
 	dest.Signature = src.Signature()
-	// Challenge
-	dest.Challenge = src.Challenge()
 
 	return dest
 }
@@ -92,7 +89,6 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionC
 	dest.SetGasLimit(src.GasLimit)
 	dest.SetData(src.Data)
 	dest.SetSignature(src.Signature)
-	dest.SetChallenge(src.Challenge)
 
 	return dest
 }
@@ -113,7 +109,7 @@ func (tx *Transaction) GetNonce() uint64 {
 }
 
 // GetData returns the data of the transaction
-func (tx *Transaction) GetData() string {
+func (tx *Transaction) GetData() []byte {
 	return tx.Data
 }
 
@@ -143,7 +139,7 @@ func (tx *Transaction) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the transaction
-func (tx *Transaction) SetData(data string) {
+func (tx *Transaction) SetData(data []byte) {
 	tx.Data = data
 }
 
@@ -171,7 +167,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		SndAddr   []byte `json:"sender"`
 		GasPrice  uint64 `json:"gasPrice,omitempty"`
 		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
+		Data      []byte `json:"data,omitempty"`
 		Signature []byte `json:"signature,omitempty"`
 	}{
 		Nonce:     tx.Nonce,
@@ -194,7 +190,7 @@ func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
 		SndAddr   []byte `json:"sender"`
 		GasPrice  uint64 `json:"gasPrice,omitempty"`
 		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
+		Data      []byte `json:"data,omitempty"`
 		Signature []byte `json:"signature,omitempty"`
 	}{}
 	if err := json.Unmarshal(dataBuff, &aux); err != nil {
@@ -223,6 +219,16 @@ func TrimSlicePtr(in []*Transaction) []*Transaction {
 		return []*Transaction{}
 	}
 	ret := make([]*Transaction, len(in))
+	copy(ret, in)
+	return ret
+}
+
+// TrimSliceHandler creates a copy of the provided slice without the excess capacity
+func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
+	if len(in) == 0 {
+		return []data.TransactionHandler{}
+	}
+	ret := make([]data.TransactionHandler, len(in))
 	copy(ret, in)
 	return ret
 }

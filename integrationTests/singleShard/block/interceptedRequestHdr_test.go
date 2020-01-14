@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,18 +60,15 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
+	nResolver.ShardDataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(0, hdrHash1)
-	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
+	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
@@ -123,18 +120,15 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//resolver has the headers
-	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
+	nResolver.ShardDataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(0, hdrHash1)
-	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
 	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
+	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
@@ -192,16 +186,15 @@ func wireUpHandler(
 	//wire up a received handler
 	chanDone1 := make(chan struct{}, 1)
 	chanDone2 := make(chan struct{}, 1)
-	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
+	nRequester.ShardDataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
 
-		if reflect.DeepEqual(hdrStored, hdr1) && hdr1.GetSignature() != nil {
+		if reflect.DeepEqual(header, hdr1) && hdr1.GetSignature() != nil {
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			chanDone1 <- struct{}{}
 		}
 
-		if reflect.DeepEqual(hdrStored, hdr2) && hdr2.GetSignature() != nil {
+		if reflect.DeepEqual(header, hdr2) && hdr2.GetSignature() != nil {
 			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			chanDone2 <- struct{}{}
 		}

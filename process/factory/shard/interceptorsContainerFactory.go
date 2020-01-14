@@ -61,6 +61,7 @@ func NewInterceptorsContainerFactory(
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
+	sizeCheckDelta uint32,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -73,6 +74,9 @@ func NewInterceptorsContainerFactory(
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilBlockChain
+	}
+	if sizeCheckDelta > 0 {
+		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -215,6 +219,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	}
 
 	keys, interceptorSlice, err = icf.generateMetachainHeaderInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, interceptorSlice, err = icf.generateTrieNodesInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -463,10 +477,9 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.Headers(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -483,7 +496,8 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		return nil, nil, err
 	}
 
-	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	// compose header shard topic, for example: shardBlocks_0_META
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
@@ -571,10 +585,9 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaBlocks(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -597,6 +610,59 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	}
 
 	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+}
+
+func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	keys := make([]string, 0)
+	interceptorSlice := make([]process.Interceptor, 0)
+
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	return keys, interceptorSlice, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(icf.dataPool.TrieNodes())
+	if err != nil {
+		return nil, err
+	}
+
+	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(icf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
+		icf.marshalizer,
+		trieNodesFactory,
+		trieNodesProcessor,
+		icf.globalTxThrottler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

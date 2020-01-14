@@ -11,9 +11,8 @@ struct TransactionCapn {
    sndAddr    @3:   Data;
    gasPrice   @4:   UInt64;
    gasLimit   @5:   UInt64; 
-   data       @6:   Text;
+   data       @6:   Data;
    signature  @7:   Data;
-   challenge  @8:   Data;
 } 
 
 ##compile with:

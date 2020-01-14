@@ -15,11 +15,11 @@ type DB struct {
 }
 
 // New creates a new memorydb object
-func New() (*DB, error) {
+func New() *DB {
 	return &DB{
 		db:   make(map[string][]byte),
 		mutx: sync.RWMutex{},
-	}, nil
+	}
 }
 
 // Put adds the value to the (key, val) storage medium
@@ -89,6 +89,11 @@ func (s *DB) Destroy() error {
 	s.db = make(map[string][]byte)
 
 	return nil
+}
+
+// DestroyClosed removes the storage medium stored data
+func (s *DB) DestroyClosed() error {
+	return s.Destroy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

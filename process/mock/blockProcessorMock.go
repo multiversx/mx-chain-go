@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 type BlockProcessorMock struct {
@@ -16,7 +17,7 @@ type BlockProcessorMock struct {
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	noShards                         uint32
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) error
+	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
@@ -25,7 +26,7 @@ type BlockProcessorMock struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
 
 }
 
@@ -65,7 +66,7 @@ func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, 
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) error {
+func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return bpm.ApplyBodyToHeaderCalled(header, body)
 }
 

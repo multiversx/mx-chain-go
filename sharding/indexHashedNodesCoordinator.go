@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 type indexHashedNodesCoordinator struct {
+	doExpandEligibleList    func(uint32) []Validator
 	nbShards                uint32
 	shardId                 uint32
 	hasher                  hashing.Hasher
@@ -36,6 +36,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
 	}
+
+	ihgs.doExpandEligibleList = ihgs.expandEligibleList
 
 	err = ihgs.SetNodesPerShards(arguments.Nodes)
 	if err != nil {
@@ -88,6 +90,11 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Va
 	return nil
 }
 
+// GetNodesPerShard returns the nodes per shard map
+func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard() map[uint32][]Validator {
+	return ihgs.nodesMap
+}
+
 // ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
 // consensus group size and a randomness source
 // Steps:
@@ -119,7 +126,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.expandEligibleList(shardId)
+	expandedList := ihgs.doExpandEligibleList(shardId)
+
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -271,12 +279,10 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenL
 
 	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
 
-	computedLargeIndex := big.NewInt(0)
-	computedLargeIndex.SetBytes(indexHash)
-	lenExpandedEligibleList := big.NewInt(int64(lenList))
+	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
+	lenExpandedEligibleList := uint64(lenList)
 
-	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
-	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, lenExpandedEligibleList).Int64()
+	computedListIndex := computedLargeIndex % lenExpandedEligibleList
 
 	return int(computedListIndex)
 }

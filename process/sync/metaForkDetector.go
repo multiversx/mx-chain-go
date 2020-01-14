@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -16,6 +18,7 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (*metaForkDetector, error) {
 
@@ -25,17 +28,23 @@ func NewMetaForkDetector(
 	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,
+		blockTracker:     blockTracker,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
+	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
 	checkpoint := &checkpointInfo{}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
+	bfd.fork.rollBackNonce = math.MaxUint64
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,
@@ -49,47 +58,26 @@ func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeaders []data.HeaderHandler,
-	finalHeadersHashes [][]byte,
-	isNotarizedShardStuck bool,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
 ) error {
+	return mfd.addHeader(
+		header,
+		headerHash,
+		state,
+		selfNotarizedHeaders,
+		selfNotarizedHeadersHashes,
+		mfd.doJobOnBHProcessed,
+	)
+}
 
-	if check.IfNil(header) {
-		return ErrNilHeader
-	}
-	if headerHash == nil {
-		return ErrNilHash
-	}
-
-	err := mfd.checkBlockBasicValidity(header, headerHash, state)
-	if err != nil {
-		return err
-	}
-
-	mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
-
-	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.MetaBlockFinality)
-	if isHeaderReceivedTooLate {
-		state = process.BHReceivedTooLate
-	}
-
-	if state == process.BHProcessed {
-		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
-		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
-		mfd.removePastOrInvalidRecords()
-		mfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
-	}
-
-	mfd.append(&headerInfo{
-		nonce: header.GetNonce(),
-		round: header.GetRound(),
-		hash:  headerHash,
-		state: state,
-	})
-
-	probableHighestNonce := mfd.computeProbableHighestNonce()
-	mfd.setLastBlockRound(uint64(mfd.rounder.Index()))
-	mfd.setProbableHighestNonce(probableHighestNonce)
-
-	return nil
+func (mfd *metaForkDetector) doJobOnBHProcessed(
+	header data.HeaderHandler,
+	headerHash []byte,
+	_ []data.HeaderHandler,
+	_ [][]byte,
+) {
+	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+	mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
+	mfd.removePastOrInvalidRecords()
 }

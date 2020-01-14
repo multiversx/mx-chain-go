@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -11,9 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process")
@@ -34,17 +33,17 @@ func EmptyChannel(ch chan bool) int {
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
 	hash []byte,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
 
-	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, err := GetShardHeaderFromPool(hash, cacher)
+	hdr, err := GetShardHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		hdr, err = GetShardHeaderFromStorage(hash, marshalizer, storageService)
 		if err != nil {
@@ -58,17 +57,17 @@ func GetShardHeader(
 // GetMetaHeader gets the header, which is associated with the given hash, from pool or storage
 func GetMetaHeader(
 	hash []byte,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
 
-	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, err := GetMetaHeaderFromPool(hash, cacher)
+	hdr, err := GetMetaHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		hdr, err = GetMetaHeaderFromStorage(hash, marshalizer, storageService)
 		if err != nil {
@@ -82,10 +81,10 @@ func GetMetaHeader(
 // GetShardHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetShardHeaderFromPool(
 	hash []byte,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (*block.Header, error) {
 
-	obj, err := getHeaderFromPool(hash, cacher)
+	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +100,10 @@ func GetShardHeaderFromPool(
 // GetMetaHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetMetaHeaderFromPool(
 	hash []byte,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (*block.MetaBlock, error) {
 
-	obj, err := getHeaderFromPool(hash, cacher)
+	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
@@ -191,19 +190,18 @@ func GetMarshalizedHeaderFromStorage(
 func GetShardHeaderWithNonce(
 	nonce uint64,
 	shardId uint32,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) (*block.Header, []byte, error) {
 
-	err := checkGetHeaderWithNonceParamsForNil(cacher, uint64SyncMapCacher, marshalizer, storageService, uint64Converter)
+	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, hash, err := GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	hdr, hash, err := GetShardHeaderFromPoolWithNonce(nonce, shardId, headersCacher)
 	if err != nil {
 		hdr, hash, err = GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)
 		if err != nil {
@@ -217,19 +215,18 @@ func GetShardHeaderWithNonce(
 // GetMetaHeaderWithNonce method returns a meta block header with a given nonce
 func GetMetaHeaderWithNonce(
 	nonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) (*block.MetaBlock, []byte, error) {
 
-	err := checkGetHeaderWithNonceParamsForNil(cacher, uint64SyncMapCacher, marshalizer, storageService, uint64Converter)
+	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, hash, err := GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	hdr, hash, err := GetMetaHeaderFromPoolWithNonce(nonce, headersCacher)
 	if err != nil {
 		hdr, hash, err = GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
 		if err != nil {
@@ -244,11 +241,10 @@ func GetMetaHeaderWithNonce(
 func GetShardHeaderFromPoolWithNonce(
 	nonce uint64,
 	shardId uint32,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (*block.Header, []byte, error) {
 
-	obj, hash, err := getHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, shardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -264,11 +260,10 @@ func GetShardHeaderFromPoolWithNonce(
 // GetMetaHeaderFromPoolWithNonce method returns a meta block header from pool with a given nonce
 func GetMetaHeaderFromPoolWithNonce(
 	nonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (*block.MetaBlock, []byte, error) {
 
-	obj, hash, err := getHeaderFromPoolWithNonce(nonce, sharding.MetachainShardId, cacher, uint64SyncMapCacher)
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, sharding.MetachainShardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -357,6 +352,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -364,7 +360,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -381,19 +377,30 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	searchFirst bool,
 ) (data.TransactionHandler, error) {
 
 	if shardedDataCacherNotifier == nil {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	strCache := ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-	if txStore == nil {
-		return nil, ErrNilStorage
+	var val interface{}
+	ok := false
+	if searchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		if !ok {
+			return nil, ErrTxNotFound
+		}
+	} else {
+		strCache := ShardCacherIdentifier(senderShardID, destShardID)
+		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+		if txStore == nil {
+			return nil, ErrNilStorage
+		}
+
+		val, ok = txStore.Peek(txHash)
 	}
 
-	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -435,7 +442,7 @@ func GetTransactionHandlerFromStorage(
 }
 
 func checkGetHeaderParamsForNil(
-	cacher storage.Cacher,
+	cacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) error {
@@ -454,21 +461,17 @@ func checkGetHeaderParamsForNil(
 }
 
 func checkGetHeaderWithNonceParamsForNil(
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
-	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
 		return err
 	}
-	if uint64SyncMapCacher == nil || uint64SyncMapCacher.IsInterfaceNil() {
-		return ErrNilUint64SyncMapCacher
-	}
-	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
+	if check.IfNil(uint64Converter) {
 		return ErrNilUint64Converter
 	}
 
@@ -496,15 +499,15 @@ func checkGetTransactionParamsForNil(
 
 func getHeaderFromPool(
 	hash []byte,
-	cacher storage.Cacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (interface{}, error) {
 
-	if cacher == nil || cacher.IsInterfaceNil() {
+	if check.IfNil(headersCacher) {
 		return nil, ErrNilCacher
 	}
 
-	obj, ok := cacher.Peek(hash)
-	if !ok {
+	obj, err := headersCacher.GetHeaderByHash(hash)
+	if err != nil {
 		return nil, ErrMissingHeader
 	}
 
@@ -514,33 +517,20 @@ func getHeaderFromPool(
 func getHeaderFromPoolWithNonce(
 	nonce uint64,
 	shardId uint32,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	headersCacher dataRetriever.HeadersPool,
 ) (interface{}, []byte, error) {
 
-	if cacher == nil || cacher.IsInterfaceNil() {
+	if check.IfNil(headersCacher) {
 		return nil, nil, ErrNilCacher
 	}
-	if uint64SyncMapCacher == nil || uint64SyncMapCacher.IsInterfaceNil() {
-		return nil, nil, ErrNilUint64SyncMapCacher
-	}
 
-	syncMap, ok := uint64SyncMapCacher.Get(nonce)
-	if !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(shardId)
-	if hash == nil || !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := cacher.Peek(hash)
-	if !ok {
+	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	if err != nil {
 		return nil, nil, ErrMissingHeader
 	}
 
-	return obj, hash, nil
+	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
 func getHeaderHashFromStorageWithNonce(
@@ -612,37 +602,4 @@ type ForkInfo struct {
 // NewForkInfo creates a new ForkInfo object
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
-}
-
-// ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
-func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
-	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0, len(processedMiniBlocks))
-
-	for metaHash, miniBlocksHashes := range processedMiniBlocks {
-		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
-			MetaHash:         []byte(metaHash),
-			MiniBlocksHashes: make([][]byte, 0, len(miniBlocksHashes)),
-		}
-		for miniBlockHash := range miniBlocksHashes {
-			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
-		}
-		miniBlocksInMetaBlocks = append(miniBlocksInMetaBlocks, miniBlocksInMeta)
-	}
-
-	return miniBlocksInMetaBlocks
-}
-
-// ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
-func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
-	processedMiniBlocks := make(map[string]map[string]struct{}, len(miniBlocksInMetaBlocks))
-
-	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksHashes := make(map[string]struct{}, len(miniBlocksInMeta.MiniBlocksHashes))
-		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
-		}
-		processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
-	}
-
-	return processedMiniBlocks
 }

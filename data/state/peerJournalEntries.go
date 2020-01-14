@@ -24,7 +24,7 @@ func NewPeerJournalEntryAddress(account *PeerAccount, oldAddress []byte) (*PeerJ
 
 // Revert applies undo operation
 func (pje *PeerJournalEntryAddress) Revert() (AccountHandler, error) {
-	pje.account.Address = pje.oldAddress
+	pje.account.RewardAddress = pje.oldAddress
 
 	return pje.account, nil
 }
@@ -383,6 +383,36 @@ func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// PeerJournalEntryTempRating is used to revert a rating change
+type PeerJournalEntryTempRating struct {
+	account       *PeerAccount
+	oldTempRating uint32
+}
+
+// NewPeerJournalEntryRating outputs a new PeerJournalEntryRating implementation used to revert a state change
+func NewPeerJournalEntryTempRating(account *PeerAccount, oldTempRating uint32) (*PeerJournalEntryTempRating, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryTempRating{
+		account:       account,
+		oldTempRating: oldTempRating,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjer *PeerJournalEntryTempRating) Revert() (AccountHandler, error) {
+	pjer.account.TempRating = pjer.oldTempRating
+
+	return pjer.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjer *PeerJournalEntryTempRating) IsInterfaceNil() bool {
+	return pjer == nil
 }
 
 // PeerJournalEntryUnStakedNonce is used to revert a unstaked nonce change

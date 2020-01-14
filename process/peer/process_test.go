@@ -3,6 +3,7 @@ package peer_test
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"testing"
 
@@ -33,13 +34,24 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "10000000",
-				MinGasPrice:         "10",
-				MinGasLimit:         "10",
+				MaxGasLimitPerBlock:  "10000000",
+				MinGasPrice:          "10",
+				MinGasLimit:          "10",
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
 				UnBoundPeriod: "5",
+			},
+			RatingSettings: config.RatingSettings{
+				StartRating:                 5,
+				MaxRating:                   10,
+				MinRating:                   1,
+				ProposerIncreaseRatingStep:  2,
+				ProposerDecreaseRatingStep:  4,
+				ValidatorIncreaseRatingStep: 1,
+				ValidatorDecreaseRatingStep: 2,
 			},
 		},
 	)
@@ -53,9 +65,15 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		AdrConv:          &mock.AddressConverterMock{},
 		PeerAdapter:      getAccountsMock(),
-		Economics:        economicsData,
+		StakeValue:       economicsData.StakeValue(),
+		Rater:            createMockRater(),
 	}
 	return arguments
+}
+
+func createMockRater() *mock.RaterMock {
+	rater := mock.GetNewMockRater()
+	return rater
 }
 
 func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
@@ -152,7 +170,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnInvalidNode(t *testin
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	initialNodes := []*sharding.InitialNode{{PubKey: "", Address: ""}}
-	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100))
+	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100), uint32(5))
 
 	assert.Equal(t, process.ErrInvalidInitialNodesState, err)
 }
@@ -515,12 +533,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	arguments := CreateMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -544,6 +558,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -572,12 +587,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	arguments := CreateMockArguments()
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -601,6 +612,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
+
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -639,12 +652,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	arguments.InitialNodes = nil
 	arguments.Marshalizer = marshalizer
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -668,6 +677,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 	arguments.PeerAdapter = adapter
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
@@ -713,12 +723,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 
 	arguments := CreateMockArguments()
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
@@ -743,6 +749,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.PeerAdapter = adapter
 	arguments.Marshalizer = marshalizer
+	arguments.Rater = mock.GetNewMockRater()
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -822,7 +829,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.ShardCoordinator = shardCoordinatorMock
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, computeErr, err)
@@ -852,7 +859,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 		},
 	}
 	arguments.PeerAdapter = getAccountsMock()
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, peerAccErr, err)
@@ -887,7 +894,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 		},
 	}
 	arguments.PeerAdapter = peerAdapter
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, decreaseErr, err)
@@ -926,7 +933,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 		},
 	}
 	arguments.PeerAdapter = peerAdapter
-
+	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
 	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
@@ -1027,10 +1034,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 
 	arguments := CreateMockArguments()
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		ShardHeadersCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return prevHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return prevHeader, nil
 				},
 			}
 		},
@@ -1059,10 +1066,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersLoadsMissingFromSt
 	storageHeader := &block.MetaBlock{Nonce: 2, ShardInfo: []block.ShardData{sd1}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return storageHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return storageHeader, nil
 				},
 			}
 		},
@@ -1088,12 +1095,8 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrForStorage(t *t
 	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 	}
 
@@ -1126,10 +1129,10 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrIfStillMissing(
 	storageHeader := &block.MetaBlock{Nonce: 1, ShardInfo: []block.ShardData{}}
 
 	arguments.DataPool = &mock.MetaPoolsHolderFake{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return storageHeader, true
+		ShardHeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+					return storageHeader, nil
 				},
 			}
 		},

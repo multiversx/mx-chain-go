@@ -9,14 +9,16 @@ type TrackableDataTrie struct {
 	originalData map[string][]byte
 	dirtyData    map[string][]byte
 	tr           data.Trie
+	identifier   []byte
 }
 
 // NewTrackableDataTrie returns an instance of DataTrieTracker
-func NewTrackableDataTrie(tr data.Trie) *TrackableDataTrie {
+func NewTrackableDataTrie(identifier []byte, tr data.Trie) *TrackableDataTrie {
 	return &TrackableDataTrie{
 		tr:           tr,
 		originalData: make(map[string][]byte),
 		dirtyData:    make(map[string][]byte),
+		identifier:   identifier,
 	}
 }
 
@@ -41,37 +43,50 @@ func (tdaw *TrackableDataTrie) OriginalValue(key []byte) []byte {
 // Data must have been retrieved from its trie
 func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	strKey := string(key)
+	tailLength := len(key) + len(tdaw.identifier)
 
 	//search in dirty data cache
-	data, found := tdaw.dirtyData[strKey]
+	value, found := tdaw.dirtyData[strKey]
 	if found {
-		return data, nil
+		return trimValue(value, tailLength)
 	}
 
 	//search in original data cache
-	data, found = tdaw.originalData[strKey]
+	value, found = tdaw.originalData[strKey]
 	if found {
-		return data, nil
+		return trimValue(value, tailLength)
 	}
 
 	//ok, not in cache, retrieve from trie
 	if tdaw.tr == nil {
 		return nil, ErrNilTrie
 	}
-	data, err := tdaw.tr.Get(key)
+	value, err := tdaw.tr.Get(key)
 	if err != nil {
 		return nil, err
 	}
 
+	value, _ = trimValue(value, tailLength)
+
 	//got the value, put it originalData cache as the next fetch will run faster
-	tdaw.originalData[string(key)] = data
-	return data, nil
+	tdaw.originalData[string(key)] = value
+	return value, nil
+}
+
+func trimValue(value []byte, tailLength int) ([]byte, error) {
+	dataLength := len(value) - tailLength
+	if dataLength < 0 {
+		return nil, ErrNegativeValue
+	}
+
+	return value[:dataLength], nil
 }
 
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
-	tdaw.dirtyData[string(key)] = value
+	identifier := append(key, tdaw.identifier...)
+	tdaw.dirtyData[string(key)] = append(value, identifier...)
 }
 
 // SetDataTrie sets the internal data trie

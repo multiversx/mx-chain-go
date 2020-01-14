@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
@@ -16,7 +17,7 @@ type BlockProcessorStub struct {
 	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) error
+	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
@@ -56,12 +57,12 @@ func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*bi
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
 func (blProcMock *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
 	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+		return blProcMock.RevertStateToBlockCalled(header)
 	}
 	return nil
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
+// CreateBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockBodyCalled(initialHdrData, haveTime)
 }
@@ -70,7 +71,7 @@ func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHa
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) error {
+func (blProcMock BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
 
@@ -99,7 +100,7 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
-func (bpm *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
 

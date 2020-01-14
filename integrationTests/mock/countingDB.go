@@ -10,12 +10,11 @@ type countingDB struct {
 }
 
 func NewCountingDB() *countingDB {
-	db, _ := memorydb.New()
-	return &countingDB{db, 0}
+	return &countingDB{memorydb.New(), 0}
 }
 
 func (cdb *countingDB) Put(key, val []byte) error {
-	cdb.db.Put(key, val)
+	_ = cdb.db.Put(key, val)
 	cdb.nrOfPut++
 	return nil
 }
@@ -42,6 +41,10 @@ func (cdb *countingDB) Remove(key []byte) error {
 
 func (cdb *countingDB) Destroy() error {
 	return cdb.db.Destroy()
+}
+
+func (cdb *countingDB) DestroyClosed() error {
+	return cdb.Destroy()
 }
 
 func (cdb *countingDB) Reset() {

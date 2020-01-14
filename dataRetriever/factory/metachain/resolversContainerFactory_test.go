@@ -46,17 +46,11 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 
 func createDataPools() dataRetriever.MetaPoolsHolder {
 	pools := &mock.MetaPoolsHolderStub{
-		ShardHeadersCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
-		},
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
@@ -90,6 +84,8 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
@@ -107,6 +103,8 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
@@ -124,6 +122,8 @@ func TestNewResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
@@ -141,6 +141,27 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
+	)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+}
+
+func TestNewResolversContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rcf, err := metachain.NewResolversContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicMessageHandler("", ""),
+		createStore(),
+		nil,
+		createDataPools(),
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		1,
 	)
 
 	assert.Nil(t, rcf)
@@ -158,6 +179,8 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
@@ -175,6 +198,8 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 		createDataPools(),
 		nil,
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
@@ -192,10 +217,31 @@ func TestNewResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		nil,
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
+}
+
+func TestNewResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rcf, err := metachain.NewResolversContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicMessageHandler("", ""),
+		createStore(),
+		&mock.MarshalizerMock{},
+		createDataPools(),
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.DataPackerStub{},
+		nil,
+		0,
+	)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
 func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
@@ -209,6 +255,8 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	assert.NotNil(t, rcf)
@@ -222,12 +270,14 @@ func TestResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShoul
 
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.ShardHeadersForMetachainTopic, ""),
+		createStubTopicMessageHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	container, err := rcf.Create()
@@ -241,12 +291,14 @@ func TestResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsSh
 
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.ShardHeadersForMetachainTopic),
+		createStubTopicMessageHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	container, err := rcf.Create()
@@ -266,6 +318,8 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	container, err := rcf.Create()
@@ -290,6 +344,8 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+		0,
 	)
 
 	container, _ := rcf.Create()
@@ -298,8 +354,9 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversMiniBlocks := noOfShards + 1
 	numResolversUnsigned := noOfShards + 1
 	numResolversTxs := noOfShards + 1
+	numResolversTrieNodes := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

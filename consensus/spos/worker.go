@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -247,12 +248,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return err
 	}
 	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
-		err := fmt.Errorf("%w received: %s, wanted %s",
+		return fmt.Errorf("%w : received: %s, wanted: %s",
 			ErrInvalidChainID,
 			hex.EncodeToString(cnsDta.ChainID),
-			hex.EncodeToString(wrk.chainID),
-		)
-		return err
+			hex.EncodeToString(wrk.chainID))
 	}
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
@@ -266,7 +265,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
-		return ErrSenderNotOk
+		return fmt.Errorf("%w : node with public key %s is not in eligible list",
+			ErrSenderNotOk,
+			display.DisplayByteSlice(cnsDta.PubKey))
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
@@ -282,32 +283,19 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		return ErrInvalidSignature
+		return fmt.Errorf("%w : verify consensus data signature failed: %s",
+			ErrInvalidSignature,
+			sigVerifErr.Error())
 	}
 
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
 
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return err
-		}
-
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
-			return ErrInvalidHeader
-		}
-
-		err := header.CheckChainID(wrk.chainID)
-		if err != nil {
-			return err
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
-			return err
+			return fmt.Errorf("%w : received header from consensus topic is invalid",
+				ErrInvalidHeader)
 		}
 
 		log.Debug("received proposed block",
@@ -317,6 +305,26 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 		)
+
+		err = header.CheckChainID(wrk.chainID)
+		if err != nil {
+			return fmt.Errorf("%w : chain ID in received header from consensus topic is invalid",
+				err)
+		}
+
+		err = wrk.headerSigVerifier.VerifyRandSeed(header)
+		if err != nil {
+			return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",
+				err)
+		}
+
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+		if err != nil {
+			log.Debug("add received header from consensus topic to fork detector failed",
+				"error", err.Error())
+			//we should not return error here because the other peers connected to self might need this message
+			//to advance the consensus
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {

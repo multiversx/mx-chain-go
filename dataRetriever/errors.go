@@ -146,8 +146,17 @@ var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrCacheConfigInvalidSize signals that the cache parameter "size" is invalid
+var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid, it must be a positive number")
+
+// ErrCacheConfigInvalidShards signals that the cache parameter "shards" is invalid
+var ErrCacheConfigInvalidShards = errors.New("cache parameter [shards] is not valid, it must be a positive number")
+
 // ErrNilMetaBlockPool signals that a nil meta block data pool was provided
 var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
+
+// ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
+var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
 
 // ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
 var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
@@ -173,32 +182,26 @@ var ErrNilDataPacker = errors.New("nil data packer provided")
 // ErrNilResolverFinder signals that a nil resolver finder has been provided
 var ErrNilResolverFinder = errors.New("nil resolvers finder")
 
-// ErrEmptyTxRequestTopic signals that an empty transaction topic has been provided
-var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
-
-// ErrEmptyScrRequestTopic signals that an empty smart contract result topic has been provided
-var ErrEmptyScrRequestTopic = errors.New("empty smart contract result request topic")
-
-// ErrEmptyRewardTxRequestTopic signals that an empty reward transaction topic has been provided
-var ErrEmptyRewardTxRequestTopic = errors.New("empty rewards transactions request topic")
-
-// ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
-var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
-
-// ErrEmptyShardHeaderRequestTopic signals that an empty shard header topic has been provided
-var ErrEmptyShardHeaderRequestTopic = errors.New("empty shard header request topic")
-
-// ErrEmptyMetaHeaderRequestTopic signals that an empty meta header topic has been provided
-var ErrEmptyMetaHeaderRequestTopic = errors.New("empty meta header request topic")
-
 // ErrInvalidMaxTxRequest signals that max tx request is too small
 var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
+// ErrNilTrieDataGetter signals that a nil trie data getter has been provided
+var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
+
+// ErrEmptyTrieNodesRequestTopic signals that an empty trie nodes topic has been provided
+var ErrEmptyTrieNodesRequestTopic = errors.New("empty trie nodes request topic")
+
 // ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
+
+// ErrNilEpochHandler signals that epoch handler is nil
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrBadRequest signals that the request should not have happened
+var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")
