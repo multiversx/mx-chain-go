@@ -20,7 +20,6 @@ type ArgsNewStateImport struct {
 type stateImport struct {
 	reader            update.MultiFileReader
 	genesisHeaders    map[uint32]data.HeaderHandler
-	accounts          update.AccountsHandlerContainer
 	transactions      map[string]data.TransactionHandler
 	miniBlocks        map[string]*block.MiniBlock
 	importedMetaBlock *block.MetaBlock
@@ -58,6 +57,9 @@ func (si *stateImport) ImportAll() error {
 	}
 
 	err = si.processTransactions()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
