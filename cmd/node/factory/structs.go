@@ -1929,6 +1929,7 @@ func newShardBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -2128,6 +2129,7 @@ func newMetaBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err

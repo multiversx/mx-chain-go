@@ -152,6 +152,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 
 	BlackListHandler      process.BlackListHandler
+	HeaderValidator       process.HeaderConstructionValidator
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -294,8 +295,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -312,6 +311,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
+	tpn.initHeaderValidator()
+	tpn.initBlockTracker()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -624,6 +627,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
+		tpn.BlockTracker,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -712,6 +716,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
+		tpn.BlockTracker,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -795,14 +800,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
-	}
-	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
-
-	tpn.initBlockTracker(headerValidator)
-
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 tpn.ForkDetector,
@@ -817,7 +814,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
-		HeaderValidator:              headerValidator,
+		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -877,7 +874,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
-			HeaderValidator:    headerValidator,
+			HeaderValidator:    tpn.HeaderValidator,
 			Uint64Converter:    TestUint64Converter,
 			DataPool:           tpn.ShardDataPool,
 			Storage:            tpn.Storage,
@@ -1298,10 +1295,10 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }
 
-func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderConstructionValidator) {
+func (tpn *TestProcessorNode) initBlockTracker() {
 	argBaseTracker := track.ArgBaseTracker{
 		Hasher:           TestHasher,
-		HeaderValidator:  headerValidator,
+		HeaderValidator:  tpn.HeaderValidator,
 		Marshalizer:      TestMarshalizer,
 		RequestHandler:   tpn.RequestHandler,
 		Rounder:          tpn.Rounder,
@@ -1325,4 +1322,13 @@ func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderCon
 
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
 	}
+}
+
+func (tpn *TestProcessorNode) initHeaderValidator() {
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+
+	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
 }

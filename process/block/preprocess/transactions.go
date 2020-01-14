@@ -38,6 +38,7 @@ type transactions struct {
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	miniBlocksCompacter  process.MiniBlocksCompacter
+	blockTracker         process.BlockTracker
 	blockType            block.Type
 }
 
@@ -54,6 +55,7 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
+	blockTracker process.BlockTracker,
 	blockType block.Type,
 ) (*transactions, error) {
 
@@ -90,6 +92,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
@@ -107,6 +112,7 @@ func NewTransactionPreprocessor(
 		txProcessor:          txProcessor,
 		accounts:             accounts,
 		miniBlocksCompacter:  miniBlocksCompacter,
+		blockTracker:         blockTracker,
 		blockType:            blockType,
 	}
 
@@ -501,6 +507,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
 			if mbSpaceRemained <= 0 {
 				break
+			}
+
+			if txs.blockTracker.IsShardStuck(shardId) {
+				continue
 			}
 
 			miniBlock, err := txs.createAndProcessMiniBlock(
