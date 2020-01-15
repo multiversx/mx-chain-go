@@ -111,6 +111,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
+	ClosePersister() error
 	IsInterfaceNil() bool
 }
 

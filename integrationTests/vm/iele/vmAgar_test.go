@@ -309,7 +309,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 	for i := 0; i < noOfUsers; i++ {
 		existingUserBalance := vm.GetAccountsBalance(usersAddresses[i], accnts)
-		computedBalance := big.NewInt(0).Set(afterJoinUsersBalances[i])
+		computedBalance = big.NewInt(0).Set(afterJoinUsersBalances[i])
 		computedBalance.Add(computedBalance, prize)
 
 		assert.Equal(t, computedBalance.Uint64(), existingUserBalance.Uint64())
