@@ -7,6 +7,12 @@ type P2PAntifloodHandlerStub struct {
 	CanProcessMessageOnTopicCalled func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error
 }
 
+func (p2pahs *P2PAntifloodHandlerStub) ResetForTopic(topic string) {
+}
+
+func (p2pahs *P2PAntifloodHandlerStub) SetMaxMessagesForTopic(topic string, maxNum uint32) {
+}
+
 func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	return p2pahs.CanProcessMessageCalled(message, fromConnectedPeer)
 }

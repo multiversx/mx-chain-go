@@ -289,6 +289,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.shardCoordinator,
 		rcf.antifloodHandler,
 	)
 	if err != nil {
@@ -454,6 +455,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.shardCoordinator,
 		rcf.antifloodHandler,
 	)
 	if err != nil {

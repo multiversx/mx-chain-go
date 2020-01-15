@@ -21,6 +21,9 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
 		},
+		CanProcessMessageOnTopicCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error {
+			return nil
+		},
 	}
 }
 

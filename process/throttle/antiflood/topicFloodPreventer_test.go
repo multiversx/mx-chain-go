@@ -103,10 +103,74 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 	ok = tfp.Accumulate(id, topic)
 	assert.True(t, ok)
 
+	assert.Equal(t, uint32(2), tfp.CountForTopicAndIdentifier(topic, id))
+
 	// now call Reset so we should be able to call Accumulate again with result true
 	// If the Reset wouldn't have been called, then the method would have returned false
 	tfp.ResetForTopic(topic)
 
-	ok = tfp.Accumulate(id, topic)
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic, id))
+}
+
+func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *testing.T) {
+	t.Parallel()
+
+	maxMessages := uint32(2)
+	tfp, _ := antiflood.NewTopicFloodPreventer(maxMessages)
+
+	id := "identifier"
+	topic1 := "topic_1"
+	topic2 := "topic_2"
+
+	// call Accumulate 2 times. it should work
+	ok := tfp.Accumulate(id, topic1)
 	assert.True(t, ok)
+	ok = tfp.Accumulate(id, topic2)
+	assert.True(t, ok)
+
+	// check the values
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic1, id))
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic2, id))
+
+	// try to call Reset with a bad wildcard. nothing should happen
+	tfp.ResetForTopic("wrong*")
+
+	// check the values again
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic1, id))
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic2, id))
+
+	// now call Reset with a wildcarded topic. both of topics should have been reset
+	tfp.ResetForTopic("topic*")
+
+	// check the values again
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic1, id))
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic2, id))
+}
+
+func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T) {
+	t.Parallel()
+
+	maxMessages := uint32(2)
+	tfp, _ := antiflood.NewTopicFloodPreventer(maxMessages)
+
+	id := "identifier"
+	topic1 := "topic_1"
+	topic2 := "topic_2"
+
+	// call Accumulate for both topics. it should work
+	ok := tfp.Accumulate(id, topic1)
+	assert.True(t, ok)
+	ok = tfp.Accumulate(id, topic2)
+	assert.True(t, ok)
+
+	// check the values
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic1, id))
+	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic2, id))
+
+	// now call Reset with a wildcarded topic. both of topics should have been reset
+	tfp.ResetForTopic("topic*")
+
+	// check the values again
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic1, id))
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic2, id))
 }

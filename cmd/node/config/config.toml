@@ -264,6 +264,10 @@
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
+    [Antiflood.Topic]
+        DefaultMaxRequestsPerSec = 75
+        HeartbeatMaxMessagesPerSec = 10
+        HeadersRequestsPerSec = 20
     [Antiflood.BlackList]
         ThresholdNumMessagesPerSecond = 150
         ThresholdSizePerSecond = 4194304

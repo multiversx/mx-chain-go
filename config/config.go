@@ -209,6 +209,13 @@ type BlackListConfig struct {
 	PeerBanDurationInSeconds      uint32
 }
 
+// TopicAntifloodConfig will hold the maximum values per second to be used in certain topics
+type TopicAntifloodConfig struct {
+	DefaultMaxRequestsPerSec   uint32
+	HeartbeatMaxMessagesPerSec uint32
+	HeadersRequestsPerSec      uint32
+}
+
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
 	Cache                     CacheConfig
@@ -218,4 +225,5 @@ type AntifloodConfig struct {
 	MaxMessagesPerSecond      uint32
 	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
+	TopicAntifoodConfig       TopicAntifloodConfig
 }

@@ -211,6 +211,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.shardCoordinator,
 		rcf.antifloodHandler,
 	)
 	if err != nil {
@@ -265,6 +266,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
+		rcf.shardCoordinator,
 		rcf.antifloodHandler,
 	)
 	if err != nil {

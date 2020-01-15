@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -23,6 +25,7 @@ type HeaderResolver struct {
 	marshalizer      marshal.Marshalizer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
 	epochHandler     dataRetriever.EpochHandler
+	shardCoordinator sharding.Coordinator
 	antifloodHandler dataRetriever.P2PAntifloodHandler
 }
 
@@ -35,6 +38,7 @@ func NewHeaderResolver(
 	headersNoncesStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
 	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*HeaderResolver, error) {
 
@@ -59,6 +63,9 @@ func NewHeaderResolver(
 	if check.IfNil(nonceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, dataRetriever.ErrNilShardCoordinator
+	}
 	if check.IfNil(antifloodHandler) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
@@ -72,6 +79,7 @@ func NewHeaderResolver(
 		marshalizer:         marshalizer,
 		nonceConverter:      nonceConverter,
 		epochHandler:        &nilEpochHandler{},
+		shardCoordinator:    shardCoordinator,
 		antifloodHandler:    antifloodHandler,
 	}
 
@@ -88,10 +96,30 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 	return nil
 }
 
+func (hdrRes *HeaderResolver) topicNameForAntiflood() string {
+	prefix := factory.ShardBlocksTopic
+	if hdrRes.shardCoordinator.SelfId() > hdrRes.shardCoordinator.NumberOfShards() {
+		prefix = factory.MetachainBlocksTopic
+	}
+
+	commIdentifier := hdrRes.shardCoordinator.CommunicationIdentifier(hdrRes.shardCoordinator.SelfId())
+	suffix := hdrRes.TopicRequestSuffix()
+
+	return prefix + commIdentifier + suffix
+}
+
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	err := hdrRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		log.Error("CanProcessMessage", "error", err.Error())
+		return err
+	}
+
+	topic := hdrRes.topicNameForAntiflood()
+	log.Error("topic on processed rcvd msg", "topic", topic)
+	err = hdrRes.antifloodHandler.CanProcessMessageOnTopic(message, fromConnectedPeer, hdrRes.topicNameForAntiflood())
 	if err != nil {
 		return err
 	}

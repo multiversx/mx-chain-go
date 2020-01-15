@@ -39,5 +39,6 @@ type HeartbeatStorageHandler interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessageOnTopic(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error
 	IsInterfaceNil() bool
 }

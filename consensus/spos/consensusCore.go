@@ -28,6 +28,7 @@ type ConsensusCore struct {
 	shardCoordinator   sharding.Coordinator
 	nodesCoordinator   sharding.NodesCoordinator
 	syncTimer          ntp.SyncTimer
+	antifloodHandler   consensus.P2PAntifloodHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -46,23 +47,25 @@ func NewConsensusCore(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	syncTimer ntp.SyncTimer,
+	antifloodHandler consensus.P2PAntifloodHandler,
 ) (*ConsensusCore, error) {
 
 	consensusCore := &ConsensusCore{
-		blockChain,
-		blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		chronologyHandler,
-		hasher,
-		marshalizer,
-		blsPrivateKey,
-		blsSingleSigner,
-		multiSigner,
-		rounder,
-		shardCoordinator,
-		nodesCoordinator,
-		syncTimer,
+		blockChain:         blockChain,
+		blockProcessor:     blockProcessor,
+		bootstrapper:       bootstrapper,
+		broadcastMessenger: broadcastMessenger,
+		chronologyHandler:  chronologyHandler,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		blsSingleSigner:    blsSingleSigner,
+		blsPrivateKey:      blsPrivateKey,
+		multiSigner:        multiSigner,
+		rounder:            rounder,
+		shardCoordinator:   shardCoordinator,
+		nodesCoordinator:   nodesCoordinator,
+		syncTimer:          syncTimer,
+		antifloodHandler:   antifloodHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -76,6 +79,11 @@ func NewConsensusCore(
 // Blockchain gets the ChainHandler stored in the ConsensusCore
 func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cc.blockChain
+}
+
+// GetAntiFloodPreventer will return the antiflood handler which will be used in subrounds
+func (cc *ConsensusCore) GetAntiFloodPreventer() consensus.P2PAntifloodHandler {
+	return cc.antifloodHandler
 }
 
 // BlockProcessor gets the BlockProcessor stored in the ConsensusCore

@@ -2,12 +2,17 @@ package antiflood
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 const topicMinMessages = 1
+const wildcardCharacter = "*"
+
+var log = logger.GetOrCreate("process/throttle/antiflood")
 
 // topicFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type topicFloodPreventer struct {
@@ -67,7 +72,7 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
 func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages uint32) {
-	// TODO : call this
+	log.Info("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
 	tfp.mutOperation.Lock()
 	tfp.topicMaxMessages[topic] = numMessages
 	tfp.mutOperation.Unlock()
@@ -75,11 +80,23 @@ func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages
 
 // ResetForTopic clears all map values for a given topic
 func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
-	// TODO : call this
+	log.Info("ResetForTopic", "topic", topic)
 	tfp.mutOperation.Lock()
 	defer tfp.mutOperation.Unlock()
 
+	if strings.Contains(topic, wildcardCharacter) {
+		tfp.resetTopicWithWildCard(topic)
+	}
 	tfp.counterMap[topic] = make(map[string]uint32)
+}
+
+func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {
+	topicWithoutWildcard := strings.Replace(topic, wildcardCharacter, "", 1)
+	for topicKey := range tfp.counterMap {
+		if strings.Contains(topicKey, topicWithoutWildcard) {
+			tfp.counterMap[topicKey] = make(map[string]uint32)
+		}
+	}
 }
 
 func (tfp *topicFloodPreventer) maxMessagesForTopic(topic string) uint32 {
