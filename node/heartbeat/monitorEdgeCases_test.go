@@ -473,6 +473,6 @@ func verifyHeartBeat(
 	downTimeSeconds int,
 ) {
 	assert.Equal(t, isActive, heartBeat.IsActive)
-	assert.Equal(t, upTimeSeconds, heartBeat.TotalUpTime)
-	assert.Equal(t, downTimeSeconds, heartBeat.TotalDownTime)
+	assert.Equal(t, int64(upTimeSeconds), heartBeat.TotalUpTime)
+	assert.Equal(t, int64(downTimeSeconds), heartBeat.TotalDownTime)
 }

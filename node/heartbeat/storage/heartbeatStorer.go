@@ -3,10 +3,12 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat/storage")
@@ -45,8 +47,13 @@ func (hs *HeartbeatDbStorer) LoadGenesisTime() (time.Time, error) {
 		return time.Time{}, heartbeat.ErrFetchGenesisTimeFromDb
 	}
 
-	var genesisTimeFromDb time.Time
-	err = hs.marshalizer.Unmarshal(&genesisTimeFromDb, genesisTimeFromDbBytes)
+	dbts := &heartbeat.DbTimeStamp{}
+	err = hs.marshalizer.Unmarshal(dbts, genesisTimeFromDbBytes)
+	if err != nil {
+		return time.Time{}, heartbeat.ErrUnmarshalGenesisTime
+	}
+
+	genesisTimeFromDb, err := types.TimestampFromProto(dbts.TS)
 	if err != nil {
 		return time.Time{}, heartbeat.ErrUnmarshalGenesisTime
 	}
@@ -56,7 +63,6 @@ func (hs *HeartbeatDbStorer) LoadGenesisTime() (time.Time, error) {
 
 // UpdateGenesisTime will update the saved genesis time and will log if the genesis time changed
 func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
-
 	genesisTimeFromDb, err := hs.LoadGenesisTime()
 	if err != nil && err != heartbeat.ErrFetchGenesisTimeFromDb {
 		return err
@@ -76,7 +82,15 @@ func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
 }
 
 func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
-	genesisTimeBytes, err := hs.marshalizer.Marshal(genesisTime)
+	ts, err := types.TimestampProto(genesisTime)
+	if err != nil {
+		return heartbeat.ErrMarshalGenesisTime
+	}
+	dbts := &heartbeat.DbTimeStamp{
+		TS: ts,
+	}
+
+	genesisTimeBytes, err := hs.marshalizer.Marshal(dbts)
 	if err != nil {
 		return heartbeat.ErrMarshalGenesisTime
 	}
@@ -114,18 +128,18 @@ func (hs *HeartbeatDbStorer) LoadKeys() ([][]byte, error) {
 		return nil, err
 	}
 
-	var peersSlice [][]byte
-	err = hs.marshalizer.Unmarshal(&peersSlice, allKeysBytes)
+	batch := &batch.Batch{}
+	err = hs.marshalizer.Unmarshal(batch, allKeysBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return peersSlice, nil
+	return batch.Data, nil
 }
 
 // SaveKeys will update the keys for all connected peers
 func (hs *HeartbeatDbStorer) SaveKeys(peersSlice [][]byte) error {
-	marshalizedFullPeersSlice, errMarsh := hs.marshalizer.Marshal(peersSlice)
+	marshalizedFullPeersSlice, errMarsh := hs.marshalizer.Marshal(&batch.Batch{peersSlice})
 	if errMarsh != nil {
 		return errMarsh
 	}
