@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryTries "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -75,8 +75,8 @@ func createStore() dataRetriever.StorageService {
 
 func createTriesHolder() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(factoryTries.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(factoryTries.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
 	return triesHolder
 }
 

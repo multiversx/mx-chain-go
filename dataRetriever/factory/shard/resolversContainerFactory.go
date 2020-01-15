@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryTries "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -518,7 +518,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.UserAccountTrie)
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -527,7 +527,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.UserAccountTrie)
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}

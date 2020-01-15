@@ -48,7 +48,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.PeerAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
 	trieNodesResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.AccountTrieNodesTopic)
 

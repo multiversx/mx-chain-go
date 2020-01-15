@@ -22,6 +22,10 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
+func (ts *TrieStub) ClosePersister() error {
+	return nil
+}
+
 func (ts *TrieStub) TakeSnapshot(_ []byte) {
 }
 
