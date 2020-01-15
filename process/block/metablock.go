@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -294,8 +295,12 @@ func (mp *metaProcessor) ProcessBlock(
 			"computed", validatorStatsRH,
 			"received", header.GetValidatorStatsRootHash(),
 		)
-		err = process.ErrValidatorStatsRootHashDoesNotMatch
-		return err
+		return fmt.Errorf("%w, metachain, computed: %s, received: %s, meta header nonce: %d",
+			process.ErrValidatorStatsRootHashDoesNotMatch,
+			display.DisplayByteSlice(validatorStatsRH),
+			display.DisplayByteSlice(header.GetValidatorStatsRootHash()),
+			header.Nonce,
+		)
 	}
 
 	return nil

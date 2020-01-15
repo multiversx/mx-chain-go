@@ -1888,20 +1888,39 @@ func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data
 }
 
 func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.Header, processedMetaHdrs []data.HeaderHandler) error {
+	log.Trace("computing validator statistics root hash",
+		"num meta headers", len(processedMetaHdrs),
+	)
 	for _, metaHeader := range processedMetaHdrs {
+		previousHash, _ := sp.validatorStatisticsProcessor.RootHash()
 		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
 		if err != nil {
 			return err
 		}
 
+		log.Trace("computed validator statistics root hash",
+			"previous", previousHash,
+			"computed", rootHash,
+			"meta header nonce", metaHeader.GetNonce())
+
 		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
-			return process.ErrValidatorStatsRootHashDoesNotMatch
+			return fmt.Errorf("%w, meta, computed: %s, received: %s, meta header nonce: %d",
+				process.ErrValidatorStatsRootHashDoesNotMatch,
+				display.DisplayByteSlice(rootHash),
+				display.DisplayByteSlice(currentHeader.GetValidatorStatsRootHash()),
+				metaHeader.GetNonce(),
+			)
 		}
 	}
 
 	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
 	if !bytes.Equal(vRootHash, currentHeader.GetValidatorStatsRootHash()) {
-		return process.ErrValidatorStatsRootHashDoesNotMatch
+		return fmt.Errorf("%w, shard, computed: %s, received: %s, header nonce: %d",
+			process.ErrValidatorStatsRootHashDoesNotMatch,
+			display.DisplayByteSlice(vRootHash),
+			display.DisplayByteSlice(currentHeader.GetValidatorStatsRootHash()),
+			currentHeader.Nonce,
+		)
 	}
 
 	return nil

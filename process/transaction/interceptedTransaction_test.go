@@ -49,7 +49,7 @@ func createKeyGenMock() crypto.KeyGenerator {
 	}
 }
 
-func createFreeTxFeeHandler() process.FeeHandler {
+func createFreeTxFeeHandler() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
@@ -609,32 +609,32 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	assert.Equal(t, senderShard, result)
 }
 
-func TestInterceptedTransaction_GetTotalValue(t *testing.T) {
+func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 	t.Parallel()
-
-	txValue := big.NewInt(2)
-	gasPrice := uint64(3)
-	gasLimit := uint64(4)
-	val := big.NewInt(0)
-	val = val.Mul(big.NewInt(int64(gasPrice)), big.NewInt(int64(gasLimit)))
-	expectedValue := big.NewInt(0)
-	expectedValue.Add(txValue, val)
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
-		Value:     txValue,
+		Value:     big.NewInt(2),
 		Data:      []byte("data"),
-		GasLimit:  gasPrice,
-		GasPrice:  gasLimit,
+		GasLimit:  3,
+		GasPrice:  4,
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	computeFeeCalled := false
+	txFeeHandler := createFreeTxFeeHandler()
+	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler)
+	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
+		computeFeeCalled = true
 
-	result := txi.TotalValue()
-	assert.Equal(t, expectedValue, result)
+		return big.NewInt(0)
+	}
+
+	_ = txi.Fee()
+
+	assert.True(t, computeFeeCalled)
 }
 
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {

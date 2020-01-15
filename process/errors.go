@@ -37,8 +37,12 @@ var ErrHigherNonceInTransaction = errors.New("higher nonce in transaction")
 // ErrLowerNonceInTransaction signals the nonce in transaction is lower than the account's nonce
 var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction")
 
-// ErrInsufficientFunds signals the funds are insufficient
+// ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
+// transaction fee is covered by the current balance
 var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// ErrInsufficientFee signals that the current balance doesn't have the required transaction fee
+var ErrInsufficientFee = errors.New("insufficient fees")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
