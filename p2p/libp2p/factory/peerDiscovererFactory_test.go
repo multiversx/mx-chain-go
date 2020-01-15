@@ -1,12 +1,10 @@
 package factory_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
 	"github.com/stretchr/testify/assert"
@@ -26,56 +24,6 @@ func TestPeerDiscovererFactory_CreatePeerDiscovererNoDiscoveryEnabledShouldRetNu
 
 	assert.True(t, ok)
 	assert.Nil(t, err)
-}
-
-func TestPeerDiscovererCreator_CreatePeerDiscovererKadPeersInvalidRefreshIntervalShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 0,
-			BucketSize:           1,
-		},
-	}
-
-	f := factory.NewPeerDiscovererFactory(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
-
-	assert.True(t, check.IfNil(pDiscoverer))
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
-
-func TestPeerDiscovererCreator_CreatePeerDiscovererKadInvalidRoutingTableRefreshIntervalShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:                          true,
-			RefreshIntervalInSec:             1,
-			RoutingTableRefreshIntervalInSec: 0,
-			BucketSize:                       1,
-		},
-	}
-
-	f := factory.NewPeerDiscovererFactory(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
-
-	assert.True(t, check.IfNil(pDiscoverer))
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
-
-func TestPeerDiscovererCreator_CreatePeerDiscovererKadInvalidBucketSizeShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:                          true,
-			RefreshIntervalInSec:             1,
-			RoutingTableRefreshIntervalInSec: 1,
-			BucketSize:                       0,
-		},
-	}
-
-	f := factory.NewPeerDiscovererFactory(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
-
-	assert.True(t, check.IfNil(pDiscoverer))
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererKadOkValsShouldWork(t *testing.T) {

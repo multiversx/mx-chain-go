@@ -48,5 +48,5 @@
    #kademlia's routing table bucket size
    BucketSize = 100
 
-   #RoutingTableRefreshIntervalInSec defines how many seconds should past between 2 kad routing table auto refresh calls
+   #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
    RoutingTableRefreshIntervalInSec = 300

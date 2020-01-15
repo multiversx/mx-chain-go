@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -9,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 )
 
+//TODO change this to method factory pattern, something like
+// NewPeerDiscoverer(pConfig config.P2PConfig) (p2p.PeerDiscoverer, error)
 type peerDiscovererFactory struct {
 	p2pConfig config.P2PConfig
 }
@@ -31,16 +32,6 @@ func (pdf *peerDiscovererFactory) CreatePeerDiscoverer() (p2p.PeerDiscoverer, er
 }
 
 func (pdf *peerDiscovererFactory) createKadDhtPeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	if pdf.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec < 1 {
-		return nil, fmt.Errorf("%w for RefreshIntervalInSec, expected value > 0", p2p.ErrInvalidValue)
-	}
-	if pdf.p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec < 1 {
-		return nil, fmt.Errorf("%w for RoutingTableRefreshIntervalInSec, expected value > 0", p2p.ErrInvalidValue)
-	}
-	if pdf.p2pConfig.KadDhtPeerDiscovery.BucketSize < 1 {
-		return nil, fmt.Errorf("%w for BucketSize, expected value > 0", p2p.ErrInvalidValue)
-	}
-
 	arg := discovery.ArgKadDht{
 		PeersRefreshInterval: time.Second * time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 		RandezVous:           pdf.p2pConfig.KadDhtPeerDiscovery.RandezVous,

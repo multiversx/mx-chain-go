@@ -146,11 +146,11 @@ type StoragePruningConfig struct {
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
 	Enabled                          bool
-	RefreshIntervalInSec             int
+	RefreshIntervalInSec             uint32
 	RandezVous                       string
 	InitialPeerList                  []string
-	BucketSize                       int
-	RoutingTableRefreshIntervalInSec int
+	BucketSize                       uint32
+	RoutingTableRefreshIntervalInSec uint32
 }
 
 // P2PConfig will hold all the P2P settings

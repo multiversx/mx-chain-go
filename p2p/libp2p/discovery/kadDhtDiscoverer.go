@@ -25,7 +25,7 @@ type ArgKadDht struct {
 	PeersRefreshInterval time.Duration
 	RandezVous           string
 	InitialPeersList     []string
-	BucketSize           int
+	BucketSize           uint32
 	RoutingTableRefresh  time.Duration
 }
 
@@ -37,7 +37,7 @@ type KadDhtDiscoverer struct {
 	peersRefreshInterval time.Duration
 	randezVous           string
 	initialPeersList     []string
-	bucketSize           int
+	bucketSize           uint32
 	routingTableRefresh  time.Duration
 	initConns            bool // Initiate new connections
 }
@@ -90,7 +90,7 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 			return err
 		}
 
-		opt.BucketSize = kdd.bucketSize
+		opt.BucketSize = int(kdd.bucketSize)
 		opt.RoutingTable.RefreshPeriod = kdd.routingTableRefresh
 
 		return nil

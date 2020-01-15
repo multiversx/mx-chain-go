@@ -22,7 +22,7 @@ func (kdd *KadDhtDiscoverer) RoutingTableRefresh() time.Duration {
 	return kdd.routingTableRefresh
 }
 
-func (kdd *KadDhtDiscoverer) BucketSize() int {
+func (kdd *KadDhtDiscoverer) BucketSize() uint32 {
 	return kdd.bucketSize
 }
 
