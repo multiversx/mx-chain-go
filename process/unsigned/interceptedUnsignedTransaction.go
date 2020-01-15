@@ -168,10 +168,9 @@ func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandl
 	return inUTx.uTx
 }
 
-// TotalValue returns the value of the unsigned transaction
-func (inUTx *InterceptedUnsignedTransaction) TotalValue() *big.Int {
-	copiedVal := big.NewInt(0).Set(inUTx.uTx.Value)
-	return copiedVal
+// Fee represents the unsigned transaction fee. It is always 0
+func (inUTx *InterceptedUnsignedTransaction) Fee() *big.Int {
+	return big.NewInt(0)
 }
 
 // Hash gets the hash of this transaction
@@ -179,10 +178,12 @@ func (inUTx *InterceptedUnsignedTransaction) Hash() []byte {
 	return inUTx.hash
 }
 
+// Type returns the type of this intercepted data
+func (inUTx *InterceptedUnsignedTransaction) Type() string {
+	return "intercepted unsigned tx"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inUTx *InterceptedUnsignedTransaction) IsInterfaceNil() bool {
-	if inUTx == nil {
-		return true
-	}
-	return false
+	return inUTx == nil
 }

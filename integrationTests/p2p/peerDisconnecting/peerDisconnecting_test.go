@@ -9,14 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/libp2p/go-libp2p-core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 var durationBootstrapingTime = 2 * time.Second
-var randezVous = "elrondRandezVous"
 
 func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	if testing.Short() {
@@ -30,7 +28,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	advertiser, _ := libp2p.NewMemoryMessenger(
 		context.Background(),
 		netw,
-		discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil),
+		integrationTests.CreateKadPeerDiscoverer(time.Second, nil),
 	)
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
@@ -39,9 +37,8 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 		node, _ := libp2p.NewMemoryMessenger(
 			context.Background(),
 			netw,
-			discovery.NewKadDhtPeerDiscoverer(
+			integrationTests.CreateKadPeerDiscoverer(
 				time.Second,
-				randezVous,
 				[]string{integrationTests.GetConnectableAddress(advertiser)},
 			),
 		)

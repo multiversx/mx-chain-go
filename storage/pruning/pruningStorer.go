@@ -204,6 +204,25 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return v.([]byte), nil
 }
 
+// Close will close PruningStorer
+func (ps *PruningStorer) Close() error {
+	closedSuccessfully := true
+	for _, persister := range ps.activePersisters {
+		err := persister.persister.Close()
+
+		if err != nil {
+			log.Error("cannot close persister", err)
+			closedSuccessfully = false
+		}
+	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
+}
+
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	// TODO: this will be used when requesting from resolvers
