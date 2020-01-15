@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "heartbeat";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// Heartbeat represents the heartbeat message that is sent between peers
+message Heartbeat {
+	bytes  Payload         = 1;
+	bytes  Pubkey          = 2;
+	bytes  Signature       = 3;
+	uint32 ShardID         = 4;
+	string VersionNumber   = 5;
+	string NodeDisplayName = 6;
+}
+
+// PubKeyHeartbeat returns the heartbeat status for a public key
+message PubKeyHeartbeat {
+	string                    HexPublicKey    = 1  [(gogoproto.jsontag) = "hexPublicKey"];
+	google.protobuf.Timestamp TimeStamp       = 2  [(gogoproto.jsontag) = "timeStamp"];
+	google.protobuf.Duration  MaxInactiveTime = 3  [(gogoproto.jsontag) = "maxInactiveTime"];
+	bool                      IsActive        = 4  [(gogoproto.jsontag) = "isActive"];
+	uint32                    ReceivedShardID = 5  [(gogoproto.jsontag) = "receivedShardID"];
+	uint32                    ComputedShardID = 6  [(gogoproto.jsontag) = "computedShardID"];
+	int64                     TotalUpTime     = 7  [(gogoproto.jsontag) = "totalUpTimeSec"];
+	int64                     TotalDownTime   = 8  [(gogoproto.jsontag) = "totalDownTimeSec"];
+	string                    VersionNumber   = 9  [(gogoproto.jsontag) = "versionNumber"];
+	bool                      IsValidator     = 10 [(gogoproto.jsontag) = "isValidator"];
+	string                    NodeDisplayName = 11 [(gogoproto.jsontag) = "nodeDisplayName"];
+}
+
+// HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
+message HeartbeatDTO {
+	google.protobuf.Duration  MaxDurationPeerUnresponsive  = 1 ;
+	google.protobuf.Duration  MaxInactiveTime              = 2 ;
+	google.protobuf.Duration  TotalUpTime                  = 3 ;
+	google.protobuf.Duration  TotalDownTime                = 4 ;
+	google.protobuf.Timestamp TimeStamp                    = 5 ;
+	bool                      IsActive                     = 6 ;
+	uint32                    ReceivedShardID              = 7 ;
+	uint32                    ComputedShardID              = 8 ;
+	string                    VersionNumber                = 9 ;
+	string                    NodeDisplayName              = 10;
+	bool                      IsValidator                  = 11;
+	google.protobuf.Timestamp LastUptimeDowntime           = 12;
+	google.protobuf.Timestamp GenesisTime                  = 13;
+}
+
+message DbTimeStamp {
+	google.protobuf.Timestamp TS                    = 1 ;
+}

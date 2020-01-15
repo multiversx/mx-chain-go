@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types:. heartbeat.proto
 package heartbeat
 
 import (
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	types "github.com/gogo/protobuf/types"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -178,10 +180,10 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
 	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
-		receivedHbmi.totalUpTime.Duration += crtDuration
+		receivedHbmi.totalUpTime += crtDuration
 		receivedHbmi.timeStamp = crtTime
 	} else {
-		receivedHbmi.totalDownTime.Duration += crtDuration
+		receivedHbmi.totalDownTime += crtDuration
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
@@ -320,19 +322,21 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 	idx := 0
 	for k, v := range m.heartbeatMessages {
-		status[idx] = PubKeyHeartbeat{
+		tmp := PubKeyHeartbeat{
 			HexPublicKey:    hex.EncodeToString([]byte(k)),
-			TimeStamp:       v.timeStamp,
-			MaxInactiveTime: v.maxInactiveTime,
 			IsActive:        v.isActive,
 			ReceivedShardID: v.receivedShardID,
 			ComputedShardID: v.computedShardID,
-			TotalUpTime:     int(v.totalUpTime.Seconds()),
-			TotalDownTime:   int(v.totalDownTime.Seconds()),
+			TotalUpTime:     int64(v.totalUpTime.Seconds()),
+			TotalDownTime:   int64(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
+
+		tmp.TimeStamp, _ = types.TimestampProto(v.timeStamp)
+		tmp.MaxInactiveTime = types.DurationProto(v.maxInactiveTime)
+		status[idx] = tmp
 		idx++
 	}
 	m.mutHeartbeatMessages.Unlock()
@@ -355,38 +359,41 @@ func (m *Monitor) IsInterfaceNil() bool {
 func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {
 	v.updateMutex.Lock()
 	defer v.updateMutex.Unlock()
-	return HeartbeatDTO{
-		TimeStamp:          v.timeStamp,
-		MaxInactiveTime:    v.maxInactiveTime,
-		IsActive:           v.isActive,
-		ReceivedShardID:    v.receivedShardID,
-		ComputedShardID:    v.computedShardID,
-		TotalUpTime:        v.totalUpTime,
-		TotalDownTime:      v.totalDownTime,
-		VersionNumber:      v.versionNumber,
-		IsValidator:        v.isValidator,
-		NodeDisplayName:    v.nodeDisplayName,
-		LastUptimeDowntime: v.lastUptimeDowntime,
-		GenesisTime:        v.genesisTime,
+	ret := HeartbeatDTO{
+		IsActive:        v.isActive,
+		ReceivedShardID: v.receivedShardID,
+		ComputedShardID: v.computedShardID,
+		VersionNumber:   v.versionNumber,
+		IsValidator:     v.isValidator,
+		NodeDisplayName: v.nodeDisplayName,
 	}
+
+	ret.TimeStamp, _ = types.TimestampProto(v.timeStamp)
+	ret.MaxInactiveTime = types.DurationProto(v.maxInactiveTime)
+	ret.TotalUpTime = types.DurationProto(v.totalUpTime)
+	ret.TotalDownTime = types.DurationProto(v.totalDownTime)
+	ret.LastUptimeDowntime, _ = types.TimestampProto(v.lastUptimeDowntime)
+	ret.GenesisTime, _ = types.TimestampProto(v.genesisTime)
+
+	return ret
 }
 
 func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time.Duration) heartbeatMessageInfo {
 	hbmi := heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDuration,
-		maxInactiveTime:             hbDTO.MaxInactiveTime,
-		timeStamp:                   hbDTO.TimeStamp,
 		isActive:                    hbDTO.IsActive,
-		totalUpTime:                 hbDTO.TotalUpTime,
-		totalDownTime:               hbDTO.TotalDownTime,
 		receivedShardID:             hbDTO.ReceivedShardID,
 		computedShardID:             hbDTO.ComputedShardID,
 		versionNumber:               hbDTO.VersionNumber,
 		nodeDisplayName:             hbDTO.NodeDisplayName,
 		isValidator:                 hbDTO.IsValidator,
-		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
-		genesisTime:                 hbDTO.GenesisTime,
 	}
 
+	hbmi.maxInactiveTime, _ = types.DurationFromProto(hbDTO.MaxInactiveTime)
+	hbmi.timeStamp, _ = types.TimestampFromProto(hbDTO.TimeStamp)
+	hbmi.totalUpTime, _ = types.DurationFromProto(hbDTO.TotalUpTime)
+	hbmi.totalDownTime, _ = types.DurationFromProto(hbDTO.TotalDownTime)
+	hbmi.lastUptimeDowntime, _ = types.TimestampFromProto(hbDTO.LastUptimeDowntime)
+	hbmi.genesisTime, _ = types.TimestampFromProto(hbDTO.GenesisTime)
 	return hbmi
 }
