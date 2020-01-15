@@ -261,6 +261,12 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		return
 	}
 
+	shouldRequestHeaders := nbLongestChainHeaders == 0 ||
+		(nbLongestChainHeaders > 0 && sortedHeaders[nbSortedHeaders-1].GetNonce()%process.NonceModulusTrigger == 0)
+	if !shouldRequestHeaders {
+		return
+	}
+
 	log.Debug("requestHeadersIfNeeded",
 		"shard", lastNotarizedHeader.GetShardID(),
 		"last notarized nonce", lastNotarizedHeader.GetNonce(),
