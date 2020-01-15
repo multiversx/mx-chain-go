@@ -109,13 +109,13 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
-	EpochStartConfig EpochStartConfig
-	Logger           LoggerConfig
-	Address          AddressConfig
-	BLSPublicKey     AddressConfig
-	Hasher           TypeConfig
-	MultisigHasher   TypeConfig
-	Marshalizer      MarshalizerConfig
+	EpochStartConfig            EpochStartConfig
+	Logger                      LoggerConfig
+	Address                     AddressConfig
+	BLSPublicKey                AddressConfig
+	Hasher                      TypeConfig
+	MultisigHasher              TypeConfig
+	Marshalizer                 MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
@@ -145,10 +145,12 @@ type StoragePruningConfig struct {
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	RandezVous           string
-	InitialPeerList      []string
+	Enabled                          bool
+	RefreshIntervalInSec             int
+	RandezVous                       string
+	InitialPeerList                  []string
+	BucketSize                       int
+	RoutingTableRefreshIntervalInSec int
 }
 
 // P2PConfig will hold all the P2P settings
