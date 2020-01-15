@@ -204,6 +204,11 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	var eligibleShardList []Validator
 	var mut *sync.RWMutex
 
+	log.Trace("computing consensus group for",
+		"epoch", epoch,
+		"randomness", randomness,
+		"round", round)
+
 	if randomness == nil {
 		return nil, ErrNilRandomness
 	}

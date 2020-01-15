@@ -6,6 +6,7 @@ const keyPrefix = "epochStartTrigger_"
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
 type TriggerRegistry struct {
+	Epoch                       uint32
 	CurrentRound                uint64
 	EpochFinalityAttestingRound uint64
 	CurrEpochStartRound         uint64
@@ -35,6 +36,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
 	t.currEpochStartRound = state.CurrEpochStartRound
 	t.prevEpochStartRound = state.PrevEpochStartRound
+	t.epoch = state.Epoch
 	t.mutTrigger.Unlock()
 
 	return nil
@@ -48,6 +50,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound
+	registry.Epoch = t.epoch
 
 	data, err := json.Marshal(registry)
 	if err != nil {
