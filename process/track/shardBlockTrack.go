@@ -46,6 +46,11 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, err
 	}
 
+	blockBalancer, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                        arguments.Hasher,
 		headerValidator:               arguments.HeaderValidator,
@@ -58,6 +63,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancer,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
@@ -95,7 +101,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Trace("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
 
@@ -125,4 +131,27 @@ func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byt
 
 	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
+}
+
+func (sbt *shardBlockTrack) computePendingMiniBlockHeaders(headers []data.HeaderHandler) {
+	lenHeaders := len(headers)
+	if lenHeaders == 0 {
+		return
+	}
+
+	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
+	if !ok {
+		log.Debug("computePendingMiniBlockHeaders", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	for _, shardInfo := range metaBlock.ShardInfo {
+		sbt.blockBalancer.setPendingMiniBlockHeaders(shardInfo.ShardID, shardInfo.PendingMiniBlockHeaders)
+	}
+
+	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
+		log.Debug("pending miniblock headers",
+			"shard", shardID,
+			"nb", sbt.blockBalancer.pendingMiniBlockHeaders(shardID))
+	}
 }

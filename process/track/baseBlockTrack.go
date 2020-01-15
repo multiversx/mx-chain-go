@@ -38,6 +38,7 @@ type baseBlockTrack struct {
 	selfNotarizer                 blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+	blockBalancer                 blockBalancerHandler
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32]map[uint64][]*headerInfo
@@ -66,10 +67,6 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		"hash", shardHeaderHash,
 	)
 
-	//if bbt.isHeaderOutOfRange(shardHeader) {
-	//	return
-	//}
-
 	bbt.addHeader(shardHeader, shardHeaderHash)
 	bbt.blockProcessor.processReceivedHeader(shardHeader)
 }
@@ -88,34 +85,9 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		"hash", metaBlockHash,
 	)
 
-	//if bbt.isHeaderOutOfRange(metaBlock) {
-	//	return
-	//}
-
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.processReceivedHeader(metaBlock)
 }
-
-//func (bbt *baseBlockTrack) isHeaderOutOfRange(header data.HeaderHandler) bool {
-//	var lastNotarizedHeaderNonce uint64
-//
-//	isHeaderForSelfShard := header.GetShardID() == bbt.shardCoordinator.SelfId()
-//	if isHeaderForSelfShard {
-//		lastNotarizedHeaderNonce = bbt.selfNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
-//	} else {
-//		lastNotarizedHeaderNonce = bbt.crossNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
-//	}
-//
-//	if header.GetNonce() > lastNotarizedHeaderNonce+process.MaxNonceDifferences {
-//		log.Debug("received header is out of range",
-//			"received nonce", header.GetNonce(),
-//			"last notarized nonce", lastNotarizedHeaderNonce,
-//		)
-//		return true
-//	}
-//
-//	return false
-//}
 
 func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	if check.IfNil(header) {
@@ -405,39 +377,35 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 }
 
 // IsShardStuck returns true if the given shard is stuck
-func (bbt *baseBlockTrack) IsShardStuck(shardId uint32) bool {
-	header := bbt.getLastHeader(shardId)
-	if check.IfNil(header) {
-		return false
-	}
-
-	isShardStuck := bbt.rounder.Index()-int64(header.GetRound()) >= process.MaxRoundsWithoutCommittedBlock
+func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
+	nbPendingMiniBlockHeaders := bbt.blockBalancer.pendingMiniBlockHeaders(shardID)
+	isShardStuck := nbPendingMiniBlockHeaders >= process.MaxPendingMiniBlockHeaders
 	return isShardStuck
 }
 
-func (bbt *baseBlockTrack) getLastHeader(shardID uint32) data.HeaderHandler {
-	bbt.mutHeaders.RLock()
-	defer bbt.mutHeaders.RUnlock()
-
-	var lastHeaderForShard data.HeaderHandler
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		return lastHeaderForShard
-	}
-
-	maxRound := uint64(0)
-	for _, headersInfo := range headersForShard {
-		for _, headerInfo := range headersInfo {
-			if headerInfo.header.GetRound() > maxRound {
-				maxRound = headerInfo.header.GetRound()
-				lastHeaderForShard = headerInfo.header
-			}
-		}
-	}
-
-	return lastHeaderForShard
-}
+//func (bbt *baseBlockTrack) getLastHeader(shardID uint32) data.HeaderHandler {
+//	bbt.mutHeaders.RLock()
+//	defer bbt.mutHeaders.RUnlock()
+//
+//	var lastHeaderForShard data.HeaderHandler
+//
+//	headersForShard, ok := bbt.headers[shardID]
+//	if !ok {
+//		return lastHeaderForShard
+//	}
+//
+//	maxRound := uint64(0)
+//	for _, headersInfo := range headersForShard {
+//		for _, headerInfo := range headersInfo {
+//			if headerInfo.header.GetRound() > maxRound {
+//				maxRound = headerInfo.header.GetRound()
+//				lastHeaderForShard = headerInfo.header
+//			}
+//		}
+//	}
+//
+//	return lastHeaderForShard
+//}
 
 // RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
 func (bbt *baseBlockTrack) RegisterCrossNotarizedHeadersHandler(

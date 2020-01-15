@@ -103,6 +103,5 @@ const TxPoolALotOfTransactionsForASender = uint32(500)
 // for "a sender with a lot of transactions" when eviction takes place
 const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
 
-// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
-// to be stored in advance in block tracker
-//const MaxNonceDifferences = uint64(10000)
+// MaxPendingMiniBlockHeaders defines the maximum pending miniblock headers after which a shard could be considered stuck
+const MaxPendingMiniBlockHeaders = 100
