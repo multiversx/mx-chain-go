@@ -234,6 +234,34 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 	rrh.addRequestedItem(key)
 }
 
+// RequestTrieNodes method asks for trie nodes from the connected peers
+func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte) {
+	rrh.requestByHash(shardId, hash, factory.TrieNodesTopic)
+}
+
+func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
+	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
+
+	var resolver dataRetriever.Resolver
+	var err error
+
+	if destShardID == sharding.MetachainShardId {
+		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
+	} else {
+		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
+	}
+
+	if err != nil {
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+		return
+	}
+
+	err = resolver.RequestDataFromHash(hash)
+	if err != nil {
+		log.Debug(err.Error())
+	}
+}
+
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	key := []byte(fmt.Sprintf("%d-%d", sharding.MetachainShardId, nonce))

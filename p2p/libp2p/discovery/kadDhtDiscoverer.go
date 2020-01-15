@@ -12,6 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
+	"github.com/libp2p/go-libp2p-kbucket"
+	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -22,6 +24,15 @@ const (
 )
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
+
+// ArgKadDht represents the kad-dht config argument DTO
+type ArgKadDht struct {
+	PeersRefreshInterval time.Duration
+	RandezVous           string
+	InitialPeersList     []string
+	BucketSize           uint32
+	RoutingTableRefresh  time.Duration
+}
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
@@ -37,28 +48,34 @@ type KadDhtDiscoverer struct {
 	initConns        bool // Initiate new connections
 	watchdogKick     chan struct{}
 	watchdogCancel   context.CancelFunc
+
+	bucketSize           uint32
+	routingTableRefresh  time.Duration
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
-func NewKadDhtPeerDiscoverer(
-	refreshInterval time.Duration,
-	randezVous string,
-	initialPeersList []string) *KadDhtDiscoverer {
-
-	isListNilOrEmpty := initialPeersList == nil || len(initialPeersList) == 0
-
+func NewKadDhtPeerDiscoverer(arg ArgKadDht) (*KadDhtDiscoverer, error) {
+	if arg.PeersRefreshInterval < time.Second {
+		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", p2p.ErrInvalidValue)
+	}
+	if arg.RoutingTableRefresh < time.Second {
+		return nil, fmt.Errorf("%w, RoutingTableRefresh should have been at least 1 second", p2p.ErrInvalidValue)
+	}
+	isListNilOrEmpty := len(arg.InitialPeersList) == 0
 	if isListNilOrEmpty {
 		log.Warn("nil or empty initial peers list provided to kad dht implementation. " +
 			"No initial connection will be done")
 	}
 
 	return &KadDhtDiscoverer{
-		refreshInterval:  refreshInterval,
-		randezVous:       randezVous,
-		initialPeersList: initialPeersList,
-		initConns:        true,
-	}
+		peersRefreshInterval: arg.PeersRefreshInterval,
+		randezVous:           arg.RandezVous,
+		initialPeersList:     arg.InitialPeersList,
+		bucketSize:           arg.BucketSize,
+		routingTableRefresh:  arg.RoutingTableRefresh,
+		initConns:            true,
+	}, nil
 }
 
 // Bootstrap will start the bootstrapping new peers process
@@ -106,6 +123,19 @@ func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
 func (kdd *KadDhtDiscoverer) startDHT() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
+
+	defaultOptions := opts.Defaults
+	customOptions := func(opt *opts.Options) error {
+		err := defaultOptions(opt)
+		if err != nil {
+			return err
+		}
+
+		opt.BucketSize = int(kdd.bucketSize)
+		opt.RoutingTable.RefreshPeriod = kdd.routingTableRefresh
+
+		return nil
+	}
 
 	ctxrun, cancel := context.WithCancel(ctx)
 	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)

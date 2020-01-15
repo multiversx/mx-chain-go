@@ -1,13 +1,9 @@
 package sync
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
@@ -18,12 +14,12 @@ func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice
 	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
 }
 
-func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
-	boot.receivedHeader(key)
+func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
+	boot.processReceivedHeader(header, key)
 }
 
-func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
-	boot.receivedHeaders(key)
+func (boot *ShardBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
+	boot.processReceivedHeader(header, key)
 }
 
 func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
@@ -58,8 +54,8 @@ func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
 }
 
-func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
-	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
+	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round, hash: hash})
 }
 
 func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
@@ -86,19 +82,8 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *baseForkDetector) ActivateForcedForkIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-) {
-	bfd.activateForcedForkIfNeeded(header, state)
-}
-
-func (bfd *baseForkDetector) ShouldForceFork() bool {
-	return bfd.shouldForceFork()
-}
-
-func (bfd *baseForkDetector) SetShouldForceFork(shouldForceFork bool) {
-	bfd.setShouldForceFork(shouldForceFork)
+func (bfd *baseForkDetector) IsConsensusStuck() bool {
+	return bfd.isConsensusStuck()
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -161,8 +146,8 @@ func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandle
 	boot.processReceivedHeader(headerHandler, headerHash)
 }
 
-func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(shardId uint32, nonce uint64) {
-	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(shardId, nonce)
+func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
+	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler)
 }
 
 func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state process.BlockHeaderState, finality int64) bool {
@@ -173,38 +158,16 @@ func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 	bfd.setProbableHighestNonce(nonce)
 }
 
-func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
+func (sfd *shardForkDetector) ComputeFinalCheckpoint() {
+	sfd.computeFinalCheckpoint()
 }
 
-func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
-	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
+func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64, hash []byte) {
+	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce, hash: hash})
 }
 
 func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
 	return bfd.computeGenesisTimeFromHeader(headerHandler)
-}
-
-func GetCacherWithHeaders(
-	hdr1 data.HeaderHandler,
-	hdr2 data.HeaderHandler,
-	hash1 []byte,
-	hash2 []byte,
-) storage.Cacher {
-	sds := &mock.CacherStub{
-		RegisterHandlerCalled: func(func(key []byte)) {},
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(key, hash1) {
-				return &hdr1, true
-			}
-			if bytes.Equal(key, hash2) {
-				return &hdr2, true
-			}
-
-			return nil, false
-		},
-	}
-	return sds
 }
 
 func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*HdrInfo {
