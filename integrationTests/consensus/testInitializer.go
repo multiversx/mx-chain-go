@@ -393,7 +393,12 @@ func createConsensusOnlyNode(
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
-	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second), 0)
+	forkDetector, _ := syncFork.NewShardForkDetector(
+		rounder,
+		timecache.NewTimeCache(time.Second),
+		&mock.BlockTrackerStub{},
+		0,
+	)
 
 	hdrResolver := &mock.HeaderResolverMock{}
 	mbResolver := &mock.MiniBlocksResolverMock{}

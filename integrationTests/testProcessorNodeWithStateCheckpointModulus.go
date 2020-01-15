@@ -55,6 +55,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory.ValidatorAccount)

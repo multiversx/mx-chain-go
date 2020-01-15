@@ -643,26 +643,24 @@ func (txs *transactions) createAndProcessMiniBlock(
 				"total txs", len(orderedTxs),
 			)
 
-			log.Debug("miniblock created",
-				"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
-				"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
-				"total gas in self shard", txs.gasHandler.TotalGasConsumed(),
-				"added num txs", len(miniBlock.TxHashes),
-				"total num txs", len(orderedTxs),
-			)
+			log.Debug("mini block info",
+				"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
+				"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
+				"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+				"txs ordered", len(orderedTxs),
+				"txs added", len(miniBlock.TxHashes))
 
 			return miniBlock, nil
 		}
 	}
 
 	if addedTxs > 0 {
-		log.Debug("miniblock created",
-			"gas in sender shard", gasConsumedByMiniBlockInSenderShard,
-			"gas in dest shard", gasConsumedByMiniBlockInReceiverShard,
-			"total gas in self shard", txs.gasHandler.TotalGasConsumed(),
-			"added num txs", len(miniBlock.TxHashes),
-			"total num txs", len(orderedTxs),
-		)
+		log.Debug("mini block info",
+			"gas consumed in sender shard", gasConsumedByMiniBlockInSenderShard,
+			"gas consumed in receiver shard", gasConsumedByMiniBlockInReceiverShard,
+			"gas consumed in self shard", txs.gasHandler.TotalGasConsumed(),
+			"txs ordered", len(orderedTxs),
+			"txs added", len(miniBlock.TxHashes))
 	}
 
 	return miniBlock, nil

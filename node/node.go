@@ -115,6 +115,7 @@ type Node struct {
 	headerSigVerifier     spos.RandSeedVerifier
 
 	chainID []byte
+	blockTracker          process.BlockTracker
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -421,6 +422,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
 	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
@@ -466,6 +468,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
 	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)

@@ -152,7 +152,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		"hash", headerHash,
 	)
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil, false)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
@@ -316,7 +316,7 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
-	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
+	boot.forkDetector.RemoveHeader(header.GetNonce(), hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
@@ -378,28 +378,6 @@ func checkBootstrapNilParameters(
 	}
 
 	return nil
-}
-
-// isSigned verifies if a block is signed
-func isSigned(header data.HeaderHandler) bool {
-	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
-	// and validators which signed here, were in this round consensus group)
-	bitmap := header.GetPubKeysBitmap()
-	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
-
-	return !isBitmapEmpty
-}
-
-// isRandomSeedValid verifies if the random seed is valid (equal with a signed previous rand seed)
-func isRandomSeedValid(header data.HeaderHandler) bool {
-	// TODO: Later, here should be done a more complex verification (random seed should be equal with the previous rand
-	// seed signed by the proposer of this round)
-	prevRandSeed := header.GetPrevRandSeed()
-	randSeed := header.GetRandSeed()
-	isPrevRandSeedNilOrEmpty := len(prevRandSeed) == 0
-	isRandSeedNilOrEmpty := len(randSeed) == 0
-
-	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
 }
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
@@ -484,18 +462,14 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
-		if headerHandler != nil {
+		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
-			boot.forkDetector.RemoveHeaders(headerHandler.GetNonce(), hash)
+			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
 		}
 
 		errNotCritical := boot.rollBack(false)
 		if errNotCritical != nil {
 			log.Debug("rollBack", "error", errNotCritical.Error())
-		}
-
-		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
-			boot.forkDetector.ResetProbableHighestNonce()
 		}
 	}
 }
@@ -747,7 +721,7 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 		return err
 	}
 
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil, false)
+	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -767,7 +741,6 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 		log.Debug("rollBack", "error", err.Error())
 	}
 
-	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
 }
 

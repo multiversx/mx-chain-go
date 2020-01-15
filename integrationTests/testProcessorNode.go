@@ -56,6 +56,7 @@ import (
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -150,6 +151,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 
 	BlackListHandler      process.BlackListHandler
+	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -282,6 +284,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory2.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
@@ -773,7 +776,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -782,6 +785,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
 		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return nil
+		},
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
@@ -789,6 +795,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Marshalizer: TestMarshalizer,
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
+	tpn.initBlockTracker(headerValidator)
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
@@ -800,7 +808,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		NodesCoordinator:             tpn.NodesCoordinator,
 		SpecialAddressHandler:        tpn.SpecialAddressHandler,
 		Uint64Converter:              TestUint64Converter,
-		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
@@ -812,6 +819,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
+		BlockTracker: tpn.BlockTracker,
 		DataPool: tpn.DataPool,
 	}
 
@@ -1275,4 +1283,33 @@ func (tpn *TestProcessorNode) initRounder() {
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+}
+
+func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderConstructionValidator) {
+	argBaseTracker := track.ArgBaseTracker{
+		Hasher:           TestHasher,
+		HeaderValidator:  headerValidator,
+		Marshalizer:      TestMarshalizer,
+		RequestHandler:   tpn.RequestHandler,
+		Rounder:          tpn.Rounder,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Store:            tpn.Storage,
+		StartHeaders:     tpn.GenesisBlocks,
+	}
+
+	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.ShardDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
+	} else {
+		arguments := track.ArgMetaTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.MetaDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
+	}
 }
