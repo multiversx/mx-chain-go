@@ -24,6 +24,10 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 	return ss.SearchFirstCalled(key)
 }
 
+func (ss *StorerStub) Close() error {
+	return nil
+}
+
 func (ss *StorerStub) Put(key, data []byte) error {
 	return ss.PutCalled(key, data)
 }

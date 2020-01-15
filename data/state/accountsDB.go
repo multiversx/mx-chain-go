@@ -8,7 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // AccountsDB is the struct used for accessing accounts
@@ -22,6 +24,8 @@ type AccountsDB struct {
 	entries    []JournalEntry
 	mutEntries sync.RWMutex
 }
+
+var log = logger.GetOrCreate("state")
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
@@ -98,6 +102,32 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	return nil
 }
 
+// ClosePersister will close trie persister
+func (adb *AccountsDB) ClosePersister() error {
+	closedSuccessfully := true
+
+	err := adb.mainTrie.ClosePersister()
+	log.LogIfError(err)
+	if err != nil {
+		closedSuccessfully = false
+	}
+
+	trees := adb.dataTries.GetAll()
+	for _, trie := range trees {
+		err := trie.ClosePersister()
+		if err != nil {
+			log.Error("cannot close accounts trie persister", err)
+			closedSuccessfully = false
+		}
+	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
+}
+
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
 func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
 	return adb.mainTrie.Update(codeHash, make([]byte, 0))
@@ -156,11 +186,6 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		//TODO: delete the next verification when delete from trie bug is repaired
-		if len(v) == 0 {
-			continue
-		}
-
 		flagHasDirtyData = true
 
 		val, err := dataTrie.Get([]byte(k))

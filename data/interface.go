@@ -132,6 +132,7 @@ type Trie interface {
 	GetAllLeaves() (map[string][]byte, error)
 	IsPruningEnabled() bool
 	IsInterfaceNil() bool
+	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -139,6 +140,7 @@ type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
 	Remove(key []byte) error
+	Close() error
 	IsInterfaceNil() bool
 }
 

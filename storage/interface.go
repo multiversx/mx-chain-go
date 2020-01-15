@@ -99,6 +99,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events

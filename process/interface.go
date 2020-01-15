@@ -60,7 +60,7 @@ type TxValidatorHandler interface {
 	SenderShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
-	TotalValue() *big.Int
+	Fee() *big.Int
 }
 
 // HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
@@ -87,6 +87,7 @@ type InterceptedData interface {
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte
+	Type() string
 }
 
 // InterceptorProcessor further validates and saves received data

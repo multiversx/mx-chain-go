@@ -50,6 +50,10 @@ func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
+func (sm *StorerMock) Close() error {
+	return nil
+}
+
 func (sm *StorerMock) Has(key []byte) error {
 	return errors.New("not implemented")
 }
