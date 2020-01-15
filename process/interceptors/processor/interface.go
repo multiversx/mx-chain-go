@@ -14,6 +14,6 @@ type InterceptedTransactionHandler interface {
 	ReceiverShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
-	TotalValue() *big.Int
+	Fee() *big.Int
 	Transaction() data.TransactionHandler
 }
