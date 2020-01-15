@@ -116,10 +116,12 @@ func (inHdr *InterceptedHeader) IsForCurrentShard() bool {
 	return inHdr.isForCurrentShard
 }
 
+// Type returns the type of this intercepted data
+func (inHdr *InterceptedHeader) Type() string {
+	return "intercepted header"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
-	if inHdr == nil {
-		return true
-	}
-	return false
+	return inHdr == nil
 }
