@@ -253,6 +253,8 @@ type StorageService interface {
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
+	//CloseAll will close all the units
+	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
