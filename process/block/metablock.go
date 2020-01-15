@@ -119,12 +119,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	return &mp, nil
 }
 
-func (mp *metaProcessor) setEpochForRequestHandler(headerHandler data.HeaderHandler) {
-	if headerHandler != nil {
-		mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
-	}
-}
-
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (mp *metaProcessor) ProcessBlock(
 	chainHandler data.ChainHandler,
@@ -132,8 +126,6 @@ func (mp *metaProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
-	mp.setEpochForRequestHandler(headerHandler)
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
@@ -152,6 +144,8 @@ func (mp *metaProcessor) ProcessBlock(
 
 		return err
 	}
+
+	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Trace("started processing block",
 		"round", headerHandler.GetRound(),
