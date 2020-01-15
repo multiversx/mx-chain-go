@@ -265,6 +265,11 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		return v.([]byte), nil
+	}
+
 	var res []byte
 	var err error
 	for _, pd := range ps.activePersisters {
@@ -275,9 +280,10 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	}
 
 	log.Debug("SearchFirst error",
+		"unit", ps.identifier,
 		"last err", err,
 		"num active persisters", len(ps.activePersisters),
-		"key", base64.StdEncoding.EncodeToString(key))
+		"key", key)
 
 	return nil, fmt.Errorf("%w - SearchFirst, key = %s, num active persisters = %d",
 		storage.ErrKeyNotFound,
