@@ -74,6 +74,9 @@ const MaxHeadersToRequestInAdvance = 10
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
 
+// NonceModulusTrigger defines a nonce modulus on which a trigger for an action will be released
+const NonceModulusTrigger = 10
+
 // MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
 // from the full pool capacity, for the received data which are not needed in the near future
 const MaxOccupancyPercentageAllowed = float64(0.9)
@@ -81,10 +84,6 @@ const MaxOccupancyPercentageAllowed = float64(0.9)
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedBlock = 10
-
-// MaxNoncesWithoutCrossNotarized defines the maximum nonces to wait for a new block to be cross notarized,
-// before a special action to be applied
-const MaxNoncesWithoutCrossNotarized = 100
 
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
@@ -106,4 +105,4 @@ const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
 
 // MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
 // to be stored in advance in block tracker
-const MaxNonceDifferences = uint64(10000)
+//const MaxNonceDifferences = uint64(10000)

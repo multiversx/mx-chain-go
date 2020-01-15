@@ -1418,6 +1418,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.PrevHash = shardHdr.PrevHash
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
+		shardData.PendingMiniBlockHeaders = mp.pendingMiniBlocks.PendingMiniBlockHeadersForShard(shardData.ShardID)
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}

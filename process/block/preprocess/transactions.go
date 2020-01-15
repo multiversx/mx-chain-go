@@ -38,7 +38,7 @@ type transactions struct {
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	miniBlocksCompacter  process.MiniBlocksCompacter
-	blockTracker         process.BlockTracker
+	blockTracker         BlockTracker
 	blockType            block.Type
 }
 
@@ -55,7 +55,7 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	blockTracker process.BlockTracker,
+	blockTracker BlockTracker,
 	blockType block.Type,
 ) (*transactions, error) {
 

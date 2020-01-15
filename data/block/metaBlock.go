@@ -69,16 +69,17 @@ type ShardMiniBlockHeader struct {
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardID               uint32                 `capid:"0"`
-	HeaderHash            []byte                 `capid:"1"`
-	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
-	PrevRandSeed          []byte                 `capid:"3"`
-	PubKeysBitmap         []byte                 `capid:"4"`
-	Signature             []byte                 `capid:"5"`
-	TxCount               uint32                 `capid:"6"`
-	Round                 uint64                 `capid:"7"`
-	PrevHash              []byte                 `capid:"8"`
-	Nonce                 uint64                 `capid:"9"`
+	ShardID                 uint32                 `capid:"0"`
+	HeaderHash              []byte                 `capid:"1"`
+	ShardMiniBlockHeaders   []ShardMiniBlockHeader `capid:"2"`
+	PrevRandSeed            []byte                 `capid:"3"`
+	PubKeysBitmap           []byte                 `capid:"4"`
+	Signature               []byte                 `capid:"5"`
+	TxCount                 uint32                 `capid:"6"`
+	Round                   uint64                 `capid:"7"`
+	PrevHash                []byte                 `capid:"8"`
+	Nonce                   uint64                 `capid:"9"`
+	PendingMiniBlockHeaders uint32
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash

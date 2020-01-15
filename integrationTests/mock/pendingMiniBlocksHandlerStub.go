@@ -6,9 +6,10 @@ import (
 )
 
 type PendingMiniBlocksHandlerStub struct {
-	PendingMiniBlockHeadersCalled func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
-	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
-	RevertHeaderCalled            func(handler data.HeaderHandler) error
+	PendingMiniBlockHeadersCalled         func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
+	AddProcessedHeaderCalled              func(handler data.HeaderHandler) error
+	RevertHeaderCalled                    func(handler data.HeaderHandler) error
+	PendingMiniBlockHeadersForShardCalled func(shardID uint32) uint32
 }
 
 func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
@@ -30,6 +31,13 @@ func (p *PendingMiniBlocksHandlerStub) RevertHeader(handler data.HeaderHandler) 
 		return p.RevertHeaderCalled(handler)
 	}
 	return nil
+}
+
+func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeadersForShard(shardID uint32) uint32 {
+	if p.PendingMiniBlockHeadersForShardCalled != nil {
+		return p.PendingMiniBlockHeadersForShardCalled(shardID)
+	}
+	return 0
 }
 
 func (p *PendingMiniBlocksHandlerStub) IsInterfaceNil() bool {
