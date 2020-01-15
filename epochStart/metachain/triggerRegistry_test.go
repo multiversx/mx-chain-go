@@ -9,6 +9,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func cloneTrigger(t *trigger) *trigger {
+	rt := &trigger{}
+
+	rt.isEpochStart = t.isEpochStart
+	rt.epoch = t.epoch
+	rt.currentRound = t.currentRound
+	rt.epochFinalityAttestingRound = t.epochFinalityAttestingRound
+	rt.currEpochStartRound = t.currEpochStartRound
+	rt.prevEpochStartRound = t.prevEpochStartRound
+	rt.roundsPerEpoch = t.roundsPerEpoch
+	rt.minRoundsBetweenEpochs = t.minRoundsBetweenEpochs
+	rt.epochStartMetaHash = t.epochStartMetaHash
+	rt.triggerStateKey = t.triggerStateKey
+	rt.epochStartTime = t.epochStartTime
+	rt.epochStartNotifier = t.epochStartNotifier
+	rt.triggerStorage = t.triggerStorage
+	rt.marshalizer = t.marshalizer
+
+	return rt
+}
+
 func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	t.Parallel()
 
@@ -24,7 +45,7 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	}
 	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
 	// create a copy
-	epochStartTrigger2 := *epochStartTrigger1
+	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
 	key := []byte("key")
 	epochStartTrigger1.triggerStateKey = key
@@ -35,9 +56,9 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	epochStartTrigger1.prevEpochStartRound = 650
 	err := epochStartTrigger1.saveState(key)
 	assert.Nil(t, err)
-	assert.NotEqual(t, epochStartTrigger1, &epochStartTrigger2)
+	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
 
 	err = epochStartTrigger2.LoadState(key)
 	assert.Nil(t, err)
-	assert.Equal(t, epochStartTrigger1, &epochStartTrigger2)
+	assert.Equal(t, epochStartTrigger1, epochStartTrigger2)
 }
