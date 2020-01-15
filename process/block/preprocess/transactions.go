@@ -377,8 +377,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 
 	err := txs.txProcessor.ProcessTransaction(transaction)
-	if err == process.ErrLowerNonceInTransaction ||
-		err == process.ErrInsufficientFunds {
+	isTxTargetedForDeletion := err == process.ErrLowerNonceInTransaction || errors.Is(err, process.ErrInsufficientFee)
+	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
 	}

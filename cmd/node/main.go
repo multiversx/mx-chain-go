@@ -858,6 +858,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	<-sigs
 	log.Info("terminating at user's signal...")
 
+	log.Debug("closing all store units....")
+	err = dataComponents.Store.CloseAll()
+	log.LogIfError(err)
+
+	err = coreComponents.Trie.ClosePersister()
+	log.LogIfError(err)
+
+	err = stateComponents.PeerAccounts.ClosePersister()
+	log.LogIfError(err)
+
 	if rm != nil {
 		err = rm.Close()
 		log.LogIfError(err)
@@ -979,7 +989,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	rater sharding.RaterHandler,
+	_ sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
