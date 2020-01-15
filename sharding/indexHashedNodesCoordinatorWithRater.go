@@ -60,12 +60,16 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 		return err
 	}
 
+	pks := make([]string, 0)
+
 	for _, validators := range eligible {
 		for _, validator := range validators {
 			pk := validator.PubKey()
-			ihgs.UpdateRatingFromTempRating(string(pk))
+			pks = append(pks, string(pk))
 		}
 	}
+
+	ihgs.UpdateRatingFromTempRating(pks)
 
 	err = ihgs.expandAllLists(epoch)
 	return err

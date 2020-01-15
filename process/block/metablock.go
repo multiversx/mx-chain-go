@@ -1652,6 +1652,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	sw.Start("UpdatePeerState")
 	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err

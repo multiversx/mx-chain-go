@@ -2,7 +2,7 @@ package mock
 
 type RatingReaderMock struct {
 	GetRatingCalled                  func(string) uint32
-	UpdateRatingFromTempRatingCalled func(string)
+	UpdateRatingFromTempRatingCalled func([]string)
 	RatingsMap                       map[string]uint32
 }
 
@@ -14,9 +14,9 @@ func (rrm *RatingReaderMock) GetRating(pk string) uint32 {
 	return 0
 }
 
-func (rrm *RatingReaderMock) UpdateRatingFromTempRating(pk string) {
+func (rrm *RatingReaderMock) UpdateRatingFromTempRating(pks []string) {
 	if rrm.UpdateRatingFromTempRatingCalled != nil {
-		rrm.UpdateRatingFromTempRatingCalled(pk)
+		rrm.UpdateRatingFromTempRatingCalled(pks)
 	}
 }
 

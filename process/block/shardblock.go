@@ -1937,9 +1937,13 @@ func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 
 func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data.HeaderHandler) error {
 	for _, header := range finalHeaders {
-		_, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
 		if err != nil {
 			return err
+		}
+
+		if !bytes.Equal(rootHash, header.GetValidatorStatsRootHash()) {
+			return process.ErrValidatorStatsRootHashDoesNotMatch
 		}
 	}
 	return nil

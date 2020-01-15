@@ -12,7 +12,7 @@ type RaterMock struct {
 	DecreaseValidator uint32
 
 	GetRatingCalled                  func(string) uint32
-	UpdateRatingFromTempRatingCalled func(string)
+	UpdateRatingFromTempRatingCalled func([]string)
 	GetStartRatingCalled             func() uint32
 	ComputeIncreaseProposerCalled    func(val uint32) uint32
 	ComputeDecreaseProposerCalled    func(val uint32) uint32
@@ -27,7 +27,7 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetRatingCalled = func(s string) uint32 {
 		return raterMock.StartRating
 	}
-	raterMock.UpdateRatingFromTempRatingCalled = func(s string) {
+	raterMock.UpdateRatingFromTempRatingCalled = func(s []string) {
 	}
 	raterMock.GetStartRatingCalled = func() uint32 {
 		return raterMock.StartRating
@@ -67,8 +67,8 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
 }
 
-func (rm *RaterMock) UpdateRatingFromTempRating(pk string) {
-	rm.UpdateRatingFromTempRatingCalled(pk)
+func (rm *RaterMock) UpdateRatingFromTempRating(pks []string) {
+	rm.UpdateRatingFromTempRatingCalled(pks)
 }
 
 func (rm *RaterMock) GetStartRating() uint32 {

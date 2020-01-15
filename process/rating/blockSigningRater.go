@@ -87,9 +87,9 @@ func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
-//UpdateRatingFromTempRating returns the TempRating for the specified public key
-func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pk string) {
-	bsr.RatingReader.UpdateRatingFromTempRating(pk)
+//UpdateRatingFromTempRating returns the TempRating for the specified public keys
+func (bsr *BlockSigningRater) UpdateRatingFromTempRating(pks []string) {
+	bsr.RatingReader.UpdateRatingFromTempRating(pks)
 }
 
 //SetRatingReader sets the Reader that can read ratings
