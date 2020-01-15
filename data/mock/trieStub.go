@@ -30,6 +30,10 @@ type TrieStub struct {
 	IsPruningEnabledCalled   func() bool
 }
 
+func (ts *TrieStub) ClosePersister() error {
+	return nil
+}
+
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {
 		return ts.GetCalled(key)
