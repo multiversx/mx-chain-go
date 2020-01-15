@@ -298,14 +298,9 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 		}
 	}
 
-	log.Debug("SearchFirst error",
-		"unit", ps.identifier,
-		"last err", err,
-		"num active persisters", len(ps.activePersisters),
-		"key", key)
-
-	return nil, fmt.Errorf("%w - SearchFirst, key = %s, num active persisters = %d",
+	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
 		storage.ErrKeyNotFound,
+		ps.identifier,
 		base64.StdEncoding.EncodeToString(key),
 		len(ps.activePersisters),
 	)
@@ -350,16 +345,16 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 	}
 
 	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		persisterData, ok := ps.persistersMapByEpoch[epoch]
+		pd, ok := ps.persistersMapByEpoch[epoch]
 		if !ok {
 			return storage.ErrKeyNotFound
 		}
 
-		if !persisterData.isClosed {
-			return persisterData.persister.Has(key)
+		if !pd.isClosed {
+			return pd.persister.Has(key)
 		}
 
-		persister, err := ps.persisterFactory.Create(persisterData.path)
+		persister, err := ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -460,7 +455,7 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
-	log.Debug("PruningStorer - change epoch", "epoch", epoch)
+	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
 		log.Debug("PruningStorer - change epoch - pruning is disabled")

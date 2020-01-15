@@ -9,19 +9,19 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = true
+   Enabled = false
 
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
 
    # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
-   NumEpochsToKeep = 5
+   NumEpochsToKeep = 3
 
    # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
    # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
    # to the NumOfEpochsToKeep flag
-   NumActivePersisters = 3
+   NumActivePersisters = 2
 
 [Explorer]
    Enabled = false
