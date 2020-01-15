@@ -25,3 +25,5 @@ var ErrNilStorage = errors.New("nil storage")
 var ErrNilActiveAccountHandlersContainer = errors.New("nil active account handlers container")
 
 var ErrNilDataTrieContainer = errors.New("nil data trie container")
+
+var ErrNilWhiteListHandler = errors.New("nil white list handler")

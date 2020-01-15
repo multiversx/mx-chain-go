@@ -13,6 +13,7 @@ type SingleDataInterceptor struct {
 	factory   process.InterceptedDataFactory
 	processor process.InterceptorProcessor
 	throttler process.InterceptorThrottler
+	isForMe   process.InterceptedDataVerifier
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -36,9 +37,17 @@ func NewSingleDataInterceptor(
 		factory:   factory,
 		processor: processor,
 		throttler: throttler,
+		isForMe:   NewDefaultDataVerifier(),
 	}
 
 	return singleDataIntercept, nil
+}
+
+func (sdi *SingleDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) {
+	if check.IfNil(verifier) {
+		return
+	}
+	sdi.isForMe = verifier
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -61,7 +70,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
-	if !interceptedData.IsForCurrentShard() {
+	if !sdi.isForMe.IsForCurrentShard(interceptedData) {
 		sdi.throttler.EndProcessing()
 		log.Trace("intercepted data is for other shards")
 		return nil
@@ -81,8 +90,5 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
-	if sdi == nil {
-		return true
-	}
-	return false
+	return sdi == nil
 }

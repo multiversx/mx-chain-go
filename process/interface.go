@@ -605,3 +605,16 @@ type InterceptedHeaderSigVerifier interface {
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
+
+// InterceptedDataVerifier check whether the received data is needed by shard
+type InterceptedDataVerifier interface {
+	IsForCurrentShard(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataWhiteList is the interface needed to add whitelisted data
+type InterceptedDataWhiteList interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsInterfaceNil() bool
+}

@@ -18,6 +18,7 @@ type MultiDataInterceptor struct {
 	factory     process.InterceptedDataFactory
 	processor   process.InterceptorProcessor
 	throttler   process.InterceptorThrottler
+	isForMe     process.InterceptedDataVerifier
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -46,9 +47,17 @@ func NewMultiDataInterceptor(
 		factory:     factory,
 		processor:   processor,
 		throttler:   throttler,
+		isForMe:     NewDefaultDataVerifier(),
 	}
 
 	return multiDataIntercept, nil
+}
+
+func (mdi *MultiDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) {
+	if check.IfNil(verifier) {
+		return
+	}
+	mdi.isForMe = verifier
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -94,7 +103,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
-		if !interceptedData.IsForCurrentShard() {
+		if !mdi.isForMe.IsForCurrentShard(interceptedData) {
 			log.Trace("intercepted data is for other shards")
 			wgProcess.Done()
 			continue
@@ -135,8 +144,5 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

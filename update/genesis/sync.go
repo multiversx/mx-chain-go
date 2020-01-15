@@ -61,6 +61,7 @@ type syncState struct {
 	epochHandler     update.EpochStartVerifier
 	requestHandler   update.RequestHandler
 	headerValidator  process.HeaderConstructionValidator
+	whiteList        process.InterceptedDataWhiteList
 
 	tries        update.DataTriesContainer
 	syncingEpoch uint32
@@ -84,6 +85,7 @@ type ArgsNewSyncState struct {
 	RequestHandler   process.RequestHandler
 	HeaderValidator  process.HeaderConstructionValidator
 	ActiveDataTries  update.DataTriesContainer
+	WhiteList        process.InterceptedDataWhiteList
 }
 
 // NewSyncState creates a complete syncer which saves the state of the blockchain with pending values as well
@@ -123,6 +125,9 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 	}
 	if check.IfNil(args.ActiveDataTries) {
 		return nil, update.ErrNilActiveAccountHandlersContainer
+	}
+	if check.IfNil(args.WhiteList) {
+		return nil, update.ErrNilWhiteListHandler
 	}
 
 	ss := &syncState{
