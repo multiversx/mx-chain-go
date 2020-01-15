@@ -45,8 +45,7 @@ func (t *trigger) LoadState(key []byte) error {
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
 	registry := &TriggerRegistry{}
-
-	registry.PrevEpochStartRound = t.prevEpochStartRound
+	registry.CurrentRound = t.currentRound
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound
