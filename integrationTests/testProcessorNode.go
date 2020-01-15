@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -145,7 +146,7 @@ type TestProcessorNode struct {
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
-	StateTrie     data.Trie
+	TrieContainer state.TriesHolder
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
@@ -279,6 +280,17 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	return tpn
 }
 
+func (tpn *TestProcessorNode) initAccountDBs() {
+	tpn.TrieContainer = state.NewDataTriesHolder()
+	var stateTrie data.Trie
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(factory2.UserAccount)
+	tpn.TrieContainer.Put([]byte(factory3.UserAccountTrie), stateTrie)
+
+	var peerTrie data.Trie
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(factory2.ValidatorAccount)
+	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+}
+
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
@@ -287,8 +299,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory2.UserAccount)
-	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
@@ -471,7 +482,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
-			tpn.StateTrie,
+			tpn.TrieContainer,
 			100,
 		)
 
@@ -491,7 +502,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
-			tpn.StateTrie,
+			tpn.TrieContainer,
 			100,
 		)
 

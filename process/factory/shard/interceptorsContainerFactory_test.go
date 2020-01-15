@@ -891,7 +891,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.TrieNodesTopic),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -1009,7 +1009,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
 	numInterceptorMetachainHeaders := 1
-	numInterceptorTrieNodes := 2
+	numInterceptorTrieNodes := 4
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
 

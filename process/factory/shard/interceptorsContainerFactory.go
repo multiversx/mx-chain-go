@@ -618,8 +618,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	keys := make([]string, 0)
 	interceptorSlice := make([]process.Interceptor, 0)
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
@@ -628,8 +627,25 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	keys = append(keys, identifierTrieNodes)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
 
+	keys = append(keys, identifierTrieNodes)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err

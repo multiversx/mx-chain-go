@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	factoryTries "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -71,6 +73,13 @@ func createStore() dataRetriever.StorageService {
 	}
 }
 
+func createTriesHolder() state.TriesHolder {
+	triesHolder := state.NewDataTriesHolder()
+	triesHolder.Put([]byte(factoryTries.UserAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(factoryTries.PeerAccountTrie), &mock.TrieStub{})
+	return triesHolder
+}
+
 //------- NewResolversContainerFactory
 
 func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -84,7 +93,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -103,7 +112,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -122,7 +131,7 @@ func TestNewResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -141,7 +150,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -160,7 +169,7 @@ func TestNewResolversContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *tes
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		1,
 	)
 
@@ -179,7 +188,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -198,7 +207,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 		createDataPools(),
 		nil,
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -217,7 +226,7 @@ func TestNewResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		nil,
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -255,7 +264,7 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -276,7 +285,7 @@ func TestResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShoul
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -297,7 +306,7 @@ func TestResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsSh
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -318,7 +327,7 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -344,7 +353,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 	)
 
@@ -354,7 +363,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversMiniBlocks := noOfShards + 1
 	numResolversUnsigned := noOfShards + 1
 	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := 1
+	numResolversTrieNodes := 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes
 
