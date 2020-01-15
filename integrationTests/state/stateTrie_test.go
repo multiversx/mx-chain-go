@@ -2,24 +2,32 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,10 +38,14 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//and then reloading the data trie based on the root hash generated before
 	t.Parallel()
 
+	key1 := []byte("ABC")
+	val1 := []byte("123")
+	key2 := []byte("DEF")
+	val2 := []byte("456")
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
-	account.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	account.DataTrieTracker().SaveKeyValue([]byte{68, 69, 70}, []byte{35, 36, 37})
+	account.DataTrieTracker().SaveKeyValue(key1, val1)
+	account.DataTrieTracker().SaveKeyValue(key2, val2)
 
 	err := adb.SaveDataTrie(account)
 	assert.Nil(t, err)
@@ -45,13 +57,13 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//verify data
-	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
+	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue(key1)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{32, 33, 34}, dataRecovered)
+	assert.Equal(t, val1, dataRecovered)
 
-	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
+	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue(key2)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{35, 36, 37}, dataRecovered)
+	assert.Equal(t, val2, dataRecovered)
 }
 
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
@@ -221,8 +233,8 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	err = state2.(*state.Account).SetBalanceWithJournal(balance2)
 	assert.Nil(t, err)
-	key := []byte{65, 66, 67}
-	val := []byte{32, 33, 34}
+	key := []byte("ABC")
+	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 
@@ -260,7 +272,11 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher)
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -301,8 +317,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	err = state2.(*state.Account).SetBalanceWithJournal(balance2)
 	assert.Nil(t, err)
-	key := []byte{65, 66, 67}
-	val := []byte{32, 33, 34}
+	key := []byte("ABC")
+	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 
@@ -316,7 +332,9 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
-	tr, _ := trie.NewTrie(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
@@ -557,6 +575,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
+	code := []byte("ABC")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -570,7 +589,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	err = adb.PutCode(state1, []byte{65, 66, 67})
+	err = adb.PutCode(state1, code)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -581,7 +600,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	err = adb.PutCode(state2, []byte{65, 66, 67})
+	err = adb.PutCode(state2, code)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -623,6 +642,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
+	key := []byte("ABC")
+	val := []byte("123")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -636,7 +657,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state1.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -652,7 +673,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -698,6 +719,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
+	key := []byte("ABC")
+	val := []byte("123")
+	newVal := []byte("124")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -711,7 +735,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state1.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -727,14 +751,14 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.DataTrie().Root()
+	rootHash, err = state2.DataTrie().Root()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -745,8 +769,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
-	//Test 2.2 test whether the datatrie roots match
-	assert.Equal(t, hrRoot1, hrRoot2)
+	//Test 2.2 test that the datatrie roots are different
+	assert.NotEqual(t, hrRoot1, hrRoot2)
 
 	//Step 3. Commit
 	rootCommit, err := adb.Commit()
@@ -755,7 +779,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	//Step 4. 2-nd account changes its data
 	snapshotMod := adb.JournalLen()
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
+	state2.DataTrieTracker().SaveKeyValue(key, newVal)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	rootHash, err = adb.RootHash()
@@ -772,7 +796,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, hrCreated2p1, hrCreated2)
 
 	//Test 4.2 test whether the datatrie roots match/mismatch
-	assert.Equal(t, hrRoot1, hrRoot2)
 	assert.NotEqual(t, hrRoot2, hrRoot2p1)
 
 	//Step 5. Revert 2-nd account modification
@@ -867,7 +890,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	fmt.Printf("Original root hash: %s\n", hrOriginal)
 
 	for i := 1; i <= 1000; i++ {
-		err := integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
+		err = integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
 
 		assert.Nil(t, err)
 	}
@@ -901,7 +924,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 
 	st := time.Now()
 	for i := 1; i <= 1000; i++ {
-		err := integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
+		err = integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
 		assert.Nil(t, err)
 
 		err = integrationTests.AdbEmulateBalanceTxExecution(acntDest.(*state.Account), acntSrc.(*state.Account), big.NewInt(int64(1000000)))
@@ -997,7 +1020,11 @@ func createAccounts(
 ) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
-	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	evictionWaitListSize := uint(100)
+
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(store, &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([]state.AddressContainer, nrOfAccounts)
@@ -1063,5 +1090,468 @@ func BenchmarkTxExecution(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		integrationTests.AdbEmulateBalanceTxSafeExecution(acntSrc.(*state.Account), acntDest.(*state.Account), adb, big.NewInt(1))
+	}
+}
+
+func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
+	t.Parallel()
+
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
+
+	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000002")
+
+	newDefaultAccount(adb, address1)
+	newDefaultAccount(adb, address2)
+	account := newDefaultAccount(adb, address3)
+
+	rootHash1, _ := adb.Commit()
+	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(1))
+	rootHash2, _ := adb.Commit()
+	_ = tr.Prune(rootHash1, data.OldRoot)
+
+	err := adb.RecreateTrie(rootHash2)
+	assert.Nil(t, err)
+	ok, err := adb.HasAccount(address1)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) state.AccountHandler {
+	account, _ := adb.GetAccountWithJournal(address)
+	_ = account.(*state.Account).SetNonceWithJournal(0)
+	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(0))
+
+	return account
+}
+
+func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
+	t.Parallel()
+
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
+
+	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+
+	key1 := []byte("ABC")
+	key2 := []byte("ABD")
+	value1 := []byte("dog")
+	value2 := []byte("puppy")
+
+	state1, _ := adb.GetAccountWithJournal(address1)
+	state1.DataTrieTracker().SaveKeyValue(key1, value1)
+	state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveDataTrie(state1)
+
+	state2, _ := adb.GetAccountWithJournal(address2)
+	state2.DataTrieTracker().SaveKeyValue(key1, value1)
+	state2.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveDataTrie(state2)
+
+	oldRootHash, _ := adb.Commit()
+
+	state2, _ = adb.GetAccountWithJournal(address2)
+	state2.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = adb.SaveDataTrie(state2)
+
+	newRootHash, _ := adb.Commit()
+	_ = tr.Prune(oldRootHash, data.OldRoot)
+
+	err := adb.RecreateTrie(newRootHash)
+	assert.Nil(t, err)
+	ok, err := adb.HasAccount(address1)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+
+	collapseTrie(state1, t)
+	collapseTrie(state2, t)
+
+	val, err := state1.DataTrieTracker().RetrieveValue(key1)
+	assert.Nil(t, err)
+	assert.Equal(t, value1, val)
+
+	val, err = state2.DataTrieTracker().RetrieveValue(key2)
+	assert.Nil(t, err)
+	assert.Equal(t, value1, val)
+}
+
+func collapseTrie(state state.AccountHandler, t *testing.T) {
+	stateRootHash := state.GetRootHash()
+	stateTrie := state.DataTrieTracker().DataTrie()
+	stateNewTrie, _ := stateTrie.Recreate(stateRootHash)
+	assert.NotNil(t, stateNewTrie)
+
+	state.DataTrieTracker().SetDataTrie(stateNewTrie)
+}
+
+func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodesPerShard := 1
+	numNodesMeta := 1
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartSyncingBlocks(nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(1000000000)
+	valToTransferPerTx := big.NewInt(2)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+		receiversPublicKeys[0] = append(receiversPublicKeys[0], pk)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	fmt.Println("Generating transactions...")
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
+
+	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	time.Sleep(time.Second * 5)
+
+	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	shardIdToRollbackLastBlock := uint32(0)
+	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
+	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	nonces := []*uint64{new(uint64), new(uint64)}
+	atomic.AddUint64(nonces[0], 2)
+	atomic.AddUint64(nonces[1], 3)
+
+	numOfRounds := 2
+	integrationTests.ProposeBlocks(
+		nodes,
+		&round,
+		idxProposers,
+		nonces,
+		numOfRounds,
+	)
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
+}
+
+func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodesPerShard := 1
+	numNodesMeta := 1
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartSyncingBlocks(nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(1000000000)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	_, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	time.Sleep(time.Second * 5)
+
+	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	shardIdToRollbackLastBlock := uint32(0)
+	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
+	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.Nil(t, err)
+}
+
+func TestTriePruningWhenBlockIsFinal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	fmt.Println("Setup nodes...")
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(1000000000)
+	valToTransferPerTx := big.NewInt(2)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	fmt.Println("Generating transactions...")
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
+
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
+}
+
+func TestSnapshotOnEpochChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
+	stateCheckpointModulus := uint(3)
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+		stateCheckpointModulus,
+	)
+
+	roundsPerEpoch := uint64(5)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}()
+
+	sendValue := big.NewInt(5)
+	receiverAddress := []byte("12345678901234567890123456789012")
+	initialVal := big.NewInt(10000000)
+
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	checkpointsRootHashes := make(map[int][][]byte)
+	snapshotsRootHashes := make(map[int][][]byte)
+	prunedRootHashes := make(map[int][][]byte)
+
+	numShardNodes := numOfShards * nodesPerShard
+	numRounds := uint32(9)
+	for i := uint64(0); i < uint64(numRounds); i++ {
+
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+		}
+		time.Sleep(integrationTests.StepDelay)
+
+		collectSnapshotAndCheckpointHashes(
+			nodes,
+			numShardNodes,
+			checkpointsRootHashes,
+			snapshotsRootHashes,
+			prunedRootHashes,
+			uint64(stateCheckpointModulus),
+		)
+	}
+
+	numDelayRounds := uint32(4)
+	for i := uint64(0); i < uint64(numDelayRounds); i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		time.Sleep(integrationTests.StepDelay)
+	}
+
+	for i := 0; i < numOfShards*nodesPerShard; i++ {
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+	}
+}
+
+func collectSnapshotAndCheckpointHashes(
+	nodes []*integrationTests.TestProcessorNode,
+	numShardNodes int,
+	checkpointsRootHashes map[int][][]byte,
+	snapshotsRootHashes map[int][][]byte,
+	prunedRootHashes map[int][][]byte,
+	stateCheckpointModulus uint64,
+) {
+	for j := 0; j < numShardNodes; j++ {
+		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
+
+		if currentBlockHeader.IsStartOfEpochBlock() {
+			snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		checkpointRound := currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0
+		if checkpointRound {
+			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
+	}
+}
+
+func testNodeStateCheckpointSnapshotAndPruning(
+	t *testing.T,
+	node *integrationTests.TestProcessorNode,
+	checkpointsRootHashes [][]byte,
+	snapshotsRootHashes [][]byte,
+	prunedRootHashes [][]byte,
+) {
+
+	assert.Equal(t, 3, len(checkpointsRootHashes))
+	for i := range checkpointsRootHashes {
+		tr, err := node.StateTrie.Recreate(checkpointsRootHashes[i])
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	assert.Equal(t, 1, len(snapshotsRootHashes))
+	for i := range snapshotsRootHashes {
+		tr, err := node.StateTrie.Recreate(snapshotsRootHashes[i])
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	assert.Equal(t, 5, len(prunedRootHashes))
+	for i := range prunedRootHashes {
+		tr, err := node.StateTrie.Recreate(prunedRootHashes[i])
+		assert.Nil(t, tr)
+		assert.NotNil(t, err)
 	}
 }

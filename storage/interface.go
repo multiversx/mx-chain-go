@@ -54,7 +54,7 @@ type Cacher interface {
 	// the "recently used"-ness of the key.
 	Peek(key []byte) (value interface{}, ok bool)
 	// HasOrAdd checks if a key is in the cache  without updating the
-	// recent-ness or deleting it for being stale,  and if not, adds the value.
+	// recent-ness or deleting it for being stale,  and if not adds the value.
 	// Returns whether found and whether an eviction occurred.
 	HasOrAdd(key []byte, value interface{}) (ok, evicted bool)
 	// Remove removes the provided key from the cache.

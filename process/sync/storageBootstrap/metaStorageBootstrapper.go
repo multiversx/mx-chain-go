@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
 type metaStorageBootstrapper struct {
@@ -22,6 +22,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 		marshalizer:      arguments.Marshalizer,
 		store:            arguments.Store,
 		shardCoordinator: arguments.ShardCoordinator,
+		blockTracker:     arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -47,23 +48,21 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 	return msb == nil
 }
 
-func (msb *metaStorageBootstrapper) applyNotarizedBlocks(
-	lastNotarized map[uint32]*sync.HdrInfo,
-) error {
-	for i := uint32(0); i < msb.shardCoordinator.NumberOfShards(); i++ {
-		if lastNotarized[i] == nil {
-			continue
-		}
-		if lastNotarized[i].Hash == nil {
-			return sync.ErrNilHash
-		}
-
-		headerHandler, err := process.GetShardHeaderFromStorage(lastNotarized[i].Hash, msb.marshalizer, msb.store)
+func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
+	for _, crossNotarizedHeader := range crossNotarizedHeaders {
+		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
 		if err != nil {
 			return err
 		}
 
-		msb.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
+		log.Debug("added cross notarized header in block tracker",
+			"shard", crossNotarizedHeader.ShardId,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", crossNotarizedHeader.Hash)
+
+		msb.blockTracker.AddCrossNotarizedHeader(crossNotarizedHeader.ShardId, header, crossNotarizedHeader.Hash)
+		msb.blockTracker.AddTrackedHeader(header, crossNotarizedHeader.Hash)
 	}
 
 	return nil
@@ -117,4 +116,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 				"error", err.Error())
 		}
 	}
+}
+
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	return selfNotarizedHeaders, nil
 }

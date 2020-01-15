@@ -43,6 +43,15 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilNodesCoordinator signals that nil shard coordinator was provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
+// ErrNilMarshalizer is raised when the NewTrie() function is called, but a marshalizer isn't provided
+var ErrNilMarshalizer = errors.New("no marshalizer provided")
+
+// ErrNilDatabase is raised when a database operation is called, but no database is provided
+var ErrNilDatabase = errors.New("no database provided")
+
+// ErrInvalidCacheSize is raised when the given size for the cache is invalid
+var ErrInvalidCacheSize = errors.New("cache size is invalid")
+
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 

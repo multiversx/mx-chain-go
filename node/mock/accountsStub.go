@@ -19,6 +19,11 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 func (as *AccountsStub) ClosePersister() error {
@@ -79,6 +84,26 @@ func (as *AccountsStub) RootHash() ([]byte, error) {
 
 func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return as.RecreateTrieCalled(rootHash)
+}
+
+func (as *AccountsStub) PruneTrie(rootHash []byte) error {
+	return as.PruneTrieCalled(rootHash)
+}
+
+func (as *AccountsStub) CancelPrune(rootHash []byte) {
+	as.CancelPruneCalled(rootHash)
+}
+
+func (as *AccountsStub) SnapshotState(rootHash []byte) {
+	as.SnapshotStateCalled(rootHash)
+}
+
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+	as.SetStateCheckpointCalled(rootHash)
+}
+
+func (as *AccountsStub) IsPruningEnabled() bool {
+	return as.IsPruningEnabledCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
