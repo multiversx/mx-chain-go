@@ -183,56 +183,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	return sdp
 }
 
-func initMetaDataPool() *mock.PoolsHolderStub {
-	mdp := &mock.PoolsHolderStub{
-		MiniBlocksCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
-			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("mb_hash1"), key) {
-					return &block.Header{Nonce: 1}, true
-				}
-				return nil, false
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 300
-			}
-			cs.RemoveCalled = func(key []byte) {}
-			cs.KeysCalled = func() [][]byte {
-				return nil
-			}
-			return cs
-		},
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
-			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
-				if bytes.Equal([]byte("hdr_hash1"), hash) {
-					return &block.Header{Nonce: 1}, nil
-				}
-				return nil, errors.New("err")
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 1000
-			}
-			cs.RemoveHeaderByHashCalled = func(key []byte) {}
-			cs.NoncesCalled = func(shardId uint32) []uint64 {
-				return nil
-			}
-			return cs
-		},
-	}
-	return mdp
-}
-
 func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())

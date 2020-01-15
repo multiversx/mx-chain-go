@@ -21,7 +21,7 @@ import (
 )
 
 func createMockMetaArguments() blproc.ArgMetaProcessor {
-	mdp := initMetaDataPool()
+	mdp := initDataPool([]byte("tx_hash"))
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &mock.HasherStub{},
@@ -55,7 +55,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 				},
 			},
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			DataPool: mdp,
+			DataPool:     mdp,
 		},
 		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
@@ -519,7 +519,7 @@ func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
 func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	t.Parallel()
 
-	mdp := initMetaDataPool()
+	mdp := initDataPool([]byte("tx_hash"))
 	accounts := &mock.AccountsStub{}
 	accounts.RevertToSnapshotCalled = func(snapshot int) error {
 		return nil
@@ -644,7 +644,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mdp := initMetaDataPool()
+	mdp := initDataPool([]byte("tx_hash"))
 	hdr := createMetaBlockHeader()
 	body := block.Body{}
 	accounts := &mock.AccountsStub{
@@ -680,7 +680,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdp := initMetaDataPool()
+	mdp := initDataPool([]byte("tx_hash"))
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
 	body := block.Body{}
@@ -769,7 +769,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 
-	mdp := initMetaDataPool()
+	mdp := initDataPool([]byte("tx_hash"))
 
 	arguments := createMockMetaArguments()
 	arguments.DataPool = mdp
@@ -798,7 +798,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	arguments.DataPool = initMetaDataPool()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -811,7 +811,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	arguments.DataPool = initMetaDataPool()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -833,7 +833,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 			return []byte("root"), nil
 		},
 	}
-	arguments.DataPool = initMetaDataPool()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -854,7 +854,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 			return []byte("root"), nil
 		},
 	}
-	arguments.DataPool = initMetaDataPool()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -878,7 +878,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: revToSnapshot,
 	}
-	arguments.DataPool = initMetaDataPool()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -2076,7 +2076,7 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -2107,7 +2107,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	hdrHash2Bytes := []byte("hdr_hash2")
 	expectedMiniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
@@ -2262,7 +2262,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	hdrHash2Bytes := []byte("hdr_hash2")
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
@@ -2354,7 +2354,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		return hash
 	}
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
@@ -2487,7 +2487,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	startHeaders[0] = hdr
 
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
@@ -2571,7 +2571,7 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T)
 		},
 	}
 
-	dPool := initMetaDataPool()
+	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}

@@ -638,11 +638,6 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 	vs.mutPrevShardInfo.Lock()
 	defer vs.mutPrevShardInfo.Unlock()
 
-	metaDataPool, ok := vs.dataPool.(dataRetriever.PoolsHolder)
-	if !ok {
-		return process.ErrInvalidMetaPoolHolder
-	}
-
 	for _, shardData := range header.ShardInfo {
 		if shardData.Nonce == 1 {
 			continue
@@ -650,7 +645,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 
 		previousHeader, err := process.GetShardHeader(
 			shardData.PrevHash,
-			metaDataPool.Headers(),
+			vs.dataPool.Headers(),
 			vs.marshalizer,
 			vs.storageService,
 		)

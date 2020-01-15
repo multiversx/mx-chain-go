@@ -388,7 +388,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	datapool, err = createShardDataPoolFromConfig(args.config)
+	datapool, err = createDataPoolFromConfig(args.config)
 	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -1014,11 +1014,11 @@ func createDataStoreFromConfig(
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataPoolFromConfig(
+func createDataPoolFromConfig(
 	config *config.Config,
 ) (dataRetriever.PoolsHolder, error) {
 
-	log.Debug("creatingShardDataPool from config")
+	log.Debug("creatingDataPool from config")
 
 	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
@@ -1423,7 +1423,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Marshalizer:              coreComponents.Marshalizer,
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
-		MetaDatapool:             dataComponents.Datapool,
+		DataPool:                 dataComponents.Datapool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
@@ -1438,7 +1438,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		newStore, newBlkc, err := createInMemoryStoreBlkc(newShardCoordinator)
 		if err != nil {
 			return nil, err
 		}
@@ -1447,7 +1447,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.MetaDatapool = dataComponents.Datapool
+		argsMetaGenesis.DataPool = dataComponents.Datapool
 	}
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
@@ -1467,7 +1467,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	return genesisBlocks, nil
 }
 
-func createInMemoryStoreBlkcAndMetaDataPool(
+func createInMemoryStoreBlkc(
 	shardCoordinator sharding.Coordinator,
 ) (dataRetriever.StorageService, data.ChainHandler, error) {
 

@@ -327,7 +327,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = CreateTestShardDataPool(nil)
+	tpn.DataPool = CreateTestDataPool(nil)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -724,11 +724,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	var peerDataPool peer.DataPool = tpn.DataPool
-	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
-		peerDataPool = tpn.DataPool
-	}
-
 	initialNodes := make([]*sharding.InitialNode, 0)
 	nodesMap := tpn.NodesCoordinator.GetAllValidatorsPublicKeys()
 	for _, pks := range nodesMap {
@@ -755,7 +750,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		AdrConv:          TestAddressConverterBLS,
 		NodesCoordinator: tpn.NodesCoordinator,
 		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         peerDataPool,
+		DataPool:         tpn.DataPool,
 		StorageService:   tpn.Storage,
 		Marshalizer:      TestMarshalizer,
 		StakeValue:       big.NewInt(500),

@@ -99,8 +99,8 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 	return libP2PMes
 }
 
-// CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+// CreateTestDataPool creates a test data pool for shard nodes
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}
@@ -354,7 +354,7 @@ func CreateGenesisMetaBlock(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64Converter,
-		MetaDatapool:             dataPool,
+		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 	}
@@ -367,7 +367,7 @@ func CreateGenesisMetaBlock(
 
 		newStore := CreateMetaStore(newShardCoordinator)
 
-		newMetaDataPool := CreateTestShardDataPool(nil)
+		newDataPool := CreateTestDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
@@ -377,7 +377,7 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.MetaDatapool = newMetaDataPool
+		argsMetaGenesis.DataPool = newDataPool
 	}
 
 	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
@@ -1241,7 +1241,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(&mock.ShardedDataStub{
+	return CreateTestDataPool(&mock.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			assert.Fail(t, "same-shard requesters should not be queried")
 			return nil, false
@@ -1288,7 +1288,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes, txsSndAddr
+	return CreateTestDataPool(txPool), txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1614,11 +1614,11 @@ func EmptyDataPools(nodes []*TestProcessorNode, shardId uint32) {
 
 func emptyNodeDataPool(node *TestProcessorNode) {
 	if node.DataPool != nil {
-		emptyShardDataPool(node.DataPool)
+		emptyDataPool(node.DataPool)
 	}
 }
 
-func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
+func emptyDataPool(sdp dataRetriever.PoolsHolder) {
 	sdp.Headers().Clear()
 	sdp.UnsignedTransactions().Clear()
 	sdp.Transactions().Clear()
