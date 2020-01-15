@@ -262,7 +262,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	}
 
 	shouldRequestHeaders := nbLongestChainHeaders == 0 ||
-		(nbLongestChainHeaders > 0 && sortedHeaders[nbSortedHeaders-1].GetNonce()%process.NonceModulusTrigger == 0)
+		(nbLongestChainHeaders > 0 && highestNonceReceived%process.NonceModulusTrigger == 0)
 	if !shouldRequestHeaders {
 		return
 	}
