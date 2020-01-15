@@ -25,12 +25,6 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(arguments.PoolsHolder.MetaBlocks()) {
-		return nil, process.ErrNilMetaBlocksPool
-	}
-	if check.IfNil(arguments.PoolsHolder.HeadersNonces()) {
-		return nil, process.ErrNilHeadersNoncesDataPool
-	}
 
 	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
 	if err != nil {
@@ -58,9 +52,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		marshalizer:                   arguments.Marshalizer,
 		rounder:                       arguments.Rounder,
 		shardCoordinator:              arguments.ShardCoordinator,
-		shardHeadersPool:              arguments.PoolsHolder.Headers(),
-		metaBlocksPool:                arguments.PoolsHolder.MetaBlocks(),
-		headersNoncesPool:             arguments.PoolsHolder.HeadersNonces(),
+		headersPool:                   arguments.PoolsHolder.Headers(),
 		store:                         arguments.Store,
 		crossNotarizer:                crossNotarizer,
 		selfNotarizer:                 selfNotarizer,
@@ -79,6 +71,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 
 	blockProcessor, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&sbt,
 		crossNotarizer,
@@ -92,8 +85,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	sbt.blockProcessor = blockProcessor
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	sbt.shardHeadersPool.RegisterHandler(sbt.receivedShardHeader)
-	sbt.metaBlocksPool.RegisterHandler(sbt.receivedMetaBlock)
+	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 
 	return &sbt, nil
 }
@@ -112,7 +104,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 			continue
 		}
 
-		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.shardHeadersPool, sbt.marshalizer, sbt.store)
+		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
 			log.Debug("GetShardHeader", err.Error())
 			continue

@@ -68,7 +68,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
+		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 }
 
@@ -107,7 +107,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	_, hdr, _ := nodes[0].ProposeBlock(1, 1)
 	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
-	nodes[0].ShardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
+	nodes[0].ShardDataPool.Headers().AddHeader(shardHeaderHash, hdr)
 
 	maxNumRequests := 5
 	for i := 0; i < maxNumRequests; i++ {
@@ -132,7 +132,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.MetaBlocks().HasOrAdd(metaHeaderHash, metaHdr)
+		nodes[i+1].MetaDataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
@@ -147,7 +147,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
+		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
@@ -156,11 +156,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
 	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.MetaBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
-
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(core.MetachainShardId, metaHeaderHash2)
-		nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
+		nodes[i+1].MetaDataPool.Headers().AddHeader(metaHeaderHash2, metaHdr2)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
@@ -175,6 +171,6 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterMetaRcv))
+		assert.Equal(t, int32(3), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 }

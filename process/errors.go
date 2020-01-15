@@ -286,9 +286,6 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
-var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
-
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
@@ -303,9 +300,6 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
-
-// ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
 // ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
 var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
@@ -485,6 +479,9 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
 
+// ErrNilDatabase signals that the database is nil
+var ErrNilDatabase = errors.New("nil database")
+
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
 
@@ -556,6 +553,9 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
+
+// ErrNilBlockTracker signals that a nil block tracker was provided
+var ErrNilBlockTracker = errors.New("nil block tracker")
 
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
