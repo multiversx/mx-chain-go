@@ -66,10 +66,6 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		"hash", shardHeaderHash,
 	)
 
-	if bbt.isHeaderOutOfRange(shardHeader) {
-		return
-	}
-
 	bbt.addHeader(shardHeader, shardHeaderHash)
 	bbt.blockProcessor.processReceivedHeader(shardHeader)
 }
@@ -88,33 +84,8 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		"hash", metaBlockHash,
 	)
 
-	if bbt.isHeaderOutOfRange(metaBlock) {
-		return
-	}
-
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.processReceivedHeader(metaBlock)
-}
-
-func (bbt *baseBlockTrack) isHeaderOutOfRange(header data.HeaderHandler) bool {
-	var lastNotarizedHeaderNonce uint64
-
-	isHeaderForSelfShard := header.GetShardID() == bbt.shardCoordinator.SelfId()
-	if isHeaderForSelfShard {
-		lastNotarizedHeaderNonce = bbt.selfNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
-	} else {
-		lastNotarizedHeaderNonce = bbt.crossNotarizer.getLastNotarizedHeaderNonce(header.GetShardID())
-	}
-
-	if header.GetNonce() > lastNotarizedHeaderNonce+process.MaxNonceDifferences {
-		log.Debug("received header is out of range",
-			"received nonce", header.GetNonce(),
-			"last notarized nonce", lastNotarizedHeaderNonce,
-		)
-		return true
-	}
-
-	return false
 }
 
 func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {

@@ -1204,7 +1204,7 @@ func createNetMessenger(
 		return nil, errors.New("cannot start node on port < 0")
 	}
 
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
+	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
 	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
 
 	if err != nil {
@@ -1959,6 +1959,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		data.Datapool,
 		state.AddressConverter,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -2105,6 +2106,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
