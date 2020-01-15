@@ -95,7 +95,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Trace("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
 

@@ -94,7 +94,7 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Trace("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfMetaBlocksInfo
 	}
 
