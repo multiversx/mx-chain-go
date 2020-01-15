@@ -526,7 +526,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice = append(resolverSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes)
 	if err != nil {

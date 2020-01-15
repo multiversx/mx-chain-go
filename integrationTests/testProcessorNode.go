@@ -1186,16 +1186,16 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 		return nil, errors.New("invalid data pool")
 	}
 
-	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headerObjects, _, err := tpn.MetaDataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, sharding.MetachainShardId, err.Error()))
+		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, core.MetachainShardId, err.Error()))
 	}
 
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.MetaBlock)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, sharding.MetachainShardId))
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, core.MetachainShardId))
 	}
 
 	return header, nil
@@ -1321,7 +1321,7 @@ func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderCon
 		StartHeaders:     tpn.GenesisBlocks,
 	}
 
-	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
 			PoolsHolder:    tpn.ShardDataPool,

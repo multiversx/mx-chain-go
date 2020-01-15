@@ -399,7 +399,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
-	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
 		return nil
 	}

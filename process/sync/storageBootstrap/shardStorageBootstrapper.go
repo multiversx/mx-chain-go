@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 )
 
 type shardStorageBootstrapper struct {
@@ -89,7 +88,7 @@ func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandl
 
 func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
-		if crossNotarizedHeader.ShardId != sharding.MetachainShardId {
+		if crossNotarizedHeader.ShardId != core.MetachainShardId {
 			continue
 		}
 
@@ -166,12 +165,12 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
 
 		log.Debug("added self notarized header in block tracker",
-			"shard", sharding.MetachainShardId,
+			"shard", core.MetachainShardId,
 			"round", selfNotarizedHeader.GetRound(),
 			"nonce", selfNotarizedHeader.GetNonce(),
 			"hash", selfNotarizedHeaderHash)
 
-		ssb.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
+		ssb.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 
 	return selfNotarizedHeaders, nil

@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -452,7 +453,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	t.Parallel()
 
-	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), sharding.MetachainShardId
+	shardId0, shardId1, shardId2, shardMeta := uint32(0), uint32(1), uint32(1), core.MetachainShardId
 	cacheSize := 50
 	numHeadersToGenerate := 49
 	numElemsToRemove := 25

@@ -629,7 +629,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	keys = append(keys, identifierTrieNodes)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {

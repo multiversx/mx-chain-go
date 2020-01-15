@@ -540,7 +540,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {

@@ -85,7 +85,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -540,17 +540,18 @@ type processComponentsFactoryArgs struct {
 	shardCoordinator       sharding.Coordinator
 	nodesCoordinator       sharding.NodesCoordinator
 	data                   *Data
-	coreData              *Core
-	crypto                *Crypto
-	state                 *State
-	network               *Network
-	coreServiceContainer  serviceContainer.Core
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	epochStartNotifier    EpochStartNotifier
-	epochStart            *config.EpochStartConfig
-	startEpochNum         uint32
-	rater                 sharding.RaterHandler
-	sizeCheckDelta        uint32stateCheckpointModulus uint
+	coreData               *Core
+	crypto                 *Crypto
+	state                  *State
+	network                *Network
+	coreServiceContainer   serviceContainer.Core
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	epochStartNotifier     EpochStartNotifier
+	epochStart             *config.EpochStartConfig
+	startEpochNum          uint32
+	rater                  sharding.RaterHandler
+	sizeCheckDelta         uint32
+	stateCheckpointModulus uint
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -587,7 +588,7 @@ func NewProcessComponentsFactoryArgs(
 		shardCoordinator:       shardCoordinator,
 		nodesCoordinator:       nodesCoordinator,
 		data:                   data,
-		coreData:              coreData,
+		coreData:               coreData,
 		crypto:                 crypto,
 		state:                  state,
 		network:                network,
@@ -710,8 +711,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      args.core.Hasher,
-		Marshalizer: args.core.Marshalizer,
+		Hasher:      args.coreData.Hasher,
+		Marshalizer: args.coreData.Marshalizer,
 	}
 	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
@@ -1630,9 +1631,9 @@ func newBlockTracker(
 ) (process.BlockTracker, error) {
 
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:           processArgs.core.Hasher,
+		Hasher:           processArgs.coreData.Hasher,
 		HeaderValidator:  headerValidator,
-		Marshalizer:      processArgs.core.Marshalizer,
+		Marshalizer:      processArgs.coreData.Marshalizer,
 		RequestHandler:   requestHandler,
 		Rounder:          rounder,
 		ShardCoordinator: processArgs.shardCoordinator,
@@ -1649,7 +1650,7 @@ func newBlockTracker(
 		return track.NewShardBlockTrack(arguments)
 	}
 
-	if processArgs.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if processArgs.shardCoordinator.SelfId() == core.MetachainShardId {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
 			PoolsHolder:    processArgs.data.MetaDatapool,

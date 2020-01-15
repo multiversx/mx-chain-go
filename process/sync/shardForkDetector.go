@@ -5,10 +5,10 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // shardForkDetector implements the shard fork detector mechanism
@@ -81,7 +81,7 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) {
-	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, sharding.MetachainShardId)
+	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, core.MetachainShardId)
 	sfd.computeFinalCheckpoint()
 	sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 	sfd.removePastOrInvalidRecords()
@@ -95,7 +95,7 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
 	selfNotarizedHeadersHashes [][]byte,
 ) {
 	// accept only self notarized headers by meta
-	if shardID != sharding.MetachainShardId {
+	if shardID != core.MetachainShardId {
 		return
 	}
 

@@ -238,9 +238,9 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, msh marshal.Marshal
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
-
 	tsm.snapshotsBuffer.add(rootHash, false)
 	if tsm.snapshotsBuffer.len() > 1 {
+
 		return
 	}
 
@@ -256,6 +256,7 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		snapshot := tsm.snapshotsBuffer.getFirst()
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
+			tsm.storageOperationMutex.Unlock()
 			log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 			return
 		}

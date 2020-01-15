@@ -244,7 +244,7 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 	var resolver dataRetriever.Resolver
 	var err error
 
-	if destShardID == sharding.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
 	} else {
 		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)

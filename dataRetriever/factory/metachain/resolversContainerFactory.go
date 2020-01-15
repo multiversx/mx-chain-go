@@ -455,7 +455,7 @@ func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
 	if err != nil {
