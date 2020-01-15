@@ -346,8 +346,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			DataPool: initDataPool([]byte("")),
-		},
+			DataPool:     initDataPool([]byte("")),
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

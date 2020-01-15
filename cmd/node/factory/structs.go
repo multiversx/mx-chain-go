@@ -1578,7 +1578,7 @@ func newBlockTracker(
 	if processArgs.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    processArgs.data.MetaDatapool,
+			PoolsHolder:    processArgs.data.Datapool,
 		}
 
 		return track.NewMetaBlockTrack(arguments)
