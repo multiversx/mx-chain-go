@@ -383,30 +383,6 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 	return isShardStuck
 }
 
-//func (bbt *baseBlockTrack) getLastHeader(shardID uint32) data.HeaderHandler {
-//	bbt.mutHeaders.RLock()
-//	defer bbt.mutHeaders.RUnlock()
-//
-//	var lastHeaderForShard data.HeaderHandler
-//
-//	headersForShard, ok := bbt.headers[shardID]
-//	if !ok {
-//		return lastHeaderForShard
-//	}
-//
-//	maxRound := uint64(0)
-//	for _, headersInfo := range headersForShard {
-//		for _, headerInfo := range headersInfo {
-//			if headerInfo.header.GetRound() > maxRound {
-//				maxRound = headerInfo.header.GetRound()
-//				lastHeaderForShard = headerInfo.header
-//			}
-//		}
-//	}
-//
-//	return lastHeaderForShard
-//}
-
 // RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
 func (bbt *baseBlockTrack) RegisterCrossNotarizedHeadersHandler(
 	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
