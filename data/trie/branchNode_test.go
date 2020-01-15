@@ -810,6 +810,20 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 	assert.Nil(t, newBn)
 }
 
+func TestBranchNode_deleteNonexistentNodeFromChild(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+
+	childPos := byte(2)
+	key := append([]byte{childPos}, []byte("butterfly")...)
+
+	dirty, newBn, _, err := bn.delete(key, nil)
+	assert.False(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, bn, newBn)
+}
+
 func TestBranchNode_deleteEmptykey(t *testing.T) {
 	t.Parallel()
 

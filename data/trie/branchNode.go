@@ -513,7 +513,7 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 
 	dirty, newNode, oldHashes, err := bn.children[childPos].delete(key, db)
 	if !dirty || err != nil {
-		return false, nil, emptyHashes, err
+		return false, bn, emptyHashes, err
 	}
 
 	if !bn.dirty {
