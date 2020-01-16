@@ -265,7 +265,7 @@
         Size = 5000
         Type = "LRU"
     [Antiflood.Topic]
-        DefaultMaxRequestsPerSec = 75
+        DefaultMaxMessagesPerSec = 75
         HeartbeatMaxMessagesPerSec = 10
         HeadersRequestsPerSec = 20
     [Antiflood.BlackList]

@@ -64,9 +64,10 @@ func (af *p2pAntiflood) CanProcessMessageOnTopic(message p2p.MessageP2P, fromCon
 		return p2p.ErrNilMessage
 	}
 
-	ok := topicFloodPreventer.Accumulate(message.Peer().Pretty(), topic)
+	peerId := message.Peer().Pretty()
+	ok := topicFloodPreventer.Accumulate(peerId, topic)
 	if !ok {
-		return fmt.Errorf("%w in p2pAntiflood for originator", p2p.ErrSystemBusy)
+		return fmt.Errorf("%w in p2pAntiflood for originator. peer id = %s", p2p.ErrSystemBusy, peerId)
 	}
 
 	return nil

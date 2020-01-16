@@ -97,6 +97,7 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 }
 
 func (hdrRes *HeaderResolver) topicNameForAntiflood() string {
+	// TODO : compute the topic name in the interceptor, not here
 	prefix := factory.ShardBlocksTopic
 	if hdrRes.shardCoordinator.SelfId() > hdrRes.shardCoordinator.NumberOfShards() {
 		prefix = factory.MetachainBlocksTopic

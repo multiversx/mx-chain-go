@@ -46,7 +46,7 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
-// MarshalizerConfig
+// MarshalizerConfig holds the settings related to the marshalizer
 type MarshalizerConfig struct {
 	Type           string `json:"type"`
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
@@ -211,7 +211,7 @@ type BlackListConfig struct {
 
 // TopicAntifloodConfig will hold the maximum values per second to be used in certain topics
 type TopicAntifloodConfig struct {
-	DefaultMaxRequestsPerSec   uint32
+	DefaultMaxMessagesPerSec   uint32
 	HeartbeatMaxMessagesPerSec uint32
 	HeadersRequestsPerSec      uint32
 }

@@ -63,11 +63,9 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 	// if this was already in the map, just increment it
 	tfp.counterMap[topic][identifier]++
 
-	if tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic) {
-		return false
-	}
+	limitExceeded := tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic)
 
-	return true
+	return limitExceeded
 }
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
