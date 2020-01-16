@@ -28,7 +28,7 @@ type pendingMiniBlockHeaders struct {
 	metaBlockStorage    storage.Storer
 	metaBlockPool       dataRetriever.HeadersPool
 	storage             storage.Storer
-	mutPending          sync.Mutex
+	mutPending          sync.RWMutex
 	mapMiniBlockHeaders map[string]block.ShardMiniBlockHeader
 }
 
@@ -80,8 +80,8 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 	}
 
 	// pending miniblocks are only those which are still pending and ar from the aforementioned list
-	p.mutPending.Lock()
-	defer p.mutPending.Unlock()
+	p.mutPending.RLock()
+	defer p.mutPending.RUnlock()
 
 	for key, shMbHdr := range p.mapMiniBlockHeaders {
 		if _, ok := mapShardMiniBlockHeaders[key]; !ok {
@@ -240,6 +240,7 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 
 	crossShard := p.getAllCrossShardMiniBlocks(metaHdr)
 
+	p.mutPending.Lock()
 	for mbHash, mbHeader := range crossShard {
 		if _, ok = p.mapMiniBlockHeaders[mbHash]; ok {
 			delete(p.mapMiniBlockHeaders, mbHash)
@@ -249,6 +250,7 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 		_ = p.storage.Remove([]byte(mbHash))
 		p.mapMiniBlockHeaders[mbHash] = mbHeader
 	}
+	p.mutPending.Unlock()
 
 	return nil
 }

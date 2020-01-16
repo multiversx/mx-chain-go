@@ -862,11 +862,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	err = coreComponents.Trie.ClosePersister()
-	log.LogIfError(err)
-
-	err = stateComponents.PeerAccounts.ClosePersister()
-	log.LogIfError(err)
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
 
 	if rm != nil {
 		err = rm.Close()

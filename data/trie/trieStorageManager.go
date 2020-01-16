@@ -258,6 +258,7 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		snapshot := tsm.snapshotsBuffer.getFirst()
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
+			tsm.storageOperationMutex.Unlock()
 			log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 			return
 		}
