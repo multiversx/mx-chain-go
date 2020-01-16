@@ -91,15 +91,6 @@ var ErrNilResolversFinder = errors.New("nil resolvers finder")
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
-// ErrNilBlockHeader is raised when a valid block header is expected but nil was used
-var ErrNilBlockHeader = errors.New("block header is nil")
-
-// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
-var ErrNilTxBlockBody = errors.New("tx block body is nil")
-
-// ErrWrongTypeAssertion is raised when a type assertion occurs
-var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")
-
 // ErrNegativeDurationInSecToConsiderUnresponsive is raised when a value less than 1 has been provided
 var ErrNegativeDurationInSecToConsiderUnresponsive = errors.New("value DurationInSecToConsiderUnresponsive is less" +
 	" than 1")

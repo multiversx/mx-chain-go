@@ -40,7 +40,7 @@ func intraShard() {
 						meanTotalLatency, meanNrOfHops, meanLonelyNodes := 0.0, 0.0, 0.0
 						for i := 0; i < 10; i++ {
 							totalLatency, nrOfHops, lonelyNodes := broadcast.Broadcast(nodes, latency, peersPerNode, bandwidth, blocksize)
-							meanTotalLatency += (float64)(totalLatency)
+							meanTotalLatency += totalLatency
 							meanNrOfHops += (float64)(nrOfHops)
 							meanLonelyNodes += (float64)(lonelyNodes)
 

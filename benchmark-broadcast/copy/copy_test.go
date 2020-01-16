@@ -35,7 +35,7 @@ func TestPeersToPeerMap(t *testing.T) {
 func TestPeerPath(t *testing.T) {
 	var src, dest = []int{2, 3, 4, 1, 5}, []int{}
 
-	copy.PeerPath((&dest), src, 6)
+	copy.PeerPath(&dest, src, 6)
 
 	if len(src)+1 != len(dest) {
 		t.Fatalf("Src and dest have different lengths")

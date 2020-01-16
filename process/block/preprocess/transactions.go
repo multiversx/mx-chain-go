@@ -513,8 +513,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				continue
 			}
 
-			if len(miniBlock.TxHashes) > 0 {
-				txSpaceRemained -= len(miniBlock.TxHashes)
+			if len(miniBlockForShard.TxHashes) > 0 {
+				txSpaceRemained -= len(miniBlockForShard.TxHashes)
 				miniBlocks = append(miniBlocks, miniBlockForShard)
 				newMBAdded = true
 			}
