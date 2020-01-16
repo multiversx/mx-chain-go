@@ -453,7 +453,13 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 		return err
 	}
 
-	err = bbt.selfNotarizer.initNotarizedHeaders(startHeaders)
+	selfStartHeader := startHeaders[bbt.shardCoordinator.SelfId()]
+	selfStartHeaders := make(map[uint32]data.HeaderHandler)
+	for shardID, _ := range startHeaders {
+		selfStartHeaders[shardID] = selfStartHeader
+	}
+
+	err = bbt.selfNotarizer.initNotarizedHeaders(selfStartHeaders)
 	if err != nil {
 		return err
 	}
