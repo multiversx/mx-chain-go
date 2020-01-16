@@ -110,10 +110,12 @@ func (imh *InterceptedMetaHeader) IsForCurrentShard() bool {
 	return true
 }
 
+// Type returns the type of this intercepted data
+func (imh *InterceptedMetaHeader) Type() string {
+	return "intercepted meta header"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (imh *InterceptedMetaHeader) IsInterfaceNil() bool {
-	if imh == nil {
-		return true
-	}
-	return false
+	return imh == nil
 }

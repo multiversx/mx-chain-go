@@ -39,7 +39,7 @@ func getTxValidatorHandler(
 	sndShardId uint32,
 	nonce uint64,
 	sndAddr state.AddressContainer,
-	totalValue *big.Int,
+	fee *big.Int,
 ) process.TxValidatorHandler {
 	return &mock.TxValidatorHandlerStub{
 		SenderShardIdCalled: func() uint32 {
@@ -51,8 +51,8 @@ func getTxValidatorHandler(
 		SenderAddressCalled: func() state.AddressContainer {
 			return sndAddr
 		},
-		TotalValueCalled: func() *big.Int {
-			return totalValue
+		FeeCalled: func() *big.Int {
+			return fee
 		},
 	}
 }
@@ -155,7 +155,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 
 	accountNonce := uint64(0)
 	txNonce := uint64(1)
-	totalCost := big.NewInt(1000)
+	fee := big.NewInt(1000)
 	accountBalance := big.NewInt(10)
 
 	accounts := getAccAdapter(accountNonce, accountBalance)
@@ -165,7 +165,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, totalCost)
+	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, fee)
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.NotNil(t, result)
@@ -177,7 +177,7 @@ func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
 
 	accountNonce := uint64(0)
 	txNonce := uint64(1)
-	totalCost := big.NewInt(1000)
+	fee := big.NewInt(1000)
 	accountBalance := big.NewInt(10)
 
 	accounts := getAccAdapter(accountNonce, accountBalance)
@@ -187,7 +187,7 @@ func TestTxValidator_CheckTxValidityShouldReturnFalse(t *testing.T) {
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
-	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, totalCost)
+	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, fee)
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.NotNil(t, result)

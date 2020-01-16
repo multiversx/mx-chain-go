@@ -3,10 +3,11 @@ package resolvers_test
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -20,8 +21,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		nil,
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -39,7 +39,6 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
 		nil,
-		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -51,31 +50,12 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 	assert.Nil(t, hdrRes)
 }
 
-func TestNewHeaderResolver_NilHeadersNoncesPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrRes, err := resolvers.NewHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		nil,
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		mock.NewNonceHashConverterMock(),
-		createMockP2PAntifloodHandler(),
-	)
-
-	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesDataPool, err)
-	assert.Nil(t, hdrRes)
-}
-
 func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		nil,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -92,8 +72,7 @@ func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -110,8 +89,7 @@ func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		nil,
@@ -128,8 +106,7 @@ func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -164,8 +141,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -207,8 +183,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -225,8 +200,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -247,14 +221,14 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	searchWasCalled := false
 	sendWasCalled := false
 
-	headers := &mock.CacherStub{}
+	headers := &mock.HeadersCacherStub{}
 
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		if bytes.Equal(requestedData, key) {
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		if bytes.Equal(requestedData, hash) {
 			searchWasCalled = true
-			return make([]byte, 0), true
+			return &block.Header{}, nil
 		}
-		return nil, false
+		return nil, errors.New("0")
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -267,7 +241,6 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 			},
 		},
 		headers,
-		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		marshalizer,
@@ -285,17 +258,16 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 	t.Parallel()
 
 	requestedData := []byte("aaaa")
-	resolvedData := []byte("bbbb")
 
 	errExpected := errors.New("MarshalizerMock generic error")
 
-	headers := &mock.CacherStub{}
+	headers := &mock.HeadersCacherStub{}
 
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		if bytes.Equal(requestedData, key) {
-			return resolvedData, true
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		if bytes.Equal(requestedData, hash) {
+			return &block.Header{}, nil
 		}
-		return nil, false
+		return nil, errors.New("err")
 	}
 
 	marshalizerMock := &mock.MarshalizerMock{}
@@ -315,7 +287,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 			},
 		},
 		headers,
-		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		marshalizerStub,
@@ -332,10 +303,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 
 	requestedData := []byte("aaaa")
 
-	headers := &mock.CacherStub{}
+	headers := &mock.HeadersCacherStub{}
 
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		return nil, false
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		return nil, errors.New("err")
 	}
 
 	wasGotFromStorage := false
@@ -361,7 +332,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 			},
 		},
 		headers,
-		&mock.Uint64SyncMapCacherStub{},
 		store,
 		&mock.StorerStub{},
 		marshalizer,
@@ -380,8 +350,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -401,14 +370,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	t.Parallel()
 
 	requestedNonce := uint64(67)
-
-	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headersNonces.GetCalled = func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
-		return nil, false
-	}
-
 	nonceConverter := mock.NewNonceHashConverterMock()
 
+	expectedErr := errors.New("err")
 	wasSent := false
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
@@ -417,9 +381,15 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				wasSent = true
 				return nil
 			},
+			TargetShardIDCalled: func() uint32 {
+				return 1
+			},
 		},
-		&mock.CacherStub{},
-		headersNonces,
+		&mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+				return nil, nil, expectedErr
+			},
+		},
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
@@ -435,7 +405,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
 		fromConnectedPeerId,
 	)
-	assert.Nil(t, err)
+	assert.Equal(t, expectedErr, err)
 	assert.False(t, wasSent)
 }
 
@@ -446,28 +416,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	targetShardId := uint32(9)
 	wasResolved := false
 	wasSent := false
-	hash := []byte("aaaa")
 
-	headers := &mock.CacherStub{}
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		if bytes.Equal(key, hash) {
-			wasResolved = true
-			return make([]byte, 0), true
-		}
-
-		return nil, false
-	}
-
-	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headersNonces.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-		if u == requestedNonce {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(targetShardId, hash)
-
-			return syncMap, true
-		}
-
-		return nil, false
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+		wasResolved = true
+		return []data.HeaderHandler{&block.Header{}, &block.Header{}}, [][]byte{[]byte("1"), []byte("2")}, nil
 	}
 
 	nonceConverter := mock.NewNonceHashConverterMock()
@@ -484,7 +437,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			},
 		},
 		headers,
-		headersNonces,
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -515,21 +467,13 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasSend := false
 	hash := []byte("aaaa")
 
-	headers := &mock.CacherStub{}
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		return nil, false
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		return nil, errors.New("err")
 	}
-
-	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headersNonces.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-		if u == requestedNonce {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(targetShardId, hash)
-
-			return syncMap, true
-		}
-
-		return nil, false
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+		wasResolved = true
+		return []data.HeaderHandler{&block.Header{}, &block.Header{}}, [][]byte{[]byte("1"), []byte("2")}, nil
 	}
 
 	nonceConverter := mock.NewNonceHashConverterMock()
@@ -556,7 +500,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			},
 		},
 		headers,
-		headersNonces,
 		store,
 		&mock.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -584,23 +527,13 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	requestedNonce := uint64(67)
 	targetShardId := uint32(9)
 	errExpected := errors.New("expected error")
-	hash := []byte("aaaa")
 
-	headers := &mock.CacherStub{}
-	headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-		return nil, false
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		return nil, errors.New("err")
 	}
-
-	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headersNonces.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
-		if u == requestedNonce {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(targetShardId, hash)
-
-			return syncMap, true
-		}
-
-		return nil, false
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+		return nil, nil, errExpected
 	}
 
 	nonceConverter := mock.NewNonceHashConverterMock()
@@ -625,7 +558,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			},
 		},
 		headers,
-		headersNonces,
 		store,
 		&mock.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -666,8 +598,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -695,8 +626,7 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},

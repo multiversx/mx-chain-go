@@ -38,6 +38,10 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
+func (sm *StorerMock) Close() error {
+	return nil
+}
+
 func (sm *StorerMock) Has(key []byte) error {
 	return errors.New("not implemented")
 }

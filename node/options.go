@@ -503,6 +503,17 @@ func WithChainID(chainID []byte) Option {
 	}
 }
 
+// WithBlockTracker sets up the block tracker for the Node
+func WithBlockTracker(blockTracker process.BlockTracker) Option {
+	return func(n *Node) error {
+		if check.IfNil(blockTracker) {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
+		return nil
+	}
+}
+
 // WithAntifloodHandler sets up an antiflood handler for the Node
 func WithAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
 	return func(n *Node) error {

@@ -16,8 +16,7 @@ var log = logger.GetOrCreate("dataretriever/resolvers")
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
-	headers          storage.Cacher
-	hdrNonces        dataRetriever.Uint64SyncMapCacher
+	headers          dataRetriever.HeadersPool
 	hdrStorage       storage.Storer
 	hdrNoncesStorage storage.Storer
 	marshalizer      marshal.Marshalizer
@@ -29,8 +28,7 @@ type HeaderResolver struct {
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	headers storage.Cacher,
-	headersNonces dataRetriever.Uint64SyncMapCacher,
+	headers dataRetriever.HeadersPool,
 	hdrStorage storage.Storer,
 	headersNoncesStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
@@ -43,9 +41,6 @@ func NewHeaderResolver(
 	}
 	if check.IfNil(headers) {
 		return nil, dataRetriever.ErrNilHeadersDataPool
-	}
-	if check.IfNil(headersNonces) {
-		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
 	if check.IfNil(hdrStorage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
@@ -66,7 +61,6 @@ func NewHeaderResolver(
 	hdrResolver := &HeaderResolver{
 		TopicResolverSender: senderResolver,
 		headers:             headers,
-		hdrNonces:           headersNonces,
 		hdrStorage:          hdrStorage,
 		hdrNoncesStorage:    headersNoncesStorage,
 		marshalizer:         marshalizer,
@@ -126,35 +120,29 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
-
 	// Search the nonce-key pair in cache-storage
 	hash, err := hdrRes.hdrNoncesStorage.Get(key)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
-	}
 
-	// Search the nonce-key pair in data pool
-	if hash == nil {
-		nonceBytes, err := hdrRes.nonceConverter.ToUint64(key)
+		nonce, err := hdrRes.nonceConverter.ToUint64(key)
 		if err != nil {
 			return nil, dataRetriever.ErrInvalidNonceByteSlice
 		}
 
-		value, ok := hdrRes.hdrNonces.Get(nonceBytes)
-		if ok {
-			value.Range(func(shardId uint32, existingHash []byte) bool {
-				if shardId == hdrRes.TargetShardID() {
-					hash = existingHash
-					return false
-				}
-
-				return true
-			})
+		headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
+		if err != nil {
+			return nil, err
 		}
 
-		if len(hash) == 0 {
-			return nil, nil
+		// TODO maybe we can return a slice of headers
+		hdr := headers[len(headers)-1]
+		buff, err := hdrRes.marshalizer.Marshal(hdr)
+		if err != nil {
+			return nil, err
 		}
+
+		return buff, nil
 	}
 
 	return hdrRes.resolveHeaderFromHash(hash)
@@ -162,8 +150,8 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 
 // resolveHeaderFromHash resolves a header using its key (header hash)
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, ok := hdrRes.headers.Peek(key)
-	if !ok {
+	value, err := hdrRes.headers.GetHeaderByHash(key)
+	if err != nil {
 		return hdrRes.hdrStorage.Get(key)
 	}
 
