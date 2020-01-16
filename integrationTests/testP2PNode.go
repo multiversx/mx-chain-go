@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
@@ -114,7 +113,7 @@ func createCustomMessenger(ctx context.Context, initialAddr string, targetConnec
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(stepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
+		CreateKadPeerDiscoverer(StepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		targetConnections,
 	)

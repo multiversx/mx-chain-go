@@ -1,4 +1,4 @@
-package discovery
+package discovery_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	libp2p2 "github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -374,7 +375,14 @@ func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	interval := time.Second
-	kdd := NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: interval,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	// starting with no context fails (no panic)
 	err := kdd.StartWatchdog(interval)
@@ -428,7 +436,7 @@ func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
 
 	host := &mock.ConnectableHostStub{
 		IDCalled: func() peer.ID {
-			return peer.ID("local peer")
+			return "local peer"
 		},
 		PeerstoreCalled: func() peerstore.Peerstore {
 			return nil
@@ -451,7 +459,14 @@ func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
 
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), host)
 	interval := time.Second
-	kdd := NewKadDhtPeerDiscoverer(interval, "r1", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: interval,
+		RandezVous:           "r1",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	err := kdd.ApplyContext(ctx)
 	assert.Nil(t, err)
@@ -463,10 +478,7 @@ func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
 	err = kdd.UpdateRandezVous("r2")
 	assert.Nil(t, err)
 	assert.Equal(t, notifeesCnt, 1)
-	// lock the mutex
-	kdd.mutKadDht.Lock()
-	err = kdd.stopDHT()
-	kdd.mutKadDht.Unlock()
+	err = kdd.StopDHT()
 	assert.Nil(t, err)
 
 	assert.Equal(t, notifeesCnt, 0)

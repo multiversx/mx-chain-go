@@ -28,7 +28,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	advertiser, _ := libp2p.NewMemoryMessenger(
 		context.Background(),
 		netw,
-		integrationTests.CreateKadPeerDiscoverer(time.Second, nil),
+		integrationTests.CreateKadPeerDiscoverer(time.Second, "test", nil),
 	)
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
@@ -39,6 +39,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 			netw,
 			integrationTests.CreateKadPeerDiscoverer(
 				time.Second,
+				"test",
 				[]string{integrationTests.GetConnectableAddress(advertiser)},
 			),
 		)

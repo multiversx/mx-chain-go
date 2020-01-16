@@ -84,10 +84,10 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 }
 
 // CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
-func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
+func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, randezVous string, initialPeersList []string) p2p.PeerDiscoverer {
 	arg := discovery.ArgKadDht{
 		PeersRefreshInterval: peerRefreshInterval,
-		RandezVous:           "test",
+		RandezVous:           randezVous,
 		InitialPeersList:     initialPeersList,
 		BucketSize:           100,
 		RoutingTableRefresh:  time.Minute,
@@ -110,7 +110,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string, nodeShar
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
+		CreateKadPeerDiscoverer(StepDelay, shardKadTopic, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -987,6 +987,7 @@ func CreateAndSendTransaction(
 	node.OwnAccount.Nonce++
 }
 
+// CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price
 func CreateAndSendTransactionWithGasLimit(
 	node *TestProcessorNode,
 	txValue *big.Int,

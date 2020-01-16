@@ -133,7 +133,7 @@ func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		integrationTests.CreateKadPeerDiscoverer(time.Second, []string{initialAddr}),
+		integrationTests.CreateKadPeerDiscoverer(time.Second, "test", []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())

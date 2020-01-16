@@ -36,3 +36,11 @@ func (kdd *KadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
 
 	return kdd.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
 }
+
+func (kdd *KadDhtDiscoverer) StopDHT() error {
+	kdd.mutKadDht.Lock()
+	err := kdd.stopDHT()
+	kdd.mutKadDht.Unlock()
+
+	return err
+}

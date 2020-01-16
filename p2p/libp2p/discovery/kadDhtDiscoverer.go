@@ -12,8 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
-	"github.com/libp2p/go-libp2p-kbucket"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -42,15 +40,14 @@ type KadDhtDiscoverer struct {
 
 	contextProvider *libp2p.Libp2pContext
 
-	refreshInterval  time.Duration
-	randezVous       string
-	initialPeersList []string
-	initConns        bool // Initiate new connections
-	watchdogKick     chan struct{}
-	watchdogCancel   context.CancelFunc
-
+	peersRefreshInterval time.Duration
+	randezVous           string
+	initialPeersList     []string
 	bucketSize           uint32
 	routingTableRefresh  time.Duration
+	initConns            bool // Initiate new connections
+	watchdogKick         chan struct{}
+	watchdogCancel       context.CancelFunc
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -144,7 +141,7 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 		return err
 	}
 
-	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...))
+	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...), customOptions)
 	if err != nil {
 		cancel()
 		return err
@@ -180,8 +177,9 @@ func (kdd *KadDhtDiscoverer) stopDHT() error {
 
 func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 	chanStartBootstrap := kdd.connectToOnePeerFromInitialPeersList(
-		kdd.refreshInterval,
-		kdd.initialPeersList)
+		kdd.peersRefreshInterval,
+		kdd.initialPeersList,
+	)
 
 	go func() {
 		<-chanStartBootstrap
@@ -211,7 +209,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 					}
 				}
 				select {
-				case <-time.After(kdd.refreshInterval):
+				case <-time.After(kdd.peersRefreshInterval):
 				case <-ctx.Done():
 					return
 				}
@@ -289,7 +287,7 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+	return kdd.connectToOnePeerFromInitialPeersList(kdd.peersRefreshInterval, kdd.initialPeersList)
 }
 
 // Pause will suspend the discovery process

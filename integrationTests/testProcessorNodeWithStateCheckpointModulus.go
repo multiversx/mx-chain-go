@@ -56,6 +56,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.NodesCoordinator,
 	)
 	tpn.initRounder()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory.ValidatorAccount)
