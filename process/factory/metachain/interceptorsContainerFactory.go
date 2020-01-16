@@ -543,7 +543,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	trieInterceptors := make([]process.Interceptor, 0)
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return nil, nil, err
@@ -552,7 +552,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 		keys = append(keys, identifierTrieNodes)
 		trieInterceptors = append(trieInterceptors, interceptor)
 
-		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
 			return nil, nil, err
