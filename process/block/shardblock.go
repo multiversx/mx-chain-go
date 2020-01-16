@@ -1251,8 +1251,9 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 			continue
 		}
 
+		var buff []byte
 		// metablock was processed and finalized
-		buff, err := sp.marshalizer.Marshal(hdr)
+		buff, err = sp.marshalizer.Marshal(hdr)
 		if err != nil {
 			log.Debug("marshalizer.Marshal", "error", err.Error())
 			continue
@@ -1318,8 +1319,8 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	haveMissingMetaHeaders := sp.hdrsForCurrBlock.missingHdrs > 0 || sp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
 	if haveMissingMetaHeaders {
 		hdrInfoForHash := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		receivedMissingMetaHeader := hdrInfoForHash != nil && (hdrInfoForHash.hdr == nil || hdrInfoForHash.hdr.IsInterfaceNil())
-		if receivedMissingMetaHeader {
+		headerIsMissing := check.IfNil(hdrInfoForHash.hdr)
+		if hdrInfoForHash != nil && headerIsMissing {
 			hdrInfoForHash.hdr = metaBlock
 			sp.hdrsForCurrBlock.missingHdrs--
 
@@ -1941,13 +1942,13 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		obj, ok := miniBlockPool.Get(header.MiniBlockHeaders[i].Hash)
-		if !ok {
+		obj, hashInPool := miniBlockPool.Get(header.MiniBlockHeaders[i].Hash)
+		if !hashInPool {
 			continue
 		}
 
-		miniBlock, ok := obj.(*block.MiniBlock)
-		if !ok {
+		miniBlock, typeOk := obj.(*block.MiniBlock)
+		if !typeOk {
 			return nil, process.ErrWrongTypeAssertion
 		}
 

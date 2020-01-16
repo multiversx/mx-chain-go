@@ -146,7 +146,7 @@ func (p *pendingMiniBlockHeaders) getLastUsedMetaBlockFromShardHeaders(
 		}
 
 		lastMetaBlockHash := shardHdr.MetaBlockHashes[numMetas-1]
-		if _, ok := mapLastUsedMetaBlocks[string(lastMetaBlockHash)]; ok {
+		if _, hashInMap := mapLastUsedMetaBlocks[string(lastMetaBlockHash)]; hashInMap {
 			continue
 		}
 

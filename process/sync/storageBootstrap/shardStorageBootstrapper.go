@@ -121,7 +121,8 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 
 	for _, metaBlockHash := range shardHeader.MetaBlockHashes {
-		metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
+		var metaBlock *block.MetaBlock
+		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
 				"hash", metaBlockHash)

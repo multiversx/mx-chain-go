@@ -138,7 +138,8 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isCommJobDone, err := sr.JobDone(pubKey, SrCommitment)
+		var isCommJobDone bool
+		isCommJobDone, err = sr.JobDone(pubKey, SrCommitment)
 		if err != nil {
 			return err
 		}
@@ -147,13 +148,15 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 			return spos.ErrNilCommitment
 		}
 
-		commitment, err := currentMultiSigner.Commitment(uint16(i))
+		var commitment []byte
+		commitment, err = currentMultiSigner.Commitment(uint16(i))
 		if err != nil {
 			return err
 		}
 
 		computedCommitmentHash := sr.Hasher().Compute(string(commitment))
-		receivedCommitmentHash, err := currentMultiSigner.CommitmentHash(uint16(i))
+		var receivedCommitmentHash []byte
+		receivedCommitmentHash, err = currentMultiSigner.CommitmentHash(uint16(i))
 
 		if err != nil {
 			return err
@@ -257,7 +260,8 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isSignJobDone, err := sr.JobDone(node, SrSignature)
+			var isSignJobDone bool
+			isSignJobDone, err = sr.JobDone(node, SrSignature)
 			if err != nil {
 				debugError("SetJobDone SrSignature", err)
 				continue

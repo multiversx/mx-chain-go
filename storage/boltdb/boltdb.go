@@ -43,9 +43,9 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	parentFolder := filepath.Base(dir)
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte(parentFolder))
-		if err != nil {
-			return errors.New(fmt.Sprintf("create bucket: %s", err))
+		_, errBucketCreation := tx.CreateBucket([]byte(parentFolder))
+		if errBucketCreation != nil {
+			return errors.New(fmt.Sprintf("create bucket: %s", errBucketCreation))
 		}
 		return nil
 	})

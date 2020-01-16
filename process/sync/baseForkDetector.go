@@ -404,19 +404,19 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		forkHeaderEpoch uint32
 	)
 
-	forkInfo := process.NewForkInfo()
+	forkInfoObject := process.NewForkInfo()
 
 	if bfd.isConsensusStuck() {
-		forkInfo.IsDetected = true
-		return forkInfo
+		forkInfoObject.IsDetected = true
+		return forkInfoObject
 	}
 
 	rollBackNonce := bfd.getRollBackNonce()
 	if rollBackNonce < math.MaxUint64 {
-		forkInfo.IsDetected = true
-		forkInfo.Nonce = rollBackNonce
+		forkInfoObject.IsDetected = true
+		forkInfoObject.Nonce = rollBackNonce
 		bfd.SetRollBackNonce(math.MaxUint64)
-		return forkInfo
+		return forkInfoObject
 	}
 
 	bfd.mutHeaders.Lock()
@@ -450,17 +450,17 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		}
 
 		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound, forkHeaderEpoch) {
-			forkInfo.IsDetected = true
-			if nonce < forkInfo.Nonce {
-				forkInfo.Nonce = nonce
-				forkInfo.Round = forkHeaderRound
-				forkInfo.Hash = forkHeaderHash
+			forkInfoObject.IsDetected = true
+			if nonce < forkInfoObject.Nonce {
+				forkInfoObject.Nonce = nonce
+				forkInfoObject.Round = forkHeaderRound
+				forkInfoObject.Hash = forkHeaderHash
 			}
 		}
 	}
 	bfd.mutHeaders.Unlock()
 
-	return forkInfo
+	return forkInfoObject
 }
 
 func getMaxEpochFromHdrsInfo(hdrInfos []*headerInfo) uint32 {

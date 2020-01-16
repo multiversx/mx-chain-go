@@ -79,12 +79,14 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persis
 			continue
 		}
 
-		snapshotName, err := strconv.Atoi(f.Name())
+		var snapshotName int
+		snapshotName, err = strconv.Atoi(f.Name())
 		if err != nil {
 			return snapshots, snapshotId, err
 		}
 
-		db, err := storageUnit.NewDB(
+		var db storage.Persister
+		db, err = storageUnit.NewDB(
 			storageUnit.DBType(snapshotDbCfg.Type),
 			path.Join(snapshotDbCfg.FilePath, f.Name()),
 			snapshotDbCfg.BatchDelaySeconds,

@@ -13,6 +13,7 @@ import (
 
 var peers []types.Peer
 
+// Broadcast .
 func Broadcast(nodes int, latency float64, peersPerNode int, bandwidth int, blocksize int) (totalLatency float64, nrOfHops, lonelyNodes int) {
 
 	var wg sync.WaitGroup
@@ -114,9 +115,9 @@ func sendMessage(user types.Peer, nodes int, blocksSentInParallel int) int {
 		queue = append(queue[:0], queue[1:]...)
 
 		for _, val := range node.PeerMap {
-			for _, user := range peers {
-				if user.Id == val {
-					neighbor = user
+			for _, peer := range peers {
+				if peer.Id == val {
+					neighbor = peer
 				}
 			}
 
@@ -160,7 +161,7 @@ func computePathLatency(latency float64) {
 		for _, val := range peers[index].Path {
 			pathLatency += peers[val].Latency
 		}
-		pathLatency += (float64)(len(peers[index].Path)) * (float64)(latency)
+		pathLatency += (float64)(len(peers[index].Path)) * latency
 		peers[index].PathLatency = pathLatency
 	}
 }

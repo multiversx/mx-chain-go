@@ -204,7 +204,8 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommJobDone, err := sr.JobDone(node, SrCommitment)
+			var isCommJobDone bool
+			isCommJobDone, err = sr.JobDone(node, SrCommitment)
 			if err != nil {
 				debugError("JobDone SrCommitment", err)
 				continue

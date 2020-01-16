@@ -2,6 +2,8 @@ package statistics
 
 import (
 	"fmt"
+	"github.com/shirou/gopsutil/net"
+	"github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"os"
 	"path"
@@ -46,11 +48,14 @@ func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, path
 	proc, err := machine.GetCurrentProcess()
 	if err == nil {
 		fileDescriptors, _ = proc.NumFDs()
-		openFiles, err := proc.OpenFiles()
+		var openFiles []process.OpenFilesStat
+		openFiles, err = proc.OpenFiles()
 		if err == nil {
 			numOpenFiles = len(openFiles)
 		}
-		conns, err := proc.Connections()
+
+		var conns []net.ConnectionStat
+		conns, err = proc.Connections()
 		if err == nil {
 			numConns = len(conns)
 		}

@@ -110,7 +110,8 @@ func main() {
 		logger.Debug("Found peer:", peer)
 
 		logger.Debug("Connecting to:", peer)
-		stream, err := host.NewStream(ctx, peer.ID, protocol.ID(protocolID))
+		var stream network.Stream
+		stream, err = host.NewStream(ctx, peer.ID, protocol.ID(protocolID))
 
 		if err != nil {
 			logger.Warning("Connection failed:", err)

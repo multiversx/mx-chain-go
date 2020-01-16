@@ -567,23 +567,23 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	}
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
-		if serializedInfo == nil {
+		serializedShardInfo, serializedMetaInfo := ei.serializeShardInfo(shardInfo)
+		if serializedShardInfo == nil {
 			continue
 		}
 
-		buff.Grow(len(meta) + len(serializedInfo))
-		_, err = buff.Write(meta)
+		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
+		_, err = buff.Write(serializedMetaInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write meta", "error", err.Error())
 		}
-		_, err = buff.Write(serializedInfo)
+		_, err = buff.Write(serializedShardInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
 		}
 
-		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
-		if err != nil {
+		res, bulkErr := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
+		if bulkErr != nil {
 			log.Warn("indexer: error indexing tps information")
 			continue
 		}

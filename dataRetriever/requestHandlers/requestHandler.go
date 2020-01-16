@@ -109,7 +109,8 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
-		sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+		var sliceBatches [][][]byte
+		sliceBatches, err = dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 		if err != nil {
 			log.Debug("requesting transactions", "error", err.Error())
 			return

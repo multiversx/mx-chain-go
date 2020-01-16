@@ -54,7 +54,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	for nonce := newNonce; nonce < newNonce+numOfTxs; nonce++ {
 		go func(crtNonce uint64) {
-			_, signedTxBuff, err := n.generateAndSignSingleTx(
+			var signedTxBuff []byte
+			_, signedTxBuff, err = n.generateAndSignSingleTx(
 				crtNonce,
 				value,
 				recvAddressBytes,

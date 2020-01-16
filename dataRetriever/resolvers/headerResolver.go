@@ -3,6 +3,7 @@ package resolvers
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -114,19 +115,22 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
 
-		nonce, err := hdrRes.nonceConverter.ToUint64(key)
+		var nonce uint64
+		nonce, err = hdrRes.nonceConverter.ToUint64(key)
 		if err != nil {
 			return nil, dataRetriever.ErrInvalidNonceByteSlice
 		}
 
-		headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
+		var headers []data.HeaderHandler
+		headers, _, err = hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
 		if err != nil {
 			return nil, err
 		}
 
 		// TODO maybe we can return a slice of headers
 		hdr := headers[len(headers)-1]
-		buff, err := hdrRes.marshalizer.Marshal(hdr)
+		var buff []byte
+		buff, err = hdrRes.marshalizer.Marshal(hdr)
 		if err != nil {
 			return nil, err
 		}

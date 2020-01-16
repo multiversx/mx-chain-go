@@ -791,13 +791,13 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
 
 	for i := range selfNotarizedHeaders {
-		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		headerInfoObject := bootstrapStorage.BootstrapHeaderInfo{
 			ShardId: selfNotarizedHeaders[i].GetShardID(),
 			Nonce:   selfNotarizedHeaders[i].GetNonce(),
 			Hash:    selfNotarizedHeadersHashes[i],
 		}
 
-		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfoObject)
 	}
 
 	bootData := bootstrapStorage.BootstrapData{

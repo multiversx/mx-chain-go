@@ -234,17 +234,17 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		return v.([]byte), nil
 	}
 
-	persisterData, exists := ps.persistersMapByEpoch[epoch]
+	pd, exists := ps.persistersMapByEpoch[epoch]
 	if !exists {
 		return nil, fmt.Errorf("key %s not found in %s",
 			base64.StdEncoding.EncodeToString(key), ps.identifier)
 	}
 
-	if !persisterData.isClosed {
-		return persisterData.persister.Get(key)
+	if !pd.isClosed {
+		return pd.persister.Get(key)
 	}
 
-	persister, err := ps.persisterFactory.Create(persisterData.path)
+	persister, err := ps.persisterFactory.Create(pd.path)
 	if err != nil {
 		log.Debug("open old persister", "error", err.Error())
 		return nil, err
@@ -318,16 +318,16 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 	}
 
 	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		persisterData, ok := ps.persistersMapByEpoch[epoch]
+		pd, ok := ps.persistersMapByEpoch[epoch]
 		if !ok {
 			return storage.ErrKeyNotFound
 		}
 
-		if !persisterData.isClosed {
-			return persisterData.persister.Has(key)
+		if !pd.isClosed {
+			return pd.persister.Has(key)
 		}
 
-		persister, err := ps.persisterFactory.Create(persisterData.path)
+		persister, err := ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -359,8 +359,8 @@ func (ps *PruningStorer) Remove(key []byte) error {
 
 	var err error
 	ps.cacher.Remove(key)
-	for _, persisterData := range ps.activePersisters {
-		err = persisterData.persister.Remove(key)
+	for _, pd := range ps.activePersisters {
+		err = pd.persister.Remove(key)
 		if err == nil {
 			return nil
 		}
@@ -388,11 +388,11 @@ func (ps *PruningStorer) DestroyUnit() error {
 	var err error
 	numOfPersistersRemoved := 0
 	totalNumOfPersisters := len(ps.persistersMapByEpoch)
-	for _, persisterData := range ps.persistersMapByEpoch {
-		if persisterData.isClosed {
-			err = persisterData.persister.DestroyClosed()
+	for _, pd := range ps.persistersMapByEpoch {
+		if pd.isClosed {
+			err = pd.persister.DestroyClosed()
 		} else {
-			err = persisterData.persister.Destroy()
+			err = pd.persister.Destroy()
 		}
 
 		if err != nil {

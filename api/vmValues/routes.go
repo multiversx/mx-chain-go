@@ -108,7 +108,8 @@ func createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {
 
 	arguments := make([][]byte, len(request.Args))
 	for i, arg := range request.Args {
-		argBytes, err := hex.DecodeString(arg)
+		var argBytes []byte
+		argBytes, err = hex.DecodeString(arg)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}

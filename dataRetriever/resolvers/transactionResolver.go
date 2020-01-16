@@ -70,7 +70,8 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(b
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		buff, err := txRes.resolveTxRequestByHash(rd.Value)
+		var buff []byte
+		buff, err = txRes.resolveTxRequestByHash(rd.Value)
 		if err != nil {
 			return err
 		}
@@ -123,7 +124,8 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 
 	txsBuffSlice := make([][]byte, 0)
 	for _, hash := range hashes {
-		tx, err := txRes.fetchTxAsByteSlice(hash)
+		var tx []byte
+		tx, err = txRes.fetchTxAsByteSlice(hash)
 		if err != nil {
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can

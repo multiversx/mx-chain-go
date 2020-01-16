@@ -28,6 +28,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrPemFileIsInvalid signals that a pem file is invalid
 var ErrPemFileIsInvalid = errors.New("pem file is invalid")
 
+// ErrNilPemBLock signals that the pem block is nil
+var ErrNilPemBLock = errors.New("nil pem block")
+
 // ErrNilFile signals that a nil file has been provided
 var ErrNilFile = errors.New("nil file provided")
 

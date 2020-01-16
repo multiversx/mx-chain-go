@@ -197,12 +197,12 @@ func getLowestLogLevel(logLevels []logger.LogLevel) logger.LogLevel {
 
 func prepareLogFile() error {
 	logDirectory := filepath.Join(argsConfig.workingDir, defaultLogPath)
-	fileForLogs, err := core.CreateFile("logviewer", logDirectory, "log")
+	logsFile, err := core.CreateFile("logviewer", logDirectory, "log")
 	if err != nil {
 		return err
 	}
 
-	return logger.AddLogObserver(fileForLogs, &logger.PlainFormatter{})
+	return logger.AddLogObserver(logsFile, &logger.PlainFormatter{})
 }
 
 func openWebSocket(address string, logLevelPatterns string) (*websocket.Conn, error) {

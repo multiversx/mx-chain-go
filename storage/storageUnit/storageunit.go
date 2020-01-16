@@ -393,7 +393,8 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 	var hashers []hashing.Hasher
 
 	for _, hashString := range conf.HashFunc {
-		hasher, err := hashString.NewHasher()
+		var hasher hashing.Hasher
+		hasher, err = hashString.NewHasher()
 		if err == nil {
 			hashers = append(hashers, hasher)
 		} else {

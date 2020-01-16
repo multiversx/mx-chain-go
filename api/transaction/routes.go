@@ -111,7 +111,8 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	var txs []*transaction.Transaction
 	for _, receivedTx := range gtx {
-		tx, err := ef.CreateTransaction(
+		var tx *transaction.Transaction
+		tx, err = ef.CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,

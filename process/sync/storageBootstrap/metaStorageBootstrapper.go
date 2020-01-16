@@ -92,7 +92,8 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 
 	for _, shardHeaderHash := range shardHeaderHashes {
-		shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
+		var shardHeader *block.Header
+		shardHeader, err = process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
 		if err != nil {
 			log.Debug("shard header is not found in BlockHeaderUnit storage",
 				"hash", shardHeaderHash)

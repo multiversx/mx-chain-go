@@ -242,7 +242,8 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err := sr.JobDone(node, SrCommitmentHash)
+			var isCommHashJobDone bool
+			isCommHashJobDone, err = sr.JobDone(node, SrCommitmentHash)
 			if err != nil {
 				debugError("JobDone SrCommitmentHash", err)
 				continue
