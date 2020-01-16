@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/golang/protobuf/proto"
 )
@@ -23,7 +22,7 @@ type CapnpMarshalizer struct{}
 func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	out := bytes.NewBuffer(nil)
 
-	o := obj.(data.CapnpHelper)
+	o := obj.(marshal.CapnpHelper)
 	// set the members to capnp struct
 	err := o.Save(out)
 
@@ -37,7 +36,7 @@ func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	out := bytes.NewBuffer(buff)
 
-	o := obj.(data.CapnpHelper)
+	o := obj.(marshal.CapnpHelper)
 	// set the members to capnp struct
 	err := o.Load(out)
 

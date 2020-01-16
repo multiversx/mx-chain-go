@@ -9,6 +9,7 @@ import (
 // StorerArgs will hold the arguments needed for PruningStorer
 type StorerArgs struct {
 	Identifier            string
+	PruningEnabled        bool
 	ShardCoordinator      sharding.Coordinator
 	StartingEpoch         uint32
 	FullArchive           bool
