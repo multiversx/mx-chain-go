@@ -3,7 +3,6 @@ package mock
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -127,10 +126,6 @@ func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHan
 	}
 
 	return errNotImplemented
-}
-
-func (aam *AccountsStub) CopyRecreateTrie(rootHash []byte) (data.Trie, error) {
-	return nil, nil
 }
 
 func (aam *AccountsStub) RootHash() ([]byte, error) {

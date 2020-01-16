@@ -27,6 +27,7 @@ type headersToSync struct {
 	requestHandler   process.RequestHandler
 }
 
+// ArgsNewHeadersSyncHandler defines the arguments needed for the new header syncer
 type ArgsNewHeadersSyncHandler struct {
 	Storage        storage.Storer
 	Cache          storage.Cacher
@@ -35,6 +36,7 @@ type ArgsNewHeadersSyncHandler struct {
 	RequestHandler process.RequestHandler
 }
 
+// NewHeadersSyncHandler creates a new header syncer
 func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, error) {
 	if check.IfNil(args.Storage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
@@ -44,6 +46,9 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 	}
 	if check.IfNil(args.EpochHandler) {
 		return nil, dataRetriever.ErrNilEpochHandler
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, dataRetriever.ErrNilMarshalizer
 	}
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
@@ -66,7 +71,9 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 }
 
 func (h *headersToSync) receivedMetaBlock(hash []byte) {
+	h.mutMeta.Lock()
 	if h.stopSyncing {
+		h.mutMeta.Unlock()
 		return
 	}
 
@@ -101,12 +108,14 @@ func (h *headersToSync) receivedMetaBlock(hash []byte) {
 
 		h.mutMeta.Lock()
 		h.metaBlockToSync = meta
+		h.stopSyncing = true
 		h.mutMeta.Unlock()
 
 		h.chReceivedAll <- true
 	}
 }
 
+// SyncEpochStartMetaHeader syncs and validates an epoch start metaheader
 func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) (*block.MetaBlock, error) {
 	h.mutMeta.Lock()
 	meta := h.metaBlockToSync
@@ -124,7 +133,7 @@ func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 		_ = process.EmptyChannel(h.chReceivedAll)
 		h.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 
-		err = WaitFor(h.chReceivedAll, time.Minute)
+		err = WaitFor(h.chReceivedAll, waitTime)
 		log.Warn("timeOut for requesting epoch metaHdr")
 		if err != nil {
 			return nil, err
@@ -145,6 +154,7 @@ func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 	return meta, nil
 }
 
+// GetMetaBlock returns the synced metablock
 func (h *headersToSync) GetMetaBlock() (*block.MetaBlock, error) {
 	h.mutMeta.Lock()
 	meta := h.metaBlockToSync
@@ -157,6 +167,7 @@ func (h *headersToSync) GetMetaBlock() (*block.MetaBlock, error) {
 	return nil, update.ErrNotSynced
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (h *headersToSync) IsInterfaceNil() bool {
 	return h == nil
 }

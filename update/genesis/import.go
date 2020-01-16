@@ -49,7 +49,7 @@ func (si *stateImport) ImportAll() error {
 		case update.TransactionsFileName:
 			err = si.importTransactions()
 		default:
-			err = si.importTrie(fileName)
+			err = si.importState(fileName)
 		}
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func (si *stateImport) importMiniBlocks() error {
 	return nil
 }
 
-func (si *stateImport) importTrie(fileName string) error {
+func (si *stateImport) importState(fileName string) error {
 	accType, _, err := update.GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err

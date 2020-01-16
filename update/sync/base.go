@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+// GetDataFromStorage searches for data from storage
 func GetDataFromStorage(hash []byte, storer update.HistoryStorer, syncingEpoch uint32) ([]byte, error) {
 	currData, err := storer.Get(hash)
 	if err != nil {
@@ -19,6 +20,7 @@ func GetDataFromStorage(hash []byte, storer update.HistoryStorer, syncingEpoch u
 	return currData, err
 }
 
+// Waits for channel to be set or for timeout
 func WaitFor(channel chan bool, waitTime time.Duration) error {
 	select {
 	case <-channel:

@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,13 +18,17 @@ type syncTries struct {
 	tries       map[string]data.Trie
 	trieSyncers update.TrieSyncContainer
 	activeTries state.TriesHolder
+	mutSynced   sync.Mutex
+	synced      bool
 }
 
+// ArgsNewSyncTriesHandler is the argument structed to create a sync tries handler
 type ArgsNewSyncTriesHandler struct {
 	TrieSyncers update.TrieSyncContainer
 	ActiveTries state.TriesHolder
 }
 
+// NewSyncTriesHandler creates a new syncTries
 func NewSyncTriesHandler(args ArgsNewSyncTriesHandler) (*syncTries, error) {
 	if check.IfNil(args.TrieSyncers) {
 		return nil, update.ErrNilTrieSyncers
@@ -36,33 +41,63 @@ func NewSyncTriesHandler(args ArgsNewSyncTriesHandler) (*syncTries, error) {
 		tries:       make(map[string]data.Trie),
 		trieSyncers: args.TrieSyncers,
 		activeTries: args.ActiveTries,
+		synced:      false,
+		mutSynced:   sync.Mutex{},
 	}
 
 	return st, nil
 }
 
-func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, wg *sync.WaitGroup) error {
+// SyncTriesFrom syncs all the state tries from an epoch start metachain
+func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
+	if !meta.IsStartOfEpochBlock() {
+		return update.ErrNotEpochStartBlock
+	}
+
 	var errFound error
 	mutErr := sync.Mutex{}
 
+	st.synced = false
+	wg := sync.WaitGroup{}
+	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
+
+	chDone := make(chan bool)
 	go func() {
-		errMeta := st.syncMeta(meta, wg)
+		wg.Wait()
+		chDone <- true
+	}()
+
+	go func() {
+		errMeta := st.syncMeta(meta, &wg)
 		if errMeta != nil {
 			mutErr.Lock()
 			errFound = errMeta
 			mutErr.Unlock()
 		}
+		wg.Done()
 	}()
 
 	for _, shData := range meta.EpochStart.LastFinalizedHeaders {
 		go func(shardData block.EpochStartShardData) {
-			err := st.syncShard(shardData, wg)
+			err := st.syncShard(shardData, &wg)
 			if err != nil {
 				mutErr.Lock()
 				errFound = err
 				mutErr.Unlock()
 			}
+			wg.Done()
 		}(shData)
+	}
+
+	err := WaitFor(chDone, waitTime)
+	if err != nil {
+		return err
+	}
+
+	if errFound == nil {
+		st.mutSynced.Lock()
+		st.synced = true
+		st.mutSynced.Unlock()
 	}
 
 	return errFound
@@ -145,6 +180,19 @@ func (st *syncTries) tryRecreateTrie(id string, rootHash []byte) bool {
 	return true
 }
 
+// GetTries returns the synced tries
+func (st *syncTries) GetTries() (map[string]data.Trie, error) {
+	st.mutSynced.Lock()
+	defer st.mutSynced.Unlock()
+
+	if !st.synced {
+		return nil, update.ErrNotSynced
+	}
+
+	return st.tries, nil
+}
+
+// IsInterfaceNil returns nil if underlying object is nil
 func (st *syncTries) IsInterfaceNil() bool {
 	return st == nil
 }

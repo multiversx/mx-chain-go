@@ -22,18 +22,18 @@ const MiniBlocksFileName = "miniBlocks"
 type Type uint8
 
 const (
-	Transaction         Type = 0
-	SmartContractResult Type = 1
-	RewardTransaction   Type = 2
-	MiniBlock           Type = 3
-	Header              Type = 4
-	MetaHeader          Type = 5
-	AccountsTrie        Type = 6
-	RootHash            Type = 7
-	UserAccount         Type = 8
-	PeerAccount         Type = 9
-	MetaAccount         Type = 10
-	Unknown             Type = 100
+	Transaction         Type = iota
+	SmartContractResult Type = iota + 1
+	RewardTransaction   Type = iota + 2
+	MiniBlock           Type = iota + 3
+	Header              Type = iota + 4
+	MetaHeader          Type = iota + 5
+	AccountsTrie        Type = iota + 6
+	RootHash            Type = iota + 7
+	UserAccount         Type = iota + 8
+	PeerAccount         Type = iota + 9
+	MetaAccount         Type = iota + 10
+	Unknown             Type = iota + 100
 )
 
 var Types = []Type{Transaction, SmartContractResult, RewardTransaction, MiniBlock, Header, MetaHeader, AccountsTrie, Unknown}
@@ -81,7 +81,7 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 
 	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
 	accType := factory.UserAccount
-	for currType := range factory.Types {
+	for currType := range factory.SupportedAccountTypes {
 		if currType == int(accTypeUint64) {
 			accType = factory.Type(currType)
 			break
@@ -152,7 +152,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 
 	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
 	accType := factory.UserAccount
-	for currType := range factory.Types {
+	for currType := range factory.SupportedAccountTypes {
 		if currType == int(accTypeUint64) {
 			accType = factory.Type(currType)
 			break
