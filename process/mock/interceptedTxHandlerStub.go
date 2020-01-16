@@ -12,7 +12,7 @@ type InterceptedTxHandlerStub struct {
 	ReceiverShardIdCalled func() uint32
 	NonceCalled           func() uint64
 	SenderAddressCalled   func() state.AddressContainer
-	TotalValueCalled      func() *big.Int
+	FeeCalled             func() *big.Int
 	TransactionCalled     func() data.TransactionHandler
 }
 
@@ -32,8 +32,8 @@ func (iths *InterceptedTxHandlerStub) SenderAddress() state.AddressContainer {
 	return iths.SenderAddressCalled()
 }
 
-func (iths *InterceptedTxHandlerStub) TotalValue() *big.Int {
-	return iths.TotalValueCalled()
+func (iths *InterceptedTxHandlerStub) Fee() *big.Int {
+	return iths.FeeCalled()
 }
 
 func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {

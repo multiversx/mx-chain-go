@@ -34,8 +34,5 @@ func (s *SyncTimerStub) CurrentTime() time.Time {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (stm *SyncTimerStub) IsInterfaceNil() bool {
-	if stm == nil {
-		return true
-	}
-	return false
+	return stm == nil
 }

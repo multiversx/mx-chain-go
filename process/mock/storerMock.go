@@ -18,6 +18,10 @@ func NewStorerMock() *StorerMock {
 	}
 }
 
+func (sm *StorerMock) Close() error {
+	return nil
+}
+
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()

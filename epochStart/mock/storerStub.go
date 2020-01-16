@@ -9,6 +9,10 @@ type StorerStub struct {
 	DestroyUnitCalled func() error
 }
 
+func (ss *StorerStub) Close() error {
+	return nil
+}
+
 func (ss *StorerStub) Put(key, data []byte) error {
 	return ss.PutCalled(key, data)
 }
@@ -35,8 +39,5 @@ func (ss *StorerStub) DestroyUnit() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *StorerStub) IsInterfaceNil() bool {
-	if ss == nil {
-		return true
-	}
-	return false
+	return ss == nil
 }

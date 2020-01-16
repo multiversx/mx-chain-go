@@ -275,8 +275,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 
 		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			value, ok := node.MetaDataPool.ShardHeaders().Peek(shardInfo.HeaderHash)
-			if ok {
+			value, err := node.MetaDataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			if err == nil {
 				header, ok := value.(data.HeaderHandler)
 				if !ok {
 					assert.Fail(t, "wrong type in shard header pool")
