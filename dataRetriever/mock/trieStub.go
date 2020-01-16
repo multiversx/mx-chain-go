@@ -18,10 +18,26 @@ type TrieStub struct {
 	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier) error
 	ResetOldHashesCalled     func() [][]byte
 	AppendToOldHashesCalled  func([][]byte)
-	TakeSnapshotCalled       func() error
-	SetCheckpointCalled      func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
+}
+
+func (ts *TrieStub) ClosePersister() error {
+	return nil
+}
+
+func (ts *TrieStub) TakeSnapshot(_ []byte) {
+}
+
+func (ts *TrieStub) SetCheckpoint(_ []byte) {
+}
+
+func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
+	return make(map[string][]byte), nil
+}
+
+func (ts *TrieStub) IsPruningEnabled() bool {
+	return false
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -131,20 +147,6 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	if ts.AppendToOldHashesCalled != nil {
 		ts.AppendToOldHashesCalled(hashes)
 	}
-}
-
-func (ts *TrieStub) TakeSnapshot() error {
-	if ts.TakeSnapshotCalled != nil {
-		return ts.TakeSnapshotCalled()
-	}
-	return nil
-}
-
-func (ts *TrieStub) SetCheckpoint() error {
-	if ts.SetCheckpointCalled != nil {
-		return ts.SetCheckpointCalled()
-	}
-	return nil
 }
 
 func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, error) {

@@ -67,7 +67,7 @@ func NewTestSyncNode(
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(0)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
