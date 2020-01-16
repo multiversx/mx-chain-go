@@ -83,6 +83,20 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
+// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
+func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: peerRefreshInterval,
+		RandezVous:           "test",
+		InitialPeersList:     initialPeersList,
+		BucketSize:           100,
+		RoutingTableRefresh:  time.Minute,
+	}
+	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
+
+	return peerDiscovery
+}
+
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
 func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
@@ -93,7 +107,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(StepDelay, "test", []string{initialAddr}),
+		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
