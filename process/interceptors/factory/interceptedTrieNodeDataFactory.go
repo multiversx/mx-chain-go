@@ -42,8 +42,5 @@ func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.Interce
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sidf *interceptedTrieNodeDataFactory) IsInterfaceNil() bool {
-	if sidf == nil {
-		return true
-	}
-	return false
+	return sidf == nil
 }
