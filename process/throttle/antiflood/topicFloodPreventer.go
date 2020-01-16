@@ -72,7 +72,7 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
 func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages uint32) {
-	log.Info("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
+	log.Debug("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
 	tfp.mutOperation.Lock()
 	tfp.topicMaxMessages[topic] = numMessages
 	tfp.mutOperation.Unlock()
@@ -80,7 +80,6 @@ func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages
 
 // ResetForTopic clears all map values for a given topic
 func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
-	log.Info("ResetForTopic", "topic", topic)
 	tfp.mutOperation.Lock()
 	defer tfp.mutOperation.Unlock()
 

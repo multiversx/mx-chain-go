@@ -113,12 +113,9 @@ func (hdrRes *HeaderResolver) topicNameForAntiflood() string {
 func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	err := hdrRes.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		log.Error("CanProcessMessage", "error", err.Error())
 		return err
 	}
 
-	topic := hdrRes.topicNameForAntiflood()
-	log.Error("topic on processed rcvd msg", "topic", topic)
 	err = hdrRes.antifloodHandler.CanProcessMessageOnTopic(message, fromConnectedPeer, hdrRes.topicNameForAntiflood())
 	if err != nil {
 		return err
