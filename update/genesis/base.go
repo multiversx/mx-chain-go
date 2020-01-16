@@ -1,4 +1,4 @@
-package update
+package genesis
 
 import (
 	"fmt"
@@ -12,28 +12,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+// MetaBlockFileName is the constant which defines the export/import filename for metablock
 const MetaBlockFileName = "metaBlock"
+
+// MetaBlockFileName is the constant which defines the export/import filename for miniblocks
 const TransactionsFileName = "transactions"
+
+// MetaBlockFileName is the constant which defines the export/import filename for transactions
 const MiniBlocksFileName = "miniBlocks"
 
 // Type identifies the type of the export / import
 type Type uint8
 
 const (
-	Transaction         Type = 0
-	SmartContractResult Type = 1
-	RewardTransaction   Type = 2
-	MiniBlock           Type = 3
-	Header              Type = 4
-	MetaHeader          Type = 5
-	AccountsTrie        Type = 6
-	RootHash            Type = 7
-	UserAccount         Type = 8
-	PeerAccount         Type = 9
-	MetaAccount         Type = 10
-	Unknown             Type = 100
+	Transaction         Type = iota
+	SmartContractResult Type = iota + 1
+	RewardTransaction   Type = iota + 2
+	MiniBlock           Type = iota + 3
+	Header              Type = iota + 4
+	MetaHeader          Type = iota + 5
+	AccountsTrie        Type = iota + 6
+	RootHash            Type = iota + 7
+	UserAccount         Type = iota + 8
+	PeerAccount         Type = iota + 9
+	MetaAccount         Type = iota + 10
+	Unknown             Type = iota + 100
 )
 
 var Types = []Type{Transaction, SmartContractResult, RewardTransaction, MiniBlock, Header, MetaHeader, AccountsTrie, Unknown}
@@ -57,7 +63,7 @@ func NewObject(objType Type) (interface{}, error) {
 	case RootHash:
 		return make([]byte, 0), nil
 	}
-	return nil, ErrUnknownType
+	return nil, update.ErrUnknownType
 }
 
 func NewEmptyAccount(accType factory.Type) (state.AccountHandler, error) {
@@ -70,18 +76,18 @@ func NewEmptyAccount(accType factory.Type) (state.AccountHandler, error) {
 		return &state.PeerAccount{}, nil
 
 	}
-	return nil, ErrUnknownType
+	return nil, update.ErrUnknownType
 }
 
 func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 	splitString := strings.Split(key, atSep)
 	if len(splitString) < 3 {
-		return factory.UserAccount, 0, ErrUnknownType
+		return factory.UserAccount, 0, update.ErrUnknownType
 	}
 
 	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
 	accType := factory.UserAccount
-	for currType := range factory.Types {
+	for currType := range factory.SupportedAccountTypes {
 		if currType == int(accTypeUint64) {
 			accType = factory.Type(currType)
 			break
@@ -90,6 +96,75 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 
 	shId := uint32(big.NewInt(0).SetBytes([]byte(splitString[2])).Uint64())
 	return accType, shId, nil
+}
+
+func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
+	if len(splitString) < 2 {
+		return Unknown, nil, update.ErrUnknownType
+	}
+
+	switch splitString[0] {
+	case "nrm":
+		return Transaction, []byte(splitString[1]), nil
+	case "scr":
+		return SmartContractResult, []byte(splitString[1]), nil
+	case "rwd":
+		return RewardTransaction, []byte(splitString[1]), nil
+	}
+
+	return Unknown, nil, update.ErrUnknownType
+}
+
+func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
+	if len(splitString) < 3 {
+		return Unknown, nil, update.ErrUnknownType
+	}
+
+	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
+	accType := factory.UserAccount
+	for currType := range factory.SupportedAccountTypes {
+		if currType == int(accTypeUint64) {
+			accType = factory.Type(currType)
+			break
+		}
+	}
+
+	convertedType := Unknown
+	switch accType {
+	case factory.UserAccount:
+		convertedType = UserAccount
+	case factory.ShardStatistics:
+		convertedType = MetaAccount
+	case factory.ValidatorAccount:
+		convertedType = PeerAccount
+	}
+
+	return convertedType, []byte(splitString[2]), nil
+}
+
+func GetKeyTypeAndHash(key string) (Type, []byte, error) {
+	splitString := strings.Split(key, atSep)
+
+	if len(splitString) < 2 {
+		return Unknown, nil, update.ErrUnknownType
+	}
+
+	switch splitString[0] {
+	case "mb":
+		return MiniBlock, []byte(splitString[1]), nil
+	case "tx":
+		return getTransactionKeyTypeAndHash(splitString[1:])
+	case "tr":
+		return getTrieTypeAndHash(splitString[1:])
+	case "rt":
+		return RootHash, []byte(key), nil
+	}
+
+	return Unknown, nil, update.ErrUnknownType
+}
+
+func CreateVersionKey(meta *block.MetaBlock) string {
+	return string(meta.ChainID)
 }
 
 func CreateAccountKey(accType factory.Type, shId uint32, address string) string {
@@ -126,73 +201,4 @@ func CreateTransactionKey(key string, tx data.TransactionHandler) string {
 	}
 
 	return "tx" + atSep + "ukw" + key
-}
-
-func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
-	if len(splitString) < 2 {
-		return Unknown, nil, ErrUnknownType
-	}
-
-	switch splitString[0] {
-	case "nrm":
-		return Transaction, []byte(splitString[1]), nil
-	case "scr":
-		return SmartContractResult, []byte(splitString[1]), nil
-	case "rwd":
-		return RewardTransaction, []byte(splitString[1]), nil
-	}
-
-	return Unknown, nil, ErrUnknownType
-}
-
-func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
-	if len(splitString) < 3 {
-		return Unknown, nil, ErrUnknownType
-	}
-
-	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
-	accType := factory.UserAccount
-	for currType := range factory.Types {
-		if currType == int(accTypeUint64) {
-			accType = factory.Type(currType)
-			break
-		}
-	}
-
-	convertedType := Unknown
-	switch accType {
-	case factory.UserAccount:
-		convertedType = UserAccount
-	case factory.ShardStatistics:
-		convertedType = MetaAccount
-	case factory.ValidatorAccount:
-		convertedType = PeerAccount
-	}
-
-	return convertedType, []byte(splitString[2]), nil
-}
-
-func GetKeyTypeAndHash(key string) (Type, []byte, error) {
-	splitString := strings.Split(key, atSep)
-
-	if len(splitString) < 2 {
-		return Unknown, nil, ErrUnknownType
-	}
-
-	switch splitString[0] {
-	case "mb":
-		return MiniBlock, []byte(splitString[1]), nil
-	case "tx":
-		return getTransactionKeyTypeAndHash(splitString[1:])
-	case "tr":
-		return getTrieTypeAndHash(splitString[1:])
-	case "rt":
-		return RootHash, []byte(key), nil
-	}
-
-	return Unknown, nil, ErrUnknownType
-}
-
-func CreateVersionKey(meta *block.MetaBlock) string {
-	return string(meta.ChainID)
 }

@@ -106,7 +106,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 	return nil
 }
 
-// RootHash returns the synced trie roothash
+// Trie returns the synced trie
 func (ts *trieSyncer) Trie() data.Trie {
 	return ts.trie
 }
