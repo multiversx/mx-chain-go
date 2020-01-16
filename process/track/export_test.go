@@ -20,12 +20,12 @@ func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte
 	return mbt.computeLongestSelfChain()
 }
 
-func (sbt *shardBlockTrack) ComputePendingMiniBlockHeaders(headers []data.HeaderHandler) {
-	sbt.computePendingMiniBlockHeaders(headers)
+func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
+	sbt.computeNumPendingMiniBlocks(headers)
 }
 
-func (sbt *shardBlockTrack) PendingMiniBlockHeaders(shardID uint32) uint32 {
-	return sbt.blockBalancer.pendingMiniBlockHeaders(shardID)
+func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	return sbt.blockBalancer.getNumPendingMiniBlocks(shardID)
 }
 
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

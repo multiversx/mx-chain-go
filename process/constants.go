@@ -103,5 +103,5 @@ const TxPoolALotOfTransactionsForASender = uint32(500)
 // for "a sender with a lot of transactions" when eviction takes place
 const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
 
-// MaxPendingMiniBlockHeaders defines the maximum pending miniblock headers after which a shard could be considered stuck
-const MaxPendingMiniBlockHeaders = 100
+// MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
+const MaxNumPendingMiniBlocks = 100

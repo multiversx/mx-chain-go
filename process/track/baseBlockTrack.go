@@ -378,8 +378,8 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
-	nbPendingMiniBlockHeaders := bbt.blockBalancer.pendingMiniBlockHeaders(shardID)
-	isShardStuck := nbPendingMiniBlockHeaders >= process.MaxPendingMiniBlockHeaders
+	numPendingMiniBlocks := bbt.blockBalancer.getNumPendingMiniBlocks(shardID)
+	isShardStuck := numPendingMiniBlocks >= process.MaxNumPendingMiniBlocks
 	return isShardStuck
 }
 

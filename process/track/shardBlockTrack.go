@@ -133,7 +133,7 @@ func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byt
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-func (sbt *shardBlockTrack) computePendingMiniBlockHeaders(headers []data.HeaderHandler) {
+func (sbt *shardBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
 	lenHeaders := len(headers)
 	if lenHeaders == 0 {
 		return
@@ -141,17 +141,17 @@ func (sbt *shardBlockTrack) computePendingMiniBlockHeaders(headers []data.Header
 
 	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
 	if !ok {
-		log.Debug("computePendingMiniBlockHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("computeNumPendingMiniBlocks", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
-		sbt.blockBalancer.setPendingMiniBlockHeaders(shardInfo.ShardID, shardInfo.PendingMiniBlockHeaders)
+		sbt.blockBalancer.setNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
 	}
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("pending miniblock headers",
+		log.Trace("pending miniblocks",
 			"shard", shardID,
-			"nb", sbt.blockBalancer.pendingMiniBlockHeaders(shardID))
+			"num", sbt.blockBalancer.getNumPendingMiniBlocks(shardID))
 	}
 }

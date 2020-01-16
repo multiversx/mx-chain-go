@@ -24,13 +24,13 @@ type ArgsPendingMiniBlocks struct {
 }
 
 type pendingMiniBlockHeaders struct {
-	marshalizer              marshal.Marshalizer
-	metaBlockStorage         storage.Storer
-	metaBlockPool            dataRetriever.HeadersPool
-	storage                  storage.Storer
-	mutPending               sync.RWMutex
-	mapMiniBlockHeaders      map[string]block.ShardMiniBlockHeader
-	mapShardMiniBlockHeaders map[uint32]uint32
+	marshalizer           marshal.Marshalizer
+	metaBlockStorage      storage.Storer
+	metaBlockPool         dataRetriever.HeadersPool
+	storage               storage.Storer
+	mutPending            sync.RWMutex
+	mapMiniBlockHeaders   map[string]block.ShardMiniBlockHeader
+	mapShardNumMiniBlocks map[uint32]uint32
 }
 
 // NewPendingMiniBlocks will create a new pendingMiniBlockHeaders object
@@ -52,12 +52,12 @@ func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders
 	}
 
 	return &pendingMiniBlockHeaders{
-		marshalizer:              args.Marshalizer,
-		storage:                  args.Storage,
-		mapMiniBlockHeaders:      make(map[string]block.ShardMiniBlockHeader),
-		mapShardMiniBlockHeaders: make(map[uint32]uint32),
-		metaBlockPool:            args.MetaBlockPool,
-		metaBlockStorage:         args.MetaBlockStorage,
+		marshalizer:           args.Marshalizer,
+		storage:               args.Storage,
+		mapMiniBlockHeaders:   make(map[string]block.ShardMiniBlockHeader),
+		mapShardNumMiniBlocks: make(map[uint32]uint32),
+		metaBlockPool:         args.MetaBlockPool,
+		metaBlockStorage:      args.MetaBlockStorage,
 	}, nil
 }
 
@@ -209,13 +209,13 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 	for key, mbHeader := range crossShard {
 		if _, ok = p.mapMiniBlockHeaders[key]; !ok {
 			p.mapMiniBlockHeaders[key] = mbHeader
-			p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID]++
+			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]++
 			continue
 		}
 
 		delete(p.mapMiniBlockHeaders, key)
-		if p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID] > 0 { // this condition should be always true
-			p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID]--
+		if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] > 0 { // this condition should be always true
+			p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
 		}
 
 		var buff []byte
@@ -250,28 +250,28 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 	for mbHash, mbHeader := range crossShard {
 		if _, ok = p.mapMiniBlockHeaders[mbHash]; ok {
 			delete(p.mapMiniBlockHeaders, mbHash)
-			if p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID] > 0 { // this condition should be always true
-				p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID]--
+			if p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID] > 0 { // this condition should be always true
+				p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]--
 			}
 			continue
 		}
 
 		_ = p.storage.Remove([]byte(mbHash))
 		p.mapMiniBlockHeaders[mbHash] = mbHeader
-		p.mapShardMiniBlockHeaders[mbHeader.ReceiverShardID]++
+		p.mapShardNumMiniBlocks[mbHeader.ReceiverShardID]++
 	}
 	p.mutPending.Unlock()
 
 	return nil
 }
 
-// PendingMiniBlockHeadersForShard will return the number of pending miniblock headers for a given shard
-func (p *pendingMiniBlockHeaders) PendingMiniBlockHeadersForShard(shardID uint32) uint32 {
+// NumPendingMiniBlocksForShard will return the number of pending miniblocks for a given shard
+func (p *pendingMiniBlockHeaders) NumPendingMiniBlocksForShard(shardID uint32) uint32 {
 	p.mutPending.RLock()
-	nbPendingMiniBlockHeaders := p.mapShardMiniBlockHeaders[shardID]
+	numPendingMiniBlocks := p.mapShardNumMiniBlocks[shardID]
 	p.mutPending.RUnlock()
 
-	return nbPendingMiniBlockHeaders
+	return numPendingMiniBlocks
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

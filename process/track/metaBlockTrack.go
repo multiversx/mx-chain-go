@@ -128,5 +128,5 @@ func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-func (mbt *metaBlockTrack) computePendingMiniBlockHeaders(headers []data.HeaderHandler) {
+func (mbt *metaBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
 }

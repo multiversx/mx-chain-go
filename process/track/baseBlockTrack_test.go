@@ -463,31 +463,31 @@ func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenHeadersSliceIsEmpty(
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.ComputePendingMiniBlockHeaders([]data.HeaderHandler{})
-	assert.Equal(t, uint32(0), sbt.PendingMiniBlockHeaders(shardArguments.ShardCoordinator.SelfId()))
+	sbt.ComputeNumPendingMiniBlocks([]data.HeaderHandler{})
+	assert.Equal(t, uint32(0), sbt.GetNumPendingMiniBlocks(shardArguments.ShardCoordinator.SelfId()))
 }
 
 func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenErrWrongTypeAssertion(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.ComputePendingMiniBlockHeaders([]data.HeaderHandler{&block.Header{}})
-	assert.Equal(t, uint32(0), sbt.PendingMiniBlockHeaders(shardArguments.ShardCoordinator.SelfId()))
+	sbt.ComputeNumPendingMiniBlocks([]data.HeaderHandler{&block.Header{}})
+	assert.Equal(t, uint32(0), sbt.GetNumPendingMiniBlocks(shardArguments.ShardCoordinator.SelfId()))
 }
 
 func TestComputePendingMiniBlockHeaders_ShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.ComputePendingMiniBlockHeaders([]data.HeaderHandler{&block.MetaBlock{
+	sbt.ComputeNumPendingMiniBlocks([]data.HeaderHandler{&block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			block.ShardData{
-				ShardID:                 0,
-				PendingMiniBlockHeaders: 2,
+				ShardID:              0,
+				NumPendingMiniBlocks: 2,
 			},
 		}}})
 
-	assert.Equal(t, uint32(2), sbt.PendingMiniBlockHeaders(0))
+	assert.Equal(t, uint32(2), sbt.GetNumPendingMiniBlocks(0))
 }
 
 func TestReceivedHeader_ShouldAddMetaBlockToTrackedHeaders(t *testing.T) {

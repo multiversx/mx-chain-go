@@ -5,27 +5,27 @@ import (
 )
 
 type blockBalancer struct {
-	mutShardPendingMiniBlockHeaders sync.RWMutex
-	mapShardPendingMiniBlockHeaders map[uint32]uint32
+	mutShardNumPendingMiniBlocks sync.RWMutex
+	mapShardNumPendingMiniBlocks map[uint32]uint32
 }
 
 // NewBlockBalancer creates a block balancer object which implements blockBalancerHandler interface
 func NewBlockBalancer() (*blockBalancer, error) {
 	bn := blockBalancer{}
-	bn.mapShardPendingMiniBlockHeaders = make(map[uint32]uint32)
+	bn.mapShardNumPendingMiniBlocks = make(map[uint32]uint32)
 	return &bn, nil
 }
 
-func (bb *blockBalancer) pendingMiniBlockHeaders(shardID uint32) uint32 {
-	bb.mutShardPendingMiniBlockHeaders.RLock()
-	nbPendingMiniBlockHeaders := bb.mapShardPendingMiniBlockHeaders[shardID]
-	bb.mutShardPendingMiniBlockHeaders.RUnlock()
+func (bb *blockBalancer) getNumPendingMiniBlocks(shardID uint32) uint32 {
+	bb.mutShardNumPendingMiniBlocks.RLock()
+	numPendingMiniBlocks := bb.mapShardNumPendingMiniBlocks[shardID]
+	bb.mutShardNumPendingMiniBlocks.RUnlock()
 
-	return nbPendingMiniBlockHeaders
+	return numPendingMiniBlocks
 }
 
-func (bb *blockBalancer) setPendingMiniBlockHeaders(shardID uint32, nbPendingMiniBlockHeaders uint32) {
-	bb.mutShardPendingMiniBlockHeaders.Lock()
-	bb.mapShardPendingMiniBlockHeaders[shardID] = nbPendingMiniBlockHeaders
-	bb.mutShardPendingMiniBlockHeaders.Unlock()
+func (bb *blockBalancer) setNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	bb.mutShardNumPendingMiniBlocks.Lock()
+	bb.mapShardNumPendingMiniBlocks[shardID] = numPendingMiniBlocks
+	bb.mutShardNumPendingMiniBlocks.Unlock()
 }
