@@ -7,10 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-const nrOfChildren = 17
-const firstByte = 0
-const maxTrieLevelAfterCommit = 6
-const hexTerminator = 16
+const (
+	nrOfChildren            = 17
+	firstByte               = 0
+	maxTrieLevelAfterCommit = 6
+	hexTerminator           = 16
+	nibbleSize              = 4
+	nibbleMask              = 0x0f
+)
 
 type baseNode struct {
 	hash   []byte
@@ -190,8 +194,8 @@ func keyBytesToHex(str []byte) []byte {
 	nibbles[hexLength-1] = hexTerminator
 
 	for i := hexLength - 2; i > 0; i -= 2 {
-		nibbles[i] = str[hexSliceIndex] / hexTerminator
-		nibbles[i-1] = str[hexSliceIndex] % hexTerminator
+		nibbles[i] = str[hexSliceIndex] >> nibbleSize
+		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
 		hexSliceIndex++
 	}
 
@@ -210,7 +214,7 @@ func hexToKeyBytes(hex []byte) ([]byte, error) {
 	key := make([]byte, length/2)
 	hexSliceIndex := 0
 	for i := len(key) - 1; i >= 0; i-- {
-		key[i] = hex[hexSliceIndex] + hex[hexSliceIndex+1]*hexTerminator
+		key[i] = hex[hexSliceIndex+1]<<nibbleSize | hex[hexSliceIndex]
 		hexSliceIndex = hexSliceIndex + 2
 	}
 
