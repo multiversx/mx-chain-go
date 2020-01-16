@@ -51,6 +51,9 @@ func (si *stateImport) ImportAll() error {
 		default:
 			err = si.importState(fileName)
 		}
+		if err != nil {
+			return err
+		}
 	}
 
 	si.reader.Finish()

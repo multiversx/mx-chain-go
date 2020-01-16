@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/files"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 type ArgsExporter struct {
@@ -34,7 +36,7 @@ type ArgsExporter struct {
 	RequestHandler           update.RequestHandler
 	ShardCoordinator         sharding.Coordinator
 	Messenger                p2p.Messenger
-	ActiveTries              update.DataTriesContainer
+	ActiveTries              state.TriesHolder
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportTriesCacheConfig   config.CacheConfig
@@ -51,7 +53,7 @@ type exportHandlerFactory struct {
 	requestHandler           update.RequestHandler
 	shardCoordinator         sharding.Coordinator
 	messenger                p2p.Messenger
-	activeTries              update.DataTriesContainer
+	activeTries              state.TriesHolder
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportTriesCacheConfig   config.CacheConfig
@@ -155,19 +157,56 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsSyncState := genesis.ArgsNewSyncState{
-		Hasher:           e.hasher,
-		Marshalizer:      e.marshalizer,
-		ShardCoordinator: e.shardCoordinator,
-		TrieSyncers:      trieSyncers,
-		EpochHandler:     epochHandler,
-		Storages:         e.storageService,
-		DataPools:        e.dataPool,
-		RequestHandler:   e.requestHandler,
-		HeaderValidator:  e.headerValidator,
-		ActiveDataTries:  e.activeTries,
+	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
+		Storage:        e.storageService.GetStorer(dataRetriever.MetaBlockUnit),
+		Cache:          e.dataPool.MetaBlocks(),
+		Marshalizer:    e.marshalizer,
+		EpochHandler:   epochHandler,
+		RequestHandler: e.requestHandler,
 	}
-	stateSyncer, err := genesis.NewSyncState(argsSyncState)
+	epochStartHeadersSyncer, err := sync.NewHeadersSyncHandler(argsNewHeadersSync)
+	if err != nil {
+		return nil, err
+	}
+
+	argsNewEpochStartTrieSyncer := sync.ArgsNewSyncTriesHandler{
+		TrieSyncers: trieSyncers,
+		ActiveTries: e.activeTries,
+	}
+	epochStartTriesSyncer, err := sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
+	if err != nil {
+		return nil, err
+	}
+
+	argsMiniBlockSyncer := sync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        e.storageService.GetStorer(dataRetriever.MiniBlockUnit),
+		Cache:          e.dataPool.MiniBlocks(),
+		Marshalizer:    e.marshalizer,
+		RequestHandler: e.requestHandler,
+	}
+	epochStartMiniBlocksSyncer, err := sync.NewPendingMiniBlocksSyncer(argsMiniBlockSyncer)
+	if err != nil {
+		return nil, err
+	}
+
+	argsPendingTransactions := sync.ArgsNewPendingTransactionsSyncer{
+		DataPools:      e.dataPool,
+		Storages:       e.storageService,
+		Marshalizer:    e.marshalizer,
+		RequestHandler: e.requestHandler,
+	}
+	epochStartTransactionsSyncer, err := sync.NewPendingTransactionsSyncer(argsPendingTransactions)
+	if err != nil {
+		return nil, err
+	}
+
+	argsSyncState := sync.ArgsNewSyncState{
+		Headers:      epochStartHeadersSyncer,
+		Tries:        epochStartTriesSyncer,
+		MiniBlocks:   epochStartMiniBlocksSyncer,
+		Transactions: epochStartTransactionsSyncer,
+	}
+	stateSyncer, err := sync.NewSyncState(argsSyncState)
 	if err != nil {
 		return nil, err
 	}

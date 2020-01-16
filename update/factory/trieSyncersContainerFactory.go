@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -13,20 +14,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
+	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type ArgsNewTrieSyncersContainerFactory struct {
 	CacheConfig        config.CacheConfig
 	SyncFolder         string
 	ResolversContainer dataRetriever.ResolversContainer
-	DataTrieContainer  update.DataTriesContainer
+	DataTrieContainer  state.TriesHolder
 	ShardCoordinator   sharding.Coordinator
 }
 
 type trieSyncersContainerFactory struct {
 	shardCoordinator   sharding.Coordinator
 	trieCacher         storage.Cacher
-	trieContainer      update.DataTriesContainer
+	trieContainer      state.TriesHolder
 	resolversContainer dataRetriever.ResolversContainer
 }
 
@@ -90,7 +92,7 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	accType factory.Type,
 	container update.TrieSyncContainer,
 ) error {
-	trieId := update.CreateTrieIdentifier(shId, accType)
+	trieId := genesis.CreateTrieIdentifier(shId, accType)
 	resolver, err := t.resolversContainer.Get(trieId)
 	if err != nil {
 		return err

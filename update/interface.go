@@ -36,14 +36,6 @@ type TrieSyncContainer interface {
 	IsInterfaceNil() bool
 }
 
-// DataTriesContainer is used to store multiple tries
-type DataTriesContainer interface {
-	Put([]byte, data.Trie)
-	Get([]byte) data.Trie
-	GetAllTries() map[string]data.Trie
-	IsInterfaceNil() bool
-}
-
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler notifier.SubscribeFunctionHandler)
