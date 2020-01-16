@@ -1,10 +1,11 @@
 package txcache
 
-import "testing"
+import (
+	"math"
+	"testing"
 
-import "github.com/stretchr/testify/require"
-
-import "math"
+	"github.com/stretchr/testify/require"
+)
 
 func Test_EvictOldestSenders(t *testing.T) {
 	config := EvictionConfig{

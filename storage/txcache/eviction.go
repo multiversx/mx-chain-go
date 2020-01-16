@@ -23,7 +23,8 @@ func (cache *TxCache) doEviction() {
 	tooManySenders := cache.areThereTooManySenders()
 	journal := evictionJournal{}
 
-	if !tooManyBytes && !tooManyTxs && !tooManySenders {
+	isCapacityExceeded := tooManyBytes || tooManyTxs || tooManySenders
+	if !isCapacityExceeded {
 		return
 	}
 
@@ -36,22 +37,22 @@ func (cache *TxCache) doEviction() {
 	log.Debug("TxCache.doEviction()")
 	cache.displayState()
 
-	if cache.areThereTooManySenders() {
+	if tooManySenders {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
 		journal.evictionPerformed = true
 	}
 
-	if cache.areThereTooManyTxs() {
+	if tooManyTxs {
 		journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictHighNonceTransactions()
 		journal.evictionPerformed = true
 	}
 
-	if cache.areThereTooManyTxs() && !cache.areThereJustAFewSenders() {
+	if tooManyTxs && !cache.areThereJustAFewSenders() {
 		journal.passThreeNumSteps, journal.passThreeNumTxs, journal.passThreeNumSenders = cache.evictSendersWhileTooManyTxs()
 		journal.evictionPerformed = true
 	}
 
-	if cache.areThereTooManyBytes() {
+	if tooManyBytes {
 		journal.passFourNumSteps, journal.passFourNumTxs, journal.passFourNumSenders = cache.evictSendersWhileTooManyBytes()
 		journal.evictionPerformed = true
 	}
