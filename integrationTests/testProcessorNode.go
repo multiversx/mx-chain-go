@@ -339,11 +339,8 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.MetaDataPool = CreateTestMetaDataPool()
-	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool(nil)
-	}
+	tpn.MetaDataPool = CreateTestMetaDataPool()
+	tpn.ShardDataPool = CreateTestShardDataPool(nil)
 }
 
 func (tpn *TestProcessorNode) initStorage() {

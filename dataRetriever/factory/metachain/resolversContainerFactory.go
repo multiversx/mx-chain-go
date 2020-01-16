@@ -459,6 +459,26 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+
+		identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+	}
+
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
