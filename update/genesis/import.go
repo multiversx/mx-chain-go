@@ -56,11 +56,6 @@ func (si *stateImport) ImportAll() error {
 		}
 	}
 
-	err = si.processTransactions()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -240,7 +235,11 @@ func (si *stateImport) importTrie(fileName string) error {
 	return nil
 }
 
-func (si *stateImport) processTransactions() error {
+func (si *stateImport) ProcessTransactions() error {
+	return nil
+}
+
+func (si *stateImport) CreateGenesisBlocks() error {
 	return nil
 }
 

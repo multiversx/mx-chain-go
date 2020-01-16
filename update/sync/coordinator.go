@@ -1,11 +1,9 @@
-package genesis
+package sync
 
 import (
-	"bytes"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -44,14 +42,6 @@ type pendingTransactions struct {
 	chReceivedAll   chan bool
 }
 
-type headersToSync struct {
-	mutMeta          sync.Mutex
-	metaBlockToSync  *block.MetaBlock
-	chReceivedAll    chan bool
-	metaBlockStorage update.HistoryStorer
-	metaBlockPool    storage.Cacher
-}
-
 type syncState struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -66,9 +56,10 @@ type syncState struct {
 
 	activeAccountsAdapters update.AccountsHandlerContainer
 
+	headers update.HeaderSyncHandler
+
 	miniBlocks   pendingMiniBlocks
 	transactions pendingTransactions
-	headers      headersToSync
 }
 
 // Arguments for the NewSync
@@ -134,17 +125,6 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 		activeAccountsAdapters: args.AccountHandlers,
 	}
 
-	ss.headers = headersToSync{
-		mutMeta:          sync.Mutex{},
-		metaBlockToSync:  &block.MetaBlock{},
-		chReceivedAll:    make(chan bool),
-		metaBlockStorage: args.Storages.GetStorer(dataRetriever.MetaBlockUnit),
-		metaBlockPool:    args.DataPools.MetaBlocks(),
-	}
-	if check.IfNil(ss.headers.metaBlockStorage) {
-		return nil, epochStart.ErrNilMetaBlockStorage
-	}
-
 	ss.miniBlocks = pendingMiniBlocks{
 		mutPendingMb:  sync.Mutex{},
 		mapMiniBlocks: make(map[string]*block.MiniBlock),
@@ -188,7 +168,6 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 	ss.miniBlocks.chReceivedAll = make(chan bool)
 
 	ss.miniBlocks.pool.RegisterHandler(ss.receivedMiniBlock)
-	ss.headers.metaBlockPool.RegisterHandler(ss.receivedMetaBlock)
 
 	return ss, nil
 }
@@ -200,7 +179,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	}
 	ss.syncingEpoch = epoch
 
-	meta, err := ss.getEpochStartMetaHeader(epoch)
+	meta, err := ss.headers.SyncEpochStartMetaHeader(epoch, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -277,14 +256,14 @@ func (ss *syncState) syncShard(shardData block.EpochStartShardData, wg *sync.Wai
 	ss.miniBlocks.mutPendingMb.Unlock()
 
 	if requestedMBs > 0 {
-		err := ss.waitForMBsAndTxs(ss.miniBlocks.chReceivedAll, time.Hour)
+		err := WaitFor(ss.miniBlocks.chReceivedAll, time.Hour)
 		log.Warn("could not finish syncing", "error", err)
 		if err != nil {
 			return err
 		}
 	}
 	if requestedTxs > 0 {
-		err := ss.waitForMBsAndTxs(ss.transactions.chReceivedAll, time.Hour)
+		err := WaitFor(ss.transactions.chReceivedAll, time.Hour)
 		log.Warn("could not finish syncing", "error", err)
 		if err != nil {
 			return err
@@ -292,154 +271,6 @@ func (ss *syncState) syncShard(shardData block.EpochStartShardData, wg *sync.Wai
 	}
 
 	return nil
-}
-
-func (ss *syncState) waitForMBsAndTxs(channelToWait chan bool, waitTime time.Duration) error {
-	select {
-	case <-channelToWait:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
-}
-
-func (ss *syncState) syncTrieOfType(accountType factory.Type, shardId uint32, rootHash []byte) error {
-	accAdapterIdentifier := update.CreateTrieIdentifier(shardId, accountType)
-
-	success := ss.tryRecreateTrie(accAdapterIdentifier, rootHash)
-	if success {
-		return nil
-	}
-
-	trieSyncer, err := ss.trieSyncers.Get(accAdapterIdentifier)
-	if err != nil {
-		// critical error - should not happen - maybe recreate trie syncer here
-		return err
-	}
-
-	err = trieSyncer.StartSyncing(rootHash)
-	if err != nil {
-		// critical error - should not happen - maybe recreate trie syncer here
-		return err
-	}
-
-	ss.tries[accAdapterIdentifier] = trieSyncer.Trie()
-	return nil
-}
-
-func (ss *syncState) tryRecreateTrie(id string, rootHash []byte) bool {
-	savedTrie, ok := ss.tries[id]
-	if ok {
-		currHash, err := savedTrie.Root()
-		if err == nil && bytes.Equal(currHash, rootHash) {
-			return true
-		}
-	}
-
-	accounts, err := ss.activeAccountsAdapters.Get(id)
-	if err != nil {
-		return false
-	}
-
-	trie, err := accounts.CopyRecreateTrie(rootHash)
-	if err != nil {
-		return false
-	}
-
-	err = trie.Commit()
-	if err != nil {
-		return false
-	}
-
-	ss.tries[id] = trie
-	return true
-}
-
-func (ss *syncState) syncMeta(meta *block.MetaBlock, wg *sync.WaitGroup) error {
-	defer wg.Done()
-
-	err := ss.syncTrieOfType(factory.UserAccount, sharding.MetachainShardId, meta.RootHash)
-	if err != nil {
-		return nil
-	}
-
-	err = ss.syncTrieOfType(factory.ValidatorAccount, sharding.MetachainShardId, meta.ValidatorStatsRootHash)
-	if err != nil {
-		return nil
-	}
-
-	return nil
-}
-
-func (ss *syncState) getEpochStartMetaHeader(epoch uint32) (*block.MetaBlock, error) {
-	epochStartId := core.EpochStartIdentifier(epoch)
-	epochStartData, err := ss.getDataFromStorage([]byte(epochStartId), ss.headers.metaBlockStorage)
-	if err != nil {
-		_ = process.EmptyChannel(ss.headers.chReceivedAll)
-		ss.requestHandler.RequestStartOfEpochMetaBlock(epoch)
-
-		err = ss.waitForMBsAndTxs(ss.headers.chReceivedAll, time.Minute)
-		log.Warn("timeOut for requesting epoch metaHdr")
-		if err != nil {
-			return nil, err
-		}
-
-		ss.headers.mutMeta.Lock()
-		meta := ss.headers.metaBlockToSync
-		ss.headers.mutMeta.Unlock()
-
-		return meta, nil
-	}
-
-	meta := &block.MetaBlock{}
-	err = ss.marshalizer.Unmarshal(meta, epochStartData)
-	if err != nil {
-		return nil, err
-	}
-
-	return meta, nil
-}
-
-func (ss *syncState) receivedMetaBlock(hash []byte) {
-	if ss.syncingEpoch < 1 || ss.epochHandler.IsEpochStart() {
-		return
-	}
-
-	val, ok := ss.headers.metaBlockPool.Peek(hash)
-	if !ok {
-		return
-	}
-
-	meta, ok := val.(*block.MetaBlock)
-	if !ok {
-		return
-	}
-
-	isWrongEpoch := meta.Epoch > ss.syncingEpoch || meta.Epoch < ss.syncingEpoch-1
-	if isWrongEpoch {
-		return
-	}
-
-	ss.epochHandler.ReceivedHeader(meta)
-	if ss.epochHandler.IsEpochStart() {
-		epochStartId := core.EpochStartIdentifier(ss.epochHandler.Epoch())
-		metaData, err := ss.headers.metaBlockStorage.Get([]byte(epochStartId))
-		if err != nil {
-			return
-		}
-
-		meta := &block.MetaBlock{}
-		err = ss.marshalizer.Unmarshal(meta, metaData)
-		if err != nil {
-			return
-		}
-
-		ss.headers.mutMeta.Lock()
-		ss.headers.metaBlockToSync = meta
-		ss.headers.mutMeta.Unlock()
-
-		ss.headers.chReceivedAll <- true
-	}
 }
 
 // receivedMiniBlock is a callback function when a new miniblock was received
@@ -574,7 +405,7 @@ func (ss *syncState) getMiniBlockFromPoolOrStorage(hash []byte) (*block.MiniBloc
 		return miniBlock, true
 	}
 
-	mbData, err := ss.getDataFromStorage(hash, ss.miniBlocks.storage)
+	mbData, err := GetDataFromStorage(hash, ss.miniBlocks.storage, ss.syncingEpoch)
 	if err != nil {
 		return nil, false
 	}
@@ -588,18 +419,6 @@ func (ss *syncState) getMiniBlockFromPoolOrStorage(hash []byte) (*block.MiniBloc
 	return mb, true
 }
 
-func (ss *syncState) getDataFromStorage(hash []byte, storer update.HistoryStorer) ([]byte, error) {
-	currData, err := storer.Get(hash)
-	if err != nil {
-		currData, err = storer.GetFromEpoch(hash, ss.syncingEpoch)
-		if err != nil {
-			currData, err = storer.GetFromEpoch(hash, ss.syncingEpoch-1)
-		}
-	}
-
-	return currData, err
-}
-
 func (ss *syncState) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
 	txFromPool, ok := ss.getTransactionFromPool(hash)
 	if ok {
@@ -611,7 +430,7 @@ func (ss *syncState) getTransactionFromPoolOrStorage(hash []byte) (data.Transact
 		return nil, false
 	}
 
-	txData, err := ss.getDataFromStorage(hash, ss.transactions.storage[miniBlock.Type])
+	txData, err := GetDataFromStorage(hash, ss.transactions.storage[miniBlock.Type], ss.syncingEpoch)
 	if err != nil {
 		return nil, false
 	}
@@ -635,9 +454,11 @@ func (ss *syncState) getTransactionFromPoolOrStorage(hash []byte) (data.Transact
 }
 
 func (ss *syncState) GetMetaBlock() *block.MetaBlock {
-	ss.headers.mutMeta.Lock()
-	meta := ss.headers.metaBlockToSync
-	ss.headers.mutMeta.Unlock()
+	meta, err := ss.headers.GetMetaBlock()
+	if err != nil {
+		log.Debug("meta not synced yet")
+		return nil
+	}
 
 	return meta
 }

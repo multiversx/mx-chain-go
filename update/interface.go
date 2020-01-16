@@ -1,10 +1,11 @@
 package update
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
 type StateSyncer interface {
@@ -45,17 +46,12 @@ type TrieSyncContainer interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	RegisterHandler(handler notifier.SubscribeFunctionHandler)
-	IsInterfaceNil() bool
-}
-
 // EpochStartVerifier defines the functionality needed by sync all state from epochTrigger
 type EpochStartVerifier interface {
 	IsEpochStart() bool
 	ReceivedHeader(header data.HeaderHandler)
 	Epoch() uint32
+	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
 }
 
@@ -83,5 +79,11 @@ type MultiFileWriter interface {
 type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
+	IsInterfaceNil() bool
+}
+
+type HeaderSyncHandler interface {
+	SyncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) (*block.MetaBlock, error)
+	GetMetaBlock() (*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }
