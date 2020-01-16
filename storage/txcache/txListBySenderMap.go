@@ -147,6 +147,11 @@ func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender 
 	return snapshot
 }
 
+// GetListsGroupedBy gets the list of senders, grouped in buckets, according to their smart score
+func (txMap *txListBySenderMap) GetListsGroupedBySmartScore() [][]*txListForSender {
+	return nil
+}
+
 func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
 	counter := txMap.counter.Get()
 	if counter < 1 {
