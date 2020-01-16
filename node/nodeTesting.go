@@ -64,7 +64,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 			if errGenTx != nil {
 				mutErrFound.Lock()
-				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", crtNonce, errGenTx.Error()))
+				errFound = fmt.Errorf("failure generating transaction %d: %s", crtNonce, errGenTx.Error())
 				mutErrFound.Unlock()
 
 				wg.Done()

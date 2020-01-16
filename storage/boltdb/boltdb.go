@@ -1,7 +1,6 @@
 package boltdb
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +44,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, errBucketCreation := tx.CreateBucket([]byte(parentFolder))
 		if errBucketCreation != nil {
-			return errors.New(fmt.Sprintf("create bucket: %s", errBucketCreation))
+			return fmt.Errorf("create bucket: %s", errBucketCreation)
 		}
 		return nil
 	})

@@ -47,8 +47,5 @@ func (ipcm *InterimProcessorContainerMock) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ipcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
-	if ipcm == nil {
-		return true
-	}
-	return false
+	return ipcm == nil
 }
