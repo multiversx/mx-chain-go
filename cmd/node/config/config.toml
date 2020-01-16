@@ -237,7 +237,7 @@
 
 [TxDataPool]
     Size = 75000
-    Type = "FIFOSharded"
+    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]

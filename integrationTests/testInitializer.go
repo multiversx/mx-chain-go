@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -70,6 +71,8 @@ var SyncDelay = time.Second * 2
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
 
+var log = logger.GetOrCreate("integrationtests")
+
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
@@ -79,6 +82,20 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 		return addr
 	}
 	return ""
+}
+
+// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
+func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: peerRefreshInterval,
+		RandezVous:           "test",
+		InitialPeersList:     initialPeersList,
+		BucketSize:           100,
+		RoutingTableRefresh:  time.Minute,
+	}
+	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
+
+	return peerDiscovery
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
@@ -91,7 +108,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(StepDelay, "test", []string{initialAddr}),
+		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -406,7 +423,9 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.MetaDatapool = newMetaDataPool
 	}
 
-	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	log.LogIfError(err)
+
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
 	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
 
@@ -902,7 +921,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := make([]uint64, len(senders))
 		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
 			receiverPubKey := shardReceiversPublicKeys[i]
-			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
+			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -995,7 +1014,8 @@ type txArgs struct {
 	gasLimit uint64
 }
 
-func generateTransferTx(
+// GenerateTransferTx will generate a move balance transaction
+func GenerateTransferTx(
 	nonce uint64,
 	senderPrivateKey crypto.PrivateKey,
 	receiverPublicKey crypto.PublicKey,
@@ -1477,6 +1497,7 @@ func ProposeAndSyncOneBlock(
 	round uint64,
 	nonce uint64,
 ) (uint64, uint64) {
+
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
