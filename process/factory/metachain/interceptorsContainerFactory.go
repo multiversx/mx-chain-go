@@ -576,6 +576,7 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 		trieNodesFactory,
 		trieNodesProcessor,
 		icf.globalThrottler,
+		icf.antifloodHandler,
 	)
 	if err != nil {
 		return nil, err

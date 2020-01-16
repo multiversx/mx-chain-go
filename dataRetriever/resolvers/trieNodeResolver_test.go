@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fromConnectedPeer = p2p.PeerID("from connected peer")
+
 func TestNewTrieNodeResolver_NilResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -74,7 +76,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T
 		&mock.MarshalizerMock{},
 	)
 
-	err := tnRes.ProcessReceivedMessage(nil, nil)
+	err := tnRes.ProcessReceivedMessage(nil, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrNilMessage, err)
 }
 
@@ -92,7 +94,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T)
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, nil)
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
 }
 
@@ -110,7 +112,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, nil)
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -147,7 +149,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, nil)
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 
 	assert.Nil(t, err)
 	assert.True(t, getSerializedNodesWasCalled)
@@ -177,7 +179,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerF
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := tnRes.ProcessReceivedMessage(msg, nil)
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, errExpected, err)
 }
 

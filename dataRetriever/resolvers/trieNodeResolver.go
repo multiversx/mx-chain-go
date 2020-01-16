@@ -42,7 +42,7 @@ func NewTrieNodeResolver(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	rd := &dataRetriever.RequestData{}
 	err := rd.Unmarshal(tnRes.marshalizer, message)
 	if err != nil {

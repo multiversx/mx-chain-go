@@ -826,6 +826,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	container, err := icf.Create()

@@ -3,10 +3,10 @@ package resolvers_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -123,8 +123,7 @@ func TestNewHeaderResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -161,8 +160,7 @@ func TestHeaderResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.Uint64SyncMapCacherStub{},
+		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},

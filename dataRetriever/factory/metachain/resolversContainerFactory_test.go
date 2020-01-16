@@ -246,6 +246,7 @@ func TestNewResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.T) {
 		&mock.DataPackerStub{},
 		nil,
 		0,
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, rcf)
@@ -263,6 +264,7 @@ func TestNewResolversContainerFactory_NilAntifloodHandlerShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
+		&mock.TrieStub{},
 		0,
 		nil,
 	)

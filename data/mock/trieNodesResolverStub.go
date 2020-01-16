@@ -17,7 +17,7 @@ func (tnrs *TrieNodesResolverStub) RequestDataFromHash(hash []byte) error {
 	return errNotImplemented
 }
 
-func (tnrs *TrieNodesResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (tnrs *TrieNodesResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	if tnrs.ProcessReceivedMessageCalled != nil {
 		return tnrs.ProcessReceivedMessageCalled(message)
 	}

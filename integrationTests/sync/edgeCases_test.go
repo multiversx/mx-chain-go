@@ -30,7 +30,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	idxProposerMeta := idxProposers[1]
 	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
 
-	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -90,7 +90,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	syncMetaNode.Rounder.IndexField = int64(round)
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
-	integrationTests.StartP2pBootstrapOnProcessorNodes(syncNodesSlice)
+	integrationTests.StartP2PBootstrapOnProcessorNodes(syncNodesSlice)
 	integrationTests.StartSyncingBlocks(syncNodesSlice)
 
 	//after joining the network we must propose a new block on the metachain as to be received by the sync
