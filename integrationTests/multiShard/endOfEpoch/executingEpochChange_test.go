@@ -2,6 +2,7 @@ package epochStart
 
 import (
 	"context"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"math/big"
 	"testing"
 	"time"
@@ -213,6 +214,67 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 			assert.Equal(t, shardHeader.Epoch, currentMetaHdr.Epoch)
 		}
 	}
+}
+
+func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	logger.SetLogLevel("*:TRACE")
+	nodesPerShard := 2
+	nbMetaNodes := 400
+	nbShards := 1
+	consensusGroupSize := 63
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		2,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	roundsPerEpoch := uint64(1000)
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes[0:1])
+
+		for _, node := range nodes[0:1] {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	nonce := uint64(1)
+
+	randomness := generateInitialRandomness(uint32(nbShards))
+	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+	round += 1000
+	nonce++
+
+	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+	time.Sleep(5 * time.Second)
 }
 
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {

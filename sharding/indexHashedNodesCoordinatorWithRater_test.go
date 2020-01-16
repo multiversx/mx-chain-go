@@ -155,8 +155,8 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 	assert.Equal(t, ratingPk1, occurences["pk1"])
 }
 
-func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup21of400(b *testing.B) {
-	consensusGroupSize := 21
+func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b *testing.B) {
+	consensusGroupSize := 63
 	list := make([]sharding.Validator, 0)
 
 	//generate 400 validators
@@ -178,11 +178,20 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup21of400(b 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
 
+	//b.ResetTimer()
+	//
+	//for i := 0; i < b.N; i++ {
+	//	randomness := strconv.Itoa(i)
+	//	list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), uint64(i), 0)
+	//
+	//	assert.Equal(b, consensusGroupSize, len(list2))
+	//}
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		randomness := strconv.Itoa(i)
-		list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), 0, 0)
+		randomness := strconv.Itoa(0)
+		list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), uint64(0), 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

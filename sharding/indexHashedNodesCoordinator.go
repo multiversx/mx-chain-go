@@ -4,9 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+)
+
+const (
+	defaultCacheSize = 10000
+	keyFormat        = "%s_%v_%v"
 )
 
 type indexHashedNodesCoordinator struct {
@@ -18,11 +25,24 @@ type indexHashedNodesCoordinator struct {
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
+	consensusGroupCache     storage.Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
 	err := checkArguments(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	var cache storage.Cacher
+
+	if arguments.ConsensusGroupCache == nil {
+		cache, err = lrucache.NewCache(defaultCacheSize)
+	} else {
+		cache = arguments.ConsensusGroupCache
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +55,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
+		consensusGroupCache:     cache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -121,6 +142,16 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return nil, ErrNilRandomness
 	}
 
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	value, ok := ihgs.consensusGroupCache.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup, nil
+		}
+
+	}
+
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
@@ -135,6 +166,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		checkedIndex := ihgs.checkIndex(proposedIndex, expandedList, tempList)
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
+
+	ihgs.consensusGroupCache.Put(key, tempList)
 
 	return tempList, nil
 }
