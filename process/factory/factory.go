@@ -15,6 +15,8 @@ const (
 	PeerChBodyTopic = "peerChangeBlockBodies"
 	// MetachainBlocksTopic is the topic used for sharing metachain block headers
 	MetachainBlocksTopic = "metachainBlocks"
+	// TrieNodesTopic is used for sharing state trie nodes
+	TrieNodesTopic = "trieNodes"
 )
 
 // SystemVirtualMachine is a byte array identifier for the smart contract address created for system VM

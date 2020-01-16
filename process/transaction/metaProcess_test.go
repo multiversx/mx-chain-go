@@ -22,6 +22,7 @@ func createMetaTxProcessor() process.TransactionProcessor {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	return txProc
@@ -38,6 +39,7 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -53,6 +55,7 @@ func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -68,6 +71,7 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		nil,
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -83,6 +87,7 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -98,9 +103,26 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		nil,
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txProc, err := txproc.NewMetaTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.SCProcessorMock{},
+		&mock.TxTypeHandlerMock{},
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	assert.Nil(t, txProc)
 }
 
@@ -113,6 +135,7 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	assert.Nil(t, err)
@@ -141,6 +164,7 @@ func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T)
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	addressConv.Fail = true
@@ -160,6 +184,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	tx := transaction.Transaction{}
@@ -195,6 +220,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -235,6 +261,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
+		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -294,6 +321,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 				return process.SCInvoking, nil
 			},
 		},
+		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -351,6 +379,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
 			return process.SCInvoking, nil
 		}},
+		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -420,6 +449,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		shardCoordinator,
 		scProcessorMock,
 		computeType,
+		createFreeTxFeeHandler(),
 	)
 
 	err = execTx.ProcessTransaction(&tx)

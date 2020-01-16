@@ -27,6 +27,7 @@ type persisterData struct {
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
+	pruningEnabled        bool
 	lock                  sync.RWMutex
 	shardCoordinator      sharding.Coordinator
 	fullArchive           bool
@@ -99,6 +100,7 @@ func initPruningStorer(
 	}
 
 	pdb := &PruningStorer{
+		pruningEnabled:        args.PruningEnabled,
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
 		activePersisters:      persisters,
@@ -246,6 +248,25 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	return v.([]byte), nil
+}
+
+// Close will close PruningStorer
+func (ps *PruningStorer) Close() error {
+	closedSuccessfully := true
+	for _, persister := range ps.activePersisters {
+		err := persister.persister.Close()
+
+		if err != nil {
+			log.Error("cannot close persister", err)
+			closedSuccessfully = false
+		}
+	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch
@@ -453,12 +474,16 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	// if pruning is not enabled, don't create new persisters, but use the same one instead
+	if !ps.pruningEnabled {
+		return nil
+	}
+
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
 	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
 	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
-	//filePath := ps.getNewFilePath(epoch)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
 		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())

@@ -117,6 +117,7 @@ type Node struct {
 	headerSigVerifier     spos.RandSeedVerifier
 
 	chainID []byte
+	blockTracker          process.BlockTracker
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -412,6 +413,11 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
+	if err != nil {
+		return nil, err
+	}
+
 	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -425,6 +431,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		ShardCoordinator:    n.shardCoordinator,
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
+		BlockTracker:        n.blockTracker,
 	}
 
 	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
@@ -444,7 +451,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.forkDetector,
 		n.resolversFinder,
 		n.shardCoordinator,
-		n.accounts,
+		accountsWrapper,
 		n.blackListHandler,
 		n.messenger,
 		n.bootStorer,
@@ -472,6 +479,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		ShardCoordinator:    n.shardCoordinator,
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
+		BlockTracker:        n.blockTracker,
 	}
 
 	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)

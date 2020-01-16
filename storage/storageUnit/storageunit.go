@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
@@ -34,6 +35,8 @@ const (
 	LRUCache         CacheType = "LRU"
 	FIFOShardedCache CacheType = "FIFOSharded"
 )
+
+var log = logger.GetOrCreate("storage/storageUnit")
 
 // LvlDB currently the only supported DBs
 // More to be added
@@ -110,6 +113,17 @@ func (s *Unit) Put(key, data []byte) error {
 	}
 
 	return err
+}
+
+// Close will close unit
+func (s *Unit) Close() error {
+	err := s.persister.Close()
+	if err != nil {
+		log.Error("cannot close storage unit persister", err)
+		return err
+	}
+
+	return nil
 }
 
 // Get searches the key in the cache. In case it is not found, it searches
