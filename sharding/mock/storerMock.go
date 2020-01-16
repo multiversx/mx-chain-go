@@ -53,6 +53,10 @@ func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 
+func (sm *StorerMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *StorerMock) IsInterfaceNil() bool {
 	return sm == nil

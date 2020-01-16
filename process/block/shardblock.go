@@ -887,7 +887,7 @@ func (sp *shardProcessor) CommitBlock(
 		round:                      header.Round,
 		selfNotarizedHeaders:       selfNotarizedHeaders,
 		selfNotarizedHeadersHashes: selfNotarizedHeadersHashes,
-		xxx: lowestNonceInSelfNotarizedHeaders,
+		highestFinalBlockNonce:     sp.lowestNonceInSelfNotarizedHeaders,
 		processedMiniBlocks:        processedMiniBlocks,
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,

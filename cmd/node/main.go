@@ -579,7 +579,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -599,6 +599,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Trace("initializing metrics")
+	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -638,30 +641,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		pathManager,
 	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
-	if err != nil {
-		return err
-	}
-
-	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
-	if err != nil {
-		return err
-	}
-
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
-	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
-	if err != nil {
-		return err
-	}
-
-	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
-
-	log.Trace("initializing metrics")
-	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
-
-	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
-	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
 	}

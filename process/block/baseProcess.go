@@ -78,8 +78,9 @@ type baseProcessor struct {
 type bootStorerDataArgs struct {
 	headerInfo                 bootstrapStorage.BootstrapHeaderInfo
 	round                      uint64
-	lastFinalHdrs              []data.HeaderHandler
-	lastFinalHashes            [][]byte
+	selfNotarizedHeaders       []data.HeaderHandler
+	selfNotarizedHeadersHashes [][]byte
+	highestFinalBlockNonce     uint64
 	processedMiniBlocks        []bootstrapStorage.MiniBlocksInMeta
 	nodesCoordinatorConfigKey  []byte
 	epochStartTriggerConfigKey []byte
@@ -787,7 +788,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(args.selfNotarizedHeaders))
 
 	//TODO add end of epoch stuff
 
@@ -805,9 +806,9 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                 args.headerInfo,
-		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
-		HighestFinalBlockNonce:    highestFinalBlockNonce,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
+		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
+		HighestFinalBlockNonce:     args.highestFinalBlockNonce,
 		ProcessedMiniBlocks:        args.processedMiniBlocks,
 		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,

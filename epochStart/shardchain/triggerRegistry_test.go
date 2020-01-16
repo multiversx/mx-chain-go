@@ -25,8 +25,6 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapHashHdr = t.mapHashHdr
 	rt.mapNonceHashes = t.mapNonceHashes
 	rt.mapEpochStartHdrs = t.mapEpochStartHdrs
-	rt.metaHdrPool = t.metaHdrPool
-	rt.metaHdrNonces = t.metaHdrNonces
 	rt.metaHdrStorage = t.metaHdrStorage
 	rt.triggerStorage = t.triggerStorage
 	rt.metaNonceHdrStorage = t.metaNonceHdrStorage
@@ -36,6 +34,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.headerValidator = t.headerValidator
 	rt.requestHandler = t.requestHandler
 	rt.epochStartNotifier = t.epochStartNotifier
+	rt.headersPool = t.headersPool
 	return rt
 }
 

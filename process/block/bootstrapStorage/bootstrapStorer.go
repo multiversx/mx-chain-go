@@ -34,14 +34,14 @@ type BootstrapHeaderInfo struct {
 
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
-	LastHeader                BootstrapHeaderInfo
-	LastCrossNotarizedHeaders []BootstrapHeaderInfo
-	LastSelfNotarizedHeaders  []BootstrapHeaderInfo
-	ProcessedMiniBlocks       []MiniBlocksInMeta
+	LastHeader                 BootstrapHeaderInfo
+	LastCrossNotarizedHeaders  []BootstrapHeaderInfo
+	LastSelfNotarizedHeaders   []BootstrapHeaderInfo
+	ProcessedMiniBlocks        []MiniBlocksInMeta
 	NodesCoordinatorConfigKey  []byte
 	EpochStartTriggerConfigKey []byte
-	HighestFinalBlockNonce    uint64
-	LastRound                 int64
+	HighestFinalBlockNonce     uint64
+	LastRound                  int64
 }
 
 type bootstrapStorer struct {

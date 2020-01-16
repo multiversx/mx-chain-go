@@ -27,7 +27,7 @@ func NewShardStorageBootstrapper(arguments ArgsStorageBootstrapper) (*shardStora
 		shardCoordinator:  arguments.ShardCoordinator,
 		nodesCoordinator:  arguments.NodesCoordinator,
 		epochStartTrigger: arguments.EpochStartTrigger,
-		blockTracker:     arguments.BlockTracker,
+		blockTracker:      arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,

@@ -45,7 +45,7 @@ type storageBootstrapper struct {
 	shardCoordinator  sharding.Coordinator
 	nodesCoordinator  sharding.NodesCoordinator
 	epochStartTrigger process.EpochStartTriggerHandler
-	blockTracker     process.BlockTracker
+	blockTracker      process.BlockTracker
 
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
