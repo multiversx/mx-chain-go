@@ -79,7 +79,7 @@ func initTrie() *patriciaMerkleTrie {
 	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
 
 	return tr
 }
@@ -1062,14 +1062,17 @@ func TestBranchNode_loadChildren(t *testing.T) {
 		syncer.chRcvTrieNodes <- true
 	})
 
-	bnHashPosition := 1
+	bnHashPosition := 0
+
 	firstChildPos := 5
-	firstChildHash := 2
 	secondChildPos := 7
-	secondChildHash := 3
+
+	firstChildHashPos := 1
+	secondChildHashPos := 2
+
 	encodedChildren := make([][]byte, nrOfChildren)
-	encodedChildren[firstChildPos] = hashes[firstChildHash]
-	encodedChildren[secondChildPos] = hashes[secondChildHash]
+	encodedChildren[firstChildPos] = hashes[firstChildHashPos]
+	encodedChildren[secondChildPos] = hashes[secondChildHashPos]
 	bn := &branchNode{
 		CollapsedBn: protobuf.CollapsedBn{
 			EncodedChildren: encodedChildren,

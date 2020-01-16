@@ -847,9 +847,9 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		syncer.chRcvTrieNodes <- true
 	})
 
-	enHashPosition := 0
-	enKey := []byte{6, 4, 6, 15, 6}
-	childPosition := 1
+	enHashPosition := 2
+	enKey := []byte{6, 15, 6, 4, 6}
+	childPosition := 3
 	childHash := hashes[childPosition]
 	en := &extensionNode{
 		CollapsedEn: protobuf.CollapsedEn{
