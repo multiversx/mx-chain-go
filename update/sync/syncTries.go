@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 	"time"
 
@@ -129,7 +130,7 @@ func (st *syncTries) syncShard(shardData block.EpochStartShardData, wg *sync.Wai
 }
 
 func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, rootHash []byte) error {
-	accAdapterIdentifier := update.CreateTrieIdentifier(shardId, accountType)
+	accAdapterIdentifier := fmt.Sprint(int(accountType), shardId)
 
 	success := st.tryRecreateTrie(accAdapterIdentifier, rootHash)
 	if success {

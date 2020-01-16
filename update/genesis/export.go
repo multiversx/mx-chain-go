@@ -72,13 +72,14 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
-	versionKey := update.CreateVersionKey(metaBlock)
+	versionKey := CreateVersionKey(metaBlock)
+
 	jsonData, err := json.Marshal(metaBlock)
 	if err != nil {
 		return err
 	}
 
-	err = se.writer.Write(update.MetaBlockFileName, versionKey, jsonData)
+	err = se.writer.Write(MetaBlockFileName, versionKey, jsonData)
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	accType, shId, err := update.GetTrieTypeAndShId(key)
+	accType, shId, err := GetTrieTypeAndShId(key)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return sharding.ErrInvalidShardId
 	}
 
-	rootHashKey := update.CreateRootHashKey(key)
+	rootHashKey := CreateRootHashKey(key)
 	rootHash, err := trie.Root()
 	if err != nil {
 		return err
@@ -144,7 +145,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	}
 
 	for address, buff := range leaves {
-		account, err := update.NewEmptyAccount(accType)
+		account, err := NewEmptyAccount(accType)
 		if err != nil {
 			log.Warn("error creating new account account", "address", address, "error", err)
 			continue
@@ -161,7 +162,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 			continue
 		}
 
-		keyToExport := update.CreateAccountKey(accType, shId, address)
+		keyToExport := CreateAccountKey(accType, shId, address)
 		err = se.writer.Write(key, keyToExport, jsonData)
 		if err != nil {
 			return err
@@ -177,8 +178,8 @@ func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
 		return err
 	}
 
-	keyToSave := update.CreateMiniBlockKey(key)
-	err = se.writer.Write(update.MiniBlocksFileName, keyToSave, marshaledData)
+	keyToSave := CreateMiniBlockKey(key)
+	err = se.writer.Write(MiniBlocksFileName, keyToSave, marshaledData)
 	if err != nil {
 		return err
 	}
@@ -192,8 +193,8 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 		return err
 	}
 
-	keyToSave := update.CreateTransactionKey(key, tx)
-	err = se.writer.Write(update.TransactionsFileName, keyToSave, marshaledData)
+	keyToSave := CreateTransactionKey(key, tx)
+	err = se.writer.Write(TransactionsFileName, keyToSave, marshaledData)
 	if err != nil {
 		return err
 	}

@@ -42,11 +42,11 @@ func (si *stateImport) ImportAll() error {
 	var err error
 	for _, fileName := range files {
 		switch fileName {
-		case update.MetaBlockFileName:
+		case MetaBlockFileName:
 			err = si.importMetaBlock()
-		case update.MiniBlocksFileName:
+		case MiniBlocksFileName:
 			err = si.importMiniBlocks()
-		case update.TransactionsFileName:
+		case TransactionsFileName:
 			err = si.importTransactions()
 		default:
 			err = si.importState(fileName)
@@ -61,7 +61,7 @@ func (si *stateImport) ImportAll() error {
 
 func (si *stateImport) importMetaBlock() error {
 
-	object, err := si.readNextElement(update.MetaBlockFileName)
+	object, err := si.readNextElement(MetaBlockFileName)
 	if err != nil {
 		return nil
 	}
@@ -78,8 +78,9 @@ func (si *stateImport) importMetaBlock() error {
 
 func (si *stateImport) importTransactions() error {
 	var err error
+	var object interface{}
 	for {
-		object, err := si.readNextElement(update.TransactionsFileName)
+		object, err = si.readNextElement(TransactionsFileName)
 		if err != nil {
 			break
 		}
@@ -111,12 +112,12 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 		return nil, err
 	}
 
-	objType, readHash, err := update.GetKeyTypeAndHash(key)
+	objType, readHash, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return nil, err
 	}
 
-	object, err := update.NewObject(objType)
+	object, err := NewObject(objType)
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +137,9 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 
 func (si *stateImport) importMiniBlocks() error {
 	var err error
+	var object interface{}
 	for {
-		object, err := si.readNextElement(update.MiniBlocksFileName)
+		object, err = si.readNextElement(MiniBlocksFileName)
 		if err != nil {
 			break
 		}
@@ -164,7 +166,7 @@ func (si *stateImport) importMiniBlocks() error {
 }
 
 func (si *stateImport) importState(fileName string) error {
-	accType, _, err := update.GetTrieTypeAndShId(fileName)
+	accType, _, err := GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err
 	}
@@ -185,12 +187,12 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
-	keyType, _, err := update.GetKeyTypeAndHash(key)
+	keyType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return err
 	}
 
-	if keyType != update.RootHash {
+	if keyType != RootHash {
 		return core.ErrWrongTypeAssertion
 	}
 
@@ -203,12 +205,12 @@ func (si *stateImport) importState(fileName string) error {
 			break
 		}
 
-		_, address, err := update.GetKeyTypeAndHash(key)
+		_, address, err := GetKeyTypeAndHash(key)
 		if err != nil {
 			break
 		}
 
-		account, err := update.NewEmptyAccount(accType)
+		account, err := NewEmptyAccount(accType)
 		if err != nil {
 			break
 		}
