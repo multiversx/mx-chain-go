@@ -243,7 +243,7 @@ func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 	t.epochStartMetaHash = metaHdrHash
 }
 
-// SetLastEpochStartRound sets the round when the current epoch started
+// SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
 	t.currentRound = round

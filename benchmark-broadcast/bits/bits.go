@@ -2,6 +2,7 @@ package bits
 
 import "fmt"
 
+// XOR will calculate and return the xor operation result for the two given parameters
 func XOR(a, b []byte) ([]byte, error) {
 	if len(a) != len(b) {
 		return nil, fmt.Errorf("length of byte slices is not equivalent: %d != %d", len(a), len(b))
@@ -16,6 +17,7 @@ func XOR(a, b []byte) ([]byte, error) {
 	return buf, nil
 }
 
+// CountSet returns the number of bits of 1 in a byte slice
 func CountSet(nr []byte) int {
 	count := 0
 	for _, byteNo := range nr {

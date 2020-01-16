@@ -57,11 +57,20 @@ const srEndStartTime = 0.65
 const srEndEndTime = 0.75
 
 const (
-	BlockBodyStringValue      = "(BLOCK_BODY)"
-	BlockHeaderStringValue    = "(BLOCK_HEADER)"
+	// BlockBodyStringValue represents the string to be used to identify a block body
+	BlockBodyStringValue = "(BLOCK_BODY)"
+
+	// BlockHeaderStringValue represents the string to be used to identify a block header
+	BlockHeaderStringValue = "(BLOCK_HEADER)"
+
+	// BlockSignatureStringValue represents the string to be used to identify a block's signature
 	BlockSignatureStringValue = "(SIGNATURE)"
-	BlockUnknownStringValue   = "(UNKNOWN)"
-	BlockDefaultStringValue   = "Undefined message type"
+
+	// BlockUnknownStringValue represents the string to be used to identify an unknown block
+	BlockUnknownStringValue = "(UNKNOWN)"
+
+	// BlockDefaultStringValue represents the message to identify a message that is undefined
+	BlockDefaultStringValue = "Undefined message type"
 )
 
 func getStringValue(msgType consensus.MessageType) string {

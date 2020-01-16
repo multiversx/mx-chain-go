@@ -275,7 +275,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 
 	shardID := lastNotarizedHeader.GetShardID()
 	fromNonce := highestNonceInLongestChain + 1
-	toNonce := fromNonce + uint64(bp.blockFinality)
+	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Debug("request header",
 			"shard", shardID,

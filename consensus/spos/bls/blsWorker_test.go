@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(100 * time.Millisecond)
+const roundTimeDuration = 100 * time.Millisecond
 
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
@@ -83,7 +83,9 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	assert.NotNil(t, messagesRange)
 
 	for i, val := range messagesRange {
-		assert.Equal(t, v[i], val)
+		if v != nil {
+			assert.Equal(t, v[i], val)
+		}
 	}
 }
 

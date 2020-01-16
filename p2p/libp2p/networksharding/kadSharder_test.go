@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
-	sha256 "github.com/minio/sha256-simd"
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,8 +37,8 @@ func (tkr *testKadResolver) IsInterfaceNil() bool {
 }
 
 var (
-	fs0   = &testKadResolver{fakeShard0}
-	fs2_0 = &testKadResolver{fakeShardBit0Byte2}
+	fs0  = &testKadResolver{fakeShard0}
+	fs20 = &testKadResolver{fakeShardBit0Byte2}
 )
 
 func TestCutoOffBits(t *testing.T) {
@@ -93,12 +93,12 @@ func TestKadSharderDistance(t *testing.T) {
 }
 
 func TestKadSharderOrdering2(t *testing.T) {
-	s, _ := NewKadSharder(2, fs2_0)
+	s, _ := NewKadSharder(2, fs20)
 	checkOrdering(s, t)
 }
 
 func TestKadSharderOrdering2_list(t *testing.T) {
-	s, _ := NewKadSharder(4, fs2_0)
+	s, _ := NewKadSharder(4, fs20)
 
 	peerList := make([]peer.ID, testNodesCount)
 	for i := 0; i < testNodesCount; i++ {

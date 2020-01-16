@@ -9,7 +9,7 @@ type indexHashedNodesCoordinatorWithRater struct {
 	RatingReader
 }
 
-// NewIndexHashedNodesCoordinator creates a new index hashed group selector
+// NewIndexHashedNodesCoordinatorWithRater creates a new index hashed group selector
 func NewIndexHashedNodesCoordinatorWithRater(
 	indexNodesCoordinator *indexHashedNodesCoordinator,
 	rater RatingReader,

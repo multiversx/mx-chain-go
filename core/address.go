@@ -67,7 +67,7 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 	return isOnMetaChainSCAddress
 }
 
-// GetVMType
+// GetVMType will return the vm type
 func GetVMType(rcvAddress []byte) []byte {
 	if len(rcvAddress) < NumInitCharactersForScAddress {
 		return nil

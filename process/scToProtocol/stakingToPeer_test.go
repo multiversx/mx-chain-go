@@ -320,7 +320,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -379,7 +379,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -439,7 +439,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -499,7 +499,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -559,7 +559,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -619,7 +619,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -686,7 +686,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()

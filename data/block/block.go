@@ -237,21 +237,21 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 }
 
 // Save saves the serialized data of a MiniBlock into a stream through Capnp protocol
-func (s *MiniBlock) Save(w io.Writer) error {
+func (mb *MiniBlock) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	MiniBlockGoToCapn(seg, s)
+	MiniBlockGoToCapn(seg, mb)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
 // Load loads the data from the stream into a MiniBlock object through Capnp protocol
-func (s *MiniBlock) Load(r io.Reader) error {
+func (mb *MiniBlock) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		return err
 	}
 	z := capnp.ReadRootMiniBlockCapn(capMsg)
-	MiniBlockCapnToGo(z, s)
+	MiniBlockCapnToGo(z, mb)
 	return nil
 }
 

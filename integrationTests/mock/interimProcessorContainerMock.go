@@ -17,37 +17,37 @@ func (ipcm *InterimProcessorContainerMock) Get(key block.Type) (process.Intermed
 	return ipcm.GetCalled(key)
 }
 
-func (ppcm *InterimProcessorContainerMock) Add(key block.Type, val process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) Add(key block.Type, val process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Replace(key block.Type, val process.IntermediateTransactionHandler) error {
+func (ipcm *InterimProcessorContainerMock) Replace(key block.Type, val process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Remove(key block.Type) {
+func (ipcm *InterimProcessorContainerMock) Remove(key block.Type) {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Len() int {
+func (ipcm *InterimProcessorContainerMock) Len() int {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Keys() []block.Type {
-	if ppcm.KeysCalled == nil {
+func (ipcm *InterimProcessorContainerMock) Keys() []block.Type {
+	if ipcm.KeysCalled == nil {
 		return nil
 	}
 
-	return ppcm.KeysCalled()
+	return ipcm.KeysCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ppcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
-	if ppcm == nil {
+func (ipcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
+	if ipcm == nil {
 		return true
 	}
 	return false
