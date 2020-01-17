@@ -7,19 +7,16 @@ type evictionScoreComputer struct {
 	scores           []float64
 	scoresAsPercents []int64
 
-	maxGas         int64
-	minGas         int64
-	maxSize        int64
-	minSize        int64
-	maxOrderNumber int64
-	minOrderNumber int64
-	maxTxCount     int64
-	minTxCount     int64
+	maxGas     int64
+	minGas     int64
+	maxSize    int64
+	minSize    int64
+	maxTxCount int64
+	minTxCount int64
 
-	gasRange         int64
-	sizeRange        int64
-	orderNumberRange int64
-	txCountRange     int64
+	gasRange     int64
+	sizeRange    int64
+	txCountRange int64
 }
 
 func newEvictionScoreComputer(senders []*txListForSender) *evictionScoreComputer {
@@ -28,10 +25,9 @@ func newEvictionScoreComputer(senders []*txListForSender) *evictionScoreComputer
 		scores:           make([]float64, len(senders)),
 		scoresAsPercents: make([]int64, len(senders)),
 
-		minGas:         math.MaxInt64,
-		minSize:        math.MaxInt64,
-		minOrderNumber: math.MaxInt64,
-		minTxCount:     math.MaxInt64,
+		minGas:     math.MaxInt64,
+		minSize:    math.MaxInt64,
+		minTxCount: math.MaxInt64,
 	}
 
 	computer.computeBounds()
@@ -48,7 +44,6 @@ func (computer *evictionScoreComputer) computeBounds() {
 		gas := sender.totalGas.Get()
 		size := sender.totalBytes.Get()
 		txCount := sender.countTx()
-		orderNumber := sender.orderNumber
 
 		if gas > computer.maxGas {
 			computer.maxGas = gas
@@ -70,20 +65,12 @@ func (computer *evictionScoreComputer) computeBounds() {
 		if txCount < computer.minTxCount {
 			computer.minTxCount = txCount
 		}
-
-		if orderNumber > computer.maxOrderNumber {
-			computer.maxOrderNumber = orderNumber
-		}
-		if orderNumber < computer.minOrderNumber {
-			computer.minOrderNumber = orderNumber
-		}
 	}
 }
 
 func (computer *evictionScoreComputer) computeRanges() {
 	computer.gasRange = strictlyPositive(computer.maxGas - computer.minGas)
 	computer.sizeRange = strictlyPositive(computer.maxSize - computer.minSize)
-	computer.orderNumberRange = strictlyPositive(computer.maxOrderNumber - computer.minOrderNumber)
 	computer.txCountRange = strictlyPositive(computer.maxTxCount - computer.minTxCount)
 }
 
@@ -109,12 +96,11 @@ func (computer *evictionScoreComputer) computeScores() {
 // - directly proportional to sender's tx total gas
 // Score parameters are normalized to interval [1..2]
 func (computer *evictionScoreComputer) computeScore(txList *txListForSender) float64 {
-	orderNumber := float64(txList.orderNumber-computer.minOrderNumber)/float64(computer.orderNumberRange) + 1
 	gas := float64(txList.totalGas.Get()-computer.minGas)/float64(computer.gasRange) + 1
 	txCount := float64(txList.countTx()-computer.minTxCount)/float64(computer.txCountRange) + 1
 	size := float64(txList.totalBytes.Get()-computer.minSize)/float64(computer.sizeRange) + 1
 
-	return orderNumber * gas / txCount / size
+	return gas / txCount / size
 }
 
 func (computer *evictionScoreComputer) convertScoresToPercents() {

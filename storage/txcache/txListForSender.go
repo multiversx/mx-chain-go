@@ -13,7 +13,6 @@ type txListForSender struct {
 	items          *list.List
 	mutex          sync.Mutex
 	copyBatchIndex *list.Element
-	orderNumber    int64
 	totalBytes     core.AtomicCounter
 	totalGas       core.AtomicCounter
 	sender         string
@@ -26,11 +25,10 @@ type txListForSenderNode struct {
 }
 
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, globalIndex int64) *txListForSender {
+func newTxListForSender(sender string) *txListForSender {
 	return &txListForSender{
-		items:       list.New(),
-		orderNumber: globalIndex,
-		sender:      sender,
+		items:  list.New(),
+		sender: sender,
 	}
 }
 
