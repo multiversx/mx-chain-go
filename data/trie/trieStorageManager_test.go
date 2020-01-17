@@ -115,10 +115,10 @@ func TestTrieDatabasePruning(t *testing.T) {
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Commit()
 
-	key := []byte{6, 4, 6, 15, 6, 7, 16}
+	key := []byte{7, 6, 15, 6, 4, 6, 16}
 	oldHashes := make([][]byte, 0)
 	n := tr.root
 	rootHash, _ := tr.Root()
