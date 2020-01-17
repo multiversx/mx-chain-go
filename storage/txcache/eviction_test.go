@@ -7,26 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_EvictOldestSenders(t *testing.T) {
-	config := EvictionConfig{
-		CountThreshold:             1,
-		NumSendersToEvictInOneStep: 2,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
-	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
-	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
-
-	nTxs, nSenders := cache.evictOldestSenders()
-
-	require.Equal(t, uint32(2), nTxs)
-	require.Equal(t, uint32(2), nSenders)
-	require.Equal(t, int64(1), cache.txListBySender.counter.Get())
-	require.Equal(t, int64(1), cache.txByHash.counter.Get())
-}
-
 func Test_EvictHighNonceTransactions(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:                  400,
@@ -79,6 +59,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 20,
+		NumBytesThreshold:          math.MaxUint32,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
@@ -92,7 +73,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
-	steps, nTxs, nSenders := cache.evictSendersWhileTooManyTxs()
+	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
 	require.Equal(t, uint32(6), steps)
 	require.Equal(t, uint32(100), nTxs)
@@ -101,6 +82,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
+// TODO-TXCACHE: perhaps remove test?
 func Test_EvictSendersWhileTooManyTxs_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             0,
@@ -111,7 +93,7 @@ func Test_EvictSendersWhileTooManyTxs_CoverLoopBreak_WhenSmallBatch(t *testing.T
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
 
 	// Eviction done in 1 step, since "NumSendersToEvictInOneStep" > number of senders
-	steps, nTxs, nSenders := cache.evictSendersWhileTooManyTxs()
+	steps, nTxs, nSenders := cache.evictSendersInLoop()
 	require.Equal(t, uint32(1), steps)
 	require.Equal(t, uint32(1), nTxs)
 	require.Equal(t, uint32(1), nSenders)
@@ -121,6 +103,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
 	config := EvictionConfig{
+		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          numBytesPerTx * 100,
 		NumSendersToEvictInOneStep: 20,
 	}
@@ -136,7 +119,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
-	steps, nTxs, nSenders := cache.evictSendersWhileTooManyBytes()
+	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
 	require.Equal(t, uint32(6), steps)
 	require.Equal(t, uint32(100), nTxs)

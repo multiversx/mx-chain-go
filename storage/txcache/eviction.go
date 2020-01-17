@@ -37,23 +37,13 @@ func (cache *TxCache) doEviction() {
 	log.Debug("TxCache.doEviction()")
 	cache.displayState()
 
-	if tooManySenders {
-		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictOldestSenders()
-		journal.evictionPerformed = true
-	}
-
 	if tooManyTxs {
-		journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictHighNonceTransactions()
+		cache.evictHighNonceTransactions()
 		journal.evictionPerformed = true
 	}
 
-	if tooManyTxs && !cache.areThereJustAFewSenders() {
-		journal.passThreeNumSteps, journal.passThreeNumTxs, journal.passThreeNumSenders = cache.evictSendersWhileTooManyTxs()
-		journal.evictionPerformed = true
-	}
-
-	if tooManyBytes {
-		journal.passFourNumSteps, journal.passFourNumTxs, journal.passFourNumSenders = cache.evictSendersWhileTooManyBytes()
+	if cache.shouldContinueEvictingSenders() {
+		cache.evictSendersInLoop()
 		journal.evictionPerformed = true
 	}
 
@@ -77,45 +67,14 @@ func (cache *TxCache) areThereTooManySenders() bool {
 	return tooManySenders
 }
 
-func (cache *TxCache) areThereJustAFewSenders() bool {
-	numSenders := cache.CountSenders()
-	justAFewSenders := numSenders < int64(cache.evictionConfig.ThresholdEvictSenders)
-	return justAFewSenders
-}
-
 func (cache *TxCache) areThereTooManyTxs() bool {
 	numTxs := cache.CountTx()
 	tooManyTxs := numTxs > int64(cache.evictionConfig.CountThreshold)
 	return tooManyTxs
 }
 
-// evictOldestSenders removes transactions from the cache
-func (cache *TxCache) evictOldestSenders() (uint32, uint32) {
-	listsOrdered := cache.txListBySender.GetListsSortedByOrderNumber()
-	sliceEnd := core.MinUint32(cache.evictionConfig.NumSendersToEvictInOneStep, uint32(len(listsOrdered)))
-	listsToEvict := listsOrdered[:sliceEnd]
-
-	return cache.evictSendersAndTheirTxs(listsToEvict)
-}
-
-func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
-	sendersToEvict := make([]string, 0)
-	txsToEvict := make([][]byte, 0)
-
-	for _, txList := range listsToEvict {
-		sendersToEvict = append(sendersToEvict, txList.sender)
-		txsToEvict = append(txsToEvict, txList.getTxHashes()...)
-	}
-
-	return cache.doEvictItems(txsToEvict, sendersToEvict)
-}
-
-func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
-	log.Debug("TxCache.doEvictItems()", "txs", len(txsToEvict), "senders", len(sendersToEvict))
-
-	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
-	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
-	return
+func (cache *TxCache) shouldContinueEvictingSenders() bool {
+	return cache.areThereTooManyTxs() || cache.areThereTooManySenders() || cache.areThereTooManyBytes()
 }
 
 // evictHighNonceTransactions removes transactions from the cache
@@ -146,23 +105,31 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
-func (cache *TxCache) evictSendersWhileTooManyTxs() (step uint32, countTxs uint32, countSenders uint32) {
-	return cache.evictSendersWhile(cache.areThereTooManyTxs, SortByOrderNumberAsc)
+func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
+	log.Debug("TxCache.doEvictItems()", "txs", len(txsToEvict), "senders", len(sendersToEvict))
+
+	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
+	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
+	return
 }
 
-func (cache *TxCache) evictSendersWhileTooManyBytes() (step uint32, countTxs uint32, countSenders uint32) {
-	return cache.evictSendersWhile(cache.areThereTooManyBytes, SortBySmartScoreAsc)
+func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
+	return cache.evictSendersWhile(cache.shouldContinueEvictingSenders)
 }
 
-// evictSendersWhileTooManyTxs removes transactions in a loop, as long as "stopCondition" is true
+// evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true
 // One batch of senders is removed in each step
 // Before starting the loop, the senders are sorted as specified by "sendersSortKind"
-func (cache *TxCache) evictSendersWhile(stopCondition func() bool, sendersSortKind txListBySenderSortKind) (step uint32, countTxs uint32, countSenders uint32) {
-	batchesSource := cache.txListBySender.GetListsSortedBy(sendersSortKind)
+func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, countTxs uint32, countSenders uint32) {
+	if !shouldContinue() {
+		return
+	}
+
+	batchesSource := cache.txListBySender.GetListsSortedBySmartScore()
 	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
-	for step = 1; stopCondition(); step++ {
+	for step = 1; shouldContinue(); step++ {
 		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
 		batch := batchesSource[batchStart:batchEnd]
 
@@ -179,4 +146,16 @@ func (cache *TxCache) evictSendersWhile(stopCondition func() bool, sendersSortKi
 	}
 
 	return
+}
+
+func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
+	sendersToEvict := make([]string, 0)
+	txsToEvict := make([][]byte, 0)
+
+	for _, txList := range listsToEvict {
+		sendersToEvict = append(sendersToEvict, txList.sender)
+		txsToEvict = append(txsToEvict, txList.getTxHashes()...)
+	}
+
+	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
