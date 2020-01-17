@@ -2,6 +2,8 @@ package core
 
 import "sync/atomic"
 
+// TODO-TXCACHE: add version for uint64
+
 // AtomicCounter is an atomic counter
 type AtomicCounter int64
 

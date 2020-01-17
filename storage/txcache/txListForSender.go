@@ -15,6 +15,7 @@ type txListForSender struct {
 	copyBatchIndex *list.Element
 	totalBytes     core.AtomicCounter
 	totalGas       core.AtomicCounter
+	totalFee       core.AtomicCounter
 	sender         string
 }
 
@@ -55,6 +56,7 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHandler) {
 	listForSender.totalBytes.Add(estimateTxSize(tx))
 	listForSender.totalGas.Add(estimateTxGas(tx))
+	listForSender.totalFee.Add(estimateTxFee(tx))
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -90,6 +92,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 	listForSender.totalBytes.Subtract(estimateTxSize(value.tx))
 	listForSender.totalGas.Subtract(estimateTxGas(value.tx))
+	listForSender.totalGas.Subtract(estimateTxFee(value.tx))
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
