@@ -430,12 +430,6 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 	return adb.mainTrie.Root()
 }
 
-// CopyRecreateTrie tries to create a new trie with the given rootHash if the data exists
-func (adb *AccountsDB) CopyRecreateTrie(rootHash []byte) (data.Trie, error) {
-	adb.mainTrie.SetCheckpoint(rootHash)
-	return adb.mainTrie.Recreate(rootHash)
-}
-
 // RecreateTrie is used to reload the trie based on an existing rootHash
 func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
@@ -486,6 +480,11 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 // SetStateCheckpoint sets a checkpoint for the state trie
 func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	adb.mainTrie.SetCheckpoint(rootHash)
+}
+
+// IsPruningEnabled returns true if state pruning is enabled
+func (adb *AccountsDB) IsPruningEnabled() bool {
+	return adb.mainTrie.IsPruningEnabled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

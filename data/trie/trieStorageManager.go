@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -8,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -143,6 +145,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	log.Trace("trie storage manager prune", "root", rootHash)
 	if tsm.snapshotsBuffer.len() != 0 {
 		tsm.pruningBuffer = append(tsm.pruningBuffer, rootHash)
 		return nil
@@ -150,8 +153,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 
 	err := tsm.removeFromDb(rootHash)
 	if err != nil {
-		log.Debug("trie storage manager prune", "error", rootHash)
-		return err
+		return fmt.Errorf("trie storage manager prune error: %w, for root %v", err, core.ToB64(rootHash))
 	}
 
 	return nil
@@ -162,6 +164,7 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 }
 
@@ -185,6 +188,7 @@ func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
 	log.Trace("trie storage manager: mark for eviction", "root", root)
 
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
@@ -380,6 +384,11 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 func directoryExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// IsPruningEnabled returns true if the trie pruning is enabled
+func (tsm *trieStorageManager) IsPruningEnabled() bool {
+	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

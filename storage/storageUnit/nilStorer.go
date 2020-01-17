@@ -8,19 +8,27 @@ func NewNilStorer() *nilStorer {
 	return new(nilStorer)
 }
 
-func (ns *nilStorer) Put(key, data []byte) error {
-	return nil
-}
-
-func (ns *nilStorer) Get(key []byte) ([]byte, error) {
+func (ns *nilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 	return nil, nil
 }
 
-func (ns *nilStorer) Has(key []byte) error {
+func (ns *nilStorer) HasInEpoch(_ []byte, _ uint32) error {
 	return nil
 }
 
-func (ns *nilStorer) Remove(key []byte) error {
+func (ns *nilStorer) Put(_, _ []byte) error {
+	return nil
+}
+
+func (ns *nilStorer) Get(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func (ns *nilStorer) Has(_ []byte) error {
+	return nil
+}
+
+func (ns *nilStorer) Remove(_ []byte) error {
 	return nil
 }
 

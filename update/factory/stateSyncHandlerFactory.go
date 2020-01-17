@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 type ArgsNewSyncHandlerFactory struct {
@@ -22,9 +21,5 @@ func NewSyncHandlerFactory() (*stateSyncHandlerFactory, error) {
 }
 
 func (shf *stateSyncHandlerFactory) SyncResolversContainer() dataRetriever.ResolversContainer {
-	return nil
-}
-
-func (shf *stateSyncHandlerFactory) AccountsDBContainer() update.AccountsHandlerContainer {
 	return nil
 }

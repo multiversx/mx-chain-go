@@ -102,7 +102,6 @@ type AccountsAdapter interface {
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
 	RootHash() ([]byte, error)
-	CopyRecreateTrie(rootHash []byte) (data.Trie, error)
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
@@ -111,6 +110,7 @@ type AccountsAdapter interface {
 	CancelPrune(rootHash []byte)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
 }
 
@@ -126,4 +126,5 @@ type TriesHolder interface {
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()
+	IsInterfaceNil() bool
 }

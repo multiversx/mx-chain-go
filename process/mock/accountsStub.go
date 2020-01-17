@@ -3,7 +3,6 @@ package mock
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -23,9 +22,10 @@ type AccountsStub struct {
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 	PruneTrieCalled             func(rootHash []byte) error
-	SnapshotStateCalled         func(rootHash []byte) error
-	SetStateCheckpointCalled    func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -128,10 +128,6 @@ func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHan
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) CopyRecreateTrie(rootHash []byte) (data.Trie, error) {
-	return nil, nil
-}
-
 func (aam *AccountsStub) RootHash() ([]byte, error) {
 	if aam.RootHashCalled != nil {
 		return aam.RootHashCalled()
@@ -172,6 +168,14 @@ func (aam *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 	if aam.SetStateCheckpointCalled != nil {
 		aam.SetStateCheckpointCalled(rootHash)
 	}
+}
+
+func (aam *AccountsStub) IsPruningEnabled() bool {
+	if aam.IsPruningEnabledCalled != nil {
+		aam.IsPruningEnabledCalled()
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -31,6 +31,7 @@ type BelNevMock struct {
 	StoreCommitmentMock      func(index uint16, value []byte) error
 	StoreCommitmentHashMock  func(uint16, []byte) error
 	CommitmentMock           func(uint16) ([]byte, error)
+	CreateMock               func(pubKeys []string, index uint16) (crypto.MultiSigner, error)
 }
 
 func NewMultiSigner() *BelNevMock {
@@ -44,6 +45,9 @@ func NewMultiSigner() *BelNevMock {
 
 // Create resets the multiSigner and initializes corresponding fields with the given params
 func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+	if bnm.CreateMock != nil {
+		return bnm.CreateMock(pubKeys, index)
+	}
 	multiSig := NewMultiSigner()
 
 	multiSig.selfId = index

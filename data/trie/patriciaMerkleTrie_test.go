@@ -520,8 +520,11 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	tr.CancelPrune(rootHash, data.OldRoot)
 
-	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot))))
-	err := tr.Prune(rootHash, data.OldRoot)
+	key := base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))
+	err := fmt.Errorf("key: %s not found", key)
+	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, key)
+
+	err = tr.Prune(rootHash, data.OldRoot)
 	assert.Equal(t, expectedErr, err)
 }
 
