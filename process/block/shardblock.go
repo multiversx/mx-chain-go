@@ -878,7 +878,6 @@ func (sp *shardProcessor) CommitBlock(
 		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
 	}
 
-	// sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
 	nodesCoordinatorKey := sp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := sp.epochStartTrigger.GetSavedStateKey()
 

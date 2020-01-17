@@ -1013,7 +1013,6 @@ func (mp *metaProcessor) CommitBlock(
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
-	//mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, mp.forkDetector.GetHighestFinalBlockNonce(), nil)
 
 	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
@@ -1023,6 +1022,7 @@ func (mp *metaProcessor) CommitBlock(
 		round:                      header.Round,
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
+		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
 	}
 
 	mp.prepareDataForBootStorer(args)

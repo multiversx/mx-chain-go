@@ -11,6 +11,7 @@ type TriggerRegistry struct {
 	EpochFinalityAttestingRound uint64
 	CurrEpochStartRound         uint64
 	PrevEpochStartRound         uint64
+	EpochStartMetaHash          []byte
 }
 
 // LoadState loads into trigger the saved state
@@ -37,6 +38,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.currEpochStartRound = state.CurrEpochStartRound
 	t.prevEpochStartRound = state.PrevEpochStartRound
 	t.epoch = state.Epoch
+	t.epochStartMetaHash = state.EpochStartMetaHash
 	t.mutTrigger.Unlock()
 
 	return nil
@@ -50,7 +52,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound
 	registry.Epoch = t.epoch
-
+	registry.EpochStartMetaHash = t.epochStartMetaHash
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
