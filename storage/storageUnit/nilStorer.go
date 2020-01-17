@@ -8,14 +8,17 @@ func NewNilStorer() *nilStorer {
 	return new(nilStorer)
 }
 
+// GetFromEpoch will do nothing
 func (ns *nilStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	return nil, nil
 }
 
+// HasInEpoch will do nothing
 func (ns *nilStorer) HasInEpoch(key []byte, epoch uint32) error {
 	return nil
 }
 
+// SearchFirst will do nothing
 func (ns *nilStorer) SearchFirst(key []byte) ([]byte, error) {
 	return nil, nil
 }

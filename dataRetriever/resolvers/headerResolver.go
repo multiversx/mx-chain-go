@@ -3,7 +3,6 @@ package resolvers
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -131,7 +130,8 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
 		// Search the nonce-key pair in data pool
-		hdrBytes, err := hdrRes.searchInCache(nonce)
+		var hdrBytes []byte
+		hdrBytes, err = hdrRes.searchInCache(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -241,8 +241,5 @@ func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
-	if hdrRes == nil {
-		return true
-	}
-	return false
+	return hdrRes == nil
 }
