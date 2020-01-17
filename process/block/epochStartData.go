@@ -292,7 +292,7 @@ func (e *epochStartData) computeStillPending(
 }
 
 func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.ShardMiniBlockHeader {
-	hashDst := make(map[string]block.ShardMiniBlockHeader, 0)
+	hashDst := make(map[string]block.ShardMiniBlockHeader)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
