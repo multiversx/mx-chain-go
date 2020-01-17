@@ -24,6 +24,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
+	trieDataGetter           dataRetriever.TrieDataGetter
 	antifloodHandler         dataRetriever.P2PAntifloodHandler
 }
 
@@ -36,6 +37,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.MetaPoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
+	trieDataGetter dataRetriever.TrieDataGetter,
 	sizeCheckDelta uint32,
 	antifloodHandler dataRetriever.P2PAntifloodHandler,
 ) (*resolversContainerFactory, error) {
@@ -64,6 +66,9 @@ func NewResolversContainerFactory(
 	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
+	if check.IfNil(trieDataGetter) {
+		return nil, dataRetriever.ErrNilTrieDataGetter
+	}
 	if check.IfNil(antifloodHandler) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
@@ -77,6 +82,7 @@ func NewResolversContainerFactory(
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
+		trieDataGetter:           trieDataGetter,
 		antifloodHandler:         antifloodHandler,
 	}, nil
 }
@@ -130,6 +136,15 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	}
 
 	keys, resolverSlice, err = rcf.generateMiniBlocksResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateTrieNodesResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +220,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.ShardHeaders(),
-		rcf.dataPools.HeadersNonces(),
+		rcf.dataPools.Headers(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -260,8 +274,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.MetaBlocks(),
-		rcf.dataPools.HeadersNonces(),
+		rcf.dataPools.Headers(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -445,4 +458,51 @@ func (rcf *resolversContainerFactory) createOneResolverSender(
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 	return rcf == nil
+}
+
+func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
+	shardC := rcf.shardCoordinator
+
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierTrieNodes}, []dataRetriever.Resolver{resolver}, nil
+}
+
+func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dataRetriever.Resolver, error) {
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, emptyExcludePeersOnTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		topic,
+		peerListCreator,
+		rcf.marshalizer,
+		rcf.intRandomizer,
+		rcf.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resolver, err := resolvers.NewTrieNodeResolver(
+		resolverSender,
+		rcf.trieDataGetter,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//add on the request topic
+	return rcf.createTopicAndAssignHandler(
+		topic+resolverSender.TopicRequestSuffix(),
+		resolver,
+		false)
 }

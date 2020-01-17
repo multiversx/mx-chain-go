@@ -7,6 +7,12 @@ type CacheConfig struct {
 	Shards uint32 `json:"shards"`
 }
 
+//HeadersPoolConfig will map the headers cache configuration
+type HeadersPoolConfig struct {
+	MaxHeadersPerShard            int
+	NumElementsToRemoveOnEviction int
+}
+
 // DBConfig will map the json db configuration
 type DBConfig struct {
 	FilePath          string `json:"file"`
@@ -46,7 +52,7 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
-// MarshalizerConfig holds the settings related to the marshalizer
+// MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
 	Type           string `json:"type"`
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
@@ -58,6 +64,12 @@ type NTPConfig struct {
 	Port                int
 	TimeoutMilliseconds int
 	Version             int
+}
+
+// EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
+type EvictionWaitingListConfig struct {
+	Size uint     `json:"size"`
+	DB   DBConfig `json:"db"`
 }
 
 // EpochStartConfig will hold the configuration of EpochStart settings
@@ -86,31 +98,26 @@ type Config struct {
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
-	StateBlockBodyDataPool      CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
-	BlockHeaderDataPool         CacheConfig
-	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	MetaBlockBodyDataPool       CacheConfig
+	TrieNodesDataPool           CacheConfig
+	EpochStartConfig            EpochStartConfig
+	Logger                      LoggerConfig
+	Address                     AddressConfig
+	BLSPublicKey                AddressConfig
+	Hasher                      TypeConfig
+	MultisigHasher              TypeConfig
+	Marshalizer                 MarshalizerConfig
 
-	MiniBlockHeaderHashesDataPool CacheConfig
-	ShardHeadersDataPool          CacheConfig
-	MetaHeaderNoncesDataPool      CacheConfig
-
-	Antiflood        AntifloodConfig
-	EpochStartConfig EpochStartConfig
-	Logger           LoggerConfig
-	Address          AddressConfig
-	BLSPublicKey     AddressConfig
-	Hasher           TypeConfig
-	MultisigHasher   TypeConfig
-	Marshalizer      MarshalizerConfig
-
+	Antiflood       AntifloodConfig
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
@@ -118,7 +125,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig NTPConfig
+	NTPConfig         NTPConfig
+	HeadersPoolConfig HeadersPoolConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -130,6 +138,7 @@ type NodeConfig struct {
 
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
+	Enabled             bool
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
@@ -137,10 +146,12 @@ type StoragePruningConfig struct {
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	RandezVous           string
-	InitialPeerList      []string
+	Enabled                          bool
+	RefreshIntervalInSec             uint32
+	RandezVous                       string
+	InitialPeerList                  []string
+	BucketSize                       uint32
+	RoutingTableRefreshIntervalInSec uint32
 }
 
 // P2PConfig will hold all the P2P settings
@@ -167,7 +178,6 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
-	NetworkID                  string
 	StatusPollingIntervalSec   int
 }
 
@@ -192,6 +202,12 @@ type ElasticSearchConfig struct {
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
+}
+
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }
 
 // WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server

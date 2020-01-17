@@ -10,7 +10,7 @@ type TxValidatorHandlerStub struct {
 	SenderShardIdCalled func() uint32
 	NonceCalled         func() uint64
 	SenderAddressCalled func() state.AddressContainer
-	TotalValueCalled    func() *big.Int
+	FeeCalled           func() *big.Int
 }
 
 func (tvhs *TxValidatorHandlerStub) SenderShardId() uint32 {
@@ -25,6 +25,6 @@ func (tvhs *TxValidatorHandlerStub) SenderAddress() state.AddressContainer {
 	return tvhs.SenderAddressCalled()
 }
 
-func (tvhs *TxValidatorHandlerStub) TotalValue() *big.Int {
-	return tvhs.TotalValueCalled()
+func (tvhs *TxValidatorHandlerStub) Fee() *big.Int {
+	return tvhs.FeeCalled()
 }
