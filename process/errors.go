@@ -37,8 +37,12 @@ var ErrHigherNonceInTransaction = errors.New("higher nonce in transaction")
 // ErrLowerNonceInTransaction signals the nonce in transaction is lower than the account's nonce
 var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction")
 
-// ErrInsufficientFunds signals the funds are insufficient
+// ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
+// transaction fee is covered by the current balance
 var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// ErrInsufficientFee signals that the current balance doesn't have the required transaction fee
+var ErrInsufficientFee = errors.New("insufficient fees")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
@@ -63,9 +67,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
-
-// ErrNilPublicKey signals that a operation has been attempted with a nil public key
-var ErrNilPublicKey = errors.New("nil public key")
 
 // ErrNilPubKeysBitmap signals that a operation has been attempted with a nil public keys bitmap
 var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
@@ -286,9 +287,6 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
-var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
-
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
@@ -303,9 +301,6 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
-
-// ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
 // ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
 var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
@@ -448,6 +443,9 @@ var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlo
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
+// ErrNilEpochHandler signals that a nil epoch handler was provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
@@ -559,6 +557,9 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
+
+// ErrNilBlockTracker signals that a nil block tracker was provided
+var ErrNilBlockTracker = errors.New("nil block tracker")
 
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")

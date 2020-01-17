@@ -71,6 +71,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 
 	blockProcessor, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&sbt,
 		crossNotarizer,
@@ -94,7 +95,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
 
@@ -105,7 +106,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 
 		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
-			log.Debug("GetShardHeader", err.Error())
+			log.Trace("getSelfHeaders.GetShardHeader", "error", err.Error())
 			continue
 		}
 

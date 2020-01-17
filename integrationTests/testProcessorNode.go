@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	factory3 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -56,6 +57,7 @@ import (
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -144,13 +146,14 @@ type TestProcessorNode struct {
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
-	StateTrie     data.Trie
+	TrieContainer state.TriesHolder
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 
 	BlackListHandler      process.BlackListHandler
+	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -277,15 +280,26 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	return tpn
 }
 
+func (tpn *TestProcessorNode) initAccountDBs() {
+	tpn.TrieContainer = state.NewDataTriesHolder()
+	var stateTrie data.Trie
+	tpn.AccntState, stateTrie, _ = CreateAccountsDB(factory2.UserAccount)
+	tpn.TrieContainer.Put([]byte(factory3.UserAccountTrie), stateTrie)
+
+	var peerTrie data.Trie
+	tpn.PeerState, peerTrie, _ = CreateAccountsDB(factory2.ValidatorAccount)
+	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
+}
+
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory2.UserAccount)
-	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
@@ -468,7 +482,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
-			tpn.StateTrie,
+			tpn.TrieContainer,
 			100,
 		)
 
@@ -488,7 +502,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
-			tpn.StateTrie,
+			tpn.TrieContainer,
 			100,
 		)
 
@@ -692,6 +706,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
 		txTypeHandler,
+		tpn.EconomicsData,
 	)
 
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
@@ -778,7 +793,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -787,6 +802,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
 		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return nil
+		},
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
@@ -794,6 +812,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Marshalizer: TestMarshalizer,
 	}
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
+	tpn.initBlockTracker(headerValidator)
 
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
@@ -805,7 +825,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		NodesCoordinator:             tpn.NodesCoordinator,
 		SpecialAddressHandler:        tpn.SpecialAddressHandler,
 		Uint64Converter:              TestUint64Converter,
-		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockchainHook,
@@ -817,6 +836,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
+		BlockTracker: tpn.BlockTracker,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1288,4 +1308,33 @@ func (tpn *TestProcessorNode) initRounder() {
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+}
+
+func (tpn *TestProcessorNode) initBlockTracker(headerValidator process.HeaderConstructionValidator) {
+	argBaseTracker := track.ArgBaseTracker{
+		Hasher:           TestHasher,
+		HeaderValidator:  headerValidator,
+		Marshalizer:      TestMarshalizer,
+		RequestHandler:   tpn.RequestHandler,
+		Rounder:          tpn.Rounder,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Store:            tpn.Storage,
+		StartHeaders:     tpn.GenesisBlocks,
+	}
+
+	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.ShardDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
+	} else {
+		arguments := track.ArgMetaTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    tpn.MetaDataPool,
+		}
+
+		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
+	}
 }

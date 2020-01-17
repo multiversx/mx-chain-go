@@ -110,7 +110,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 		return txBuff, nil
 	}
 
-	return txRes.txStorage.Get(hash)
+	return txRes.txStorage.SearchFirst(hash)
 }
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
@@ -148,15 +148,16 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
+func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
+		Epoch: epoch,
 	})
 }
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
-func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
+func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	buffHashes, err := txRes.marshalizer.Marshal(hashes)
 	if err != nil {
 		return err
@@ -165,6 +166,7 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
 	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashArrayType,
 		Value: buffHashes,
+		Epoch: epoch,
 	})
 }
 

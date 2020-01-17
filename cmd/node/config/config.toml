@@ -237,7 +237,7 @@
 
 [TxDataPool]
     Size = 75000
-    Type = "FIFOSharded"
+    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
@@ -281,8 +281,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 1000000
-    RoundsPerEpoch         = 1000000
+    MinRoundsBetweenEpochs = 500
+    RoundsPerEpoch         = 1000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

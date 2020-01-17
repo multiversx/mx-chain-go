@@ -202,7 +202,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, tnRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, tnRes.RequestDataFromHash(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: buffRequested,

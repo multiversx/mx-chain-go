@@ -70,6 +70,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 
 	blockProcessor, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&mbt,
 		crossNotarizer,
@@ -93,14 +94,14 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfMetaBlocksInfo
 	}
 
 	for _, metaBlockHash := range header.MetaBlockHashes {
 		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.headersPool, mbt.marshalizer, mbt.store)
 		if err != nil {
-			log.Debug("GetMetaHeader", err.Error())
+			log.Trace("getSelfHeaders.GetMetaHeader", "error", err.Error())
 			continue
 		}
 
