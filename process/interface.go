@@ -627,3 +627,10 @@ type BlockTracker interface {
 	RestoreToGenesis()
 	IsInterfaceNil() bool
 }
+
+// EpochStartDataCreator defines the functionality for node to create epoch start data
+type EpochStartDataCreator interface {
+	CreateEpochStartForMetablock() (*block.EpochStart, error)
+	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	IsInterfaceNil() bool
+}

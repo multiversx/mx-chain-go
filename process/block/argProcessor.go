@@ -50,8 +50,8 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool           dataRetriever.MetaPoolsHolder
 	PendingMiniBlocks  process.PendingMiniBlocksHandler
+	DataPool           dataRetriever.MetaPoolsHolder
 	SCDataGetter       external.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler
 	SCToProtocol       process.SmartContractToProtocolHandler

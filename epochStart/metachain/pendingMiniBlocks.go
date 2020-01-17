@@ -79,7 +79,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 		}
 	}
 
-	// pending miniblocks are only those which are still pending and ar from the aforementioned list
+	// pending miniblocks are only those which are still pending and are from the aforementioned list
 	p.mutPending.RLock()
 	defer p.mutPending.RUnlock()
 
