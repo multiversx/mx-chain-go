@@ -235,8 +235,8 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
-func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte) {
-	rrh.requestByHash(shardId, hash, factory.TrieNodesTopic)
+func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte, topic string) {
+	rrh.requestByHash(shardId, hash, topic)
 }
 
 func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
