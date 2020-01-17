@@ -107,7 +107,7 @@ func (si *stateImport) importTransactions() error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName %s", err, TransactionsFileName)
 	}
 
 	return nil
@@ -153,7 +153,7 @@ func (si *stateImport) importMiniBlocks() error {
 
 		miniBlock, ok := object.(*block.MiniBlock)
 		if !ok {
-			err = core.ErrWrongTypeAssertion
+			err = fmt.Errorf("%w wanted a miniblock", core.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -166,7 +166,7 @@ func (si *stateImport) importMiniBlocks() error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName %s", err, MiniBlocksFileName)
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 	}
 
 	if keyType != RootHash {
-		return core.ErrWrongTypeAssertion
+		return fmt.Errorf("%w wanted a roothash", core.ErrWrongTypeAssertion)
 	}
 
 	oldRootHash := value
@@ -238,7 +238,7 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName: %s", err, fileName)
 	}
 
 	return nil

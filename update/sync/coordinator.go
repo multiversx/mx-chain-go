@@ -47,10 +47,11 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	if epoch == ss.syncingEpoch {
 		return nil
 	}
-	ss.syncingEpoch = epoch
 
+	ss.syncingEpoch = epoch
 	meta, err := ss.headers.SyncEpochStartMetaHeader(epoch, time.Minute)
 	if err != nil {
+		ss.syncingEpoch = 0
 		return err
 	}
 
@@ -103,6 +104,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	wg.Wait()
 
 	if errFound != nil {
+		ss.syncingEpoch = 0
 		return errFound
 	}
 
