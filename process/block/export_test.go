@@ -145,10 +145,6 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
-func (mp *metaProcessor) CreateEpochStartForMetablock() (*block.EpochStart, error) {
-	return mp.epochStartCreator.CreateEpochStartForMetablock()
-}
-
 func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
