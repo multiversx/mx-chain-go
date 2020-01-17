@@ -24,22 +24,25 @@ const TransactionsFileName = "transactions"
 // MetaBlockFileName is the constant which defines the export/import filename for transactions
 const MiniBlocksFileName = "miniBlocks"
 
+// TrieFileName is the constant which defines the export/import filename for tries
+const TrieFileName = "trie"
+
 // Type identifies the type of the export / import
 type Type uint8
 
 const (
-	Transaction         Type = iota
-	SmartContractResult Type = iota + 1
-	RewardTransaction   Type = iota + 2
-	MiniBlock           Type = iota + 3
-	Header              Type = iota + 4
-	MetaHeader          Type = iota + 5
-	AccountsTrie        Type = iota + 6
-	RootHash            Type = iota + 7
-	UserAccount         Type = iota + 8
-	PeerAccount         Type = iota + 9
-	MetaAccount         Type = iota + 10
-	Unknown             Type = iota + 100
+	Unknown Type = iota
+	Transaction
+	SmartContractResult
+	RewardTransaction
+	MiniBlock
+	Header
+	MetaHeader
+	AccountsTrie
+	RootHash
+	UserAccount
+	PeerAccount
+	MetaAccount
 )
 
 var Types = []Type{Transaction, SmartContractResult, RewardTransaction, MiniBlock, Header, MetaHeader, AccountsTrie, Unknown}
@@ -86,13 +89,7 @@ func GetTrieTypeAndShId(key string) (factory.Type, uint32, error) {
 	}
 
 	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
-	accType := factory.UserAccount
-	for currType := range factory.SupportedAccountTypes {
-		if currType == int(accTypeUint64) {
-			accType = factory.Type(currType)
-			break
-		}
-	}
+	accType := getAccountType(int(accTypeUint64))
 
 	shId := uint32(big.NewInt(0).SetBytes([]byte(splitString[2])).Uint64())
 	return accType, shId, nil
@@ -115,19 +112,24 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
+func getAccountType(intType int) factory.Type {
+	accType := factory.UserAccount
+	for currType := range factory.SupportedAccountTypes {
+		if currType == intType {
+			accType = factory.Type(currType)
+			break
+		}
+	}
+	return accType
+}
+
 func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	if len(splitString) < 3 {
 		return Unknown, nil, update.ErrUnknownType
 	}
 
 	accTypeUint64 := big.NewInt(0).SetBytes([]byte(splitString[1])).Uint64()
-	accType := factory.UserAccount
-	for currType := range factory.SupportedAccountTypes {
-		if currType == int(accTypeUint64) {
-			accType = factory.Type(currType)
-			break
-		}
-	}
+	accType := getAccountType(int(accTypeUint64))
 
 	convertedType := Unknown
 	switch accType {

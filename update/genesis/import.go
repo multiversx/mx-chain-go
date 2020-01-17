@@ -3,6 +3,8 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -49,7 +51,12 @@ func (si *stateImport) ImportAll() error {
 		case TransactionsFileName:
 			err = si.importTransactions()
 		default:
-			err = si.importState(fileName)
+			splitString := strings.Split(fileName, atSep)
+			if len(splitString) > 1 && splitString[0] == TrieFileName {
+				err = si.importState(splitString[0], splitString[1])
+			} else {
+				continue
+			}
 		}
 		if err != nil {
 			return err
@@ -87,7 +94,7 @@ func (si *stateImport) importTransactions() error {
 
 		tx, ok := object.(data.TransactionHandler)
 		if !ok {
-			err = core.ErrWrongTypeAssertion
+			err = fmt.Errorf("%w wanted a transaction handler", core.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -165,8 +172,8 @@ func (si *stateImport) importMiniBlocks() error {
 	return nil
 }
 
-func (si *stateImport) importState(fileName string) error {
-	accType, _, err := GetTrieTypeAndShId(fileName)
+func (si *stateImport) importState(fileName string, trieKey string) error {
+	accType, _, err := GetTrieTypeAndShId(trieKey)
 	if err != nil {
 		return err
 	}
@@ -176,7 +183,7 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
-	accountsDB, err := state.NewAccountsDB(si.tries[fileName], si.hasher, si.marshalizer, accountFactory)
+	accountsDB, err := state.NewAccountsDB(si.tries[trieKey], si.hasher, si.marshalizer, accountFactory)
 	if err != nil {
 		return err
 	}
