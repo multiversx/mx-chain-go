@@ -4,12 +4,15 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -100,10 +103,10 @@ func CreateMetaGenesisBlock(
 	args ArgsMetaGenesisBlockCreator,
 ) (data.HeaderHandler, error) {
 
-	if args.Accounts == nil || args.Accounts.IsInterfaceNil() {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if args.AddrConv == nil || args.AddrConv.IsInterfaceNil() {
+	if check.IfNil(args.AddrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
 	if args.NodesSetup == nil {
@@ -112,25 +115,25 @@ func CreateMetaGenesisBlock(
 	if args.Economics == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if args.Store == nil || args.Store.IsInterfaceNil() {
+	if check.IfNil(args.Store) {
 		return nil, process.ErrNilStore
 	}
-	if args.Blkc == nil || args.Blkc.IsInterfaceNil() {
+	if check.IfNil(args.Blkc) {
 		return nil, process.ErrNilBlockChain
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if args.Uint64ByteSliceConverter == nil || args.Uint64ByteSliceConverter.IsInterfaceNil() {
+	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
-	if args.MetaDatapool == nil || args.MetaDatapool.IsInterfaceNil() {
+	if check.IfNil(args.MetaDatapool) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 
@@ -179,7 +182,30 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(args.GenesisTime)
 	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
+	err = saveGenesisMetaToStorage(args)
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
+}
+
+func saveGenesisMetaToStorage(args ArgsMetaGenesisBlockCreator) error {
+	epochStartID := core.EpochStartIdentifier(0)
+	metaHdrStorage := args.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaHdrStorage) {
+		return epochStart.ErrNilStorage
+	}
+	marshaledData, err := args.Marshalizer.Marshal(metaHdrStorage)
+	if err != nil {
+		return err
+	}
+	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createProcessorsForMetaGenesisBlock(

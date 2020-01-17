@@ -229,6 +229,10 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 ) ([]byte, []byte, error) {
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	if epoch == 0 {
+		return lastMetaHash, []byte(epochStartIdentifier), nil
+	}
+
 	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err

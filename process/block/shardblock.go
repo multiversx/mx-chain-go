@@ -966,7 +966,7 @@ func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []by
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error())
+		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
 		return nil, nil
 	}
 
