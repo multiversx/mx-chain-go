@@ -1462,7 +1462,6 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.DataPool = dataComponents.Datapool
 	}
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(

@@ -947,12 +947,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
-	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
-
-	err = tpn.Node.ApplyOptions(
 		node.WithDataPool(tpn.DataPool),
 	)
 	if err != nil {
