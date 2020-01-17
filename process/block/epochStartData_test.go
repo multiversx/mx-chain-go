@@ -1,13 +1,14 @@
 package block_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -47,7 +48,7 @@ func createMetaStore() dataRetriever.StorageService {
 	return store
 }
 
-func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotFoundShouldErr(t *testing.T) {
+func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGenesis(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
@@ -57,9 +58,9 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotFoundShoul
 	shardHdr := &block.Header{Round: round}
 	last, lastFinal, shardHdrs, err := epoch.GetLastFinalizedMetaHashForShard(shardHdr)
 	assert.Nil(t, last)
-	assert.Nil(t, lastFinal)
-	assert.Nil(t, shardHdrs)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.True(t, bytes.Equal(lastFinal, []byte(core.EpochStartIdentifier(0))))
+	assert.Equal(t, shardHdr, shardHdrs[0])
+	assert.Nil(t, err)
 }
 
 func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing.T) {
