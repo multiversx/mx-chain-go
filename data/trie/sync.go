@@ -136,7 +136,8 @@ func (ts *trieSyncer) requestNode(hash []byte) error {
 	ts.requestedHashes = append(ts.requestedHashes, receivedRequestedHashTrigger)
 	ts.requestedHashesMutex.Unlock()
 
-	err := ts.resolver.RequestDataFromHash(hash)
+	// epoch doesn't matter because that parameter is not used in trie's resolver
+	err := ts.resolver.RequestDataFromHash(hash, 0)
 	if err != nil {
 		return err
 	}

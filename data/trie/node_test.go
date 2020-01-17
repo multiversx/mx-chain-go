@@ -422,11 +422,14 @@ func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
 func TestKeyBytesToHex(t *testing.T) {
 	t.Parallel()
 
+	reversedHexDoeKey := []byte{5, 6, 15, 6, 4, 6, 16}
+	reversedHexDogKey := []byte{7, 6, 15, 6, 4, 6, 16}
+
 	var test = []struct {
 		key, hex []byte
 	}{
-		{[]byte("doe"), []byte{6, 4, 6, 15, 6, 5, 16}},
-		{[]byte("dog"), []byte{6, 4, 6, 15, 6, 7, 16}},
+		{[]byte("doe"), reversedHexDoeKey},
+		{[]byte("dog"), reversedHexDogKey},
 	}
 
 	for i := range test {
@@ -437,11 +440,14 @@ func TestKeyBytesToHex(t *testing.T) {
 func TestHexToKeyBytes(t *testing.T) {
 	t.Parallel()
 
+	reversedHexDoeKey := []byte{5, 6, 15, 6, 4, 6, 16}
+	reversedHexDogKey := []byte{7, 6, 15, 6, 4, 6, 16}
+
 	var test = []struct {
 		key, hex []byte
 	}{
-		{[]byte{6, 4, 6, 15, 6, 5, 16}, []byte("doe")},
-		{[]byte{6, 4, 6, 15, 6, 7, 16}, []byte("dog")},
+		{reversedHexDoeKey, []byte("doe")},
+		{reversedHexDogKey, []byte("dog")},
 	}
 
 	for i := range test {
@@ -484,29 +490,17 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-
-	rootHash, _ := tr.Root()
-	rootKey := []byte{6, 4, 6, 15, 6}
-	nextNode, _, _ := tr.root.getNext(rootKey, tr.Database())
-
 	_ = tr.Commit()
 
-	tr.root = &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
-			Key:          rootKey,
-			EncodedChild: nextNode.getHash(),
-		},
-		child: nil,
-		baseNode: &baseNode{
-			hash:   rootHash,
-			dirty:  false,
-			marsh:  tr.marshalizer,
-			hasher: tr.hasher,
-		},
+	root, _ := tr.root.(*branchNode)
+	for i := 0; i < nrOfChildren; i++ {
+		root.children[i] = nil
 	}
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+	tr.root = root
 
-	assert.Equal(t, 3, len(tr.oldHashes))
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+
+	assert.Equal(t, 4, len(tr.oldHashes))
 }
 
 func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
@@ -516,9 +510,9 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	_ = tr.Commit()
 	root, _ := tr.Root()
 
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 
-	assert.Equal(t, 3, len(tr.oldHashes))
+	assert.Equal(t, 4, len(tr.oldHashes))
 	assert.Equal(t, root, tr.oldRoot)
 
 	_ = tr.Commit()
@@ -630,8 +624,10 @@ func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit()
 
-	root, _ := tr.root.(*extensionNode)
-	root.child = nil
+	root, _ := tr.root.(*branchNode)
+	for i := 0; i < nrOfChildren; i++ {
+		root.children[i] = nil
+	}
 	tr.root = root
 
 	leafs, err := tr.GetAllLeaves()
@@ -640,5 +636,5 @@ func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
 	assert.Equal(t, 3, len(leafs))
 	assert.Equal(t, []byte("reindeer"), leafs[string([]byte("doe"))])
 	assert.Equal(t, []byte("puppy"), leafs[string([]byte("dog"))])
-	assert.Equal(t, []byte("cat"), leafs[string([]byte("dogglesworth"))])
+	assert.Equal(t, []byte("cat"), leafs[string([]byte("ddog"))])
 }
