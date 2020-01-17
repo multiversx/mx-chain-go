@@ -1,13 +1,13 @@
 package networksharding
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 

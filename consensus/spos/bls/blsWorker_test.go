@@ -81,11 +81,13 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	}
 
 	assert.NotNil(t, messagesRange)
+	if v == nil {
+		assert.Fail(t, "v should not be nil")
+		return
+	}
 
 	for i, val := range messagesRange {
-		if v != nil {
-			assert.Equal(t, v[i], val)
-		}
+		assert.Equal(t, v[i], val)
 	}
 }
 
