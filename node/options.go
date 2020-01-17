@@ -513,3 +513,14 @@ func WithBlockTracker(blockTracker process.BlockTracker) Option {
 		return nil
 	}
 }
+
+// WithPendingMiniBlocks sets up the pending miniblocks for the Node
+func WithPendingMiniBlocks(pendingMiniBlocks process.PendingMiniBlocksHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(pendingMiniBlocks) {
+			return ErrNilPendingMiniBlocksHandler
+		}
+		n.pendingMiniBlocks = pendingMiniBlocks
+		return nil
+	}
+}

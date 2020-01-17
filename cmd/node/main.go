@@ -1178,6 +1178,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
+		node.WithPendingMiniBlocks(process.PendingMiniBlocks),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

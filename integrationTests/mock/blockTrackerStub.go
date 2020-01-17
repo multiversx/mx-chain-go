@@ -16,6 +16,7 @@ type BlockTrackerStub struct {
 	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
+	GetNumPendingMiniBlocksCalled                     func(shardID uint32) uint32
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -24,6 +25,7 @@ type BlockTrackerStub struct {
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
+	SetNumPendingMiniBlocksCalled                     func(shardID uint32, numPendingMiniBlocks uint32)
 }
 
 func (bts *BlockTrackerStub) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
@@ -103,6 +105,14 @@ func (bts *BlockTrackerStub) GetLastCrossNotarizedHeadersForAllShards() (map[uin
 	return nil, nil
 }
 
+func (bts *BlockTrackerStub) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	if bts.GetNumPendingMiniBlocksCalled != nil {
+		return bts.GetNumPendingMiniBlocksCalled(shardID)
+	}
+
+	return 0
+}
+
 func (bts *BlockTrackerStub) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	if bts.GetTrackedHeadersCalled != nil {
 		return bts.GetTrackedHeadersCalled(shardID)
@@ -156,6 +166,12 @@ func (bts *BlockTrackerStub) RemoveLastNotarizedHeaders() {
 func (bts *BlockTrackerStub) RestoreToGenesis() {
 	if bts.RestoreToGenesisCalled != nil {
 		bts.RestoreToGenesisCalled()
+	}
+}
+
+func (bts *BlockTrackerStub) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	if bts.SetNumPendingMiniBlocksCalled != nil {
+		bts.SetNumPendingMiniBlocksCalled(shardID, numPendingMiniBlocks)
 	}
 }
 

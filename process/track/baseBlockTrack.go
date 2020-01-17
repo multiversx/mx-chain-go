@@ -297,6 +297,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 	return lastCrossNotarizedHeaders, nil
 }
 
+// GetNumPendingMiniBlocks returns the number of pending miniblocks for a given shard
+func (bbt *baseBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	return bbt.blockBalancer.getNumPendingMiniBlocks(shardID)
+}
+
 // GetTrackedHeaders returns tracked headers for a given shard
 func (bbt *baseBlockTrack) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	return bbt.sortHeadersFromNonce(shardID, 0)
@@ -408,12 +413,18 @@ func (bbt *baseBlockTrack) RestoreToGenesis() {
 	bbt.crossNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.selfNotarizer.restoreNotarizedHeadersToGenesis()
 	bbt.restoreTrackedHeadersToGenesis()
+	bbt.blockBalancer.restoreNumPendingMiniBlocksToGenesis()
 }
 
 func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 	bbt.mutHeaders.Lock()
 	bbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	bbt.mutHeaders.Unlock()
+}
+
+// SetNumPendingMiniBlocks sets the number of pending miniblocks for a given shard
+func (bbt *baseBlockTrack) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	bbt.blockBalancer.setNumPendingMiniBlocks(shardID, numPendingMiniBlocks)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -455,7 +466,7 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 
 	selfStartHeader := startHeaders[bbt.shardCoordinator.SelfId()]
 	selfStartHeaders := make(map[uint32]data.HeaderHandler)
-	for shardID, _ := range startHeaders {
+	for shardID := range startHeaders {
 		selfStartHeaders[shardID] = selfStartHeader
 	}
 

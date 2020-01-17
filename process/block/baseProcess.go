@@ -781,6 +781,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	round uint64,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
+	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
 	highestFinalBlockNonce uint64,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
@@ -804,6 +805,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		LastHeader:                headerInfo,
 		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
+		PendingMiniBlocks:         pendingMiniBlocks,
 		HighestFinalBlockNonce:    highestFinalBlockNonce,
 		ProcessedMiniBlocks:       processedMiniBlocks,
 	}

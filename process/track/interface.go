@@ -36,4 +36,5 @@ type blockTrackerHandler interface {
 type blockBalancerHandler interface {
 	getNumPendingMiniBlocks(shardID uint32) uint32
 	setNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	restoreNumPendingMiniBlocksToGenesis()
 }

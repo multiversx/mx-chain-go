@@ -849,7 +849,15 @@ func (sp *shardProcessor) CommitBlock(
 		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
 	}
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
+	sp.prepareDataForBootStorer(
+		headerInfo,
+		header.Round,
+		selfNotarizedHeaders,
+		selfNotarizedHeadersHashes,
+		sp.getPendingMiniBlocks(),
+		sp.lowestNonceInSelfNotarizedHeaders,
+		processedMiniBlocks,
+	)
 
 	go sp.cleanTxsPools()
 
@@ -1959,4 +1967,17 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	}
 
 	return block.Body(miniBlocks), nil
+}
+
+func (sp *shardProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlockInfo {
+	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlockInfo, sp.shardCoordinator.NumberOfShards())
+
+	for shardID := uint32(0); shardID < sp.shardCoordinator.NumberOfShards(); shardID++ {
+		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
+			NumPendingMiniBlocks: sp.blockTracker.GetNumPendingMiniBlocks(shardID),
+			ShardID:              shardID,
+		}
+	}
+
+	return pendingMiniBlocks
 }

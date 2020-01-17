@@ -6,11 +6,11 @@ import (
 )
 
 type PendingMiniBlocksHandlerStub struct {
-	PendingMiniBlockHeadersCalled         func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
-	AddProcessedHeaderCalled              func(handler data.HeaderHandler) error
-	RevertHeaderCalled                    func(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocksForShardCalled func(shardID uint32) uint32
-	SetNumPendingMiniBlocksForShardCalled func(shardID uint32, numPendingMiniBlocks uint32)
+	PendingMiniBlockHeadersCalled func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
+	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
+	RevertHeaderCalled            func(handler data.HeaderHandler) error
+	GetNumPendingMiniBlocksCalled func(shardID uint32) uint32
+	SetNumPendingMiniBlocksCalled func(shardID uint32, numPendingMiniBlocks uint32)
 }
 
 func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
@@ -34,16 +34,16 @@ func (p *PendingMiniBlocksHandlerStub) RevertHeader(handler data.HeaderHandler) 
 	return nil
 }
 
-func (p *PendingMiniBlocksHandlerStub) GetNumPendingMiniBlocksForShard(shardID uint32) uint32 {
-	if p.GetNumPendingMiniBlocksForShardCalled != nil {
-		return p.GetNumPendingMiniBlocksForShardCalled(shardID)
+func (p *PendingMiniBlocksHandlerStub) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	if p.GetNumPendingMiniBlocksCalled != nil {
+		return p.GetNumPendingMiniBlocksCalled(shardID)
 	}
 	return 0
 }
 
-func (p *PendingMiniBlocksHandlerStub) SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32) {
-	if p.SetNumPendingMiniBlocksForShardCalled != nil {
-		p.SetNumPendingMiniBlocksForShardCalled(shardID, numPendingMiniBlocks)
+func (p *PendingMiniBlocksHandlerStub) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	if p.SetNumPendingMiniBlocksCalled != nil {
+		p.SetNumPendingMiniBlocksCalled(shardID, numPendingMiniBlocks)
 	}
 }
 
