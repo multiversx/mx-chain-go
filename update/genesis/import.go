@@ -206,18 +206,20 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 	oldRootHash := value
 	log.Debug("old root hash", "value", oldRootHash)
 
+	var address []byte
+	var account state.AccountHandler
 	for {
-		key, value, err := si.reader.ReadNextItem(fileName)
+		key, value, err = si.reader.ReadNextItem(fileName)
 		if err != nil {
 			break
 		}
 
-		_, address, err := GetKeyTypeAndHash(key)
+		_, address, err = GetKeyTypeAndHash(key)
 		if err != nil {
 			break
 		}
 
-		account, err := NewEmptyAccount(accType)
+		account, err = NewEmptyAccount(accType)
 		if err != nil {
 			break
 		}
