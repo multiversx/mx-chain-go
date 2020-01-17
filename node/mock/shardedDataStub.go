@@ -47,10 +47,6 @@ func (sd *ShardedDataStub) MergeShardStores(sourceCacheId, destCacheId string) {
 	sd.MergeShardStoresCalled(sourceCacheId, destCacheId)
 }
 
-func (sd *ShardedDataStub) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
-	sd.MoveDataCalled(sourceCacheId, destCacheId, key)
-}
-
 func (sd *ShardedDataStub) Clear() {
 	sd.ClearCalled()
 }

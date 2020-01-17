@@ -547,6 +547,32 @@ func TestWithShardCoordinator_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithBlockTracker_NilBlockTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlockTracker(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.blockTracker)
+	assert.Equal(t, ErrNilBlockTracker, err)
+}
+
+func TestWithBlockTracker_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blockTracker := &mock.BlockTrackerStub{}
+
+	opt := WithBlockTracker(blockTracker)
+	err := opt(node)
+
+	assert.True(t, node.blockTracker == blockTracker)
+	assert.Nil(t, err)
+}
+
 func TestWithNodesCoordinator_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 

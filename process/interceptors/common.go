@@ -40,6 +40,8 @@ func processInterceptedData(
 	err := processor.Validate(data)
 	if err != nil {
 		log.Trace("intercepted data is not valid",
+			"hash", data.Hash(),
+			"type", data.Type(),
 			"error", err.Error(),
 		)
 		wgProcess.Done()
@@ -49,6 +51,8 @@ func processInterceptedData(
 	err = processor.Save(data)
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
+			"hash", data.Hash(),
+			"type", data.Type(),
 			"error", err.Error(),
 		)
 	}

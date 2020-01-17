@@ -24,6 +24,7 @@ type MetaAccount struct {
 	MiniBlocks    []*MiniBlockData
 	PubKeyLeader  []byte
 	ShardRootHash []byte
+	Address       []byte
 
 	addressContainer AddressContainer
 	code             []byte
@@ -40,11 +41,14 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 		return nil, ErrNilAccountTracker
 	}
 
+	addressBytes := addressContainer.Bytes()
+
 	return &MetaAccount{
 		TxCount:          big.NewInt(0),
 		addressContainer: addressContainer,
+		Address:          addressBytes,
 		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(nil),
+		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil
 }
 

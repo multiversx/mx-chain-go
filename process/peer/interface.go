@@ -2,12 +2,12 @@ package peer
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 // DataPool indicates the main functionality needed in order to fetch the required blocks from the pool
 type DataPool interface {
-	MetaBlocks() storage.Cacher
+	Headers() dataRetriever.HeadersPool
 	IsInterfaceNil() bool
 }
 

@@ -4,13 +4,13 @@
    # value will be given as string. For example: "0", "1", "15", "metachain"
    DestinationShardAsObserver = "0"
 
-   # NetworkID will be used for network versions
-   NetworkID = "undefined"
-
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 
 [StoragePruning]
+   # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
+   Enabled = false
+
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
 
@@ -186,22 +186,42 @@
         Size = 75000
         Type = "LRU"
     [AccountsTrieStorage.DB]
-        FilePath = "AccountsTrie"
+        FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+
+[EvictionWaitingList]
+    Size = 100
+    [EvictionWaitingList.DB]
+        FilePath = "EvictionWaitingList"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 5
+        MaxBatchSize = 10000
+        MaxOpenFiles = 10
+
+[TrieSnapshotDB]
+     FilePath = "TrieSnapshot"
+     Type = "LvlDBSerial"
+     BatchDelaySeconds = 15
+     MaxBatchSize = 40000
+     MaxOpenFiles = 10
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
         Size = 75000
         Type = "LRU"
     [PeerAccountsTrieStorage.DB]
-        FilePath = "PeerAccountsTrie"
+        FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 5
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+
+[HeadersPoolConfig]
+    MaxHeadersPerShard = 1000
+    NumElementsToRemoveOnEviction = 200
 
 [BadBlocksCache]
     Size = 1000
@@ -211,30 +231,18 @@
     Size = 300
     Type = "LRU"
 
-[StateBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
-
 [PeerBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[BlockHeaderDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[BlockHeaderNoncesDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MetaHeaderNoncesDataPool]
     Size = 1000
     Type = "LRU"
 
 [TxDataPool]
     Size = 75000
-    Type = "FIFOSharded"
+    Type = "TxCache"
     Shards = 16
+
+[TrieNodesDataPool]
+    Size = 50000
+    Type = "LRU"
 
 [UnsignedTransactionDataPool]
     Size = 75000
@@ -242,18 +250,6 @@
 
 [RewardTransactionDataPool]
     Size = 75000
-    Type = "LRU"
-
-[ShardHeadersDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MiniBlockHeaderHashesDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MetaBlockBodyDataPool]
-    Size = 1000
     Type = "LRU"
 
 [Antiflood]
@@ -346,3 +342,8 @@
    Port = 123
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
+
+[StateTrieConfig]
+    RoundsModulus = 100
+    # TODO: change this to true when pruning bugs are fixed
+    PruningEnabled = false

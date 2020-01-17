@@ -42,7 +42,11 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 	if errTxValidation != nil {
 		return errTxValidation
 	}
-	log.Trace("Intercepted transaction", "valid", true)
+	log.Trace("intercepted transaction",
+		"valid", true,
+		"hash", data.Hash(),
+		"type", data.Type(),
+	)
 	return nil
 }
 
@@ -61,6 +65,10 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 	)
 
 	return nil
+}
+
+// SignalEndOfProcessing signals the end of processing
+func (txip *TxInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

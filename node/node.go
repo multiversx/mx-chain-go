@@ -114,7 +114,8 @@ type Node struct {
 	bootStorer            process.BootStorer
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
-	chainID               []byte
+	chainID 		      []byte
+	blockTracker          process.BlockTracker
 	antifloodHandler      P2PAntifloodHandler
 }
 
@@ -407,6 +408,11 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
+	if err != nil {
+		return nil, err
+	}
+
 	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
@@ -418,6 +424,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
 	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
@@ -437,7 +444,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.forkDetector,
 		n.resolversFinder,
 		n.shardCoordinator,
-		n.accounts,
+		accountsWrapper,
 		n.blackListHandler,
 		n.messenger,
 		n.bootStorer,
@@ -463,6 +470,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
 	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)

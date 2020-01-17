@@ -10,8 +10,7 @@ type countingDB struct {
 }
 
 func NewCountingDB() *countingDB {
-	db, _ := memorydb.New()
-	return &countingDB{db, 0}
+	return &countingDB{memorydb.New(), 0}
 }
 
 func (cdb *countingDB) Put(key, val []byte) error {
