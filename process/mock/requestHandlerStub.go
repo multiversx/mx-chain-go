@@ -12,6 +12,9 @@ type RequestHandlerStub struct {
 	RequestTrieNodesCalled          func(shardId uint32, hash []byte, topic string)
 }
 
+func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+}
+
 func (rhs *RequestHandlerStub) RequestShardHeader(shardId uint32, hash []byte) {
 	if rhs.RequestShardHeaderCalled == nil {
 		return
