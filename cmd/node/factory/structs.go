@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"time"
@@ -128,7 +127,7 @@ type Network struct {
 type Core struct {
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	Trie                     data.Trie
+	TriesContainer           state.TriesHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
@@ -206,6 +205,31 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+
+	trieContainer, err := createTries(args, marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Core{
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		TriesContainer:           trieContainer,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		StatusHandler:            statusHandler.NewNilStatusHandler(),
+		ChainID:                  args.chainID,
+	}, nil
+}
+
+func createTries(
+	args *coreComponentsFactoryArgs,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (state.TriesHolder, error) {
+
+	trieContainer := state.NewDataTriesHolder()
+
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		Cfg:                    args.config.AccountsTrieStorage,
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
@@ -225,16 +249,32 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	return &Core{
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		Trie:                     merkleTrie,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  args.chainID,
-	}, nil
+	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
+
+	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
+		Cfg:                    args.config.PeerAccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
+
+	return trieContainer, nil
 }
 
 type stateComponentsFactoryArgs struct {
@@ -285,7 +325,8 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(args.core.Trie, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	merkleTrie := args.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
+	accountsAdapter, err := state.NewAccountsDB(merkleTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
@@ -295,39 +336,13 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	var shardId string
-	if args.shardCoordinator.SelfId() > args.shardCoordinator.NumberOfShards() {
-		shardId = "metachain"
-	} else {
-		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
-	}
-
-	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
-		Cfg:                    args.config.PeerAccountsTrieStorage,
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            args.core.Marshalizer,
-		Hasher:                 args.core.Hasher,
-		PathManager:            args.pathManager,
-		ShardId:                shardId,
-		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
-	}
-	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
 	accountFactory, err = factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
 	if err != nil {
 		return nil, errors.New("could not create peer account factory: " + err.Error())
 	}
 
-	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
+	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,7 +1155,7 @@ func createNetMessenger(
 		return nil, errors.New("cannot start node on port < 0")
 	}
 
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
+	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
 	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
 
 	if err != nil {
@@ -1266,7 +1281,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
-		core.Trie,
+		core.TriesContainer,
 		sizeCheckDelta,
 	)
 	if err != nil {
@@ -1328,7 +1343,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
-		core.Trie,
+		core.TriesContainer,
 		sizeCheckDelta,
 	)
 	if err != nil {

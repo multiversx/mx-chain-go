@@ -81,8 +81,5 @@ func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
-	if tnRes == nil {
-		return true
-	}
-	return false
+	return tnRes == nil
 }

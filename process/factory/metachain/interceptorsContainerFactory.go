@@ -539,14 +539,48 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	keys := make([]string, 0)
+	trieInterceptors := make([]process.Interceptor, 0)
 
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+
+		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+	}
+
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return []string{identifierTrieNodes}, []process.Interceptor{interceptor}, nil
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	return keys, trieInterceptors, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
