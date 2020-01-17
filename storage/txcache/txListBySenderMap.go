@@ -102,36 +102,6 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
-type txListBySenderSortKind string
-
-// LRUCache is currently the only supported Cache type
-const (
-	SortByOrderNumberAsc txListBySenderSortKind = "SortByOrderNumberAsc"
-	SortBySmartScoreAsc  txListBySenderSortKind = "SortBySmartScoreAsc"
-)
-
-func (txMap *txListBySenderMap) GetListsSortedBy(sortKind txListBySenderSortKind) []*txListForSender {
-	switch sortKind {
-	case SortByOrderNumberAsc:
-		return txMap.GetListsSortedByOrderNumber()
-	case SortBySmartScoreAsc:
-		return txMap.GetListsSortedBySmartScore()
-	default:
-		return txMap.GetListsSortedBySmartScore()
-	}
-}
-
-// GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number, ascending
-func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	snapshot := txMap.getListsSnapshot()
-
-	sort.Slice(snapshot, func(i, j int) bool {
-		return snapshot[i].orderNumber < snapshot[j].orderNumber
-	})
-
-	return snapshot
-}
-
 // GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart score
 func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender {
 	snapshot := txMap.getListsSnapshot()
@@ -145,11 +115,6 @@ func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender 
 	})
 
 	return snapshot
-}
-
-// GetListsGroupedBy gets the list of senders, grouped in buckets, according to their smart score
-func (txMap *txListBySenderMap) GetListsGroupedBySmartScore() [][]*txListForSender {
-	return nil
 }
 
 func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {

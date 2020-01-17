@@ -57,24 +57,6 @@ func Test_RemoveSender(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
-func Test_GetListsSortedByOrderNumber(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
-
-	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
-	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
-	myMap.addTx([]byte("b"), createTx("bob", uint64(1)))
-	myMap.addTx([]byte("aaa"), createTx("alice", uint64(2)))
-	myMap.addTx([]byte("c"), createTx("carol", uint64(2)))
-
-	lists := myMap.GetListsSortedByOrderNumber()
-
-	require.ElementsMatch(t, myMap.GetListsSortedByOrderNumber(), myMap.GetListsSortedBy(SortByOrderNumberAsc))
-	require.ElementsMatch(t, myMap.GetListsSortedByOrderNumber(), myMap.GetListsSortedBy("foobar"))
-	require.Equal(t, "alice", lists[0].sender)
-	require.Equal(t, "bob", lists[1].sender)
-	require.Equal(t, "carol", lists[2].sender)
-}
-
 func Test_GetListsSortedBySmartScore(t *testing.T) {
 	myMap := newTxListBySenderMap(4)
 
@@ -86,7 +68,6 @@ func Test_GetListsSortedBySmartScore(t *testing.T) {
 
 	lists := myMap.GetListsSortedBySmartScore()
 
-	require.ElementsMatch(t, myMap.GetListsSortedBySmartScore(), myMap.GetListsSortedBy(SortBySmartScoreAsc))
 	require.Equal(t, "carol", lists[0].sender)
 	require.Equal(t, "alice", lists[1].sender)
 	require.Equal(t, "bob", lists[2].sender)
@@ -108,7 +89,6 @@ func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 
 		go func() {
 			for j := 0; j < 100; j++ {
-				myMap.GetListsSortedByOrderNumber()
 				myMap.GetListsSortedBySmartScore()
 			}
 
