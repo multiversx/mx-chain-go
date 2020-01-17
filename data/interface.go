@@ -153,6 +153,7 @@ type DBRemoveCacher interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte) error
+	Trie() Trie
 	IsInterfaceNil() bool
 }
 

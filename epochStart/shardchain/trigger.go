@@ -274,7 +274,7 @@ func (t *trigger) isMetaBlockValid(_ string, metaHdr *block.MetaBlock) bool {
 	return true
 }
 
-func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
+func (t *trigger) IsMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, uint64) {
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.Round
 	currHdr := metaHdr
@@ -317,7 +317,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
-	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
+	isMetaHdrFinal, finalityAttestingRound := t.IsMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
 }
 

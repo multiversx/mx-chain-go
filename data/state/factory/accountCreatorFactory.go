@@ -16,6 +16,8 @@ const (
 	ValidatorAccount Type = 2
 )
 
+var SupportedAccountTypes = []Type{UserAccount, ShardStatistics, ValidatorAccount}
+
 // NewAccountFactoryCreator returns an account factory depending on shard coordinator self id
 func NewAccountFactoryCreator(accountType Type) (state.AccountFactory, error) {
 	switch accountType {
