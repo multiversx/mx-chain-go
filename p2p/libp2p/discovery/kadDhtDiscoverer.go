@@ -1,7 +1,6 @@
 package discovery
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -9,62 +8,53 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
 	initReconnectMul = 20
-	kadDhtName       = "kad-dht discovery"
 )
+
+var peerDiscoveryTimeout = 10 * time.Second
+var noOfQueries = 1
+
+const kadDhtName = "kad-dht discovery"
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
-// ArgKadDht represents the kad-dht config argument DTO
-type ArgKadDht struct {
-	PeersRefreshInterval time.Duration
-	RandezVous           string
-	InitialPeersList     []string
-	BucketSize           uint32
-	RoutingTableRefresh  time.Duration
-}
-
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
-	mutKadDht            sync.Mutex
-	kadDHT               *dht.IpfsDHT
-	contextProvider      *libp2p.Libp2pContext
-	peersRefreshInterval time.Duration
-	randezVous           string
-	initialPeersList     []string
-	bucketSize           uint32
-	routingTableRefresh  time.Duration
-	initConns            bool // Initiate new connections
+	mutKadDht sync.Mutex
+	kadDHT    *dht.IpfsDHT
+
+	contextProvider *libp2p.Libp2pContext
+
+	refreshInterval  time.Duration
+	randezVous       string
+	initialPeersList []string
+	initConns        bool // Initiate new connections
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
-func NewKadDhtPeerDiscoverer(arg ArgKadDht) (*KadDhtDiscoverer, error) {
-	if arg.PeersRefreshInterval < time.Second {
-		return nil, fmt.Errorf("%w, PeersRefreshInterval should have been at least 1 second", p2p.ErrInvalidValue)
-	}
-	if arg.RoutingTableRefresh < time.Second {
-		return nil, fmt.Errorf("%w, RoutingTableRefresh should have been at least 1 second", p2p.ErrInvalidValue)
-	}
-	isListNilOrEmpty := len(arg.InitialPeersList) == 0
+func NewKadDhtPeerDiscoverer(
+	refreshInterval time.Duration,
+	randezVous string,
+	initialPeersList []string) *KadDhtDiscoverer {
+
+	isListNilOrEmpty := initialPeersList == nil || len(initialPeersList) == 0
+
 	if isListNilOrEmpty {
 		log.Warn("nil or empty initial peers list provided to kad dht implementation. " +
 			"No initial connection will be done")
 	}
 
 	return &KadDhtDiscoverer{
-		peersRefreshInterval: arg.PeersRefreshInterval,
-		randezVous:           arg.RandezVous,
-		initialPeersList:     arg.InitialPeersList,
-		bucketSize:           arg.BucketSize,
-		routingTableRefresh:  arg.RoutingTableRefresh,
-		initConns:            true,
-	}, nil
+		refreshInterval:  refreshInterval,
+		randezVous:       randezVous,
+		initialPeersList: initialPeersList,
+		initConns:        true,
+	}
 }
 
 // Bootstrap will start the bootstrapping new peers process
@@ -83,24 +73,11 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
-	defaultOptions := opts.Defaults
-	customOptions := func(opt *opts.Options) error {
-		err := defaultOptions(opt)
-		if err != nil {
-			return err
-		}
-
-		opt.BucketSize = int(kdd.bucketSize)
-		opt.RoutingTable.RefreshPeriod = kdd.routingTableRefresh
-
-		return nil
-	}
-
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h, customOptions)
+	kademliaDHT, err := dht.New(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -113,9 +90,14 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 
 func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	chanStartBootstrap := kdd.connectToOnePeerFromInitialPeersList(
-		kdd.peersRefreshInterval,
-		kdd.initialPeersList,
-	)
+		kdd.refreshInterval,
+		kdd.initialPeersList)
+
+	cfg := dht.BootstrapConfig{
+		Period:  kdd.refreshInterval,
+		Queries: noOfQueries,
+		Timeout: peerDiscoveryTimeout,
+	}
 
 	ctx := kdd.contextProvider.Context()
 
@@ -127,7 +109,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 			i := 1
 			for {
 				if kdd.initConns {
-					err := kdd.kadDHT.Bootstrap(ctx)
+					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()
 					}
@@ -140,7 +122,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 					}
 				}
 				select {
-				case <-time.After(kdd.peersRefreshInterval):
+				case <-time.After(cfg.Period):
 				case <-ctx.Done():
 					return
 				}
@@ -216,10 +198,7 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return kdd.connectToOnePeerFromInitialPeersList(
-		kdd.peersRefreshInterval,
-		kdd.initialPeersList,
-	)
+	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
 }
 
 // Pause will suspend the discovery process
@@ -245,5 +224,8 @@ func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
-	return kdd == nil
+	if kdd == nil {
+		return true
+	}
+	return false
 }

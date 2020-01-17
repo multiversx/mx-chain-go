@@ -32,15 +32,19 @@ func (pdf *peerDiscovererFactory) CreatePeerDiscoverer() (p2p.PeerDiscoverer, er
 }
 
 func (pdf *peerDiscovererFactory) createKadDhtPeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	arg := discovery.ArgKadDht{
-		PeersRefreshInterval: time.Second * time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
-		RandezVous:           pdf.p2pConfig.KadDhtPeerDiscovery.RandezVous,
-		InitialPeersList:     pdf.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
-		BucketSize:           pdf.p2pConfig.KadDhtPeerDiscovery.BucketSize,
-		RoutingTableRefresh:  time.Second * time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
-	}
+	//arg := discovery.ArgKadDht{
+	//	PeersRefreshInterval: time.Second * time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+	//	RandezVous:           pdf.p2pConfig.KadDhtPeerDiscovery.RandezVous,
+	//	InitialPeersList:     pdf.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+	//	BucketSize:           pdf.p2pConfig.KadDhtPeerDiscovery.BucketSize,
+	//	RoutingTableRefresh:  time.Second * time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
+	//}
 
-	return discovery.NewKadDhtPeerDiscoverer(arg)
+	return discovery.NewKadDhtPeerDiscoverer(
+		time.Second*time.Duration(pdf.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		pdf.p2pConfig.KadDhtPeerDiscovery.RandezVous,
+		pdf.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+	), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
