@@ -265,13 +265,20 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 	return nil
 }
 
-// NumPendingMiniBlocksForShard will return the number of pending miniblocks for a given shard
-func (p *pendingMiniBlockHeaders) NumPendingMiniBlocksForShard(shardID uint32) uint32 {
+// GetNumPendingMiniBlocksForShard will return the number of pending miniblocks for a given shard
+func (p *pendingMiniBlockHeaders) GetNumPendingMiniBlocksForShard(shardID uint32) uint32 {
 	p.mutPending.RLock()
 	numPendingMiniBlocks := p.mapShardNumMiniBlocks[shardID]
 	p.mutPending.RUnlock()
 
 	return numPendingMiniBlocks
+}
+
+// SetNumPendingMiniBlocksForShard will set the number of pending miniblocks for a given shard
+func (p *pendingMiniBlockHeaders) SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32) {
+	p.mutPending.Lock()
+	p.mapShardNumMiniBlocks[shardID] = numPendingMiniBlocks
+	p.mutPending.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -509,6 +509,9 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				break
 			}
 
+			//TODO: We should analyze if this check could be done more restrictive or not, depending of the pending
+			//miniblocks given by the last metablock notarized instead of pending miniblocks given by the last metablock
+			//received in block tracker (the current state of all shards)
 			if txs.blockTracker.IsShardStuck(shardId) {
 				continue
 			}
