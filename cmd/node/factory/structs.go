@@ -675,6 +675,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	requestHandler.SetEpoch(epochStartTrigger.Epoch())
+
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
 	if err != nil {
 		return nil, err

@@ -74,7 +74,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 }
 
 // RequestDataFromHash requests trie nodes from other peers having input a trie node hash
-func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
+func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
@@ -83,8 +83,5 @@ func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
-	if tnRes == nil {
-		return true
-	}
-	return false
+	return tnRes == nil
 }

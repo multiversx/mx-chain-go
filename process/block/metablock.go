@@ -145,6 +145,8 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	log.Trace("started processing block",
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
@@ -559,6 +561,8 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	if err != nil {
 		return nil, err
 	}
+
+	mp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }

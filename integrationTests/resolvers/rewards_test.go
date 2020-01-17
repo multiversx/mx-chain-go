@@ -34,7 +34,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingSameShard(t *testing
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -68,7 +68,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, shardIdResolver)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()

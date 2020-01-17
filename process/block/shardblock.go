@@ -146,6 +146,8 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	log.Trace("started processing block",
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
@@ -646,6 +648,8 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
+
+	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }
