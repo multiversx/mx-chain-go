@@ -16,12 +16,13 @@ var log = logger.GetOrCreate("dataretriever/resolvers")
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
-	headers          dataRetriever.HeadersPool
-	hdrStorage       storage.Storer
-	hdrNoncesStorage storage.Storer
-	marshalizer      marshal.Marshalizer
-	nonceConverter   typeConverters.Uint64ByteSliceConverter
-	epochHandler     dataRetriever.EpochHandler
+	headers              dataRetriever.HeadersPool
+	hdrStorage           storage.Storer
+	hdrNoncesStorage     storage.Storer
+	marshalizer          marshal.Marshalizer
+	nonceConverter       typeConverters.Uint64ByteSliceConverter
+	epochHandler         dataRetriever.EpochHandler
+	epochProviderByNonce dataRetriever.EpochProviderByNonce
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -53,14 +54,16 @@ func NewHeaderResolver(
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
+	epochHandler := &nilEpochHandler{}
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender: senderResolver,
-		headers:             headers,
-		hdrStorage:          hdrStorage,
-		hdrNoncesStorage:    headersNoncesStorage,
-		marshalizer:         marshalizer,
-		nonceConverter:      nonceConverter,
-		epochHandler:        &nilEpochHandler{},
+		TopicResolverSender:  senderResolver,
+		headers:              headers,
+		hdrStorage:           hdrStorage,
+		hdrNoncesStorage:     headersNoncesStorage,
+		marshalizer:          marshalizer,
+		nonceConverter:       nonceConverter,
+		epochHandler:         epochHandler,
+		epochProviderByNonce: NewSimpleEpochProviderByNonce(epochHandler),
 	}
 
 	return hdrResolver, nil
@@ -87,9 +90,9 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		buff, err = hdrRes.resolveHeaderFromHash(rd.Value)
+		buff, err = hdrRes.resolveHeaderFromHash(rd)
 	case dataRetriever.NonceType:
-		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
+		buff, err = hdrRes.resolveHeaderFromNonce(rd)
 	case dataRetriever.EpochType:
 		buff, err = hdrRes.resolveHeaderFromEpoch(rd.Value)
 	default:
@@ -107,41 +110,68 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 	return hdrRes.Send(buff, message.Peer())
 }
 
-func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
+func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {
 	// key is now an encoded nonce (uint64)
-	// Search the nonce-key pair in cache-storage
-	hash, err := hdrRes.hdrNoncesStorage.Get(key)
+	nonce, err := hdrRes.nonceConverter.ToUint64(rd.Value)
 	if err != nil {
-		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
-
-		nonce, err := hdrRes.nonceConverter.ToUint64(key)
-		if err != nil {
-			return nil, dataRetriever.ErrInvalidNonceByteSlice
-		}
-
-		headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO maybe we can return a slice of headers
-		hdr := headers[len(headers)-1]
-		buff, err := hdrRes.marshalizer.Marshal(hdr)
-		if err != nil {
-			return nil, err
-		}
-
-		return buff, nil
+		return nil, dataRetriever.ErrInvalidNonceByteSlice
 	}
 
-	return hdrRes.resolveHeaderFromHash(hash)
+	epoch := rd.Epoch
+
+	// TODO : uncomment this when epoch provider by nonce is complete
+	//epoch, err = hdrRes.epochProviderByNonce.EpochForNonce(nonce)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
+	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value)
+	if err != nil {
+		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
+		// Search the nonce-key pair in data pool
+		hdrBytes, err := hdrRes.searchInCache(nonce)
+		if err != nil {
+			return nil, err
+		}
+
+		return hdrBytes, nil
+	}
+
+	newRd := &dataRetriever.RequestData{
+		Type:  rd.Type,
+		Value: hash,
+		Epoch: epoch,
+	}
+
+	return hdrRes.resolveHeaderFromHash(newRd)
+}
+
+func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
+	headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO maybe we can return a slice of headers
+	hdr := headers[len(headers)-1]
+	buff, err := hdrRes.marshalizer.Marshal(hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)
-func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, err := hdrRes.headers.GetHeaderByHash(key)
+func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
+	value, err := hdrRes.headers.GetHeaderByHash(rd.Value)
 	if err != nil {
-		return hdrRes.hdrStorage.Get(key)
+		return hdrRes.hdrStorage.SearchFirst(rd.Value)
+
+		// TODO : uncomment this when epoch provider by nonce is complete
+
+		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
 	buff, err := hdrRes.marshalizer.Marshal(value)
@@ -183,18 +213,20 @@ func (hdrRes *HeaderResolver) parseReceivedMessage(message p2p.MessageP2P) (*dat
 }
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte) error {
+func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
+		Epoch: epoch,
 	})
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64) error {
+func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+		Epoch: epoch,
 	})
 }
 

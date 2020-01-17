@@ -85,7 +85,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request unsigned tx
 	scrResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.UnsignedTransactionTopic)
-	err = scrResolver.RequestDataFromHash(scrHash)
+	err = scrResolver.RequestDataFromHash(scrHash, 0)
 	assert.Nil(t, err)
 
 	select {

@@ -1253,7 +1253,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
-		_ = txResolver.RequestDataFromHash(neededTxs[i])
+		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
 	}
 }
 

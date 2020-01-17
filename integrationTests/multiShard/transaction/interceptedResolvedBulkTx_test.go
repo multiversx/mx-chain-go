@@ -359,7 +359,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		txResolver, ok := resolver.(*resolvers.TxResolver)
 		assert.True(t, ok)
 
-		_ = txResolver.RequestDataFromHashArray(txHashesGenerated)
+		_ = txResolver.RequestDataFromHashArray(txHashesGenerated, 0)
 	}
 
 	time.Sleep(time.Second * 5)

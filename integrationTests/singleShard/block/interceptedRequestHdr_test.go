@@ -71,10 +71,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0)
+	_ = hdrResolver.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1)
+	_ = hdrResolver.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadBoth(t, chanDone1, chanDone2)
 }
@@ -131,10 +131,10 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, sharding.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0)
+	_ = hdrResolver.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1)
+	_ = hdrResolver.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadNone(t, chanDone1, chanDone2)
 }

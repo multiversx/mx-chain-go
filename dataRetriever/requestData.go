@@ -3,6 +3,7 @@ package dataRetriever
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -39,16 +40,17 @@ const (
 type RequestData struct {
 	Type  RequestDataType
 	Value []byte
+	Epoch uint32
 }
 
 // Unmarshal sets the fields according to p2p.MessageP2P.Data() contents
 // Errors if something went wrong
 func (rd *RequestData) Unmarshal(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return ErrNilMarshalizer
 	}
 
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
 

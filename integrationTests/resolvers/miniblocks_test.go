@@ -34,7 +34,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -67,7 +67,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -99,7 +99,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, sharding.MetachainShardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -131,7 +131,7 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
