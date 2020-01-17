@@ -7,9 +7,11 @@ import "github.com/ElrondNetwork/elrond-go/p2p"
 type NilAntifloodHandler struct {
 }
 
+// ResetForTopic won't do anything
 func (nah *NilAntifloodHandler) ResetForTopic(topic string) {
 }
 
+// SetMaxMessagesForTopic won't do anything
 func (nah *NilAntifloodHandler) SetMaxMessagesForTopic(topic string, maxNum uint32) {
 }
 
@@ -19,7 +21,7 @@ func (nah *NilAntifloodHandler) CanProcessMessage(message p2p.MessageP2P, fromCo
 }
 
 // CanProcessMessageOnTopic will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error {
+func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
 	return nil
 }
 

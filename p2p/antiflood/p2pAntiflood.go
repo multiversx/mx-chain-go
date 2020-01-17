@@ -55,19 +55,15 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 }
 
 // CanProcessMessageOnTopic signals if a p2p message can be processed or not for a given topic
-func (af *p2pAntiflood) CanProcessMessageOnTopic(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error {
+func (af *p2pAntiflood) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
 	topicFloodPreventer := af.TopicFloodPreventer
 	if check.IfNil(topicFloodPreventer) {
 		return p2p.ErrNilTopicFloodPreventer
 	}
-	if message == nil {
-		return p2p.ErrNilMessage
-	}
 
-	peerId := message.Peer().Pretty()
-	ok := topicFloodPreventer.Accumulate(peerId, topic)
+	ok := topicFloodPreventer.Accumulate(peer.Pretty(), topic)
 	if !ok {
-		return fmt.Errorf("%w in p2pAntiflood for originator. peer id = %s", p2p.ErrSystemBusy, peerId)
+		return fmt.Errorf("%w in p2pAntiflood for originator. peer id = %s", p2p.ErrSystemBusy, peer.Pretty())
 	}
 
 	return nil
@@ -75,5 +71,5 @@ func (af *p2pAntiflood) CanProcessMessageOnTopic(message p2p.MessageP2P, fromCon
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *p2pAntiflood) IsInterfaceNil() bool {
-	return af == nil || check.IfNil(af.FloodPreventer)
+	return af == nil || check.IfNil(af.FloodPreventer) || check.IfNil(af.TopicFloodPreventer)
 }

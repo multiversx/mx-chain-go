@@ -1432,7 +1432,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
 			},
-			CanProcessMessageOnTopicCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, topic string) error {
+			CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
 				return nil
 			},
 		}),
@@ -1777,7 +1777,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			}
 			for _, txBuff := range txsBuff {
 				tx := transaction.Transaction{}
-				err := marshalizer.Unmarshal(&tx, txBuff)
+				err = marshalizer.Unmarshal(&tx, txBuff)
 				if err != nil {
 					assert.Fail(t, err.Error())
 				}
