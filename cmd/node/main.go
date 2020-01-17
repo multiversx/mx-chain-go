@@ -1178,7 +1178,6 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
-		node.WithPendingMiniBlocks(process.PendingMiniBlocks),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1204,6 +1203,10 @@ func createNode(
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		if err != nil {
+			return nil, errors.New("error creating meta-node: " + err.Error())
+		}
+		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}

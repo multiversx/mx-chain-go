@@ -739,13 +739,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	pendingMiniBlocks, err := newPendingMiniBlocks(
-		args.data.Store,
-		args.core.Marshalizer,
-		args.data.MetaDatapool,
-	)
-	if err != nil {
-		return nil, err
+	var pendingMiniBlocks process.PendingMiniBlocksHandler
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		pendingMiniBlocks, err = newPendingMiniBlocks(
+			args.data.Store,
+			args.core.Marshalizer,
+			args.data.MetaDatapool,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	forkDetector, err := newForkDetector(
