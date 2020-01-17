@@ -1,16 +1,33 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 type TrieSyncersStub struct {
-	GetCalled         func(key string) (update.TrieSyncer, error)
-	AddCalled         func(key string, val update.TrieSyncer) error
-	AddMultipleCalled func(keys []string, interceptors []update.TrieSyncer) error
-	ReplaceCalled     func(key string, val update.TrieSyncer) error
-	RemoveCalled      func(key string)
-	LenCalled         func() int
+	GetCalled          func(key string) (update.TrieSyncer, error)
+	AddCalled          func(key string, val update.TrieSyncer) error
+	AddMultipleCalled  func(keys []string, interceptors []update.TrieSyncer) error
+	ReplaceCalled      func(key string, val update.TrieSyncer) error
+	RemoveCalled       func(key string)
+	LenCalled          func() int
+	StartSyncingCalled func(rootHash []byte) error
+	TrieCalled         func() data.Trie
+}
+
+func (tss *TrieSyncersStub) StartSyncing(rootHash []byte) error {
+	if tss.StartSyncingCalled != nil {
+		return tss.StartSyncingCalled(rootHash)
+	}
+	return nil
+}
+
+func (tss *TrieSyncersStub) Trie() data.Trie {
+	if tss.TrieCalled != nil {
+		return tss.TrieCalled()
+	}
+	return nil
 }
 
 func (tss *TrieSyncersStub) Get(key string) (update.TrieSyncer, error) {

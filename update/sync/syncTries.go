@@ -69,7 +69,7 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 	}()
 
 	go func() {
-		errMeta := st.syncMeta(meta, &wg)
+		errMeta := st.syncMeta(meta)
 		if errMeta != nil {
 			mutErr.Lock()
 			errFound = errMeta
@@ -80,7 +80,7 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 
 	for _, shData := range meta.EpochStart.LastFinalizedHeaders {
 		go func(shardData block.EpochStartShardData) {
-			err := st.syncShard(shardData, &wg)
+			err := st.syncShard(shardData)
 			if err != nil {
 				mutErr.Lock()
 				errFound = err
@@ -95,33 +95,32 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 		return err
 	}
 
-	if errFound == nil {
-		st.mutSynced.Lock()
-		st.synced = true
-		st.mutSynced.Unlock()
+	if errFound != nil {
+		return errFound
 	}
 
-	return errFound
+	st.mutSynced.Lock()
+	st.synced = true
+	st.mutSynced.Unlock()
+
+	return nil
 }
 
-func (st *syncTries) syncMeta(meta *block.MetaBlock, wg *sync.WaitGroup) error {
-	defer wg.Done()
-
+func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
 	err := st.syncTrieOfType(factory.UserAccount, sharding.MetachainShardId, meta.RootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = st.syncTrieOfType(factory.ValidatorAccount, sharding.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
 }
 
-func (st *syncTries) syncShard(shardData block.EpochStartShardData, wg *sync.WaitGroup) error {
-	defer wg.Done()
+func (st *syncTries) syncShard(shardData block.EpochStartShardData) error {
 	err := st.syncTrieOfType(factory.UserAccount, shardData.ShardId, shardData.RootHash)
 	if err != nil {
 		return err

@@ -95,7 +95,7 @@ func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*
 	p.mutPendingTx.Lock()
 	p.epochToSync = epoch
 	p.syncedAll = false
-	p.stopSync = true
+	p.stopSync = false
 
 	requestedTxs := 0
 	for _, miniBlock := range miniBlocks {
@@ -128,9 +128,6 @@ func (p *pendingTransactions) SyncPendingTransactionsFor(miniBlocks map[string]*
 }
 
 func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock) int {
-	p.mutPendingTx.Lock()
-	defer p.mutPendingTx.Unlock()
-
 	missingTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		if _, ok := p.mapTransactions[string(txHash)]; ok {
@@ -170,7 +167,7 @@ func (p *pendingTransactions) receivedTransaction(txHash []byte) {
 		return
 	}
 
-	if _, ok := p.mapHashes[string(txHash)]; ok {
+	if _, ok := p.mapHashes[string(txHash)]; !ok {
 		p.mutPendingTx.Unlock()
 		return
 	}
@@ -198,6 +195,9 @@ func (p *pendingTransactions) getTransactionFromPool(txHash []byte) (data.Transa
 	mb := p.mapHashes[string(txHash)]
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	shardTxStore := p.txPools[mb.Type].ShardDataStore(storeId)
+	if shardTxStore == nil {
+		return nil, false
+	}
 
 	val, ok := shardTxStore.Peek(txHash)
 	if !ok {
