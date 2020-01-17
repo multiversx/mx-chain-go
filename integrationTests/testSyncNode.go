@@ -67,7 +67,7 @@ func NewTestSyncNode(
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(0)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
@@ -206,6 +206,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.EpochStartTrigger,
 		tpn.RequestedItemsHandler,
 	)
 	if err != nil {
@@ -236,6 +237,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.RequestedItemsHandler,
+		tpn.EpochStartTrigger,
 		tpn.EpochStartTrigger,
 	)
 
