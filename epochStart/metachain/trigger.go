@@ -163,6 +163,7 @@ func (t *trigger) Update(round uint64) {
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.epoch += 1
 		t.isEpochStart = true
+		t.prevEpochStartRound = t.currEpochStartRound
 		t.currEpochStartRound = t.currentRound
 	}
 }
@@ -218,7 +219,9 @@ func (t *trigger) Revert() {
 		log.Debug("Revert remove from metaHdrStorage", "error", err.Error())
 	}
 
-	t.isEpochStart = true
+	t.currEpochStartRound = t.prevEpochStartRound
+	t.epoch = t.epoch - 1
+	t.isEpochStart = false
 }
 
 // Epoch return the current epoch
