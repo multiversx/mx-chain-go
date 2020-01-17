@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -54,10 +55,10 @@ func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
 }
 
 func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -146,7 +147,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (ln *leafNode) commit(force bool, _ byte, _ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -174,7 +175,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(pos byte, db data.DBWriteCacher) error {
+func (ln *leafNode) resolveCollapsed(_ byte, _ data.DBWriteCacher) error {
 	return nil
 }
 
@@ -182,11 +183,11 @@ func (ln *leafNode) isCollapsed() bool {
 	return false
 }
 
-func (ln *leafNode) isPosCollapsed(pos int) bool {
+func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, _ data.DBWriteCacher) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -198,7 +199,7 @@ func (ln *leafNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err
 	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ data.DBWriteCacher) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
@@ -209,7 +210,7 @@ func (ln *leafNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, er
 	return nil, nil, ErrNodeNotFound
 }
 
-func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return false, nil, [][]byte{}, err
@@ -263,7 +264,7 @@ func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]
 	return true, newEn, oldHash, nil
 }
 
-func (ln *leafNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
 	keyMatchLen := prefixLen(key, ln.Key)
 	if keyMatchLen == len(key) {
 		oldHash := make([][]byte, 0)
@@ -297,7 +298,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, index int) {
+func (ln *leafNode) print(writer io.Writer, _ int) {
 	if ln == nil {
 		return
 	}
@@ -360,7 +361,7 @@ func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
 	return dirtyHashes, nil
 }
 
-func (ln *leafNode) getChildren(db data.DBWriteCacher) ([]node, error) {
+func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {
 	return nil, nil
 }
 
