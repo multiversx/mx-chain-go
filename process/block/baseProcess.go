@@ -779,27 +779,14 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,
 	round uint64,
-	selfNotarizedHeaders []data.HeaderHandler,
-	selfNotarizedHeadersHashes [][]byte,
+	lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
 	highestFinalBlockNonce uint64,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
-
 	//TODO add end of epoch stuff
 
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
-
-	for i := range selfNotarizedHeaders {
-		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: selfNotarizedHeaders[i].GetShardID(),
-			Nonce:   selfNotarizedHeaders[i].GetNonce(),
-			Hash:    selfNotarizedHeadersHashes[i],
-		}
-
-		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
-	}
 
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                headerInfo,

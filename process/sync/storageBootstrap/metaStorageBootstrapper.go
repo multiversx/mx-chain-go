@@ -128,5 +128,9 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeade
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
 	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
 		msb.pendingMiniBlocks.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
+
+		log.Debug("set pending miniblocks",
+			"shard", pendingMiniBlockInfo.ShardID,
+			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
 	}
 }

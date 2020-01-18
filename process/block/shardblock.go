@@ -843,8 +843,6 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	processedMiniBlocks := sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice()
-
 	if len(selfNotarizedHeaders) > 0 {
 		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
 	}
@@ -852,11 +850,10 @@ func (sp *shardProcessor) CommitBlock(
 	sp.prepareDataForBootStorer(
 		headerInfo,
 		header.Round,
-		selfNotarizedHeaders,
-		selfNotarizedHeadersHashes,
-		sp.getPendingMiniBlocks(),
+		sp.getLastSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes),
+		nil,
 		sp.lowestNonceInSelfNotarizedHeaders,
-		processedMiniBlocks,
+		sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
 	)
 
 	go sp.cleanTxsPools()
@@ -1969,15 +1966,22 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	return block.Body(miniBlocks), nil
 }
 
-func (sp *shardProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlockInfo {
-	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlockInfo, sp.shardCoordinator.NumberOfShards())
+func (sp *shardProcessor) getLastSelfNotarizedHeaders(
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) []bootstrapStorage.BootstrapHeaderInfo {
 
-	for shardID := uint32(0); shardID < sp.shardCoordinator.NumberOfShards(); shardID++ {
-		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
-			NumPendingMiniBlocks: sp.blockTracker.GetNumPendingMiniBlocks(shardID),
-			ShardID:              shardID,
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+
+	for index := range selfNotarizedHeaders {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: selfNotarizedHeaders[index].GetShardID(),
+			Nonce:   selfNotarizedHeaders[index].GetNonce(),
+			Hash:    selfNotarizedHeadersHashes[index],
 		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
 	}
 
-	return pendingMiniBlocks
+	return lastSelfNotarizedHeaders
 }

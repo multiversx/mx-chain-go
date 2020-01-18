@@ -1013,10 +1013,10 @@ func (mp *metaProcessor) CommitBlock(
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
+
 	mp.prepareDataForBootStorer(
 		headerInfo,
 		header.Round,
-		nil,
 		nil,
 		mp.getPendingMiniBlocks(),
 		mp.forkDetector.GetHighestFinalBlockNonce(),
