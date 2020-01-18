@@ -850,7 +850,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.prepareDataForBootStorer(
 		headerInfo,
 		header.Round,
-		sp.getLastSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes),
+		sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
 		nil,
 		sp.lowestNonceInSelfNotarizedHeaders,
 		sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
@@ -1966,7 +1966,7 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	return block.Body(miniBlocks), nil
 }
 
-func (sp *shardProcessor) getLastSelfNotarizedHeaders(
+func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
