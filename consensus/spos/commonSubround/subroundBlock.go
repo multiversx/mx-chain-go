@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -78,7 +79,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if sr.IsCurrentSubroundFinished(sr.Current()) {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
 
@@ -302,10 +303,10 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
+	if check.IfNil(sr.BlockBody) {
 		return false
 	}
-	if sr.Header == nil || sr.Header.IsInterfaceNil() {
+	if check.IfNil(sr.Header) {
 		return false
 	}
 
@@ -368,7 +369,7 @@ func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 

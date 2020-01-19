@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -120,7 +121,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	sr.SetStatus(SrEndRound, spos.SsFinished)
+	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// broadcast section
 
@@ -149,15 +150,22 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
-	if !sr.CanDoSubroundJob(SrEndRound) {
+	if !sr.IsConsensusDataSet() {
 		return false
 	}
-	if !sr.isConsensusHeaderReceived() {
+	if !sr.IsSubroundFinished(sr.Previous()) {
+		return false
+	}
+	if sr.IsSubroundFinished(sr.Current()) {
+		return false
+	}
+	isConsensusHeaderReceived, header := sr.isConsensusHeaderReceived()
+	if !isConsensusHeaderReceived {
 		return false
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.BlockBody)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -167,22 +175,26 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
 		return false
 	}
 
-	sr.SetStatus(SrEndRound, spos.SsFinished)
+	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	log.Debug("step 3: BlockBody and Header has been committed",
 		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
-	msg := fmt.Sprintf("Added received block with nonce  %d  in blockchain", sr.Header.GetNonce())
+	msg := fmt.Sprintf("Added received block with nonce  %d  in blockchain", header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "-"))
 	return true
 }
 
-func (sr *subroundEndRound) isConsensusHeaderReceived() bool {
+func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {
+	if check.IfNil(sr.Header) {
+		return false, nil
+	}
+
 	marshalizedConsensusHeader, err := sr.Marshalizer().Marshal(sr.Header)
 	if err != nil {
 		log.Debug("isConsensusHeaderReceived: marshalizedConsensusHeader", "error", err.Error())
-		return false
+		return false, nil
 	}
 
 	consensusHeaderHash := sr.Hasher().Compute(string(marshalizedConsensusHeader))
@@ -198,17 +210,17 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() bool {
 		marshalizedReceivedHeader, err := sr.Marshalizer().Marshal(receivedHeader)
 		if err != nil {
 			log.Debug("isConsensusHeaderReceived: marshalizedReceivedHeader", "error", err.Error())
-			return false
+			return false, nil
 		}
 
 		receivedHeaderHash := sr.Hasher().Compute(string(marshalizedReceivedHeader))
 
 		if bytes.Equal(receivedHeaderHash, consensusHeaderHash) {
-			return true
+			return true, receivedHeaders[index]
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
@@ -254,7 +266,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(SrEndRound) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 

@@ -98,7 +98,7 @@ func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 

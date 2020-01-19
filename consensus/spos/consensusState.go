@@ -174,11 +174,11 @@ func (cns *ConsensusState) IsSelfJobDone(currentSubroundId int) bool {
 	return cns.IsJobDone(cns.selfPubKey, currentSubroundId)
 }
 
-// IsCurrentSubroundFinished method returns true if the current subround is finished and false otherwise
-func (cns *ConsensusState) IsCurrentSubroundFinished(currentSubroundId int) bool {
-	isCurrentSubroundFinished := cns.Status(currentSubroundId) == SsFinished
+// IsSubroundFinished method returns true if the current subround is finished and false otherwise
+func (cns *ConsensusState) IsSubroundFinished(subroundID int) bool {
+	isSubroundFinished := cns.Status(subroundID) == SsFinished
 
-	return isCurrentSubroundFinished
+	return isSubroundFinished
 }
 
 // IsNodeSelf method returns true if the message is received from itself and false otherwise
@@ -212,7 +212,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	if cns.IsCurrentSubroundFinished(currentSubroundId) {
+	if cns.IsSubroundFinished(currentSubroundId) {
 		return false
 	}
 
@@ -234,7 +234,7 @@ func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, 
 		return false
 	}
 
-	if cns.IsCurrentSubroundFinished(currentSubroundId) {
+	if cns.IsSubroundFinished(currentSubroundId) {
 		return false
 	}
 
