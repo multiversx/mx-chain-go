@@ -3,6 +3,7 @@ package bls
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -17,6 +18,8 @@ type subroundEndRound struct {
 	*spos.Subround
 
 	appStatusHandler core.AppStatusHandler
+
+	mutProcessingEndRound sync.Mutex
 }
 
 // SetAppStatusHandler method set appStatusHandler
@@ -44,6 +47,7 @@ func NewSubroundEndRound(
 	srEndRound := subroundEndRound{
 		baseSubround,
 		statusHandler.NewNilStatusHandler(),
+		sync.Mutex{},
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -150,6 +154,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
+
 	if !sr.IsConsensusDataSet() {
 		return false
 	}

@@ -210,7 +210,8 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 }
 
 func (wrk *Worker) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() {
+	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
+		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
 		return
 	}
 
