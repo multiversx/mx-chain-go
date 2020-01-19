@@ -115,8 +115,8 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID []byte
-	blockTracker          process.BlockTracker
+	chainID      []byte
+	blockTracker process.BlockTracker
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -277,6 +277,9 @@ func (n *Node) StartConsensus() error {
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
 	}
+
+	headersPool := n.getHeadersPool()
+
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -292,6 +295,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSigner,
 		n.syncTimer,
 		n.headerSigVerifier,
+		headersPool,
 		n.chainID,
 	)
 	if err != nil {
@@ -344,6 +348,14 @@ func (n *Node) StartConsensus() error {
 	go chronologyHandler.StartRounds()
 
 	return nil
+}
+
+func (n *Node) getHeadersPool() dataRetriever.HeadersPool {
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.metaDataPool.Headers()
+	}
+
+	return n.dataPool.Headers()
 }
 
 // GetBalance gets the balance for a specific address

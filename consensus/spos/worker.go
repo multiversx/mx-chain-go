@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"sync"
 	"time"
 
@@ -36,6 +37,7 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 	headerSigVerifier  RandSeedVerifier
+	headersPool        dataRetriever.HeadersPool
 	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
@@ -49,6 +51,9 @@ type Worker struct {
 
 	mapHashConsensusMessage map[string][]*consensus.Message
 	mutHashConsensusMessage sync.RWMutex
+
+	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
+	mutReceivedHeadersHandler sync.RWMutex
 }
 
 // NewWorker creates a new Worker object
@@ -67,6 +72,7 @@ func NewWorker(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	headersPool dataRetriever.HeadersPool,
 	chainID []byte,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -84,6 +90,7 @@ func NewWorker(
 		singleSigner,
 		syncTimer,
 		headerSigVerifier,
+		headersPool,
 		chainID,
 	)
 	if err != nil {
@@ -105,13 +112,16 @@ func NewWorker(
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
+		headersPool:        headersPool,
 		chainID:            chainID,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
+	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
+	wrk.headersPool.RegisterHandler(wrk.receivedHeader)
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
@@ -136,6 +146,7 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
+	headersPool dataRetriever.HeadersPool,
 	chainID []byte,
 ) error {
 	if check.IfNil(consensusService) {
@@ -180,6 +191,9 @@ func checkNewWorkerParams(
 	if check.IfNil(headerSigVerifier) {
 		return ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(headersPool) {
+		return ErrNilHeadersPool
+	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
 	}
@@ -193,6 +207,29 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 			wrk.consensusStateChangedChannel <- true
 		}
 	}
+}
+
+func (wrk *Worker) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() {
+		return
+	}
+
+	wrk.mutReceivedHeadersHandler.RLock()
+	for _, handler := range wrk.receivedHeadersHandlers {
+		handler(headerHandler)
+	}
+	wrk.mutReceivedHeadersHandler.RUnlock()
+
+	if len(wrk.consensusStateChangedChannel) == 0 {
+		wrk.consensusStateChangedChannel <- true
+	}
+}
+
+// AddReceivedHeaderHandler adds a new handler function for a received header
+func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
+	wrk.mutReceivedHeadersHandler.Lock()
+	wrk.receivedHeadersHandlers = append(wrk.receivedHeadersHandlers, handler)
+	wrk.mutReceivedHeadersHandler.Unlock()
 }
 
 func (wrk *Worker) initReceivedMessages() {

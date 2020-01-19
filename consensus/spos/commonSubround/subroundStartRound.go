@@ -152,20 +152,13 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("canceled round, not in the consensus group",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
-			"round", sr.Rounder().Index(),
-			"subround", sr.getSubroundName(sr.Current()))
-
-		sr.RoundCanceled = true
-
+		log.Debug("not in consensus group",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
-
-		return false
+	} else {
+		sr.appStatusHandler.Increment(core.MetricCountConsensus)
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 	}
-
-	sr.appStatusHandler.Increment(core.MetricCountConsensus)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {

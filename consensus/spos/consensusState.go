@@ -21,6 +21,9 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
+	receivedHeaders    []data.HeaderHandler
+	mutReceivedHeaders sync.RWMutex
+
 	RoundIndex     int64
 	RoundTimeStamp time.Time
 	RoundCanceled  bool
@@ -57,10 +60,24 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.Header = nil
 	cns.Data = nil
 
+	cns.initReceivedHeaders()
+
 	cns.RoundCanceled = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
+}
+
+func (cns *ConsensusState) initReceivedHeaders() {
+	cns.mutReceivedHeaders.Lock()
+	cns.receivedHeaders = make([]data.HeaderHandler, 0)
+	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
+	cns.mutReceivedHeaders.Lock()
+	cns.receivedHeaders = append(cns.receivedHeaders, headerHandler)
+	cns.mutReceivedHeaders.Unlock()
 }
 
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round

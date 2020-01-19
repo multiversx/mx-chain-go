@@ -267,6 +267,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
+	fct.worker.AddReceivedHeaderHandler(subroundEndRound.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
 
 	return nil

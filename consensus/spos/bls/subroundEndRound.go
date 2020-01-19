@@ -1,7 +1,9 @@
 package bls
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -131,6 +133,75 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
+	if headerHandler.GetShardID() != sr.ShardCoordinator().SelfId() {
+		return
+	}
+
+	sr.AddReceivedHeader(headerHandler)
+
+	if sr.RoundCanceled {
+		return
+	}
+	if sr.IsCurrentSubroundFinished(SrEndRound) {
+		return
+	}
+	if !sr.IsConsensusDataSet() {
+		return
+	}
+	if sr.IsSelfLeaderInCurrentRound() {
+		return
+	}
+	if !sr.isSameHeader(headerHandler) {
+		return
+	}
+
+	startTime := time.Now()
+	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to commit block",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		debugError("CommitBlock", err)
+		return
+	}
+
+	sr.SetStatus(SrEndRound, spos.SsFinished)
+
+	log.Debug("step 3: BlockBody and Header has been committed",
+		"type", "spos/bls",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+
+	msg := fmt.Sprintf("Added received block with nonce  %d  in blockchain", sr.Header.GetNonce())
+	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "-"))
+}
+
+func (sr *subroundEndRound) isSameHeader(headerHandler data.HeaderHandler) bool {
+	receivedHeader := headerHandler.Clone()
+	receivedHeader.SetLeaderSignature(nil)
+	receivedHeader.SetPubKeysBitmap(nil)
+	receivedHeader.SetSignature(nil)
+
+	marshalizedReceivedHeader, err := sr.Marshalizer().Marshal(receivedHeader)
+	if err != nil {
+		log.Debug("receivedHeader: marshalizedReceivedHeader", "error", err.Error())
+		return false
+	}
+
+	receivedHeaderHash := sr.Hasher().Compute(string(marshalizedReceivedHeader))
+
+	marshalizedConsensusHeader, err := sr.Marshalizer().Marshal(sr.Header)
+	if err != nil {
+		log.Debug("receivedHeader: marshalizedConsensusHeader", "error", err.Error())
+		return false
+	}
+
+	consensusHeaderHash := sr.Hasher().Compute(string(marshalizedConsensusHeader))
+
+	return bytes.Equal(receivedHeaderHash, consensusHeaderHash)
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
