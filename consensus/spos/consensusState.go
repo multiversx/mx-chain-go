@@ -80,6 +80,14 @@ func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
 	cns.mutReceivedHeaders.Unlock()
 }
 
+func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
+	cns.mutReceivedHeaders.RLock()
+	receivedHeaders := cns.receivedHeaders
+	cns.mutReceivedHeaders.RUnlock()
+
+	return receivedHeaders
+}
+
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
 func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()

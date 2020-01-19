@@ -3,11 +3,11 @@ package bls
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -66,12 +66,24 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
+func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
+	sr.AddReceivedHeader(headerHandler)
+
+	if !sr.IsSelfLeaderInCurrentRound() {
+		sr.doEndRoundJobByParticipant()
+	}
+}
+
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
-		return false
+	if !sr.IsSelfLeaderInCurrentRound() {
+		return sr.doEndRoundJobByParticipant()
 	}
 
+	return sr.doEndRoundJobByLeader()
+}
+
+func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
@@ -133,29 +145,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+
 }
 
-func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
-	if headerHandler.GetShardID() != sr.ShardCoordinator().SelfId() {
-		return
+func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
+	if !sr.CanDoSubroundJob(SrEndRound) {
+		return false
 	}
-
-	sr.AddReceivedHeader(headerHandler)
-
-	if sr.RoundCanceled {
-		return
-	}
-	if sr.IsCurrentSubroundFinished(SrEndRound) {
-		return
-	}
-	if !sr.IsConsensusDataSet() {
-		return
-	}
-	if sr.IsSelfLeaderInCurrentRound() {
-		return
-	}
-	if !sr.isSameHeader(headerHandler) {
-		return
+	if !sr.isConsensusHeaderReceived() {
+		return false
 	}
 
 	startTime := time.Now()
@@ -166,7 +164,7 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 	)
 	if err != nil {
 		debugError("CommitBlock", err)
-		return
+		return false
 	}
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
@@ -177,31 +175,40 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 
 	msg := fmt.Sprintf("Added received block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "-"))
+	return true
 }
 
-func (sr *subroundEndRound) isSameHeader(headerHandler data.HeaderHandler) bool {
-	receivedHeader := headerHandler.Clone()
-	receivedHeader.SetLeaderSignature(nil)
-	receivedHeader.SetPubKeysBitmap(nil)
-	receivedHeader.SetSignature(nil)
-
-	marshalizedReceivedHeader, err := sr.Marshalizer().Marshal(receivedHeader)
-	if err != nil {
-		log.Debug("receivedHeader: marshalizedReceivedHeader", "error", err.Error())
-		return false
-	}
-
-	receivedHeaderHash := sr.Hasher().Compute(string(marshalizedReceivedHeader))
-
+func (sr *subroundEndRound) isConsensusHeaderReceived() bool {
 	marshalizedConsensusHeader, err := sr.Marshalizer().Marshal(sr.Header)
 	if err != nil {
-		log.Debug("receivedHeader: marshalizedConsensusHeader", "error", err.Error())
+		log.Debug("isConsensusHeaderReceived: marshalizedConsensusHeader", "error", err.Error())
 		return false
 	}
 
 	consensusHeaderHash := sr.Hasher().Compute(string(marshalizedConsensusHeader))
 
-	return bytes.Equal(receivedHeaderHash, consensusHeaderHash)
+	receivedHeaders := sr.GetReceivedHeaders()
+
+	for index := range receivedHeaders {
+		receivedHeader := receivedHeaders[index].Clone()
+		receivedHeader.SetLeaderSignature(nil)
+		receivedHeader.SetPubKeysBitmap(nil)
+		receivedHeader.SetSignature(nil)
+
+		marshalizedReceivedHeader, err := sr.Marshalizer().Marshal(receivedHeader)
+		if err != nil {
+			log.Debug("isConsensusHeaderReceived: marshalizedReceivedHeader", "error", err.Error())
+			return false
+		}
+
+		receivedHeaderHash := sr.Hasher().Compute(string(marshalizedReceivedHeader))
+
+		if bytes.Equal(receivedHeaderHash, consensusHeaderHash) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {

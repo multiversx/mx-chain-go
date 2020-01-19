@@ -66,6 +66,7 @@ func initWorker() *spos.Worker {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -115,6 +116,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -153,6 +155,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -191,6 +194,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -229,6 +233,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -267,6 +272,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -304,6 +310,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -341,6 +348,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -378,6 +386,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -415,6 +424,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -452,6 +462,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -489,6 +500,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -526,6 +538,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		nil,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -563,6 +576,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		singleSignerMock,
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -601,6 +615,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		nil,
 	)
 
@@ -639,6 +654,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
@@ -699,6 +715,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		singleSignerMock,
 		syncTimerMock,
 		headerSigVerifier,
+		&mock.HeadersCacherStub{},
 		chainID,
 	)
 
