@@ -143,3 +143,10 @@ type DataWriter interface {
 	WriteString(s string) (int, error)
 	Flush() error
 }
+
+// DataReader defines the methods to read data
+type DataReader interface {
+	Text() string
+	Scan() bool
+	Err() error
+}

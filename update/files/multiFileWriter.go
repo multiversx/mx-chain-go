@@ -2,6 +2,7 @@ package files
 
 import (
 	"bufio"
+	"encoding/hex"
 	"io"
 	"os"
 
@@ -80,7 +81,8 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 		}
 	}
 
-	_, err := dataWriter.WriteString(key + "\n")
+	hexEncoded := hex.EncodeToString([]byte(key))
+	_, err := dataWriter.WriteString(hexEncoded + "\n")
 	if err != nil {
 		return err
 	}
