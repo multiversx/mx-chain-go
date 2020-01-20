@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"strconv"
 	"testing"
 	"time"
@@ -86,6 +87,20 @@ func CreateNodesWithNodesCoordinator(
 	metaConsensusGroupSize int,
 	seedAddress string,
 ) map[uint32][]*TestProcessorNode {
+	cache, _ := lrucache.NewCache(10000)
+	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress, cache)
+}
+
+// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
+func CreateNodesWithNodesCoordinatorWithCacher(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+	cache sharding.NodesCoordinatorCache,
+) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
@@ -99,6 +114,7 @@ func CreateNodesWithNodesCoordinator(
 			NbShards:                uint32(nbShards),
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

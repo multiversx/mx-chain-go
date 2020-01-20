@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -338,4 +339,92 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		account, _ := accWrp.(*state.Account)
 		assert.Equal(t, expectedReceiverValue, account.Balance)
 	}
+}
+
+func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	nodesPerShard := 2
+	nbMetaNodes := 400
+	nbShards := 1
+	consensusGroupSize := 63
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	getCounter := 0
+	putCounter := 0
+
+	//consensusGroup := list[0:21]
+	cacheMap := make(map[string]interface{})
+	cache := &mock.NodesCoordinatorCacheMock{
+		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			putCounter++
+			strKey := string(key)
+			cacheMap[strKey] = value
+			return false
+		},
+		GetCalled: func(key []byte) (value interface{}, ok bool) {
+			getCounter++
+			strKey := string(key)
+			val, ok := cacheMap[strKey]
+			if ok {
+				return val, true
+			}
+			return nil, false
+		},
+	}
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		2,
+		consensusGroupSize,
+		seedAddress,
+		cache,
+	)
+
+	roundsPerEpoch := uint64(1000)
+	maxGasLimitPerBlock := uint64(100000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+		integrationTests.DisplayAndStartNodes(nodes[0:1])
+
+		for _, node := range nodes[0:1] {
+			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	roundDifference := 10
+	nonce := uint64(1)
+
+	randomness := generateInitialRandomness(uint32(nbShards))
+	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+	round += uint64(roundDifference)
+	nonce++
+	putCounter = 0
+	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+	callsFromShardZero := 2
+	callsForPreviousBlockComputation := 1
+
+	assert.Equal(t, roundDifference+callsForPreviousBlockComputation+callsFromShardZero, putCounter)
 }
