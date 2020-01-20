@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type shardedDataPool struct {
+type dataPool struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
@@ -17,8 +17,8 @@ type shardedDataPool struct {
 	currBlockTxs         dataRetriever.TransactionCacher
 }
 
-// NewShardedDataPool creates a data pools holder object
-func NewShardedDataPool(
+// NewDataPool creates a data pools holder object
+func NewDataPool(
 	transactions dataRetriever.ShardedDataCacherNotifier,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	rewardTransactions dataRetriever.ShardedDataCacherNotifier,
@@ -27,7 +27,7 @@ func NewShardedDataPool(
 	peerChangesBlocks storage.Cacher,
 	trieNodes storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
-) (*shardedDataPool, error) {
+) (*dataPool, error) {
 
 	if check.IfNil(transactions) {
 		return nil, dataRetriever.ErrNilTxDataPool
@@ -50,11 +50,11 @@ func NewShardedDataPool(
 	if check.IfNil(currBlockTxs) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
-	if trieNodes == nil || trieNodes.IsInterfaceNil() {
+	if check.IfNil(trieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
 
-	return &shardedDataPool{
+	return &dataPool{
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
 		rewardTransactions:   rewardTransactions,
@@ -67,49 +67,46 @@ func NewShardedDataPool(
 }
 
 // CurrentBlockTxs returns the holder for current block transactions
-func (tdp *shardedDataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
-	return tdp.currBlockTxs
+func (dp *dataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return dp.currBlockTxs
 }
 
 // Transactions returns the holder for transactions
-func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return tdp.transactions
+func (dp *dataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
+	return dp.transactions
 }
 
 // UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)
-func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return tdp.unsignedTransactions
+func (dp *dataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return dp.unsignedTransactions
 }
 
 // RewardTransactions returns the holder for reward transactions (cross shard result entities)
-func (tdp *shardedDataPool) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return tdp.rewardTransactions
+func (dp *dataPool) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return dp.rewardTransactions
 }
 
 // Headers returns the holder for headers
-func (tdp *shardedDataPool) Headers() dataRetriever.HeadersPool {
-	return tdp.headers
+func (dp *dataPool) Headers() dataRetriever.HeadersPool {
+	return dp.headers
 }
 
 // MiniBlocks returns the holder for miniblocks
-func (tdp *shardedDataPool) MiniBlocks() storage.Cacher {
-	return tdp.miniBlocks
+func (dp *dataPool) MiniBlocks() storage.Cacher {
+	return dp.miniBlocks
 }
 
 // PeerChangesBlocks returns the holder for peer changes block bodies
-func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
-	return tdp.peerChangesBlocks
+func (dp *dataPool) PeerChangesBlocks() storage.Cacher {
+	return dp.peerChangesBlocks
 }
 
 // TrieNodes returns the holder for trie nodes
-func (tdp *shardedDataPool) TrieNodes() storage.Cacher {
-	return tdp.trieNodes
+func (dp *dataPool) TrieNodes() storage.Cacher {
+	return dp.trieNodes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tdp *shardedDataPool) IsInterfaceNil() bool {
-	if tdp == nil {
-		return true
-	}
-	return false
+func (dp *dataPool) IsInterfaceNil() bool {
+	return dp == nil
 }
