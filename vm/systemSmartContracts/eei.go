@@ -156,7 +156,10 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	outAccs := make(map[string]*vmcommon.OutputAccount, 0)
 	for addr, updates := range host.storageUpdate {
 		if _, ok := outAccs[addr]; !ok {
-			outAccs[addr] = &vmcommon.OutputAccount{Address: []byte(addr)}
+			outAccs[addr] = &vmcommon.OutputAccount{
+				Address: []byte(addr),
+				StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
+			}
 		}
 
 		for key, value := range updates {

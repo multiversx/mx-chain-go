@@ -291,7 +291,7 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
 		Address:        input.RecipientAddr,
-		StorageUpdates: makeStorageUpdatesMap(nil),
+		StorageUpdates: makeStorageUpdatesMap(),
 	}
 
 	return &vmcommon.VMOutput{
@@ -329,7 +329,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 }
 
 func makeStorageUpdatesMap(updates ...*vmcommon.StorageUpdate) map[string]*vmcommon.StorageUpdate {
-	if updates == nil {
+	if len(updates) == 0 {
 		return make(map[string]*vmcommon.StorageUpdate)
 	}
 
