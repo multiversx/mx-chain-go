@@ -116,8 +116,7 @@ func createCustomMessenger(
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
-	peerDicoveryFactory := factory.NewPeerDiscovererFactory(p2pConfig)
-	peerDiscovery, _ := peerDicoveryFactory.CreatePeerDiscoverer()
+	peerDiscovery, _ := factory.NewPeerDiscoverer(p2pConfig)
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(
 		ctx,
@@ -125,7 +124,7 @@ func createCustomMessenger(
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
+		peerDiscovery,
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		p2pConfig.Node.TargetPeerCount,
 	)

@@ -14,40 +14,40 @@ import (
 
 var p2pBootstrapStepDelay = 2 * time.Second
 
-func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
-			TargetPeerCount: 12,
-		},
+func createDefaultConfig() config.P2PConfig {
+	return config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-			RandezVous:           "",
-			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantPrioBits,
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			RandezVous:                       "",
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
 		},
 	}
+}
+
+func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 12,
+	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantPrioBits
 
 	testConnectionsInNetworkSharding(t, p2pConfig)
 }
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
-			TargetPeerCount: 12,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-			RandezVous:           "",
-			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantWithLists,
-		},
-		Sharding: config.ShardingConfig{
-			MaxIntraShard: 6,
-			MaxCrossShard: 6,
-		},
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 12,
 	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantWithLists
+	p2pConfig.Sharding = config.ShardingConfig{
+		MaxIntraShard: 6,
+		MaxCrossShard: 6,
+	}
+
 	testConnectionsInNetworkSharding(t, p2pConfig)
 }
 

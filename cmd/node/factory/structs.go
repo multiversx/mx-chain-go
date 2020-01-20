@@ -1204,8 +1204,7 @@ func createNetMessenger(
 		return nil, errors.New("cannot start node on port < 0")
 	}
 
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
-	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
+	pDiscoverer, err := factoryP2P.NewPeerDiscoverer(*p2pConfig)
 
 	if err != nil {
 		return nil, err

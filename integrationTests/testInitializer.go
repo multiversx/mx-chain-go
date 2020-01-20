@@ -125,8 +125,7 @@ func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
-	peerDiscoveryFactory := discoveryFactory.NewPeerDiscovererFactory(p2pConfig)
-	peerDiscovery, _ := peerDiscoveryFactory.CreatePeerDiscoverer()
+	peerDiscovery, _ := discoveryFactory.NewPeerDiscoverer(p2pConfig)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,

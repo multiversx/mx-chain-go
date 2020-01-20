@@ -9,52 +9,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 )
 
-type peerDiscovererFactory struct {
-	p2pConfig config.P2PConfig
-}
-
-// NewPeerDiscovererFactory creates a new instance of peer discovery factory
-//TODO(iulian) refactor this: create a factory function, remove the struct, use a specialized argument and refactor the switch
-func NewPeerDiscovererFactory(pConfig config.P2PConfig) *peerDiscovererFactory {
-	return &peerDiscovererFactory{
-		p2pConfig: pConfig,
-	}
-}
-
-// CreatePeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
+// NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
-func (pdc *peerDiscovererFactory) CreatePeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	if pdc.p2pConfig.KadDhtPeerDiscovery.Enabled {
-		return pdc.createKadDhtPeerDiscoverer()
+func NewPeerDiscoverer(p2pConfig config.P2PConfig) (p2p.PeerDiscoverer, error) {
+	if p2pConfig.KadDhtPeerDiscovery.Enabled {
+		return createKadDhtPeerDiscoverer(p2pConfig)
 	}
 
 	return discovery.NewNullDiscoverer(), nil
 }
 
-func (pdc *peerDiscovererFactory) createKadDhtPeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	if pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec <= 0 {
-		return nil, p2p.ErrNegativeOrZeroPeersRefreshInterval
+func createKadDhtPeerDiscoverer(p2pConfig config.P2PConfig) (p2p.PeerDiscoverer, error) {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		RandezVous:           p2pConfig.KadDhtPeerDiscovery.RandezVous,
+		InitialPeersList:     p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+		BucketSize:           p2pConfig.KadDhtPeerDiscovery.BucketSize,
+		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 	}
 
-	switch pdc.p2pConfig.KadDhtPeerDiscovery.Type {
+	switch p2pConfig.KadDhtPeerDiscovery.Type {
 	case config.KadDhtVariantPrioBits:
-		return discovery.NewKadDhtPeerDiscoverer(
-			time.Second*time.Duration(pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
-			pdc.p2pConfig.KadDhtPeerDiscovery.RandezVous,
-			pdc.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
-		), nil
+		return discovery.NewKadDhtPeerDiscoverer(arg)
 	case config.KadDhtVariantWithLists:
-		return discovery.NewContinousKadDhtDiscoverer(
-			time.Second*time.Duration(pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
-			pdc.p2pConfig.KadDhtPeerDiscovery.RandezVous,
-			pdc.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
-		), nil
+		return discovery.NewContinuousKadDhtDiscoverer(arg)
 	default:
-		return nil, fmt.Errorf("%w unknown kad dht type: %s", p2p.ErrInvalidValue, pdc.p2pConfig.KadDhtPeerDiscovery.Type)
+		return nil, fmt.Errorf("%w unknown kad dht type: %s", p2p.ErrInvalidValue, p2pConfig.KadDhtPeerDiscovery.Type)
 	}
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (pdc *peerDiscovererFactory) IsInterfaceNil() bool {
-	return pdc == nil
 }

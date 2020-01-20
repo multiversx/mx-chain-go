@@ -197,8 +197,7 @@ func createNetMessenger(
 		return nil, errInvalidPort
 	}
 
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
-	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
+	pDiscoverer, err := factoryP2P.NewPeerDiscoverer(*p2pConfig)
 	if err != nil {
 		return nil, err
 	}

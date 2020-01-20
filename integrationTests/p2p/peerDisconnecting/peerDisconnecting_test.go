@@ -19,35 +19,36 @@ import (
 var durationBootstrapingTime = 2 * time.Second
 var randezVous = "elrondRandezVous"
 
-func TestPeerDisconnectionWithOneAdvertiserWithShardingWithPrioBits(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
-			TargetPeerCount: 100,
-		},
+func createDefaultConfig() config.P2PConfig {
+	return config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-			RandezVous:           randezVous,
-			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantPrioBits,
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			RandezVous:                       randezVous,
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
 		},
 	}
+}
+
+func TestPeerDisconnectionWithOneAdvertiserWithShardingWithPrioBits(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 100,
+	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantPrioBits
+
 	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
 }
 
 func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
-			TargetPeerCount: 100,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-			RandezVous:           randezVous,
-			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantWithLists,
-		},
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 100,
 	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantWithLists
+
 	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
 }
 
@@ -146,8 +147,7 @@ func getPeerId(netMessenger p2p.Messenger) peer.ID {
 }
 
 func createPeerDiscoverer(p2pConfig config.P2PConfig) p2p.PeerDiscoverer {
-	peerDiscoveryFactory := factory.NewPeerDiscovererFactory(p2pConfig)
-	peerDiscovery, _ := peerDiscoveryFactory.CreatePeerDiscoverer()
+	peerDiscovery, _ := factory.NewPeerDiscoverer(p2pConfig)
 
 	return peerDiscovery
 }
