@@ -97,13 +97,15 @@ func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
 }
 
 func TestWriteContinuouslyInTree(t *testing.T) {
+	t.Skip("this is a long test")
+
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
 
 	trieStorage, _ := trie.NewTrieStorageManagerWithoutPruning(store)
 
-	trie, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{})
+	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{})
 
 	defer func() {
 		_ = store.DestroyUnit()
@@ -116,13 +118,13 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 		if i%written == 0 {
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
-			trie.Commit()
+			_ = tr.Commit()
 			fmt.Printf("Written %d, total %d in %f s\n", written, i, diff.Seconds())
 			startTime = time.Now()
 		}
 
 		key, val := testStorage.CreateStoredData(uint64(i))
-		err := trie.Update(key, val)
+		err := tr.Update(key, val)
 
 		assert.Nil(t, err)
 	}
