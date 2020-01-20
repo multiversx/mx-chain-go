@@ -77,15 +77,16 @@ func (myMap *AlmostSortedMap) OnScoreChangeByKey(key string) {
 
 // OnScoreChange moves or adds the item to the corresponding score chunk
 func (myMap *AlmostSortedMap) OnScoreChange(item MapItem) {
-	removeFromScoreChunk(item)
-
 	newScore := item.ComputeScore()
 	if newScore > myMap.maxScore {
 		newScore = myMap.maxScore
 	}
 
 	newScoreChunk := myMap.scoreChunks[newScore]
-	newScoreChunk.setItem(item)
+	if newScoreChunk != item.GetScoreChunk() {
+		removeFromScoreChunk(item)
+		newScoreChunk.setItem(item)
+	}
 }
 
 func removeFromScoreChunk(item MapItem) {
