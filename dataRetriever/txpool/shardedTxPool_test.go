@@ -49,7 +49,6 @@ func Test_NewShardedTxPool_ComputesEvictionConfig(t *testing.T) {
 	require.Equal(t, true, pool.evictionConfig.Enabled)
 	require.Equal(t, uint32(1000000000), pool.evictionConfig.NumBytesThreshold)
 	require.Equal(t, uint32(100000), pool.evictionConfig.CountThreshold)
-	require.Equal(t, uint32(1000), pool.evictionConfig.ThresholdEvictSenders)
 	require.Equal(t, uint32(500), pool.evictionConfig.NumSendersToEvictInOneStep)
 	require.Equal(t, uint32(500), pool.evictionConfig.ALotOfTransactionsForASender)
 	require.Equal(t, uint32(100), pool.evictionConfig.NumTxsToEvictForASenderWithALot)

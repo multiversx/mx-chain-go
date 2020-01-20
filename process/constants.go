@@ -96,10 +96,6 @@ const MaxNoncesWithoutCrossNotarized = 100
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// TxPoolThresholdEvictSenders instructs tx pool eviction algorithm to not evict senders,
-// unless the number of senders is larger than this threshold
-const TxPoolThresholdEvictSenders = uint32(1000)
-
 // TxPoolNumSendersToEvictInOneStep instructs tx pool eviction algorithm to remove this many senders when eviction takes place
 const TxPoolNumSendersToEvictInOneStep = uint32(500)
 

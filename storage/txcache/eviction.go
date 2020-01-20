@@ -9,7 +9,6 @@ type EvictionConfig struct {
 	Enabled                         bool
 	NumBytesThreshold               uint32
 	CountThreshold                  uint32
-	ThresholdEvictSenders           uint32
 	NumSendersToEvictInOneStep      uint32
 	ALotOfTransactionsForASender    uint32
 	NumTxsToEvictForASenderWithALot uint32
