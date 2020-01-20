@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -25,7 +24,6 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled             func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled           func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled               func() data.HeaderHandler
-	ValidatorStatisticsProcessorCalled  func() process.ValidatorStatisticsProcessor
 }
 
 func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
@@ -97,13 +95,6 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 }
 
 func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-}
-
-func (blProcMock BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
-	if blProcMock.ValidatorStatisticsProcessorCalled != nil {
-		return blProcMock.ValidatorStatisticsProcessorCalled()
-	}
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

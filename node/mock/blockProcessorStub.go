@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -25,7 +24,6 @@ type BlockProcessorStub struct {
 	AddLastNotarizedHdrCalled          func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled              func() data.HeaderHandler
 	RevertStateToBlockCalled           func(header data.HeaderHandler) error
-	ValidatorStatisticsProcessorCalled func() process.ValidatorStatisticsProcessor
 }
 
 func (blProcMock *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
@@ -105,14 +103,6 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
-
-func (bpm BlockProcessorStub) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
-	if bpm.ValidatorStatisticsProcessorCalled != nil {
-		return bpm.ValidatorStatisticsProcessorCalled()
-	}
-	return nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
 	if blProcMock == nil {

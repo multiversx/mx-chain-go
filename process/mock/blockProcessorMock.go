@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -25,7 +24,6 @@ type BlockProcessorMock struct {
 	AddLastNotarizedHdrCalled          func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled              func() data.HeaderHandler
 	RevertStateToBlockCalled           func(header data.HeaderHandler) error
-	ValidatorStatisticsProcessorCalled func() process.ValidatorStatisticsProcessor
 }
 
 func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
@@ -96,13 +94,6 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
 	if bpm.RevertStateToBlockCalled != nil {
 		return bpm.RevertStateToBlockCalled(header)
-	}
-	return nil
-}
-
-func (bpm BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
-	if bpm.ValidatorStatisticsProcessorCalled != nil {
-		return bpm.ValidatorStatisticsProcessorCalled()
 	}
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
@@ -28,7 +27,6 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled                   func() data.HeaderHandler
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
 	RestoreLastNotarizedHrdsToGenesisCalled func()
-	ValidatorStatisticsProcessorCalled      func() process.ValidatorStatisticsProcessor
 }
 
 func (blProcMock *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
@@ -129,13 +127,6 @@ func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round u
 	if blProcMock.SetConsensusDataCalled != nil {
 		blProcMock.SetConsensusDataCalled(randomness, round, epoch, shardId)
 	}
-}
-
-func (blProcMock BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
-	if blProcMock.ValidatorStatisticsProcessorCalled != nil {
-		return blProcMock.ValidatorStatisticsProcessorCalled()
-	}
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

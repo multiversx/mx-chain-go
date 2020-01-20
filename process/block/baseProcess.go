@@ -104,10 +104,6 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	return nil
 }
 
-func (bp *baseProcessor) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
-	return bp.validatorStatisticsProcessor
-}
-
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
 	chainHandler data.ChainHandler,
