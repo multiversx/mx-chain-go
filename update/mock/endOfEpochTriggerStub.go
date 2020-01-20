@@ -6,13 +6,14 @@ import (
 )
 
 type EpochStartTriggerStub struct {
-	ForceEpochStartCalled func(round uint64) error
-	IsEpochStartCalled    func() bool
-	EpochCalled           func() uint32
-	ReceivedHeaderCalled  func(handler data.HeaderHandler)
-	UpdateCalled          func(round uint64)
-	ProcessedCalled       func(header data.HeaderHandler)
-	EpochStartRoundCalled func() uint64
+	ForceEpochStartCalled       func(round uint64) error
+	IsEpochStartCalled          func() bool
+	EpochCalled                 func() uint32
+	ReceivedHeaderCalled        func(handler data.HeaderHandler)
+	UpdateCalled                func(round uint64)
+	ProcessedCalled             func(header data.HeaderHandler)
+	EpochStartRoundCalled       func() uint64
+	EpochStartMetaHdrHashCalled func() []byte
 }
 
 func (e *EpochStartTriggerStub) SetCurrentEpochStartRound(_ uint64) {
@@ -29,6 +30,9 @@ func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
 }
 
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
+	if e.EpochStartMetaHdrHashCalled != nil {
+		return e.EpochStartMetaHdrHashCalled()
+	}
 	return nil
 }
 

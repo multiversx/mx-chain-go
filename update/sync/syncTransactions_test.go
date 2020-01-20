@@ -28,7 +28,9 @@ func TestNewPendingTransactionsSyncer(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-
+	args.Storages = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{}
+	}}
 	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
 	require.Nil(t, err)
 	require.NotNil(t, pendingTxsSyncer)

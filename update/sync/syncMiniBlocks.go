@@ -125,7 +125,7 @@ func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	if _, ok := p.mapHashes[string(miniBlockHash)]; ok {
+	if _, ok := p.mapHashes[string(miniBlockHash)]; !ok {
 		p.mutPendingMb.Unlock()
 		return
 	}

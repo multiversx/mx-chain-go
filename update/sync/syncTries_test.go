@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -74,4 +75,8 @@ func TestNewSyncState(t *testing.T) {
 
 	err = triesSyncHandler.SyncTriesFrom(metaBlock, time.Second)
 	require.Nil(t, err)
+
+	tries, err := triesSyncHandler.GetTries()
+	assert.NotNil(t, tries)
+	assert.Nil(t, err)
 }
