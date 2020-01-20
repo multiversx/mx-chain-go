@@ -30,8 +30,8 @@ func (cache *TxCache) doEviction() {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
-	cache.maybeEvictionInProgress.Set()
-	defer cache.maybeEvictionInProgress.Unset()
+	cache.isEvictionInProgress.Set()
+	defer cache.isEvictionInProgress.Unset()
 
 	cache.onEvictionStarted()
 

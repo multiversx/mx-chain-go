@@ -10,12 +10,12 @@ import (
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender          txListBySenderMap
-	txByHash                txByHashMap
-	evictionConfig          EvictionConfig
-	evictionMutex           sync.Mutex
-	evictionJournal         evictionJournal
-	maybeEvictionInProgress core.AtomicFlag
+	txListBySender       txListBySenderMap
+	txByHash             txByHashMap
+	evictionConfig       EvictionConfig
+	evictionMutex        sync.Mutex
+	evictionJournal      evictionJournal
+	isEvictionInProgress core.AtomicFlag
 }
 
 // NewTxCache creates a new transaction cache
@@ -50,7 +50,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 		return
 	}
 
-	if cache.maybeEvictionInProgress.IsSet() {
+	if cache.isEvictionInProgress.IsSet() {
 		return
 	}
 
