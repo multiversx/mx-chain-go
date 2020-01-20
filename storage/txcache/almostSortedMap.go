@@ -288,7 +288,7 @@ func (chunk *MapChunk) removeItemByKey(key string) ScoredItem {
 	chunk.Lock()
 	defer chunk.Unlock()
 
-	item, _ := chunk.items[key]
+	item := chunk.items[key]
 	delete(chunk.items, key)
 	return item
 }
