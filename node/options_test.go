@@ -547,6 +547,32 @@ func TestWithBlockTracker_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithPendingMiniBlocks_NilPendingMiniBlocksHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPendingMiniBlocks(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.pendingMiniBlocks)
+	assert.Equal(t, ErrNilPendingMiniBlocksHandler, err)
+}
+
+func TestWithPendingMiniBlocks_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	pendingMiniBlocks := &mock.PendingMiniBlocksHandlerStub{}
+
+	opt := WithPendingMiniBlocks(pendingMiniBlocks)
+	err := opt(node)
+
+	assert.True(t, node.pendingMiniBlocks == pendingMiniBlocks)
+	assert.Nil(t, err)
+}
+
 func TestWithNodesCoordinator_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 

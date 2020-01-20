@@ -477,6 +477,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -569,6 +570,7 @@ func createPreProcessorContainerWithDataPool(
 			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -887,6 +889,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 				return 0
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -992,6 +995,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 				return totalGasConsumed
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1535,6 +1539,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1712,6 +1717,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1841,6 +1847,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1979,6 +1986,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2111,6 +2119,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			RemoveGasConsumedCalled: func(hashes [][]byte) {
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
