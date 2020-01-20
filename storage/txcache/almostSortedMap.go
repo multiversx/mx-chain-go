@@ -86,6 +86,7 @@ func (myMap *AlmostSortedMap) OnScoreChange(item ScoredItem) {
 	if newScoreChunk != item.GetScoreChunk() {
 		removeFromScoreChunk(item)
 		newScoreChunk.setItem(item)
+		item.SetScoreChunk(newScoreChunk)
 	}
 }
 
