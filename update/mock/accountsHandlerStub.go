@@ -1,8 +1,12 @@
 package mock
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
+
+var errNotImplemented = errors.New("not implemented")
 
 type AccountsHandlerMock struct {
 	GetCalled         func(key string) (state.AccountsAdapter, error)
