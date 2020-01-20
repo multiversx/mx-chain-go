@@ -73,7 +73,7 @@ func TestPeerDiscovererFactory_CreatePeerDiscovererKadListShouldWork(t *testing.
 	f := factory.NewPeerDiscovererFactory(p2pConfig)
 	pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	_, ok := pDiscoverer.(*discovery.KadDhtDiscoverer2)
+	_, ok := pDiscoverer.(*discovery.ContinousKadDhtDiscoverer)
 
 	assert.NotNil(t, pDiscoverer)
 	assert.True(t, ok)

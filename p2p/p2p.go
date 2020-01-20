@@ -170,7 +170,7 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32) error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32, maxIntraShard uint32, maxCrossShard uint32) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface

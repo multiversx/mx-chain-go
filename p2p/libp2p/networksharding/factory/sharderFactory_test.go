@@ -14,7 +14,7 @@ import (
 func TestSharderFactory_CreateWithNilShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sf := NewSharderFactory(nil, &mock.PeerShardResolverStub{}, 1, "", 1)
+	sf := NewSharderFactory(nil, &mock.PeerShardResolverStub{}, 1, "", 2, 1, 1)
 
 	sharder, err := sf.Create()
 
@@ -27,7 +27,7 @@ func TestSharderFactory_CreateWithReconnecterWithPasueAndResumeShouldWork(t *tes
 
 	reconn := &mock.ReconnecterWithPauseAndResumeStub{}
 	peerResolver := &mock.PeerShardResolverStub{}
-	sf := NewSharderFactory(reconn, peerResolver, 1, "", 1)
+	sf := NewSharderFactory(reconn, peerResolver, 1, "", 2, 1, 1)
 
 	sharder, err := sf.Create()
 
@@ -42,7 +42,7 @@ func TestSharderFactory_CreateWithReconnecterShouldWork(t *testing.T) {
 	maxPeerCount := 2
 	reconn := &mock.ReconnecterStub{}
 	peerResolver := &mock.PeerShardResolverStub{}
-	sf := NewSharderFactory(reconn, peerResolver, 1, "", maxPeerCount)
+	sf := NewSharderFactory(reconn, peerResolver, 1, "", maxPeerCount, 1, 1)
 
 	sharder, err := sf.Create()
 

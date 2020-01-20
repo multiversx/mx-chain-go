@@ -112,24 +112,6 @@ func TestNewListKadSharder_ShouldWork(t *testing.T) {
 
 //------- ComputeEvictList
 
-func TestListKadSharder_ComputeEvictListAlreadyContainsShouldRetEmpty(t *testing.T) {
-	t.Parallel()
-
-	lks, _ := NewListKadSharder(
-		createStringPeersShardResolver(),
-		crtPid,
-		minAllowedConnectedPeers,
-		minAllowedPeersOnList,
-		minAllowedPeersOnList,
-	)
-	pid := peer.ID("pid")
-	connected := []peer.ID{pid}
-
-	evictList := lks.ComputeEvictList(pid, connected)
-
-	assert.Equal(t, 0, len(evictList))
-}
-
 func TestListKadSharder_ComputeEvictListNotReachedIntraShardShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
@@ -142,9 +124,9 @@ func TestListKadSharder_ComputeEvictListNotReachedIntraShardShouldRetEmpty(t *te
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d new pid", crtShardId))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
-	connected := []peer.ID{pidCrossShard}
+	pids := []peer.ID{pidCrtShard, pidCrossShard}
 
-	evictList := lks.ComputeEvictList(pidCrtShard, connected)
+	evictList := lks.ComputeEvictList(pids)
 
 	assert.Equal(t, 0, len(evictList))
 }
@@ -161,9 +143,9 @@ func TestListKadSharder_ComputeEvictListNotReachedCrossShardShouldRetEmpty(t *te
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d new pid", crtShardId))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d cross", crtShardId+1))
-	connected := []peer.ID{pidCrtShard}
+	pids := []peer.ID{pidCrtShard, pidCrossShard}
 
-	evictList := lks.ComputeEvictList(pidCrossShard, connected)
+	evictList := lks.ComputeEvictList(pids)
 
 	assert.Equal(t, 0, len(evictList))
 }
@@ -180,9 +162,9 @@ func TestListKadSharder_ComputeEvictListReachedIntraShardShouldSortAndEvict(t *t
 	)
 	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - new pid", crtShardId))
 	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - new pid", crtShardId))
-	connected := []peer.ID{pidCrtShard2}
+	pids := []peer.ID{pidCrtShard2, pidCrtShard1}
 
-	evictList := lks.ComputeEvictList(pidCrtShard1, connected)
+	evictList := lks.ComputeEvictList(pids)
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, pidCrtShard2, evictList[0])
@@ -205,8 +187,9 @@ func TestListKadSharder_ComputeEvictListUnknownPeersShouldFillTheGap(t *testing.
 		unknownPids[i] = "u b pid"
 	}
 	newUnknownPid := peer.ID("u a pid")
+	unknownPids = append(unknownPids, newUnknownPid)
 
-	evictList := lks.ComputeEvictList(newUnknownPid, unknownPids)
+	evictList := lks.ComputeEvictList(unknownPids)
 
 	assert.Equal(t, 1, len(evictList))
 	assert.Equal(t, unknownPids[0], evictList[0])

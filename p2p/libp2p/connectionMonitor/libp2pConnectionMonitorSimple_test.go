@@ -11,25 +11,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewLibp2pConnectionMonitor2_WithNegativeThresholdShouldErr(t *testing.T) {
+func TestNewLibp2pConnectionMonitorSimple_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor2(nil, -1)
+	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, -1)
 
 	assert.Equal(t, p2p.ErrInvalidValue, err)
-	assert.Nil(t, cm)
+	assert.Nil(t, lcms)
 }
 
-func TestNewLibp2pConnectionMonitor2_WithNilReconnecterShouldWork(t *testing.T) {
+func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := NewLibp2pConnectionMonitor2(nil, 3)
+	lcms, err := NewLibp2pConnectionMonitorSimple(nil, 3)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, cm)
+	assert.Equal(t, p2p.ErrNilReconnecter, err)
+	assert.Nil(t, lcms)
 }
 
-func TestNewLibp2pConnectionMonitor2_OnDisconnectedUnderThresholdShouldCallReconnect(t *testing.T) {
+func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCallReconnect(t *testing.T) {
 	t.Parallel()
 
 	chReconnectCalled := make(chan struct{}, 1)
@@ -52,9 +52,9 @@ func TestNewLibp2pConnectionMonitor2_OnDisconnectedUnderThresholdShouldCallRecon
 		},
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor2(&rs, 3)
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&rs, 3)
 	time.Sleep(durStartGoRoutine)
-	cm.Disconnected(&ns, nil)
+	lcms.Disconnected(&ns, nil)
 
 	select {
 	case <-chReconnectCalled:
@@ -63,7 +63,7 @@ func TestNewLibp2pConnectionMonitor2_OnDisconnectedUnderThresholdShouldCallRecon
 	}
 }
 
-func TestLibp2pConnectionMonitor2_ConnectedNilSharderShouldNotPanic(t *testing.T) {
+func TestLibp2pConnectionMonitorSimple_ConnectedNilSharderShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -73,27 +73,27 @@ func TestLibp2pConnectionMonitor2_ConnectedNilSharderShouldNotPanic(t *testing.T
 		}
 	}()
 
-	cm, _ := NewLibp2pConnectionMonitor2(nil, 3)
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3)
 
-	cm.Connected(nil, nil)
+	lcms.Connected(nil, nil)
 }
 
-func TestLibp2pConnectionMonitor2_ConnectedWithSharderShouldCallEvictAndClosePeer(t *testing.T) {
+func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClosePeer(t *testing.T) {
 	t.Parallel()
 
 	evictedPid := []peer.ID{"evicted"}
 	numComputeWasCalled := 0
 	numClosedWasCalled := 0
-	cm, _ := NewLibp2pConnectionMonitor2(nil, 3)
-	err := cm.SetSharder(&mock.SharderStub{
-		ComputeEvictListCalled: func(pid peer.ID, connected []peer.ID) []peer.ID {
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3)
+	err := lcms.SetSharder(&mock.SharderStub{
+		ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
 			numComputeWasCalled++
 			return evictedPid
 		},
 	})
 	assert.Nil(t, err)
 
-	cm.Connected(
+	lcms.Connected(
 		&mock.NetworkStub{
 			ClosePeerCall: func(id peer.ID) error {
 				numClosedWasCalled++
@@ -114,7 +114,7 @@ func TestLibp2pConnectionMonitor2_ConnectedWithSharderShouldCallEvictAndClosePee
 	assert.Equal(t, 1, numComputeWasCalled)
 }
 
-func TestLibp2pConnectionMonitor2_EmptyFuncsShouldNotPanic(t *testing.T) {
+func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -130,20 +130,20 @@ func TestLibp2pConnectionMonitor2_EmptyFuncsShouldNotPanic(t *testing.T) {
 		},
 	}
 
-	cm, _ := NewLibp2pConnectionMonitor2(nil, 3)
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3)
 
-	cm.ClosedStream(netw, nil)
-	cm.Disconnected(netw, nil)
-	cm.Listen(netw, nil)
-	cm.ListenClose(netw, nil)
-	cm.OpenedStream(netw, nil)
+	lcms.ClosedStream(netw, nil)
+	lcms.Disconnected(netw, nil)
+	lcms.Listen(netw, nil)
+	lcms.ListenClose(netw, nil)
+	lcms.OpenedStream(netw, nil)
 }
 
-func TestLibp2pConnectionMonitor2_SetSharderNilSharderShouldErr(t *testing.T) {
+func TestLibp2pConnectionMonitorSimple_SetSharderNilSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewLibp2pConnectionMonitor2(nil, 3)
-	err := cm.SetSharder(nil)
+	lcms, _ := NewLibp2pConnectionMonitorSimple(nil, 3)
+	err := lcms.SetSharder(nil)
 
 	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
 }

@@ -45,7 +45,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 			RefreshIntervalInSec: 1,
 			RandezVous:           randezVous,
 			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantPrioBits,
+			Type:                 config.KadDhtVariantWithLists,
 		},
 	}
 	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)

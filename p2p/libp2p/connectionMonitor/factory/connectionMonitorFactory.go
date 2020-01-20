@@ -13,6 +13,7 @@ type connectionMonitorFactory struct {
 }
 
 // NewConnectionMonitorFactory creates a new instance of connectionMonitorFactory able to create ConnectionMonitor instances
+//TODO(iulian) refactor this: create a factory function, remove the struct, use a specialized argument and refactor the switch
 func NewConnectionMonitorFactory(
 	reconnecter p2p.Reconnecter,
 	thresholdMinConnectedPeers int,
@@ -36,6 +37,6 @@ func (cmf *connectionMonitorFactory) Create() (ConnectionMonitor, error) {
 	case p2p.ReconnecterWithPauseResumeAndWatchdog:
 		return connectionMonitor.NewLibp2pConnectionMonitor(recon, cmf.thresholdMinConnectedPeers, cmf.targetCount)
 	default:
-		return connectionMonitor.NewLibp2pConnectionMonitor2(recon, cmf.thresholdMinConnectedPeers)
+		return connectionMonitor.NewLibp2pConnectionMonitorSimple(recon, cmf.thresholdMinConnectedPeers)
 	}
 }

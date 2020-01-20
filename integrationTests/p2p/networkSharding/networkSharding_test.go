@@ -41,7 +41,11 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 			RefreshIntervalInSec: 1,
 			RandezVous:           "",
 			InitialPeerList:      nil,
-			Type:                 config.KadDhtVariantPrioBits,
+			Type:                 config.KadDhtVariantWithLists,
+		},
+		Sharding: config.ShardingConfig{
+			MaxIntraShard: 6,
+			MaxCrossShard: 6,
 		},
 	}
 	testConnectionsInNetworkSharding(t, p2pConfig)

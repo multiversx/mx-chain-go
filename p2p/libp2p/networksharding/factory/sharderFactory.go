@@ -18,17 +18,21 @@ type sharderFactory struct {
 	prioBits           uint32
 	pid                peer.ID
 	maxConnectionCount int
+	maxIntraShard      int
+	maxCrossShard      int
 }
 
 // NewSharderFactory creates a new instance of sharderFactory able to create Sharder instances
 //TODO(iulian) improve the parameter passing here
-//TODO(iulian) should not pass reconnecter but a config
+//TODO(iulian) should not pass reconnecter but a config, make this a constructor function
 func NewSharderFactory(
 	reconnecter p2p.Reconnecter,
 	peerShardResolver p2p.PeerShardResolver,
 	prioBits uint32,
 	pid peer.ID,
 	maxConnectionCount int,
+	maxIntraShard int,
+	maxCrossShard int,
 ) *sharderFactory {
 
 	return &sharderFactory{
@@ -37,6 +41,8 @@ func NewSharderFactory(
 		prioBits:           prioBits,
 		pid:                pid,
 		maxConnectionCount: maxConnectionCount,
+		maxIntraShard:      maxIntraShard,
+		maxCrossShard:      maxCrossShard,
 	}
 }
 
@@ -57,8 +63,8 @@ func (sf *sharderFactory) Create() (interface{}, error) {
 			sf.peerShardResolver,
 			sf.pid,
 			sf.maxConnectionCount,
-			sf.maxConnectionCount/2,
-			sf.maxConnectionCount/2,
+			sf.maxIntraShard,
+			sf.maxCrossShard,
 		)
 	}
 }

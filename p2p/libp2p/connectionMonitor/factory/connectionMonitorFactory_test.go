@@ -57,6 +57,6 @@ func TestConnectionMonitorFactory_CreateReconnecterShouldCreateConnectionMonitor
 	cm, err := cmf.Create()
 
 	assert.Nil(t, err)
-	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitor2(reconn, 1)
+	expectedConnMonitor, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(reconn, 1)
 	assert.IsType(t, reflect.TypeOf(expectedConnMonitor), reflect.TypeOf(cm))
 }

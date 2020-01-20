@@ -158,7 +158,9 @@ type KadDhtPeerDiscoveryConfig struct {
 
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig struct {
-	PrioBits uint32
+	PrioBits      uint32
+	MaxIntraShard uint32
+	MaxCrossShard uint32
 }
 
 // P2PConfig will hold all the P2P settings

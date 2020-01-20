@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -20,7 +21,7 @@ const minAllowedPeersOnList = 1
 // maximum levels, unknown list is able to fill the gap until maximum peer count value is fulfilled.
 type listKadSharder struct {
 	peerShardResolver p2p.PeerShardResolver
-	crtPeerId         peer.ID
+	selfPeerId        peer.ID
 	maxPeerCount      int
 	maxIntraShard     int
 	maxCrossShard     int
@@ -29,12 +30,12 @@ type listKadSharder struct {
 // NewListKadSharder creates a new kad list based kad sharder instance
 func NewListKadSharder(
 	resolver p2p.PeerShardResolver,
-	crtPeerId peer.ID,
+	selfPeerId peer.ID,
 	maxPeerCount int,
 	maxIntraShard int,
 	maxCrossShard int,
 ) (*listKadSharder, error) {
-	if resolver == nil {
+	if check.IfNil(resolver) {
 		return nil, p2p.ErrNilPeerShardResolver
 	}
 	if maxPeerCount < minAllowedConnectedPeers {
@@ -49,7 +50,7 @@ func NewListKadSharder(
 
 	return &listKadSharder{
 		peerShardResolver: resolver,
-		crtPeerId:         crtPeerId,
+		selfPeerId:        selfPeerId,
 		maxPeerCount:      maxPeerCount,
 		maxIntraShard:     maxIntraShard,
 		maxCrossShard:     maxCrossShard,
@@ -57,14 +58,9 @@ func NewListKadSharder(
 }
 
 // ComputeEvictList returns the eviction list
-func (lks *listKadSharder) ComputeEvictList(pid peer.ID, connected []peer.ID) []peer.ID {
-	allPeers := connected
-	if !lks.Has(pid, connected) {
-		allPeers = append(connected, pid)
-	}
-
+func (lks *listKadSharder) ComputeEvictList(pidList []peer.ID) []peer.ID {
 	evictionProposed := make([]peer.ID, 0)
-	intraShard, crossShard, unknownShard := lks.splitPeerIds(allPeers)
+	intraShard, crossShard, unknownShard := lks.splitPeerIds(pidList)
 
 	intraShard, e := lks.evict(intraShard, lks.maxIntraShard)
 	evictionProposed = append(evictionProposed, e...)
@@ -76,7 +72,8 @@ func (lks *listKadSharder) ComputeEvictList(pid peer.ID, connected []peer.ID) []
 	if sum <= lks.maxPeerCount {
 		return evictionProposed
 	}
-	_, e = lks.evict(unknownShard, lks.maxPeerCount+1-len(intraShard)-len(crossShard))
+	remainingForUnknown := lks.maxPeerCount + 1 - len(intraShard) - len(crossShard)
+	_, e = lks.evict(unknownShard, remainingForUnknown)
 
 	return append(evictionProposed, e...)
 }
@@ -98,7 +95,7 @@ func (lks *listKadSharder) PeerShardResolver() p2p.PeerShardResolver {
 }
 
 func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDistances, peerDistances) {
-	selfId := lks.peerShardResolver.ByID(p2p.PeerID(lks.crtPeerId))
+	selfId := lks.peerShardResolver.ByID(p2p.PeerID(lks.selfPeerId))
 
 	intraShard := peerDistances{}
 	crossShard := peerDistances{}
@@ -107,7 +104,7 @@ func (lks *listKadSharder) splitPeerIds(peers []peer.ID) (peerDistances, peerDis
 	for _, p := range peers {
 		pd := peerDistance{
 			ID:       p,
-			distance: computeDistance(p, lks.crtPeerId),
+			distance: computeDistance(p, lks.selfPeerId),
 		}
 		pid := p2p.PeerID(p)
 

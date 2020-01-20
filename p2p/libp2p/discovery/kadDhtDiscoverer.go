@@ -250,7 +250,7 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 	ctx, ok := ctxProvider.(*libp2p.Libp2pContext)
 
 	if !ok {
-		return p2p.ErrWrongContextApplier
+		return p2p.ErrWrongContextProvider
 	}
 
 	kdd.contextProvider = ctx

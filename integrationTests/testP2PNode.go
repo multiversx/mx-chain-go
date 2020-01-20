@@ -91,7 +91,12 @@ func NewTestP2PNode(
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
-	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater, networkShardingPrioBits)
+	err = tP2pNode.Messenger.SetPeerShardResolver(
+		tP2pNode.NetworkShardingUpdater,
+		networkShardingPrioBits,
+		p2pConfig.Sharding.MaxIntraShard,
+		p2pConfig.Sharding.MaxCrossShard,
+	)
 	if err != nil {
 		fmt.Printf("Error setting messenger.SetPeerShardResolver: %s\n", err.Error())
 	}

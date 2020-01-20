@@ -6,14 +6,14 @@ import (
 )
 
 type SharderStub struct {
-	ComputeEvictListCalled  func(pid peer.ID, connected []peer.ID) []peer.ID
+	ComputeEvictListCalled  func(pidList []peer.ID) []peer.ID
 	HasCalled               func(pid peer.ID, list []peer.ID) bool
 	PeerShardResolverCalled func() p2p.PeerShardResolver
 }
 
-func (ss *SharderStub) ComputeEvictList(pid peer.ID, connected []peer.ID) []peer.ID {
+func (ss *SharderStub) ComputeEvictList(pidList []peer.ID) []peer.ID {
 	if ss.ComputeEvictListCalled != nil {
-		return ss.ComputeEvictListCalled(pid, connected)
+		return ss.ComputeEvictListCalled(pidList)
 	}
 
 	return make([]peer.ID, 0)

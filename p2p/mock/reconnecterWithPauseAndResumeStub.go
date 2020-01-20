@@ -17,9 +17,22 @@ func (rs *ReconnecterWithPauseAndResumeStub) IsInterfaceNil() bool {
 	return rs == nil
 }
 
-func (rs *ReconnecterWithPauseAndResumeStub) Pause()  { rs.PauseCall() }
-func (rs *ReconnecterWithPauseAndResumeStub) Resume() { rs.ResumeCall() }
+func (rs *ReconnecterWithPauseAndResumeStub) Pause() {
+	rs.PauseCall()
+}
 
-func (rs *ReconnecterWithPauseAndResumeStub) StartWatchdog(time.Duration) error { return nil }
-func (rs *ReconnecterWithPauseAndResumeStub) StopWatchdog() error               { return nil }
-func (rs *ReconnecterWithPauseAndResumeStub) KickWatchdog() error               { return nil }
+func (rs *ReconnecterWithPauseAndResumeStub) Resume() {
+	rs.ResumeCall()
+}
+
+func (rs *ReconnecterWithPauseAndResumeStub) StartWatchdog(time.Duration) error {
+	return nil
+}
+
+func (rs *ReconnecterWithPauseAndResumeStub) StopWatchdog() error {
+	return nil
+}
+
+func (rs *ReconnecterWithPauseAndResumeStub) KickWatchdog() error {
+	return nil
+}

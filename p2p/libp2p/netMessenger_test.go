@@ -1529,7 +1529,7 @@ func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
 		_ = mes.Close()
 	}()
 
-	err := mes.SetPeerShardResolver(nil, shardingPrioBits)
+	err := mes.SetPeerShardResolver(nil, shardingPrioBits, 6, 6)
 
 	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
@@ -1540,7 +1540,7 @@ func TestNetworkMessenger_SetPeerShardResolverOnNilConnectionManagerShouldErr(t 
 		_ = mes.Close()
 	}()
 
-	err := mes.SetPeerShardResolver(&mock.PeerShardResolverStub{}, shardingPrioBits)
+	err := mes.SetPeerShardResolver(&mock.PeerShardResolverStub{}, shardingPrioBits, 6, 6)
 
 	assert.True(t, errors.Is(err, p2p.ErrIncompatibleMethodCalled))
 }

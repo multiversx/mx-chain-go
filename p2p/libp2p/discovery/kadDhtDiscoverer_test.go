@@ -264,7 +264,7 @@ func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 
 	err := kdd.ApplyContext(&mock.ContextProviderMock{})
 
-	assert.Equal(t, p2p.ErrWrongContextApplier, err)
+	assert.Equal(t, p2p.ErrWrongContextProvider, err)
 }
 
 func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {

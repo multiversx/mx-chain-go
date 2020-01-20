@@ -14,6 +14,7 @@ type peerDiscovererFactory struct {
 }
 
 // NewPeerDiscovererFactory creates a new instance of peer discovery factory
+//TODO(iulian) refactor this: create a factory function, remove the struct, use a specialized argument and refactor the switch
 func NewPeerDiscovererFactory(pConfig config.P2PConfig) *peerDiscovererFactory {
 	return &peerDiscovererFactory{
 		p2pConfig: pConfig,
@@ -43,7 +44,7 @@ func (pdc *peerDiscovererFactory) createKadDhtPeerDiscoverer() (p2p.PeerDiscover
 			pdc.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
 		), nil
 	case config.KadDhtVariantWithLists:
-		return discovery.NewKadDhtPeerDiscoverer2(
+		return discovery.NewContinousKadDhtDiscoverer(
 			time.Second*time.Duration(pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 			pdc.p2pConfig.KadDhtPeerDiscovery.RandezVous,
 			pdc.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
