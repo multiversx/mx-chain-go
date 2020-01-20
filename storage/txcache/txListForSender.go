@@ -17,6 +17,7 @@ type txListForSender struct {
 	totalGas       core.AtomicCounter
 	totalFee       core.AtomicCounter
 	sender         string
+	scoreChunk     *MapChunk
 }
 
 // txListForSenderNode is a node of the linked list

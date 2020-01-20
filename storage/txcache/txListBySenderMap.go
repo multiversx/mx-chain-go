@@ -9,13 +9,13 @@ import (
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap *ConcurrentMap
+	backingMap *AlmostSortedMap
 	counter    core.AtomicCounter
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
 func newTxListBySenderMap(nChunksHint uint32) txListBySenderMap {
-	backingMap := NewConcurrentMap(nChunksHint)
+	backingMap := NewAlmostSortedMap(nChunksHint, 100)
 
 	return txListBySenderMap{
 		backingMap: backingMap,
@@ -52,7 +52,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	listForSender := newTxListForSender(sender)
 
-	txMap.backingMap.Set(sender, listForSender)
+	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()
 
 	return listForSender
