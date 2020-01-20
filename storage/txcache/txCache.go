@@ -88,10 +88,12 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.forEachSender(func(key string, txList *txListForSender) {
+		// TODO-TXCACHE: batchSizePerSender * current bin.
+		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.lastComputedScore+1)
 			// Reset happens on first pass only
 			shouldResetCopy := pass == 0
-			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizePerSender)
+			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizeWithScoreCoefficient)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied

@@ -7,6 +7,7 @@ func (listForSender *txListForSender) GetKey() string {
 
 // ComputeScore computes the score of the sender, as an integer 0-100
 func (listForSender *txListForSender) ComputeScore() uint32 {
+	listForSender.lastComputedScore = uint32(0)
 	return 0
 }
 
