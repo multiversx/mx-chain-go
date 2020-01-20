@@ -285,7 +285,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.MetaBlocks(), vs.marshalizer, vs.storageService)
+	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		return nil, err
 	}
@@ -649,7 +649,7 @@ func (vs *validatorStatistics) loadMissingPrevShardDataFromStorage(missingPrevio
 			break
 		}
 
-		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), vs.dataPool.MetaBlocks(), vs.marshalizer, vs.storageService)
+		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 		if err != nil {
 			return nil, err
 		}
@@ -684,7 +684,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 
 		previousHeader, err := process.GetShardHeader(
 			shardData.PrevHash,
-			metaDataPool.ShardHeaders(),
+			metaDataPool.Headers(),
 			vs.marshalizer,
 			vs.storageService,
 		)

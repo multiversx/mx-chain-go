@@ -319,10 +319,9 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(45)
-	value := big.NewInt(2)
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   nonce,
-		Value:   value,
+		Value:   big.NewInt(2),
 		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
@@ -340,7 +339,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
-	assert.Equal(t, value, txi.TotalValue())
+	assert.Equal(t, big.NewInt(0), txi.Fee())
 	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
 }
 

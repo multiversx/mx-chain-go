@@ -81,7 +81,6 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-
 	randSeed := header.GetPrevRandSeed()
 	bitmap := header.GetPubKeysBitmap()
 	if len(bitmap) == 0 {
