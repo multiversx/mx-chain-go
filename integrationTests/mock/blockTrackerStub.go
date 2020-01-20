@@ -128,7 +128,11 @@ func (bts *BlockTrackerStub) GetTrackedHeadersWithNonce(shardID uint32, nonce ui
 }
 
 func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
-	return bts.IsShardStuckCalled(shardId)
+	if bts.IsShardStuckCalled != nil {
+		return bts.IsShardStuckCalled(shardId)
+	}
+
+	return false
 }
 
 func (bts *BlockTrackerStub) RegisterCrossNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {

@@ -153,3 +153,6 @@ var ErrInvalidChainID = errors.New("invalid chain ID in Node")
 
 // ErrNilBlockTracker signals that a nil block tracker has been provided
 var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
+
+// ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
+var ErrNilPendingMiniBlocksHandler = errors.New("trying to set nil pending miniblocks handler")
