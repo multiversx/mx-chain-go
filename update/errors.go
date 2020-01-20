@@ -59,4 +59,5 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
 
+// ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil white list handler")
