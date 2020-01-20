@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"testing"
@@ -9,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -250,62 +248,6 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 
-func Test_AddWithEviction_SizeAndCount(t *testing.T) {
-	config := EvictionConfig{
-		Enabled:                    true,
-		NumBytesThreshold:          200000,
-		CountThreshold:             500,
-		NumSendersToEvictInOneStep: 1,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-
-	// Alice sends 201 transactions of 1000 bytes, with gas price 15
-	for i := 0; i < 201; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("alice-%d", i)), createTxWithGas("alice", uint64(i), 1000, 15))
-	}
-
-	require.Equal(t, int64(201*1000), cache.VolumeInBytes())
-	require.Equal(t, int64(201000), cache.VolumeInBytes())
-
-	// Alice sends another transaction
-	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("alice-foo")), createTxWithGas("alice", uint64(201), 1000, 15))
-
-	// Only latest Alice's transaction remains in cache
-	require.Equal(t, int64(1), cache.CountTx())
-	require.Equal(t, int64(1), cache.countTxBySender("alice"))
-	require.Equal(t, int64(1000), cache.VolumeInBytes())
-
-	// Bob and Carol send transactions, with different gas price
-	for i := 0; i < 100; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("bob-%d", i)), createTxWithGas("bob", uint64(i), 1000, 30))
-	}
-
-	for i := 0; i < 100; i++ {
-		cache.AddTx([]byte(fmt.Sprintf("carol-%d", i)), createTxWithGas("carol", uint64(i), 1000, 20))
-	}
-
-	// 100 from Bob, 100 from Carol, one from Alice
-	require.Equal(t, int64(1), cache.countTxBySender("alice"))
-	require.Equal(t, int64(100), cache.countTxBySender("bob"))
-	require.Equal(t, int64(100), cache.countTxBySender("carol"))
-	require.Equal(t, int64(3), cache.CountSenders())
-	require.Equal(t, int64(201000), cache.VolumeInBytes())
-
-	// Carol sends another transaction
-	// This transaction will cause eviction
-	cache.AddTx([]byte(fmt.Sprintf("carol-foo")), createTxWithGas("carol", uint64(100), 1000, 15))
-
-	// All other transactions (from Alice and Carol) are still in place
-	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
-	require.Equal(t, int64(1), cache.countTxBySender("alice"))
-	require.Equal(t, int64(0), cache.countTxBySender("bob"))
-	require.Equal(t, int64(101), cache.countTxBySender("carol"))
-	require.Equal(t, int64(2), cache.CountSenders())
-	require.Equal(t, int64(102000), cache.VolumeInBytes())
-}
-
 func Test_NotImplementedFunctions(t *testing.T) {
 	cache := NewTxCache(1)
 
@@ -334,58 +276,4 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 	thisIsNil := makeNil()
 	require.True(t, check.IfNil(thisIsNil))
-}
-
-func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
-	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		sender := createFakeSenderAddress(senderTag)
-
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := createFakeTxHash(sender, txNonce)
-			tx := createTx(string(sender), uint64(txNonce))
-			cache.AddTx([]byte(txHash), tx)
-		}
-	}
-}
-
-func createTx(sender string, nonce uint64) *transaction.Transaction {
-	return &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
-	}
-}
-
-func createTxWithData(sender string, nonce uint64, dataLength uint64) *transaction.Transaction {
-	payloadLength := int(dataLength) - int(estimatedSizeOfBoundedTxFields)
-	if payloadLength < 0 {
-		panic("createTxWithData(): invalid length for dummy tx")
-	}
-
-	return &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
-		Data:    make([]byte, payloadLength),
-	}
-}
-
-func createTxWithGas(sender string, nonce uint64, dataLength uint64, gasLimit uint64) *transaction.Transaction {
-	tx := createTxWithData(sender, nonce, dataLength)
-	tx.GasPrice = 1
-	tx.GasLimit = gasLimit
-	return tx
-}
-
-func createFakeSenderAddress(senderTag int) []byte {
-	bytes := make([]byte, 32)
-	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
-	binary.LittleEndian.PutUint64(bytes[24:], uint64(senderTag))
-	return bytes
-}
-
-func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
-	bytes := make([]byte, 32)
-	copy(bytes, fakeSenderAddress)
-	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
-	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
-	return bytes
 }
