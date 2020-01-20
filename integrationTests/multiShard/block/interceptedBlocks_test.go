@@ -154,14 +154,14 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-			n.ShardDataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
+			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.MetaDataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
-	node1Shard0.ShardDataPool.Headers().Clear()
-	node1Shard0.ShardDataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
+	node4Meta.DataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node1Shard0.DataPool.Headers().Clear()
+	node1Shard0.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		chanReceived <- struct{}{}
 	})
 
@@ -180,7 +180,7 @@ func requestAndRetrieveMetaHeader(
 ) *block.MetaBlock {
 
 	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
-	_ = resolver.RequestDataFromHash(hash)
+	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {
 	case <-chanReceived:
@@ -188,7 +188,7 @@ func requestAndRetrieveMetaHeader(
 		return nil
 	}
 
-	retrievedObject, _ := node.ShardDataPool.Headers().GetHeaderByHash(hash)
+	retrievedObject, _ := node.DataPool.Headers().GetHeaderByHash(hash)
 
 	return retrievedObject.(*block.MetaBlock)
 }

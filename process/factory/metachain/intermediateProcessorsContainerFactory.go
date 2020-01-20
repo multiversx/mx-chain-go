@@ -18,7 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
 	store            dataRetriever.StorageService
-	poolsHolder      dataRetriever.MetaPoolsHolder
+	poolsHolder      dataRetriever.PoolsHolder
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -28,7 +28,7 @@ func NewIntermediateProcessorsContainerFactory(
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
 	store dataRetriever.StorageService,
-	poolsHolder dataRetriever.MetaPoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {

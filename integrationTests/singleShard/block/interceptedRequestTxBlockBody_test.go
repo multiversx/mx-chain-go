@@ -65,14 +65,14 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	txBlockBodyHash := hasher.Compute(string(txBlockBodyBuff))
 
 	//Step 2. resolver has the tx block body
-	nResolver.ShardDataPool.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
+	nResolver.DataPool.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
 	fmt.Printf("Added %s to dPoolResolver\n", base64.StdEncoding.EncodeToString(txBlockBodyHash))
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	nRequester.ShardDataPool.MiniBlocks().RegisterHandler(func(key []byte) {
-		txBlockBodyStored, _ := nRequester.ShardDataPool.MiniBlocks().Get(key)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte) {
+		txBlockBodyStored, _ := nRequester.DataPool.MiniBlocks().Get(key)
 
 		if reflect.DeepEqual(txBlockBodyStored, miniBlock) {
 			chanDone <- true
@@ -86,7 +86,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	txBlockBodyRequester, _ := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	miniBlockRequester := txBlockBodyRequester.(dataRetriever.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
-	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes)
+	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes, 0)
 
 	select {
 	case <-chanDone:

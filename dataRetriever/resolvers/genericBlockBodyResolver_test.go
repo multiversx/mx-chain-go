@@ -231,7 +231,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		wasResolved = true
 		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
 		return mb, nil
@@ -276,7 +276,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		return nil, errors.New("key not found")
 	}
 
@@ -321,6 +321,6 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasCalled)
 }

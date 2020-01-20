@@ -96,7 +96,6 @@ type Node struct {
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
-	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
@@ -448,6 +447,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.messenger,
 		n.bootStorer,
 		shardStorageBootstrapper,
+		n.epochStartTrigger,
 		n.requestedItemsHandler,
 	)
 	if err != nil {
@@ -478,7 +478,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(
-		n.metaDataPool,
+		n.dataPool,
 		n.store,
 		n.blkc,
 		rounder,
@@ -495,6 +495,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.bootStorer,
 		metaStorageBootstrapper,
 		n.requestedItemsHandler,
+		n.epochStartTrigger,
 		n.epochStartTrigger,
 	)
 

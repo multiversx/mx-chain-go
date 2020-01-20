@@ -26,7 +26,6 @@ const maxCleanTime = time.Second
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool          dataRetriever.PoolsHolder
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
@@ -81,6 +80,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		bootStorer:                   arguments.BootStorer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -90,7 +90,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp := shardProcessor{
 		core:                   arguments.Core,
 		baseProcessor:          base,
-		dataPool:               arguments.DataPool,
 		txCounter:              NewTransactionCounter(),
 		txsPoolsCleaner:        arguments.TxsPoolsCleaner,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
@@ -145,6 +144,8 @@ func (sp *shardProcessor) ProcessBlock(
 
 		return err
 	}
+
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Trace("started processing block",
 		"round", headerHandler.GetRound(),
@@ -646,6 +647,8 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
+
+	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }

@@ -26,7 +26,6 @@ import (
 type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
-	dataPool          dataRetriever.MetaPoolsHolder
 	scDataGetter      external.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
@@ -89,12 +88,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rounder:                      arguments.Rounder,
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
 	}
 
 	mp := metaProcessor{
 		core:              arguments.Core,
 		baseProcessor:     base,
-		dataPool:          arguments.DataPool,
 		headersCounter:    NewHeaderCounter(),
 		scDataGetter:      arguments.SCDataGetter,
 		peerChanges:       arguments.PeerChangesHandler,
@@ -144,6 +143,8 @@ func (mp *metaProcessor) ProcessBlock(
 
 		return err
 	}
+
+	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Trace("started processing block",
 		"round", headerHandler.GetRound(),
@@ -559,6 +560,8 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	if err != nil {
 		return nil, err
 	}
+
+	mp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }
