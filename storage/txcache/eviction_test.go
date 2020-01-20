@@ -82,23 +82,6 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-// TODO-TXCACHE: perhaps remove test?
-func Test_EvictSendersWhileTooManyTxs_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
-	config := EvictionConfig{
-		CountThreshold:             0,
-		NumSendersToEvictInOneStep: 42,
-	}
-
-	cache := NewTxCacheWithEviction(1, config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
-
-	// Eviction done in 1 step, since "NumSendersToEvictInOneStep" > number of senders
-	steps, nTxs, nSenders := cache.evictSendersInLoop()
-	require.Equal(t, uint32(1), steps)
-	require.Equal(t, uint32(1), nTxs)
-	require.Equal(t, uint32(1), nSenders)
-}
-
 func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
@@ -113,7 +96,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx([]byte{byte(index)}, createTxWithData(sender, uint64(1), uint64(numBytesPerTx)))
+		cache.AddTx([]byte{byte(index)}, createTxWithParams(sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneTrilion))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -130,15 +113,15 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	config := EvictionConfig{
-		NumBytesThreshold:          40960,
+		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             2,
 		NumSendersToEvictInOneStep: 2,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
-	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
-	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
+	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 1000, 100000, 100*oneTrilion))
+	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 1000, 100000, 100*oneTrilion))
+	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 1000, 100000, 700*oneTrilion))
 
 	cache.doEviction()
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
@@ -157,20 +140,25 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             math.MaxUint32,
-		NumBytesThreshold:          1500,
+		NumBytesThreshold:          1000,
 		NumSendersToEvictInOneStep: 2,
 	}
 
 	cache := NewTxCacheWithEviction(16, config)
-	cache.AddTx([]byte("hash-alice"), createTxWithGas("alice", uint64(1), 800, 8))
-	cache.AddTx([]byte("hash-bob"), createTxWithGas("bob", uint64(1), 400, 4))
-	cache.AddTx([]byte("hash-carol"), createTxWithGas("carol", uint64(1), 500, 5))
+	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 800, 100000, 100*oneTrilion))
+	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 500, 100000, 100*oneTrilion))
+	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 200, 100000, 700*oneTrilion))
+
+	require.InDelta(t, float64(19.50394606), cache.getRawScoreOfSender("alice"), delta)
+	require.InDelta(t, float64(23.68494667), cache.getRawScoreOfSender("bob"), delta)
+	require.InDelta(t, float64(100), cache.getRawScoreOfSender("carol"), delta)
 
 	cache.doEviction()
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumTxs)
+	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumSenders)
+	require.Equal(t, uint32(1), cache.evictionJournal.passTwoNumSteps)
 
 	// Alice and Bob evicted (lower score). Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
