@@ -169,8 +169,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",

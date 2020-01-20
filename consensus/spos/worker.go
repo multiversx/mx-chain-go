@@ -47,8 +47,8 @@ type Worker struct {
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 
-	mapHashConsensusMessage map[string][]*consensus.Message
-	mutHashConsensusMessage sync.RWMutex
+	mapDisplayHashConsensusMessage map[string][]*consensus.Message
+	mutDisplayHashConsensusMessage sync.RWMutex
 
 	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
 	mutReceivedHeadersHandler sync.RWMutex
@@ -120,7 +120,7 @@ func NewWorker(
 
 	go wrk.checkChannels()
 
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 
 	return &wrk, nil
 }
@@ -358,10 +358,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.mutHashConsensusMessage.Lock()
+		wrk.mutDisplayHashConsensusMessage.Lock()
 		hash := string(cnsDta.BlockHeaderHash)
-		wrk.mapHashConsensusMessage[hash] = append(wrk.mapHashConsensusMessage[hash], cnsDta)
-		wrk.mutHashConsensusMessage.Unlock()
+		wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsDta)
+		wrk.mutDisplayHashConsensusMessage.Unlock()
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -519,8 +519,8 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 }
 
 func (wrk *Worker) DisplayStatistics() {
-	wrk.mutHashConsensusMessage.Lock()
-	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
+	wrk.mutDisplayHashConsensusMessage.Lock()
+	for hash, consensusMessages := range wrk.mapDisplayHashConsensusMessage {
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
 			"sigs num", len(consensusMessages),
@@ -533,9 +533,9 @@ func (wrk *Worker) DisplayStatistics() {
 
 	}
 
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 
-	wrk.mutHashConsensusMessage.Unlock()
+	wrk.mutDisplayHashConsensusMessage.Unlock()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

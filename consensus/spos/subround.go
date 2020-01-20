@@ -113,8 +113,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 
-	startTime := time.Time{}
-	startTime = rounder.TimeStamp()
+	startTime := rounder.TimeStamp()
 	maxTime := rounder.TimeDuration() * MaxThresholdPercent / 100
 
 	sr.Job()
