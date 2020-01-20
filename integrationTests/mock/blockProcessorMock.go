@@ -29,7 +29,6 @@ type BlockProcessorMock struct {
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 	ValidatorStatisticsProcessorCalled      func() process.ValidatorStatisticsProcessor
-	ApplyValidatorStatisticsCalled          func(header data.HeaderHandler) error
 }
 
 func (blProcMock *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
@@ -135,13 +134,6 @@ func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round u
 func (blProcMock BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorStatisticsProcessor {
 	if blProcMock.ValidatorStatisticsProcessorCalled != nil {
 		return blProcMock.ValidatorStatisticsProcessorCalled()
-	}
-	return nil
-}
-
-func (blProcMock BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	if blProcMock.ApplyValidatorStatisticsCalled != nil {
-		return blProcMock.ApplyValidatorStatisticsCalled(header)
 	}
 	return nil
 }

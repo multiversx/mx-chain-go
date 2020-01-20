@@ -1013,6 +1013,20 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
+func (mp *metaProcessor) commitAll() error {
+	_, err := mp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = mp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (mp *metaProcessor) getLastSelfNotarizedHeaderForShard(shardID uint32) (data.HeaderHandler, []byte) {
 	//TODO: Implement mechanism to extract last meta header notarized by the given shard if this info will be needed later
 	return nil, nil
@@ -1044,6 +1058,31 @@ func (mp *metaProcessor) RevertAccountState() {
 	if err != nil {
 		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
 	}
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"hash", header.GetRootHash(),
+		)
+
+		return err
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", header.GetValidatorStatsRootHash(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
@@ -1523,6 +1562,13 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
+	sw.Start("UpdatePeerState")
+	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
+	sw.Stop("UpdatePeerState")
+	if err != nil {
+		return nil, err
+	}
+
 	sw.Start("createEpochStartForMetablock")
 	epochStart, err := mp.createEpochStartForMetablock()
 	sw.Stop("createEpochStartForMetablock")
@@ -1538,25 +1584,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	return body, nil
 }
 
-// ApplyValidatorStatistics calculates the new statistics root hash and updates the metachain header with the new value
-func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	vrh, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
-	if err != nil {
-		return err
-	}
-
-	header.SetValidatorStatsRootHash(vrh)
-
-	return nil
-}
-
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
-	// If PubKeysBitmap this method is called from process in consensus before the bitmap is actually added
-	//  to the header, thus we cannot update the peer state yet
-	if header.PubKeysBitmap == nil {
-		return nil
-	}
-
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
 		return err
@@ -1567,8 +1595,12 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 			"computed", validatorStatsRH,
 			"received", header.GetValidatorStatsRootHash(),
 		)
-		err = process.ErrValidatorStatsRootHashDoesNotMatch
-		return err
+		return fmt.Errorf("%s, metachain, computed: %s, received: %s, meta header nonce: %d",
+			process.ErrValidatorStatsRootHashDoesNotMatch,
+			display.DisplayByteSlice(validatorStatsRH),
+			display.DisplayByteSlice(header.GetValidatorStatsRootHash()),
+			header.Nonce,
+		)
 	}
 
 	return nil

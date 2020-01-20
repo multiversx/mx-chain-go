@@ -87,12 +87,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
 
-	err = sr.BlockProcessor().ApplyValidatorStatistics(sr.Header)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
 	// Header is complete so the leader can sign it
 	leaderSignature, err := sr.signBlockHeader()
 	if err != nil {

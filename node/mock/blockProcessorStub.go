@@ -26,7 +26,6 @@ type BlockProcessorStub struct {
 	CreateNewHeaderCalled              func() data.HeaderHandler
 	RevertStateToBlockCalled           func(header data.HeaderHandler) error
 	ValidatorStatisticsProcessorCalled func() process.ValidatorStatisticsProcessor
-	ApplyValidatorStatisticsCalled     func(header data.HeaderHandler) error
 }
 
 func (blProcMock *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
@@ -113,14 +112,6 @@ func (bpm BlockProcessorStub) ValidatorStatisticsProcessor() process.ValidatorSt
 	}
 	return nil
 }
-
-func (bpm BlockProcessorStub) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	if bpm.ApplyValidatorStatisticsCalled != nil {
-		return bpm.ApplyValidatorStatisticsCalled(header)
-	}
-	return nil
-}
-
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {

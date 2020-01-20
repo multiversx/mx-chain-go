@@ -26,7 +26,6 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled              func() data.HeaderHandler
 	RevertStateToBlockCalled           func(header data.HeaderHandler) error
 	ValidatorStatisticsProcessorCalled func() process.ValidatorStatisticsProcessor
-	ApplyValidatorStatisticsCalled     func(header data.HeaderHandler) error
 }
 
 func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
@@ -107,14 +106,6 @@ func (bpm BlockProcessorMock) ValidatorStatisticsProcessor() process.ValidatorSt
 	}
 	return nil
 }
-
-func (bpm BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	if bpm.ApplyValidatorStatisticsCalled != nil {
-		return bpm.ApplyValidatorStatisticsCalled(header)
-	}
-	return nil
-}
-
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
