@@ -502,7 +502,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	assert.Equal(t, validator4, list2[5])
 }
 
-func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For1000BlocksNoMemoization(t *testing.T) {
+func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10locksNoMemoization(t *testing.T) {
 	consensusGroupSize := 400
 	list := make([]sharding.Validator, 0)
 
@@ -540,7 +540,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For1000BlocksNoM
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	miniBlocks := 100
+	miniBlocks := 10
 
 	for i := 0; i < miniBlocks; i++ {
 		for j := 0; j <= i; j++ {
@@ -557,7 +557,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For1000BlocksNoM
 	assert.Equal(t, computationNr, putCounter)
 }
 
-func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For1000BlocksMemoization(t *testing.T) {
+func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10BlocksMemoization(t *testing.T) {
 	consensusGroupSize := 400
 	list := make([]sharding.Validator, 0)
 
@@ -604,7 +604,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For1000BlocksMem
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
-	miniBlocks := 100
+	miniBlocks := 10
 
 	for i := 0; i < miniBlocks; i++ {
 		for j := 0; j <= i; j++ {
@@ -658,7 +658,54 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400RecomputeEve
 	list := make([]sharding.Validator, 0)
 
 	//generate 400 validators
-	for i := 0; i < 68; i++ {
+	for i := 0; i < 400; i++ {
+		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
+	}
+
+	nodesMap := make(map[uint32][]sharding.Validator)
+	nodesMap[0] = list
+
+	consensusGroupCache, _ := lrucache.NewCache(10000)
+
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: consensusGroupSize,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		NbShards:                1,
+		Nodes:                   nodesMap,
+		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     consensusGroupCache,
+	}
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
+
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+
+	fmt.Println(m.HeapAlloc)
+
+	//missedBlocks := 1000
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		randomness := strconv.Itoa(i)
+		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(i), 0)
+		assert.Equal(b, consensusGroupSize, len(list2))
+	}
+
+	m2 := runtime.MemStats{}
+
+	runtime.ReadMemStats(&m2)
+
+	fmt.Println(m2.HeapAlloc)
+	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+}
+
+func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup400of400RecomputeEveryGroup(b *testing.B) {
+	consensusGroupSize := 400
+	list := make([]sharding.Validator, 0)
+
+	//generate 400 validators
+	for i := 0; i < 400; i++ {
 		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
 	}
 

@@ -89,7 +89,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 				},
 			},
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool: tdp,
+			DataPool:     tdp,
 		},
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

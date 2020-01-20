@@ -178,15 +178,6 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
 
-	//b.ResetTimer()
-	//
-	//for i := 0; i < b.N; i++ {
-	//	randomness := strconv.Itoa(i)
-	//	list2, _ := ihgsRater.ComputeValidatorsGroup([]byte(randomness), uint64(i), 0)
-	//
-	//	assert.Equal(b, consensusGroupSize, len(list2))
-	//}
-
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
