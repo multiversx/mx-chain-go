@@ -44,11 +44,8 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 
 // SyncAllState gets an epoch number and will sync the complete data for that epoch start metablock
 func (ss *syncState) SyncAllState(epoch uint32) error {
-	if epoch == ss.syncingEpoch {
-		return nil
-	}
-	ss.syncingEpoch = epoch
 
+	ss.syncingEpoch = epoch
 	meta, err := ss.headers.SyncEpochStartMetaHeader(epoch, time.Minute)
 	if err != nil {
 		return err
