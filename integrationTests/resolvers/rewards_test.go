@@ -19,10 +19,10 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingSameShard(t *testing
 	reward, hash := createReward(headerNonce, shardId)
 
 	//add reward with round 0 in pool
-	nResolver.ShardDataPool.RewardTransactions().AddData(hash, reward, "cache")
+	nResolver.DataPool.RewardTransactions().AddData(hash, reward, "cache")
 
 	//setup header received event
-	nRequester.ShardDataPool.RewardTransactions().RegisterHandler(
+	nRequester.DataPool.RewardTransactions().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received reward tx", "hash", key)
@@ -34,7 +34,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingSameShard(t *testing
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -53,10 +53,10 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	reward, hash := createReward(headerNonce, shardIdRequester)
 
 	//add reward with round 0 in pool
-	nResolver.ShardDataPool.RewardTransactions().AddData(hash, reward, "cache")
+	nResolver.DataPool.RewardTransactions().AddData(hash, reward, "cache")
 
 	//setup header received event
-	nRequester.ShardDataPool.RewardTransactions().RegisterHandler(
+	nRequester.DataPool.RewardTransactions().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received reward tx", "hash", key)
@@ -68,7 +68,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, shardIdResolver)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()

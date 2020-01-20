@@ -260,17 +260,6 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
-// WithMetaDataPool sets up the data pools option for the Node
-func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
-	return func(n *Node) error {
-		if dataPool == nil || dataPool.IsInterfaceNil() {
-			return ErrNilDataPool
-		}
-		n.metaDataPool = dataPool
-		return nil
-	}
-}
-
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
@@ -520,6 +509,17 @@ func WithBlockTracker(blockTracker process.BlockTracker) Option {
 			return ErrNilBlockTracker
 		}
 		n.blockTracker = blockTracker
+		return nil
+	}
+}
+
+// WithPendingMiniBlocks sets up the pending miniblocks for the Node
+func WithPendingMiniBlocks(pendingMiniBlocks process.PendingMiniBlocksHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(pendingMiniBlocks) {
+			return ErrNilPendingMiniBlocksHandler
+		}
+		n.pendingMiniBlocks = pendingMiniBlocks
 		return nil
 	}
 }

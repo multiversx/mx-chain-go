@@ -61,6 +61,7 @@ type baseBootstrap struct {
 	rounder           consensus.Rounder
 	hasher            hashing.Hasher
 	marshalizer       marshal.Marshalizer
+	epochHandler      dataRetriever.EpochHandler
 	forkDetector      process.ForkDetector
 	shardCoordinator  sharding.Coordinator
 	accounts          state.AccountsAdapter
@@ -418,7 +419,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
 		if !haveHeader {
-			err := hdrRes.RequestDataFromNonce(currentNonce)
+			err := hdrRes.RequestDataFromNonce(currentNonce, boot.epochHandler.Epoch())
 			if err != nil {
 				log.Debug("RequestDataFromNonce", "error", err.Error())
 				continue
@@ -841,7 +842,7 @@ func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
 // requestMiniBlocksByHashes method requests a block body from network when it is not found in the pool
 func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
-	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
+	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromHashArray", "error", err.Error())
 		return

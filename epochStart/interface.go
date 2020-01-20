@@ -29,6 +29,8 @@ type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
+	GetNumPendingMiniBlocksForShard(shardID uint32) uint32
+	SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32)
 	IsInterfaceNil() bool
 }
 

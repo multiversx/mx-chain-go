@@ -105,14 +105,14 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	_, hdr, _ := nodes[0].ProposeBlock(1, 1)
 	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
-	nodes[0].ShardDataPool.Headers().AddHeader(shardHeaderHash, hdr)
+	nodes[0].DataPool.Headers().AddHeader(shardHeaderHash, hdr)
 
 	maxNumRequests := 5
 	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
 			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, senderShard)
 			assert.Nil(t, err)
-			_ = resolver.RequestDataFromHash(shardHeaderHash)
+			_ = resolver.RequestDataFromHash(shardHeaderHash, 0)
 		}
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -130,13 +130,13 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
+		nodes[i+1].DataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.RequestDataFromHash(metaHeaderHash)
+		_ = resolver.RequestDataFromHash(metaHeaderHash, 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
@@ -154,13 +154,13 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
 	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.Headers().AddHeader(metaHeaderHash2, metaHdr2)
+		nodes[i+1].DataPool.Headers().AddHeader(metaHeaderHash2, metaHdr2)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
+		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce(), 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 

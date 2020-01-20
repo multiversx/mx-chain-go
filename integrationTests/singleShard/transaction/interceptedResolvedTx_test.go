@@ -77,8 +77,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := nRequester.ShardDataPool.Transactions().ShardDataStore(
+	nRequester.DataPool.Transactions().RegisterHandler(func(key []byte) {
+		txStored, _ := nRequester.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
@@ -91,7 +91,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	nResolver.ShardDataPool.Transactions().AddData(
+	nResolver.DataPool.Transactions().AddData(
 		txHash,
 		&tx,
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
@@ -99,7 +99,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request tx
 	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
-	err = txResolver.RequestDataFromHash(txHash)
+	err = txResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {
@@ -157,8 +157,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	txHash := integrationTests.TestHasher.Compute(string(marshaledTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.ShardDataPool.RewardTransactions().RegisterHandler(func(key []byte) {
-		rewardTxStored, _ := nRequester.ShardDataPool.RewardTransactions().ShardDataStore(
+	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
+		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
@@ -171,7 +171,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	nResolver.ShardDataPool.RewardTransactions().AddData(
+	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
@@ -179,7 +179,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request tx
 	rewardTxResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.RewardsTransactionTopic)
-	err = rewardTxResolver.RequestDataFromHash(txHash)
+	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {

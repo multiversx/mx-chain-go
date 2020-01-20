@@ -336,7 +336,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	sw.Start("checkForMissedBlocks")
 	defer func() {
 		sw.Stop("checkForMissedBlocks")
-		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
+		log.Trace("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
@@ -657,11 +657,6 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 	vs.mutPrevShardInfo.Lock()
 	defer vs.mutPrevShardInfo.Unlock()
 
-	metaDataPool, ok := vs.dataPool.(dataRetriever.MetaPoolsHolder)
-	if !ok {
-		return process.ErrInvalidMetaPoolHolder
-	}
-
 	for _, shardData := range header.ShardInfo {
 		if shardData.Nonce == 1 {
 			continue
@@ -669,7 +664,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 
 		previousHeader, err := process.GetShardHeader(
 			shardData.PrevHash,
-			metaDataPool.Headers(),
+			vs.dataPool.Headers(),
 			vs.marshalizer,
 			vs.storageService,
 		)

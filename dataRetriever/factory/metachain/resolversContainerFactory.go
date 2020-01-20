@@ -4,6 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -21,11 +23,11 @@ type resolversContainerFactory struct {
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.MetaPoolsHolder
+	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
-	trieDataGetter           dataRetriever.TrieDataGetter
+	triesContainer           state.TriesHolder
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -34,10 +36,10 @@ func NewResolversContainerFactory(
 	messenger dataRetriever.TopicMessageHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.MetaPoolsHolder,
+	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
-	trieDataGetter dataRetriever.TrieDataGetter,
+	triesContainer state.TriesHolder,
 	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
@@ -65,7 +67,7 @@ func NewResolversContainerFactory(
 	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
-	if trieDataGetter == nil || trieDataGetter.IsInterfaceNil() {
+	if check.IfNil(triesContainer) {
 		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
@@ -78,7 +80,7 @@ func NewResolversContainerFactory(
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
-		trieDataGetter:           trieDataGetter,
+		triesContainer:           triesContainer,
 	}, nil
 }
 
@@ -455,17 +457,51 @@ func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	keys := make([]string, 0)
+	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+
+		identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+	}
+
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return []string{identifierTrieNodes}, []dataRetriever.Resolver{resolver}, nil
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, err
@@ -483,9 +519,10 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dat
 		return nil, err
 	}
 
+	trie := rcf.triesContainer.Get([]byte(trieId))
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
-		rcf.trieDataGetter,
+		trie,
 		rcf.marshalizer,
 	)
 	if err != nil {

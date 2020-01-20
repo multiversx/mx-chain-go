@@ -174,7 +174,7 @@ func generateTransferTxs(
 func addTxsInDataPool(proposer *integrationTests.TestProcessorNode, txs []data.TransactionHandler, hashes [][]byte) {
 	shardId := proposer.ShardCoordinator.SelfId()
 	cacherIdentifier := process.ShardCacherIdentifier(shardId, shardId)
-	txCache := proposer.ShardDataPool.Transactions()
+	txCache := proposer.DataPool.Transactions()
 
 	for i := 0; i < len(txs); i++ {
 		txCache.AddData(hashes[i], txs[i], cacherIdentifier)
@@ -207,7 +207,7 @@ func testSameBlockHeight(t *testing.T, nodes []*integrationTests.TestProcessorNo
 }
 
 func testTxHashNotPresentInPool(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte) {
-	txCache := proposer.ShardDataPool.Transactions()
+	txCache := proposer.DataPool.Transactions()
 	_, ok := txCache.SearchFirstData(hash)
 	assert.False(t, ok)
 }
