@@ -76,7 +76,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestMarshalizer,
 		TestHasher,
 		TestUint64Converter,
-		tpn.MetaDataPool,
+		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)

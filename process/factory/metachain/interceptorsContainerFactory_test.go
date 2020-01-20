@@ -47,8 +47,8 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 	}
 }
 
-func createDataPools() dataRetriever.MetaPoolsHolder {
-	pools := &mock.MetaPoolsHolderStub{
+func createDataPools() dataRetriever.PoolsHolder {
+	pools := &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
