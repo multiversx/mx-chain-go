@@ -89,7 +89,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 				},
 			},
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool: tdp,
+			DataPool:     tdp,
 		},
 
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -328,6 +328,6 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return mp.verifyCrossShardMiniBlockDstMe(header)
 }
 
-func (e *epochStartData) GetLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
-	return e.getLastFinalizedMetaHashForShard(shardHdr)
+func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
+	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
 }

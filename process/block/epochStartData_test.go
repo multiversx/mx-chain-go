@@ -56,7 +56,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGen
 	round := uint64(10)
 
 	shardHdr := &block.Header{Round: round}
-	last, lastFinal, shardHdrs, err := epoch.GetLastFinalizedMetaHashForShard(shardHdr)
+	last, lastFinal, shardHdrs, err := epoch.LastFinalizedFirstPendingListHeadersForShard(shardHdr)
 	assert.Nil(t, last)
 	assert.True(t, bytes.Equal(lastFinal, []byte(core.EpochStartIdentifier(0))))
 	assert.Equal(t, shardHdr, shardHdrs[0])
@@ -106,7 +106,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 		Nonce:           nonce,
 		MetaBlockHashes: [][]byte{mbHash1},
 	}
-	last, lastFinal, shardHdrs, err := epoch.GetLastFinalizedMetaHashForShard(shardHdr)
+	last, lastFinal, shardHdrs, err := epoch.LastFinalizedFirstPendingListHeadersForShard(shardHdr)
 	assert.NotNil(t, last)
 	assert.NotNil(t, lastFinal)
 	assert.NotNil(t, shardHdrs)
