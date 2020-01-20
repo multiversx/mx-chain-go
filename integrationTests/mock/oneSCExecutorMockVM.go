@@ -268,7 +268,7 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		Nonce:          destNonce,
 		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
-		StorageUpdates: makeStorageUpdatesMap(nil),
+		StorageUpdates: makeStorageUpdatesMap(),
 	}
 
 	return &vmcommon.VMOutput{
