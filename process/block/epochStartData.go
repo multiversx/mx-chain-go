@@ -17,7 +17,7 @@ type epochStartData struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
 	store             dataRetriever.StorageService
-	dataPool          dataRetriever.MetaPoolsHolder
+	dataPool          dataRetriever.PoolsHolder
 	blockTracker      process.BlockTracker
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
@@ -28,7 +28,7 @@ type ArgsNewEpochStartDataCreator struct {
 	Marshalizer       marshal.Marshalizer
 	Hasher            hashing.Hasher
 	Store             dataRetriever.StorageService
-	DataPool          dataRetriever.MetaPoolsHolder
+	DataPool          dataRetriever.PoolsHolder
 	BlockTracker      process.BlockTracker
 	ShardCoordinator  sharding.Coordinator
 	EpochStartTrigger process.EpochStartTriggerHandler
