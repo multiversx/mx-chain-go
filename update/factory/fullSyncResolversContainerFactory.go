@@ -23,6 +23,7 @@ type resolversContainerFactory struct {
 	dataTrieContainer state.TriesHolder
 }
 
+// ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator  sharding.Coordinator
 	Messenger         dataRetriever.TopicMessageHandler
@@ -58,7 +59,7 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
-	keys, resolverSlice, err := rcf.generateTrieNodesResolver()
+	keys, resolverSlice, err := rcf.generateTrieNodesResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +85,7 @@ func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 	return resolver, rcf.messenger.RegisterMessageProcessor(topicName, resolver)
 }
 
-func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) generateTrieNodesResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	keys := make([]string, 0)
@@ -106,7 +107,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	}
 
 	resolverSlice = append(resolverSlice, resolver)
-	trieId := genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.ValidatorAccount)
+	trieId := genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.UserAccount)
 	keys = append(keys, trieId)
 
 	resolver, err = rcf.createTrieNodesResolver(factory.ValidatorTrieNodesTopic, sharding.MetachainShardId)

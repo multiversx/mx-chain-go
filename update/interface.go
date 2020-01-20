@@ -66,7 +66,7 @@ type HistoryStorer interface {
 	IsInterfaceNil() bool
 }
 
-// MultiFileWriter writes the pushed data in several files in a buffered way
+// MultiFileWriter writes several files in a buffered manner
 type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
@@ -136,4 +136,10 @@ type PendingTransactionsSyncHandler interface {
 	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
 	IsInterfaceNil() bool
+}
+
+// DataWriter defines the methods to write data
+type DataWriter interface {
+	WriteString(s string) (int, error)
+	Flush() error
 }

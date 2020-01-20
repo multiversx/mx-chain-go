@@ -70,6 +70,27 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, data.ErrNilMarshalizer
 	}
+	if check.IfNil(args.HeaderValidator) {
+		return nil, process.ErrNilHeaderValidator
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return nil, process.ErrNilUint64Converter
+	}
+	if check.IfNil(args.DataPool) {
+		return nil, dataRetriever.ErrNilDataPoolHolder
+	}
+	if check.IfNil(args.StorageService) {
+		return nil, update.ErrNilStorage
+	}
+	if check.IfNil(args.RequestHandler) {
+		return nil, process.ErrNilRequestHandler
+	}
+	if check.IfNil(args.Messenger) {
+		return nil, process.ErrNilMessenger
+	}
+	if check.IfNil(args.ActiveTries) {
+		return nil, update.ErrNilActiveTries
+	}
 
 	e := &exportHandlerFactory{
 		marshalizer:              args.Marshalizer,
