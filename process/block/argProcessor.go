@@ -35,13 +35,13 @@ type ArgBaseProcessor struct {
 	Rounder                      consensus.Rounder
 	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
+	DataPool                     dataRetriever.PoolsHolder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
 	ArgBaseProcessor
-	DataPool               dataRetriever.PoolsHolder
 	TxsPoolsCleaner        process.PoolsCleaner
 	StateCheckpointModulus uint
 }

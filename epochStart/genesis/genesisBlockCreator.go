@@ -94,7 +94,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	MetaDatapool             dataRetriever.MetaPoolsHolder
+	DataPool                 dataRetriever.PoolsHolder
 	ValidatorStatsRootHash   []byte
 }
 
@@ -133,7 +133,7 @@ func CreateMetaGenesisBlock(
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
-	if check.IfNil(args.MetaDatapool) {
+	if check.IfNil(args.DataPool) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 
@@ -241,7 +241,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.Hasher,
 		args.AddrConv,
 		args.Store,
-		args.MetaDatapool,
+		args.DataPool,
 	)
 	if err != nil {
 		return nil, nil, err

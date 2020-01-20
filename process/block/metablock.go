@@ -26,7 +26,6 @@ import (
 type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
-	dataPool          dataRetriever.MetaPoolsHolder
 	scDataGetter      external.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
@@ -90,6 +89,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rounder:                      arguments.Rounder,
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
 	}
 	argsNewEpochStartDataCreator := ArgsNewEpochStartDataCreator{
 		Marshalizer:       arguments.Marshalizer,
@@ -108,7 +108,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp := metaProcessor{
 		core:              arguments.Core,
 		baseProcessor:     base,
-		dataPool:          arguments.DataPool,
 		headersCounter:    NewHeaderCounter(),
 		scDataGetter:      arguments.SCDataGetter,
 		peerChanges:       arguments.PeerChangesHandler,
