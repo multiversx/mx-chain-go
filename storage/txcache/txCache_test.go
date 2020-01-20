@@ -45,15 +45,6 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 	require.Nil(t, foundTx)
 }
 
-func Test_AddTx_IgnoresTx_IfEvictionInProgress(t *testing.T) {
-	cache := NewTxCache(1)
-
-	cache.isEvictionInProgress.Set()
-	ok, added := cache.AddTx([]byte("hash-1"), createTx("alice", 1))
-	require.False(t, ok)
-	require.False(t, added)
-}
-
 func Test_RemoveByTxHash(t *testing.T) {
 	cache := NewTxCache(16)
 

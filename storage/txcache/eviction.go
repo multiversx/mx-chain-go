@@ -17,6 +17,10 @@ type EvictionConfig struct {
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
 func (cache *TxCache) doEviction() {
+	if cache.isEvictionInProgress.IsSet() {
+		return
+	}
+
 	tooManyBytes := cache.areThereTooManyBytes()
 	tooManyTxs := cache.areThereTooManyTxs()
 	tooManySenders := cache.areThereTooManySenders()

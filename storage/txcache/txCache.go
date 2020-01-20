@@ -50,10 +50,6 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 		return
 	}
 
-	if cache.isEvictionInProgress.IsSet() {
-		return
-	}
-
 	if cache.evictionConfig.Enabled {
 		cache.doEviction()
 	}
