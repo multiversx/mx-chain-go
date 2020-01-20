@@ -16,6 +16,10 @@ func (listForSender *txListForSender) GetKey() string {
 	return listForSender.sender
 }
 
+func (listForSender *txListForSender) getLastComputedScore() uint32 {
+	return listForSender.lastComputedScore.Get()
+}
+
 // ComputeScore computes the score of the sender, as an integer 0-100
 func (listForSender *txListForSender) ComputeScore() uint32 {
 	fee := listForSender.totalFee.Get()
@@ -24,7 +28,7 @@ func (listForSender *txListForSender) ComputeScore() uint32 {
 	count := listForSender.countTx()
 
 	score := uint32(computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas}))
-	listForSender.lastComputedScore = score
+	listForSender.lastComputedScore.Set(score)
 	return score
 }
 

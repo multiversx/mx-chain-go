@@ -10,15 +10,15 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	items          *list.List
-	mutex          sync.Mutex
-	copyBatchIndex *list.Element
-	totalBytes     core.AtomicCounter
-	totalGas       core.AtomicCounter
-	totalFee       core.AtomicCounter
-	sender         string
-	scoreChunk     *MapChunk
-	lastComputedScore uint32
+	items             *list.List
+	mutex             sync.Mutex
+	copyBatchIndex    *list.Element
+	totalBytes        core.AtomicCounter
+	totalGas          core.AtomicCounter
+	totalFee          core.AtomicCounter
+	sender            string
+	scoreChunk        *MapChunk
+	lastComputedScore core.AtomicUint32
 }
 
 // txListForSenderNode is a node of the linked list

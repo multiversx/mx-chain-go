@@ -2,10 +2,11 @@ package core
 
 import "sync/atomic"
 
-// TODO-TXCACHE: add version for uint64
-
 // AtomicCounter is an atomic counter
 type AtomicCounter int64
+
+// AtomicUint32 is a wrapper for atomic operations on uint32
+type AtomicUint32 uint32
 
 // Set sets counter
 func (counter *AtomicCounter) Set(value int64) {
@@ -35,4 +36,14 @@ func (counter *AtomicCounter) Subtract(value int64) int64 {
 // Get gets counter
 func (counter *AtomicCounter) Get() int64 {
 	return atomic.LoadInt64((*int64)(counter))
+}
+
+// Set sets the value
+func (variable *AtomicUint32) Set(value uint32) {
+	atomic.StoreUint32((*uint32)(variable), value)
+}
+
+// Get gets the value
+func (variable *AtomicUint32) Get() uint32 {
+	return atomic.LoadUint32((*uint32)(variable))
 }

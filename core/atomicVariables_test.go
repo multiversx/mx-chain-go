@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIncrementAndDecrement(t *testing.T) {
+func TestAtomicCounter_IncrementAndDecrement(t *testing.T) {
 	var counter core.AtomicCounter
 	var wg sync.WaitGroup
 
