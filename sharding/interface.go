@@ -95,3 +95,11 @@ type RatingReaderSetter interface {
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
+
+//NodesCoordinatorCache provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
+type NodesCoordinatorCache interface {
+	// Put adds a value to the cache.  Returns true if an eviction occurred.
+	Put(key []byte, value interface{}) (evicted bool)
+	// Get looks up a key's value from the cache.
+	Get(key []byte) (value interface{}, ok bool)
+}

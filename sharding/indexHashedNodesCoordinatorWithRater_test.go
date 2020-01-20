@@ -348,7 +348,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 	m := runtime.MemStats{}
 	runtime.ReadMemStats(&m)
 
-	fmt.Println(m.TotalAlloc)
+	fmt.Println(m.HeapAlloc)
 
 	nrNodes := 40000
 	ratingSteps := 100
@@ -366,8 +366,8 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 
 	runtime.ReadMemStats(&m2)
 
-	fmt.Println(m2.TotalAlloc)
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.TotalAlloc-m.TotalAlloc)/1024/1024))
+	fmt.Println(m2.HeapAlloc)
+	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
 	//fmt.Print(array[0:100])
 }
 

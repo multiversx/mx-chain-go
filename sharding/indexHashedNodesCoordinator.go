@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -25,7 +24,7 @@ type indexHashedNodesCoordinator struct {
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
-	consensusGroupCache     storage.Cacher
+	consensusGroupCache     NodesCoordinatorCache
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -35,7 +34,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		return nil, err
 	}
 
-	var cache storage.Cacher
+	var cache NodesCoordinatorCache
 
 	if arguments.ConsensusGroupCache == nil {
 		cache, err = lrucache.NewCache(defaultCacheSize)

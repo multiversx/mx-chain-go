@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteContinuously(t *testing.T) {
-	t.Skip("this is a long test")
-
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
@@ -93,4 +94,36 @@ func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, int32(0), errors)
+}
+
+func TestWriteContinuouslyInTree(t *testing.T) {
+	nbTxsWrite := 1000000
+	testStorage := integrationTests.NewTestStorage()
+	store := testStorage.CreateStorageLevelDB()
+
+	trieStorage, _ := trie.NewTrieStorageManagerWithoutPruning(store)
+
+	trie, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{})
+
+	defer func() {
+		_ = store.DestroyUnit()
+	}()
+
+	startTime := time.Now()
+	written := 10000
+
+	for i := 1; i <= nbTxsWrite; i++ {
+		if i%written == 0 {
+			endTime := time.Now()
+			diff := endTime.Sub(startTime)
+			trie.Commit()
+			fmt.Printf("Written %d, total %d in %f s\n", written, i, diff.Seconds())
+			startTime = time.Now()
+		}
+
+		key, val := testStorage.CreateStoredData(uint64(i))
+		err := trie.Update(key, val)
+
+		assert.Nil(t, err)
+	}
 }

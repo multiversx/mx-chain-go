@@ -13,7 +13,7 @@ import (
 
 type MetaPoolsHolderFake struct {
 	miniBlocks   storage.Cacher
-	trieNodes     storage.Cacher
+	trieNodes    storage.Cacher
 	shardHeaders dataRetriever.HeadersPool
 	transactions dataRetriever.ShardedDataCacherNotifier
 	unsigned     dataRetriever.ShardedDataCacherNotifier

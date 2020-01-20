@@ -115,8 +115,8 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID []byte
-	blockTracker          process.BlockTracker
+	chainID      []byte
+	blockTracker process.BlockTracker
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

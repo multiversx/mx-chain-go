@@ -173,8 +173,8 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	if !bytes.Equal(args.CallerAddr, registrationData.Address) {
 		log.Debug("unStake possible only from staker",
-				"caller", args.CallerAddr,
-				"staker", registrationData.Address,
+			"caller", args.CallerAddr,
+			"staker", registrationData.Address,
 		)
 		return vmcommon.UserError
 	}

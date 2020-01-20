@@ -35,12 +35,12 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	}
 
 	return &privateKey{
-		suite: kg.suite,
-		sk:    private,
-	}, &publicKey{
-		suite: kg.suite,
-		pk:    public,
-	}
+			suite: kg.suite,
+			sk:    private,
+		}, &publicKey{
+			suite: kg.suite,
+			pk:    public,
+		}
 }
 
 // PrivateKeyFromByteArray generates a private key given a byte array

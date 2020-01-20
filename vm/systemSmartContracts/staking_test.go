@@ -183,7 +183,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		StartNonce:    0,
 		Staked:        true,
 		UnStakedNonce: 0,
-		Address:     []byte{100},
+		Address:       []byte{100},
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 
@@ -255,7 +255,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 		StartNonce:    0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		Address:     nil,
+		Address:       nil,
 		StakeValue:    nil,
 	}
 
