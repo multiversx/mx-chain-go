@@ -13,7 +13,7 @@ type multipleShardsCoordinatorMock struct {
 }
 
 func NewMultipleShardsCoordinatorMock() *multipleShardsCoordinatorMock {
-	return &multipleShardsCoordinatorMock{noShards: 1}
+	return &multipleShardsCoordinatorMock{noShards: 2}
 }
 
 func NewMultiShardsCoordinatorMock(nrShard uint32) *multipleShardsCoordinatorMock {
