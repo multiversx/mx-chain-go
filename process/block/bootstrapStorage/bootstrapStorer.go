@@ -32,12 +32,19 @@ type BootstrapHeaderInfo struct {
 	Hash    []byte
 }
 
+//PendingMiniBlockInfo is used to store information about the number of pending miniblocks
+type PendingMiniBlockInfo struct {
+	ShardID              uint32
+	NumPendingMiniBlocks uint32
+}
+
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
 	LastHeader                BootstrapHeaderInfo
 	LastCrossNotarizedHeaders []BootstrapHeaderInfo
 	LastSelfNotarizedHeaders  []BootstrapHeaderInfo
 	ProcessedMiniBlocks       []MiniBlocksInMeta
+	PendingMiniBlocks         []PendingMiniBlockInfo
 	HighestFinalBlockNonce    uint64
 	LastRound                 int64
 }

@@ -26,7 +26,6 @@ import (
 type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
-	dataPool          dataRetriever.MetaPoolsHolder
 	scDataGetter      external.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
@@ -89,12 +88,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rounder:                      arguments.Rounder,
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
 	}
 
 	mp := metaProcessor{
 		core:              arguments.Core,
 		baseProcessor:     base,
-		dataPool:          arguments.DataPool,
 		headersCounter:    NewHeaderCounter(),
 		scDataGetter:      arguments.SCDataGetter,
 		peerChanges:       arguments.PeerChangesHandler,
@@ -147,7 +146,8 @@ func (mp *metaProcessor) ProcessBlock(
 
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	log.Trace("started processing block",
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
 
@@ -541,16 +541,18 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	log.Trace("started creating block body",
-		"round", initialHdrData.GetRound(),
-	)
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
 	mp.epochStartTrigger.Update(initialHdrData.GetRound())
 	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
-
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
+
+	log.Debug("started creating block body",
+		"epoch", initialHdrData.GetEpoch(),
+		"round", initialHdrData.GetRound(),
+		"nonce", initialHdrData.GetNonce(),
+	)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
@@ -823,7 +825,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	log.Trace("started committing block",
+	log.Debug("started committing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -1013,7 +1016,15 @@ func (mp *metaProcessor) CommitBlock(
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
-	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, mp.forkDetector.GetHighestFinalBlockNonce(), nil)
+
+	mp.prepareDataForBootStorer(
+		headerInfo,
+		header.Round,
+		nil,
+		mp.getPendingMiniBlocks(),
+		mp.forkDetector.GetHighestFinalBlockNonce(),
+		nil,
+	)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
@@ -1427,6 +1438,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.PrevHash = shardHdr.PrevHash
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
+		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardData.ShardID)
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1824,4 +1836,17 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 	}
 
 	return block.Body(miniBlocks), nil
+}
+
+func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlockInfo {
+	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlockInfo, mp.shardCoordinator.NumberOfShards())
+
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
+			NumPendingMiniBlocks: mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardID),
+			ShardID:              shardID,
+		}
+	}
+
+	return pendingMiniBlocks
 }

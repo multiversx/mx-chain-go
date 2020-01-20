@@ -269,7 +269,6 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
-	assert.True(t, sr.RoundCanceled)
 
 	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
 	sr.RoundCanceled = false
