@@ -55,6 +55,7 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.Su
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	return srEndRound
@@ -72,6 +73,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -104,6 +106,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -136,6 +139,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -169,6 +173,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -201,6 +206,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -233,6 +239,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -265,6 +272,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -297,6 +305,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.NotNil(t, srEndRound)
@@ -621,4 +630,7 @@ func getSubroundName(subroundId int) string {
 	default:
 		return "Undefined subround"
 	}
+}
+
+func displayStatistics() {
 }

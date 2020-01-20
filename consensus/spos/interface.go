@@ -94,6 +94,10 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
+	//DisplayStatistics method displays statistics of worker at the end of the round
+	DisplayStatistics()
+	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

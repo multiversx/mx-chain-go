@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"sync"
 	"time"
 
@@ -37,7 +36,6 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 	headerSigVerifier  RandSeedVerifier
-	headersPool        dataRetriever.HeadersPool
 	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
@@ -72,7 +70,6 @@ func NewWorker(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
-	headersPool dataRetriever.HeadersPool,
 	chainID []byte,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -90,7 +87,6 @@ func NewWorker(
 		singleSigner,
 		syncTimer,
 		headerSigVerifier,
-		headersPool,
 		chainID,
 	)
 	if err != nil {
@@ -112,7 +108,6 @@ func NewWorker(
 		singleSigner:       singleSigner,
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
-		headersPool:        headersPool,
 		chainID:            chainID,
 	}
 
@@ -121,7 +116,6 @@ func NewWorker(
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
-	wrk.headersPool.RegisterHandler(wrk.receivedHeader)
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
@@ -146,7 +140,6 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 	headerSigVerifier RandSeedVerifier,
-	headersPool dataRetriever.HeadersPool,
 	chainID []byte,
 ) error {
 	if check.IfNil(consensusService) {
@@ -191,9 +184,6 @@ func checkNewWorkerParams(
 	if check.IfNil(headerSigVerifier) {
 		return ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(headersPool) {
-		return ErrNilHeadersPool
-	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
 	}
@@ -203,13 +193,14 @@ func checkNewWorkerParams(
 
 func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	if isNodeSynchronized {
-		if len(wrk.consensusStateChangedChannel) == 0 {
-			wrk.consensusStateChangedChannel <- true
+		select {
+		case wrk.consensusStateChangedChannel <- true:
+		default:
 		}
 	}
 }
 
-func (wrk *Worker) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
 		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
 		return
@@ -221,8 +212,9 @@ func (wrk *Worker) receivedHeader(headerHandler data.HeaderHandler, headerHash [
 	}
 	wrk.mutReceivedHeadersHandler.RUnlock()
 
-	if len(wrk.consensusStateChangedChannel) == 0 {
-		wrk.consensusStateChangedChannel <- true
+	select {
+	case wrk.consensusStateChangedChannel <- true:
+	default:
 	}
 }
 
@@ -477,8 +469,9 @@ func (wrk *Worker) checkChannels() {
 			msgType := consensus.MessageType(rcvDta.MsgType)
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.consensusStateChangedChannel) == 0 {
-						wrk.consensusStateChangedChannel <- true
+					select {
+					case wrk.consensusStateChangedChannel <- true:
+					default:
 					}
 				}
 			}
@@ -491,11 +484,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
-	wrk.displaySignatureStatistic()
-
-	wrk.mutHashConsensusMessage.Lock()
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.mutHashConsensusMessage.Unlock()
+	wrk.DisplayStatistics()
 
 	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
@@ -529,8 +518,8 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
-func (wrk *Worker) displaySignatureStatistic() {
-	wrk.mutHashConsensusMessage.RLock()
+func (wrk *Worker) DisplayStatistics() {
+	wrk.mutHashConsensusMessage.Lock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
@@ -543,7 +532,10 @@ func (wrk *Worker) displaySignatureStatistic() {
 		}
 
 	}
-	wrk.mutHashConsensusMessage.RUnlock()
+
+	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+
+	wrk.mutHashConsensusMessage.Unlock()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

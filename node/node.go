@@ -295,12 +295,13 @@ func (n *Node) StartConsensus() error {
 		n.singleSigner,
 		n.syncTimer,
 		n.headerSigVerifier,
-		headersPool,
 		n.chainID,
 	)
 	if err != nil {
 		return err
 	}
+
+	headersPool.RegisterHandler(worker.ReceivedHeader)
 
 	err = n.createConsensusTopic(worker, n.shardCoordinator)
 	if err != nil {

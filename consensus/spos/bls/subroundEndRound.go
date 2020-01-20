@@ -18,6 +18,7 @@ type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
+	displayStatistics             func()
 
 	appStatusHandler core.AppStatusHandler
 
@@ -40,6 +41,7 @@ func NewSubroundEndRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
+	displayStatistics func(),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -52,6 +54,7 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		getSubroundName,
+		displayStatistics,
 		statusHandler.NewNilStatusHandler(),
 		sync.Mutex{},
 	}
@@ -151,6 +154,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		debugError("BroadcastBlock", err)
 	}
 
+	sr.displayStatistics()
+
 	log.Debug("step 3: BlockBody and Header has been committed and broadcast",
 		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
@@ -166,7 +171,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.updateMetricsForLeader()
 
 	return true
-
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
@@ -213,6 +217,8 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
+	sr.displayStatistics()
+
 	log.Debug("step 3: BlockBody and Header has been committed",
 		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
@@ -227,13 +233,11 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 		return false, nil
 	}
 
-	marshalizedConsensusHeader, err := sr.Marshalizer().Marshal(sr.Header)
+	consensusHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
 	if err != nil {
-		log.Debug("isConsensusHeaderReceived: marshalizedConsensusHeader", "error", err.Error())
+		log.Debug("isConsensusHeaderReceived: calculate consensus header hash", "error", err.Error())
 		return false, nil
 	}
-
-	consensusHeaderHash := sr.Hasher().Compute(string(marshalizedConsensusHeader))
 
 	receivedHeaders := sr.GetReceivedHeaders()
 
@@ -243,13 +247,11 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 		receivedHeader.SetPubKeysBitmap(nil)
 		receivedHeader.SetSignature(nil)
 
-		marshalizedReceivedHeader, err := sr.Marshalizer().Marshal(receivedHeader)
+		receivedHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
 		if err != nil {
-			log.Debug("isConsensusHeaderReceived: marshalizedReceivedHeader", "error", err.Error())
+			log.Debug("isConsensusHeaderReceived: calculate received header hash", "error", err.Error())
 			return false, nil
 		}
-
-		receivedHeaderHash := sr.Hasher().Compute(string(marshalizedReceivedHeader))
 
 		if bytes.Equal(receivedHeaderHash, consensusHeaderHash) {
 			return true, receivedHeaders[index]

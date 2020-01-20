@@ -20,6 +20,8 @@ type SposWorkerMock struct {
 	GetBroadcastBlockCalled                func(data.BodyHandler, data.HeaderHandler) error
 	GetBroadcastHeaderCalled               func(data.HeaderHandler) error
 	ExecuteStoredMessagesCalled            func()
+	DisplayStatisticsCalled                func()
+	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 }
 
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
@@ -59,6 +61,18 @@ func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, head
 
 func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
 	sposWorkerMock.ExecuteStoredMessagesCalled()
+}
+
+func (sposWorkerMock *SposWorkerMock) DisplayStatistics() {
+	if sposWorkerMock.DisplayStatisticsCalled != nil {
+		sposWorkerMock.DisplayStatisticsCalled()
+	}
+}
+
+func (sposWorkerMock *SposWorkerMock) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if sposWorkerMock.ReceivedHeaderCalled != nil {
+		sposWorkerMock.ReceivedHeaderCalled(headerHandler, headerHash)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
