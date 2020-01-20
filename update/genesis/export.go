@@ -62,11 +62,78 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
+	err = se.exportMeta()
+	if err != nil {
+		return err
+	}
+
+	err = se.exportAllTries()
+	if err != nil {
+		return err
+	}
+
+	err = se.exportAllMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	err = se.exportAllTransactions()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportAllTransactions() error {
+	toExportTransactions, err := se.stateSyncer.GetAllTransactions()
+	if err != nil {
+		return err
+	}
+
+	for key, tx := range toExportTransactions {
+		err := se.exportTx(key, tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportAllMiniBlocks() error {
+	toExportMBs, err := se.stateSyncer.GetAllMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	for key, mb := range toExportMBs {
+		err := se.exportMBs(key, mb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportAllTries() error {
 	toExportTries, err := se.stateSyncer.GetAllTries()
 	if err != nil {
 		return err
 	}
 
+	for key, trie := range toExportTries {
+		err = se.exportTrie(key, trie)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportMeta() error {
 	metaBlock, err := se.stateSyncer.GetMetaBlock()
 	if err != nil {
 		return err
@@ -84,41 +151,12 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
-	for key, trie := range toExportTries {
-		err = se.exportTrie(key, trie)
-		if err != nil {
-			return err
-		}
-	}
-
-	toExportMBs, err := se.stateSyncer.GetAllMiniBlocks()
-	if err != nil {
-		return err
-	}
-
-	for key, mb := range toExportMBs {
-		err := se.exportMBs(key, mb)
-		if err != nil {
-			return err
-		}
-	}
-
-	toExportTransactions, err := se.stateSyncer.GetAllTransactions()
-	if err != nil {
-		return err
-	}
-
-	for key, tx := range toExportTransactions {
-		err := se.exportTx(key, tx)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 func (se *stateExport) exportTrie(key string, trie data.Trie) error {
+	fileName := TrieFileName + atSep + key
+
 	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
@@ -139,7 +177,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	err = se.writer.Write(key, rootHashKey, rootHash)
+	err = se.writer.Write(fileName, rootHashKey, rootHash)
 	if err != nil {
 		return err
 	}
@@ -163,7 +201,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		}
 
 		keyToExport := CreateAccountKey(accType, shId, address)
-		err = se.writer.Write(key, keyToExport, jsonData)
+		err = se.writer.Write(fileName, keyToExport, jsonData)
 		if err != nil {
 			return err
 		}

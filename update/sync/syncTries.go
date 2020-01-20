@@ -107,6 +107,7 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 }
 
 func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
+
 	err := st.syncTrieOfType(factory.UserAccount, sharding.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return err

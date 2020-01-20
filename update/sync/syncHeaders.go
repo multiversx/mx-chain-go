@@ -117,16 +117,8 @@ func (h *headersToSync) receivedMetaBlock(hash []byte) {
 
 // SyncEpochStartMetaHeader syncs and validates an epoch start metaheader
 func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) (*block.MetaBlock, error) {
-	h.mutMeta.Lock()
-	meta := h.metaBlockToSync
-	h.mutMeta.Unlock()
-
-	if meta.IsStartOfEpochBlock() && epoch == meta.Epoch {
-		return meta, nil
-	}
-
+	meta := &block.MetaBlock{}
 	h.epochToSync = epoch
-
 	epochStartId := core.EpochStartIdentifier(epoch)
 	epochStartData, err := GetDataFromStorage([]byte(epochStartId), h.metaBlockStorage, epoch)
 	if err != nil {
@@ -140,7 +132,7 @@ func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 		}
 
 		h.mutMeta.Lock()
-		meta := h.metaBlockToSync
+		meta = h.metaBlockToSync
 		h.mutMeta.Unlock()
 
 		return meta, nil

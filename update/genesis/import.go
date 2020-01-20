@@ -3,6 +3,8 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -49,7 +51,12 @@ func (si *stateImport) ImportAll() error {
 		case TransactionsFileName:
 			err = si.importTransactions()
 		default:
-			err = si.importState(fileName)
+			splitString := strings.Split(fileName, atSep)
+			if len(splitString) > 1 && splitString[0] == TrieFileName {
+				err = si.importState(splitString[0], splitString[1])
+			} else {
+				continue
+			}
 		}
 		if err != nil {
 			return err
@@ -87,7 +94,7 @@ func (si *stateImport) importTransactions() error {
 
 		tx, ok := object.(data.TransactionHandler)
 		if !ok {
-			err = core.ErrWrongTypeAssertion
+			err = fmt.Errorf("%w wanted a transaction handler", core.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -100,7 +107,7 @@ func (si *stateImport) importTransactions() error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName %s", err, TransactionsFileName)
 	}
 
 	return nil
@@ -146,7 +153,7 @@ func (si *stateImport) importMiniBlocks() error {
 
 		miniBlock, ok := object.(*block.MiniBlock)
 		if !ok {
-			err = core.ErrWrongTypeAssertion
+			err = fmt.Errorf("%w wanted a miniblock", core.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -159,14 +166,14 @@ func (si *stateImport) importMiniBlocks() error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName %s", err, MiniBlocksFileName)
 	}
 
 	return nil
 }
 
-func (si *stateImport) importState(fileName string) error {
-	accType, _, err := GetTrieTypeAndShId(fileName)
+func (si *stateImport) importState(fileName string, trieKey string) error {
+	accType, _, err := GetTrieTypeAndShId(trieKey)
 	if err != nil {
 		return err
 	}
@@ -176,7 +183,7 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
-	accountsDB, err := state.NewAccountsDB(si.tries[fileName], si.hasher, si.marshalizer, accountFactory)
+	accountsDB, err := state.NewAccountsDB(si.tries[trieKey], si.hasher, si.marshalizer, accountFactory)
 	if err != nil {
 		return err
 	}
@@ -193,24 +200,26 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	if keyType != RootHash {
-		return core.ErrWrongTypeAssertion
+		return fmt.Errorf("%w wanted a roothash", core.ErrWrongTypeAssertion)
 	}
 
 	oldRootHash := value
 	log.Debug("old root hash", "value", oldRootHash)
 
+	var address []byte
+	var account state.AccountHandler
 	for {
-		key, value, err := si.reader.ReadNextItem(fileName)
+		key, value, err = si.reader.ReadNextItem(fileName)
 		if err != nil {
 			break
 		}
 
-		_, address, err := GetKeyTypeAndHash(key)
+		_, address, err = GetKeyTypeAndHash(key)
 		if err != nil {
 			break
 		}
 
-		account, err := NewEmptyAccount(accType)
+		account, err = NewEmptyAccount(accType)
 		if err != nil {
 			break
 		}
@@ -231,7 +240,7 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	if err != update.ErrEndOfFile {
-		return err
+		return fmt.Errorf("%w fileName: %s", err, fileName)
 	}
 
 	return nil
