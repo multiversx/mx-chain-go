@@ -79,6 +79,7 @@ type ShardData struct {
 	Round                 uint64                 `capid:"7"`
 	PrevHash              []byte                 `capid:"8"`
 	Nonce                 uint64                 `capid:"9"`
+	NumPendingMiniBlocks  uint32
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash

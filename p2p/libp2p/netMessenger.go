@@ -19,8 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-var sendTimeout = time.Microsecond * 100
-
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
@@ -226,10 +224,7 @@ func (netMes *networkMessenger) sendMessage() {
 		return
 	}
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), sendTimeout)
-	defer cancelFunc()
-
-	err := topic.Publish(ctx, sendableData.Buff)
+	err := topic.Publish(context.Background(), sendableData.Buff)
 	if err != nil {
 		log.Trace("error sending data",
 			"error", err)

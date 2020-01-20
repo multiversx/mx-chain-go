@@ -54,7 +54,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	trieNodesResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId)
 
 	waitTime := 5 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.ShardDataPool.TrieNodes(), requesterTrie, waitTime)
+	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime)
 	err = trieSyncer.StartSyncing(rootHash)
 	assert.Nil(t, err)
 

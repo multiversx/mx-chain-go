@@ -495,32 +495,6 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMetaDataPool_NilDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithMetaDataPool(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.dataPool)
-	assert.Equal(t, ErrNilDataPool, err)
-}
-
-func TestWithMetaDataPool_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	dataPool := &mock.MetaPoolsHolderStub{}
-
-	opt := WithMetaDataPool(dataPool)
-	err := opt(node)
-
-	assert.True(t, node.metaDataPool == dataPool)
-	assert.Nil(t, err)
-}
-
 func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -570,6 +544,32 @@ func TestWithBlockTracker_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.blockTracker == blockTracker)
+	assert.Nil(t, err)
+}
+
+func TestWithPendingMiniBlocks_NilPendingMiniBlocksHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPendingMiniBlocks(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.pendingMiniBlocks)
+	assert.Equal(t, ErrNilPendingMiniBlocksHandler, err)
+}
+
+func TestWithPendingMiniBlocks_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	pendingMiniBlocks := &mock.PendingMiniBlocksHandlerStub{}
+
+	opt := WithPendingMiniBlocks(pendingMiniBlocks)
+	err := opt(node)
+
+	assert.True(t, node.pendingMiniBlocks == pendingMiniBlocks)
 	assert.Nil(t, err)
 }
 
