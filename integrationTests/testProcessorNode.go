@@ -295,48 +295,6 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 	tpn.TrieContainer.Put([]byte(factory3.PeerAccountTrie), peerTrie)
 }
 
-func (tpn *TestProcessorNode) initValidatorStatistics() {
-	var peerDataPool peer.DataPool = tpn.MetaDataPool
-	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
-		peerDataPool = tpn.ShardDataPool
-	}
-
-	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
-	for _, pks := range nodesMap {
-		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
-			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
-				NodeInfo: sharding.NodeInfo{},
-			}
-			initialNodes = append(initialNodes, n)
-		}
-	}
-
-	sort.Slice(initialNodes, func(i, j int) bool {
-		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
-	})
-
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
-
-	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
-		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverterBLS,
-		NodesCoordinator: tpn.NodesCoordinator,
-		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         peerDataPool,
-		StorageService:   tpn.Storage,
-		Marshalizer:      TestMarshalizer,
-		StakeValue:       big.NewInt(500),
-		Rater:            rater,
-	}
-
-	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
-}
-
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
@@ -791,10 +749,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
 	initialNodes := make([]*sharding.InitialNode, 0)
-	nodesMap := tpn.NodesCoordinator.GetAllValidatorsPublicKeys()
+	nodesMap, _ := tpn.NodesCoordinator.GetAllValidatorsPublicKeys(0)
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
-			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk)
+			validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk, 0)
 			n := &sharding.InitialNode{
 				PubKey:   core.ToHex(validator.PubKey()),
 				Address:  core.ToHex(validator.Address()),
@@ -999,20 +957,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithBlackListHandler(tpn.BlackListHandler),
 		node.WithDataPool(tpn.DataPool),
 	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
-
-	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		err = tpn.Node.ApplyOptions(
-			node.WithMetaDataPool(tpn.MetaDataPool),
-		)
-	} else {
-		err = tpn.Node.ApplyOptions(
-			node.WithDataPool(tpn.ShardDataPool),
-		)
-	}
-
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
 	}

@@ -735,10 +735,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	var pendingMiniBlocks process.PendingMiniBlocksHandler
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		pendingMiniBlocks, err = newPendingMiniBlocks(
 			args.data.Store,
-			args.core.Marshalizer,
+			args.coreData.Marshalizer,
 			args.data.Datapool,
 		)
 		if err != nil {
