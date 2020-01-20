@@ -278,8 +278,6 @@ func (n *Node) StartConsensus() error {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
 	}
 
-	headersPool := n.getHeadersPool()
-
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -301,7 +299,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	headersPool.RegisterHandler(worker.ReceivedHeader)
+	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
 	err = n.createConsensusTopic(worker, n.shardCoordinator)
 	if err != nil {
@@ -349,14 +347,6 @@ func (n *Node) StartConsensus() error {
 	go chronologyHandler.StartRounds()
 
 	return nil
-}
-
-func (n *Node) getHeadersPool() dataRetriever.HeadersPool {
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return n.metaDataPool.Headers()
-	}
-
-	return n.dataPool.Headers()
 }
 
 // GetBalance gets the balance for a specific address
