@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -13,23 +14,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
+	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+// ArgsNewTrieSyncersContainerFactory defines the arguments needed to create trie syncers container
 type ArgsNewTrieSyncersContainerFactory struct {
 	CacheConfig        config.CacheConfig
 	SyncFolder         string
 	ResolversContainer dataRetriever.ResolversContainer
-	DataTrieContainer  update.DataTriesContainer
+	DataTrieContainer  state.TriesHolder
 	ShardCoordinator   sharding.Coordinator
 }
 
 type trieSyncersContainerFactory struct {
 	shardCoordinator   sharding.Coordinator
 	trieCacher         storage.Cacher
-	trieContainer      update.DataTriesContainer
+	trieContainer      state.TriesHolder
 	resolversContainer dataRetriever.ResolversContainer
 }
 
+// NewTrieSyncersContainerFactory creates a factory for trie syncers container
 func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*trieSyncersContainerFactory, error) {
 	if len(args.SyncFolder) < 2 {
 		return nil, update.ErrInvalidFolderName
@@ -44,7 +48,8 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 		return nil, update.ErrNilDataTrieContainer
 	}
 
-	trieCacher, err := storageUnit.NewCache(storageUnit.CacheType(args.CacheConfig.Type),
+	trieCacher, err := storageUnit.NewCache(
+		storageUnit.CacheType(args.CacheConfig.Type),
 		args.CacheConfig.Size,
 		args.CacheConfig.Shards,
 	)
@@ -62,6 +67,7 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 	return t, nil
 }
 
+// Create creates all the needed syncers and returns the container
 func (t *trieSyncersContainerFactory) Create() (update.TrieSyncContainer, error) {
 	container := containers.NewTrieSyncersContainer()
 
@@ -90,7 +96,7 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	accType factory.Type,
 	container update.TrieSyncContainer,
 ) error {
-	trieId := update.CreateTrieIdentifier(shId, accType)
+	trieId := genesis.CreateTrieIdentifier(shId, accType)
 	resolver, err := t.resolversContainer.Get(trieId)
 	if err != nil {
 		return err
@@ -114,6 +120,7 @@ func (t *trieSyncersContainerFactory) createOneTrieSyncer(
 	return nil
 }
 
+// IsInterfaceNil returns true if the underlying object is nil
 func (t *trieSyncersContainerFactory) IsInterfaceNil() bool {
 	return t == nil
 }

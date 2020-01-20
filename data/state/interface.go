@@ -102,7 +102,6 @@ type AccountsAdapter interface {
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
 	RootHash() ([]byte, error)
-	CopyRecreateTrie(rootHash []byte) (data.Trie, error)
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error

@@ -15,6 +15,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type ArgsNewDataTrieFactory struct {
@@ -72,7 +73,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	return d, nil
 }
 
-func (d *dataTrieFactory) Create() (update.DataTriesContainer, error) {
+func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
@@ -95,13 +96,13 @@ func (d *dataTrieFactory) Create() (update.DataTriesContainer, error) {
 	return container, nil
 }
 
-func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType factory.Type, container update.DataTriesContainer) error {
+func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType factory.Type, container state.TriesHolder) error {
 	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher)
 	if err != nil {
 		return err
 	}
 
-	trieId := update.CreateTrieIdentifier(shId, accType)
+	trieId := genesis.CreateTrieIdentifier(shId, accType)
 	container.Put([]byte(trieId), dataTrie)
 
 	return nil

@@ -23,12 +23,12 @@ func NewTrieSyncersContainer() *trieSyncers {
 func (t *trieSyncers) Get(key string) (update.TrieSyncer, error) {
 	value, ok := t.objects.Get(key)
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, update.ErrInvalidContainerKey
 	}
 
 	syncer, ok := value.(update.TrieSyncer)
 	if !ok {
-		return nil, process.ErrWrongTypeInContainer
+		return nil, update.ErrWrongTypeInContainer
 	}
 
 	return syncer, nil
@@ -38,12 +38,12 @@ func (t *trieSyncers) Get(key string) (update.TrieSyncer, error) {
 // an error if the element already exists
 func (t *trieSyncers) Add(key string, val update.TrieSyncer) error {
 	if check.IfNil(val) {
-		return process.ErrNilContainerElement
+		return update.ErrNilContainerElement
 	}
 
 	ok := t.objects.Insert(key, val)
 	if !ok {
-		return process.ErrContainerKeyAlreadyExists
+		return update.ErrContainerKeyAlreadyExists
 	}
 
 	return nil
@@ -53,7 +53,7 @@ func (t *trieSyncers) Add(key string, val update.TrieSyncer) error {
 // an error if one element already exists, lengths mismatch or an interceptor is nil
 func (t *trieSyncers) AddMultiple(keys []string, values []update.TrieSyncer) error {
 	if len(keys) != len(values) {
-		return process.ErrLenMismatch
+		return update.ErrLenMismatch
 	}
 
 	for idx, key := range keys {

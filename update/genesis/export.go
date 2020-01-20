@@ -7,11 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+// ArgsNewStateExporter defines the arguments needed to create new state exporter
 type ArgsNewStateExporter struct {
 	ShardCoordinator sharding.Coordinator
 	StateSyncer      update.StateSyncer
@@ -25,6 +27,8 @@ type stateExport struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 }
+
+var log = logger.GetOrCreate("update/genesis/")
 
 // NewStateExporter exports all the data at a specific moment to a set of files
 func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
@@ -51,47 +55,37 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	return se, nil
 }
 
+// ExportAll syncs and exports all the data from every shard for a certain epoch start block
 func (se *stateExport) ExportAll(epoch uint32) error {
 	err := se.stateSyncer.SyncAllState(epoch)
 	if err != nil {
 		return err
 	}
 
-	toExportTries, err := se.stateSyncer.GetAllTries()
+	err = se.exportMeta()
 	if err != nil {
 		return err
 	}
 
-	versionKey := update.CreateVersionKey(se.stateSyncer.GetMetaBlock())
-	jsonData, err := json.Marshal(se.stateSyncer.GetMetaBlock())
+	err = se.exportAllTries()
 	if err != nil {
 		return err
 	}
 
-	err = se.writer.Write(update.MetaBlockFileName, versionKey, jsonData)
+	err = se.exportAllMiniBlocks()
 	if err != nil {
 		return err
 	}
 
-	for key, trie := range toExportTries {
-		err = se.exportTrie(key, trie)
-		if err != nil {
-			return err
-		}
-	}
-
-	toExportMBs, err := se.stateSyncer.GetAllMiniBlocks()
+	err = se.exportAllTransactions()
 	if err != nil {
 		return err
 	}
 
-	for key, mb := range toExportMBs {
-		err := se.exportMBs(key, mb)
-		if err != nil {
-			return err
-		}
-	}
+	return nil
+}
 
+func (se *stateExport) exportAllTransactions() error {
 	toExportTransactions, err := se.stateSyncer.GetAllTransactions()
 	if err != nil {
 		return err
@@ -104,18 +98,73 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		}
 	}
 
+	return nil
+}
+
+func (se *stateExport) exportAllMiniBlocks() error {
+	toExportMBs, err := se.stateSyncer.GetAllMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	for key, mb := range toExportMBs {
+		err := se.exportMBs(key, mb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportAllTries() error {
+	toExportTries, err := se.stateSyncer.GetAllTries()
+	if err != nil {
+		return err
+	}
+
+	for key, trie := range toExportTries {
+		err = se.exportTrie(key, trie)
+		if err != nil {
+			return err
+		}
+	}
+
 	se.writer.Finish()
 
 	return nil
 }
 
+func (se *stateExport) exportMeta() error {
+	metaBlock, err := se.stateSyncer.GetMetaBlock()
+	if err != nil {
+		return err
+	}
+
+	versionKey := CreateVersionKey(metaBlock)
+
+	jsonData, err := json.Marshal(metaBlock)
+	if err != nil {
+		return err
+	}
+
+	err = se.writer.Write(MetaBlockFileName, versionKey, jsonData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (se *stateExport) exportTrie(key string, trie data.Trie) error {
+	fileName := TrieFileName + atSep + key
+
 	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
 	}
 
-	accType, shId, err := update.GetTrieTypeAndShId(key)
+	accType, shId, err := GetTrieTypeAndShId(key)
 	if err != nil {
 		return err
 	}
@@ -124,37 +173,37 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return sharding.ErrInvalidShardId
 	}
 
-	rootHashKey := update.CreateRootHashKey(key)
+	rootHashKey := CreateRootHashKey(key)
 	rootHash, err := trie.Root()
 	if err != nil {
 		return err
 	}
 
-	err = se.writer.Write(key, rootHashKey, rootHash)
+	err = se.writer.Write(fileName, rootHashKey, rootHash)
 	if err != nil {
 		return err
 	}
 
 	for address, buff := range leaves {
-		account, err := update.NewEmptyAccount(accType)
+		account, err := NewEmptyAccount(accType)
 		if err != nil {
 			log.Warn("error creating new account account", "address", address, "error", err)
 			continue
 		}
 		err = se.marshalizer.Unmarshal(account, buff)
 		if err != nil {
-			log.Warn("error unmarshalling account", "address", address, "error", err)
+			log.Warn("error unmarshaling account", "address", address, "error", err)
 			continue
 		}
 
 		jsonData, err := json.Marshal(account)
 		if err != nil {
-			log.Warn("error marshalling account", "address", address, "error", err)
+			log.Warn("error marshaling account", "address", address, "error", err)
 			continue
 		}
 
-		keyToExport := update.CreateAccountKey(accType, shId, address)
-		err = se.writer.Write(key, keyToExport, jsonData)
+		keyToExport := CreateAccountKey(accType, shId, address)
+		err = se.writer.Write(fileName, keyToExport, jsonData)
 		if err != nil {
 			return err
 		}
@@ -164,13 +213,13 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
-	marshalledData, err := json.Marshal(mb)
+	marshaledData, err := json.Marshal(mb)
 	if err != nil {
 		return err
 	}
 
-	keyToSave := update.CreateMiniBlockKey(key)
-	err = se.writer.Write(update.MiniBlocksFileName, keyToSave, marshalledData)
+	keyToSave := CreateMiniBlockKey(key)
+	err = se.writer.Write(MiniBlocksFileName, keyToSave, marshaledData)
 	if err != nil {
 		return err
 	}
@@ -179,13 +228,13 @@ func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
 }
 
 func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
-	marshalledData, err := json.Marshal(tx)
+	marshaledData, err := json.Marshal(tx)
 	if err != nil {
 		return err
 	}
 
-	keyToSave := update.CreateTransactionKey(key, tx)
-	err = se.writer.Write(update.TransactionsFileName, keyToSave, marshalledData)
+	keyToSave := CreateTransactionKey(key, tx)
+	err = se.writer.Write(TransactionsFileName, keyToSave, marshaledData)
 	if err != nil {
 		return err
 	}
@@ -193,6 +242,7 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	return nil
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (se *stateExport) IsInterfaceNil() bool {
 	return se == nil
 }
