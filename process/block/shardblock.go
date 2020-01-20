@@ -353,7 +353,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(currentBlockHeader.GetRound())
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -548,7 +548,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(header.GetRound())
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)

@@ -154,10 +154,6 @@ func (t *trigger) Update(round uint64) {
 		return
 	}
 
-	if round <= t.currentRound {
-		return
-	}
-
 	t.currentRound = round
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
@@ -209,7 +205,7 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert() {
+func (t *trigger) Revert(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -222,6 +218,10 @@ func (t *trigger) Revert() {
 	t.currEpochStartRound = t.prevEpochStartRound
 	t.epoch = t.epoch - 1
 	t.isEpochStart = false
+	t.currentRound = round
+	if t.currentRound > 0 {
+		t.currentRound = t.currentRound - 1
+	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 }

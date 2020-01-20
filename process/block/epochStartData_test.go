@@ -17,10 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockEpochStartCreatorArguments() blproc.ArgsNewEpochStartDataCreator {
+func createMockEpochStartCreatorArguments() blproc.ArgsNewEpochStartData {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	startHeaders := createGenesisBlocks(shardCoordinator)
-	argsNewEpochStartDataCreator := blproc.ArgsNewEpochStartDataCreator{
+	argsNewEpochStartData := blproc.ArgsNewEpochStartData{
 		Marshalizer:       &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherStub{},
 		Store:             createMetaStore(),
@@ -29,7 +29,7 @@ func createMockEpochStartCreatorArguments() blproc.ArgsNewEpochStartDataCreator 
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
-	return argsNewEpochStartDataCreator
+	return argsNewEpochStartData
 }
 
 func createMemUnit() storage.Storer {
@@ -52,7 +52,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGen
 	t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
-	epoch, _ := blproc.NewEpochStartDataCreator(arguments)
+	epoch, _ := blproc.NewEpochStartData(arguments)
 	round := uint64(10)
 
 	shardHdr := &block.Header{Round: round}
@@ -97,7 +97,7 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 
 	arguments.DataPool = dPool
 
-	epoch, _ := blproc.NewEpochStartDataCreator(arguments)
+	epoch, _ := blproc.NewEpochStartData(arguments)
 	round := uint64(10)
 	nonce := uint64(1)
 
@@ -123,9 +123,9 @@ func TestEpochStartCreator_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *tes
 		},
 	}
 
-	epoch, _ := blproc.NewEpochStartDataCreator(arguments)
+	epoch, _ := blproc.NewEpochStartData(arguments)
 
-	epStart, err := epoch.CreateEpochStartForMetablock()
+	epStart, err := epoch.CreateEpochStartData()
 	assert.Nil(t, err)
 
 	emptyEpochStart := block.EpochStart{}
@@ -150,9 +150,9 @@ func TestEpochStartCreator_CreateEpochStartFromMetaBlockHashComputeIssueShouldEr
 		},
 	}
 
-	epoch, _ := blproc.NewEpochStartDataCreator(arguments)
+	epoch, _ := blproc.NewEpochStartData(arguments)
 
-	epStart, err := epoch.CreateEpochStartForMetablock()
+	epStart, err := epoch.CreateEpochStartData()
 	assert.Nil(t, epStart)
 	assert.Equal(t, expectedErr, err)
 }
@@ -226,12 +226,15 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	marshaledData, _ = arguments.Marshalizer.Marshal(meta2)
 	_ = metaHdrStorage.Put(metaHash2, marshaledData)
 
-	epoch, _ := blproc.NewEpochStartDataCreator(arguments)
+	epoch, _ := blproc.NewEpochStartData(arguments)
 
-	epStart, err := epoch.CreateEpochStartForMetablock()
+	epStart, err := epoch.CreateEpochStartData()
 	assert.Nil(t, err)
 	assert.NotNil(t, epStart)
 	assert.Equal(t, hash1, epStart.LastFinalizedHeaders[0].LastFinishedMetaBlock)
 	assert.Equal(t, hash2, epStart.LastFinalizedHeaders[0].FirstPendingMetaBlock)
 	assert.Equal(t, 1, len(epStart.LastFinalizedHeaders[0].PendingMiniBlockHeaders))
+
+	err = epoch.VerifyEpochStartDataForMetablock(&block.MetaBlock{EpochStart: *epStart})
+	assert.Nil(t, err)
 }

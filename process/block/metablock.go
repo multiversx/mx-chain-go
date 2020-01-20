@@ -91,7 +91,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataPool,
 	}
-	argsNewEpochStartDataCreator := ArgsNewEpochStartDataCreator{
+	argsNewEpochStartData := ArgsNewEpochStartData{
 		Marshalizer:       arguments.Marshalizer,
 		Hasher:            arguments.Hasher,
 		Store:             arguments.Store,
@@ -100,7 +100,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		ShardCoordinator:  arguments.ShardCoordinator,
 		EpochStartTrigger: arguments.EpochStartTrigger,
 	}
-	epochStartData, err := NewEpochStartDataCreator(argsNewEpochStartDataCreator)
+	epochStartData, err := NewEpochStartData(argsNewEpochStartData)
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +520,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Revert()
+		mp.epochStartTrigger.Revert(metaBlock.GetRound())
 	}
 
 	for _, hdrHash := range hdrHashes {
@@ -1560,7 +1560,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	}
 
 	sw.Start("createEpochStartForMetablock")
-	epochStart, err := mp.epochStartCreator.CreateEpochStartForMetablock()
+	epochStart, err := mp.epochStartCreator.CreateEpochStartData()
 	sw.Stop("createEpochStartForMetablock")
 	if err != nil {
 		return nil, err

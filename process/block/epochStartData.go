@@ -23,8 +23,8 @@ type epochStartData struct {
 	epochStartTrigger process.EpochStartTriggerHandler
 }
 
-// ArgsNewEpochStartDataCreator defines the input parameters for epoch start data creator
-type ArgsNewEpochStartDataCreator struct {
+// ArgsNewEpochStartData defines the input parameters for epoch start data creator
+type ArgsNewEpochStartData struct {
 	Marshalizer       marshal.Marshalizer
 	Hasher            hashing.Hasher
 	Store             dataRetriever.StorageService
@@ -34,8 +34,8 @@ type ArgsNewEpochStartDataCreator struct {
 	EpochStartTrigger process.EpochStartTriggerHandler
 }
 
-// NewEpochStartDataCreator creates a new epoch start creator
-func NewEpochStartDataCreator(args ArgsNewEpochStartDataCreator) (*epochStartData, error) {
+// NewEpochStartData creates a new epoch start creator
+func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -74,7 +74,7 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return nil
 	}
 
-	startData, err := e.CreateEpochStartForMetablock()
+	startData, err := e.CreateEpochStartData()
 	if err != nil {
 		return err
 	}
@@ -114,13 +114,13 @@ func displayEpochStartData(startData *block.EpochStart) {
 	}
 }
 
-// CreateEpochStartForMetablock creates epoch start data if it is needed
-func (e *epochStartData) CreateEpochStartForMetablock() (*block.EpochStart, error) {
+// CreateEpochStartData creates epoch start data if it is needed
+func (e *epochStartData) CreateEpochStartData() (*block.EpochStart, error) {
 	if !e.epochStartTrigger.IsEpochStart() {
 		return &block.EpochStart{}, nil
 	}
 
-	startData, allShardHdrList, err := e.getLastNotarizedAndFinalizedHeaders()
+	startData, allShardHdrList, err := e.createShardStartDataAndLastProcessedHeaders()
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (e *epochStartData) CreateEpochStartForMetablock() (*block.EpochStart, erro
 	return startData, nil
 }
 
-func (e *epochStartData) getLastNotarizedAndFinalizedHeaders() (*block.EpochStart, [][]*block.Header, error) {
+func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.EpochStart, [][]*block.Header, error) {
 	startData := &block.EpochStart{
 		LastFinalizedHeaders: make([]block.EpochStartShardData, 0),
 	}
@@ -162,7 +162,7 @@ func (e *epochStartData) getLastNotarizedAndFinalizedHeaders() (*block.EpochStar
 			return nil, nil, err
 		}
 
-		lastMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.getLastFinalizedMetaHashForShard(shardHeader)
+		lastMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -182,7 +182,7 @@ func (e *epochStartData) getLastNotarizedAndFinalizedHeaders() (*block.EpochStar
 	return startData, allShardHdrList, nil
 }
 
-func (e *epochStartData) getLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
+func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
 	var lastMetaHash []byte
 	var lastFinalizedMetaHash []byte
 
