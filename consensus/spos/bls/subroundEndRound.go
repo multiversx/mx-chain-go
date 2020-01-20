@@ -123,16 +123,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
-	defer func() {
-		sr.SetProcessingBlock(false)
-	}()
-
-	sr.SetProcessingBlock(true)
-
-	if sr.isOutOfTime() {
-		return false
-	}
-
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	elapsedTime := time.Since(startTime)

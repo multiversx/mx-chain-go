@@ -257,7 +257,7 @@ func (fct *factory) generateEndRoundSubround() error {
 	subroundEndRound, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
-		processingThresholdPercent,
+		spos.MaxThresholdPercent,
 		getSubroundName,
 		fct.worker.DisplayStatistics,
 	)
