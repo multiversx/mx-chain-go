@@ -14,6 +14,8 @@ import (
 )
 
 func TestWriteContinuously(t *testing.T) {
+	t.Skip("this is a long test")
+
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
