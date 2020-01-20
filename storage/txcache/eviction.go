@@ -84,7 +84,7 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	cache.forEachSender(func(key string, txList *txListForSender) {
+	cache.forEachSenderAscending(func(key string, txList *txListForSender) {
 		aLot := cache.evictionConfig.ALotOfTransactionsForASender
 		numTxsToEvict := cache.evictionConfig.NumTxsToEvictForASenderWithALot
 
@@ -125,7 +125,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 		return
 	}
 
-	batchesSource := cache.txListBySender.GetListsSortedBySmartScore()
+	batchesSource := cache.txListBySender.getSnapshotAscending()
 	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 

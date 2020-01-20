@@ -149,7 +149,7 @@ func (myMap *AlmostSortedMap) Remove(key string) {
 }
 
 // SortedMapIterCb is an iterator callback
-type SortedMapIterCb func(key string, v interface{})
+type SortedMapIterCb func(key string, value MapItem)
 
 // IterCb iterates over the elements in the map
 func (myMap *AlmostSortedMap) IterCb(callback SortedMapIterCb) {
@@ -163,9 +163,22 @@ func (myMap *AlmostSortedMap) IterCb(callback SortedMapIterCb) {
 	}
 }
 
-// IterCbSorted iterates over the sorted elements in the map
-func (myMap *AlmostSortedMap) IterCbSorted(callback SortedMapIterCb) {
+// IterCbSortedAscending iterates over the sorted elements in the map
+func (myMap *AlmostSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
 	for _, chunk := range myMap.scoreChunks {
+		chunk.RLock()
+		for key, value := range chunk.items {
+			callback(key, value)
+		}
+		chunk.RUnlock()
+	}
+}
+
+// IterCbSortedDescending iterates over the sorted elements in the map
+func (myMap *AlmostSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
+	chunks := myMap.scoreChunks
+	for i := len(chunks) - 1; i >= 0; i-- {
+		chunk := chunks[i]
 		chunk.RLock()
 		for key, value := range chunk.items {
 			callback(key, value)

@@ -1,8 +1,6 @@
 package txcache
 
 import (
-	"sort"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -99,22 +97,7 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
-// GetListsSortedBySmartScore gets the list of sender addreses, sorted by a smart score
-func (txMap *txListBySenderMap) GetListsSortedBySmartScore() []*txListForSender {
-	snapshot := txMap.getListsSnapshot()
-	computer := newEvictionScoreComputer(snapshot)
-
-	// Scores are quantized
-	// This way, sort is also a bit more optimized (less item movement)
-	// And partial, approximate sort is sufficient
-	sort.Slice(snapshot, func(i, j int) bool {
-		return computer.scoresAsPercents[i] < computer.scoresAsPercents[j]
-	})
-
-	return snapshot
-}
-
-func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
+func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	counter := txMap.counter.Get()
 	if counter < 1 {
 		return make([]*txListForSender, 0)
@@ -122,7 +105,7 @@ func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
 
 	snapshot := make([]*txListForSender, 0, counter)
 
-	txMap.forEach(func(key string, item *txListForSender) {
+	txMap.forEachAscending(func(key string, item *txListForSender) {
 		snapshot = append(snapshot, item)
 	})
 
@@ -132,9 +115,15 @@ func (txMap *txListBySenderMap) getListsSnapshot() []*txListForSender {
 // ForEachSender is an iterator callback
 type ForEachSender func(key string, value *txListForSender)
 
-// forEach iterates over the senders
-func (txMap *txListBySenderMap) forEach(function ForEachSender) {
-	txMap.backingMap.IterCb(func(key string, item interface{}) {
+func (txMap *txListBySenderMap) forEachAscending(function ForEachSender) {
+	txMap.backingMap.IterCbSortedAscending(func(key string, item MapItem) {
+		txList := item.(*txListForSender)
+		function(key, txList)
+	})
+}
+
+func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
+	txMap.backingMap.IterCbSortedDescending(func(key string, item MapItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})

@@ -150,9 +150,12 @@ func (cache *TxCache) countTxBySender(sender string) int64 {
 	return cache.txListBySender.countTxBySender(sender)
 }
 
-// forEachSender iterates over the senders in the cache
-func (cache *TxCache) forEachSender(function ForEachSender) {
-	cache.txListBySender.forEach(function)
+func (cache *TxCache) forEachSenderAscending(function ForEachSender) {
+	cache.txListBySender.forEachAscending(function)
+}
+
+func (cache *TxCache) forEachSenderDescending(function ForEachSender) {
+	cache.txListBySender.forEachDescending(function)
 }
 
 // ForEachTransaction iterates over the transactions in the cache

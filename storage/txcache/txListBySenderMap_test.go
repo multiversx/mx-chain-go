@@ -57,23 +57,7 @@ func Test_RemoveSender(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
-func Test_GetListsSortedBySmartScore(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
-
-	myMap.addTx([]byte("a"), createTxWithGas("alice", uint64(1), 500, 100))
-	myMap.addTx([]byte("aa"), createTxWithGas("alice", uint64(2), 500, 100))
-	myMap.addTx([]byte("b"), createTxWithGas("bob", uint64(1), 2000, 100))
-	myMap.addTx([]byte("aaa"), createTxWithGas("alice", uint64(2), 1000, 100))
-	myMap.addTx([]byte("c"), createTxWithGas("carol", uint64(2), 8000, 1))
-
-	lists := myMap.GetListsSortedBySmartScore()
-
-	require.Equal(t, "carol", lists[0].sender)
-	require.Equal(t, "alice", lists[1].sender)
-	require.Equal(t, "bob", lists[2].sender)
-}
-
-func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
+func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 	myMap := newTxListBySenderMap(4)
 
 	for i := 0; i < 100; i++ {
@@ -89,7 +73,7 @@ func Test_GetListsSorted_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 
 		go func() {
 			for j := 0; j < 100; j++ {
-				myMap.GetListsSortedBySmartScore()
+				myMap.getSnapshotAscending()
 			}
 
 			wg.Done()
