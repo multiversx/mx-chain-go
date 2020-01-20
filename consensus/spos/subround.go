@@ -130,6 +130,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 			}
 		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
+				sr.RoundCanceled = true
 				sr.Extend(sr.current)
 			}
 

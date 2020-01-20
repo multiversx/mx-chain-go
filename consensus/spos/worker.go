@@ -560,8 +560,5 @@ func (wrk *Worker) ExecuteStoredMessages() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
-	if wrk == nil {
-		return true
-	}
-	return false
+	return wrk == nil
 }

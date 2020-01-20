@@ -181,11 +181,16 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
+
 	threshold := sr.Threshold(sr.Current())
 	areSignaturesCollected, _ := sr.signaturesCollected(threshold)
-	isSubroundFinished := !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) ||
-		(sr.IsSelfJobDone(sr.Current()) && !sr.IsSelfLeaderInCurrentRound()) ||
-		areSignaturesCollected
+
+	isJobDoneByLeader := isSelfLeader && areSignaturesCollected
+	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
+
+	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
 	if isSubroundFinished {
 		log.Debug("step 2: Subround has been finished",
