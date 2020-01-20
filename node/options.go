@@ -503,6 +503,17 @@ func WithChainID(chainID []byte) Option {
 	}
 }
 
+// WithBlockTracker sets up the block tracker for the Node
+func WithBlockTracker(blockTracker process.BlockTracker) Option {
+	return func(n *Node) error {
+		if check.IfNil(blockTracker) {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
+		return nil
+	}
+}
+
 // WithNetworkShardingCollector sets up a network sharding updater for the Node
 func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
 	return func(n *Node) error {

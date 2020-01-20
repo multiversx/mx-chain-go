@@ -70,9 +70,6 @@ var ErrWrongContextProvider = errors.New("wrong type of ContextProvider")
 // ErrNilPeerDiscoverer signals that a nil peer dicoverer has been provided
 var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
 
-// ErrNegativeOrZeroPeersRefreshInterval signals that a negative or zero peers refresh interval has been provided
-var ErrNegativeOrZeroPeersRefreshInterval = errors.New("negative or zero peers refresh interval")
-
 // ErrMessageTooLarge signals that the message provided is too large
 var ErrMessageTooLarge = errors.New("buffer too large")
 

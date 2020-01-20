@@ -125,7 +125,7 @@ func createCustomMessenger(
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerDiscovery,
+		CreateKadPeerDiscoverer(StepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		p2pConfig.Node.TargetPeerCount,
 	)

@@ -15,6 +15,7 @@ const (
 	fullMaskBits = 0xff
 
 	minInShardConnRatio = 0.65 // the minimum in shard vs total connections ratio
+	minOOSHardLimit     = 3    // the hard limit for minimum out of shard connections count
 )
 
 // kadSharder KAD based sharder
@@ -82,7 +83,7 @@ func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
 	// for balance we should have between 1 and 20% connections outside of shard
 	peerCnt := len(peers)
 	inShardCnt := inShardCount(sl)
-	balanced := peerCnt > inShardCnt
+	balanced := getMinOOS(ks.prioBits, peerCnt) <= (peerCnt - inShardCnt)
 
 	if balanced {
 		minInShard := int(math.Floor(float64(peerCnt) * minInShardConnRatio))
@@ -105,4 +106,12 @@ func inShardCount(sl *sortingList) int {
 		}
 	}
 	return cnt
+}
+
+func getMinOOS(bits uint32, conns int) int {
+	t := conns / (1 << (bits + 1))
+	if t < minOOSHardLimit {
+		return minOOSHardLimit
+	}
+	return t
 }

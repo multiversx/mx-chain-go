@@ -20,11 +20,7 @@ func createMockArguments() *ArgsPendingMiniBlocks {
 				return nil, epochStart.ErrMetaHdrNotFound
 			},
 		},
-		MetaBlockPool: &mock.CacherStub{
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		},
+		MetaBlockPool: &mock.HeadersCacherStub{},
 	}
 }
 
@@ -120,9 +116,12 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 			}},
 		},
 	}
-	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
-		return header, true
-	}}
+	arguments.MetaBlockPool = &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return header, nil
+		},
+	}
+
 	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
 	pmb, _ := NewPendingMiniBlocks(arguments)
@@ -134,6 +133,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
+	assert.Nil(t, err)
 
 	err = pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
@@ -143,6 +143,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
+	assert.Nil(t, err)
 }
 
 func TestPendingMiniBlockHeaders_PendingMiniBlockHeaders(t *testing.T) {
@@ -171,9 +172,11 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeaders(t *testing.T) {
 			}},
 		},
 	}
-	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
-		return header, true
-	}}
+	arguments.MetaBlockPool = &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return header, nil
+		},
+	}
 	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
 	pmb, _ := NewPendingMiniBlocks(arguments)
@@ -212,9 +215,11 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 			}},
 		},
 	}
-	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
-		return header, true
-	}}
+	arguments.MetaBlockPool = &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
+			return header, nil
+		},
+	}
 	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
 	pmb, _ := NewPendingMiniBlocks(arguments)
