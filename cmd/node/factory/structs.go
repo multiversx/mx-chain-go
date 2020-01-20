@@ -1463,7 +1463,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, newMetaDataPool, errPoolCreation := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		newStore, newBlkc, errPoolCreation := createInMemoryStoreBlkc(newShardCoordinator)
 		if errPoolCreation != nil {
 			return nil, errPoolCreation
 		}
