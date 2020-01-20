@@ -177,7 +177,4 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
-	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
-		ssb.blockTracker.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
-	}
 }

@@ -29,9 +29,3 @@ func (bb *blockBalancer) setNumPendingMiniBlocks(shardID uint32, numPendingMiniB
 	bb.mapShardNumPendingMiniBlocks[shardID] = numPendingMiniBlocks
 	bb.mutShardNumPendingMiniBlocks.Unlock()
 }
-
-func (bb *blockBalancer) restoreNumPendingMiniBlocksToGenesis() {
-	bb.mutShardNumPendingMiniBlocks.Lock()
-	bb.mapShardNumPendingMiniBlocks = make(map[uint32]uint32)
-	bb.mutShardNumPendingMiniBlocks.Unlock()
-}
