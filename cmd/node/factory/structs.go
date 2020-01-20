@@ -730,7 +730,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		pendingMiniBlocks, err = newPendingMiniBlocks(
 			args.data.Store,
 			args.core.Marshalizer,
-			args.data.MetaDatapool,
+			args.data.Datapool,
 		)
 		if err != nil {
 			return nil, err
@@ -1621,7 +1621,7 @@ func newBlockTracker(
 func newPendingMiniBlocks(
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	metaDatapool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 ) (process.PendingMiniBlocksHandler, error) {
 
 	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
@@ -1637,7 +1637,7 @@ func newPendingMiniBlocks(
 	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
 		Marshalizer:      marshalizer,
 		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    metaDatapool.Headers(),
+		MetaBlockPool:    dataPool.Headers(),
 		MetaBlockStorage: metaBlocksStore,
 	}
 	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
