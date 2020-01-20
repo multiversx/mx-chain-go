@@ -5,8 +5,27 @@ import (
 	"testing"
 )
 
+const oneMilion = 1000000
+const oneTrilion = 1000000000000
+const delta = 0.00000001
+
+func TestSenderAsScoredItem_ComputeScore(t *testing.T) {
+	list := newTxListForSender(".")
+
+	list.AddTx([]byte("a"), createTxWithParams(".", 1, 1000, 200000, 100*oneTrilion))
+	list.AddTx([]byte("b"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
+	list.AddTx([]byte("c"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
+
+	require.Equal(t, int64(3), list.countTx())
+	require.Equal(t, int64(2000), list.totalBytes.Get())
+	require.Equal(t, int64(400000), list.totalGas.Get())
+	require.Equal(t, int64(40*oneMilion), list.totalFee.Get())
+
+	require.InDelta(t, float64(5.795382396), list.computeRawScore(), delta)
+}
+
 func Test_computeSenderScore(t *testing.T) {
-	delta := 0.00000001
+
 	require.InDelta(t, float64(0.1789683371), computeSenderScore(senderScoreParams{count: 14000, size: 100000, fee: toMicroERD(300000), gas: 2500000000}), delta)
 	require.InDelta(t, float64(0.2517997181), computeSenderScore(senderScoreParams{count: 19000, size: 3000, fee: toMicroERD(2300000), gas: 19000000000}), delta)
 	require.InDelta(t, float64(5.795382396), computeSenderScore(senderScoreParams{count: 3, size: 2, fee: toMicroERD(40), gas: 400000}), delta)

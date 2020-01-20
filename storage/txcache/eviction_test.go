@@ -75,7 +75,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 
 	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
-	require.Equal(t, uint32(6), steps)
+	require.Equal(t, uint32(5), steps)
 	require.Equal(t, uint32(100), nTxs)
 	require.Equal(t, uint32(100), nSenders)
 	require.Equal(t, int64(100), cache.txListBySender.counter.Get())
@@ -121,14 +121,14 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 
 	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
-	require.Equal(t, uint32(6), steps)
+	require.Equal(t, uint32(5), steps)
 	require.Equal(t, uint32(100), nTxs)
 	require.Equal(t, uint32(100), nSenders)
 	require.Equal(t, int64(100), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-func Test_DoEviction_DoneInPass1(t *testing.T) {
+func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	config := EvictionConfig{
 		NumBytesThreshold:          40960,
 		CountThreshold:             2,
@@ -141,10 +141,11 @@ func Test_DoEviction_DoneInPass1(t *testing.T) {
 	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
 
 	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumSenders)
+	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumSenders)
+	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumTxs)
+	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumSenders)
+	require.Equal(t, uint32(1), cache.evictionJournal.passTwoNumSteps)
 
 	// Alice and Bob evicted. Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -153,7 +154,7 @@ func Test_DoEviction_DoneInPass1(t *testing.T) {
 	require.Equal(t, int64(1), cache.CountTx())
 }
 
-func Test_DoEviction_DoneInPassFour(t *testing.T) {
+func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          1500,

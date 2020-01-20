@@ -41,7 +41,7 @@ func (cache *TxCache) doEviction() {
 	}
 
 	if cache.shouldContinueEvictingSenders() {
-		journal.passTwoNumTxs, journal.passTwoNumSenders, journal.passTwoNumSteps = cache.evictSendersInLoop()
+		journal.passTwoNumSteps, journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictSendersInLoop()
 		journal.evictionPerformed = true
 	}
 
@@ -121,7 +121,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
-	for step = 1; shouldContinue(); step++ {
+	for step = 0; shouldContinue(); step++ {
 		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
 		batch := batchesSource[batchStart:batchEnd]
 
