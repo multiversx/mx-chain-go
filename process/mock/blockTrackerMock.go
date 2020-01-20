@@ -294,7 +294,11 @@ func (btm *BlockTrackerMock) GetTrackedHeadersWithNonce(shardID uint32, nonce ui
 }
 
 func (btm *BlockTrackerMock) IsShardStuck(shardId uint32) bool {
-	return btm.IsShardStuckCalled(shardId)
+	if btm.IsShardStuckCalled != nil {
+		return btm.IsShardStuckCalled(shardId)
+	}
+
+	return false
 }
 
 func (btm *BlockTrackerMock) RegisterCrossNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {

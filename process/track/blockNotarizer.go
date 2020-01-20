@@ -190,8 +190,7 @@ func (bn *blockNotarizer) initNotarizedHeaders(startHeaders map[uint32]data.Head
 
 	bn.notarizedHeaders = make(map[uint32][]*headerInfo)
 
-	for _, startHeader := range startHeaders {
-		shardID := startHeader.GetShardID()
+	for shardID, startHeader := range startHeaders {
 		startHeaderHash, err := core.CalculateHash(bn.marshalizer, bn.hasher, startHeader)
 		if err != nil {
 			return err
