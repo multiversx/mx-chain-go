@@ -363,14 +363,12 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	cache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}) (evicted bool) {
 			putCounter++
-			strKey := string(key)
-			cacheMap[strKey] = value
+			cacheMap[string(key)] = value
 			return false
 		},
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			getCounter++
-			strKey := string(key)
-			val, ok := cacheMap[strKey]
+			val, ok := cacheMap[string(key)]
 			if ok {
 				return val, true
 			}
