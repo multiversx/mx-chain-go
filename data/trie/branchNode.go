@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -64,10 +65,10 @@ func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode 
 }
 
 func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -513,7 +514,7 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 
 	dirty, newNode, oldHashes, err := bn.children[childPos].delete(key, db)
 	if !dirty || err != nil {
-		return false, nil, emptyHashes, err
+		return false, bn, emptyHashes, err
 	}
 
 	if !bn.dirty {

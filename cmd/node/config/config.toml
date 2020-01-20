@@ -219,6 +219,10 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[HeadersPoolConfig]
+    MaxHeadersPerShard = 1000
+    NumElementsToRemoveOnEviction = 200
+
 [BadBlocksCache]
     Size = 1000
     Type = "LRU"
@@ -227,29 +231,13 @@
     Size = 300
     Type = "LRU"
 
-[StateBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
-
 [PeerBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[BlockHeaderDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[BlockHeaderNoncesDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MetaHeaderNoncesDataPool]
     Size = 1000
     Type = "LRU"
 
 [TxDataPool]
     Size = 75000
-    Type = "FIFOSharded"
+    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
@@ -262,18 +250,6 @@
 
 [RewardTransactionDataPool]
     Size = 75000
-    Type = "LRU"
-
-[ShardHeadersDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MiniBlockHeaderHashesDataPool]
-    Size = 1000
-    Type = "LRU"
-
-[MetaBlockBodyDataPool]
-    Size = 1000
     Type = "LRU"
 
 [Logger]
@@ -305,8 +281,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 1000000
-    RoundsPerEpoch         = 1000000
+    MinRoundsBetweenEpochs = 500
+    RoundsPerEpoch         = 1000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

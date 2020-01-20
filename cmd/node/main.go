@@ -858,6 +858,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	<-sigs
 	log.Info("terminating at user's signal...")
 
+	log.Debug("closing all store units....")
+	err = dataComponents.Store.CloseAll()
+	log.LogIfError(err)
+
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
+
 	if rm != nil {
 		err = rm.Close()
 		log.LogIfError(err)
@@ -979,7 +989,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	rater sharding.RaterHandler,
+	_ sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1167,6 +1177,7 @@ func createNode(
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
+		node.WithBlockTracker(process.BlockTracker),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1177,11 +1188,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1190,12 +1203,7 @@ func createNode(
 			return nil, err
 		}
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
-		if err != nil {
-			return nil, errors.New("error creating meta-node: " + err.Error())
-		}
-	}
+
 	return nd, nil
 }
 

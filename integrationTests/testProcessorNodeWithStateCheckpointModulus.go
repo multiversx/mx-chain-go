@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -55,9 +54,9 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(factory.UserAccount)
-	tpn.PeerState, _, _ = CreateAccountsDB(factory.ValidatorAccount)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
@@ -77,7 +76,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestMarshalizer,
 		TestHasher,
 		TestUint64Converter,
-		tpn.MetaDataPool,
+		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)

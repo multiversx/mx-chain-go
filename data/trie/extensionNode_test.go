@@ -830,8 +830,11 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
-	tr := initTrie()
-	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	tr, _, _ := newEmptyTrie()
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	_ = tr.root.setRootHash()
+	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 	resolver := &mock.TrieNodesResolverStub{
 		RequestDataFromHashCalled: func(hash []byte) error {
@@ -847,25 +850,21 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		syncer.chRcvTrieNodes <- true
 	})
 
-	enHashPosition := 0
-	enKey := []byte{6, 4, 6, 15, 6}
-	childPosition := 1
-	childHash := hashes[childPosition]
-	en := &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
-			Key:          enKey,
-			EncodedChild: childHash,
-		},
-		baseNode: &baseNode{
-			hash: hashes[enHashPosition],
-		},
-	}
+	en := getCollapsedEn(t, tr.root)
 
 	err := en.loadChildren(syncer)
 	assert.Nil(t, err)
 	assert.NotNil(t, en.child)
 
-	assert.Equal(t, 5, nodesCacher.Len())
+	assert.Equal(t, 3, nodesCacher.Len())
+}
+
+func getCollapsedEn(t *testing.T, n node) *extensionNode {
+	en, ok := n.(*extensionNode)
+	assert.True(t, ok)
+	en.child = nil
+
+	return en
 }
 
 func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {

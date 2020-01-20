@@ -50,11 +50,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return &mock.Uint64SyncMapCacherStub{}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
@@ -894,7 +891,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.TrieNodesTopic),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},

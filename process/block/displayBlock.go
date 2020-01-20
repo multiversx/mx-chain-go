@@ -91,6 +91,7 @@ func (txc *transactionCounter) displayLogInfo(
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
 	appStatusHandler core.AppStatusHandler,
+	blockTracker process.BlockTracker,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
@@ -115,6 +116,8 @@ func (txc *transactionCounter) displayLogInfo(
 	}
 	txc.mutex.RUnlock()
 	log.Debug(message, arguments...)
+
+	blockTracker.DisplayTrackedHeaders()
 }
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(

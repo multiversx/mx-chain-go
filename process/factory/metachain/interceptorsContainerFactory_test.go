@@ -47,19 +47,13 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 	}
 }
 
-func createDataPools() dataRetriever.MetaPoolsHolder {
-	pools := &mock.MetaPoolsHolderStub{
-		ShardHeadersCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+func createDataPools() dataRetriever.PoolsHolder {
+	pools := &mock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
-		},
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
@@ -761,7 +755,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.TrieNodesTopic),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -879,7 +873,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1
 	numInterceptorsUnsignedTxsForMetachain := noOfShards
-	numInterceptorsTrieNodes := 1
+	numInterceptorsTrieNodes := (noOfShards + 1) * 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain
 

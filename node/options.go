@@ -260,17 +260,6 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
-// WithMetaDataPool sets up the data pools option for the Node
-func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
-	return func(n *Node) error {
-		if dataPool == nil || dataPool.IsInterfaceNil() {
-			return ErrNilDataPool
-		}
-		n.metaDataPool = dataPool
-		return nil
-	}
-}
-
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
@@ -499,6 +488,17 @@ func WithChainID(chainID []byte) Option {
 		}
 		n.chainID = chainID
 
+		return nil
+	}
+}
+
+// WithBlockTracker sets up the block tracker for the Node
+func WithBlockTracker(blockTracker process.BlockTracker) Option {
+	return func(n *Node) error {
+		if check.IfNil(blockTracker) {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
 		return nil
 	}
 }

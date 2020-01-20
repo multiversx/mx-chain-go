@@ -34,7 +34,7 @@ type interceptorsContainerFactory struct {
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.MetaPoolsHolder
+	dataPool               dataRetriever.PoolsHolder
 	shardCoordinator       sharding.Coordinator
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
@@ -54,7 +54,7 @@ func NewInterceptorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
-	dataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
@@ -262,10 +262,9 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaBlocks(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -327,10 +326,9 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.ShardHeaders(),
-		HeadersNonces: icf.dataPool.HeadersNonces(),
-		HdrValidator:  hdrValidator,
-		BlackList:     icf.blackList,
+		Headers:      icf.dataPool.Headers(),
+		HdrValidator: hdrValidator,
+		BlackList:    icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -541,14 +539,48 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	keys := make([]string, 0)
+	trieInterceptors := make([]process.Interceptor, 0)
 
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+
+		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+	}
+
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return []string{identifierTrieNodes}, []process.Interceptor{interceptor}, nil
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	return keys, trieInterceptors, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
