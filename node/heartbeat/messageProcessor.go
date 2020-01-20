@@ -39,13 +39,6 @@ func NewMessageProcessor(
 
 // CreateHeartbeatFromP2PMessage will return a heartbeat if all the checks pass
 func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error) {
-	if message == nil || message.IsInterfaceNil() {
-		return nil, ErrNilMessage
-	}
-	if message.Data() == nil {
-		return nil, ErrNilDataToProcess
-	}
-
 	hbRecv := &Heartbeat{}
 
 	err := mp.marshalizer.Unmarshal(hbRecv, message.Data())
@@ -84,8 +77,5 @@ func (mp *MessageProcessor) verifySignature(hbRecv *Heartbeat) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *MessageProcessor) IsInterfaceNil() bool {
-	if mp == nil {
-		return true
-	}
-	return false
+	return mp == nil
 }

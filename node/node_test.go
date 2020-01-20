@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1382,7 +1383,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 	}
 }
 
-func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
+func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *testing.T) {
 	t.Parallel()
 
 	var registeredHandler p2p.MessageProcessor
@@ -1451,7 +1452,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 
 	err = registeredHandler.ProcessReceivedMessage(nil, fromConnectedPeerId)
 	assert.NotNil(t, err)
-	assert.Contains(t, "nil message", err.Error())
+	assert.Equal(t, heartbeat.ErrNilMessage, err)
 }
 
 func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {

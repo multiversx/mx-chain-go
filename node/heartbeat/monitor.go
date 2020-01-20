@@ -209,6 +209,13 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	if message == nil || message.IsInterfaceNil() {
+		return ErrNilMessage
+	}
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
+
 	err := m.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err

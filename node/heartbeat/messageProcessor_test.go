@@ -56,6 +56,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mon)
+	assert.False(t, mon.IsInterfaceNil())
 }
 
 func TestNewMessageProcessor_VerifyMessageAllSmallerShouldWork(t *testing.T) {
@@ -233,27 +234,6 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	assert.NotNil(t, ret)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithNilDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	message := &mock.P2PMessageStub{
-		FromField:      nil,
-		DataField:      nil,
-		SeqNoField:     nil,
-		TopicIDsField:  nil,
-		SignatureField: nil,
-		KeyField:       nil,
-		PeerField:      "",
-	}
-
-	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
-
-	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
-
-	assert.Nil(t, ret)
-	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
-}
-
 func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -267,7 +247,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithUnmarshaliableData
 		PeerField:      "",
 	}
 
-	expectedErr := errors.New("Marshal didn't work")
+	expectedErr := errors.New("marshal didn't work")
 
 	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -339,15 +319,4 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 
 	assert.Nil(t, ret)
 	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
-}
-
-func TestNewMessageProcessor_CreateHeartbeatFromP2PNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
-
-	ret, err := mon.CreateHeartbeatFromP2PMessage(nil)
-
-	assert.Nil(t, ret)
-	assert.Equal(t, heartbeat.ErrNilMessage, err)
 }
