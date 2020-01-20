@@ -124,12 +124,22 @@ func (myMap *AlmostSortedMap) CountSorted() uint32 {
 	return count
 }
 
-// CountScoreChunk returns the number of sorted elements within a score chunk
-func (myMap *AlmostSortedMap) CountScoreChunk(score uint32) uint32 {
-	if score > myMap.maxScore {
-		return 0
+// ChunksCounts returns the number of elements by chunk
+func (myMap *AlmostSortedMap) ChunksCounts() []uint32 {
+	counts := make([]uint32, myMap.nChunks)
+	for i, chunk := range myMap.chunks {
+		counts[i] = chunk.countItems()
 	}
-	return myMap.scoreChunks[score].countItems()
+	return counts
+}
+
+// ScoreChunksCounts returns the number of elements by chunk
+func (myMap *AlmostSortedMap) ScoreChunksCounts() []uint32 {
+	counts := make([]uint32, myMap.nScoreChunks)
+	for i, chunk := range myMap.scoreChunks {
+		counts[i] = chunk.countItems()
+	}
+	return counts
 }
 
 // Has looks up an item under specified key

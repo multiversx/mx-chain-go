@@ -220,25 +220,34 @@ func Test_Keys(t *testing.T) {
 	require.Contains(t, keys, []byte("bob-y"))
 }
 
-func Test_AddWithEviction_UniformDistribution(t *testing.T) {
+func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	config := EvictionConfig{
 		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      10,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
+		NumBytesThreshold:               math.MaxUint32,
+		CountThreshold:                  100,
+		NumSendersToEvictInOneStep:      1,
+		ALotOfTransactionsForASender:    math.MaxUint32,
+		NumTxsToEvictForASenderWithALot: 0,
 	}
 
-	// 5000 * 100
+	// 11 * 10
 	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 5000, 100)
-	require.Equal(t, int64(240000), cache.CountTx())
+	addManyTransactionsWithUniformDistribution(cache, 11, 10)
+	require.LessOrEqual(t, cache.CountTx(), int64(100))
+
+	config = EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               math.MaxUint32,
+		CountThreshold:                  250000,
+		NumSendersToEvictInOneStep:      1,
+		ALotOfTransactionsForASender:    math.MaxUint32,
+		NumTxsToEvictForASenderWithALot: 0,
+	}
 
 	// 1000 * 1000
 	cache = NewTxCacheWithEviction(16, config)
 	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
-	require.Equal(t, int64(240000), cache.CountTx())
+	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 
 func Test_AddWithEviction_SizeAndCount(t *testing.T) {
@@ -267,10 +276,6 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	require.Equal(t, int64(1), cache.CountTx())
 	require.Equal(t, int64(1), cache.countTxBySender("alice"))
 	require.Equal(t, int64(1000), cache.VolumeInBytes())
-	// The eviction takes place in pass four
-	require.Equal(t, uint32(201), cache.evictionJournal.passFourNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// Bob and Carol send transactions, with different gas price
 	for i := 0; i < 100; i++ {
@@ -291,12 +296,6 @@ func Test_AddWithEviction_SizeAndCount(t *testing.T) {
 	// Carol sends another transaction
 	// This transaction will cause eviction
 	cache.AddTx([]byte(fmt.Sprintf("carol-foo")), createTxWithGas("carol", uint64(100), 1000, 15))
-
-	// Bob is evicted (lowest score)
-	// The eviction takes place in pass four
-	require.Equal(t, uint32(100), cache.evictionJournal.passFourNumTxs)
-	require.Equal(t, uint32(1), cache.evictionJournal.passFourNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
 
 	// All other transactions (from Alice and Carol) are still in place
 	// Carol has 101 transactions (1 to 100, plus the "foo" transaction)
@@ -335,83 +334,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 	thisIsNil := makeNil()
 	require.True(t, check.IfNil(thisIsNil))
-}
-
-// This seems to be the worst case in terms of eviction complexity
-// Eviction is triggered often and little eviction (only 10 senders) is done
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      10,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      100,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
-	require.Equal(b, int64(240000), cache.CountTx())
-}
-
-func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
-	config := EvictionConfig{
-		Enabled:                         true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
-	}
-
-	cache := NewTxCacheWithEviction(16, config)
-	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
-	require.Equal(b, int64(240000), cache.CountTx())
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {

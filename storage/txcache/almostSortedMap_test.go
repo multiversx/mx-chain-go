@@ -108,10 +108,11 @@ func TestAlmostSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, "b", keys[1])
 	require.Equal(t, "c", keys[2])
 
-	require.Equal(t, uint32(1), myMap.CountScoreChunk(0))
-	require.Equal(t, uint32(1), myMap.CountScoreChunk(1))
-	require.Equal(t, uint32(1), myMap.CountScoreChunk(2))
-	require.Equal(t, uint32(3), myMap.CountScoreChunk(3))
+	counts := myMap.ScoreChunksCounts()
+	require.Equal(t, uint32(1), counts[0])
+	require.Equal(t, uint32(1), counts[1])
+	require.Equal(t, uint32(1), counts[2])
+	require.Equal(t, uint32(3), counts[3])
 }
 
 func TestAlmostSortedMap_AddManyItems(t *testing.T) {
@@ -138,7 +139,8 @@ func TestAlmostSortedMap_AddManyItems(t *testing.T) {
 
 	assert.Equal(t, uint32(100*1000), myMap.CountSorted())
 
+	counts := myMap.ScoreChunksCounts()
 	for i := 0; i < 100; i++ {
-		require.Equal(t, uint32(1000), myMap.CountScoreChunk(uint32(i)))
+		require.Equal(t, uint32(1000), counts[i])
 	}
 }

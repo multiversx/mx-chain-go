@@ -6,10 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
-
-var log = logger.GetOrCreate("txcache")
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
@@ -88,7 +85,6 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		// TODO-TXCACHE: batchSizePerSender * current bin.
 		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.lastComputedScore+1)
 			// Reset happens on first pass only
@@ -120,8 +116,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
-		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		log.Error("TxCache.RemoveTxByHash() detected maps sync inconsistency", "tx", txHash)
+		cache.onRemoveTxInconsistency(txHash)
 		return ErrMapsSyncInconsistency
 	}
 
@@ -173,7 +168,7 @@ func (cache *TxCache) Clear() {
 
 // Put is not implemented
 func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
-	log.Error("TxCache.Put is not implemented")
+	mainLog.Error("TxCache.Put is not implemented")
 	return false
 }
 
@@ -185,7 +180,7 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 
 // Has is not implemented
 func (cache *TxCache) Has(key []byte) bool {
-	log.Error("TxCache.Has is not implemented")
+	mainLog.Error("TxCache.Has is not implemented")
 	return false
 }
 
@@ -197,7 +192,7 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd is not implemented
 func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	log.Error("TxCache.HasOrAdd is not implemented")
+	mainLog.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }
 
@@ -208,7 +203,7 @@ func (cache *TxCache) Remove(key []byte) {
 
 // RemoveOldest is not implemented
 func (cache *TxCache) RemoveOldest() {
-	log.Error("TxCache.RemoveOldest is not implemented")
+	mainLog.Error("TxCache.RemoveOldest is not implemented")
 }
 
 // Keys returns the tx hashes in the cache
@@ -218,13 +213,13 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	log.Error("TxCache.MaxSize is not implemented")
+	mainLog.Error("TxCache.MaxSize is not implemented")
 	return 0
 }
 
 // RegisterHandler is not implemented
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
-	log.Error("TxCache.RegisterHandler is not implemented")
+	mainLog.Error("TxCache.RegisterHandler is not implemented")
 }
 
 // VolumeInBytes returns the estimated volume of the cache, in bytes
@@ -235,8 +230,4 @@ func (cache *TxCache) VolumeInBytes() int64 {
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
-}
-
-func (cache *TxCache) displayState() {
-	log.Debug("TxCache.state:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 }

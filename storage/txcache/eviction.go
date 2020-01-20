@@ -34,25 +34,20 @@ func (cache *TxCache) doEviction() {
 	cache.maybeEvictionInProgress.Set()
 	defer cache.maybeEvictionInProgress.Unset()
 
-	log.Debug("TxCache.doEviction()")
-	cache.displayState()
+	cache.onEvictionStarted()
 
 	if tooManyTxs {
-		cache.evictHighNonceTransactions()
+		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
 		journal.evictionPerformed = true
 	}
 
 	if cache.shouldContinueEvictingSenders() {
-		cache.evictSendersInLoop()
+		journal.passTwoNumTxs, journal.passTwoNumSenders, journal.passTwoNumSteps = cache.evictSendersInLoop()
 		journal.evictionPerformed = true
 	}
 
 	cache.evictionJournal = journal
-
-	if journal.evictionPerformed {
-		journal.display()
-		cache.displayState()
-	}
+	cache.onEvictionEnded()
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -106,8 +101,6 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 }
 
 func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
-	log.Debug("TxCache.doEvictItems()", "txs", len(txsToEvict), "senders", len(sendersToEvict))
-
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
 	return

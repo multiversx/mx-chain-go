@@ -145,10 +145,6 @@ func Test_DoEviction_DoneInPass1(t *testing.T) {
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumTxs)
 	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumSenders)
-	require.Equal(t, uint32(0), cache.evictionJournal.passThreeNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passThreeNumSenders)
-	require.Equal(t, uint32(0), cache.evictionJournal.passFourNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passFourNumSenders)
 
 	// Alice and Bob evicted. Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -170,15 +166,10 @@ func Test_DoEviction_DoneInPassFour(t *testing.T) {
 	cache.AddTx([]byte("hash-carol"), createTxWithGas("carol", uint64(1), 500, 5))
 
 	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSteps)
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passFourNumSenders)
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumTxs)
 	require.Equal(t, uint32(0), cache.evictionJournal.passTwoNumSenders)
-	require.Equal(t, uint32(0), cache.evictionJournal.passThreeNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passThreeNumSenders)
 
 	// Alice and Bob evicted (lower score). Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
