@@ -103,6 +103,7 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
 	if blProcMock == nil {

@@ -223,7 +223,6 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
-	ValidatorStatisticsProcessor() ValidatorStatisticsProcessor
 	IsInterfaceNil() bool
 }
 
