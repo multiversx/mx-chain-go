@@ -90,10 +90,28 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	}
 
 	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
+		log.Warn("RECEIVED epoch start data")
+		displayEpochStartData(&metaBlock.EpochStart)
+
+		log.Warn("CREATED epoch start data")
+		displayEpochStartData(startData)
+
 		return process.ErrEpochStartDataDoesNotMatch
 	}
 
 	return nil
+}
+
+func displayEpochStartData(startData *block.EpochStart) {
+	for _, shardData := range startData.LastFinalizedHeaders {
+		log.Debug("epoch start shard data",
+			"shardID", shardData.ShardId,
+			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
+			"first pending meta", shardData.FirstPendingMetaBlock,
+			"last finished meta", shardData.LastFinishedMetaBlock,
+			"rootHash", shardData.RootHash,
+			"headerHash", shardData.HeaderHash)
+	}
 }
 
 // CreateEpochStartForMetablock creates epoch start data if it is needed

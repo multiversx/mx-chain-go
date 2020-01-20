@@ -222,6 +222,8 @@ func (t *trigger) Revert() {
 	t.currEpochStartRound = t.prevEpochStartRound
 	t.epoch = t.epoch - 1
 	t.isEpochStart = false
+
+	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 }
 
 // Epoch return the current epoch
