@@ -15,6 +15,7 @@ func TestNewDataTriesHolder(t *testing.T) {
 
 	dth := state.NewDataTriesHolder()
 	assert.NotNil(t, dth)
+	assert.False(t, dth.IsInterfaceNil())
 }
 
 func TestDataTriesHolder_PutAndGet(t *testing.T) {

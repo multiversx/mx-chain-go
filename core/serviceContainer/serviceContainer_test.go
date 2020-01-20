@@ -42,6 +42,7 @@ func TestServiceContainer_NewServiceContainerWithTPSBenchmark(t *testing.T) {
 	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithTPSBenchmark(tpsBenchmark))
 	assert.Nil(t, err)
 	assert.NotNil(t, sc)
+	assert.False(t, sc.IsInterfaceNil())
 	assert.Equal(t, tpsBenchmark, sc.TPSBenchmark())
 }
 

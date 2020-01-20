@@ -1,6 +1,7 @@
 package blockchain_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -16,6 +17,17 @@ func TestNewBlockChain_NilBadBlockCacheShouldError(t *testing.T) {
 	)
 
 	assert.Equal(t, err, blockchain.ErrBadBlocksCacheNil)
+}
+
+func TestNewBlockChain_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	badBlocksStub := &mock.CacherStub{}
+	blck, err := blockchain.NewBlockChain(badBlocksStub)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, blck)
+	assert.False(t, blck.IsInterfaceNil())
 }
 
 func TestBlockChain_IsBadBlock(t *testing.T) {
@@ -63,4 +75,33 @@ func TestBlockChain_SetNilAppStatusHandlerShouldErr(t *testing.T) {
 	err := b.SetAppStatusHandler(nil)
 
 	assert.Equal(t, blockchain.ErrNilAppStatusHandler, err)
+}
+
+func TestBlockChain_SettersAndGetters(t *testing.T) {
+	t.Parallel()
+
+	b, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+	)
+
+	hdr := &block.Header{}
+	body := block.Body{}
+	height := int64(37)
+	hdrHash := []byte("hash")
+
+	b.SetCurrentBlockHeaderHash(hdrHash)
+	b.SetNetworkHeight(height)
+	b.SetGenesisHeaderHash(hdrHash)
+	b.SetLocalHeight(height)
+	_ = b.SetGenesisHeader(hdr)
+	_ = b.SetCurrentBlockBody(body)
+	_ = b.SetCurrentBlockHeader(hdr)
+
+	assert.Equal(t, hdr, b.GetCurrentBlockHeader())
+	assert.Equal(t, hdr, b.GetGenesisHeader())
+	assert.Equal(t, hdrHash, b.GetCurrentBlockHeaderHash())
+	assert.Equal(t, hdrHash, b.GetGenesisHeaderHash())
+	assert.Equal(t, body, b.GetCurrentBlockBody())
+	assert.Equal(t, height, b.GetNetworkHeight())
+	assert.Equal(t, height, b.GetLocalHeight())
 }

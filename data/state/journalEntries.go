@@ -33,10 +33,7 @@ func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
-	if jeb == nil {
-		return true
-	}
-	return false
+	return jeb == nil
 }
 
 //------- JournalEntryDataTrieUpdates
@@ -51,7 +48,7 @@ type JournalEntryDataTrieUpdates struct {
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
 func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*JournalEntryDataTrieUpdates, error) {
 	if account == nil || account.IsInterfaceNil() {
-		return nil, ErrNilUpdater
+		return nil, ErrNilAccountHandler
 	}
 	if len(trieUpdates) == 0 {
 		return nil, ErrNilOrEmptyDataTrieUpdates

@@ -68,6 +68,7 @@ func TestChronology_NewChronologyShouldWork(t *testing.T) {
 
 	assert.NotNil(t, chr)
 	assert.Nil(t, err)
+	assert.False(t, chr.IsInterfaceNil())
 }
 
 func TestChronology_AddSubroundShouldWork(t *testing.T) {

@@ -242,10 +242,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *TpsBenchmark) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
 
 // ShardID returns the shard id of the current statistic object
@@ -290,8 +287,5 @@ func (ss *ShardStatistics) TotalProcessedTxCount() *big.Int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *ShardStatistics) IsInterfaceNil() bool {
-	if ss == nil {
-		return true
-	}
-	return false
+	return ss == nil
 }

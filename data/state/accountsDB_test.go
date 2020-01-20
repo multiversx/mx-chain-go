@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -768,4 +769,75 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 
+}
+
+// ----- ClosePersister
+
+func TestAccountsDB_CloseMainTriePersisterReturnsErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trieStub := mock.TrieStub{}
+	trieStub.ClosePersisterCalled = func() error {
+		return errors.New("error")
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+	err := adb.ClosePersister()
+	assert.Equal(t, storage.ErrClosingPersisters, err)
+}
+
+func TestAccountsDB_CloseDataTriePersisterReturnsErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	marsh := &mock.MarshalizerMock{}
+	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+	trieStub := mock.TrieStub{
+		CommitCalled: func() error {
+			return nil
+		},
+		ClosePersisterCalled: func() error {
+			return nil // main trie is closed successfully
+		},
+		RootCalled: func() (i []byte, e error) {
+			return nil, nil
+		},
+		GetCalled: func(key []byte) (i []byte, err error) {
+			return serializedAccount, nil
+		},
+		RecreateCalled: func(root []byte) (trie data.Trie, err error) {
+			return &mock.TrieStub{
+				GetCalled: func(key []byte) (i []byte, err error) {
+					return []byte("doge"), nil
+				},
+				UpdateCalled: func(key, value []byte) error {
+					return nil
+				},
+				ClosePersisterCalled: func() error {
+					return errors.New("error")
+				},
+			}, nil
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+
+	state2, _ := adb.GetAccountWithJournal(mock.NewAddressMock())
+	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
+	_ = adb.SaveDataTrie(state2)
+
+	err := adb.ClosePersister()
+	assert.Equal(t, storage.ErrClosingPersisters, err)
+}
+
+func TestAccountsDB_ClosePersisterNoErrorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trieStub := mock.TrieStub{}
+	trieStub.ClosePersisterCalled = func() error {
+		return nil
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+	err := adb.ClosePersister()
+	assert.Nil(t, err)
 }

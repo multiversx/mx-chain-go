@@ -35,6 +35,7 @@ func TestNewBaseJournalEntryCreation_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestBaseJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
@@ -74,6 +75,7 @@ func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
@@ -108,6 +110,7 @@ func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestBaseJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {

@@ -257,6 +257,7 @@ func TestNewBLSMultisig_OK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, multiSig)
+	assert.False(t, multiSig.IsInterfaceNil())
 }
 
 func TestBLSMultiSigner_CreateNilPubKeysShouldErr(t *testing.T) {

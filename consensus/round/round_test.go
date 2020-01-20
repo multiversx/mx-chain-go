@@ -33,6 +33,7 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 
 	assert.NotNil(t, rnd)
 	assert.Nil(t, err)
+	assert.False(t, rnd.IsInterfaceNil())
 }
 
 func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {

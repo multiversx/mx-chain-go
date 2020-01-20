@@ -12,7 +12,7 @@ func NewPeerAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (c *PeerAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+func (pac *PeerAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	account, err := state.NewPeerAccount(address, tracker)
 	if err != nil {
 		return nil, err
@@ -22,9 +22,6 @@ func (c *PeerAccountCreator) CreateAccount(address state.AddressContainer, track
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (c *PeerAccountCreator) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+func (pac *PeerAccountCreator) IsInterfaceNil() bool {
+	return pac == nil
 }

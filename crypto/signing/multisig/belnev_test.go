@@ -289,6 +289,7 @@ func TestNewBelNevMultisig_OK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, multiSig)
+	assert.False(t, multiSig.IsInterfaceNil())
 }
 
 func TestBelNevSigner_CreateNilPubKeysShouldErr(t *testing.T) {

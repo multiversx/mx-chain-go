@@ -14,7 +14,7 @@ type kyberPoint struct {
 
 // Equal tests if receiver is equal with the Point p given as parameter.
 // Both Points need to be derived from the same Group
-func (po *kyberPoint) Equal(p crypto.Point) (bool, error) {
+func (kp *kyberPoint) Equal(p crypto.Point) (bool, error) {
 	if p == nil || p.IsInterfaceNil() {
 		return false, crypto.ErrNilParam
 	}
@@ -25,29 +25,29 @@ func (po *kyberPoint) Equal(p crypto.Point) (bool, error) {
 		return false, crypto.ErrInvalidParam
 	}
 
-	eq := po.Point.Equal(po2.Point)
+	eq := kp.Point.Equal(po2.Point)
 
 	return eq, nil
 }
 
 // Null returns the neutral identity element.
-func (po *kyberPoint) Null() crypto.Point {
-	po2 := kyberPoint{Point: po.Point.Clone()}
+func (kp *kyberPoint) Null() crypto.Point {
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	_ = po2.Point.Null()
 
 	return &po2
 }
 
 // Base returns the Group's base point.
-func (po *kyberPoint) Base() crypto.Point {
-	po2 := kyberPoint{Point: po.Point.Clone()}
+func (kp *kyberPoint) Base() crypto.Point {
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	_ = po2.Point.Base()
 
 	return &po2
 }
 
 // Set sets the receiver equal to another Point p.
-func (po *kyberPoint) Set(p crypto.Point) error {
+func (kp *kyberPoint) Set(p crypto.Point) error {
 	if p == nil || p.IsInterfaceNil() {
 		return crypto.ErrNilParam
 	}
@@ -58,21 +58,21 @@ func (po *kyberPoint) Set(p crypto.Point) error {
 		return crypto.ErrInvalidParam
 	}
 
-	po.Point.Set(po1.Point)
+	kp.Point.Set(po1.Point)
 
 	return nil
 }
 
 // Clone returns a clone of the receiver.
-func (po *kyberPoint) Clone() crypto.Point {
-	po2 := kyberPoint{Point: po.Point.Clone()}
+func (kp *kyberPoint) Clone() crypto.Point {
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 
 	return &po2
 }
 
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
-func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
+func (kp *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
 	if p == nil || p.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
@@ -83,7 +83,7 @@ func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	po2 := kyberPoint{Point: po.Point.Clone()}
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	_ = po2.Point.Add(po2.Point, po1.Point)
 
 	return &po2, nil
@@ -91,7 +91,7 @@ func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
 
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
-func (po *kyberPoint) Sub(p crypto.Point) (crypto.Point, error) {
+func (kp *kyberPoint) Sub(p crypto.Point) (crypto.Point, error) {
 	if p == nil || p.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
@@ -102,22 +102,22 @@ func (po *kyberPoint) Sub(p crypto.Point) (crypto.Point, error) {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	po2 := kyberPoint{Point: po.Point.Clone()}
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	_ = po2.Point.Sub(po2.Point, po1.Point)
 
 	return &po2, nil
 }
 
 // Neg returns the negation of receiver
-func (po *kyberPoint) Neg() crypto.Point {
-	po2 := kyberPoint{Point: po.Point.Clone()}
-	_ = po2.Point.Neg(po.Point)
+func (kp *kyberPoint) Neg() crypto.Point {
+	po2 := kyberPoint{Point: kp.Point.Clone()}
+	_ = po2.Point.Neg(kp.Point)
 
 	return &po2
 }
 
 // Mul returns the result of multiplying receiver by the scalar s.
-func (po *kyberPoint) Mul(s crypto.Scalar) (crypto.Point, error) {
+func (kp *kyberPoint) Mul(s crypto.Scalar) (crypto.Point, error) {
 	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
@@ -128,43 +128,40 @@ func (po *kyberPoint) Mul(s crypto.Scalar) (crypto.Point, error) {
 		return nil, crypto.ErrInvalidParam
 	}
 
-	po2 := kyberPoint{Point: po.Point.Clone()}
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	_ = po2.Point.Mul(s1, po2.Point)
 
 	return &po2, nil
 }
 
 // Pick returns a new random or pseudo-random Point.
-func (po *kyberPoint) Pick(rand cipher.Stream) (crypto.Point, error) {
+func (kp *kyberPoint) Pick(rand cipher.Stream) (crypto.Point, error) {
 	if rand == nil {
 		return nil, crypto.ErrNilParam
 	}
 
-	po2 := kyberPoint{Point: po.Point.Clone()}
+	po2 := kyberPoint{Point: kp.Point.Clone()}
 	po2.Point.Pick(rand)
 
 	return &po2, nil
 }
 
 // GetUnderlyingObj returns the object the implementation wraps
-func (po *kyberPoint) GetUnderlyingObj() interface{} {
-	return po.Point
+func (kp *kyberPoint) GetUnderlyingObj() interface{} {
+	return kp.Point
 }
 
 // MarshalBinary converts the point into its byte array representation
-func (po *kyberPoint) MarshalBinary() ([]byte, error) {
-	return po.Point.MarshalBinary()
+func (kp *kyberPoint) MarshalBinary() ([]byte, error) {
+	return kp.Point.MarshalBinary()
 }
 
 // UnmarshalBinary reconstructs a point from its byte array representation
-func (po *kyberPoint) UnmarshalBinary(point []byte) error {
-	return po.Point.UnmarshalBinary(point)
+func (kp *kyberPoint) UnmarshalBinary(point []byte) error {
+	return kp.Point.UnmarshalBinary(point)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (po *kyberPoint) IsInterfaceNil() bool {
-	if po == nil {
-		return true
-	}
-	return false
+func (kp *kyberPoint) IsInterfaceNil() bool {
+	return kp == nil
 }

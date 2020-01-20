@@ -382,6 +382,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 
 	fct := *initFactory()
 	assert.NotNil(t, fct)
+	assert.False(t, fct.IsInterfaceNil())
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {
@@ -540,4 +541,39 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	_ = fct.GenerateSubrounds()
 
 	assert.Equal(t, 7, subroundHandlers)
+}
+
+func TestFactory_SetAppStatusHandlerNilStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	err := fct.SetAppStatusHandler(nil)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestFactory_SetAppStatusHandlerOkStatusHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	ash := &mock.AppStatusHandlerMock{}
+	err := fct.SetAppStatusHandler(ash)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ash, fct.AppStatusHandler())
+}
+
+func TestFactory_SetIndexerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	indexer := &mock.IndexerMock{}
+	fct.SetIndexer(indexer)
+
+	assert.Equal(t, indexer, fct.Indexer())
 }

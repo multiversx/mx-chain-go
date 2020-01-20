@@ -32,8 +32,10 @@ func TestNewAddressConverterNegativeSizeShouldErr(t *testing.T) {
 func TestNewAddressConverterOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
+	hac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
+	assert.NotNil(t, hac)
+	assert.False(t, hac.IsInterfaceNil())
 }
 
 //------- CreateAddressFromPublicKeyBytes
@@ -230,4 +232,12 @@ func TestAddressConverterPrepareAddressBytesOkValsShouldWork(t *testing.T) {
 	checked, err := ac.PrepareAddressBytes(buff)
 	assert.Nil(t, err)
 	assert.Equal(t, buff, checked)
+}
+
+func TestHashAddressConverter_AddressLen(t *testing.T) {
+	t.Parallel()
+
+	addressLen := 128
+	ac, _ := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, addressLen, "0x")
+	assert.Equal(t, addressLen, ac.AddressLen())
 }

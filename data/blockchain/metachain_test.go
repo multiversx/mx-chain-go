@@ -25,6 +25,7 @@ func TestNewMetachainConfigOK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, b)
+	assert.False(t, b.IsInterfaceNil())
 }
 
 func TestMetaChain_IsBadBlock(t *testing.T) {

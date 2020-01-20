@@ -33,6 +33,7 @@ func TestNewNumGoRoutineThrottler_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, nt)
 	assert.Nil(t, err)
+	assert.False(t, nt.IsInterfaceNil())
 }
 
 func TestNumGoRoutineThrottler_CanProcessMessageWithZeroCounter(t *testing.T) {

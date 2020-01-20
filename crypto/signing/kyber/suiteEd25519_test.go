@@ -11,6 +11,7 @@ func TestNewBlakeSHA256Ed25519(t *testing.T) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 
 	assert.NotNil(t, suite)
+	assert.False(t, suite.IsInterfaceNil())
 }
 
 func TestSuiteEd25519_RandomStream(t *testing.T) {

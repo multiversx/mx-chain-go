@@ -11,6 +11,7 @@ func TestNewSuitePairingBn256(t *testing.T) {
 	suite := kyber.NewSuitePairingBn256()
 
 	assert.NotNil(t, suite)
+	assert.False(t, suite.IsInterfaceNil())
 }
 
 func TestSuitePairingBn256_RandomStream(t *testing.T) {

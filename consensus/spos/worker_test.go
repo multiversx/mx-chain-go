@@ -644,6 +644,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 
 	assert.NotNil(t, wrk)
 	assert.Nil(t, err)
+	assert.False(t, wrk.IsInterfaceNil())
 }
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {

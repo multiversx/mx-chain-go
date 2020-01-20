@@ -1,6 +1,7 @@
 package bls_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -50,6 +51,15 @@ func initConsensusState() *spos.ConsensusState {
 	cns.Data = []byte("X")
 	cns.RoundIndex = 0
 	return cns
+}
+
+func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	service, err := bls.NewConsensusService()
+	assert.Nil(t, err)
+	require.NotNil(t, service)
+	assert.False(t, service.IsInterfaceNil())
 }
 
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
@@ -216,5 +226,41 @@ func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 	assert.False(t, ret)
 
 	ret = service.IsMessageWithBlockHeader(bls.MtBlockHeader)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsMessageWithSignature(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithSignature(bls.MtUnknown)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithSignature(bls.MtSignature)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsSubroundSignature(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsSubroundSignature(bls.SrEndRound)
+	assert.False(t, ret)
+
+	ret = service.IsSubroundSignature(bls.SrSignature)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsSubroundStartRound(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsSubroundStartRound(bls.SrSignature)
+	assert.False(t, ret)
+
+	ret = service.IsSubroundStartRound(bls.SrStartRound)
 	assert.True(t, ret)
 }

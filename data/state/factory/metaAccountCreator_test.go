@@ -44,6 +44,7 @@ func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
 	assert.Nil(t, err)
+	assert.False(t, accF.IsInterfaceNil())
 
 	_, ok := accF.(*factory.MetaAccountCreator)
 	assert.Equal(t, true, ok)
