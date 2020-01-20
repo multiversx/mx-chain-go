@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+const numberOfScoreChunks = uint32(100)
+
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
 	backingMap *AlmostSortedMap
@@ -13,7 +15,7 @@ type txListBySenderMap struct {
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
 func newTxListBySenderMap(nChunksHint uint32) txListBySenderMap {
-	backingMap := NewAlmostSortedMap(nChunksHint, 100)
+	backingMap := NewAlmostSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return txListBySenderMap{
 		backingMap: backingMap,
@@ -116,14 +118,14 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 type ForEachSender func(key string, value *txListForSender)
 
 func (txMap *txListBySenderMap) forEachAscending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedAscending(func(key string, item MapItem) {
+	txMap.backingMap.IterCbSortedAscending(func(key string, item ScoredItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})
 }
 
 func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedDescending(func(key string, item MapItem) {
+	txMap.backingMap.IterCbSortedDescending(func(key string, item ScoredItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})

@@ -14,8 +14,8 @@ type AlmostSortedMap struct {
 	scoreChunks  []*MapChunk
 }
 
-// MapItem is
-type MapItem interface {
+// ScoredItem is
+type ScoredItem interface {
 	GetKey() string
 	ComputeScore() uint32
 	GetScoreChunk() *MapChunk
@@ -24,7 +24,7 @@ type MapItem interface {
 
 // MapChunk is
 type MapChunk struct {
-	items map[string]MapItem
+	items map[string]ScoredItem
 	sync.RWMutex
 }
 
@@ -47,13 +47,13 @@ func NewAlmostSortedMap(nChunks uint32, nScoreChunks uint32) *AlmostSortedMap {
 
 	for i := uint32(0); i < nChunks; i++ {
 		myMap.chunks[i] = &MapChunk{
-			items: make(map[string]MapItem),
+			items: make(map[string]ScoredItem),
 		}
 	}
 
 	for i := uint32(0); i < nScoreChunks; i++ {
 		myMap.scoreChunks[i] = &MapChunk{
-			items: make(map[string]MapItem),
+			items: make(map[string]ScoredItem),
 		}
 	}
 
@@ -62,7 +62,7 @@ func NewAlmostSortedMap(nChunks uint32, nScoreChunks uint32) *AlmostSortedMap {
 
 // Set puts the item in the map
 // This doesn't add the item to the score chunks (not necessary)
-func (myMap *AlmostSortedMap) Set(item MapItem) {
+func (myMap *AlmostSortedMap) Set(item ScoredItem) {
 	chunk := myMap.getChunk(item.GetKey())
 	chunk.setItem(item)
 }
@@ -76,7 +76,7 @@ func (myMap *AlmostSortedMap) OnScoreChangeByKey(key string) {
 }
 
 // OnScoreChange moves or adds the item to the corresponding score chunk
-func (myMap *AlmostSortedMap) OnScoreChange(item MapItem) {
+func (myMap *AlmostSortedMap) OnScoreChange(item ScoredItem) {
 	newScore := item.ComputeScore()
 	if newScore > myMap.maxScore {
 		newScore = myMap.maxScore
@@ -89,7 +89,7 @@ func (myMap *AlmostSortedMap) OnScoreChange(item MapItem) {
 	}
 }
 
-func removeFromScoreChunk(item MapItem) {
+func removeFromScoreChunk(item ScoredItem) {
 	currentScoreChunk := item.GetScoreChunk()
 	if currentScoreChunk != nil {
 		currentScoreChunk.removeItem(item)
@@ -97,7 +97,7 @@ func removeFromScoreChunk(item MapItem) {
 }
 
 // Get retrieves an element from map under given key.
-func (myMap *AlmostSortedMap) Get(key string) (MapItem, bool) {
+func (myMap *AlmostSortedMap) Get(key string) (ScoredItem, bool) {
 	chunk := myMap.getChunk(key)
 	chunk.RLock()
 	val, ok := chunk.items[key]
@@ -150,7 +150,7 @@ func (myMap *AlmostSortedMap) Remove(key string) {
 }
 
 // SortedMapIterCb is an iterator callback
-type SortedMapIterCb func(key string, value MapItem)
+type SortedMapIterCb func(key string, value ScoredItem)
 
 // IterCb iterates over the elements in the map
 func (myMap *AlmostSortedMap) IterCb(callback SortedMapIterCb) {
@@ -265,7 +265,7 @@ func (myMap *AlmostSortedMap) KeysSorted() []string {
 	return keys
 }
 
-func (chunk *MapChunk) removeItem(item MapItem) {
+func (chunk *MapChunk) removeItem(item ScoredItem) {
 	chunk.Lock()
 	defer chunk.Unlock()
 
@@ -273,7 +273,7 @@ func (chunk *MapChunk) removeItem(item MapItem) {
 	delete(chunk.items, key)
 }
 
-func (chunk *MapChunk) removeItemByKey(key string) MapItem {
+func (chunk *MapChunk) removeItemByKey(key string) ScoredItem {
 	chunk.Lock()
 	defer chunk.Unlock()
 
@@ -282,7 +282,7 @@ func (chunk *MapChunk) removeItemByKey(key string) MapItem {
 	return item
 }
 
-func (chunk *MapChunk) setItem(item MapItem) {
+func (chunk *MapChunk) setItem(item ScoredItem) {
 	chunk.Lock()
 	defer chunk.Unlock()
 
