@@ -182,7 +182,7 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(args.GenesisTime)
 	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
-	err = saveGenesisMetaToStorage(args)
+	err = saveGenesisMetaToStorage(args.Store, args.Marshalizer, header)
 	if err != nil {
 		return nil, err
 	}
@@ -190,16 +190,23 @@ func CreateMetaGenesisBlock(
 	return header, nil
 }
 
-func saveGenesisMetaToStorage(args ArgsMetaGenesisBlockCreator) error {
+func saveGenesisMetaToStorage(
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	genesisBlock data.HeaderHandler,
+) error {
+
 	epochStartID := core.EpochStartIdentifier(0)
-	metaHdrStorage := args.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
 		return epochStart.ErrNilStorage
 	}
-	marshaledData, err := args.Marshalizer.Marshal(metaHdrStorage)
+
+	marshaledData, err := marshalizer.Marshal(genesisBlock)
 	if err != nil {
 		return err
 	}
+
 	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
 	if err != nil {
 		return err

@@ -91,19 +91,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataPool,
 	}
-	argsNewEpochStartData := ArgsNewEpochStartData{
-		Marshalizer:       arguments.Marshalizer,
-		Hasher:            arguments.Hasher,
-		Store:             arguments.Store,
-		DataPool:          arguments.DataPool,
-		BlockTracker:      arguments.BlockTracker,
-		ShardCoordinator:  arguments.ShardCoordinator,
-		EpochStartTrigger: arguments.EpochStartTrigger,
-	}
-	epochStartData, err := NewEpochStartData(argsNewEpochStartData)
-	if err != nil {
-		return nil, err
-	}
 
 	mp := metaProcessor{
 		core:              arguments.Core,
@@ -112,8 +99,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scDataGetter:      arguments.SCDataGetter,
 		peerChanges:       arguments.PeerChangesHandler,
 		scToProtocol:      arguments.SCToProtocol,
-		epochStartCreator: epochStartData,
 		pendingMiniBlocks: arguments.PendingMiniBlocks,
+	}
+
+	mp.epochStartCreator, err = createEpochStartDataCreator(arguments)
+	if err != nil {
+		return nil, err
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
@@ -131,6 +122,24 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
+}
+
+func createEpochStartDataCreator(arguments ArgMetaProcessor) (process.EpochStartDataCreator, error) {
+	argsNewEpochStartData := ArgsNewEpochStartData{
+		Marshalizer:       arguments.Marshalizer,
+		Hasher:            arguments.Hasher,
+		Store:             arguments.Store,
+		DataPool:          arguments.DataPool,
+		BlockTracker:      arguments.BlockTracker,
+		ShardCoordinator:  arguments.ShardCoordinator,
+		EpochStartTrigger: arguments.EpochStartTrigger,
+	}
+	epochStartData, err := NewEpochStartData(argsNewEpochStartData)
+	if err != nil {
+		return nil, err
+	}
+
+	return epochStartData, nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
