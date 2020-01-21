@@ -29,7 +29,7 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 		nScoreChunks = 1
 	}
 
-	myMap := BucketSortedMap{
+	sortedMap := BucketSortedMap{
 		nChunks:      nChunks,
 		nScoreChunks: nScoreChunks,
 		maxScore:     nScoreChunks - 1,
@@ -38,43 +38,43 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 	}
 
 	for i := uint32(0); i < nChunks; i++ {
-		myMap.chunks[i] = &MapChunk{
+		sortedMap.chunks[i] = &MapChunk{
 			items: make(map[string]BucketSortedMapItem),
 		}
 	}
 
 	for i := uint32(0); i < nScoreChunks; i++ {
-		myMap.scoreChunks[i] = &MapChunk{
+		sortedMap.scoreChunks[i] = &MapChunk{
 			items: make(map[string]BucketSortedMapItem),
 		}
 	}
 
-	return &myMap
+	return &sortedMap
 }
 
 // Set puts the item in the map
 // This doesn't add the item to the score chunks (not necessary)
-func (myMap *BucketSortedMap) Set(item BucketSortedMapItem) {
-	chunk := myMap.getChunk(item.GetKey())
+func (sortedMap *BucketSortedMap) Set(item BucketSortedMapItem) {
+	chunk := sortedMap.getChunk(item.GetKey())
 	chunk.setItem(item)
 }
 
 // OnScoreChangeByKey moves or adds the item to the corresponding score chunk
-func (myMap *BucketSortedMap) OnScoreChangeByKey(key string) {
-	item, ok := myMap.Get(key)
+func (sortedMap *BucketSortedMap) OnScoreChangeByKey(key string) {
+	item, ok := sortedMap.Get(key)
 	if ok {
-		myMap.OnScoreChange(item)
+		sortedMap.OnScoreChange(item)
 	}
 }
 
 // OnScoreChange moves or adds the item to the corresponding score chunk
-func (myMap *BucketSortedMap) OnScoreChange(item BucketSortedMapItem) {
+func (sortedMap *BucketSortedMap) OnScoreChange(item BucketSortedMapItem) {
 	newScore := item.ComputeScore()
-	if newScore > myMap.maxScore {
-		newScore = myMap.maxScore
+	if newScore > sortedMap.maxScore {
+		newScore = sortedMap.maxScore
 	}
 
-	newScoreChunk := myMap.scoreChunks[newScore]
+	newScoreChunk := sortedMap.scoreChunks[newScore]
 	if newScoreChunk != item.GetScoreChunk() {
 		removeFromScoreChunk(item)
 		newScoreChunk.setItem(item)
@@ -90,8 +90,8 @@ func removeFromScoreChunk(item BucketSortedMapItem) {
 }
 
 // Get retrieves an element from map under given key.
-func (myMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
-	chunk := myMap.getChunk(key)
+func (sortedMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
+	chunk := sortedMap.getChunk(key)
 	chunk.RLock()
 	val, ok := chunk.items[key]
 	chunk.RUnlock()
@@ -99,44 +99,44 @@ func (myMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
 }
 
 // Count returns the number of elements within the map
-func (myMap *BucketSortedMap) Count() uint32 {
+func (sortedMap *BucketSortedMap) Count() uint32 {
 	count := uint32(0)
-	for _, chunk := range myMap.chunks {
+	for _, chunk := range sortedMap.chunks {
 		count += chunk.countItems()
 	}
 	return count
 }
 
 // CountSorted returns the number of sorted elements within the map
-func (myMap *BucketSortedMap) CountSorted() uint32 {
+func (sortedMap *BucketSortedMap) CountSorted() uint32 {
 	count := uint32(0)
-	for _, chunk := range myMap.scoreChunks {
+	for _, chunk := range sortedMap.scoreChunks {
 		count += chunk.countItems()
 	}
 	return count
 }
 
 // ChunksCounts returns the number of elements by chunk
-func (myMap *BucketSortedMap) ChunksCounts() []uint32 {
-	counts := make([]uint32, myMap.nChunks)
-	for i, chunk := range myMap.chunks {
+func (sortedMap *BucketSortedMap) ChunksCounts() []uint32 {
+	counts := make([]uint32, sortedMap.nChunks)
+	for i, chunk := range sortedMap.chunks {
 		counts[i] = chunk.countItems()
 	}
 	return counts
 }
 
 // ScoreChunksCounts returns the number of elements by chunk
-func (myMap *BucketSortedMap) ScoreChunksCounts() []uint32 {
-	counts := make([]uint32, myMap.nScoreChunks)
-	for i, chunk := range myMap.scoreChunks {
+func (sortedMap *BucketSortedMap) ScoreChunksCounts() []uint32 {
+	counts := make([]uint32, sortedMap.nScoreChunks)
+	for i, chunk := range sortedMap.scoreChunks {
 		counts[i] = chunk.countItems()
 	}
 	return counts
 }
 
 // Has looks up an item under specified key
-func (myMap *BucketSortedMap) Has(key string) bool {
-	chunk := myMap.getChunk(key)
+func (sortedMap *BucketSortedMap) Has(key string) bool {
+	chunk := sortedMap.getChunk(key)
 	chunk.RLock()
 	_, ok := chunk.items[key]
 	chunk.RUnlock()
@@ -144,8 +144,8 @@ func (myMap *BucketSortedMap) Has(key string) bool {
 }
 
 // Remove removes an element from the map
-func (myMap *BucketSortedMap) Remove(key string) {
-	chunk := myMap.getChunk(key)
+func (sortedMap *BucketSortedMap) Remove(key string) {
+	chunk := sortedMap.getChunk(key)
 	item := chunk.removeItemByKey(key)
 	if item != nil {
 		removeFromScoreChunk(item)
@@ -156,26 +156,26 @@ func (myMap *BucketSortedMap) Remove(key string) {
 type SortedMapIterCb func(key string, value BucketSortedMapItem)
 
 // IterCb iterates over the elements in the map
-func (myMap *BucketSortedMap) IterCb(callback SortedMapIterCb) {
-	for idx := range myMap.chunks {
-		chunk := (myMap.chunks)[idx]
+func (sortedMap *BucketSortedMap) IterCb(callback SortedMapIterCb) {
+	for idx := range sortedMap.chunks {
+		chunk := (sortedMap.chunks)[idx]
 		chunk.forEachItem(callback)
 	}
 }
 
 // IterCbSortedAscending iterates over the sorted elements in the map
-func (myMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
-	for _, chunk := range myMap.scoreChunks {
+func (sortedMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
+	for _, chunk := range sortedMap.scoreChunks {
 		chunk.forEachItem(callback)
 	}
 }
 
 // GetSnapshotAscending gets a snapshot of the items
 // This applies a read lock on all chunks, so that they aren't mutated during snapshot
-func (myMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
+func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	counter := uint32(0)
 
-	for _, chunk := range myMap.scoreChunks {
+	for _, chunk := range sortedMap.scoreChunks {
 		chunk.RLock()
 		counter += uint32(len(chunk.items))
 	}
@@ -186,13 +186,13 @@ func (myMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 
 	snapshot := make([]BucketSortedMapItem, 0, counter)
 
-	for _, chunk := range myMap.scoreChunks {
+	for _, chunk := range sortedMap.scoreChunks {
 		for _, item := range chunk.items {
 			snapshot = append(snapshot, item)
 		}
 	}
 
-	for _, chunk := range myMap.scoreChunks {
+	for _, chunk := range sortedMap.scoreChunks {
 		chunk.RUnlock()
 	}
 
@@ -200,8 +200,8 @@ func (myMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 }
 
 // IterCbSortedDescending iterates over the sorted elements in the map
-func (myMap *BucketSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
-	chunks := myMap.scoreChunks
+func (sortedMap *BucketSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
+	chunks := sortedMap.scoreChunks
 	for i := len(chunks) - 1; i >= 0; i-- {
 		chunk := chunks[i]
 		chunk.forEachItem(callback)
@@ -209,8 +209,8 @@ func (myMap *BucketSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
 }
 
 // getChunk returns the chunk holding the given key.
-func (myMap *BucketSortedMap) getChunk(key string) *MapChunk {
-	return myMap.chunks[fnv32Hash(key)%myMap.nChunks]
+func (sortedMap *BucketSortedMap) getChunk(key string) *MapChunk {
+	return sortedMap.chunks[fnv32Hash(key)%sortedMap.nChunks]
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -225,23 +225,23 @@ func fnv32Hash(key string) uint32 {
 }
 
 // Clear clears the map
-func (myMap *BucketSortedMap) Clear() {
+func (sortedMap *BucketSortedMap) Clear() {
 	// There is no need to explicitly remove each item for each shard
 	// The garbage collector will remove the data from memory
 
 	// Assignment is not an atomic operation, so we have to wrap this in a critical section
-	myMap.globalMutex.Lock()
-	myMap.chunks = make([]*MapChunk, myMap.nChunks)
-	myMap.scoreChunks = make([]*MapChunk, myMap.nScoreChunks)
-	myMap.globalMutex.Unlock()
+	sortedMap.globalMutex.Lock()
+	sortedMap.chunks = make([]*MapChunk, sortedMap.nChunks)
+	sortedMap.scoreChunks = make([]*MapChunk, sortedMap.nScoreChunks)
+	sortedMap.globalMutex.Unlock()
 }
 
 // Keys returns all keys as []string
-func (myMap *BucketSortedMap) Keys() []string {
-	count := myMap.Count()
+func (sortedMap *BucketSortedMap) Keys() []string {
+	count := sortedMap.Count()
 	keys := make([]string, 0, count)
 
-	for _, chunk := range myMap.chunks {
+	for _, chunk := range sortedMap.chunks {
 		keys = chunk.appendKeys(keys)
 	}
 
@@ -249,11 +249,11 @@ func (myMap *BucketSortedMap) Keys() []string {
 }
 
 // KeysSorted returns all keys of the sorted items as []string
-func (myMap *BucketSortedMap) KeysSorted() []string {
-	count := myMap.CountSorted()
+func (sortedMap *BucketSortedMap) KeysSorted() []string {
+	count := sortedMap.CountSorted()
 	keys := make([]string, 0, count)
 
-	for _, chunk := range myMap.scoreChunks {
+	for _, chunk := range sortedMap.scoreChunks {
 		keys = chunk.appendKeys(keys)
 	}
 
