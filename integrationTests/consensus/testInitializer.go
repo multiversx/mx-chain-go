@@ -77,7 +77,6 @@ type testNode struct {
 	sk               crypto.PrivateKey
 	pk               crypto.PublicKey
 	dPool            dataRetriever.PoolsHolder
-	dMetaPool        dataRetriever.MetaPoolsHolder
 	headersRecv      int32
 	mutHeaders       sync.Mutex
 	headersHashes    [][]byte
@@ -217,7 +216,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
-	dPool, _ := dataPool.NewShardedDataPool(
+	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardsTxPool,

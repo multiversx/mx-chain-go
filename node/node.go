@@ -97,7 +97,6 @@ type Node struct {
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
-	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
@@ -116,8 +115,9 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID []byte
-	blockTracker          process.BlockTracker
+	chainID           []byte
+	blockTracker      process.BlockTracker
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -418,7 +418,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -432,7 +432,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BlockTracker:        n.blockTracker,
 	}
 
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	arguments := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -454,6 +458,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.messenger,
 		n.bootStorer,
 		shardStorageBootstrapper,
+		n.epochStartTrigger,
 		n.requestedItemsHandler,
 	)
 	if err != nil {
@@ -464,7 +469,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -478,13 +483,18 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BlockTracker:        n.blockTracker,
 	}
 
-	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	arguments := storageBootstrap.ArgsMetaStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+		PendingMiniBlocks:           n.pendingMiniBlocks,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(arguments)
 	if err != nil {
 		return nil, err
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(
-		n.metaDataPool,
+		n.dataPool,
 		n.store,
 		n.blkc,
 		rounder,
@@ -501,6 +511,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.bootStorer,
 		metaStorageBootstrapper,
 		n.requestedItemsHandler,
+		n.epochStartTrigger,
 		n.epochStartTrigger,
 	)
 

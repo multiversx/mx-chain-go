@@ -864,11 +864,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	err = coreComponents.Trie.ClosePersister()
-	log.LogIfError(err)
-
-	err = stateComponents.PeerAccounts.ClosePersister()
-	log.LogIfError(err)
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
 
 	if rm != nil {
 		err = rm.Close()
@@ -1218,11 +1218,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1232,7 +1234,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}

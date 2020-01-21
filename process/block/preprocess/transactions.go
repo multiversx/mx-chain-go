@@ -38,6 +38,7 @@ type transactions struct {
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	miniBlocksCompacter  process.MiniBlocksCompacter
+	blockTracker         BlockTracker
 	blockType            block.Type
 }
 
@@ -54,6 +55,7 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
+	blockTracker BlockTracker,
 	blockType block.Type,
 ) (*transactions, error) {
 
@@ -90,6 +92,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
@@ -107,6 +112,7 @@ func NewTransactionPreprocessor(
 		txProcessor:          txProcessor,
 		accounts:             accounts,
 		miniBlocksCompacter:  miniBlocksCompacter,
+		blockTracker:         blockTracker,
 		blockType:            blockType,
 	}
 
@@ -501,6 +507,13 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
 			if mbSpaceRemained <= 0 {
 				break
+			}
+
+			//TODO: We should analyze if this check could be done more restrictive or not, depending of the pending
+			//miniblocks given by the last metablock notarized instead of pending miniblocks given by the last metablock
+			//received in block tracker (the current state of all shards)
+			if txs.blockTracker.IsShardStuck(shardId) {
+				continue
 			}
 
 			miniBlock, err := txs.createAndProcessMiniBlock(

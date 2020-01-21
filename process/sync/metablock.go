@@ -29,7 +29,7 @@ type MetaBootstrap struct {
 
 // NewMetaBootstrap creates a new Bootstrap object
 func NewMetaBootstrap(
-	poolsHolder dataRetriever.MetaPoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	rounder consensus.Rounder,
@@ -47,6 +47,7 @@ func NewMetaBootstrap(
 	storageBootstrapper process.BootstrapperFromStorage,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochBootstrap process.EpochBootstrapper,
+	epochHandler dataRetriever.EpochHandler,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -57,6 +58,9 @@ func NewMetaBootstrap(
 	}
 	if check.IfNil(epochBootstrap) {
 		return nil, process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(epochHandler) {
+		return nil, process.ErrNilEpochHandler
 	}
 
 	err := checkBootstrapNilParameters(
@@ -96,6 +100,7 @@ func NewMetaBootstrap(
 		storageBootstrapper:   storageBootstrapper,
 		requestedItemsHandler: requestedItemsHandler,
 		miniBlocks:            poolsHolder.MiniBlocks(),
+		epochHandler:          epochHandler,
 	}
 
 	boot := MetaBootstrap{
@@ -235,7 +240,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	err := boot.hdrRes.RequestDataFromNonce(nonce)
+	err := boot.hdrRes.RequestDataFromNonce(nonce, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
 		return
@@ -260,7 +265,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	err := boot.hdrRes.RequestDataFromHash(hash)
+	err := boot.hdrRes.RequestDataFromHash(hash, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
 		return
@@ -427,7 +432,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
+		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes, boot.epochHandler.Epoch())
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return

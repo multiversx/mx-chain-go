@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -46,4 +47,9 @@ func (rf *resolversFinder) MetaChainResolver(baseTopic string) (dataRetriever.Re
 func (rf *resolversFinder) CrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
 	topic := baseTopic + rf.coordinator.CommunicationIdentifier(crossShard)
 	return rf.Get(topic)
+}
+
+// IsInterfaceNil returns true if underlying struct is nil
+func (rf *resolversFinder) IsInterfaceNil() bool {
+	return rf == nil || check.IfNil(rf.ResolversContainer)
 }

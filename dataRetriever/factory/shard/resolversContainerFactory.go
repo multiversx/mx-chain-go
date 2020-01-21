@@ -4,6 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -25,7 +27,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
-	trieDataGetter           dataRetriever.TrieDataGetter
+	trieDataGetter           state.TriesHolder
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -37,7 +39,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
-	trieDataGetter dataRetriever.TrieDataGetter,
+	trieDataGetter state.TriesHolder,
 	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
@@ -65,7 +67,7 @@ func NewResolversContainerFactory(
 	if check.IfNil(dataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
-	if trieDataGetter == nil || trieDataGetter.IsInterfaceNil() {
+	if check.IfNil(trieDataGetter) {
 		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
@@ -516,9 +518,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -526,9 +527,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice = append(resolverSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-
-	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -539,7 +539,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, err
@@ -557,9 +557,10 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dat
 		return nil, err
 	}
 
+	trie := rcf.trieDataGetter.Get([]byte(trieId))
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
-		rcf.trieDataGetter,
+		trie,
 		rcf.marshalizer,
 	)
 	if err != nil {
