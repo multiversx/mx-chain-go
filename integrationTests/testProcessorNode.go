@@ -1,12 +1,10 @@
 package integrationTests
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sort"
 	"strconv"
 	"sync/atomic"
 	"time"

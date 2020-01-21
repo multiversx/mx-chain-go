@@ -1,24 +1,23 @@
 package rating
 
-type NilRatingReader struct {
+type nilRatingReader struct {
+	startRating uint32
+}
+
+func NewNilRatingReader(startRating uint32) *nilRatingReader {
+	return &nilRatingReader{startRating: startRating}
 }
 
 //GetRating gets the rating for the public key
-func (*NilRatingReader) GetRating(string) uint32 {
-	return 1
+func (nrr *nilRatingReader) GetRating(string) uint32 {
+	return nrr.startRating
 }
 
-//GetRatings gets all the ratings as a map[pk] ratingValue
-func (*NilRatingReader) GetRatings(pks []string) map[string]uint32 {
-	ratingsMap := make(map[string]uint32)
-
-	for _, val := range pks {
-		ratingsMap[val] = 1
-	}
-	return ratingsMap
+//UpdateRatingFromTempRating sets the new rating to the value of the tempRating
+func (nrr *nilRatingReader) UpdateRatingFromTempRating([]string) {
 }
 
 //IsInterfaceNil verifies if the interface is nil
-func (rr *NilRatingReader) IsInterfaceNil() bool {
+func (rr *nilRatingReader) IsInterfaceNil() bool {
 	return rr == nil
 }
