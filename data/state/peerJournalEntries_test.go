@@ -25,6 +25,7 @@ func TestPeerJournalEntryAddress_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryAddress_RevertOkValsShouldWork(t *testing.T) {
@@ -55,6 +56,7 @@ func TestPeerJournalEntrySchnorrPublicKey_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntrySchnorrPublicKey_RevertOkValsShouldWork(t *testing.T) {
@@ -85,6 +87,7 @@ func TestPeerJournalEntryBLSPublicKey_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryBLSPublicKey_RevertOkValsShouldWork(t *testing.T) {
@@ -115,6 +118,7 @@ func TestPeerJournalEntryStake_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryStake_RevertOkValsShouldWork(t *testing.T) {
@@ -154,6 +158,7 @@ func TestPeerJournalEntryJailTime_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryJailTime_RevertOkValsShouldWork(t *testing.T) {
@@ -188,6 +193,7 @@ func TestPeerJournalEntryCurrentShardId_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryCurrentShardId_RevertOkValsShouldWork(t *testing.T) {
@@ -218,6 +224,7 @@ func TestPeerJournalEntryNextShardId_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryNextShardId_RevertOkValsShouldWork(t *testing.T) {
@@ -248,6 +255,7 @@ func TestPeerJournalEntryInWaitingList_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryInWaitingList_RevertOkValsShouldWork(t *testing.T) {
@@ -281,6 +289,7 @@ func TestPeerJournalEntryValidatorSuccessRate_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryValidatorSuccessRate_RevertOkValsShouldWork(t *testing.T) {
@@ -315,6 +324,7 @@ func TestPeerJournalEntryLeaderSuccessRate_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryLeaderSuccessRate_RevertOkValsShouldWork(t *testing.T) {
@@ -346,6 +356,7 @@ func TestPeerJournalEntryRating_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestPeerJournalEntryRating_RevertOkValsShouldWork(t *testing.T) {
@@ -357,4 +368,68 @@ func TestPeerJournalEntryRating_RevertOkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(10), accnt.Rating)
+}
+
+func TestPeerJournalEntryTempRating_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewPeerJournalEntryTempRating(nil, 10)
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestPeerJournalEntryTempRating_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewPeerJournalEntryTempRating(accnt, 10)
+
+	assert.NotNil(t, entry)
+	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
+}
+
+func TestPeerJournalEntryTempRating_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldTempRating := uint32(37)
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewPeerJournalEntryTempRating(accnt, oldTempRating)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, oldTempRating, accnt.TempRating)
+}
+
+func TestPeerJournalEntryUnStakedNonce_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewPeerJournalEntryUnStakedNonce(nil, 10)
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestPeerJournalEntryUnStakedNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewPeerJournalEntryUnStakedNonce(accnt, 10)
+
+	assert.NotNil(t, entry)
+	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
+}
+
+func TestPeerJournalEntryUnStakedNonce_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	oldUnStakedNonce := uint64(37)
+	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewPeerJournalEntryUnStakedNonce(accnt, oldUnStakedNonce)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, oldUnStakedNonce, accnt.UnStakedNonce)
 }

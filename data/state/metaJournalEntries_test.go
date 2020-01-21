@@ -27,6 +27,7 @@ func TestNewetaJournalEntryRound_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestNewMetaJournalEntryRound_RevertOkValsShouldWork(t *testing.T) {
@@ -60,6 +61,7 @@ func TestNewetaJournalEntryMiniBlocksData_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestNewMetaJournalEntryMiniBlocksData_RevertOkValsShouldWork(t *testing.T) {
@@ -92,6 +94,7 @@ func TestNewetaJournalEntryTxCount_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
@@ -124,6 +127,7 @@ func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, entry.IsInterfaceNil())
 }
 
 func TestNewMetaJournalEntryShardRootHash_RevertOkValsShouldWork(t *testing.T) {

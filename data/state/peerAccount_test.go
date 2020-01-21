@@ -50,6 +50,7 @@ func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
+	assert.False(t, acc.IsInterfaceNil())
 }
 
 func TestPeerAccount_AddressContainer(t *testing.T) {

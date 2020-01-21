@@ -106,6 +106,7 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 
 	assert.NotNil(t, adb)
 	assert.Nil(t, err)
+	assert.False(t, adb.IsInterfaceNil())
 }
 
 //------- PutCode
@@ -839,5 +840,109 @@ func TestAccountsDB_ClosePersisterNoErrorShouldWork(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(&trieStub)
 	err := adb.ClosePersister()
+	assert.Nil(t, err)
+}
+
+func TestAccountsDB_CancelPrune(t *testing.T) {
+	t.Parallel()
+
+	cancelPruneWasCalled := false
+	trieStub := &mock.TrieStub{
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			cancelPruneWasCalled = true
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.CancelPrune([]byte("roothash"))
+
+	assert.True(t, cancelPruneWasCalled)
+}
+
+func TestAccountsDB_PruneTrie(t *testing.T) {
+	t.Parallel()
+
+	pruneTrieWasCalled := false
+	trieStub := &mock.TrieStub{
+		PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) error {
+			pruneTrieWasCalled = true
+			return nil
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	err := adb.PruneTrie([]byte("roothash"))
+
+	assert.Nil(t, err)
+	assert.True(t, pruneTrieWasCalled)
+}
+
+func TestAccountsDB_SnapshotState(t *testing.T) {
+	t.Parallel()
+
+	takeSnapshotWasCalled := false
+	trieStub := &mock.TrieStub{
+		TakeSnapshotCalled: func(rootHash []byte) {
+			takeSnapshotWasCalled = true
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.SnapshotState([]byte("roothash"))
+
+	assert.True(t, takeSnapshotWasCalled)
+}
+
+func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	setCheckPointWasCalled := false
+	trieStub := &mock.TrieStub{
+		SetCheckpointCalled: func(rootHash []byte) {
+			setCheckPointWasCalled = true
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.SetStateCheckpoint([]byte("roothash"))
+
+	assert.True(t, setCheckPointWasCalled)
+}
+
+func TestAccountsDB_IsPruningEnabled(t *testing.T) {
+	t.Parallel()
+
+	trieStub := &mock.TrieStub{
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	res := adb.IsPruningEnabled()
+
+	assert.Equal(t, true, res)
+}
+
+func TestAccountsDB_RevertToSnapshotNoEntriesShouldNotErr(t *testing.T) {
+	t.Parallel()
+
+	trieStub := &mock.TrieStub{}
+	adb := generateAccountDBFromTrie(trieStub)
+
+	err := adb.RevertToSnapshot(1)
+	assert.Nil(t, err)
+}
+
+type testEntry struct{}
+
+func (te *testEntry) Revert() (state.AccountHandler, error) { return nil, nil }
+func (te *testEntry) IsInterfaceNil() bool                  { return false }
+
+func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trieStub := &mock.TrieStub{}
+	adb := generateAccountDBFromTrie(trieStub)
+
+	adb.Journalize(&testEntry{})
+	adb.Journalize(&testEntry{})
+
+	err := adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
 }

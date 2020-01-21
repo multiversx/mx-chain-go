@@ -10,6 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewTrackableDataTrie(t *testing.T) {
+	t.Parallel()
+
+	identifier := []byte("identifier")
+	trie := &mock.TrieStub{}
+	tdaw := state.NewTrackableDataTrie(identifier, trie)
+
+	assert.NotNil(t, tdaw)
+	assert.False(t, tdaw.IsInterfaceNil())
+}
+
 func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -92,11 +103,12 @@ func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	mdaw := state.NewTrackableDataTrie(identifier, trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.DirtyData()[string(expectedKey)] = value
+	//mdaw.DirtyData()[string(expectedKey)] = value
 
 	valRecovered, err := mdaw.RetrieveValue(expectedKey)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedVal, valRecovered)
+	assert.Equal(t, expectedVal, mdaw.OriginalValue(expectedKey))
 }
 
 func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
@@ -168,4 +180,16 @@ func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
 	//clear
 	mdaw.ClearDataCaches()
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
+}
+
+func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
+	t.Parallel()
+
+	trie := &mock.TrieStub{}
+	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
+
+	newTrie := &mock.TrieStub{}
+	mdaw.SetDataTrie(newTrie)
+
+	assert.Equal(t, newTrie, mdaw.DataTrie())
 }

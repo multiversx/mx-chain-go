@@ -11,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewBigEndianConverter(t *testing.T) {
+	t.Parallel()
+
+	bec := uint64ByteSlice.NewBigEndianConverter()
+
+	assert.NotNil(t, bec)
+	assert.False(t, bec.IsInterfaceNil())
+}
+
 func TestBigEndianConverter_ToUint64NilBuffShouldErr(t *testing.T) {
 	t.Parallel()
 

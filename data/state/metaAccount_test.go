@@ -50,6 +50,7 @@ func TestMetaAccount_NewMetaAccountOk(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
+	assert.False(t, acc.IsInterfaceNil())
 }
 
 func TestMetaAccount_AddressContainer(t *testing.T) {
@@ -166,6 +167,51 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 	assert.Equal(t, round, acc.Round)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
+}
+
+func TestMetaAccount_SetGetNonce(t *testing.T) {
+	t.Parallel()
+
+	acc, _ := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+
+	nonce := uint64(37)
+	acc.SetNonce(nonce)
+	assert.Equal(t, nonce, acc.GetNonce())
+}
+
+func TestMetaAccount_SetNonceWithJournal(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(5)
+	journalizeWasCalled := false
+	saveAccountWasCalled := false
+	address := &mock.AddressMock{}
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeWasCalled = true
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountWasCalled = true
+			assert.Equal(t, nonce, accountHandler.GetNonce())
+			return nil
+		},
+	}
+	acc, _ := state.NewMetaAccount(address, tracker)
+	acc.SetNonce(nonce)
+
+	err := acc.SetNonceWithJournal(nonce)
+	assert.Nil(t, err)
+	assert.True(t, journalizeWasCalled)
+	assert.True(t, saveAccountWasCalled)
+}
+
+func TestMetaAccount_DataTrieTracker(t *testing.T) {
+	t.Parallel()
+
+	acc, _ := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+
+	dtt := acc.DataTrieTracker()
+	assert.NotNil(t, dtt)
 }
 
 func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
