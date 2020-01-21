@@ -72,10 +72,10 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	err := node.SetAccountNonce(uint64(0))
 	assert.Nil(t, err)
 
-	node.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
+	node.DataPool.Transactions().RegisterHandler(func(key []byte) {
 		assert.Equal(t, txHexHash, hex.EncodeToString(key))
 
-		dataRecovered, _ := node.ShardDataPool.Transactions().SearchFirstData(key)
+		dataRecovered, _ := node.DataPool.Transactions().SearchFirstData(key)
 		assert.NotNil(t, dataRecovered)
 
 		txRecovered, ok := dataRecovered.(*transaction.Transaction)

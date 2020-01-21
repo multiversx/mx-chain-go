@@ -10,10 +10,11 @@ import (
 
 type metaStorageBootstrapper struct {
 	*storageBootstrapper
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 // NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
-func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorageBootstrapper, error) {
+func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
 	base := &storageBootstrapper{
 		bootStorer:       arguments.BootStorer,
 		forkDetector:     arguments.ForkDetector,
@@ -30,6 +31,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 
 	boot := metaStorageBootstrapper{
 		storageBootstrapper: base,
+		pendingMiniBlocks:   arguments.PendingMiniBlocks,
 	}
 
 	base.bootstrapper = &boot
@@ -121,4 +123,14 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
 	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
 	return selfNotarizedHeaders, nil
+}
+
+func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
+	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
+		msb.pendingMiniBlocks.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
+
+		log.Debug("set pending miniblocks",
+			"shard", pendingMiniBlockInfo.ShardID,
+			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
+	}
 }

@@ -16,7 +16,7 @@ type shardStorageBootstrapper struct {
 }
 
 // NewShardStorageBootstrapper is method used to create a nes storage bootstrapper
-func NewShardStorageBootstrapper(arguments ArgsStorageBootstrapper) (*shardStorageBootstrapper, error) {
+func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shardStorageBootstrapper, error) {
 	base := &storageBootstrapper{
 		bootStorer:       arguments.BootStorer,
 		forkDetector:     arguments.ForkDetector,
@@ -174,4 +174,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 	}
 
 	return selfNotarizedHeaders, nil
+}
+
+func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
 }

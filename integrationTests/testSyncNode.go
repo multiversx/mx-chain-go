@@ -68,7 +68,7 @@ func NewTestSyncNode(
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(0)
+	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
@@ -80,6 +80,8 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initHeaderValidator()
+	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -115,14 +117,6 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
-	}
-	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
-
-	tpn.initBlockTracker(headerValidator)
-
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -138,7 +132,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		HeaderValidator:              headerValidator,
+		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -146,6 +140,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker: tpn.BlockTracker,
+		DataPool: tpn.DataPool,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -155,7 +150,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:   argumentsBase,
-			DataPool:           tpn.MetaDataPool,
 			SCDataGetter:       &mock.ScQueryMock{},
 			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
@@ -171,7 +165,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor:       argumentsBase,
-			DataPool:               tpn.ShardDataPool,
 			TxsPoolsCleaner:        &mock.TxPoolsCleanerMock{},
 			StateCheckpointModulus: stateCheckpointModulus,
 		}
@@ -191,7 +184,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 	}
 
 	bootstrap, err := sync.NewShardBootstrap(
-		tpn.ShardDataPool,
+		tpn.DataPool,
 		tpn.Storage,
 		tpn.BlockChain,
 		tpn.Rounder,
@@ -207,6 +200,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.EpochStartTrigger,
 		tpn.RequestedItemsHandler,
 	)
 	if err != nil {
@@ -220,7 +214,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
 	bootstrap, err := sync.NewMetaBootstrap(
-		tpn.MetaDataPool,
+		tpn.DataPool,
 		tpn.Storage,
 		tpn.BlockChain,
 		tpn.Rounder,
@@ -237,6 +231,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.RequestedItemsHandler,
+		tpn.EpochStartTrigger,
 		tpn.EpochStartTrigger,
 	)
 

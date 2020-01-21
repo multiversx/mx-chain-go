@@ -279,6 +279,33 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 }
 
+// SearchFirst will search a given key in all the active persisters, from the newest to the oldest
+func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		return v.([]byte), nil
+	}
+
+	var res []byte
+	var err error
+	for _, pd := range ps.activePersisters {
+		res, err = pd.persister.Get(key)
+		if err == nil {
+			return res, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
+		storage.ErrKeyNotFound,
+		ps.identifier,
+		base64.StdEncoding.EncodeToString(key),
+		len(ps.activePersisters),
+	)
+}
+
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
@@ -318,16 +345,16 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 	}
 
 	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		persisterData, ok := ps.persistersMapByEpoch[epoch]
+		pd, ok := ps.persistersMapByEpoch[epoch]
 		if !ok {
 			return storage.ErrKeyNotFound
 		}
 
-		if !persisterData.isClosed {
-			return persisterData.persister.Has(key)
+		if !pd.isClosed {
+			return pd.persister.Has(key)
 		}
 
-		persister, err := ps.persisterFactory.Create(persisterData.path)
+		persister, err := ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -428,8 +455,10 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
+		log.Debug("PruningStorer - change epoch - pruning is disabled")
 		return nil
 	}
 

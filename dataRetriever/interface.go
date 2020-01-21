@@ -52,7 +52,7 @@ const (
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte) error
+	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
@@ -60,7 +60,7 @@ type Resolver interface {
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64) error
+	RequestDataFromNonce(nonce uint64, epoch uint32) error
 	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
 }
@@ -68,7 +68,7 @@ type HeaderResolver interface {
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
-	RequestDataFromHashArray(hashes [][]byte) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
@@ -110,6 +110,12 @@ type ResolversContainerFactory interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
+type EpochProviderByNonce interface {
+	EpochForNonce(nonce uint64) (uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -232,17 +238,6 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
-	CurrentBlockTxs() TransactionCacher
-	IsInterfaceNil() bool
-}
-
-// MetaPoolsHolder defines getter for data pools for metachain
-type MetaPoolsHolder interface {
-	MiniBlocks() storage.Cacher
-	Headers() HeadersPool
-	TrieNodes() storage.Cacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

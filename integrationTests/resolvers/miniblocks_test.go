@@ -20,10 +20,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	miniblock, hash := createMiniblock(shardId, shardId)
 
 	//add miniblock in pool
-	_, _ = nResolver.ShardDataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
 
 	//setup header received event
-	nRequester.ShardDataPool.MiniBlocks().RegisterHandler(
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received miniblock", "hash", key)
@@ -35,7 +35,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -53,10 +53,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	miniblock, hash := createMiniblock(shardIdResolver, shardIdRequester)
 
 	//add miniblock in pool
-	_, _ = nResolver.ShardDataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
 
 	//setup header received event
-	nRequester.ShardDataPool.MiniBlocks().RegisterHandler(
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received miniblock", "hash", key)
@@ -68,7 +68,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -85,10 +85,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	miniblock, hash := createMiniblock(shardId, shardId)
 
 	//add miniblock in pool
-	_, _ = nResolver.MetaDataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
 
 	//setup header received event
-	nRequester.ShardDataPool.MiniBlocks().RegisterHandler(
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received miniblock", "hash", key)
@@ -100,7 +100,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.MetachainShardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()
@@ -117,10 +117,10 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	miniblock, hash := createMiniblock(shardId, core.MetachainShardId)
 
 	//add miniblock in pool
-	_, _ = nResolver.ShardDataPool.MiniBlocks().HasOrAdd(hash, miniblock)
+	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock)
 
 	//setup header received event
-	nRequester.MetaDataPool.MiniBlocks().RegisterHandler(
+	nRequester.DataPool.MiniBlocks().RegisterHandler(
 		func(key []byte) {
 			if bytes.Equal(key, hash) {
 				log.Info("received miniblock", "hash", key)
@@ -132,7 +132,7 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 	log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, 0)
 	log.LogIfError(err)
 
 	rm.waitWithTimeout()

@@ -75,14 +75,14 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
-		v, err := metaNode.MetaDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
 
 	// all nodes in shard have the block in pool as interceptor validates it
 	for _, shardNode := range nodesMap[0] {
-		v, err := shardNode.ShardDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
@@ -151,14 +151,14 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
-		v, err := metaNode.MetaDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
 
 	// all nodes in shard do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, shardNode := range nodesMap[0] {
-		v, err := shardNode.ShardDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
@@ -227,14 +227,14 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
-		v, err := metaNode.MetaDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
 
 	// all nodes in shard have the block in pool as interceptor validates it
 	for _, shardNode := range nodesMap[0] {
-		v, err := shardNode.ShardDataPool.Headers().GetHeaderByHash(headerHash)
+		v, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Nil(t, err)
 		assert.Equal(t, header, v)
 	}
@@ -298,13 +298,13 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
 	for _, metaNode := range nodesMap[core.MetachainShardId] {
-		_, err := metaNode.MetaDataPool.Headers().GetHeaderByHash(headerHash)
+		_, err := metaNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Error(t, err)
 	}
 
 	// all nodes in shard have the block in pool as interceptor validates it
 	for _, shardNode := range nodesMap[0] {
-		_, err := shardNode.ShardDataPool.Headers().GetHeaderByHash(headerHash)
+		_, err := shardNode.DataPool.Headers().GetHeaderByHash(headerHash)
 		assert.Error(t, err)
 	}
 }

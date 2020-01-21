@@ -259,7 +259,7 @@ func putDeploySCToDataPool(
 			continue
 		}
 		strCache := process.ShardCacherIdentifier(shId, shId)
-		node.ShardDataPool.Transactions().AddData(txHash, tx, strCache)
+		node.DataPool.Transactions().AddData(txHash, tx, strCache)
 	}
 
 	return scAddressBytes
