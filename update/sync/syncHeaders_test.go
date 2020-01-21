@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,62 @@ func TestHeadersSyncHandler(t *testing.T) {
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.NotNil(t, headersSyncHandler)
 	require.Nil(t, err)
+	require.False(t, headersSyncHandler.IsInterfaceNil())
+}
+
+func TestHeadersSyncHandler_NilStorageErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeadersSuncHandlerArgs()
+	args.Storage = nil
+
+	headersSyncHandler, err := NewHeadersSyncHandler(args)
+	require.Nil(t, headersSyncHandler)
+	require.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
+}
+
+func TestHeadersSyncHandler_NilCacheErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeadersSuncHandlerArgs()
+	args.Cache = nil
+
+	headersSyncHandler, err := NewHeadersSyncHandler(args)
+	require.Nil(t, headersSyncHandler)
+	require.Equal(t, dataRetriever.ErrNilCacher, err)
+}
+
+func TestHeadersSyncHandler_NilEpochHandlerErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeadersSuncHandlerArgs()
+	args.EpochHandler = nil
+
+	headersSyncHandler, err := NewHeadersSyncHandler(args)
+	require.Nil(t, headersSyncHandler)
+	require.Equal(t, dataRetriever.ErrNilEpochHandler, err)
+}
+
+func TestHeadersSyncHandler_NilMarshalizerEr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeadersSuncHandlerArgs()
+	args.Marshalizer = nil
+
+	headersSyncHandler, err := NewHeadersSyncHandler(args)
+	require.Nil(t, headersSyncHandler)
+	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+}
+
+func TestHeadersSyncHandler_NilRequestHandlerEr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeadersSuncHandlerArgs()
+	args.RequestHandler = nil
+
+	headersSyncHandler, err := NewHeadersSyncHandler(args)
+	require.Nil(t, headersSyncHandler)
+	require.Equal(t, process.ErrNilRequestHandler, err)
 }
 
 func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {

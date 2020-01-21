@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewPendingMiniBlocksSyncer(t *testing.T) {
-	t.Parallel()
-
-	args := ArgsNewPendingMiniBlocksSyncer{
+func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
+	return ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
 		Cache: &mock.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte)) {},
@@ -22,10 +21,61 @@ func TestNewPendingMiniBlocksSyncer(t *testing.T) {
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &mock.RequestHandlerStub{},
 	}
+}
+
+func TestNewPendingMiniBlocksSyncer(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingMiniBlock()
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
 	require.NotNil(t, pendingMiniBlocksSyncer)
 	require.Nil(t, err)
+	require.False(t, pendingMiniBlocksSyncer.IsInterfaceNil())
+}
+
+func TestNewPendingMiniBlocksSyncer_NilStorage(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingMiniBlock()
+	args.Storage = nil
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
+	require.Nil(t, pendingMiniBlocksSyncer)
+}
+
+func TestNewPendingMiniBlocksSyncer_NilCache(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingMiniBlock()
+	args.Cache = nil
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Equal(t, dataRetriever.ErrNilCacher, err)
+	require.Nil(t, pendingMiniBlocksSyncer)
+}
+
+func TestNewPendingMiniBlocksSyncer_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingMiniBlock()
+	args.Marshalizer = nil
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	require.Nil(t, pendingMiniBlocksSyncer)
+}
+
+func TestNewPendingMiniBlocksSyncer_NilRequestHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsPendingMiniBlock()
+	args.RequestHandler = nil
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Equal(t, process.ErrNilRequestHandler, err)
+	require.Nil(t, pendingMiniBlocksSyncer)
 }
 
 func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {

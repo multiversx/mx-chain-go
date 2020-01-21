@@ -17,8 +17,12 @@ import (
 
 func createMockArgs() ArgsNewPendingTransactionsSyncer {
 	return ArgsNewPendingTransactionsSyncer{
-		DataPools:      mock.NewPoolsHolderMock(),
-		Storages:       &mock.ChainStorerMock{},
+		DataPools: mock.NewPoolsHolderMock(),
+		Storages: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+				return &mock.StorerStub{}
+			},
+		},
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &mock.RequestHandlerStub{},
 	}
@@ -28,12 +32,55 @@ func TestNewPendingTransactionsSyncer(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-	args.Storages = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{}
-	}}
+
 	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
 	require.Nil(t, err)
 	require.NotNil(t, pendingTxsSyncer)
+	require.False(t, pendingTxsSyncer.IsInterfaceNil())
+}
+
+func TestNewPendingTransactionsSyncer_NilStorages(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	args.Storages = nil
+
+	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	require.Nil(t, pendingTxsSyncer)
+	require.NotNil(t, dataRetriever.ErrNilHeadersStorage, err)
+}
+
+func TestNewPendingTransactionsSyncer_NilDataPools(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	args.DataPools = nil
+
+	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	require.Nil(t, pendingTxsSyncer)
+	require.NotNil(t, dataRetriever.ErrNilDataPoolHolder, err)
+}
+
+func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	args.Marshalizer = nil
+
+	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	require.Nil(t, pendingTxsSyncer)
+	require.NotNil(t, dataRetriever.ErrNilMarshalizer, err)
+}
+
+func TestNewPendingTransactionsSyncer_NilRequestHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	args.RequestHandler = nil
+
+	pendingTxsSyncer, err := NewPendingTransactionsSyncer(args)
+	require.Nil(t, pendingTxsSyncer)
+	require.NotNil(t, process.ErrNilRequestHandler, err)
 }
 
 func TestSyncPendingTransactionsFor(t *testing.T) {

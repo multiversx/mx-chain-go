@@ -45,7 +45,7 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
 	if check.IfNil(args.DataPools) {
-		return nil, dataRetriever.ErrNilCacher
+		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer

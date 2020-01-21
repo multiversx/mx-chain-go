@@ -20,7 +20,7 @@ func GetDataFromStorage(hash []byte, storer update.HistoryStorer, syncingEpoch u
 	return currData, err
 }
 
-// WaitFor for channel to be set or for timeout
+// WaitFor waits for the channel to be set or for timeout
 func WaitFor(channel chan bool, waitTime time.Duration) error {
 	select {
 	case <-channel:
