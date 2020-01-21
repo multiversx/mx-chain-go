@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -279,12 +280,14 @@ func (e *epochStartData) computePendingMiniBlockList(
 	startData *block.EpochStart,
 	allShardHdrList [][]*block.Header,
 ) ([]block.ShardMiniBlockHeader, error) {
+
 	allPending := make([]block.ShardMiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
 			return nil, err
 		}
+
 		allMiniBlockHeaders := getAllMiniBlocksWithDst(metaHdr, uint32(shId))
 		stillPending := e.computeStillPending(allShardHdrList[shId], allMiniBlockHeaders)
 		allPending = append(allPending, stillPending...)
@@ -309,6 +312,10 @@ func (e *epochStartData) computeStillPending(
 	for _, mbHeader := range miniBlockHeaders {
 		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
 	}
+
+	sort.Slice(pendingMiniBlocks, func(i, j int) bool {
+		return bytes.Compare(pendingMiniBlocks[i].Hash, pendingMiniBlocks[j].Hash) < 0
+	})
 
 	return pendingMiniBlocks
 }
