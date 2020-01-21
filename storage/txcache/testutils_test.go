@@ -16,6 +16,10 @@ func toMicroERD(erd int64) int64 {
 	return erd * 1000000
 }
 
+func kBToBytes(kB float32) int64 {
+	return int64(kB * 1000)
+}
+
 func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
 	list, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {

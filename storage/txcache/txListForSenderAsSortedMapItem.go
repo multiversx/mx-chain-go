@@ -8,8 +8,8 @@ import (
 
 type senderScoreParams struct {
 	count int64
-	// Size is in KB
-	size float64
+	// Size is in bytes
+	size int64
 	// Fee is in micro ERD
 	fee int64
 	gas int64
@@ -34,8 +34,7 @@ func (listForSender *txListForSender) ComputeScore() uint32 {
 func (listForSender *txListForSender) computeRawScore() float64 {
 	fee := listForSender.totalFee.Get()
 	gas := listForSender.totalGas.Get()
-	// We use size in ~kB
-	size := float64(listForSender.totalBytes.Get()) / 1000
+	size := listForSender.totalBytes.Get()
 	count := listForSender.countTx()
 
 	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas})
@@ -56,7 +55,9 @@ func computeSenderScore(params senderScoreParams) float64 {
 	countPow2 := float64(params.count) * float64(params.count)
 	countScore := math.Log(countPow2+1) + 1
 
-	sizePow2 := float64(params.size) * float64(params.size)
+	// We use size in ~kB
+	size := float64(params.size) / 1000
+	sizePow2 := float64(size) * float64(size)
 	sizeScore := math.Log(sizePow2+1) + 1
 
 	rawScore := PPUScore / countScore / sizeScore
