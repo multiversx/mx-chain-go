@@ -7,12 +7,12 @@ import (
 )
 
 type senderScoreParams struct {
-	count int64
+	count uint64
 	// Size is in bytes
-	size int64
+	size uint64
 	// Fee is in micro ERD
-	fee int64
-	gas int64
+	fee uint64
+	gas uint64
 }
 
 // GetKey return the key
@@ -32,9 +32,9 @@ func (listForSender *txListForSender) ComputeScore() uint32 {
 }
 
 func (listForSender *txListForSender) computeRawScore() float64 {
-	fee := listForSender.totalFee.Get()
-	gas := listForSender.totalGas.Get()
-	size := listForSender.totalBytes.Get()
+	fee := listForSender.totalFee.GetUint64()
+	gas := listForSender.totalGas.GetUint64()
+	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
 
 	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas})

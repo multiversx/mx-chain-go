@@ -13,7 +13,7 @@ func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
 	list.AddTx([]byte("b"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
 	list.AddTx([]byte("c"), createTxWithParams(".", 1, 500, 100000, 100*oneTrilion))
 
-	require.Equal(t, int64(3), list.countTx())
+	require.Equal(t, uint64(3), list.countTx())
 	require.Equal(t, int64(2000), list.totalBytes.Get())
 	require.Equal(t, int64(400000), list.totalGas.Get())
 	require.Equal(t, int64(40*oneMilion), list.totalFee.Get())
@@ -31,8 +31,8 @@ func Test_computeSenderScore(t *testing.T) {
 
 func Benchmark_computeSenderScore(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for j := 0; j < 15000; j++ {
-			computeSenderScore(senderScoreParams{count: int64(j), size: int64((j + 1) * 500), fee: toMicroERD(int64(11 * j)), gas: int64(100000 * j)})
+		for j := uint64(0); j < 15000; j++ {
+			computeSenderScore(senderScoreParams{count: j, size: (j + 1) * 500, fee: toMicroERD(11 * j), gas: 100000 * j})
 		}
 	}
 }

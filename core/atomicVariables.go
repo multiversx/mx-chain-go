@@ -38,6 +38,15 @@ func (counter *AtomicCounter) Get() int64 {
 	return atomic.LoadInt64((*int64)(counter))
 }
 
+// GetUint64 gets counter as uint64
+func (counter *AtomicCounter) GetUint64() uint64 {
+	value := counter.Get()
+	if value < 0 {
+		return 0
+	}
+	return uint64(value)
+}
+
 // Set sets the value
 func (variable *AtomicUint32) Set(value uint32) {
 	atomic.StoreUint32((*uint32)(variable), value)

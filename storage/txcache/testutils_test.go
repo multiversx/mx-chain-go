@@ -12,12 +12,12 @@ const oneMilion = 1000000
 const oneTrilion = oneMilion * oneMilion
 const delta = 0.00000001
 
-func toMicroERD(erd int64) int64 {
+func toMicroERD(erd uint64) uint64 {
 	return erd * 1000000
 }
 
-func kBToBytes(kB float32) int64 {
-	return int64(kB * 1000)
+func kBToBytes(kB float32) uint64 {
+	return uint64(kB * 1000)
 }
 
 func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
