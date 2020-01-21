@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -78,7 +79,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if sr.IsCurrentSubroundFinished(sr.Current()) {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
 
@@ -115,8 +116,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 }
 
 func (sr *SubroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler, error) {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
@@ -302,10 +302,10 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
+	if check.IfNil(sr.BlockBody) {
 		return false
 	}
-	if sr.Header == nil || sr.Header.IsInterfaceNil() {
+	if check.IfNil(sr.Header) {
 		return false
 	}
 
@@ -317,8 +317,7 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	node := string(cnsDta.PubKey)
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.Rounder().RemainingTime(startTime, maxTime)
@@ -368,7 +367,7 @@ func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 

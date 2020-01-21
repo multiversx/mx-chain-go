@@ -21,6 +21,9 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
+	receivedHeaders    []data.HeaderHandler
+	mutReceivedHeaders sync.RWMutex
+
 	RoundIndex     int64
 	RoundTimeStamp time.Time
 	RoundCanceled  bool
@@ -57,10 +60,32 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.Header = nil
 	cns.Data = nil
 
+	cns.initReceivedHeaders()
+
 	cns.RoundCanceled = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
+}
+
+func (cns *ConsensusState) initReceivedHeaders() {
+	cns.mutReceivedHeaders.Lock()
+	cns.receivedHeaders = make([]data.HeaderHandler, 0)
+	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
+	cns.mutReceivedHeaders.Lock()
+	cns.receivedHeaders = append(cns.receivedHeaders, headerHandler)
+	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
+	cns.mutReceivedHeaders.RLock()
+	receivedHeaders := cns.receivedHeaders
+	cns.mutReceivedHeaders.RUnlock()
+
+	return receivedHeaders
 }
 
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
@@ -149,11 +174,11 @@ func (cns *ConsensusState) IsSelfJobDone(currentSubroundId int) bool {
 	return cns.IsJobDone(cns.selfPubKey, currentSubroundId)
 }
 
-// IsCurrentSubroundFinished method returns true if the current subround is finished and false otherwise
-func (cns *ConsensusState) IsCurrentSubroundFinished(currentSubroundId int) bool {
-	isCurrentSubroundFinished := cns.Status(currentSubroundId) == SsFinished
+// IsSubroundFinished method returns true if the current subround is finished and false otherwise
+func (cns *ConsensusState) IsSubroundFinished(subroundID int) bool {
+	isSubroundFinished := cns.Status(subroundID) == SsFinished
 
-	return isCurrentSubroundFinished
+	return isSubroundFinished
 }
 
 // IsNodeSelf method returns true if the message is received from itself and false otherwise
@@ -187,7 +212,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	if cns.IsCurrentSubroundFinished(currentSubroundId) {
+	if cns.IsSubroundFinished(currentSubroundId) {
 		return false
 	}
 
@@ -209,7 +234,7 @@ func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, 
 		return false
 	}
 
-	if cns.IsCurrentSubroundFinished(currentSubroundId) {
+	if cns.IsSubroundFinished(currentSubroundId) {
 		return false
 	}
 
