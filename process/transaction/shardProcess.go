@@ -190,6 +190,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+
 	return process.ErrFailedTransaction
 }
 
