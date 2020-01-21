@@ -103,18 +103,14 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 }
 
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
-	counter := txMap.counter.Get()
-	if counter < 1 {
-		return make([]*txListForSender, 0)
+	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
+	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+
+	for i, item := range itemsSnapshot {
+		listsSnapshot[i] = item.(*txListForSender)
 	}
 
-	snapshot := make([]*txListForSender, 0, counter)
-
-	txMap.forEachAscending(func(key string, item *txListForSender) {
-		snapshot = append(snapshot, item)
-	})
-
-	return snapshot
+	return listsSnapshot
 }
 
 // ForEachSender is an iterator callback

@@ -2,7 +2,9 @@ package txcache
 
 import (
 	"encoding/binary"
+	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
@@ -71,4 +73,14 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
+}
+
+func measureWithStopWatch(b *testing.B, function func()) {
+	sw := core.NewStopWatch()
+	sw.Start("time")
+	function()
+	sw.Stop("time")
+
+	duration := sw.GetMeasurementsMap()["time"]
+	b.ReportMetric(duration, "time@stopWatch")
 }

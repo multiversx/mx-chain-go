@@ -29,6 +29,7 @@ func Test_EvictHighNonceTransactions(t *testing.T) {
 	require.Equal(t, int64(3), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(401), cache.txByHash.counter.Get())
 
+	cache.makeSnapshotOfSenders()
 	nTxs, nSenders := cache.evictHighNonceTransactions()
 
 	require.Equal(t, uint32(50), nTxs)
@@ -47,6 +48,8 @@ func Test_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
 	cache := NewTxCacheWithEviction(1, config)
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
 	require.Equal(t, int64(1), cache.CountSenders())
+
+	cache.makeSnapshotOfSenders()
 
 	// Alice is also removed from the map of senders, since it has no transaction left
 	nTxs, nSenders := cache.evictHighNonceTransactions()
@@ -73,6 +76,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
+	cache.makeSnapshotOfSenders()
 	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
 	require.Equal(t, uint32(5), steps)
@@ -102,6 +106,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
+	cache.makeSnapshotOfSenders()
 	steps, nTxs, nSenders := cache.evictSendersInLoop()
 
 	require.Equal(t, uint32(5), steps)

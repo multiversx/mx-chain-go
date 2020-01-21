@@ -80,6 +80,18 @@ func (sw *stopWatch) GetMeasurements() []interface{} {
 	return output
 }
 
+// GetMeasurementsMap returns the measurements as a map of (identifier, duration in seconds)
+func (sw *stopWatch) GetMeasurementsMap() map[string]float64 {
+	data, _ := sw.getContainingDuration()
+	output := make(map[string]float64, 0)
+
+	for key, duration := range data {
+		output[key] = duration.Seconds()
+	}
+
+	return output
+}
+
 // getContainingDuration returns the containing map of (identifier, duration) pairs and the identifiers
 func (sw *stopWatch) getContainingDuration() (map[string]time.Duration, []string) {
 	sw.mut.Lock()

@@ -10,12 +10,13 @@ import (
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender       txListBySenderMap
-	txByHash             txByHashMap
-	evictionConfig       EvictionConfig
-	evictionMutex        sync.Mutex
-	evictionJournal      evictionJournal
-	isEvictionInProgress core.AtomicFlag
+	txListBySender            txListBySenderMap
+	txByHash                  txByHashMap
+	evictionConfig            EvictionConfig
+	evictionMutex             sync.Mutex
+	evictionJournal           evictionJournal
+	evictionSnapshotOfSenders []*txListForSender
+	isEvictionInProgress      core.AtomicFlag
 }
 
 // NewTxCache creates a new transaction cache

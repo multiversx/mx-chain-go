@@ -57,14 +57,30 @@ func Test_RemoveSender(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
-func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
-
-	for i := 0; i < 100; i++ {
-		sender := fmt.Sprintf("Sender-%d", i)
-		hash := createFakeTxHash([]byte(sender), 1)
-		myMap.addTx(hash, createTx(sender, uint64(1)))
+func Benchmark_GetSnapshotAscending(b *testing.B) {
+	if b.N > 10 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
 	}
+
+	numSenders := 250000
+	maps := make([]txListBySenderMap, b.N)
+	for i := 0; i < b.N; i++ {
+		maps[i] = createTxListBySenderMap(numSenders)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		measureWithStopWatch(b, func() {
+			snapshot := maps[i].getSnapshotAscending()
+			require.Len(b, snapshot, numSenders)
+		})
+	}
+}
+
+func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
+	myMap := createTxListBySenderMap(100)
 
 	var wg sync.WaitGroup
 
@@ -90,4 +106,15 @@ func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func createTxListBySenderMap(numSenders int) txListBySenderMap {
+	myMap := newTxListBySenderMap(16)
+	for i := 0; i < numSenders; i++ {
+		sender := fmt.Sprintf("Sender-%d", i)
+		hash := createFakeTxHash([]byte(sender), 1)
+		myMap.addTx(hash, createTx(sender, uint64(1)))
+	}
+
+	return myMap
 }

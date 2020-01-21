@@ -38,6 +38,7 @@ func (cache *TxCache) doEviction() {
 	defer cache.isEvictionInProgress.Unset()
 
 	cache.onEvictionStarted()
+	cache.makeSnapshotOfSenders()
 
 	if tooManyTxs {
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
@@ -51,6 +52,10 @@ func (cache *TxCache) doEviction() {
 
 	cache.evictionJournal = journal
 	cache.onEvictionEnded()
+}
+
+func (cache *TxCache) makeSnapshotOfSenders() {
+	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscending()
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -82,22 +87,18 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	cache.forEachSenderAscending(func(key string, txList *txListForSender) {
-		aLot := cache.evictionConfig.ALotOfTransactionsForASender
-		numTxsToEvict := cache.evictionConfig.NumTxsToEvictForASenderWithALot
+	aLot := cache.evictionConfig.ALotOfTransactionsForASender
+	numTxsToEvict := cache.evictionConfig.NumTxsToEvictForASenderWithALot
 
+	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(aLot) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
 		if txList.IsEmpty() {
-			sendersToEvict = append(sendersToEvict, key)
+			sendersToEvict = append(sendersToEvict, txList.sender)
 		}
-	})
-
-	if len(txsToEvict) == 0 {
-		return 0, 0
 	}
 
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
@@ -121,7 +122,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 		return
 	}
 
-	batchesSource := cache.txListBySender.getSnapshotAscending()
+	batchesSource := cache.evictionSnapshotOfSenders
 	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 

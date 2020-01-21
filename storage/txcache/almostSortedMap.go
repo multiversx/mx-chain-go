@@ -178,6 +178,35 @@ func (myMap *AlmostSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
 	}
 }
 
+// GetSnapshotAscending gets a snapshot of the items
+// This applies a read lock on all chunks, so that they aren't mutated during snapshot
+func (myMap *AlmostSortedMap) GetSnapshotAscending() []ScoredItem {
+	counter := uint32(0)
+
+	for _, chunk := range myMap.scoreChunks {
+		chunk.RLock()
+		counter += uint32(len(chunk.items))
+	}
+
+	if counter == 0 {
+		return make([]ScoredItem, 0)
+	}
+
+	snapshot := make([]ScoredItem, 0, counter)
+
+	for _, chunk := range myMap.scoreChunks {
+		for _, item := range chunk.items {
+			snapshot = append(snapshot, item)
+		}
+	}
+
+	for _, chunk := range myMap.scoreChunks {
+		chunk.RUnlock()
+	}
+
+	return snapshot
+}
+
 // IterCbSortedDescending iterates over the sorted elements in the map
 func (myMap *AlmostSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
 	chunks := myMap.scoreChunks
