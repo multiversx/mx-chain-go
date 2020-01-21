@@ -463,6 +463,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
+	t.epoch = shardHdr.Epoch
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
