@@ -31,17 +31,18 @@ const (
 	// TxBlock identifies a miniblock holding transactions
 	TxBlock Type = 0
 	// StateBlock identifies a miniblock holding account state
-	StateBlock Type = 1
+	StateBlock Type = 30
 	// PeerBlock identifies a miniblock holding peer assignation
-	PeerBlock Type = 2
+	PeerBlock Type = 60
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
-	SmartContractResultBlock Type = 3
-	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
-	RewardsBlock Type = 4
+	SmartContractResultBlock Type = 90
 	// InvalidBlock identifies a miniblock holding invalid transactions
-	InvalidBlock Type = 5
+	InvalidBlock Type = 120
 	// ReceiptBlock identifies a miniblock holding receipts
-	ReceiptBlock Type = 6
+	ReceiptBlock Type = 150
+	// TODO: leave rewards with highest value
+	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	RewardsBlock Type = 255
 )
 
 // String returns the string representation of the Type

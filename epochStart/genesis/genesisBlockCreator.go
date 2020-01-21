@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -180,7 +182,37 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(args.GenesisTime)
 	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
+	err = saveGenesisMetaToStorage(args.Store, args.Marshalizer, header)
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
+}
+
+func saveGenesisMetaToStorage(
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	genesisBlock data.HeaderHandler,
+) error {
+
+	epochStartID := core.EpochStartIdentifier(0)
+	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaHdrStorage) {
+		return epochStart.ErrNilStorage
+	}
+
+	marshaledData, err := marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createProcessorsForMetaGenesisBlock(
