@@ -622,3 +622,6 @@ var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")

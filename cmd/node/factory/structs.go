@@ -549,6 +549,7 @@ type processComponentsFactoryArgs struct {
 	network                *Network
 	coreServiceContainer   serviceContainer.Core
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	whiteListHandler       process.InterceptedDataWhiteList
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
 	startEpochNum          uint32
@@ -574,6 +575,7 @@ func NewProcessComponentsFactoryArgs(
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
@@ -597,6 +599,7 @@ func NewProcessComponentsFactoryArgs(
 		network:                network,
 		coreServiceContainer:   coreServiceContainer,
 		requestedItemsHandler:  requestedItemsHandler,
+		whiteListHandler:       whiteListHandler,
 		epochStartNotifier:     epochStartNotifier,
 		epochStart:             epochStart,
 		startEpochNum:          startEpochNum,
@@ -640,6 +643,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.economicsData,
 		headerSigVerifier,
 		args.sizeCheckDelta,
+		args.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -661,7 +665,13 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	requestHandler, err := newRequestHandler(resolversFinder, args.shardCoordinator, args.requestedItemsHandler)
+	requestHandler, err := requestHandlers.NewResolverRequestHandler(
+		resolversFinder,
+		args.requestedItemsHandler,
+		args.whiteListHandler,
+		MaxTxsToRequest,
+		args.shardCoordinator.SelfId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -781,41 +791,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	}
 
 	return nil
-}
-
-func newRequestHandler(
-	resolversFinder dataRetriever.ResolversFinder,
-	shardCoordinator sharding.Coordinator,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-) (process.RequestHandler, error) {
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-			shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return requestHandler, nil
-	}
-
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return requestHandler, nil
-	}
-
-	return nil, errors.New("could not create new request handler because of wrong shard id")
 }
 
 func newEpochStartTrigger(
@@ -1272,6 +1247,7 @@ func newInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1286,6 +1262,7 @@ func newInterceptorAndResolverContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
+			whiteListHandler,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1300,6 +1277,7 @@ func newInterceptorAndResolverContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
+			whiteListHandler,
 		)
 	}
 
@@ -1317,6 +1295,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -1340,6 +1319,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		whiteListHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1379,6 +1359,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1402,6 +1383,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		whiteListHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, err

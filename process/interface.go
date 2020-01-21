@@ -614,6 +614,7 @@ type InterceptedDataVerifier interface {
 
 // InterceptedDataWhiteList is the interface needed to add whitelisted data
 type InterceptedDataWhiteList interface {
+	IsForCurrentShard(interceptedData InterceptedData) bool
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsInterfaceNil() bool

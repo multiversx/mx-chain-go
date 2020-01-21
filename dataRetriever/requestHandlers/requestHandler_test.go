@@ -29,67 +29,13 @@ func createResolversFinderStubThatShouldNotBeCalled(tb testing.TB) *mock.Resolve
 	}
 }
 
-//------- NewMetaResolver
-
-func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
+func TestNewResolverRequestHandlerNilFinder(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewMetaResolverRequestHandler(
+	rrh, err := NewResolverRequestHandler(
 		nil,
 		&mock.RequestedItemsHandlerStub{},
-		100,
-	)
-
-	assert.Nil(t, rrh)
-	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
-}
-
-func TestNewMetaResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
-	t.Parallel()
-
-	rrh, err := NewMetaResolverRequestHandler(
-		&mock.ResolversFinderStub{},
-		nil,
-		100,
-	)
-
-	assert.Nil(t, rrh)
-	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
-}
-
-func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
-	t.Parallel()
-
-	rrh, err := NewMetaResolverRequestHandler(
-		&mock.ResolversFinderStub{},
-		&mock.RequestedItemsHandlerStub{},
-		0,
-	)
-
-	assert.Nil(t, rrh)
-	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
-}
-
-func TestNewMetaResolverRequestHandler(t *testing.T) {
-	t.Parallel()
-
-	rrh, err := NewMetaResolverRequestHandler(
-		&mock.ResolversFinderStub{},
-		&mock.RequestedItemsHandlerStub{},
-		100,
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, rrh)
-}
-
-//------- NewShardResolver
-
-func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
-	t.Parallel()
-
-	rrh, err := NewShardResolverRequestHandler(
-		nil,
-		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -98,12 +44,13 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
 }
 
-func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
+func TestNewResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(
+	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		nil,
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -112,12 +59,13 @@ func TestNewShardResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
 }
 
-func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
+func TestNewResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(
+	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		0,
 		0,
 	)
@@ -126,12 +74,13 @@ func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
 }
 
-func TestNewShardResolverRequestHandler(t *testing.T) {
+func TestNewResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(
+	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -153,13 +102,14 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 	}()
 
 	errExpected := errors.New("expected error")
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return nil, errExpected
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -179,13 +129,14 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 
 	wrongTxResolver := &mock.HeaderResolverStub{}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return wrongTxResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -204,13 +155,14 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -245,13 +197,14 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -280,13 +233,14 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 	}()
 
 	errExpected := errors.New("expected error")
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return nil, errExpected
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -311,13 +265,14 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -336,13 +291,14 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -357,13 +313,14 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
 			},
 		},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -374,9 +331,10 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -395,13 +353,14 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -416,13 +375,14 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
 			},
 		},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -441,13 +401,14 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -468,13 +429,14 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -489,13 +451,14 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
 			},
 		},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -506,9 +469,10 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -528,13 +492,14 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 
 	errExpected := errors.New("expected error")
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
 				return nil, errExpected
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -559,13 +524,14 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
 				return hdrResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -590,13 +556,14 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
 				return hdrResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -615,13 +582,14 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
 				return hdrResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -636,13 +604,14 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
 			},
 		},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -661,13 +630,14 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 				return hdrResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		100,
 		0,
 	)
@@ -690,13 +660,14 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 	}()
 
 	errExpected := errors.New("expected error")
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return nil, errExpected
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -716,13 +687,14 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 
 	wrongTxResolver := &mock.HeaderResolverStub{}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return wrongTxResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -741,13 +713,14 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -782,13 +755,14 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -817,13 +791,14 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)

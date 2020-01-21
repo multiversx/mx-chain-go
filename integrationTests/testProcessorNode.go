@@ -51,6 +51,7 @@ import (
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -59,6 +60,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
@@ -179,6 +181,7 @@ type TestProcessorNode struct {
 	BootstrapStorer       *mock.BoostrapStorerMock
 	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
+	WhiteListHandler      process.InterceptedDataWhiteList
 
 	EpochStartTrigger TestEpochStartTrigger
 
@@ -342,6 +345,9 @@ func (tpn *TestProcessorNode) initDataPools() {
 	} else {
 		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
+	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -431,6 +437,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.WhiteListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -459,6 +466,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.WhiteListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -486,10 +494,12 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
+		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
+			tpn.WhiteListHandler,
 			100,
+			tpn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
@@ -506,9 +516,10 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
+		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
 			tpn.ResolverFinder,
 			tpn.RequestedItemsHandler,
+			tpn.WhiteListHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
 		)

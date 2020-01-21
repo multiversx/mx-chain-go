@@ -25,7 +25,10 @@ func (w *whiteListDataVerifier) IsForCurrentShard(interceptedData process.Interc
 		return false
 	}
 
-	return w.cache.Has(interceptedData.Hash())
+	wasItRequested := w.cache.Has(interceptedData.Hash())
+	w.cache.Remove(interceptedData.Hash())
+
+	return wasItRequested
 }
 
 func (w *whiteListDataVerifier) Add(keys [][]byte) {

@@ -19,9 +19,6 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
-// ErrNilAddressContainer signals that an operation has been attempted to or with a nil AddressContainer implementation
-var ErrNilAddressContainer = errors.New("nil AddressContainer")
-
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
@@ -34,26 +31,14 @@ var ErrNilTxBlockBody = errors.New("nil block body")
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
-// ErrNilPublicKey signals that a operation has been attempted with a nil public key
-var ErrNilPublicKey = errors.New("nil public key")
-
-// ErrNilSignature signals that a operation has been attempted with a nil signature
-var ErrNilSignature = errors.New("nil signature")
-
 // ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
 var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
-
-// ErrInvalidShardId signals that the shard id is invalid
-var ErrInvalidShardId = errors.New("invalid shard id")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
-
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
@@ -75,9 +60,6 @@ var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
-
-// ErrNilSingleSigner signals that a nil single signer is used
-var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
@@ -191,9 +173,6 @@ var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
-// ErrEmptyTrieNodesRequestTopic signals that an empty trie nodes topic has been provided
-var ErrEmptyTrieNodesRequestTopic = errors.New("empty trie nodes request topic")
-
 // ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
 
@@ -205,3 +184,6 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrBadRequest signals that the request should not have happened
 var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil white list handler")

@@ -43,6 +43,7 @@ type interceptorsContainerFactory struct {
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
+	whiteListHandler       process.InterceptedDataWhiteList
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -67,6 +68,7 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -126,6 +128,9 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -156,6 +161,7 @@ func NewInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		accounts:               accounts,
+		whiteListHandler:       whiteListHandler,
 	}
 
 	var err error

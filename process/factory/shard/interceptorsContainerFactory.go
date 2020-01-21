@@ -38,6 +38,7 @@ type interceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
+	whiteListHandler       process.InterceptedDataWhiteList
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -62,6 +63,7 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -120,6 +122,9 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -153,6 +158,7 @@ func NewInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		blackList:              blackList,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+		whiteListHandler:       whiteListHandler,
 	}
 
 	var err error

@@ -109,6 +109,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -139,6 +140,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -169,6 +171,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -199,6 +202,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -229,6 +233,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -259,6 +264,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		1,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -289,6 +295,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -319,6 +326,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -349,6 +357,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -379,6 +388,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -409,6 +419,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -439,6 +450,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -469,6 +481,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -499,6 +512,7 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -529,6 +543,7 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -559,6 +574,7 @@ func TestNewInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		nil,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -589,6 +605,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.NotNil(t, icf)
@@ -619,6 +636,7 @@ func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		1,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.NotNil(t, icf)
@@ -651,6 +669,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -683,6 +702,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -715,6 +735,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -747,6 +768,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -779,6 +801,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -818,6 +841,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()
@@ -870,6 +894,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	container, err := icf.Create()

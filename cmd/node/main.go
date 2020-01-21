@@ -42,12 +42,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -719,6 +721,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
 
+	whiteListCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
+		generalConfig.WhiteListPool.Size,
+		generalConfig.WhiteListPool.Shards,
+	)
+	if err != nil {
+		return err
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
@@ -736,6 +751,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
+		whiteListHandler,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		0,
