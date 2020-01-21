@@ -134,12 +134,3 @@ func (txMap *txListBySenderMap) clear() {
 	txMap.backingMap.Clear()
 	txMap.counter.Set(0)
 }
-
-func (txMap *txListBySenderMap) countTxBySender(sender string) int64 {
-	listForSender, ok := txMap.getListForSender(sender)
-	if !ok {
-		return 0
-	}
-
-	return listForSender.countTx()
-}
