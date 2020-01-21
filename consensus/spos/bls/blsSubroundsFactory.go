@@ -284,10 +284,7 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
+	return fct == nil
 }
 
 func debugError(message string, err error) {
