@@ -68,7 +68,7 @@ func (psh *PresenterStatusHandler) getBigFloatFromStringMetric(metric string) *b
 	return bigFloatValue
 }
 
-func areEqualsWithZero(parameters ...uint64) bool {
+func areEqualWithZero(parameters ...uint64) bool {
 	for _, param := range parameters {
 		if param == 0 {
 			return true
@@ -81,7 +81,7 @@ func areEqualsWithZero(parameters ...uint64) bool {
 func (psh *PresenterStatusHandler) computeChanceToBeInConsensus() float64 {
 	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
 	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
-	isChanceZero := areEqualsWithZero(consensusGroupSize, numValidators)
+	isChanceZero := areEqualWithZero(consensusGroupSize, numValidators)
 	if isChanceZero {
 		return 0
 	}
@@ -94,7 +94,7 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 	rounds := psh.GetCurrentRound()
 	roundDuration := psh.GetRoundTime()
 	secondsInAnHour := uint64(3600)
-	isRoundsPerHourZero := areEqualsWithZero(totalBlocks, rounds, roundDuration)
+	isRoundsPerHourZero := areEqualWithZero(totalBlocks, rounds, roundDuration)
 	if isRoundsPerHourZero {
 		return 0
 	}

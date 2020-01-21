@@ -194,17 +194,18 @@ func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 // jobDone group, are covering the bitmap received from the leader in the current round
 func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 	n := 0
-
+	var isCommJobDone bool
+	var isBitmapJobDone bool
+	var err error
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
-		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
+		isBitmapJobDone, err = sr.JobDone(node, SrBitmap)
 		if err != nil {
 			debugError("JobDone SrBitmap", err)
 			continue
 		}
 
 		if isBitmapJobDone {
-			var isCommJobDone bool
 			isCommJobDone, err = sr.JobDone(node, SrCommitment)
 			if err != nil {
 				debugError("JobDone SrCommitment", err)
