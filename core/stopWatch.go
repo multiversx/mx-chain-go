@@ -83,7 +83,7 @@ func (sw *stopWatch) GetMeasurements() []interface{} {
 // GetMeasurementsMap returns the measurements as a map of (identifier, duration in seconds)
 func (sw *stopWatch) GetMeasurementsMap() map[string]float64 {
 	data, _ := sw.getContainingDuration()
-	output := make(map[string]float64, 0)
+	output := make(map[string]float64)
 
 	for key, duration := range data {
 		output[key] = duration.Seconds()
