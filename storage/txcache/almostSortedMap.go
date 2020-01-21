@@ -167,22 +167,14 @@ type SortedMapIterCb func(key string, value ScoredItem)
 func (myMap *AlmostSortedMap) IterCb(callback SortedMapIterCb) {
 	for idx := range myMap.chunks {
 		chunk := (myMap.chunks)[idx]
-		chunk.RLock()
-		for key, value := range chunk.items {
-			callback(key, value)
-		}
-		chunk.RUnlock()
+		chunk.forEachItem(callback)
 	}
 }
 
 // IterCbSortedAscending iterates over the sorted elements in the map
 func (myMap *AlmostSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
 	for _, chunk := range myMap.scoreChunks {
-		chunk.RLock()
-		for key, value := range chunk.items {
-			callback(key, value)
-		}
-		chunk.RUnlock()
+		chunk.forEachItem(callback)
 	}
 }
 
@@ -191,11 +183,7 @@ func (myMap *AlmostSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
 	chunks := myMap.scoreChunks
 	for i := len(chunks) - 1; i >= 0; i-- {
 		chunk := chunks[i]
-		chunk.RLock()
-		for key, value := range chunk.items {
-			callback(key, value)
-		}
-		chunk.RUnlock()
+		chunk.forEachItem(callback)
 	}
 }
 
@@ -230,33 +218,12 @@ func (myMap *AlmostSortedMap) Clear() {
 // Keys returns all keys as []string
 func (myMap *AlmostSortedMap) Keys() []string {
 	count := myMap.Count()
-	chunks := myMap.chunks
-	channel := make(chan string, count)
-
-	go func() {
-		// Foreach chunk.
-		waitGroup := sync.WaitGroup{}
-		waitGroup.Add(len(chunks))
-		for _, chunk := range chunks {
-			go func(chunk *MapChunk) {
-				// Foreach key, value pair.
-				chunk.RLock()
-				for key := range chunk.items {
-					channel <- key
-				}
-				chunk.RUnlock()
-				waitGroup.Done()
-			}(chunk)
-		}
-		waitGroup.Wait()
-		close(channel)
-	}()
-
-	// Generate keys
 	keys := make([]string, 0, count)
-	for key := range channel {
-		keys = append(keys, key)
+
+	for _, chunk := range myMap.chunks {
+		keys = chunk.appendKeys(keys)
 	}
+
 	return keys
 }
 
@@ -266,11 +233,7 @@ func (myMap *AlmostSortedMap) KeysSorted() []string {
 	keys := make([]string, 0, count)
 
 	for _, chunk := range myMap.scoreChunks {
-		chunk.RLock()
-		for key := range chunk.items {
-			keys = append(keys, key)
-		}
-		chunk.RUnlock()
+		keys = chunk.appendKeys(keys)
 	}
 
 	return keys
@@ -306,4 +269,24 @@ func (chunk *MapChunk) countItems() uint32 {
 	defer chunk.RUnlock()
 
 	return uint32(len(chunk.items))
+}
+
+func (chunk *MapChunk) forEachItem(callback SortedMapIterCb) {
+	chunk.RLock()
+	defer chunk.RUnlock()
+
+	for key, value := range chunk.items {
+		callback(key, value)
+	}
+}
+
+func (chunk *MapChunk) appendKeys(keysAccumulator []string) []string {
+	chunk.RLock()
+	defer chunk.RUnlock()
+
+	for key := range chunk.items {
+		keysAccumulator = append(keysAccumulator, key)
+	}
+
+	return keysAccumulator
 }
