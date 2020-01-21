@@ -29,19 +29,20 @@ type MiniBlockSlice []*MiniBlock
 
 const (
 	// TxBlock identifies a miniblock holding transactions
-	TxBlock Type = 0
+	TxBlock Type = iota
 	// StateBlock identifies a miniblock holding account state
-	StateBlock Type = 1
+	StateBlock
 	// PeerBlock identifies a miniblock holding peer assignation
-	PeerBlock Type = 2
+	PeerBlock
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
-	SmartContractResultBlock Type = 3
-	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
-	RewardsBlock Type = 4
+	SmartContractResultBlock
 	// InvalidBlock identifies a miniblock holding invalid transactions
-	InvalidBlock Type = 5
+	InvalidBlock
 	// ReceiptBlock identifies a miniblock holding receipts
-	ReceiptBlock Type = 6
+	ReceiptBlock
+	// TODO: leaves rewards last always
+	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	RewardsBlock
 )
 
 // String returns the string representation of the Type
