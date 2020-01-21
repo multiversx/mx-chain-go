@@ -36,7 +36,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.MetaPoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
-	trieDataGetter dataRetriever.TrieDataGetter,
+	trieDataGetter dataRetriever.TrieDataGetter, //TODO: change this to a trie data holder with the same keys, there are multiple tries for each shard
 	sizeCheckDelta uint32,
 ) (*resolversContainerFactory, error) {
 
@@ -456,8 +456,7 @@ func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err

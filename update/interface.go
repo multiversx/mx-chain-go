@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -35,6 +36,12 @@ type TrieSyncContainer interface {
 	IsInterfaceNil() bool
 }
 
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler notifier.SubscribeFunctionHandler)
+	IsInterfaceNil() bool
+}
+
 // EpochStartVerifier defines the functionality needed by sync all state from epochTrigger
 type EpochStartVerifier interface {
 	IsEpochStart() bool
@@ -59,17 +66,47 @@ type HistoryStorer interface {
 	IsInterfaceNil() bool
 }
 
-// MultiFileWriter defines the methods to write in multiple files
+// MultiFileWriter writes several files in a buffered manner
 type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
+	Finish()
 	IsInterfaceNil() bool
 }
 
-// MultiFileReader defines the methods to read from multiple files
+// MultiFileReaders reads data from several files in a buffered way
 type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
+	Finish()
+	IsInterfaceNil() bool
+}
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestShardHeader(shardId uint32, hash []byte)
+	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderByNonce(nonce uint64)
+	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
+	RequestTrieNodes(shardId uint32, hash []byte)
+	IsInterfaceNil() bool
+}
+
+// ExportHandler defines the methods to export the current state of the blockchain
+type ExportHandler interface {
+	ExportAll(epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ImportHandler defines the methods to import the full state of the blockchain
+type ImportHandler interface {
+	ImportAll() error
+	GetAllGenesisBlocks() map[uint32]data.HeaderHandler
 	IsInterfaceNil() bool
 }
 
@@ -99,4 +136,17 @@ type PendingTransactionsSyncHandler interface {
 	SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
 	IsInterfaceNil() bool
+}
+
+// DataWriter defines the methods to write data
+type DataWriter interface {
+	WriteString(s string) (int, error)
+	Flush() error
+}
+
+// DataReader defines the methods to read data
+type DataReader interface {
+	Text() string
+	Scan() bool
+	Err() error
 }

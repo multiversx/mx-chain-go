@@ -39,11 +39,24 @@ func (dth *dataTriesHolder) GetAll() []data.Trie {
 	defer dth.mutex.Unlock()
 
 	tries := make([]data.Trie, 0)
-	for key := range dth.tries {
-		tries = append(tries, dth.tries[key])
+	for _, trie := range dth.tries {
+		tries = append(tries, trie)
 	}
 
 	return tries
+}
+
+// GetAllTries returns the tries with key value map
+func (dth *dataTriesHolder) GetAllTries() map[string]data.Trie {
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
+	copyTries := make(map[string]data.Trie, len(dth.tries))
+	for key, trie := range dth.tries {
+		copyTries[key] = trie
+	}
+
+	return copyTries
 }
 
 // Reset clears the tries map

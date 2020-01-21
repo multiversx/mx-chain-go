@@ -451,7 +451,7 @@ func TestResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *test
 
 	rcf, _ := shard.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.TrieNodesTopic),
+		createStubTopicMessageHandler("", factory.AccountTrieNodesTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),

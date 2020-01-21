@@ -63,6 +63,8 @@ func (si *stateImport) ImportAll() error {
 		}
 	}
 
+	si.reader.Finish()
+
 	return nil
 }
 
@@ -256,11 +258,6 @@ func (si *stateImport) CreateGenesisBlocks() error {
 
 func (si *stateImport) GetAllGenesisBlocks() map[uint32]data.HeaderHandler {
 	return si.genesisHeaders
-}
-
-func (si *stateImport) ImportDataFor(shId uint32) error {
-
-	return nil
 }
 
 func (si *stateImport) IsInterfaceNil() bool {
