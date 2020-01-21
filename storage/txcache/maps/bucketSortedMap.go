@@ -1,4 +1,4 @@
-package txcache
+package maps
 
 import (
 	"sync"
@@ -14,17 +14,9 @@ type BucketSortedMap struct {
 	scoreChunks  []*MapChunk
 }
 
-// ScoredItem is
-type ScoredItem interface {
-	GetKey() string
-	ComputeScore() uint32
-	GetScoreChunk() *MapChunk
-	SetScoreChunk(*MapChunk)
-}
-
 // MapChunk is
 type MapChunk struct {
-	items map[string]ScoredItem
+	items map[string]BucketSortedMapItem
 	sync.RWMutex
 }
 
@@ -47,13 +39,13 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 
 	for i := uint32(0); i < nChunks; i++ {
 		myMap.chunks[i] = &MapChunk{
-			items: make(map[string]ScoredItem),
+			items: make(map[string]BucketSortedMapItem),
 		}
 	}
 
 	for i := uint32(0); i < nScoreChunks; i++ {
 		myMap.scoreChunks[i] = &MapChunk{
-			items: make(map[string]ScoredItem),
+			items: make(map[string]BucketSortedMapItem),
 		}
 	}
 
@@ -62,7 +54,7 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 
 // Set puts the item in the map
 // This doesn't add the item to the score chunks (not necessary)
-func (myMap *BucketSortedMap) Set(item ScoredItem) {
+func (myMap *BucketSortedMap) Set(item BucketSortedMapItem) {
 	chunk := myMap.getChunk(item.GetKey())
 	chunk.setItem(item)
 }
@@ -76,7 +68,7 @@ func (myMap *BucketSortedMap) OnScoreChangeByKey(key string) {
 }
 
 // OnScoreChange moves or adds the item to the corresponding score chunk
-func (myMap *BucketSortedMap) OnScoreChange(item ScoredItem) {
+func (myMap *BucketSortedMap) OnScoreChange(item BucketSortedMapItem) {
 	newScore := item.ComputeScore()
 	if newScore > myMap.maxScore {
 		newScore = myMap.maxScore
@@ -90,7 +82,7 @@ func (myMap *BucketSortedMap) OnScoreChange(item ScoredItem) {
 	}
 }
 
-func removeFromScoreChunk(item ScoredItem) {
+func removeFromScoreChunk(item BucketSortedMapItem) {
 	currentScoreChunk := item.GetScoreChunk()
 	if currentScoreChunk != nil {
 		currentScoreChunk.removeItem(item)
@@ -98,7 +90,7 @@ func removeFromScoreChunk(item ScoredItem) {
 }
 
 // Get retrieves an element from map under given key.
-func (myMap *BucketSortedMap) Get(key string) (ScoredItem, bool) {
+func (myMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
 	chunk := myMap.getChunk(key)
 	chunk.RLock()
 	val, ok := chunk.items[key]
@@ -161,7 +153,7 @@ func (myMap *BucketSortedMap) Remove(key string) {
 }
 
 // SortedMapIterCb is an iterator callback
-type SortedMapIterCb func(key string, value ScoredItem)
+type SortedMapIterCb func(key string, value BucketSortedMapItem)
 
 // IterCb iterates over the elements in the map
 func (myMap *BucketSortedMap) IterCb(callback SortedMapIterCb) {
@@ -180,7 +172,7 @@ func (myMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
 
 // GetSnapshotAscending gets a snapshot of the items
 // This applies a read lock on all chunks, so that they aren't mutated during snapshot
-func (myMap *BucketSortedMap) GetSnapshotAscending() []ScoredItem {
+func (myMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	counter := uint32(0)
 
 	for _, chunk := range myMap.scoreChunks {
@@ -189,10 +181,10 @@ func (myMap *BucketSortedMap) GetSnapshotAscending() []ScoredItem {
 	}
 
 	if counter == 0 {
-		return make([]ScoredItem, 0)
+		return make([]BucketSortedMapItem, 0)
 	}
 
-	snapshot := make([]ScoredItem, 0, counter)
+	snapshot := make([]BucketSortedMapItem, 0, counter)
 
 	for _, chunk := range myMap.scoreChunks {
 		for _, item := range chunk.items {
@@ -268,7 +260,7 @@ func (myMap *BucketSortedMap) KeysSorted() []string {
 	return keys
 }
 
-func (chunk *MapChunk) removeItem(item ScoredItem) {
+func (chunk *MapChunk) removeItem(item BucketSortedMapItem) {
 	chunk.Lock()
 	defer chunk.Unlock()
 
@@ -276,7 +268,7 @@ func (chunk *MapChunk) removeItem(item ScoredItem) {
 	delete(chunk.items, key)
 }
 
-func (chunk *MapChunk) removeItemByKey(key string) ScoredItem {
+func (chunk *MapChunk) removeItemByKey(key string) BucketSortedMapItem {
 	chunk.Lock()
 	defer chunk.Unlock()
 
@@ -285,7 +277,7 @@ func (chunk *MapChunk) removeItemByKey(key string) ScoredItem {
 	return item
 }
 
-func (chunk *MapChunk) setItem(item ScoredItem) {
+func (chunk *MapChunk) setItem(item BucketSortedMapItem) {
 	chunk.Lock()
 	defer chunk.Unlock()
 

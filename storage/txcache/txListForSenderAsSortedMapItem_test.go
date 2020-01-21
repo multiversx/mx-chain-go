@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSenderAsScoredItem_ComputeScore(t *testing.T) {
+func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
 	list := newTxListForSender(".")
 
 	list.AddTx([]byte("a"), createTxWithParams(".", 1, 1000, 200000, 100*oneTrilion))

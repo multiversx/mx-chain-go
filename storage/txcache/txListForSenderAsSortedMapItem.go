@@ -1,6 +1,10 @@
 package txcache
 
-import "math"
+import (
+	"math"
+
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
+)
 
 type senderScoreParams struct {
 	count int64
@@ -65,11 +69,11 @@ func computeSenderScore(params senderScoreParams) float64 {
 }
 
 // GetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) GetScoreChunk() *MapChunk {
+func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
 	return listForSender.scoreChunk
 }
 
 // GetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) SetScoreChunk(scoreChunk *MapChunk) {
+func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
 	listForSender.scoreChunk = scoreChunk
 }

@@ -3,18 +3,19 @@ package txcache
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 // txByHashMap is a new map-like structure for holding and accessing transactions by txHash
 type txByHashMap struct {
-	backingMap *ConcurrentMap
+	backingMap *maps.ConcurrentMap
 	counter    core.AtomicCounter
 	numBytes   core.AtomicCounter
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
 func newTxByHashMap(nChunksHint uint32) txByHashMap {
-	backingMap := NewConcurrentMap(nChunksHint)
+	backingMap := maps.NewConcurrentMap(nChunksHint)
 
 	return txByHashMap{
 		backingMap: backingMap,

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 // txListForSender represents a sorted list of transactions of a particular sender
@@ -17,7 +18,7 @@ type txListForSender struct {
 	totalGas          core.AtomicCounter
 	totalFee          core.AtomicCounter
 	sender            string
-	scoreChunk        *MapChunk
+	scoreChunk        *maps.MapChunk
 	lastComputedScore core.AtomicUint32
 }
 

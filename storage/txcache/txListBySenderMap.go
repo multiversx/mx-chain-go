@@ -3,19 +3,20 @@ package txcache
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 const numberOfScoreChunks = uint32(100)
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap *BucketSortedMap
+	backingMap *maps.BucketSortedMap
 	counter    core.AtomicCounter
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
 func newTxListBySenderMap(nChunksHint uint32) txListBySenderMap {
-	backingMap := NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
+	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return txListBySenderMap{
 		backingMap: backingMap,
@@ -117,14 +118,14 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 type ForEachSender func(key string, value *txListForSender)
 
 func (txMap *txListBySenderMap) forEachAscending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedAscending(func(key string, item ScoredItem) {
+	txMap.backingMap.IterCbSortedAscending(func(key string, item maps.BucketSortedMapItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})
 }
 
 func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedDescending(func(key string, item ScoredItem) {
+	txMap.backingMap.IterCbSortedDescending(func(key string, item maps.BucketSortedMapItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})
