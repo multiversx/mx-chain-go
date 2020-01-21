@@ -22,7 +22,7 @@ func NewIntermediateTransactionHandlersContainer() *intermediateTransactionHandl
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
-	value, ok := ppc.objects.Get(uint32(key))
+	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
@@ -42,7 +42,7 @@ func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interPr
 		return process.ErrNilContainerElement
 	}
 
-	ok := ppc.objects.Insert(uint32(key), interProcessor)
+	ok := ppc.objects.Insert(uint8(key), interProcessor)
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -73,13 +73,13 @@ func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, int
 		return process.ErrNilContainerElement
 	}
 
-	ppc.objects.Set(uint32(key), interProcessor)
+	ppc.objects.Set(uint8(key), interProcessor)
 	return nil
 }
 
 // Remove will remove an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Remove(key block.Type) {
-	ppc.objects.Del(uint32(key))
+	ppc.objects.Del(uint8(key))
 }
 
 // Len returns the length of the added objects
@@ -91,12 +91,12 @@ func (ppc *intermediateTransactionHandlersContainer) Len() int {
 func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {
-		uint32key, ok := key.Key.(uint32)
+		uint8key, ok := key.Key.(uint8)
 		if !ok {
 			continue
 		}
 
-		blockType := block.Type(uint32key)
+		blockType := block.Type(uint8key)
 		keys = append(keys, blockType)
 	}
 	return keys
