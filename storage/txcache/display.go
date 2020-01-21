@@ -7,21 +7,21 @@ import (
 var log = logger.GetOrCreate("txcache")
 
 func (cache *TxCache) onEvictionStarted() {
-	info("TxCache.onEvictionStarted()")
+	log.Trace("TxCache.onEvictionStarted()")
 	cache.displayState()
 }
 
 func (cache *TxCache) onEvictionEnded() {
-	info("TxCache.onEvictionEnded()")
+	log.Trace("TxCache.onEvictionEnded()")
 	cache.evictionJournal.display()
 	cache.displayState()
 }
 
 func (cache *TxCache) displayState() {
 	txListBySenderMap := cache.txListBySender.backingMap
-	info("TxCache:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	info("TxCache.txListBySender.totalCounts:", "chunks", txListBySenderMap.Count(), "iscoreChunks", txListBySenderMap.CountSorted())
-	info("TxCache.txListBySender.counts:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+	log.Trace("TxCache:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	log.Trace("TxCache.txListBySender.totalCounts:", "chunks", txListBySenderMap.Count(), "iscoreChunks", txListBySenderMap.CountSorted())
+	log.Trace("TxCache.txListBySender.counts:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 }
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
@@ -45,11 +45,7 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	info("Eviction journal:")
-	info("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	info("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
-}
-
-func info(message string, args ...interface{}) {
-	log.Trace(message, args...)
+	log.Trace("Eviction journal:")
+	log.Trace("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Trace("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
 }
