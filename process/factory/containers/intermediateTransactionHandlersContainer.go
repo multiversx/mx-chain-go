@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
@@ -21,7 +22,7 @@ func NewIntermediateTransactionHandlersContainer() *intermediateTransactionHandl
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
-	value, ok := ppc.objects.Get(uint8(key))
+	value, ok := ppc.objects.Get(uint32(key))
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
@@ -37,12 +38,11 @@ func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (proces
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil || interProcessor.IsInterfaceNil() {
+	if check.IfNil(interProcessor) {
 		return process.ErrNilContainerElement
 	}
 
-	ok := ppc.objects.Insert(uint8(key), interProcessor)
-
+	ok := ppc.objects.Insert(uint32(key), interProcessor)
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -69,17 +69,17 @@ func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Ty
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil || interProcessor.IsInterfaceNil() {
+	if check.IfNil(interProcessor) {
 		return process.ErrNilContainerElement
 	}
 
-	ppc.objects.Set(uint8(key), interProcessor)
+	ppc.objects.Set(uint32(key), interProcessor)
 	return nil
 }
 
 // Remove will remove an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Remove(key block.Type) {
-	ppc.objects.Del(uint8(key))
+	ppc.objects.Del(uint32(key))
 }
 
 // Len returns the length of the added objects
@@ -91,12 +91,12 @@ func (ppc *intermediateTransactionHandlersContainer) Len() int {
 func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {
-		uint8key, ok := key.Key.(uint8)
+		uint32key, ok := key.Key.(uint32)
 		if !ok {
 			continue
 		}
 
-		blockType := block.Type(uint8key)
+		blockType := block.Type(uint32key)
 		keys = append(keys, blockType)
 	}
 	return keys
@@ -104,8 +104,5 @@ func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppc *intermediateTransactionHandlersContainer) IsInterfaceNil() bool {
-	if ppc == nil {
-		return true
-	}
-	return false
+	return ppc == nil
 }

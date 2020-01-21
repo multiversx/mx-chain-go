@@ -7,11 +7,11 @@ func (ic *interceptorsContainer) Insert(key string, value interface{}) bool {
 }
 
 func (ppc *preProcessorsContainer) Insert(key block.Type, value interface{}) bool {
-	return ppc.objects.Insert(uint8(key), value)
+	return ppc.objects.Insert(uint32(key), value)
 }
 
 func (ppc *intermediateTransactionHandlersContainer) Insert(key block.Type, value interface{}) bool {
-	return ppc.objects.Insert(uint8(key), value)
+	return ppc.objects.Insert(uint32(key), value)
 }
 
 func (vmc *virtualMachinesContainer) Insert(key []byte, value interface{}) bool {

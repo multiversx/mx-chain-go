@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
@@ -21,7 +22,7 @@ func NewPreProcessorsContainer() *preProcessorsContainer {
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, error) {
-	value, ok := ppc.objects.Get(uint8(key))
+	value, ok := ppc.objects.Get(uint32(key))
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
@@ -37,11 +38,11 @@ func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, er
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *preProcessorsContainer) Add(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil || preProcessor.IsInterfaceNil() {
+	if check.IfNil(preProcessor) {
 		return process.ErrNilContainerElement
 	}
 
-	ok := ppc.objects.Insert(uint8(key), preProcessor)
+	ok := ppc.objects.Insert(uint32(key), preProcessor)
 
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
@@ -69,17 +70,17 @@ func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors 
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *preProcessorsContainer) Replace(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil || preProcessor.IsInterfaceNil() {
+	if check.IfNil(preProcessor) {
 		return process.ErrNilContainerElement
 	}
 
-	ppc.objects.Set(uint8(key), preProcessor)
+	ppc.objects.Set(uint32(key), preProcessor)
 	return nil
 }
 
 // Remove will remove an object at a given key
 func (ppc *preProcessorsContainer) Remove(key block.Type) {
-	ppc.objects.Del(uint8(key))
+	ppc.objects.Del(uint32(key))
 }
 
 // Len returns the length of the added objects
@@ -91,12 +92,12 @@ func (ppc *preProcessorsContainer) Len() int {
 func (ppc *preProcessorsContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {
-		uint8key, ok := key.Key.(uint8)
+		uint32key, ok := key.Key.(uint32)
 		if !ok {
 			continue
 		}
 
-		blockType := block.Type(uint8key)
+		blockType := block.Type(uint32key)
 		keys = append(keys, blockType)
 	}
 	return keys
@@ -104,8 +105,5 @@ func (ppc *preProcessorsContainer) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppc *preProcessorsContainer) IsInterfaceNil() bool {
-	if ppc == nil {
-		return true
-	}
-	return false
+	return ppc == nil
 }

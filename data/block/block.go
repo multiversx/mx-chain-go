@@ -18,7 +18,7 @@ import (
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
 // Type identifies the type of the block
-type Type uint8
+type Type uint32
 
 // Body should be used when referring to the full list of mini blocks that forms a block body
 type Body []*MiniBlock
@@ -29,20 +29,20 @@ type MiniBlockSlice []*MiniBlock
 
 const (
 	// TxBlock identifies a miniblock holding transactions
-	TxBlock Type = iota
+	TxBlock Type = 0
 	// StateBlock identifies a miniblock holding account state
-	StateBlock
+	StateBlock Type = 100
 	// PeerBlock identifies a miniblock holding peer assignation
-	PeerBlock
+	PeerBlock Type = 200
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
-	SmartContractResultBlock
+	SmartContractResultBlock Type = 300
 	// InvalidBlock identifies a miniblock holding invalid transactions
-	InvalidBlock
+	InvalidBlock Type = 400
 	// ReceiptBlock identifies a miniblock holding receipts
-	ReceiptBlock
-	// TODO: leaves rewards last always
+	ReceiptBlock Type = 500
+	// TODO: leave rewards with highest value
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
-	RewardsBlock
+	RewardsBlock Type = 1000
 )
 
 // String returns the string representation of the Type
