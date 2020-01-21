@@ -102,3 +102,6 @@ const TxPoolALotOfTransactionsForASender = uint32(500)
 // TxPoolNumTxsToEvictForASenderWithALot instructs tx pool eviction algorithm to remove this many transactions
 // for "a sender with a lot of transactions" when eviction takes place
 const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
+
+// MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
+const MaxNumPendingMiniBlocks = 100

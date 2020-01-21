@@ -842,13 +842,18 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	processedMiniBlocks := sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice()
-
 	if len(selfNotarizedHeaders) > 0 {
 		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
 	}
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
+	sp.prepareDataForBootStorer(
+		headerInfo,
+		header.Round,
+		sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
+		nil,
+		sp.lowestNonceInSelfNotarizedHeaders,
+		sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
+	)
 
 	go sp.cleanTxsPools()
 
@@ -1960,4 +1965,24 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	}
 
 	return block.Body(miniBlocks), nil
+}
+
+func (sp *shardProcessor) getBootstrapHeadersInfo(
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) []bootstrapStorage.BootstrapHeaderInfo {
+
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+
+	for index := range selfNotarizedHeaders {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: selfNotarizedHeaders[index].GetShardID(),
+			Nonce:   selfNotarizedHeaders[index].GetNonce(),
+			Hash:    selfNotarizedHeadersHashes[index],
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
+	}
+
+	return lastSelfNotarizedHeaders
 }

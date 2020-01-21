@@ -174,6 +174,7 @@ type Process struct {
 	HeaderSigVerifier     HeaderSigVerifierHandler
 	ValidatorsStatistics  process.ValidatorStatisticsProcessor
 	BlockTracker          process.BlockTracker
+	PendingMiniBlocks     process.PendingMiniBlocksHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -724,6 +725,18 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	var pendingMiniBlocks process.PendingMiniBlocksHandler
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		pendingMiniBlocks, err = newPendingMiniBlocks(
+			args.data.Store,
+			args.core.Marshalizer,
+			args.data.Datapool,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	forkDetector, err := newForkDetector(
 		rounder,
 		args.shardCoordinator,
@@ -745,6 +758,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		validatorStatisticsProcessor,
 		headerValidator,
 		blockTracker,
+		pendingMiniBlocks,
 	)
 	if err != nil {
 		return nil, err
@@ -762,6 +776,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		HeaderSigVerifier:     headerSigVerifier,
 		ValidatorsStatistics:  validatorStatisticsProcessor,
 		BlockTracker:          blockTracker,
+		PendingMiniBlocks:     pendingMiniBlocks,
 	}, nil
 }
 
@@ -1611,6 +1626,36 @@ func newBlockTracker(
 	return nil, errors.New("could not create block tracker")
 }
 
+func newPendingMiniBlocks(
+	store dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	dataPool dataRetriever.PoolsHolder,
+) (process.PendingMiniBlocksHandler, error) {
+
+	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
+	if check.IfNil(miniBlockHeaderStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
+	}
+
+	metaBlocksStore := store.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaBlocksStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
+	}
+
+	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
+		Marshalizer:      marshalizer,
+		Storage:          miniBlockHeaderStore,
+		MetaBlockPool:    dataPool.Headers(),
+		MetaBlockStorage: metaBlocksStore,
+	}
+	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return pendingMiniBlocks, nil
+}
+
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -1638,6 +1683,7 @@ func newBlockProcessor(
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	pendingMiniBlocks process.PendingMiniBlocksHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1710,6 +1756,7 @@ func newBlockProcessor(
 			bootStorer,
 			headerValidator,
 			blockTracker,
+			pendingMiniBlocks,
 		)
 	}
 
@@ -1887,6 +1934,7 @@ func newShardBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -1981,6 +2029,7 @@ func newMetaBlockProcessor(
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	pendingMiniBlocks process.PendingMiniBlocksHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2088,6 +2137,7 @@ func newMetaBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -2129,27 +2179,6 @@ func newMetaBlockProcessor(
 		ScQuery:     scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockHeaderStore := data.Store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
-	if check.IfNil(miniBlockHeaderStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
-	}
-
-	metaBlocksStore := data.Store.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaBlocksStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
-	}
-
-	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
-		Marshalizer:      core.Marshalizer,
-		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    data.Datapool.Headers(),
-		MetaBlockStorage: metaBlocksStore,
-	}
-	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {
 		return nil, err
 	}

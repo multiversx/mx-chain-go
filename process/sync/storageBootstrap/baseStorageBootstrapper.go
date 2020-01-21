@@ -17,8 +17,8 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
-// ArgsStorageBootstrapper is structure used to create a new storage bootstrapper
-type ArgsStorageBootstrapper struct {
+// ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
+type ArgsBaseStorageBootstrapper struct {
 	BootStorer          process.BootStorer
 	ForkDetector        process.ForkDetector
 	BlockProcessor      process.BlockProcessor
@@ -30,6 +30,17 @@ type ArgsStorageBootstrapper struct {
 	ShardCoordinator    sharding.Coordinator
 	ResolversFinder     dataRetriever.ResolversFinder
 	BlockTracker        process.BlockTracker
+}
+
+// ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
+type ArgsShardStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+}
+
+// ArgsMetaStorageBootstrapper is structure used to create a new storage bootstrapper for metachain
+type ArgsMetaStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+	PendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 type storageBootstrapper struct {
@@ -106,6 +117,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
+
+	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
 	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
 	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)

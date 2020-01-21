@@ -114,8 +114,9 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID      []byte
-	blockTracker process.BlockTracker
+	chainID           []byte
+	blockTracker      process.BlockTracker
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -411,7 +412,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -425,7 +426,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BlockTracker:        n.blockTracker,
 	}
 
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	arguments := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +463,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -472,7 +477,12 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BlockTracker:        n.blockTracker,
 	}
 
-	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	arguments := storageBootstrap.ArgsMetaStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+		PendingMiniBlocks:           n.pendingMiniBlocks,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(arguments)
 	if err != nil {
 		return nil, err
 	}
