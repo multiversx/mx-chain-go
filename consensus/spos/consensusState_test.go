@@ -265,10 +265,10 @@ func TestConsensusState_IsCurrentSubroundFinishedShouldReturnFalse(t *testing.T)
 	cns := internalInitConsensusState()
 
 	cns.SetStatus(bn.SrBlock, spos.SsNotFinished)
-	assert.False(t, cns.IsCurrentSubroundFinished(bn.SrBlock))
+	assert.False(t, cns.IsSubroundFinished(bn.SrBlock))
 
 	cns.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	assert.False(t, cns.IsCurrentSubroundFinished(bn.SrBlock))
+	assert.False(t, cns.IsSubroundFinished(bn.SrBlock))
 
 }
 
@@ -278,7 +278,7 @@ func TestConsensusState_IsCurrentSubroundFinishedShouldReturnTrue(t *testing.T) 
 	cns := internalInitConsensusState()
 
 	cns.SetStatus(bn.SrBlock, spos.SsFinished)
-	assert.True(t, cns.IsCurrentSubroundFinished(bn.SrBlock))
+	assert.True(t, cns.IsSubroundFinished(bn.SrBlock))
 }
 
 func TestConsensusState_IsNodeSelfShouldReturnFalse(t *testing.T) {
