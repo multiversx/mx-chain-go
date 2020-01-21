@@ -3,6 +3,10 @@ package sync
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -11,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
@@ -125,6 +127,7 @@ func TestNewSyncState_Ok(t *testing.T) {
 
 	syncState, err := NewSyncState(args)
 	require.Nil(t, err)
+	require.False(t, syncState.IsInterfaceNil())
 
 	err = syncState.SyncAllState(1)
 	require.Nil(t, err)
@@ -162,4 +165,82 @@ func TestNewSyncState_CannotSyncTriesErr(t *testing.T) {
 
 	err = syncState.SyncAllState(1)
 	require.NotNil(t, err)
+}
+
+func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("err")
+	args := ArgsNewSyncState{
+		Headers: &mock.HeaderSyncHandlerMock{
+			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{Epoch: 0}, nil
+			},
+		},
+		Tries: &mock.EpochStartTriesSyncHandlerMock{},
+		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
+			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, waitTime time.Duration) error {
+				return localErr
+			},
+		},
+		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+	}
+
+	syncState, err := NewSyncState(args)
+	require.Nil(t, err)
+
+	err = syncState.SyncAllState(0)
+	require.Equal(t, localErr, err)
+}
+
+func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("err")
+	args := ArgsNewSyncState{
+		Headers: &mock.HeaderSyncHandlerMock{
+			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{Epoch: 0}, nil
+			},
+		},
+		Tries: &mock.EpochStartTriesSyncHandlerMock{},
+		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
+			GetMiniBlocksCalled: func() (m map[string]*block.MiniBlock, err error) {
+				return nil, localErr
+			},
+		},
+		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+	}
+
+	syncState, err := NewSyncState(args)
+	require.Nil(t, err)
+
+	err = syncState.SyncAllState(0)
+	require.Equal(t, localErr, err)
+}
+
+func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("err")
+	args := ArgsNewSyncState{
+		Headers: &mock.HeaderSyncHandlerMock{
+			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{Epoch: 0}, nil
+			},
+		},
+		Tries:      &mock.EpochStartTriesSyncHandlerMock{},
+		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{},
+		Transactions: &mock.PendingTransactionsSyncHandlerMock{
+			SyncPendingTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, waitTime time.Duration) error {
+				return localErr
+			},
+		},
+	}
+
+	syncState, err := NewSyncState(args)
+	require.Nil(t, err)
+
+	err = syncState.SyncAllState(0)
+	require.Equal(t, localErr, err)
 }

@@ -195,7 +195,7 @@ func (p *pendingTransactions) getTransactionFromPool(txHash []byte) (data.Transa
 	mb := p.mapHashes[string(txHash)]
 	storeId := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	shardTxStore := p.txPools[mb.Type].ShardDataStore(storeId)
-	if shardTxStore == nil {
+	if check.IfNil(shardTxStore) {
 		return nil, false
 	}
 

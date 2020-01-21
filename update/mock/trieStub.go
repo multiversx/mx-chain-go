@@ -109,11 +109,6 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 	return nil, errNotImplemented
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (ts *TrieStub) IsInterfaceNil() bool {
-	return ts == nil
-}
-
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
 func (ts *TrieStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	if ts.CancelPruneCalled != nil {
@@ -170,4 +165,9 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 		return ts.DatabaseCalled()
 	}
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ts *TrieStub) IsInterfaceNil() bool {
+	return ts == nil
 }
