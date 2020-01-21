@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -41,6 +42,29 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
 	assert.Nil(t, err)
 	assert.NotNil(t, sd)
+	assert.False(t, sd.IsInterfaceNil())
+}
+
+func TestNewShardedData_CreateShardStore(t *testing.T) {
+	cacheConfigBad := storageUnit.CacheConfig{
+		Size: 10,
+		Type: storageUnit.LRUCache,
+	}
+
+	sd, err := shardedData.NewShardedData(cacheConfigBad)
+	assert.Nil(t, err)
+
+	id := "id"
+	key := []byte("key")
+	sd.CreateShardStore(id)
+	sd.AddData(key, key, id)
+
+	shardStore := sd.ShardDataStore(id)
+	require.NotNil(t, shardStore)
+
+	sd.RemoveSetOfDataFromPool([][]byte{key}, id)
+	_, found := sd.SearchFirstData(key)
+	require.False(t, found)
 }
 
 func TestShardedData_AddData(t *testing.T) {

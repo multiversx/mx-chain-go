@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errExpected = errors.New("expected error")
@@ -272,11 +273,12 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		createTriesHolder(),
-		0,
+		1,
 	)
 
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
+	require.False(t, rcf.IsInterfaceNil())
 }
 
 //------- Create

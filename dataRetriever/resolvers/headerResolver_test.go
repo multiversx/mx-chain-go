@@ -3,10 +3,11 @@ package resolvers_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -126,6 +127,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.NotNil(t, hdrRes)
 	assert.Nil(t, err)
+	assert.False(t, hdrRes.IsInterfaceNil())
 }
 
 //------- ProcessReceivedMessage
@@ -144,6 +146,72 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), nil)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
+}
+
+func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	requestedData := []byte("request")
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
+}
+
+func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, err error) {
+				return nil, nil
+			},
+		},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	requestedData := []byte("request_1")
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	assert.Nil(t, err)
+}
+
+func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{
+			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+				called = true
+				return nil
+			},
+		},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, err error) {
+				return nil, nil
+			},
+		},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	requestedData := []byte("request_1")
+	err := hdrRes.RequestDataFromEpoch(requestedData)
+	assert.Nil(t, err)
+	assert.True(t, called)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *testing.T) {

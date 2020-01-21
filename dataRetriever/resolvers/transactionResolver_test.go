@@ -106,6 +106,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txRes)
+	assert.False(t, txRes.IsInterfaceNil())
 }
 
 //------- ProcessReceivedMessage

@@ -61,6 +61,7 @@ func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.NotNil(t, tnRes)
 	assert.Nil(t, err)
+	assert.False(t, tnRes.IsInterfaceNil())
 }
 
 //------- ProcessReceivedMessage

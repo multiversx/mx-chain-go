@@ -265,11 +265,12 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		createTriesHolder(),
-		0,
+		1,
 	)
 
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
+	assert.False(t, rcf.IsInterfaceNil())
 }
 
 //------- Create
