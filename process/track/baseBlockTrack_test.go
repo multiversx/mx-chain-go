@@ -1017,6 +1017,72 @@ func TestDisplayTrackedHeadersForShard_ShouldWork(t *testing.T) {
 	sbt.DisplayTrackedHeadersForShard(0, "test")
 }
 
+func TestGetCrossNotarizedHeader_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardID := sharding.MetachainShardId
+	metaBlock1 := &block.MetaBlock{
+		Nonce: 1,
+	}
+	metaBlockHash1 := []byte("hash")
+	sbt.AddCrossNotarizedHeader(shardID, metaBlock1, metaBlockHash1)
+
+	metaBlock2 := &block.MetaBlock{
+		Nonce: 2,
+	}
+	metaBlockHash2 := []byte("hash")
+	sbt.AddCrossNotarizedHeader(shardID, metaBlock2, metaBlockHash2)
+
+	crossNotarizedHeader, _, _ := sbt.GetCrossNotarizedHeader(shardID, 0)
+	assert.Equal(t, metaBlock2, crossNotarizedHeader)
+
+	crossNotarizedHeader, _, _ = sbt.GetCrossNotarizedHeader(shardID, 1)
+	assert.Equal(t, metaBlock1, crossNotarizedHeader)
+}
+
+func TestGetLastCrossNotarizedHeader_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardID := sharding.MetachainShardId
+	metaBlock1 := &block.MetaBlock{
+		Nonce: 1,
+	}
+	metaBlockHash1 := []byte("hash")
+	sbt.AddCrossNotarizedHeader(shardID, metaBlock1, metaBlockHash1)
+
+	metaBlock2 := &block.MetaBlock{
+		Nonce: 2,
+	}
+	metaBlockHash2 := []byte("hash")
+	sbt.AddCrossNotarizedHeader(shardID, metaBlock2, metaBlockHash2)
+
+	lastCrossNotarizedHeader, _, _ := sbt.GetLastCrossNotarizedHeader(shardID)
+	assert.Equal(t, metaBlock2, lastCrossNotarizedHeader)
+}
+
+func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
+	metaArguments := CreateMetaTrackerMockArguments()
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+
+	shardHeader1Shard0 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash1Shard0 := []byte("hash")
+	mbt.AddCrossNotarizedHeader(0, shardHeader1Shard0, shardHeaderHash1Shard0)
+
+	shardHeader1Shard1 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash1Shard1 := []byte("hash")
+	mbt.AddCrossNotarizedHeader(1, shardHeader1Shard1, shardHeaderHash1Shard1)
+
+	lastCrossNotarizedHeaders, _ := mbt.GetLastCrossNotarizedHeadersForAllShards()
+	assert.Equal(t, shardHeader1Shard0, lastCrossNotarizedHeaders[0])
+	assert.Equal(t, shardHeader1Shard1, lastCrossNotarizedHeaders[1])
+}
+
 //###################################################################
 
 func TestCheckTrackerNilParameters_ShouldErrNilHasher(t *testing.T) {
