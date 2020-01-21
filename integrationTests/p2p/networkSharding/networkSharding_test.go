@@ -2,9 +2,11 @@ package networkSharding
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,44 @@ import (
 
 var p2pBootstrapStepDelay = 2 * time.Second
 
-func TestConnectionsInNetworkSharding(t *testing.T) {
+func createDefaultConfig() config.P2PConfig {
+	return config.P2PConfig{
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 1,
+			RandezVous:                       "",
+			InitialPeerList:                  nil,
+			BucketSize:                       100,
+		},
+	}
+}
+
+func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 12,
+	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantPrioBits
+
+	testConnectionsInNetworkSharding(t, p2pConfig)
+}
+
+func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
+	p2pConfig := createDefaultConfig()
+	p2pConfig.Node = config.NodeConfig{
+		TargetPeerCount: 12,
+	}
+	p2pConfig.KadDhtPeerDiscovery.Type = config.KadDhtVariantWithLists
+	p2pConfig.Sharding = config.ShardingConfig{
+		MaxIntraShard: 6,
+		MaxCrossShard: 6,
+	}
+
+	testConnectionsInNetworkSharding(t, p2pConfig)
+}
+
+func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -22,11 +61,12 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 	nbShards := 5
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	p2pConfigSeeder := p2pConfig
+	advertiser := integrationTests.CreateMessengerFromConfig(context.Background(), p2pConfigSeeder)
 	_ = advertiser.Bootstrap()
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	targetConnections := 12
+	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{seedAddress}
 
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithTestP2PNodes(
@@ -35,8 +75,7 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
-		targetConnections,
+		p2pConfig,
 	)
 
 	defer func() {
@@ -49,21 +88,21 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 
 	startNodes(nodesMap)
 
-	t.Log("Delaying for node bootstrap and topic announcement...")
+	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(p2pBootstrapStepDelay)
 
 	for i := 0; i < 15; i++ {
-		t.Log("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
 
-	sendMessageOnGlobalTopic(t, nodesMap)
-	sendMessagesOnIntraShardTopic(t, nodesMap)
-	sendMessagesOnCrossShardTopic(t, nodesMap)
+	sendMessageOnGlobalTopic(nodesMap)
+	sendMessagesOnIntraShardTopic(nodesMap)
+	sendMessagesOnCrossShardTopic(nodesMap)
 
 	for i := 0; i < 10; i++ {
-		t.Log("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
@@ -96,14 +135,14 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 	}
 }
 
-func sendMessageOnGlobalTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending a message on global topic")
+func sendMessageOnGlobalTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending a message on global topic")
 	nodesMap[0][0].Messenger.Broadcast(integrationTests.GlobalTopic, []byte("global message"))
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnIntraShardTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending a message on intra shard topic")
+func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending a message on intra shard topic")
 	for _, nodes := range nodesMap {
 		n := nodes[0]
 
@@ -114,8 +153,8 @@ func sendMessagesOnIntraShardTopic(t *testing.T, nodesMap map[uint32][]*integrat
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnCrossShardTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
-	t.Log("sending messages on cross shard topics")
+func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	fmt.Println("sending messages on cross shard topics")
 
 	for shardIdSrc, nodes := range nodesMap {
 		n := nodes[0]

@@ -1,6 +1,7 @@
-package libp2p
+package connectionMonitor
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -20,9 +21,10 @@ const (
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
 var DurationBetweenReconnectAttempts = time.Second * 5
 
+// Libp2pConnectionMonitor is the first variant of the connection monitor implementation
 type libp2pConnectionMonitor struct {
 	chDoReconnect              chan struct{}
-	reconnecter                p2p.Reconnecter
+	reconnecter                p2p.ReconnecterWithPauseResumeAndWatchdog
 	thresholdMinConnectedPeers int
 	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
 	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
@@ -31,7 +33,13 @@ type libp2pConnectionMonitor struct {
 	sharder                    ns.Sharder
 }
 
-func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
+// NewLibp2pConnectionMonitor creates a new connection monitor (version 1 that calls pause and resume on the discovery process)
+func NewLibp2pConnectionMonitor(
+	reconnecter p2p.ReconnecterWithPauseResumeAndWatchdog,
+	thresholdMinConnectedPeers int,
+	targetConnCount int,
+) (*libp2pConnectionMonitor, error) {
+
 	if thresholdMinConnectedPeers < 0 {
 		return nil, p2p.ErrInvalidValue
 	}
@@ -81,7 +89,7 @@ func (lcm *libp2pConnectionMonitor) kickWatchdog() {
 }
 
 // Connected is called when a connection opened
-func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
+func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, _ network.Conn) {
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
 		lcm.mutSharder.RLock()
 		sorted, isBalanced := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
@@ -109,7 +117,7 @@ func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, _ network
 }
 
 func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
-	if !lcm.isConnectedToTheNetwork(netw) {
+	if !lcm.IsConnectedToTheNetwork(netw) {
 		lcm.doReconn()
 	}
 }
@@ -131,18 +139,40 @@ func (lcm *libp2pConnectionMonitor) doReconnection() {
 	}
 }
 
-func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network) bool {
+// IsConnectedToTheNetwork returns true if the number of connected peer is at least equal with thresholdMinConnectedPeers
+func (lcm *libp2pConnectionMonitor) IsConnectedToTheNetwork(netw network.Network) bool {
 	return len(netw.Conns()) >= lcm.thresholdMinConnectedPeers
 }
 
+// SetThresholdMinConnectedPeers sets the minimum connected peers number when the node is considered connected on the network
+//TODO(iulian) refactor this in a future PR (not require to inject the netw pointer)
+func (lcm *libp2pConnectionMonitor) SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network) {
+	if netw == nil {
+		return
+	}
+	lcm.thresholdMinConnectedPeers = thresholdMinConnectedPeers
+	lcm.doReconnectionIfNeeded(netw)
+}
+
+// ThresholdMinConnectedPeers returns the minimum connected peers number when the node is considered connected on the network
+func (lcm *libp2pConnectionMonitor) ThresholdMinConnectedPeers() int {
+	return lcm.thresholdMinConnectedPeers
+}
+
 // SetSharder sets the sharder that is able to sort the peers by their distance
-func (lcm *libp2pConnectionMonitor) SetSharder(sharder ns.Sharder) error {
-	if check.IfNil(sharder) {
+//TODO(iulian) change this from interface{} to Sharder interface when all implementations will be uniformized
+// (maybe merge with libp2pConnectionMonitor2)
+func (lcm *libp2pConnectionMonitor) SetSharder(sharder interface{}) error {
+	sharderIntf, ok := sharder.(ns.Sharder)
+	if !ok {
+		return fmt.Errorf("%w when applying sharder: expected interface networksharding.Sharder", p2p.ErrWrongTypeAssertion)
+	}
+	if check.IfNil(sharderIntf) {
 		return p2p.ErrNilSharder
 	}
 
 	lcm.mutSharder.Lock()
-	lcm.sharder = sharder
+	lcm.sharder = sharderIntf
 	lcm.mutSharder.Unlock()
 
 	return nil

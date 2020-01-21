@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
@@ -55,10 +56,9 @@ type TestP2PNode struct {
 func NewTestP2PNode(
 	maxShards uint32,
 	nodeShardId uint32,
-	initialNodeAddr string,
+	p2pConfig config.P2PConfig,
 	coordinator sharding.NodesCoordinator,
 	keys TestKeyPair,
-	targetConnectedPeers int,
 ) *TestP2PNode {
 
 	tP2pNode := &TestP2PNode{
@@ -87,11 +87,16 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = createCustomMessenger(context.Background(), initialNodeAddr, targetConnectedPeers, nodeShardId)
+	tP2pNode.Messenger = createCustomMessenger(context.Background(), p2pConfig)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
-	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater, networkShardingPrioBits)
+	err = tP2pNode.Messenger.SetPeerShardResolver(
+		tP2pNode.NetworkShardingUpdater,
+		networkShardingPrioBits,
+		p2pConfig.Sharding.MaxIntraShard,
+		p2pConfig.Sharding.MaxCrossShard,
+	)
 	if err != nil {
 		fmt.Printf("Error setting messenger.SetPeerShardResolver: %s\n", err.Error())
 	}
@@ -103,9 +108,15 @@ func NewTestP2PNode(
 	return tP2pNode
 }
 
-func createCustomMessenger(ctx context.Context, initialAddr string, targetConnections int, nodeShardId uint32) p2p.Messenger {
+func createCustomMessenger(
+	ctx context.Context,
+	p2pConfig config.P2PConfig,
+) p2p.Messenger {
+
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+
+	peerDiscovery, _ := factory.NewPeerDiscoverer(p2pConfig)
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(
 		ctx,
@@ -113,9 +124,9 @@ func createCustomMessenger(ctx context.Context, initialAddr string, targetConnec
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		CreateKadPeerDiscoverer(StepDelay, fmt.Sprintf("shard_%d", nodeShardId), []string{initialAddr}),
+		peerDiscovery,
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		targetConnections,
+		p2pConfig.Node.TargetPeerCount,
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -255,8 +266,7 @@ func CreateNodesWithTestP2PNodes(
 	nbShards int,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
-	seedAddress string,
-	minConnectedPeers int,
+	p2pConfig config.P2PConfig,
 ) map[uint32][]*TestP2PNode {
 
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
@@ -285,10 +295,9 @@ func CreateNodesWithTestP2PNodes(
 			nodesList[i] = NewTestP2PNode(
 				uint32(nbShards),
 				shardId,
-				seedAddress,
+				p2pConfig,
 				nodesCoordinator,
 				*kp,
-				minConnectedPeers,
 			)
 		}
 		nodesMap[shardId] = nodesList

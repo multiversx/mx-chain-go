@@ -18,7 +18,7 @@
     Seed = ""
 
     # The targeted number of peer connections
-    TargetPeerCount = 150
+    TargetPeerCount = 32
 
 # P2P peer discovery section
 
@@ -55,6 +55,10 @@
     #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
     RoutingTableRefreshIntervalInSec = 300
 
+    Type = "kad dht with lists"
+
 [Sharding]
     # Number of ptiority bits used
     PrioBits = 4
+    MaxIntraShard = 15
+    MaxCrossShard = 15

@@ -60,14 +60,18 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
+	IsInterfaceNil() bool
+}
+
+// ReconnecterWithPauseResumeAndWatchdog defines a Reconnecter that supports pausing, resuming and watchdog
+type ReconnecterWithPauseResumeAndWatchdog interface {
+	Reconnecter
 	Pause()  // Pause the peer discovery
 	Resume() // Resume the peer discovery
 
 	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
 	StopWatchdog() error               // StopWatchdog stops the watchdog
 	KickWatchdog() error               // KickWatchdog kicks the watchdog
-
-	IsInterfaceNil() bool
 }
 
 // Messenger is the main struct used for communication with other peers
@@ -166,7 +170,7 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
-	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32) error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver, prioBits uint32, maxIntraShard uint32, maxCrossShard uint32) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 
 	// IsInterfaceNil returns true if there is no value under the interface

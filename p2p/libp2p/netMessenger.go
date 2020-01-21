@@ -10,7 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
+	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -55,7 +56,7 @@ type networkMessenger struct {
 	ctxProvider         *Libp2pContext
 	pb                  *pubsub.PubSub
 	ds                  p2p.DirectSender
-	connMonitor         *libp2pConnectionMonitor
+	connMonitor         ConnectionMonitor
 	peerDiscoverer      p2p.PeerDiscoverer
 	mutTopics           sync.RWMutex
 	topics              map[string]*pubsub.Topic
@@ -64,6 +65,8 @@ type networkMessenger struct {
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutineThrottler
 	ip                  *identityProvider
+	targetConnCount     int
+	peerShardResolver   p2p.PeerShardResolver
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -154,22 +157,21 @@ func createMessenger(
 		return nil, err
 	}
 
-	reconnecter, _ := peerDiscoverer.(p2p.Reconnecter)
-
 	netMes := networkMessenger{
-		ctxProvider:    lctx,
-		pb:             pb,
-		topics:         make(map[string]*pubsub.Topic),
-		processors:     make(map[string]p2p.MessageProcessor),
-		outgoingPLB:    outgoingPLB,
-		peerDiscoverer: peerDiscoverer,
+		ctxProvider:       lctx,
+		pb:                pb,
+		topics:            make(map[string]*pubsub.Topic),
+		processors:        make(map[string]p2p.MessageProcessor),
+		outgoingPLB:       outgoingPLB,
+		peerDiscoverer:    peerDiscoverer,
+		targetConnCount:   targetConnCount,
+		peerShardResolver: &unknownPeerShardResolver{},
 	}
-	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+
+	err = netMes.createConnectionMonitor()
 	if err != nil {
 		return nil, err
-
 	}
-	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
 	if err != nil {
@@ -196,7 +198,8 @@ func createMessenger(
 
 			peersInfo := netMes.GetConnectedPeersInfo()
 			log.Debug("network connection status",
-				"connected peers", len(netMes.Peers()),
+				"known peers", len(netMes.Peers()),
+				"connected peers", len(netMes.ConnectedPeers()),
 				"intra shard", len(peersInfo.IntraShardPeers),
 				"cross shard", len(peersInfo.CrossShardPeers),
 				"unknown", len(peersInfo.UnknownPeers),
@@ -227,6 +230,21 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 	}
 
 	return ps, nil
+}
+
+func (netMes *networkMessenger) createConnectionMonitor() error {
+	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
+
+	cmf := connMonitorFactory.NewConnectionMonitorFactory(reconnecter, defaultThresholdMinConnectedPeers, netMes.targetConnCount)
+	connMonitor, err := cmf.Create()
+	if err != nil {
+		return err
+	}
+
+	netMes.connMonitor = connMonitor
+	netMes.ctxProvider.connHost.Network().Notify(netMes.connMonitor)
+
+	return nil
 }
 
 func (netMes *networkMessenger) sendMessage() {
@@ -585,7 +603,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 // IsConnectedToTheNetwork returns true if the current node is connected to the network
 func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
 	netw := netMes.ctxProvider.connHost.Network()
-	return netMes.connMonitor.isConnectedToTheNetwork(netw)
+	return netMes.connMonitor.IsConnectedToTheNetwork(netw)
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
@@ -595,50 +613,76 @@ func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers 
 	}
 
 	netw := netMes.ctxProvider.connHost.Network()
-	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
-	netMes.connMonitor.doReconnectionIfNeeded(netw)
+	netMes.connMonitor.SetThresholdMinConnectedPeers(minConnectedPeers, netw)
 
 	return nil
 }
 
 // ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
 func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
-	return netMes.connMonitor.thresholdMinConnectedPeers
+	return netMes.connMonitor.ThresholdMinConnectedPeers()
 }
 
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
 // between p2p.PeerID and shardId
-func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver, prioBits uint32) error {
+func (netMes *networkMessenger) SetPeerShardResolver(
+	peerShardResolver p2p.PeerShardResolver,
+	prioBits uint32,
+	maxIntraShard uint32,
+	maxCrossShard uint32,
+) error {
 	if check.IfNil(peerShardResolver) {
 		return p2p.ErrNilPeerShardResolver
 	}
 
-	kadSharder, err := networksharding.NewKadSharder(prioBits, peerShardResolver)
+	//TODO refctor this area, do not pass reconnecter as a variable
+	reconnecter, _ := netMes.peerDiscoverer.(p2p.Reconnecter)
+	sharderFactory := factory.NewSharderFactory(
+		reconnecter,
+		peerShardResolver,
+		prioBits,
+		peer.ID(netMes.ID()),
+		netMes.targetConnCount,
+		int(maxIntraShard),
+		int(maxCrossShard),
+	)
+
+	kadSharder, err := sharderFactory.Create()
 	if err != nil {
 		return err
 	}
 
-	return netMes.connMonitor.SetSharder(kadSharder)
+	err = netMes.connMonitor.SetSharder(kadSharder)
+	if err != nil {
+		return err
+	}
+	netMes.peerShardResolver = peerShardResolver
+
+	return nil
 }
 
 // GetConnectedPeersInfo gets the current connected peers information
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
-	peerInfo := &p2p.ConnectedPeersInfo{}
-	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
+	peerInfo := &p2p.ConnectedPeersInfo{
+		UnknownPeers:    make([]string, 0),
+		IntraShardPeers: make([]string, 0),
+		CrossShardPeers: make([]string, 0),
+	}
+	selfShardId := netMes.peerShardResolver.ByID(netMes.ID())
 
 	for _, p := range peers {
-		shard := netMes.connMonitor.sharder.GetShard(p)
 		conns := netMes.ctxProvider.connHost.Network().ConnsToPeer(p)
 		connString := "[invalid connection string]"
 		if len(conns) > 0 {
 			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
 		}
 
-		switch shard {
+		shardId := netMes.peerShardResolver.ByID(p2p.PeerID(p))
+		switch shardId {
 		case sharding.UnknownShardId:
 			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
-		case crt:
+		case selfShardId:
 			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)
 		default:
 			peerInfo.CrossShardPeers = append(peerInfo.CrossShardPeers, connString)

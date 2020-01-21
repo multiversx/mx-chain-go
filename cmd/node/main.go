@@ -1242,7 +1242,12 @@ func prepareNetworkShardingCollector(
 	localId := network.NetMessenger.ID()
 	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector, p2pConfig.Sharding.PrioBits)
+	err = network.NetMessenger.SetPeerShardResolver(
+		networkShardingCollector,
+		p2pConfig.Sharding.PrioBits,
+		p2pConfig.Sharding.MaxIntraShard,
+		p2pConfig.Sharding.MaxCrossShard,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -64,8 +64,8 @@ var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("peer discovery is alread
 // ErrNilContextProvider signals that a nil context applier has been provided
 var ErrNilContextProvider = errors.New("nil context provider")
 
-// ErrWrongContextApplier signals that a wrong type of context applier has been provided
-var ErrWrongContextApplier = errors.New("wrong type of ContextApplier")
+// ErrWrongContextProvider signals that a wrong type of context provider has been provided
+var ErrWrongContextProvider = errors.New("wrong type of ContextProvider")
 
 // ErrNilPeerDiscoverer signals that a nil peer dicoverer has been provided
 var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
@@ -111,3 +111,13 @@ var ErrNilSignerVerifier = errors.New("nil signer-verifier")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrIncompatibleMethodCalled signals that the program called a method that should not have been called
+// this is an indication that a previous setup was not properly done
+var ErrIncompatibleMethodCalled = errors.New("incompatible method called")
+
+// ErrNilReconnecter signals that a nil reconnecter has been provided
+var ErrNilReconnecter = errors.New("nil reconnecter")
