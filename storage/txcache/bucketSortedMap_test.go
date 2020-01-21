@@ -45,21 +45,21 @@ func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
 	item.chunk = chunk
 }
 
-func TestNewAlmostSortedMap(t *testing.T) {
-	myMap := NewAlmostSortedMap(4, 100)
+func TestNewBucketSortedMap(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
 	require.Equal(t, uint32(4), myMap.nChunks)
 	require.Equal(t, 4, len(myMap.chunks))
 	require.Equal(t, uint32(100), myMap.nScoreChunks)
 	require.Equal(t, 100, len(myMap.scoreChunks))
 
 	// 1 is minimum number of chunks
-	myMap = NewAlmostSortedMap(0, 0)
+	myMap = NewBucketSortedMap(0, 0)
 	require.Equal(t, uint32(1), myMap.nChunks)
 	require.Equal(t, uint32(1), myMap.nScoreChunks)
 }
 
-func TestAlmostSortedMap_Count(t *testing.T) {
-	myMap := NewAlmostSortedMap(4, 100)
+func TestBucketSortedMap_Count(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
 	myMap.Set(newDummyItem("a"))
 	myMap.Set(newDummyItem("b"))
 	myMap.Set(newDummyItem("c"))
@@ -72,8 +72,8 @@ func TestAlmostSortedMap_Count(t *testing.T) {
 	require.Equal(t, uint32(3), myMap.CountSorted())
 }
 
-func TestAlmostSortedMap_Keys(t *testing.T) {
-	myMap := NewAlmostSortedMap(4, 100)
+func TestBucketSortedMap_Keys(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
 	myMap.Set(newDummyItem("a"))
 	myMap.Set(newDummyItem("b"))
 	myMap.Set(newDummyItem("c"))
@@ -86,8 +86,8 @@ func TestAlmostSortedMap_Keys(t *testing.T) {
 	require.Equal(t, 3, len(myMap.KeysSorted()))
 }
 
-func TestAlmostSortedMap_KeysSorted(t *testing.T) {
-	myMap := NewAlmostSortedMap(1, 4)
+func TestBucketSortedMap_KeysSorted(t *testing.T) {
+	myMap := NewBucketSortedMap(1, 4)
 
 	myMap.Set(newScoredDummyItem("d", 3))
 	myMap.Set(newScoredDummyItem("a", 0))
@@ -115,8 +115,8 @@ func TestAlmostSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, uint32(3), counts[3])
 }
 
-func TestAlmostSortedMap_AddManyItems(t *testing.T) {
-	myMap := NewAlmostSortedMap(16, 100)
+func TestBucketSortedMap_AddManyItems(t *testing.T) {
+	myMap := NewBucketSortedMap(16, 100)
 
 	var waitGroup sync.WaitGroup
 
