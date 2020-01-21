@@ -130,7 +130,11 @@ func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 	epochStartData, err := GetDataFromStorage([]byte(epochStartId), h.metaBlockStorage, epoch)
 	if err != nil {
 		_ = process.EmptyChannel(h.chReceivedAll)
+
+		h.mutMeta.Lock()
 		h.stopSyncing = false
+		h.mutMeta.Unlock()
+
 		h.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 
 		err = WaitFor(h.chReceivedAll, waitTime)
