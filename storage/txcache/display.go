@@ -19,9 +19,20 @@ func (cache *TxCache) onEvictionEnded() {
 
 func (cache *TxCache) displayState() {
 	txListBySenderMap := cache.txListBySender.backingMap
-	log.Trace("TxCache:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	log.Trace("TxCache.txListBySender.totalCounts:", "chunks", txListBySenderMap.Count(), "iscoreChunks", txListBySenderMap.CountSorted())
-	log.Trace("TxCache.txListBySender.counts:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+	chunksCount := txListBySenderMap.Count()
+	scoreChunksCount := txListBySenderMap.CountSorted()
+	sendersCount := uint32(cache.CountSenders())
+
+	log.Trace("TxCache:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", sendersCount)
+
+	if chunksCount != sendersCount {
+		log.Error("TxCache.CountSenders() inconsistency:", "counter", sendersCount, "in-map", chunksCount)
+	}
+	if chunksCount != scoreChunksCount {
+		log.Error("TxCache.txListBySender.backingMap counts inconsistency:", "chunks", chunksCount, "scoreChunks", scoreChunksCount)
+	}
+
+	log.Trace("TxCache.txListBySender.histogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 }
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
