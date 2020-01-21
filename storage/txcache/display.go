@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var mainLog = logger.GetOrCreate("txcache")
+var log = logger.GetOrCreate("txcache")
 
 func (cache *TxCache) onEvictionStarted() {
 	info("TxCache.onEvictionStarted()")
@@ -26,11 +26,11 @@ func (cache *TxCache) displayState() {
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
 	// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-	mainLog.Error("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "tx", txHash)
+	log.Error("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "tx", txHash)
 }
 
 func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
-	mainLog.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
+	log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
 }
 
 // evictionJournal keeps a short journal about the eviction process
@@ -51,5 +51,5 @@ func (journal *evictionJournal) display() {
 }
 
 func info(message string, args ...interface{}) {
-	mainLog.Trace(message, args...)
+	log.Trace(message, args...)
 }

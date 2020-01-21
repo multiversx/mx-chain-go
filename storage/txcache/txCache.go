@@ -161,7 +161,7 @@ func (cache *TxCache) Clear() {
 
 // Put is not implemented
 func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
-	mainLog.Error("TxCache.Put is not implemented")
+	log.Error("TxCache.Put is not implemented")
 	return false
 }
 
@@ -173,7 +173,7 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 
 // Has is not implemented
 func (cache *TxCache) Has(key []byte) bool {
-	mainLog.Error("TxCache.Has is not implemented")
+	log.Error("TxCache.Has is not implemented")
 	return false
 }
 
@@ -185,7 +185,7 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd is not implemented
 func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	mainLog.Error("TxCache.HasOrAdd is not implemented")
+	log.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }
 
@@ -196,7 +196,7 @@ func (cache *TxCache) Remove(key []byte) {
 
 // RemoveOldest is not implemented
 func (cache *TxCache) RemoveOldest() {
-	mainLog.Error("TxCache.RemoveOldest is not implemented")
+	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
 // Keys returns the tx hashes in the cache
@@ -206,13 +206,13 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	mainLog.Error("TxCache.MaxSize is not implemented")
+	log.Error("TxCache.MaxSize is not implemented")
 	return 0
 }
 
 // RegisterHandler is not implemented
 func (cache *TxCache) RegisterHandler(func(key []byte)) {
-	mainLog.Error("TxCache.RegisterHandler is not implemented")
+	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
 // VolumeInBytes returns the estimated volume of the cache, in bytes
