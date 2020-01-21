@@ -86,6 +86,7 @@ func GetShardHeaderFromPool(
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
+		log.Debug("No found in Pool", "hash", hash, "error", err.Error())
 		return nil, err
 	}
 
