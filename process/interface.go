@@ -377,7 +377,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert()
+	Revert(round uint64)
 	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
@@ -628,5 +628,12 @@ type BlockTracker interface {
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
+	IsInterfaceNil() bool
+}
+
+// EpochStartDataCreator defines the functionality for node to create epoch start data
+type EpochStartDataCreator interface {
+	CreateEpochStartData() (*block.EpochStart, error)
+	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }
