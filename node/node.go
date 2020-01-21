@@ -277,6 +277,7 @@ func (n *Node) StartConsensus() error {
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
 	}
+
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -297,6 +298,8 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		return err
 	}
+
+	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
 	err = n.createConsensusTopic(worker, n.shardCoordinator)
 	if err != nil {

@@ -257,6 +257,9 @@ func (fct *factory) generateEndRoundSubround() error {
 	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
+		spos.MaxThresholdPercent,
+		getSubroundName,
+		fct.worker.DisplayStatistics,
 	)
 	if err != nil {
 		return err
@@ -267,6 +270,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
+	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil

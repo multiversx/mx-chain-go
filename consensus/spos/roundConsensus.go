@@ -189,8 +189,9 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 func (rcns *roundConsensus) ResetRoundState() {
 	rcns.mut.Lock()
 
+	var currentRoundState *roundState
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		currentRoundState := rcns.validatorRoundStates[rcns.consensusGroup[i]]
+		currentRoundState = rcns.validatorRoundStates[rcns.consensusGroup[i]]
 		if currentRoundState == nil {
 			log.Debug("validatorRoundStates", "error", ErrNilRoundState.Error())
 			continue

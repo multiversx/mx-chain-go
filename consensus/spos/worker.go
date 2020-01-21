@@ -47,8 +47,11 @@ type Worker struct {
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 
-	mapHashConsensusMessage map[string][]*consensus.Message
-	mutHashConsensusMessage sync.RWMutex
+	mapDisplayHashConsensusMessage map[string][]*consensus.Message
+	mutDisplayHashConsensusMessage sync.RWMutex
+
+	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
+	mutReceivedHeadersHandler sync.RWMutex
 }
 
 // NewWorker creates a new Worker object
@@ -110,13 +113,14 @@ func NewWorker(
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
+	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
 
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 
 	return &wrk, nil
 }
@@ -189,10 +193,36 @@ func checkNewWorkerParams(
 
 func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	if isNodeSynchronized {
-		if len(wrk.consensusStateChangedChannel) == 0 {
-			wrk.consensusStateChangedChannel <- true
+		select {
+		case wrk.consensusStateChangedChannel <- true:
+		default:
 		}
 	}
+}
+
+func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
+		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
+		return
+	}
+
+	wrk.mutReceivedHeadersHandler.RLock()
+	for _, handler := range wrk.receivedHeadersHandlers {
+		handler(headerHandler)
+	}
+	wrk.mutReceivedHeadersHandler.RUnlock()
+
+	select {
+	case wrk.consensusStateChangedChannel <- true:
+	default:
+	}
+}
+
+// AddReceivedHeaderHandler adds a new handler function for a received header
+func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
+	wrk.mutReceivedHeadersHandler.Lock()
+	wrk.receivedHeadersHandlers = append(wrk.receivedHeadersHandlers, handler)
+	wrk.mutReceivedHeadersHandler.Unlock()
 }
 
 func (wrk *Worker) initReceivedMessages() {
@@ -328,10 +358,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.mutHashConsensusMessage.Lock()
+		wrk.mutDisplayHashConsensusMessage.Lock()
 		hash := string(cnsDta.BlockHeaderHash)
-		wrk.mapHashConsensusMessage[hash] = append(wrk.mapHashConsensusMessage[hash], cnsDta)
-		wrk.mutHashConsensusMessage.Unlock()
+		wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsDta)
+		wrk.mutDisplayHashConsensusMessage.Unlock()
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -439,8 +469,9 @@ func (wrk *Worker) checkChannels() {
 			msgType := consensus.MessageType(rcvDta.MsgType)
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.consensusStateChangedChannel) == 0 {
-						wrk.consensusStateChangedChannel <- true
+					select {
+					case wrk.consensusStateChangedChannel <- true:
+					default:
 					}
 				}
 			}
@@ -453,11 +484,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
-	wrk.displaySignatureStatistic()
-
-	wrk.mutHashConsensusMessage.Lock()
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.mutHashConsensusMessage.Unlock()
+	wrk.DisplayStatistics()
 
 	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
@@ -491,9 +518,9 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
-func (wrk *Worker) displaySignatureStatistic() {
-	wrk.mutHashConsensusMessage.RLock()
-	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
+func (wrk *Worker) DisplayStatistics() {
+	wrk.mutDisplayHashConsensusMessage.Lock()
+	for hash, consensusMessages := range wrk.mapDisplayHashConsensusMessage {
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
 			"sigs num", len(consensusMessages),
@@ -505,7 +532,10 @@ func (wrk *Worker) displaySignatureStatistic() {
 		}
 
 	}
-	wrk.mutHashConsensusMessage.RUnlock()
+
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
+
+	wrk.mutDisplayHashConsensusMessage.Unlock()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

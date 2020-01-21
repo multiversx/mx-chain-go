@@ -146,7 +146,8 @@ func (mp *metaProcessor) ProcessBlock(
 
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	log.Trace("started processing block",
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
 
@@ -540,16 +541,18 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	log.Trace("started creating block body",
-		"round", initialHdrData.GetRound(),
-	)
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
 	mp.epochStartTrigger.Update(initialHdrData.GetRound())
 	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
-
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
+
+	log.Debug("started creating block body",
+		"epoch", initialHdrData.GetEpoch(),
+		"round", initialHdrData.GetRound(),
+		"nonce", initialHdrData.GetNonce(),
+	)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
@@ -822,7 +825,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	log.Trace("started committing block",
+	log.Debug("started committing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
