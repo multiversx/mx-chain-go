@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type syncTries struct {
@@ -129,7 +129,7 @@ func (st *syncTries) syncShard(shardData block.EpochStartShardData) error {
 }
 
 func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, rootHash []byte) error {
-	accAdapterIdentifier := fmt.Sprint(int(accountType), shardId)
+	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
 	success := st.tryRecreateTrie(accAdapterIdentifier, rootHash)
 	if success {
