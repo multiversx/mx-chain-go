@@ -274,12 +274,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	// TODO: This should be removed when we have the genesis block in the storage also
-	//  and make sure to calculate gaps for the first block also
-	//if processedHeader.GetNonce() == 1 {
-	//	return vs.peerAdapter.RootHash()
-	//}
-
 	previousHeader, err := process.GetMetaHeader(processedHeader.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		return nil, err
@@ -374,25 +368,34 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		}
 
 		swInner.Start("ComputeDecreaseAllValidators")
-		for j := 1; j < len(consensusGroup); j++ {
-			validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
-			if verr != nil {
-				return verr
-			}
-
-			verr = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal()
-			if verr != nil {
-				return verr
-			}
-
-			newRating = vs.rater.ComputeDecreaseValidator(validatorPeerAccount.GetTempRating())
-			verr = validatorPeerAccount.SetTempRatingWithJournal(newRating)
-			if verr != nil {
-				return verr
-			}
-		}
+		err = vs.decreaseForConsensusValidators(consensusGroup)
 		swInner.Stop("ComputeDecreaseAllValidators")
+		if err != nil {
+			return err
+		}
 		sw.Add(swInner)
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []sharding.Validator) error {
+	for j := 1; j < len(consensusGroup); j++ {
+		validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
+		if verr != nil {
+			return verr
+		}
+
+		verr = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal()
+		if verr != nil {
+			return verr
+		}
+
+		newRating := vs.rater.ComputeDecreaseValidator(validatorPeerAccount.GetTempRating())
+		verr = validatorPeerAccount.SetTempRatingWithJournal(newRating)
+		if verr != nil {
+			return verr
+		}
 	}
 
 	return nil
