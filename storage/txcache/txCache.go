@@ -222,11 +222,6 @@ func (cache *TxCache) RegisterHandler(func(key []byte)) {
 	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
-// VolumeInBytes returns the estimated volume of the cache, in bytes
-func (cache *TxCache) VolumeInBytes() int64 {
-	return cache.txByHash.numBytes.Get()
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
