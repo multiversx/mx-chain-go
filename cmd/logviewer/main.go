@@ -278,7 +278,7 @@ func outputMessage(message []byte) {
 		Message:   logLine.Message,
 		LogLevel:  logger.LogLevel(logLine.LogLevel),
 		Args:      make([]interface{}, len(logLine.Args)),
-		Timestamp: time.Unix(logLine.Timestamp, 0),
+		Timestamp: time.Unix(0, logLine.Timestamp),
 	}
 	for i, str := range logLine.Args {
 		recoveredLogLine.Args[i] = str
