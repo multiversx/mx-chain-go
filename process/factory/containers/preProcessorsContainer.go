@@ -104,8 +104,5 @@ func (ppc *preProcessorsContainer) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppc *preProcessorsContainer) IsInterfaceNil() bool {
-	if ppc == nil {
-		return true
-	}
-	return false
+	return ppc == nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,6 +23,17 @@ var randomizerMutex sync.Mutex
 
 func init() {
 	randomizer = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func TestNewAdapterGenericCacheToSortedTransactionsProvider(t *testing.T) {
+	t.Parallel()
+
+	cacher := &mock.CacherMock{}
+	cacheKey := "key"
+	adapter := newAdapterGenericCacheToSortedTransactionsProvider(nil, cacher, cacheKey)
+
+	assert.NotNil(t, adapter)
+	assert.False(t, adapter.IsInterfaceNil())
 }
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {

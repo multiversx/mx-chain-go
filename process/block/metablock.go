@@ -411,8 +411,6 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 			continue
 		}
 	}
-
-	return
 }
 
 func (mp *metaProcessor) indexBlock(

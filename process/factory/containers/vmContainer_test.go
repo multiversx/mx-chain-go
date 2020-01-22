@@ -16,6 +16,7 @@ func TestNewVirtualMachinesContainer_ShouldWork(t *testing.T) {
 	c := containers.NewVirtualMachinesContainer()
 
 	assert.NotNil(t, c)
+	assert.False(t, c.IsInterfaceNil())
 }
 
 //------- Add

@@ -400,6 +400,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
+	assert.False(t, tc.IsInterfaceNil())
 }
 
 func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
