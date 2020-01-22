@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -223,4 +224,106 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	require.Equal(t, uint32(0), steps)
 	require.Equal(t, uint32(0), nTxs)
 	require.Equal(t, uint32(0), nSenders)
+}
+
+// This seems to be the worst case in terms of eviction complexity
+// Eviction is triggered often and little eviction (only 10 senders) is done
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(b *testing.B) {
+	if b.N > 1 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
+	}
+
+	config := EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
+		CountThreshold:                  240000,
+		NumSendersToEvictInOneStep:      10,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCacheWithEviction("", 16, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	require.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(b *testing.B) {
+	if b.N > 1 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
+	}
+
+	config := EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
+		CountThreshold:                  240000,
+		NumSendersToEvictInOneStep:      100,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCacheWithEviction("", 16, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	require.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(b *testing.B) {
+	if b.N > 1 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
+	}
+
+	config := EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
+		CountThreshold:                  240000,
+		NumSendersToEvictInOneStep:      1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCacheWithEviction("", 16, config)
+	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
+	require.Equal(b, int64(240000), cache.CountTx())
+}
+
+func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
+	if b.N > 1 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
+	}
+
+	config := EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
+		CountThreshold:                  240000,
+		NumSendersToEvictInOneStep:      1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCacheWithEviction("", 16, config)
+	addManyTransactionsWithUniformDistribution(cache, 10, 25000)
+	require.Equal(b, int64(240000), cache.CountTx())
+}
+
+func BenchmarkEviction_UniformDistribution_1x250000(b *testing.B) {
+	if b.N > 1 {
+		fmt.Println("impractical benchmark: b.N too high")
+		return
+	}
+
+	config := EvictionConfig{
+		Enabled:                         true,
+		NumBytesThreshold:               1000000000,
+		CountThreshold:                  240000,
+		NumSendersToEvictInOneStep:      1000,
+		ALotOfTransactionsForASender:    1000,
+		NumTxsToEvictForASenderWithALot: 250,
+	}
+
+	cache := NewTxCacheWithEviction("", 16, config)
+	addManyTransactionsWithUniformDistribution(cache, 1, 250000)
+	require.Equal(b, int64(240000), cache.CountTx())
 }
