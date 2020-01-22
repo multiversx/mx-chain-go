@@ -1,43 +1,11 @@
 package heartbeat
 
 import (
-	"fmt"
-	"testing"
 	"time"
-	"unsafe"
 )
 
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages
-}
-
-func Test_test(t *testing.T) {
-	fmt.Println(unsafe.Sizeof(heartbeatMessageInfo{}))
-	fmt.Println("duration", unsafe.Sizeof(heartbeatMessageInfo{}.maxDurationPeerUnresponsive))
-	fmt.Println("hbt duration", unsafe.Sizeof(heartbeatMessageInfo{}.maxInactiveTime))
-	fmt.Println("time", unsafe.Sizeof(heartbeatMessageInfo{}.lastUptimeDowntime))
-	fmt.Println("string", unsafe.Sizeof(heartbeatMessageInfo{}.nodeDisplayName))
-	fmt.Println("mutex", unsafe.Sizeof(heartbeatMessageInfo{}.updateMutex))
-	fmt.Println("func pointer", unsafe.Sizeof(heartbeatMessageInfo{}.getTimeHandler))
-	cxx := make(chan bool)
-	fmt.Println("channel", unsafe.Sizeof(cxx))
-	var aaa uint32
-	fmt.Println("uint32", unsafe.Sizeof(aaa))
-	var bbb uint64
-	fmt.Println("uint64", unsafe.Sizeof(bbb))
-	var ccc int
-	fmt.Println("int", unsafe.Sizeof(ccc))
-	var ddd float64
-	fmt.Println("float64", unsafe.Sizeof(ddd))
-
-	fmt.Println("PubKeyHeartbeat", unsafe.Sizeof(PubKeyHeartbeat{}))
-
-	fmt.Println("Heartbeat dto", unsafe.Sizeof(HeartbeatDTO{}))
-
-	//tt := reflect.TypeOf(HeartbeatDTO{})
-	//for i := 0; i < tt.NumField(); i++ {
-	//	fmt.Printf("%+v\n", tt.Field(i))
-	//}
 }
 
 func (m *Monitor) SetMessages(messages map[string]*heartbeatMessageInfo) {
