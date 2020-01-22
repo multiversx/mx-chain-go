@@ -140,7 +140,7 @@ func Test_ForEachTransaction(t *testing.T) {
 	require.Equal(t, 2, counter)
 }
 
-func Test_GetTransactions_Dummy(t *testing.T) {
+func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache := NewTxCache(16)
 
 	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
@@ -152,11 +152,11 @@ func Test_GetTransactions_Dummy(t *testing.T) {
 	cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
 	cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
 
-	sorted, _ := cache.GetTransactions(10, 2)
+	sorted, _ := cache.SelectTransactions(10, 2)
 	require.Len(t, sorted, 8)
 }
 
-func Test_GetTransactions(t *testing.T) {
+func Test_SelectTransactions(t *testing.T) {
 	cache := NewTxCache(16)
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
@@ -177,7 +177,7 @@ func Test_GetTransactions(t *testing.T) {
 
 	require.Equal(t, int64(nTotalTransactions), cache.CountTx())
 
-	sorted, _ := cache.GetTransactions(nRequestedTransactions, 2)
+	sorted, _ := cache.SelectTransactions(nRequestedTransactions, 2)
 
 	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
 
