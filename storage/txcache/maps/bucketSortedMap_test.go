@@ -72,6 +72,21 @@ func TestBucketSortedMap_Count(t *testing.T) {
 	require.Equal(t, uint32(3), myMap.CountSorted())
 }
 
+func TestBucketSortedMap_ChunksCounts(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+	myMap.Set(newDummyItem("a"))
+	myMap.Set(newDummyItem("b"))
+	myMap.Set(newDummyItem("c"))
+	myMap.Set(newDummyItem("d"))
+
+	counts := myMap.ChunksCounts()
+
+	require.Equal(t, uint32(1), counts[0])
+	require.Equal(t, uint32(1), counts[1])
+	require.Equal(t, uint32(1), counts[2])
+	require.Equal(t, uint32(1), counts[3])
+}
+
 func TestBucketSortedMap_Keys(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 	myMap.Set(newDummyItem("a"))
@@ -113,6 +128,27 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, uint32(1), counts[1])
 	require.Equal(t, uint32(1), counts[2])
 	require.Equal(t, uint32(3), counts[3])
+}
+
+func TestBucketSortedMap_Has(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+	myMap.Set(newDummyItem("a"))
+	myMap.Set(newDummyItem("b"))
+
+	require.True(t, myMap.Has("a"))
+	require.True(t, myMap.Has("b"))
+	require.False(t, myMap.Has("c"))
+}
+
+func TestBucketSortedMap_Remove(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+	myMap.Set(newDummyItem("a"))
+	myMap.Set(newDummyItem("b"))
+
+	myMap.Remove("b")
+
+	require.True(t, myMap.Has("a"))
+	require.False(t, myMap.Has("b"))
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
