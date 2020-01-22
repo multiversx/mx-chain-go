@@ -31,16 +31,21 @@ func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
 
 	m := ConcurrentMap{
 		nChunks: nChunks,
-		chunks:  make([]*concurrentMapChunk, nChunks),
 	}
 
-	for i := uint32(0); i < nChunks; i++ {
+	m.initializeChunks()
+
+	return &m
+}
+
+func (m *ConcurrentMap) initializeChunks() {
+	m.chunks = make([]*concurrentMapChunk, m.nChunks)
+
+	for i := uint32(0); i < m.nChunks; i++ {
 		m.chunks[i] = &concurrentMapChunk{
 			items: make(map[string]interface{}),
 		}
 	}
-
-	return &m
 }
 
 // getChunk returns the chunk holding the given key.
@@ -140,7 +145,7 @@ func (m *ConcurrentMap) Clear() {
 
 	// Assignment is not an atomic operation, so we have to wrap this in a critical section
 	m.mutex.Lock()
-	m.chunks = make([]*concurrentMapChunk, m.nChunks)
+	m.initializeChunks()
 	m.mutex.Unlock()
 }
 

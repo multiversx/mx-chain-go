@@ -1,6 +1,7 @@
 package maps
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -33,23 +34,28 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 		nChunks:      nChunks,
 		nScoreChunks: nScoreChunks,
 		maxScore:     nScoreChunks - 1,
-		chunks:       make([]*MapChunk, nChunks),
-		scoreChunks:  make([]*MapChunk, nScoreChunks),
 	}
 
-	for i := uint32(0); i < nChunks; i++ {
+	sortedMap.initializeChunks()
+
+	return &sortedMap
+}
+
+func (sortedMap *BucketSortedMap) initializeChunks() {
+	sortedMap.chunks = make([]*MapChunk, sortedMap.nChunks)
+	sortedMap.scoreChunks = make([]*MapChunk, sortedMap.nScoreChunks)
+
+	for i := uint32(0); i < sortedMap.nChunks; i++ {
 		sortedMap.chunks[i] = &MapChunk{
 			items: make(map[string]BucketSortedMapItem),
 		}
 	}
 
-	for i := uint32(0); i < nScoreChunks; i++ {
+	for i := uint32(0); i < sortedMap.nScoreChunks; i++ {
 		sortedMap.scoreChunks[i] = &MapChunk{
 			items: make(map[string]BucketSortedMapItem),
 		}
 	}
-
-	return &sortedMap
 }
 
 // Set puts the item in the map
@@ -120,6 +126,12 @@ func (sortedMap *BucketSortedMap) CountSorted() uint32 {
 func (sortedMap *BucketSortedMap) ChunksCounts() []uint32 {
 	counts := make([]uint32, sortedMap.nChunks)
 	for i, chunk := range sortedMap.chunks {
+		if chunk == nil {
+			fmt.Println(sortedMap.chunks)
+			fmt.Println(sortedMap.nScoreChunks)
+			fmt.Println(sortedMap.nChunks)
+			panic("wtf")
+		}
 		counts[i] = chunk.countItems()
 	}
 	return counts
@@ -154,21 +166,6 @@ func (sortedMap *BucketSortedMap) Remove(key string) {
 
 // SortedMapIterCb is an iterator callback
 type SortedMapIterCb func(key string, value BucketSortedMapItem)
-
-// IterCb iterates over the elements in the map
-func (sortedMap *BucketSortedMap) IterCb(callback SortedMapIterCb) {
-	for idx := range sortedMap.chunks {
-		chunk := (sortedMap.chunks)[idx]
-		chunk.forEachItem(callback)
-	}
-}
-
-// IterCbSortedAscending iterates over the sorted elements in the map
-func (sortedMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
-	for _, chunk := range sortedMap.scoreChunks {
-		chunk.forEachItem(callback)
-	}
-}
 
 // GetSnapshotAscending gets a snapshot of the items
 // This applies a read lock on all chunks, so that they aren't mutated during snapshot
@@ -231,8 +228,7 @@ func (sortedMap *BucketSortedMap) Clear() {
 
 	// Assignment is not an atomic operation, so we have to wrap this in a critical section
 	sortedMap.globalMutex.Lock()
-	sortedMap.chunks = make([]*MapChunk, sortedMap.nChunks)
-	sortedMap.scoreChunks = make([]*MapChunk, sortedMap.nScoreChunks)
+	sortedMap.initializeChunks()
 	sortedMap.globalMutex.Unlock()
 }
 

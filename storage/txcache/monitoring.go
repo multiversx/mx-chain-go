@@ -10,10 +10,9 @@ import (
 var log = logger.GetOrCreate("txcache")
 
 func (cache *TxCache) monitorContentRegularly() {
-	txListBySenderMap := cache.txListBySender.backingMap
-
 	go func() {
 		for {
+			txListBySenderMap := cache.txListBySender.backingMap
 			log.Info("TxCache.content:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 			log.Info("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 			time.Sleep(10 * time.Second)
