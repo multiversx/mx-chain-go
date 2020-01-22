@@ -57,7 +57,7 @@ func TestCallHandler_ShouldNotCallHandlersWhenHeadersSliceIsEmpty(t *testing.T) 
 func TestCallHandler_ShouldWork(t *testing.T) {
 	bn, _ := track.NewBlockNotifier()
 
-	var wg sync.WaitGroup
+	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	var callf1, callf2 bool

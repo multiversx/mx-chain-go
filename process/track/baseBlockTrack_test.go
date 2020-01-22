@@ -1,6 +1,7 @@
 package track_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -1219,6 +1220,147 @@ func TestGetTrackedHeadersWithNonce_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(headers))
 	assert.Equal(t, headers[0], shardHeader2)
 	assert.Equal(t, headers[1], shardHeader1)
+}
+
+func TestIsShardStuck_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
+	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
+	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+
+	hdr1 := &block.MetaBlock{
+		Round: 1,
+		Nonce: 1,
+		ShardInfo: []block.ShardData{
+			block.ShardData{
+				NumPendingMiniBlocks: 99,
+			},
+		},
+		PrevHash:     startHeaderHash,
+		PrevRandSeed: startHeader.GetRandSeed(),
+	}
+	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
+	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+
+	hdr2 := &block.MetaBlock{
+		Round: 2,
+		Nonce: 2,
+		ShardInfo: []block.ShardData{
+			block.ShardData{
+				NumPendingMiniBlocks: 100,
+			},
+		},
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1.GetRandSeed(),
+	}
+	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
+	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+
+	hdr3 := &block.MetaBlock{
+		Round:        3,
+		Nonce:        3,
+		PrevHash:     hdr2Hash,
+		PrevRandSeed: hdr2.GetRandSeed(),
+	}
+	hdr3Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr3)
+	hdr3Hash := shardArguments.Hasher.Compute(string(hdr3Marshalized))
+
+	sbt.ReceivedMetaBlock(hdr1, hdr1Hash)
+	sbt.ReceivedMetaBlock(hdr2, hdr2Hash)
+
+	assert.False(t, sbt.IsShardStuck(0))
+
+	sbt.ReceivedMetaBlock(hdr3, hdr3Hash)
+
+	assert.True(t, sbt.IsShardStuck(0))
+}
+
+func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	called := false
+	sbt.RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+		called = true
+		wg.Done()
+	})
+
+	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
+	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
+	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+
+	hdr1 := &block.MetaBlock{
+		Round:        1,
+		Nonce:        1,
+		PrevHash:     startHeaderHash,
+		PrevRandSeed: startHeader.GetRandSeed(),
+	}
+	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
+	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+
+	hdr2 := &block.MetaBlock{
+		Round:        2,
+		Nonce:        2,
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1.GetRandSeed(),
+	}
+	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
+	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+
+	sbt.ReceivedMetaBlock(hdr1, hdr1Hash)
+	sbt.ReceivedMetaBlock(hdr2, hdr2Hash)
+
+	wg.Wait()
+
+	assert.True(t, called)
+}
+
+func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	called := false
+	sbt.RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+		called = true
+		wg.Done()
+	})
+
+	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
+	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
+	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+
+	hdr1 := &block.Header{
+		Round:        1,
+		Nonce:        1,
+		PrevHash:     startHeaderHash,
+		PrevRandSeed: startHeader.GetRandSeed(),
+	}
+	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
+	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+
+	hdr2 := &block.Header{
+		Round:        2,
+		Nonce:        2,
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1.GetRandSeed(),
+	}
+	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
+	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+
+	sbt.ReceivedShardHeader(hdr1, hdr1Hash)
+	sbt.ReceivedShardHeader(hdr2, hdr2Hash)
+
+	wg.Wait()
+
+	assert.True(t, called)
 }
 
 //###################################################################
