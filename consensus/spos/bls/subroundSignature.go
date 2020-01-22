@@ -116,7 +116,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 //TODO: Remove this method
 func (sr *subroundSignature) waitToSync() {
 	startTime := sr.RoundTimeStamp
-	maxTime := time.Second
+	maxTime := time.Millisecond * 250
 	for {
 		remainingTime := sr.Rounder().RemainingTime(startTime, maxTime)
 		if remainingTime >= 0 {
