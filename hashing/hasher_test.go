@@ -28,9 +28,27 @@ func TestFnv(t *testing.T) {
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
+	TestingNilInterface(t, h)
+	TestingSize(t, h)
 	TestingCalculateHash(t, h)
 	TestingCalculateEmptyHash(t, h)
 	TestingNilReturn(t, h)
+
+}
+
+func TestingNilInterface(t *testing.T, h hashing.Hasher) {
+
+	res := h.IsInterfaceNil()
+
+	assert.False(t, res)
+
+}
+
+func TestingSize(t *testing.T, h hashing.Hasher) {
+
+	res := h.Size()
+
+	assert.Equal(t, 0, res%2)
 
 }
 

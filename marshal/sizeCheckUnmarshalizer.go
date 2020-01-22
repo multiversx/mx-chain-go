@@ -39,8 +39,5 @@ func (scu *sizeCheckUnmarshalizer) Unmarshal(obj interface{}, buff []byte) error
 // IsInterfaceNil returns true if there is no value under the interface or
 // target marshalizer
 func (scu *sizeCheckUnmarshalizer) IsInterfaceNil() bool {
-	if scu != nil {
-		return scu.Marshalizer == nil || scu.Marshalizer.IsInterfaceNil()
-	}
-	return true
+	return scu == nil
 }
