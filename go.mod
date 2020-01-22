@@ -32,11 +32,11 @@ require (
 	github.com/jbenet/goprocess v0.1.3
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/libp2p/go-libp2p v0.5.0
+	github.com/libp2p/go-libp2p v0.5.1
 	github.com/libp2p/go-libp2p-core v0.3.0
 	github.com/libp2p/go-libp2p-discovery v0.2.0
-	github.com/libp2p/go-libp2p-kad-dht v0.4.1
-	github.com/libp2p/go-libp2p-kbucket v0.2.2
+	github.com/libp2p/go-libp2p-kad-dht v0.5.0
+	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-pubsub v0.2.5
 	github.com/minio/sha256-simd v0.1.1
 	github.com/mr-tron/base58 v1.1.3
