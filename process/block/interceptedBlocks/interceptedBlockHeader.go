@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -19,6 +21,7 @@ type InterceptedHeader struct {
 	hash              []byte
 	isForCurrentShard bool
 	chainID           []byte
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -34,11 +37,12 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              hdr,
-		hasher:           arg.Hasher,
-		sigVerifier:      arg.HeaderSigVerifier,
-		shardCoordinator: arg.ShardCoordinator,
-		chainID:          arg.ChainID,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -88,6 +92,29 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 
 // integrity checks the integrity of the header block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
+	isShardHeaderWithOldEpochAndBadRound := inHdr.hdr.Epoch < inHdr.epochStartTrigger.Epoch() &&
+		inHdr.hdr.Round > inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
+		inHdr.epochStartTrigger.EpochStartRound() < inHdr.epochStartTrigger.EpochFinalityAttestingRound()
+
+	if isShardHeaderWithOldEpochAndBadRound {
+		return fmt.Errorf("%w : shard header with old epoch and bad round: "+
+			"round=%v, "+
+			"shardEpoch=%v, "+
+			"shardHeaderHash=%s, "+
+			"shardId=%v, "+
+			"metaEpoch=%v, "+
+			"shardRound=%v, "+
+			"metaFinalityAttestingRound=%v ",
+			process.ErrEpochDoesNotMatch,
+			inHdr.hdr.Round,
+			inHdr.hdr.Epoch,
+			core.ToHex(inHdr.hash),
+			inHdr.hdr.ShardId,
+			inHdr.epochStartTrigger.Epoch(),
+			inHdr.hdr.Round,
+			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
+	}
+
 	err := checkHeaderHandler(inHdr.HeaderHandler())
 	if err != nil {
 		return err

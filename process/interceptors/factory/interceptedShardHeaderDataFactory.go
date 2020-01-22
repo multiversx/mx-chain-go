@@ -15,6 +15,7 @@ type interceptedShardHeaderDataFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -34,6 +35,9 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
@@ -44,6 +48,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
+		epochStartTrigger: argument.EpochStartTrigger,
 	}, nil
 }
 
@@ -56,6 +61,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ShardCoordinator:  ishdf.shardCoordinator,
 		HeaderSigVerifier: ishdf.headerSigVerifier,
 		ChainID:           ishdf.chainID,
+		EpochStartTrigger: ishdf.epochStartTrigger,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

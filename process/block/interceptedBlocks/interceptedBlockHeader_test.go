@@ -27,7 +27,8 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID: []byte("chain ID"),
+		ChainID:           []byte("chain ID"),
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	hdr := createMockShardHeader()
@@ -173,6 +174,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 			return expectedErr
 		},
 	}
+	arg.EpochStartTrigger = &mock.EpochStartTriggerStub{}
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
