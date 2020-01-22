@@ -16,8 +16,8 @@ func (cache *TxCache) monitorTxAddition() {
 }
 
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
-	log.Trace("TxCache: eviction started", "name", cache.name)
-	cache.displayState()
+	log.Trace("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("eviction")
 	return sw
@@ -25,15 +25,16 @@ func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 
 func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	stopWatch.Stop("eviction")
-	duration := stopWatch.GetMeasurement("selection")
+	duration := stopWatch.GetMeasurement("eviction")
 	numTx := cache.numTxAddedDuringEviction.Reset()
-	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numTxAddedDuringEviction", numTx)
+	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders(), "numTxAddedDuringEviction", numTx)
 	cache.evictionJournal.display()
-	cache.displayState()
+	cache.displaySendersHistogram()
 }
 
 func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
-	log.Trace("TxCache: selection started", "name", cache.name)
+	log.Trace("TxCache: selection started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("selection")
 	return sw
@@ -44,24 +45,12 @@ func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch) {
 	duration := stopWatch.GetMeasurement("selection")
 	numTx := cache.numTxAddedBetweenSelections.Reset()
 	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxAddedBetweenSelections", numTx)
+	cache.displaySendersHistogram()
 }
 
-func (cache *TxCache) displayState() {
+func (cache *TxCache) displaySendersHistogram() {
 	txListBySenderMap := cache.txListBySender.backingMap
-	chunksCount := txListBySenderMap.Count()
-	scoreChunksCount := txListBySenderMap.CountSorted()
-	sendersCount := uint32(cache.CountSenders())
-
-	log.Trace("TxCache:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", sendersCount)
-
-	if chunksCount != sendersCount {
-		log.Error("TxCache.CountSenders() inconsistency:", "counter", sendersCount, "in-map", chunksCount)
-	}
-	if chunksCount != scoreChunksCount {
-		log.Error("TxCache.txListBySender.backingMap counts inconsistency:", "chunks", chunksCount, "scoreChunks", scoreChunksCount)
-	}
-
-	log.Trace("TxCache.txListBySender.histogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+	log.Trace("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 }
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
