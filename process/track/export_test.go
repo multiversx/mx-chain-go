@@ -70,6 +70,10 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 	bbt.displayTrackedHeadersForShard(shardID, message)
 }
 
+func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+	return bbt.sortHeadersFromNonce(shardID, nonce)
+}
+
 // blockBalancer
 
 func (bb *blockBalancer) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {

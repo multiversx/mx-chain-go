@@ -1067,13 +1067,15 @@ func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	shardHeader1Shard0 := &block.Header{
-		Nonce: 1,
+		ShardId: 0,
+		Nonce:   1,
 	}
 	shardHeaderHash1Shard0 := []byte("hash")
 	mbt.AddCrossNotarizedHeader(0, shardHeader1Shard0, shardHeaderHash1Shard0)
 
 	shardHeader1Shard1 := &block.Header{
-		Nonce: 1,
+		ShardId: 1,
+		Nonce:   1,
 	}
 	shardHeaderHash1Shard1 := []byte("hash")
 	mbt.AddCrossNotarizedHeader(1, shardHeader1Shard1, shardHeaderHash1Shard1)
@@ -1081,6 +1083,142 @@ func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
 	lastCrossNotarizedHeaders, _ := mbt.GetLastCrossNotarizedHeadersForAllShards()
 	assert.Equal(t, shardHeader1Shard0, lastCrossNotarizedHeaders[0])
 	assert.Equal(t, shardHeader1Shard1, lastCrossNotarizedHeaders[1])
+}
+
+func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header1 := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash1 := []byte("hash")
+
+	header2 := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   2,
+	}
+	headerHash2 := []byte("hash")
+
+	sbt.AddTrackedHeader(header2, headerHash2)
+	sbt.AddTrackedHeader(header1, headerHash1)
+
+	trackedHeaders, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
+	assert.Equal(t, 2, len(trackedHeaders))
+	assert.Equal(t, header1, trackedHeaders[0])
+	assert.Equal(t, header2, trackedHeaders[1])
+}
+
+func TestGetTrackedHeadersForAllShards_ShouldWork(t *testing.T) {
+	metaArguments := CreateMetaTrackerMockArguments()
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+
+	shardHeader1Shard0 := &block.Header{
+		ShardId: 0,
+		Nonce:   1,
+	}
+	shardHeaderHash1Shard0 := []byte("hash")
+
+	shardHeader1Shard1 := &block.Header{
+		ShardId: 1,
+		Nonce:   1,
+	}
+	shardHeaderHash1Shard1 := []byte("hash")
+
+	mbt.AddTrackedHeader(shardHeader1Shard0, shardHeaderHash1Shard0)
+	mbt.AddTrackedHeader(shardHeader1Shard1, shardHeaderHash1Shard1)
+
+	trackedHeaders := mbt.GetTrackedHeadersForAllShards()
+	assert.Equal(t, shardHeader1Shard0, trackedHeaders[0][0])
+	assert.Equal(t, shardHeader1Shard1, trackedHeaders[1][0])
+}
+
+func TestSortHeadersFromNonce_ShouldNotSortWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	headers, _ := sbt.SortHeadersFromNonce(0, 0)
+	assert.Equal(t, 0, len(headers))
+}
+
+func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardHeader1 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash1 := []byte("hash")
+
+	shardHeader2 := &block.Header{
+		Nonce: 2,
+	}
+	shardHeaderHash2 := []byte("hash")
+
+	sbt.AddTrackedHeader(shardHeader2, shardHeaderHash2)
+	sbt.AddTrackedHeader(shardHeader1, shardHeaderHash1)
+
+	headers, _ := sbt.SortHeadersFromNonce(0, 1)
+	assert.Equal(t, 2, len(headers))
+	assert.Equal(t, headers[0], shardHeader1)
+	assert.Equal(t, headers[1], shardHeader2)
+
+	headers, _ = sbt.SortHeadersFromNonce(0, 2)
+	assert.Equal(t, 1, len(headers))
+	assert.Equal(t, headers[0], shardHeader2)
+}
+
+func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	headers, _ := sbt.GetTrackedHeadersWithNonce(0, 0)
+	assert.Equal(t, 0, len(headers))
+}
+
+func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForNonceIsEmpty(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardHeader1 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash1 := []byte("hash1")
+
+	shardHeader2 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash2 := []byte("hash2")
+
+	sbt.AddTrackedHeader(shardHeader1, shardHeaderHash1)
+	sbt.AddTrackedHeader(shardHeader2, shardHeaderHash2)
+
+	headers, _ := sbt.GetTrackedHeadersWithNonce(0, 0)
+	assert.Equal(t, 0, len(headers))
+}
+
+func TestGetTrackedHeadersWithNonce_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardHeader1 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash1 := []byte("hash1")
+
+	shardHeader2 := &block.Header{
+		Nonce: 1,
+	}
+	shardHeaderHash2 := []byte("hash2")
+
+	sbt.AddTrackedHeader(shardHeader2, shardHeaderHash2)
+	sbt.AddTrackedHeader(shardHeader1, shardHeaderHash1)
+
+	headers, _ := sbt.GetTrackedHeadersWithNonce(0, 1)
+	assert.Equal(t, 2, len(headers))
+	assert.Equal(t, headers[0], shardHeader2)
+	assert.Equal(t, headers[1], shardHeader1)
 }
 
 //###################################################################
