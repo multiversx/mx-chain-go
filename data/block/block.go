@@ -99,22 +99,22 @@ type Header struct {
 	PrevRandSeed           []byte            `capid:"2"`
 	RandSeed               []byte            `capid:"3"`
 	PubKeysBitmap          []byte            `capid:"4"`
-	ShardId                uint32            `capid:"5"`
 	TimeStamp              uint64            `capid:"6"`
 	Round                  uint64            `capid:"7"`
-	Epoch                  uint32            `capid:"8"`
-	BlockBodyType          Type              `capid:"9"`
 	Signature              []byte            `capid:"10"`
 	LeaderSignature        []byte            `capid:"11"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"12"`
-	PeerChanges            []PeerChange      `capid:"13"`
 	RootHash               []byte            `capid:"14"`
 	ValidatorStatsRootHash []byte            `capid:"15"`
 	MetaBlockHashes        [][]byte          `capid:"16"`
 	EpochStartMetaHash     []byte            `capid:"17"`
-	TxCount                uint32            `capid:"18"`
 	ReceiptsHash           []byte            `capid:"19"`
 	ChainID                []byte            `capid:"20"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"12"`
+	PeerChanges            []PeerChange      `capid:"13"`
+	Epoch                  uint32            `capid:"8"`
+	TxCount                uint32            `capid:"18"`
+	ShardId                uint32            `capid:"5"`
+	BlockBodyType          Type              `capid:"9"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol

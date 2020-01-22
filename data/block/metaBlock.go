@@ -69,17 +69,17 @@ type ShardMiniBlockHeader struct {
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardID               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
 	PrevRandSeed          []byte                 `capid:"3"`
 	PubKeysBitmap         []byte                 `capid:"4"`
 	Signature             []byte                 `capid:"5"`
-	TxCount               uint32                 `capid:"6"`
 	Round                 uint64                 `capid:"7"`
 	PrevHash              []byte                 `capid:"8"`
 	Nonce                 uint64                 `capid:"9"`
 	NumPendingMiniBlocks  uint32
+	ShardID               uint32 `capid:"0"`
+	TxCount               uint32 `capid:"6"`
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash
@@ -100,7 +100,6 @@ type EpochStart struct {
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
 	Nonce                  uint64            `capid:"0"`
-	Epoch                  uint32            `capid:"1"`
 	Round                  uint64            `capid:"2"`
 	TimeStamp              uint64            `capid:"3"`
 	ShardInfo              []ShardData       `capid:"4"`
@@ -113,11 +112,12 @@ type MetaBlock struct {
 	RandSeed               []byte            `capid:"11"`
 	RootHash               []byte            `capid:"12"`
 	ValidatorStatsRootHash []byte            `capid:"13"`
-	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
 	ReceiptsHash           []byte            `capid:"16"`
 	EpochStart             EpochStart        `capid:"17"`
 	ChainID                []byte            `capid:"18"`
+	Epoch                  uint32            `capid:"1"`
+	TxCount                uint32            `capid:"14"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol

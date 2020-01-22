@@ -80,10 +80,8 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched     sync.RWMutex
-	isNodeSynchronized bool
-	hasLastBlock       bool
-	roundIndex         int64
+	mutNodeSynched sync.RWMutex
+	roundIndex     int64
 
 	forkInfo *process.ForkInfo
 
@@ -92,7 +90,6 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	requestsWithTimeout   uint32
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
@@ -111,6 +108,10 @@ type baseBootstrap struct {
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
 	miniBlocksResolver dataRetriever.MiniBlocksResolver
+
+	requestsWithTimeout uint32
+	isNodeSynchronized  bool
+	hasLastBlock        bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism

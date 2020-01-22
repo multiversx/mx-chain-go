@@ -26,10 +26,10 @@ const (
 )
 
 type config struct {
+	workingDir       string
 	address          string
 	logLevelPatterns string
 	logFile          bool
-	workingDir       string
 	useWss           bool
 }
 
