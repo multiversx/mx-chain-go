@@ -1,6 +1,8 @@
 package bls
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -77,6 +79,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	}
 
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+		//TODO: Remove this call
+		sr.waitToSync()
+
 		//TODO: Check if it is possible to send message only to leader with O(1) instead of O(n)
 		msg := consensus.NewConsensusMessage(
 			sr.GetData(),
@@ -106,6 +111,21 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	}
 
 	return true
+}
+
+//TODO: Remove this method
+func (sr *subroundSignature) waitToSync() {
+	startTime := sr.RoundTimeStamp
+	maxTime := time.Second
+	for {
+		remainingTime := sr.Rounder().RemainingTime(startTime, maxTime)
+		if remainingTime >= 0 {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+
+		break
+	}
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
