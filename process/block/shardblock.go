@@ -146,7 +146,8 @@ func (sp *shardProcessor) ProcessBlock(
 
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	log.Trace("started processing block",
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -365,7 +366,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(currentBlockHeader.GetRound())
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -560,7 +561,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(header.GetRound())
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
@@ -629,15 +630,17 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	log.Trace("started creating block body",
-		"round", initialHdrData.GetRound(),
-	)
-
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
 	initialHdrData.SetEpoch(sp.epochStartTrigger.Epoch())
 	sp.blockChainHook.SetCurrentHeader(initialHdrData)
+
+	log.Debug("started creating block body",
+		"epoch", initialHdrData.GetEpoch(),
+		"round", initialHdrData.GetRound(),
+		"nonce", initialHdrData.GetNonce(),
+	)
 
 	err := sp.specialAddressHandler.SetShardConsensusData(
 		initialHdrData.GetPrevRandSeed(),
@@ -648,12 +651,6 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
-
-	log.Trace("started creating block body",
-		"round", initialHdrData.GetRound(),
-		"nonce", initialHdrData.GetNonce(),
-		"epoch", initialHdrData.GetEpoch(),
-	)
 
 	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
@@ -684,7 +681,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	log.Trace("started committing block",
+	log.Debug("started committing block",
+		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -854,13 +852,18 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	processedMiniBlocks := sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice()
-
 	if len(selfNotarizedHeaders) > 0 {
 		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
 	}
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, selfNotarizedHeaders, selfNotarizedHeadersHashes, sp.lowestNonceInSelfNotarizedHeaders, processedMiniBlocks)
+	sp.prepareDataForBootStorer(
+		headerInfo,
+		header.Round,
+		sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
+		nil,
+		sp.lowestNonceInSelfNotarizedHeaders,
+		sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
+	)
 
 	go sp.cleanTxsPools()
 
@@ -990,7 +993,7 @@ func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []by
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error())
+		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
 		return nil, nil
 	}
 
@@ -1911,4 +1914,24 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	}
 
 	return block.Body(miniBlocks), nil
+}
+
+func (sp *shardProcessor) getBootstrapHeadersInfo(
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) []bootstrapStorage.BootstrapHeaderInfo {
+
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+
+	for index := range selfNotarizedHeaders {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: selfNotarizedHeaders[index].GetShardID(),
+			Nonce:   selfNotarizedHeaders[index].GetNonce(),
+			Hash:    selfNotarizedHeadersHashes[index],
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
+	}
+
+	return lastSelfNotarizedHeaders
 }

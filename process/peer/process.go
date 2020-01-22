@@ -332,7 +332,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	sw.Start("checkForMissedBlocks")
 	defer func() {
 		sw.Stop("checkForMissedBlocks")
-		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
+		log.Trace("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
