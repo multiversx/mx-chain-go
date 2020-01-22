@@ -97,7 +97,7 @@ const MaxNoncesWithoutCrossNotarized = 100
 const MinForkRound = uint64(0)
 
 // TxPoolNumSendersToEvictInOneStep instructs tx pool eviction algorithm to remove this many senders when eviction takes place
-const TxPoolNumSendersToEvictInOneStep = uint32(50)
+const TxPoolNumSendersToEvictInOneStep = uint32(100)
 
 // TxPoolALotOfTransactionsForASender instructs tx pool eviction algorithm to tag a sender with more transactions than this value
 // as a "sender with a lot of transactions"
