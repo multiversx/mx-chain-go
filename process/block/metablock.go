@@ -1342,6 +1342,8 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 	if isShardHeaderWithOldEpochAndBadRound {
 		log.Debug("shard header with old epoch and bad round",
 			"shardEpoch", shardHeader.Epoch,
+			"shardHeaderHash", shardHeaderHash,
+			"shardId", shardHeader.ShardId,
 			"metaEpoch", mp.epochStartTrigger.Epoch(),
 			"shardRound", shardHeader.Round,
 			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
