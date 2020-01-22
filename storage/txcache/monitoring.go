@@ -4,9 +4,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"time"
 )
 
 var log = logger.GetOrCreate("txcache")
+
+func (cache *TxCache) monitorContentRegularly() {
+	txListBySenderMap := cache.txListBySender.backingMap
+
+	go func() {
+		for {
+			log.Info("TxCache.content:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+			log.Info("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+			time.Sleep(10 * time.Second)
+		}
+	}()
+}
 
 func (cache *TxCache) monitorTxAddition() {
 	cache.numTxAddedBetweenSelections.Increment()
@@ -55,12 +68,14 @@ func (cache *TxCache) displaySendersHistogram() {
 }
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
-	// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-	log.Error("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "name", cache.name, "tx", txHash)
+	// This happens when one transaction is processed and it has to be removed from the cache, but it has already been evicted soon after its selection.
+	log.Debug("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "name", cache.name, "tx", txHash)
 }
 
 func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
-	log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
+	// This happens when a sender whose transactions were selected for processing is evicted from cache.
+	// When it comes to remove one if its transactions due to processing, they don't exist in cache anymore.
+	log.Debug("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
 }
 
 // evictionJournal keeps a short journal about the eviction process
