@@ -522,7 +522,6 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 // createConsensusState method creates a consensusState object
 func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
-
 	if err != nil {
 		return nil, err
 	}

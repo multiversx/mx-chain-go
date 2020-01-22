@@ -992,3 +992,27 @@ func TestWithChainID_OkValueShouldWork(t *testing.T) {
 	assert.Equal(t, node.chainID, chainId)
 	assert.Nil(t, err)
 }
+
+func TestWithBootstrapRoundIndex(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	roundIndex := uint64(0)
+	opt := WithBootstrapRoundIndex(roundIndex)
+
+	err := opt(node)
+	assert.Equal(t, roundIndex, node.bootstrapRoundIndex)
+	assert.Nil(t, err)
+}
+
+func TestWithTxStorageSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	txStorageSize := uint32(100)
+	opt := WithTxStorageSize(txStorageSize)
+
+	err := opt(node)
+	assert.Equal(t, txStorageSize, node.txStorageSize)
+	assert.Nil(t, err)
+}

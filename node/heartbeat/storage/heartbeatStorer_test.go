@@ -44,6 +44,7 @@ func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
 	)
 	assert.NotNil(t, hs)
 	assert.Nil(t, err)
+	assert.False(t, hs.IsInterfaceNil())
 }
 
 func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {

@@ -134,6 +134,8 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 
 	assert.NotNil(t, mon)
 	assert.Nil(t, err)
+	assert.False(t, mon.IsInterfaceNil())
+
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
 }

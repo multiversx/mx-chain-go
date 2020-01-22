@@ -35,6 +35,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, nar)
 	assert.Nil(t, err)
+	assert.False(t, nar.IsInterfaceNil())
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
