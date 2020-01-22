@@ -9,16 +9,17 @@ import (
 // MeasurementsLoggerFormat contains the formatting string to output elapsed time in seconds in a consistent way
 const MeasurementsLoggerFormat = "%.4fs"
 
-type stopWatch struct {
-	mut         sync.Mutex
+// StopWatch is used to measure duration
+type StopWatch struct {
+	mut         sync.RWMutex
 	identifiers []string
 	started     map[string]time.Time
 	elapsed     map[string]time.Duration
 }
 
 // NewStopWatch returns a new stopWatch instance used to measure duration between finished and started events
-func NewStopWatch() *stopWatch {
-	return &stopWatch{
+func NewStopWatch() *StopWatch {
+	return &StopWatch{
 		identifiers: make([]string, 0),
 		started:     make(map[string]time.Time),
 		elapsed:     make(map[string]time.Duration),
@@ -26,7 +27,7 @@ func NewStopWatch() *stopWatch {
 }
 
 // Start marks a start event for a provided identifier
-func (sw *stopWatch) Start(identifier string) {
+func (sw *StopWatch) Start(identifier string) {
 	sw.mut.Lock()
 	_, hasStarted := sw.started[identifier]
 	_, hasElapsed := sw.elapsed[identifier]
@@ -38,7 +39,7 @@ func (sw *stopWatch) Start(identifier string) {
 	sw.mut.Unlock()
 }
 
-func (sw *stopWatch) addIdentifier(identifier string) {
+func (sw *StopWatch) addIdentifier(identifier string) {
 	_, hasStarted := sw.started[identifier]
 	if hasStarted {
 		return
@@ -53,7 +54,7 @@ func (sw *stopWatch) addIdentifier(identifier string) {
 }
 
 // Stop marks a finish event for a provided identifier
-func (sw *stopWatch) Stop(identifier string) {
+func (sw *StopWatch) Stop(identifier string) {
 	sw.mut.Lock()
 	defer sw.mut.Unlock()
 
@@ -67,7 +68,7 @@ func (sw *stopWatch) Stop(identifier string) {
 }
 
 // GetMeasurements returns a logger compatible slice of interface{} containing pairs of (identifier, duration)
-func (sw *stopWatch) GetMeasurements() []interface{} {
+func (sw *StopWatch) GetMeasurements() []interface{} {
 	data, newIdentifiers := sw.getContainingDuration()
 
 	output := make([]interface{}, 0)
@@ -81,19 +82,34 @@ func (sw *stopWatch) GetMeasurements() []interface{} {
 }
 
 // GetMeasurementsMap returns the measurements as a map of (identifier, duration in seconds)
-func (sw *stopWatch) GetMeasurementsMap() map[string]float64 {
-	data, _ := sw.getContainingDuration()
+func (sw *StopWatch) GetMeasurementsMap() map[string]float64 {
+	sw.mut.RLock()
+	defer sw.mut.RUnlock()
+
 	output := make(map[string]float64)
 
-	for key, duration := range data {
-		output[key] = duration.Seconds()
+	for identifier, duration := range sw.elapsed {
+		output[identifier] = duration.Seconds()
 	}
 
 	return output
 }
 
+// GetMeasurement returns the measurement (duration in seconds) by identifier
+func (sw *StopWatch) GetMeasurement(identifier string) float64 {
+	sw.mut.RLock()
+	defer sw.mut.RUnlock()
+
+	duration, ok := sw.elapsed[identifier]
+	if ok {
+		return duration.Seconds()
+	}
+
+	return 0
+}
+
 // getContainingDuration returns the containing map of (identifier, duration) pairs and the identifiers
-func (sw *stopWatch) getContainingDuration() (map[string]time.Duration, []string) {
+func (sw *StopWatch) getContainingDuration() (map[string]time.Duration, []string) {
 	sw.mut.Lock()
 
 	output := make(map[string]time.Duration)
@@ -113,7 +129,7 @@ func (sw *stopWatch) getContainingDuration() (map[string]time.Duration, []string
 }
 
 // Add adds a time measure containing duration list to self
-func (sw *stopWatch) Add(src *stopWatch) {
+func (sw *StopWatch) Add(src *StopWatch) {
 	sw.mut.Lock()
 	data, _ := src.getContainingDuration()
 	for identifier, duration := range data {

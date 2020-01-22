@@ -1,20 +1,47 @@
 package txcache
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("txcache")
 
-func (cache *TxCache) onEvictionStarted() {
-	log.Trace("TxCache.onEvictionStarted()")
+func (cache *TxCache) monitorTxAddition() {
+	cache.numTxAddedBetweenSelections.Increment()
+
+	if cache.isEvictionInProgress.IsSet() {
+		cache.numTxAddedDuringEviction.Increment()
+	}
+}
+
+func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
+	log.Trace("TxCache: eviction started")
+	cache.displayState()
+	sw := core.NewStopWatch()
+	sw.Start("eviction")
+	return sw
+}
+
+func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
+	duration := stopWatch.GetMeasurement("selection")
+	numTx := cache.numTxAddedDuringEviction.Reset()
+	log.Trace("TxCache: eviction ended", "duration", duration, "numTxAddedDuringEviction", numTx)
+	cache.evictionJournal.display()
 	cache.displayState()
 }
 
-func (cache *TxCache) onEvictionEnded() {
-	log.Trace("TxCache.onEvictionEnded()")
-	cache.evictionJournal.display()
-	cache.displayState()
+func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
+	log.Trace("TxCache: selection started")
+	sw := core.NewStopWatch()
+	sw.Start("selection")
+	return sw
+}
+
+func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch) {
+	duration := stopWatch.GetMeasurement("selection")
+	numTx := cache.numTxAddedBetweenSelections.Reset()
+	log.Trace("TxCache: selection ended", "duration", duration, "numTxAddedBetweenSelections", numTx)
 }
 
 func (cache *TxCache) displayState() {

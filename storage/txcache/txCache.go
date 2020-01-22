@@ -10,13 +10,15 @@ import (
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender            txListBySenderMap
-	txByHash                  txByHashMap
-	evictionConfig            EvictionConfig
-	evictionMutex             sync.Mutex
-	evictionJournal           evictionJournal
-	evictionSnapshotOfSenders []*txListForSender
-	isEvictionInProgress      core.AtomicFlag
+	txListBySender              txListBySenderMap
+	txByHash                    txByHashMap
+	evictionConfig              EvictionConfig
+	evictionMutex               sync.Mutex
+	evictionJournal             evictionJournal
+	evictionSnapshotOfSenders   []*txListForSender
+	isEvictionInProgress        core.AtomicFlag
+	numTxAddedBetweenSelections core.AtomicCounter
+	numTxAddedDuringEviction    core.AtomicCounter
 }
 
 // NewTxCache creates a new transaction cache
@@ -59,6 +61,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 	added = cache.txByHash.addTx(txHash, tx)
 	if added {
 		cache.txListBySender.addTx(txHash, tx)
+		cache.monitorTxAddition()
 	}
 
 	return
@@ -74,6 +77,8 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
 func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
+	stopWatch := cache.monitorSelectionStart()
+
 	result := make([]data.TransactionHandler, numRequested)
 	resultHashes := make([][]byte, numRequested)
 	resultFillIndex := 0
@@ -101,6 +106,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 		}
 	}
 
+	cache.monitorSelectionEnd(stopWatch)
 	return result[:resultFillIndex], resultHashes
 }
 

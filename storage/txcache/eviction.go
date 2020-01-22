@@ -37,7 +37,7 @@ func (cache *TxCache) doEviction() {
 	cache.isEvictionInProgress.Set()
 	defer cache.isEvictionInProgress.Unset()
 
-	cache.onEvictionStarted()
+	stopWatch := cache.monitorEvictionStart()
 	cache.makeSnapshotOfSenders()
 
 	if tooManyTxs {
@@ -51,7 +51,7 @@ func (cache *TxCache) doEviction() {
 	}
 
 	cache.evictionJournal = journal
-	cache.onEvictionEnded()
+	cache.monitorEvictionEnd(stopWatch)
 }
 
 func (cache *TxCache) makeSnapshotOfSenders() {
