@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
@@ -36,6 +37,7 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 	headerSigVerifier  RandSeedVerifier
+	appStatusHandler   core.AppStatusHandler
 	chainID            []byte
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
@@ -109,6 +111,7 @@ func NewWorker(
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
 		chainID:            chainID,
+		appStatusHandler:   &statusHandler.NilStatusHandler{},
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -200,7 +203,7 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	}
 }
 
-func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
 		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
 		return
@@ -348,6 +351,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 				err)
 		}
 
+		wrk.processReceivedHeaderMetric(cnsDta)
+
 		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if err != nil {
 			log.Debug("add received header from consensus topic to fork detector failed",
@@ -375,6 +380,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	go wrk.executeReceivedMessages(cnsDta)
 
 	return nil
+}
+
+func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
+	if !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
+		return
+	}
+
+	sinceRoundStart := time.Since(wrk.rounder.TimeStamp())
+	percent := sinceRoundStart * 100 / wrk.rounder.TimeDuration()
+	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
@@ -548,6 +563,15 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()
 	wrk.mutReceivedMessages.Unlock()
+}
+
+func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if check.IfNil(ash) {
+		return ErrNilAppStatusHandler
+	}
+	wrk.appStatusHandler = ash
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
