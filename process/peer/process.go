@@ -171,7 +171,7 @@ func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) err
 	}
 
 	for _, peerChange := range metaBlock.PeerInfo {
-		err := vs.updatePeerState(peerChange)
+		err := vs.updatePeerData(peerChange)
 		if err != nil {
 			return err
 		}
@@ -180,7 +180,7 @@ func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) err
 	return nil
 }
 
-func (vs *validatorStatistics) updatePeerState(
+func (vs *validatorStatistics) updatePeerData(
 	peerChange block.PeerData,
 ) error {
 	adrSrc, err := vs.adrConv.CreateAddressFromPublicKeyBytes(peerChange.PublicKey)
@@ -209,6 +209,10 @@ func (vs *validatorStatistics) updatePeerState(
 		}
 	}
 
+	// TODO: Since the BLSPublicKey is the key in the peer accounts trie, this condition will never be met.
+	//  In order to be able to change the BLSPublicKey of a validator, we need to provide in the peer
+	//  change the old and the new public key. Also, important: the peer statistics data and the
+	//  rating from the old account needs to be associated to the new account
 	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
 		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
 		if err != nil {
@@ -250,37 +254,22 @@ func (vs *validatorStatistics) updatePeerState(
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
-	if header.GetNonce() <= 1 {
+	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
 	}
 
-	processedHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
+	err := vs.processPeerChanges(header)
 	if err != nil {
 		return nil, err
 	}
 
-	err = vs.processPeerChanges(processedHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(processedHeader.GetPrevRandSeed(), processedHeader.GetRound(), processedHeader.GetShardID())
-	if err != nil {
-		return nil, err
-	}
-
-	err = vs.updateValidatorInfo(consensusGroup, processedHeader.GetPubKeysBitmap(), processedHeader.GetShardID())
-	if err != nil {
-		return nil, err
-	}
-
-	previousHeader, err := process.GetMetaHeader(processedHeader.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
+	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		return nil, err
 	}
 
 	err = vs.checkForMissedBlocks(
-		processedHeader.GetRound(),
+		header.GetRound(),
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
@@ -289,7 +278,21 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateShardDataPeerState(processedHeader, previousHeader)
+	err = vs.updateShardDataPeerState(header)
+	if err != nil {
+		return nil, err
+	}
+
+	if header.GetNonce() == 1 {
+		return vs.peerAdapter.RootHash()
+	}
+
+	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+	if err != nil {
+		return nil, err
+	}
+
+	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetShardID())
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +415,7 @@ func (vs *validatorStatistics) RevertPeerStateToSnapshot(snapshot int) error {
 	return vs.peerAdapter.RevertToSnapshot(snapshot)
 }
 
-func (vs *validatorStatistics) updateShardDataPeerState(header, previousHeader data.HeaderHandler) error {
+func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
