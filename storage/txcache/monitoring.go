@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
@@ -40,11 +41,11 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numTx := cache.numTxAddedBetweenSelections.Reset()
-	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxAddedBetweenSelections", numTx)
+	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTx)
 	cache.displaySendersHistogram()
 }
 
@@ -59,7 +60,7 @@ func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
 }
 
 func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
-	log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
+	log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
 }
 
 // evictionJournal keeps a short journal about the eviction process

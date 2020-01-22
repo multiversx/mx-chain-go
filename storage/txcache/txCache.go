@@ -108,8 +108,9 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 		}
 	}
 
-	cache.monitorSelectionEnd(stopWatch)
-	return result[:resultFillIndex], resultHashes
+	result = result[:resultFillIndex]
+	cache.monitorSelectionEnd(result, stopWatch)
+	return result, resultHashes
 }
 
 // RemoveTxByHash removes tx by hash
