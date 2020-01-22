@@ -115,17 +115,18 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 //TODO: Remove this method
 func (sr *subroundSignature) waitToSync() {
-	startTime := sr.RoundTimeStamp
-	maxTime := time.Millisecond * 250
-	for {
-		remainingTime := sr.Rounder().RemainingTime(startTime, maxTime)
-		if remainingTime >= 0 {
-			time.Sleep(time.Millisecond)
-			continue
-		}
-
-		break
-	}
+	time.Sleep(time.Millisecond * 500)
+	//startTime := sr.RoundTimeStamp
+	//maxTime := time.Millisecond * 250
+	//for {
+	//	remainingTime := sr.Rounder().RemainingTime(startTime, maxTime)
+	//	if remainingTime >= 0 {
+	//		time.Sleep(time.Millisecond)
+	//		continue
+	//	}
+	//
+	//	break
+	//}
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
