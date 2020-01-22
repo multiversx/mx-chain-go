@@ -41,6 +41,10 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 }
 
 func (sortedMap *BucketSortedMap) initializeChunks() {
+	// Assignment is not an atomic operation, so we have to wrap this in a critical section
+	sortedMap.globalMutex.Lock()
+	defer sortedMap.globalMutex.Unlock()
+
 	sortedMap.chunks = make([]*MapChunk, sortedMap.nChunks)
 	sortedMap.scoreChunks = make([]*MapChunk, sortedMap.nScoreChunks)
 
@@ -219,13 +223,9 @@ func fnv32Hash(key string) uint32 {
 
 // Clear clears the map
 func (sortedMap *BucketSortedMap) Clear() {
-	// There is no need to explicitly remove each item for each shard
+	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
-
-	// Assignment is not an atomic operation, so we have to wrap this in a critical section
-	sortedMap.globalMutex.Lock()
 	sortedMap.initializeChunks()
-	sortedMap.globalMutex.Unlock()
 }
 
 // Keys returns all keys as []string

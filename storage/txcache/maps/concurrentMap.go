@@ -39,6 +39,10 @@ func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
 }
 
 func (m *ConcurrentMap) initializeChunks() {
+	// Assignment is not an atomic operation, so we have to wrap this in a critical section
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	m.chunks = make([]*concurrentMapChunk, m.nChunks)
 
 	for i := uint32(0); i < m.nChunks; i++ {
@@ -140,13 +144,9 @@ func fnv32(key string) uint32 {
 
 // Clear clears the map
 func (m *ConcurrentMap) Clear() {
-	// There is no need to explicitly remove each item for each shard
+	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
-
-	// Assignment is not an atomic operation, so we have to wrap this in a critical section
-	m.mutex.Lock()
 	m.initializeChunks()
-	m.mutex.Unlock()
 }
 
 // Keys returns all keys as []string
