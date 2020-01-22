@@ -55,17 +55,17 @@ func TestEvictionWaitingList_Put(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashes := [][]byte{
-		[]byte("hash1"),
-		[]byte("hash2"),
+	hashesMap := map[string]struct{}{
+		"hash1": {},
+		"hash2": {},
 	}
 	root := []byte("root")
 
-	err := ec.Put(root, hashes)
+	err := ec.Put(root, hashesMap)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(ec.cache))
-	assert.Equal(t, hashes, ec.cache[string(root)])
+	assert.Equal(t, hashesMap, ec.cache[string(root)])
 }
 
 func TestEvictionWaitingList_PutMultiple(t *testing.T) {
@@ -75,9 +75,9 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashes := [][]byte{
-		[]byte("hash0"),
-		[]byte("hash1"),
+	hashesMap := map[string]struct{}{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -87,23 +87,23 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	}
 
 	for i := range roots {
-		err := ec.Put(roots[i], hashes)
+		err := ec.Put(roots[i], hashesMap)
 		assert.Nil(t, err)
 	}
 
-	assert.Equal(t, 2, len(ec.cache))
+	assert.Equal(t, 4, len(ec.cache))
 	for i := uint(0); i < cacheSize; i++ {
-		assert.Equal(t, hashes, ec.cache[string(roots[i])])
+		assert.Equal(t, hashesMap, ec.cache[string(roots[i])])
 	}
 	for i := cacheSize; i < uint(len(roots)); i++ {
-		val := make([][]byte, 0)
+		val := make(map[string]struct{}, 0)
 		encVal, err := ec.db.Get(roots[i])
 		assert.Nil(t, err)
 
 		err = ec.marshalizer.Unmarshal(&val, encVal)
 
 		assert.Nil(t, err)
-		assert.Equal(t, hashes, val)
+		assert.Equal(t, hashesMap, val)
 	}
 
 }
@@ -113,18 +113,18 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	expectedHashes := [][]byte{
-		[]byte("hash1"),
-		[]byte("hash2"),
+	expectedHashesMap := map[string]struct{}{
+		"hash1": {},
+		"hash2": {},
 	}
 	root1 := []byte("root1")
 
-	_ = ec.Put(root1, expectedHashes)
+	_ = ec.Put(root1, expectedHashesMap)
 
 	hashes, err := ec.Evict([]byte("root1"))
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(ec.cache))
-	assert.Equal(t, expectedHashes, hashes)
+	assert.Equal(t, expectedHashesMap, hashes)
 }
 
 func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
@@ -134,9 +134,9 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashes := [][]byte{
-		[]byte("hash0"),
-		[]byte("hash1"),
+	hashesMap := map[string]struct{}{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -145,7 +145,7 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = ec.Put(roots[i], hashes)
+		_ = ec.Put(roots[i], hashesMap)
 	}
 
 	val, _ := ec.db.Get(roots[2])
@@ -153,8 +153,85 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 
 	vals, err := ec.Evict(roots[2])
 	assert.Nil(t, err)
-	assert.Equal(t, hashes, vals)
+	assert.Equal(t, hashesMap, vals)
 
 	val, _ = ec.db.Get(roots[2])
 	assert.Nil(t, val)
+}
+
+func TestEvictionWaitingList_PresentInNewHashes(t *testing.T) {
+	t.Parallel()
+
+	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+
+	hashesMap := map[string]struct{}{
+		"hash0": {},
+		"hash1": {},
+	}
+	roots := [][]byte{
+		{1, 2, 3, 4, 5, 0},
+		{6, 7, 8, 9, 10, 0},
+		{1, 2, 3, 4, 5, 1},
+	}
+
+	for i := range roots {
+		_ = ewl.Put(roots[i], hashesMap)
+	}
+
+	present, err := ewl.PresentInNewHashes("hash0")
+	assert.True(t, present)
+	assert.Nil(t, err)
+}
+
+func TestEvictionWaitingList_PresentInNewHashesShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+
+	hashesMap := map[string]struct{}{
+		"hash0": {},
+		"hash1": {},
+	}
+	roots := [][]byte{
+		{1, 2, 3, 4, 5, 0},
+		{6, 7, 8, 9, 10, 0},
+	}
+
+	for i := range roots {
+		_ = ewl.Put(roots[i], hashesMap)
+	}
+
+	present, err := ewl.PresentInNewHashes("hash0")
+	assert.False(t, present)
+	assert.Nil(t, err)
+}
+
+func TestEvictionWaitingList_PresentInNewHashesInDb(t *testing.T) {
+	t.Parallel()
+
+	cacheSize := uint(2)
+	_, db, marsh := getDefaultParameters()
+	ewl, _ := NewEvictionWaitingList(cacheSize, db, marsh)
+
+	root1 := []byte{1, 2, 3, 4, 5, 0}
+	root2 := []byte{6, 7, 8, 9, 10, 0}
+	root3 := []byte{1, 2, 3, 4, 5, 1}
+
+	hashesMap := map[string]struct{}{
+		"hash0": {},
+		"hash1": {},
+	}
+	roots := [][]byte{
+		root1,
+		root2,
+		root3,
+	}
+
+	for i := range roots {
+		_ = ewl.Put(roots[i], hashesMap)
+	}
+
+	present, err := ewl.PresentInNewHashes("hash0")
+	assert.True(t, present)
+	assert.Nil(t, err)
 }

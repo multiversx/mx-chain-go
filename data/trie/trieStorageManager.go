@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -153,7 +154,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) error {
 
 	err := tsm.removeFromDb(rootHash)
 	if err != nil {
-		return fmt.Errorf("trie storage manager prune error: %w, for root %v", err, core.ToB64(rootHash))
+		return fmt.Errorf("trie storage manager prune error: %w, for root %v", err, hex.EncodeToString(rootHash))
 	}
 
 	return nil
@@ -168,14 +169,29 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 }
 
-func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
-	hashes, err := tsm.dbEvictionWaitingList.Evict(hash)
+func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
+	hashes, err := tsm.dbEvictionWaitingList.Evict(rootHash)
 	if err != nil {
 		return err
 	}
 
-	for i := range hashes {
-		err = tsm.db.Remove(hashes[i])
+	var hash []byte
+	for key := range hashes {
+		present, err := tsm.dbEvictionWaitingList.PresentInNewHashes(key)
+		if err != nil {
+			return err
+		}
+		if present {
+			continue
+		}
+
+		hash, err = core.HexStringToByteArray(key)
+		if err != nil {
+			return err
+		}
+
+		log.Trace("trie removeFromDb", "hash", key)
+		err = tsm.db.Remove(hash)
 		if err != nil {
 			return err
 		}
@@ -185,7 +201,7 @@ func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
 }
 
 // MarkForEviction adds the given hashes in the eviction waiting list at the provided key
-func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes [][]byte) error {
+func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes map[string]struct{}) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 

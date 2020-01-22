@@ -146,9 +146,10 @@ type DBWriteCacher interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Put([]byte, [][]byte) error
-	Evict([]byte) ([][]byte, error)
+	Put([]byte, map[string]struct{}) error
+	Evict([]byte) (map[string]struct{}, error)
 	GetSize() uint
+	PresentInNewHashes(hash string) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -166,7 +167,7 @@ type StorageManager interface {
 	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error
 	CancelPrune([]byte)
-	MarkForEviction([]byte, [][]byte) error
+	MarkForEviction([]byte, map[string]struct{}) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	Clone() StorageManager
 	IsPruningEnabled() bool

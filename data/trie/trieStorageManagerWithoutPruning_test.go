@@ -56,7 +56,7 @@ func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testi
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	err := ts.MarkForEviction([]byte{}, [][]byte{})
+	err := ts.MarkForEviction([]byte{}, map[string]struct{}{})
 	assert.Nil(t, err)
 }
 

@@ -42,6 +42,11 @@ func ToHex(buff []byte) string {
 	return hex.EncodeToString(buff)
 }
 
+// HexStringToByteArray decodes the given hex string to byte array
+func HexStringToByteArray(hexStr string) ([]byte, error) {
+	return hex.DecodeString(hexStr)
+}
+
 // CalculateHash marshalizes the interface and calculates its hash
 func CalculateHash(
 	marshalizer marshal.Marshalizer,

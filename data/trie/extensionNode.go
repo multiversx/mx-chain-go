@@ -2,10 +2,12 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
@@ -475,9 +477,14 @@ func (en *extensionNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (en *extensionNode) print(writer io.Writer, index int) {
+func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCacher) {
 	if en == nil {
 		return
+	}
+
+	err := resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		log.Debug("print trie err", "error", en.EncodedChild)
 	}
 
 	key := ""
@@ -485,13 +492,13 @@ func (en *extensionNode) print(writer io.Writer, index int) {
 		key += fmt.Sprintf("%d", k)
 	}
 
-	str := fmt.Sprintf("E:(%s) - ", key)
+	str := fmt.Sprintf("E:(%v) - %v", hex.EncodeToString(en.hash), en.dirty)
 	_, _ = fmt.Fprint(writer, str)
 
 	if en.child == nil {
 		return
 	}
-	en.child.print(writer, index+len(str))
+	en.child.print(writer, index+len(str), db)
 }
 
 func (en *extensionNode) deepClone() node {
@@ -528,26 +535,23 @@ func (en *extensionNode) deepClone() node {
 	return clonedNode
 }
 
-func (en *extensionNode) getDirtyHashes() ([][]byte, error) {
+func (en *extensionNode) getDirtyHashes(hashes map[string]struct{}) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	dirtyHashes := make([][]byte, 0)
 
 	if !en.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
-	hashes, err := en.child.getDirtyHashes()
+	err = en.child.getDirtyHashes(hashes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	dirtyHashes = append(dirtyHashes, hashes...)
-	dirtyHashes = append(dirtyHashes, en.hash)
-	return dirtyHashes, nil
+	hashes[core.ToHex(en.getHash())] = struct{}{}
+	return nil
 }
 
 func (en *extensionNode) getChildren(db data.DBWriteCacher) ([]node, error) {

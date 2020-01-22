@@ -132,6 +132,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("doee"))
 	_ = tr.Commit()
 
+	tr.CancelPrune(rootHash, data.NewRoot)
 	err := tr.Prune(rootHash, data.OldRoot)
 	assert.Nil(t, err)
 
@@ -160,6 +161,8 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 
 	_ = tr.Update([]byte("doge"), []byte("doge"))
 	_ = tr.Commit()
+
+	tr.CancelPrune(rootHash, data.NewRoot)
 	_ = tr.Prune(rootHash, data.OldRoot)
 
 	val, err := tr.Database().Get(rootHash)
@@ -267,6 +270,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
+	tr.CancelPrune(rootHash, data.NewRoot)
 	rootHashes = append(rootHashes, rootHash)
 	tr.TakeSnapshot(rootHash)
 
@@ -286,7 +290,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 		_ = tr.Prune(currentRootHash, data.NewRoot)
 		rootHashes = append(rootHashes, currentRootHash)
 	}
-	numKeysToBeEvicted := 21
+	numKeysToBeEvicted := 20
 	assert.Equal(t, numKeysToBeEvicted, len(evictionWaitList.Cache))
 	assert.NotEqual(t, 0, trieStorage.pruningBufferLength())
 

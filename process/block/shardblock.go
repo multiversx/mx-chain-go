@@ -900,18 +900,22 @@ func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) 
 			continue
 		}
 
-		rootHash := prevHeader.GetRootHash()
-		if rootHash == nil {
+		prevRootHash := prevHeader.GetRootHash()
+		if prevRootHash == nil {
 			continue
 		}
 
-		log.Trace("final header will be pruned", "root hash", rootHash)
-		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		rootHash := finalHeaders[i].GetRootHash()
+		if bytes.Equal(prevRootHash, rootHash) {
+			continue
+		}
+
+		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 
-		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
+		sp.accounts.CancelPrune(rootHash)
 	}
 }
 

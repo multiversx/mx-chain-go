@@ -2,10 +2,12 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
@@ -298,7 +300,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ data.DBWriteCacher) {
 	if ln == nil {
 		return
 	}
@@ -313,7 +315,7 @@ func (ln *leafNode) print(writer io.Writer, _ int) {
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L:(%s - %s)\n", key, val)
+	_, _ = fmt.Fprintf(writer, "L:(%v) - %v\n", hex.EncodeToString(ln.hash), ln.dirty)
 }
 
 func (ln *leafNode) deepClone() node {
@@ -345,20 +347,18 @@ func (ln *leafNode) deepClone() node {
 	return clonedNode
 }
 
-func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
+func (ln *leafNode) getDirtyHashes(hashes map[string]struct{}) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	dirtyHashes := make([][]byte, 0)
 
 	if !ln.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
-	dirtyHashes = append(dirtyHashes, ln.getHash())
-	return dirtyHashes, nil
+	hashes[core.ToHex(ln.getHash())] = struct{}{}
+	return nil
 }
 
 func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {

@@ -30,9 +30,9 @@ type node interface {
 	delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, error)
 	isEmptyOrNil() error
-	print(writer io.Writer, index int)
+	print(writer io.Writer, index int, db data.DBWriteCacher)
 	deepClone() node
-	getDirtyHashes() ([][]byte, error)
+	getDirtyHashes(map[string]struct{}) error
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)

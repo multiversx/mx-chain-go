@@ -666,10 +666,9 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 		// TODO check if pruning should be done on rollback
 		if boot.accounts.IsPruningEnabled() {
-			boot.accounts.CancelPrune(prevHeader.GetRootHash())
-
 			if !bytes.Equal(currHeader.GetRootHash(), prevHeader.GetRootHash()) {
-				log.Trace("header will be pruned", "root hash", currHeader.GetRootHash())
+				boot.accounts.CancelPrune(prevHeader.GetRootHash())
+
 				errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
 				if errNotCritical != nil {
 					log.Debug(errNotCritical.Error())
