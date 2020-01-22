@@ -454,13 +454,13 @@ func (boot *baseBootstrap) syncBlocks() {
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
 	boot.syncWithErrors++
+
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
 
-	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-
-	shouldRollBack := err != process.ErrTimeIsOut || allowedRequestsWithTimeOutHaveReached
+	allowedRequestsWithTimeOutLimitReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	shouldRollBack := err != process.ErrTimeIsOut || allowedRequestsWithTimeOutLimitReached
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
@@ -472,15 +472,13 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 		errNotCritical := boot.rollBack(false)
 		if errNotCritical != nil {
 			log.Debug("rollBack", "error", errNotCritical.Error())
-			return
 		}
 	}
 
 	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
-
 	if allowedSyncWithErrorsLimitReached {
-		boot.forkDetector.ResetFork()
 		boot.syncWithErrors = 0
+		boot.forkDetector.ResetProbableHighestNonce()
 	}
 
 }
@@ -563,8 +561,9 @@ func (boot *baseBootstrap) syncBlock() error {
 	log.Debug("block has been synced successfully",
 		"nonce", hdr.GetNonce(),
 	)
-	boot.requestsWithTimeout = 0
+
 	boot.syncWithErrors = 0
+	boot.requestsWithTimeout = 0
 
 	return nil
 }
