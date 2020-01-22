@@ -223,6 +223,9 @@ func fnv32Hash(key string) uint32 {
 
 // Clear clears the map
 func (sortedMap *BucketSortedMap) Clear() {
+	// TODO-TXCACHE: fix possible race condition. While Clear() happens, concurrent iteration over chunks is not possible.
+	// TODO: possibly, hold extra lock for chunks field?
+
 	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
 	sortedMap.initializeChunks()

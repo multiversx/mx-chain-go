@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_EvictHighNonceTransactions(t *testing.T) {
+func TestEviction_EvictHighNonceTransactions(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:                  400,
 		ALotOfTransactionsForASender:    50,
@@ -38,7 +38,7 @@ func Test_EvictHighNonceTransactions(t *testing.T) {
 	require.Equal(t, int64(351), cache.txByHash.counter.Get())
 }
 
-func Test_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
+func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:                  0,
 		ALotOfTransactionsForASender:    0,
@@ -58,7 +58,7 @@ func Test_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
 	require.Equal(t, int64(0), cache.CountSenders())
 }
 
-func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
+func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := EvictionConfig{
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 20,
@@ -86,7 +86,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
+func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
 	config := EvictionConfig{
@@ -170,4 +170,57 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int64(1), cache.CountSenders())
 	require.Equal(t, int64(1), cache.CountTx())
+}
+
+func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
+	config := EvictionConfig{
+		CountThreshold:             0,
+		NumSendersToEvictInOneStep: 1,
+	}
+
+	cache := NewTxCacheWithEviction("", 1, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+
+	cache.isEvictionInProgress.Set()
+	cache.doEviction()
+
+	require.False(t, cache.evictionJournal.evictionPerformed)
+}
+
+func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
+	config := EvictionConfig{
+		CountThreshold:             0,
+		NumSendersToEvictInOneStep: 42,
+	}
+
+	cache := NewTxCacheWithEviction("", 1, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+
+	cache.makeSnapshotOfSenders()
+
+	steps, nTxs, nSenders := cache.evictSendersInLoop()
+	require.Equal(t, uint32(0), steps)
+	require.Equal(t, uint32(1), nTxs)
+	require.Equal(t, uint32(1), nSenders)
+}
+
+func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
+	config := EvictionConfig{
+		CountThreshold:             0,
+		NumSendersToEvictInOneStep: 1,
+	}
+
+	cache := NewTxCacheWithEviction("", 1, config)
+	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
+
+	cache.makeSnapshotOfSenders()
+
+	steps, nTxs, nSenders := cache.evictSendersWhile(func() bool {
+		return false
+	})
+
+	require.Equal(t, uint32(0), steps)
+	require.Equal(t, uint32(0), nTxs)
+	require.Equal(t, uint32(0), nSenders)
 }
