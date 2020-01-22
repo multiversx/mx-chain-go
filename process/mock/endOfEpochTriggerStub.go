@@ -29,7 +29,7 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
-func (e *EpochStartTriggerStub) Revert() {
+func (e *EpochStartTriggerStub) Revert(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
