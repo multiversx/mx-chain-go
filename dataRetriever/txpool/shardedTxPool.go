@@ -105,7 +105,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	if !ok {
 		nChunksHint := txPool.cacheConfig.Shards
 		evictionConfig := txPool.evictionConfig
-		cache := txcache.NewTxCacheWithEviction(nChunksHint, evictionConfig)
+		cache := txcache.NewTxCacheWithEviction(cacheID, nChunksHint, evictionConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,

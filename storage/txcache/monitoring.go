@@ -16,7 +16,7 @@ func (cache *TxCache) monitorTxAddition() {
 }
 
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
-	log.Trace("TxCache: eviction started")
+	log.Trace("TxCache: eviction started", "name", cache.name)
 	cache.displayState()
 	sw := core.NewStopWatch()
 	sw.Start("eviction")
@@ -24,24 +24,26 @@ func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 }
 
 func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
+	stopWatch.Stop("eviction")
 	duration := stopWatch.GetMeasurement("selection")
 	numTx := cache.numTxAddedDuringEviction.Reset()
-	log.Trace("TxCache: eviction ended", "duration", duration, "numTxAddedDuringEviction", numTx)
+	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numTxAddedDuringEviction", numTx)
 	cache.evictionJournal.display()
 	cache.displayState()
 }
 
 func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
-	log.Trace("TxCache: selection started")
+	log.Trace("TxCache: selection started", "name", cache.name)
 	sw := core.NewStopWatch()
 	sw.Start("selection")
 	return sw
 }
 
 func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch) {
+	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numTx := cache.numTxAddedBetweenSelections.Reset()
-	log.Trace("TxCache: selection ended", "duration", duration, "numTxAddedBetweenSelections", numTx)
+	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxAddedBetweenSelections", numTx)
 }
 
 func (cache *TxCache) displayState() {
@@ -50,7 +52,7 @@ func (cache *TxCache) displayState() {
 	scoreChunksCount := txListBySenderMap.CountSorted()
 	sendersCount := uint32(cache.CountSenders())
 
-	log.Trace("TxCache:", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", sendersCount)
+	log.Trace("TxCache:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", sendersCount)
 
 	if chunksCount != sendersCount {
 		log.Error("TxCache.CountSenders() inconsistency:", "counter", sendersCount, "in-map", chunksCount)
@@ -64,7 +66,7 @@ func (cache *TxCache) displayState() {
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
 	// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-	log.Error("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "tx", txHash)
+	log.Error("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "name", cache.name, "tx", txHash)
 }
 
 func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
@@ -83,7 +85,6 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	log.Trace("Eviction journal:")
-	log.Trace("Pass 1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Trace("Pass 2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
+	log.Trace("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Trace("Eviction.pass2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
 }

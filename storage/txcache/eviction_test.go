@@ -14,7 +14,7 @@ func Test_EvictHighNonceTransactions(t *testing.T) {
 		NumTxsToEvictForASenderWithALot: 25,
 	}
 
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 
 	for index := 0; index < 200; index++ {
 		cache.AddTx([]byte{'a', byte(index)}, createTx("alice", uint64(index)))
@@ -45,7 +45,7 @@ func Test_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
 		NumTxsToEvictForASenderWithALot: 1,
 	}
 
-	cache := NewTxCacheWithEviction(1, config)
+	cache := NewTxCacheWithEviction("", 1, config)
 	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
 	require.Equal(t, int64(1), cache.CountSenders())
 
@@ -65,7 +65,7 @@ func Test_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NumBytesThreshold:          math.MaxUint32,
 	}
 
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
@@ -95,7 +95,7 @@ func Test_EvictSendersWhileTooManyBytes(t *testing.T) {
 		NumSendersToEvictInOneStep: 20,
 	}
 
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
@@ -123,7 +123,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		NumSendersToEvictInOneStep: 2,
 	}
 
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 1000, 100000, 100*oneTrilion))
 	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 1000, 100000, 100*oneTrilion))
 	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 1000, 100000, 700*oneTrilion))
@@ -149,7 +149,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumSendersToEvictInOneStep: 2,
 	}
 
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 800, 100000, 100*oneTrilion))
 	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 500, 100000, 100*oneTrilion))
 	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 200, 100000, 700*oneTrilion))

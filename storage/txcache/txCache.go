@@ -10,6 +10,7 @@ import (
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
+	name                        string
 	txListBySender              txListBySenderMap
 	txByHash                    txByHashMap
 	evictionConfig              EvictionConfig
@@ -23,9 +24,10 @@ type TxCache struct {
 
 // NewTxCache creates a new transaction cache
 // "nChunksHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(nChunksHint uint32) *TxCache {
+func NewTxCache(name string, nChunksHint uint32) *TxCache {
 	// Note: for simplicity, we use the same "nChunksHint" for both internal concurrent maps
 	txCache := &TxCache{
+		name:            name,
 		txListBySender:  newTxListBySenderMap(nChunksHint),
 		txByHash:        newTxByHashMap(nChunksHint),
 		evictionConfig:  EvictionConfig{Enabled: false},
@@ -36,8 +38,8 @@ func NewTxCache(nChunksHint uint32) *TxCache {
 }
 
 // NewTxCacheWithEviction creates a new transaction cache with eviction
-func NewTxCacheWithEviction(nChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
-	txCache := NewTxCache(nChunksHint)
+func NewTxCacheWithEviction(name string, nChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
+	txCache := NewTxCache(name, nChunksHint)
 	txCache.evictionConfig = evictionConfig
 
 	return txCache

@@ -13,7 +13,7 @@ import (
 )
 
 func Test_AddTx(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	tx := createTx("alice", 1)
 
@@ -32,7 +32,7 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_AddNilTx_DoesNothing(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	txHash := []byte("hash-1")
 
@@ -46,7 +46,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 
 	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
@@ -65,7 +65,7 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	cache.AddTx([]byte("hash-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-2"), createTx("alice", 2))
@@ -76,7 +76,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -96,13 +96,13 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 	err := cache.RemoveTxByHash([]byte("missing"))
 	require.Equal(t, err, ErrTxNotFound)
 }
 
 func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
@@ -116,7 +116,7 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 }
 
 func Test_Clear(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
@@ -128,7 +128,7 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_ForEachTransaction(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
 	cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
@@ -141,7 +141,7 @@ func Test_ForEachTransaction(t *testing.T) {
 }
 
 func Test_SelectTransactions_Dummy(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 
 	cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
 	cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
@@ -157,7 +157,7 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 }
 
 func Test_SelectTransactions(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
 	nSenders := 1000
@@ -194,7 +194,7 @@ func Test_SelectTransactions(t *testing.T) {
 }
 
 func Test_Keys(t *testing.T) {
-	cache := NewTxCache(16)
+	cache := NewTxCache("", 16)
 
 	cache.AddTx([]byte("alice-x"), createTx("alice", 42))
 	cache.AddTx([]byte("alice-y"), createTx("alice", 43))
@@ -220,7 +220,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	}
 
 	// 11 * 10
-	cache := NewTxCacheWithEviction(16, config)
+	cache := NewTxCacheWithEviction("", 16, config)
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
@@ -234,13 +234,13 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	}
 
 	// 1000 * 1000
-	cache = NewTxCacheWithEviction(16, config)
+	cache = NewTxCacheWithEviction("", 16, config)
 	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
 	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
@@ -258,7 +258,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	cache := NewTxCache(1)
+	cache := NewTxCache("", 1)
 	require.False(t, check.IfNil(cache))
 
 	makeNil := func() storage.Cacher {
