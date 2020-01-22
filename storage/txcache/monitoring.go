@@ -13,9 +13,9 @@ func (cache *TxCache) monitorContentRegularly() {
 	go func() {
 		for {
 			txListBySenderMap := cache.txListBySender.backingMap
-			log.Info("TxCache.content:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-			log.Info("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
-			time.Sleep(10 * time.Second)
+			log.Trace("TxCache.content:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+			log.Trace("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+			time.Sleep(60 * time.Second)
 		}
 	}()
 }
