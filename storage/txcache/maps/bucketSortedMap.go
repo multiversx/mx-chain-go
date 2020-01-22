@@ -1,7 +1,6 @@
 package maps
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -126,12 +125,6 @@ func (sortedMap *BucketSortedMap) CountSorted() uint32 {
 func (sortedMap *BucketSortedMap) ChunksCounts() []uint32 {
 	counts := make([]uint32, sortedMap.nChunks)
 	for i, chunk := range sortedMap.chunks {
-		if chunk == nil {
-			fmt.Println(sortedMap.chunks)
-			fmt.Println(sortedMap.nScoreChunks)
-			fmt.Println(sortedMap.nChunks)
-			panic("wtf")
-		}
 		counts[i] = chunk.countItems()
 	}
 	return counts
