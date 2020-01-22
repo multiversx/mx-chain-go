@@ -170,10 +170,6 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 		counter += uint32(len(chunk.items))
 	}
 
-	if counter == 0 {
-		return make([]BucketSortedMapItem, 0)
-	}
-
 	snapshot := make([]BucketSortedMapItem, 0, counter)
 
 	for _, chunk := range sortedMap.scoreChunks {
@@ -187,6 +183,13 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	}
 
 	return snapshot
+}
+
+// IterCbSortedAscending iterates over the sorted elements in the map
+func (sortedMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
+	for _, chunk := range sortedMap.scoreChunks {
+		chunk.forEachItem(callback)
+	}
 }
 
 // IterCbSortedDescending iterates over the sorted elements in the map

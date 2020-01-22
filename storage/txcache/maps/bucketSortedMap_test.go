@@ -60,27 +60,26 @@ func TestNewBucketSortedMap(t *testing.T) {
 
 func TestBucketSortedMap_Count(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
-	myMap.Set(newDummyItem("a"))
-	myMap.Set(newDummyItem("b"))
-	myMap.Set(newDummyItem("c"))
+	myMap.Set(newScoredDummyItem("a", 0))
+	myMap.Set(newScoredDummyItem("b", 1))
+	myMap.Set(newScoredDummyItem("c", 2))
+	myMap.Set(newScoredDummyItem("d", 3))
 
 	myMap.OnScoreChangeByKey("a")
 	myMap.OnScoreChangeByKey("b")
 	myMap.OnScoreChangeByKey("c")
+	myMap.OnScoreChangeByKey("d")
 
-	require.Equal(t, uint32(3), myMap.Count())
-	require.Equal(t, uint32(3), myMap.CountSorted())
-}
-
-func TestBucketSortedMap_ChunksCounts(t *testing.T) {
-	myMap := NewBucketSortedMap(4, 100)
-	myMap.Set(newDummyItem("a"))
-	myMap.Set(newDummyItem("b"))
-	myMap.Set(newDummyItem("c"))
-	myMap.Set(newDummyItem("d"))
+	require.Equal(t, uint32(4), myMap.Count())
+	require.Equal(t, uint32(4), myMap.CountSorted())
 
 	counts := myMap.ChunksCounts()
+	require.Equal(t, uint32(1), counts[0])
+	require.Equal(t, uint32(1), counts[1])
+	require.Equal(t, uint32(1), counts[2])
+	require.Equal(t, uint32(1), counts[3])
 
+	counts = myMap.ScoreChunksCounts()
 	require.Equal(t, uint32(1), counts[0])
 	require.Equal(t, uint32(1), counts[1])
 	require.Equal(t, uint32(1), counts[2])
@@ -130,6 +129,29 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, uint32(3), counts[3])
 }
 
+func TestBucketSortedMap_ItemMovesOnScoreChange(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	a := newScoredDummyItem("a", 1)
+	b := newScoredDummyItem("b", 42)
+	myMap.Set(a)
+	myMap.Set(b)
+
+	myMap.OnScoreChangeByKey("a")
+	myMap.OnScoreChangeByKey("b")
+
+	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
+
+	a.score = 2
+	b.score = 43
+	myMap.OnScoreChangeByKey("a")
+	myMap.OnScoreChangeByKey("b")
+
+	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
+}
+
 func TestBucketSortedMap_Has(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 	myMap.Set(newDummyItem("a"))
@@ -149,6 +171,64 @@ func TestBucketSortedMap_Remove(t *testing.T) {
 
 	require.True(t, myMap.Has("a"))
 	require.False(t, myMap.Has("b"))
+}
+
+func TestBucketSortedMap_Clear(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+	myMap.Set(newDummyItem("a"))
+	myMap.Set(newDummyItem("b"))
+
+	myMap.Clear()
+
+	require.Equal(t, uint32(0), myMap.Count())
+	require.Equal(t, uint32(0), myMap.CountSorted())
+}
+
+func TestBucketSortedMap_IterCb(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	myMap.Set(newScoredDummyItem("a", 15))
+	myMap.Set(newScoredDummyItem("b", 101))
+	myMap.Set(newScoredDummyItem("c", 3))
+	myMap.OnScoreChangeByKey("a")
+	myMap.OnScoreChangeByKey("b")
+	myMap.OnScoreChangeByKey("c")
+
+	sorted := []string{"c", "a", "b"}
+
+	i := 0
+	myMap.IterCbSortedAscending(func(key string, value BucketSortedMapItem) {
+		require.Equal(t, sorted[i], key)
+		i++
+	})
+
+	i = len(sorted) - 1
+	myMap.IterCbSortedDescending(func(key string, value BucketSortedMapItem) {
+		require.Equal(t, sorted[i], key)
+		i--
+	})
+}
+
+func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	snapshot := myMap.GetSnapshotAscending()
+	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+
+	a := newScoredDummyItem("a", 15)
+	b := newScoredDummyItem("b", 101)
+	c := newScoredDummyItem("c", 3)
+
+	myMap.Set(a)
+	myMap.Set(b)
+	myMap.Set(c)
+
+	myMap.OnScoreChangeByKey("a")
+	myMap.OnScoreChangeByKey("b")
+	myMap.OnScoreChangeByKey("c")
+
+	snapshot = myMap.GetSnapshotAscending()
+	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
