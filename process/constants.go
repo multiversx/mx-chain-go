@@ -67,7 +67,7 @@ const NonceDifferenceWhenSynced = 0
 // before a special action to be applied
 const MaxRequestsWithTimeoutAllowed = 5
 
-// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors
+// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
 // before a special action to be applied
 const MaxSyncWithErrorsAllowed = 10
 
