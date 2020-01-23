@@ -67,7 +67,6 @@ func init() {
 type testNode struct {
 	node             *node.Node
 	mesenger         p2p.Messenger
-	shardId          uint32
 	accntState       state.AccountsAdapter
 	blkc             data.ChainHandler
 	blkProcessor     *mock.BlockProcessorMock
@@ -79,6 +78,7 @@ type testNode struct {
 	headersHashes    [][]byte
 	headers          []data.HeaderHandler
 	metachainHdrRecv int32
+	shardId          uint32
 }
 
 type keyPair struct {
