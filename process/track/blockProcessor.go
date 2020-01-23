@@ -93,7 +93,7 @@ func (bp *blockProcessor) computeLongestChainFromLastCrossNotarized(
 }
 
 func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
-	selfNotarizedHeadersInfo := make([]*headerInfo, 0)
+	selfNotarizedHeadersInfo := make([]*HeaderInfo, 0)
 
 	for _, header := range headers {
 		selfHeadersInfo := bp.blockTracker.getSelfHeaders(header)
@@ -104,7 +104,7 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 
 	if len(selfNotarizedHeadersInfo) > 1 {
 		sort.Slice(selfNotarizedHeadersInfo, func(i, j int) bool {
-			return selfNotarizedHeadersInfo[i].header.GetNonce() < selfNotarizedHeadersInfo[j].header.GetNonce()
+			return selfNotarizedHeadersInfo[i].Header.GetNonce() < selfNotarizedHeadersInfo[j].Header.GetNonce()
 		})
 	}
 
@@ -112,8 +112,8 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 	selfNotarizedHeadersHashes := make([][]byte, 0)
 
 	for _, selfNotarizedHeaderInfo := range selfNotarizedHeadersInfo {
-		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.header)
-		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.hash)
+		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.Header)
+		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.Hash)
 	}
 
 	return selfNotarizedHeaders, selfNotarizedHeadersHashes

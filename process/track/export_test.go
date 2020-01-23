@@ -6,7 +6,7 @@ import (
 
 // shardBlockTrack
 
-func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
+func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
 	return sbt.getSelfHeaders(headerHandler)
 }
 
@@ -20,7 +20,7 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 
 // metaBlockTrack
 
-func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
+func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
 	return mbt.getSelfHeaders(headerHandler)
 }
 
@@ -108,7 +108,7 @@ func (bn *blockNotarizer) AddNotarizedHeader(shardID uint32, notarizedHeader dat
 	bn.addNotarizedHeader(shardID, notarizedHeader, notarizedHeaderHash)
 }
 
-func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*headerInfo {
+func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*HeaderInfo {
 	bn.mutNotarizedHeaders.RLock()
 	notarizedHeaders := bn.notarizedHeaders
 	bn.mutNotarizedHeaders.RUnlock()
@@ -118,7 +118,7 @@ func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*headerInfo {
 
 func (bn *blockNotarizer) GetNotarizedHeader(shardID uint32, index int) data.HeaderHandler {
 	bn.mutNotarizedHeaders.RLock()
-	notarizedHeader := bn.notarizedHeaders[shardID][index].header
+	notarizedHeader := bn.notarizedHeaders[shardID][index].Header
 	bn.mutNotarizedHeaders.RUnlock()
 
 	return notarizedHeader
@@ -140,7 +140,7 @@ func (bn *blockNotarizer) GetLastNotarizedHeaderNonce(shardID uint32) uint64 {
 	return bn.getLastNotarizedHeaderNonce(shardID)
 }
 
-func (bn *blockNotarizer) LastNotarizedHeaderInfo(shardID uint32) *headerInfo {
+func (bn *blockNotarizer) LastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
 	return bn.lastNotarizedHeaderInfo(shardID)
 }
 
@@ -165,37 +165,37 @@ func (bn *blockNotarizer) RestoreNotarizedHeadersToGenesis() {
 // BlockTrackerHandlerMock
 
 type BlockTrackerHandlerMock struct {
-	getSelfHeadersCalled              func(headerHandler data.HeaderHandler) []*headerInfo
-	computeNumPendingMiniBlocksCalled func(headers []data.HeaderHandler)
-	computeLongestSelfChainCalled     func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
-	sortHeadersFromNonceCalled        func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	GetSelfHeadersCalled              func(headerHandler data.HeaderHandler) []*HeaderInfo
+	ComputeNumPendingMiniBlocksCalled func(headers []data.HeaderHandler)
+	ComputeLongestSelfChainCalled     func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
+	SortHeadersFromNonceCalled        func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 }
 
-func (bthm *BlockTrackerHandlerMock) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
-	if bthm.getSelfHeadersCalled != nil {
-		return bthm.getSelfHeadersCalled(headerHandler)
+func (bthm *BlockTrackerHandlerMock) getSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
+	if bthm.GetSelfHeadersCalled != nil {
+		return bthm.GetSelfHeadersCalled(headerHandler)
 	}
 
 	return nil
 }
 
 func (bthm *BlockTrackerHandlerMock) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
-	if bthm.computeNumPendingMiniBlocksCalled != nil {
-		bthm.computeNumPendingMiniBlocksCalled(headers)
+	if bthm.ComputeNumPendingMiniBlocksCalled != nil {
+		bthm.ComputeNumPendingMiniBlocksCalled(headers)
 	}
 }
 
 func (bthm *BlockTrackerHandlerMock) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	if bthm.computeLongestSelfChainCalled != nil {
-		return bthm.computeLongestSelfChainCalled()
+	if bthm.ComputeLongestSelfChainCalled != nil {
+		return bthm.ComputeLongestSelfChainCalled()
 	}
 
 	return nil, nil, nil, nil
 }
 
 func (bthm *BlockTrackerHandlerMock) sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
-	if bthm.sortHeadersFromNonceCalled != nil {
-		return bthm.sortHeadersFromNonceCalled(shardID, nonce)
+	if bthm.SortHeadersFromNonceCalled != nil {
+		return bthm.SortHeadersFromNonceCalled(shardID, nonce)
 	}
 
 	return nil, nil
@@ -204,98 +204,106 @@ func (bthm *BlockTrackerHandlerMock) sortHeadersFromNonce(shardID uint32, nonce 
 // BlockNotarizerHandlerMock
 
 type BlockNotarizerHandlerMock struct {
-	addNotarizedHeaderCalled                 func(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
-	cleanupNotarizedHeadersBehindNonceCalled func(shardID uint32, nonce uint64)
-	displayNotarizedHeadersCalled            func(shardID uint32, message string)
-	getLastNotarizedHeaderCalled             func(shardID uint32) (data.HeaderHandler, []byte, error)
-	getLastNotarizedHeaderNonceCalled        func(shardID uint32) uint64
-	getNotarizedHeaderCalled                 func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	initNotarizedHeadersCalled               func(startHeaders map[uint32]data.HeaderHandler) error
-	removeLastNotarizedHeaderCalled          func()
-	restoreNotarizedHeadersToGenesisCalled   func()
+	AddNotarizedHeaderCalled                 func(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
+	CleanupNotarizedHeadersBehindNonceCalled func(shardID uint32, nonce uint64)
+	DisplayNotarizedHeadersCalled            func(shardID uint32, message string)
+	GetLastNotarizedHeaderCalled             func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetLastNotarizedHeaderNonceCalled        func(shardID uint32) uint64
+	GetNotarizedHeaderCalled                 func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	InitNotarizedHeadersCalled               func(startHeaders map[uint32]data.HeaderHandler) error
+	RemoveLastNotarizedHeaderCalled          func()
+	RestoreNotarizedHeadersToGenesisCalled   func()
 }
 
 func (bngm *BlockNotarizerHandlerMock) addNotarizedHeader(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte) {
-	if bngm.addNotarizedHeaderCalled != nil {
-		bngm.addNotarizedHeaderCalled(shardID, notarizedHeader, notarizedHeaderHash)
+	if bngm.AddNotarizedHeaderCalled != nil {
+		bngm.AddNotarizedHeaderCalled(shardID, notarizedHeader, notarizedHeaderHash)
 	}
 }
 
 func (bngm *BlockNotarizerHandlerMock) cleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64) {
-	if bngm.cleanupNotarizedHeadersBehindNonceCalled != nil {
-		bngm.cleanupNotarizedHeadersBehindNonceCalled(shardID, nonce)
+	if bngm.CleanupNotarizedHeadersBehindNonceCalled != nil {
+		bngm.CleanupNotarizedHeadersBehindNonceCalled(shardID, nonce)
 	}
 }
 
 func (bngm *BlockNotarizerHandlerMock) displayNotarizedHeaders(shardID uint32, message string) {
-	if bngm.displayNotarizedHeadersCalled != nil {
-		bngm.displayNotarizedHeadersCalled(shardID, message)
+	if bngm.DisplayNotarizedHeadersCalled != nil {
+		bngm.DisplayNotarizedHeadersCalled(shardID, message)
 	}
 }
 
 func (bngm *BlockNotarizerHandlerMock) getLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	if bngm.getLastNotarizedHeaderCalled != nil {
-		return bngm.getLastNotarizedHeaderCalled(shardID)
+	if bngm.GetLastNotarizedHeaderCalled != nil {
+		return bngm.GetLastNotarizedHeaderCalled(shardID)
 	}
 
 	return nil, nil, nil
 }
 
 func (bngm *BlockNotarizerHandlerMock) getLastNotarizedHeaderNonce(shardID uint32) uint64 {
-	if bngm.getLastNotarizedHeaderNonceCalled != nil {
-		return bngm.getLastNotarizedHeaderNonceCalled(shardID)
+	if bngm.GetLastNotarizedHeaderNonceCalled != nil {
+		return bngm.GetLastNotarizedHeaderNonceCalled(shardID)
 	}
 
 	return 0
 }
 
 func (bngm *BlockNotarizerHandlerMock) getNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-	if bngm.getNotarizedHeaderCalled != nil {
-		return bngm.getNotarizedHeaderCalled(shardID, offset)
+	if bngm.GetNotarizedHeaderCalled != nil {
+		return bngm.GetNotarizedHeaderCalled(shardID, offset)
 	}
 
 	return nil, nil, nil
 }
 
 func (bngm *BlockNotarizerHandlerMock) initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
-	if bngm.initNotarizedHeadersCalled != nil {
-		return bngm.initNotarizedHeadersCalled(startHeaders)
+	if bngm.InitNotarizedHeadersCalled != nil {
+		return bngm.InitNotarizedHeadersCalled(startHeaders)
 	}
 
 	return nil
 }
 
 func (bngm *BlockNotarizerHandlerMock) removeLastNotarizedHeader() {
-	if bngm.removeLastNotarizedHeaderCalled != nil {
-		bngm.removeLastNotarizedHeaderCalled()
+	if bngm.RemoveLastNotarizedHeaderCalled != nil {
+		bngm.RemoveLastNotarizedHeaderCalled()
 	}
 }
 
 func (bngm *BlockNotarizerHandlerMock) restoreNotarizedHeadersToGenesis() {
-	if bngm.restoreNotarizedHeadersToGenesisCalled != nil {
-		bngm.restoreNotarizedHeadersToGenesisCalled()
+	if bngm.RestoreNotarizedHeadersToGenesisCalled != nil {
+		bngm.RestoreNotarizedHeadersToGenesisCalled()
 	}
 }
 
 // BlockNotifierHandlerMock
 
 type BlockNotifierHandlerMock struct {
-	callHandlersCalled    func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	registerHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	CallHandlersCalled    func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	RegisterHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 }
 
 func (bnhm *BlockNotifierHandlerMock) callHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
-	if bnhm.callHandlersCalled != nil {
-		bnhm.callHandlersCalled(shardID, headers, headersHashes)
+	if bnhm.CallHandlersCalled != nil {
+		bnhm.CallHandlersCalled(shardID, headers, headersHashes)
 	}
 }
 
 func (bnhm *BlockNotifierHandlerMock) registerHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
-	if bnhm.registerHandlerCalled != nil {
-		bnhm.registerHandlerCalled(handler)
+	if bnhm.RegisterHandlerCalled != nil {
+		bnhm.RegisterHandlerCalled(handler)
 	}
 }
 
 func (bp *blockProcessor) ProcessReceivedHeader(header data.HeaderHandler) {
 	bp.processReceivedHeader(header)
+}
+
+func (bp *blockProcessor) DoJobOnReceivedHeader(shardID uint32) {
+	bp.doJobOnReceivedHeader(shardID)
+}
+
+func (bp *blockProcessor) DoJobOnReceivedCrossNotarizedHeader(shardID uint32) {
+	bp.doJobOnReceivedCrossNotarizedHeader(shardID)
 }

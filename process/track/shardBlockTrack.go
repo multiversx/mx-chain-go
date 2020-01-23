@@ -92,14 +92,14 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 
 	sbt.blockProcessor = blockProcessorObject
 
-	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	sbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 
 	return &sbt, nil
 }
 
-func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
-	selfHeadersInfo := make([]*headerInfo, 0)
+func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
+	selfHeadersInfo := make([]*HeaderInfo, 0)
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
@@ -118,7 +118,7 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 			continue
 		}
 
-		selfHeadersInfo = append(selfHeadersInfo, &headerInfo{hash: shardInfo.HeaderHash, header: header})
+		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.HeaderHash, Header: header})
 	}
 
 	return selfHeadersInfo

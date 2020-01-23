@@ -19,9 +19,9 @@ import (
 
 var log = logger.GetOrCreate("process/track")
 
-type headerInfo struct {
-	hash   []byte
-	header data.HeaderHandler
+type HeaderInfo struct {
+	Hash   []byte
+	Header data.HeaderHandler
 }
 
 type baseBlockTrack struct {
@@ -41,7 +41,7 @@ type baseBlockTrack struct {
 	blockBalancer                 blockBalancerHandler
 
 	mutHeaders sync.RWMutex
-	headers    map[uint32]map[uint64][]*headerInfo
+	headers    map[uint32]map[uint64][]*HeaderInfo
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -102,17 +102,17 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
-		headersForShard = make(map[uint64][]*headerInfo)
+		headersForShard = make(map[uint64][]*HeaderInfo)
 		bbt.headers[shardID] = headersForShard
 	}
 
 	for _, hdrInfo := range headersForShard[nonce] {
-		if bytes.Equal(hdrInfo.hash, hash) {
+		if bytes.Equal(hdrInfo.Hash, hash) {
 			return
 		}
 	}
 
-	headersForShard[nonce] = append(headersForShard[nonce], &headerInfo{hash: hash, header: header})
+	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
 }
 
 // AddCrossNotarizedHeader adds cross notarized header to the tracker lists
@@ -323,7 +323,7 @@ func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([
 		return nil, nil
 	}
 
-	sortedHeadersInfo := make([]*headerInfo, 0)
+	sortedHeadersInfo := make([]*HeaderInfo, 0)
 
 	for headersNonce, headersInfo := range headersForShard {
 		if headersNonce < nonce {
@@ -335,7 +335,7 @@ func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([
 
 	if len(sortedHeadersInfo) > 1 {
 		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
-			return sortedHeadersInfo[i].header.GetNonce() < sortedHeadersInfo[j].header.GetNonce()
+			return sortedHeadersInfo[i].Header.GetNonce() < sortedHeadersInfo[j].Header.GetNonce()
 		})
 	}
 
@@ -343,8 +343,8 @@ func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	headersHashes := make([][]byte, 0)
 
 	for _, hdrInfo := range sortedHeadersInfo {
-		headers = append(headers, hdrInfo.header)
-		headersHashes = append(headersHashes, hdrInfo.hash)
+		headers = append(headers, hdrInfo.Header)
+		headersHashes = append(headersHashes, hdrInfo.Hash)
 	}
 
 	return headers, headersHashes
@@ -369,8 +369,8 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 	headersHashes := make([][]byte, 0)
 
 	for _, hdrInfo := range headersForShardWithNonce {
-		headers = append(headers, hdrInfo.header)
-		headersHashes = append(headersHashes, hdrInfo.hash)
+		headers = append(headers, hdrInfo.Header)
+		headersHashes = append(headersHashes, hdrInfo.Hash)
 	}
 
 	return headers, headersHashes
@@ -412,7 +412,7 @@ func (bbt *baseBlockTrack) RestoreToGenesis() {
 
 func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 	bbt.mutHeaders.Lock()
-	bbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	bbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	bbt.mutHeaders.Unlock()
 }
 

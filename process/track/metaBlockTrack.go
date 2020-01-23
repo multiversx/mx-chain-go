@@ -91,14 +91,14 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 
 	mbt.blockProcessor = blockProcessorObject
 
-	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 
 	return &mbt, nil
 }
 
-func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
-	selfMetaBlocksInfo := make([]*headerInfo, 0)
+func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
+	selfMetaBlocksInfo := make([]*HeaderInfo, 0)
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
@@ -113,7 +113,7 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 			continue
 		}
 
-		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &headerInfo{hash: metaBlockHash, header: metaBlock})
+		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &HeaderInfo{Hash: metaBlockHash, Header: metaBlock})
 	}
 
 	return selfMetaBlocksInfo
