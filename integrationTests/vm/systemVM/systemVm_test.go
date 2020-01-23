@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,6 +25,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
+
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -76,7 +79,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	gasLimit := nodes[0].EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: txData})
+	gasLimit := nodes[0].EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
 	consumedBalance := big.NewInt(0)
 	consumedBalance.Mul(big.NewInt(0).SetUint64(gasLimit), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 
@@ -205,7 +208,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbound period
-	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
+	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
 	for index, node := range nodes {
