@@ -705,7 +705,6 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *tes
 }
 
 func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *testing.T) {
-	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	wg := sync.WaitGroup{}
