@@ -84,12 +84,12 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 	}
 
-	blockProcessor, err := NewBlockProcessor(argBlockProcessor)
+	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	mbt.blockProcessor = blockProcessor
+	mbt.blockProcessor = blockProcessorObject
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)

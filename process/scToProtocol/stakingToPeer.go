@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
@@ -134,7 +135,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 
 	for _, key := range affectedStates {
 		blsPubKey := []byte(key)
-		peerAcc, err := stp.getPeerAccount(blsPubKey)
+		var peerAcc *state.PeerAccount
+		peerAcc, err = stp.getPeerAccount(blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -144,7 +146,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			FuncName:  "get",
 			Arguments: [][]byte{blsPubKey},
 		}
-		vmOutput, err := stp.scQuery.ExecuteQuery(&query)
+		var vmOutput *vmcommon.VMOutput
+		vmOutput, err = stp.scQuery.ExecuteQuery(&query)
 		if err != nil {
 			return err
 		}
@@ -160,7 +163,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 				return err
 			}
 
-			adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes(blsPubKey)
+			var adrSrc state.AddressContainer
+			adrSrc, err = stp.adrConv.CreateAddressFromPublicKeyBytes(blsPubKey)
 			if err != nil {
 				return err
 			}

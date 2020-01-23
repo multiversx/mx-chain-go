@@ -460,10 +460,10 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	}
 
 	allowedRequestsWithTimeOutLimitReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	shouldRollBack := err != process.ErrTimeIsOut || allowedRequestsWithTimeOutLimitReached
-	if shouldRollBack {
-		boot.requestsWithTimeout = 0
+	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 
+	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutLimitReached && isInProperRound)
+	if shouldRollBack {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -476,8 +476,7 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	}
 
 	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
-	if allowedSyncWithErrorsLimitReached {
-		boot.syncWithErrors = 0
+	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
 	}
 
