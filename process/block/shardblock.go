@@ -882,7 +882,6 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	// TODO add pruning on metachain. Refactor the pruning mechanism (remove everything before final nonce).
 	for i := range finalHeaders {
 		if !sp.accounts.IsPruningEnabled() {
 			break

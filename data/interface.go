@@ -3,6 +3,8 @@ package data
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/config"
+
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -176,6 +178,6 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create() (Trie, error)
+	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
 }
