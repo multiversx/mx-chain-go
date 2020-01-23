@@ -92,10 +92,16 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
+	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		return true
+	}
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
 		return true
 	}
 	if inHdr.hdr.GetEpoch() >= inHdr.epochStartTrigger.Epoch() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochStartRound() {
 		return true
 	}
 	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
