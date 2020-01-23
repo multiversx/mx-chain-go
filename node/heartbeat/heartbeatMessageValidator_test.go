@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTrimLengths_1(t *testing.T) {
+func TestTrimLengths(t *testing.T) {
 
 	token1 := make([]byte, maxSizeInBytes+2)
 	token2 := make([]byte, maxSizeInBytes+2)
