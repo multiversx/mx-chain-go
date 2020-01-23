@@ -627,6 +627,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.network,
 		args.sizeCheckDelta,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
