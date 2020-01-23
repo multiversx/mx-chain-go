@@ -1,8 +1,9 @@
 package presenter
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 const invalidKey = "[invalid key]"

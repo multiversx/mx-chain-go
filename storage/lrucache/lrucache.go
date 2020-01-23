@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var log = logger.GetOrCreate("storage/lrucache")

@@ -3,11 +3,11 @@ package peer_test
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"

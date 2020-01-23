@@ -10,7 +10,7 @@ import (
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContainerFactory struct {

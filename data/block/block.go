@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // This file holds the data structures related with the functionality of a shard block
@@ -41,6 +41,7 @@ const (
 	// ReceiptBlock identifies a miniblock holding receipts
 	ReceiptBlock Type = 150
 	// TODO: leave rewards with highest value
+
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 255
 )
