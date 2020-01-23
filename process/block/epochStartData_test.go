@@ -3,6 +3,10 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/require"
+	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -48,11 +52,106 @@ func createMetaStore() dataRetriever.StorageService {
 	return store
 }
 
+func TestEpochStartData_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.Marshalizer = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestEpochStartData_NilHasher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.Hasher = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestEpochStartData_NilStore(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.Store = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestEpochStartData_NilDataPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.DataPool = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilDataPoolHolder, err)
+}
+
+func TestEpochStartData_NilBlockTracker(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.BlockTracker = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilBlockTracker, err)
+}
+
+func TestEpochStartData_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.ShardCoordinator = nil
+
+	esd, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.Hasher = &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			token := make([]byte, 4)
+			rand.Read(token)
+			return token
+		},
+	}
+
+	esd, _ := blproc.NewEpochStartData(arguments)
+
+	metaBlock := &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{HeaderHash: []byte("hash")},
+			},
+		},
+	}
+
+	err := esd.VerifyEpochStartDataForMetablock(metaBlock)
+	require.Equal(t, process.ErrEpochStartDataDoesNotMatch, err)
+}
+
 func TestEpochStartCreator_getLastFinalizedMetaHashForShardMetaHashNotReturnsGenesis(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartCreatorArguments()
-	epoch, _ := blproc.NewEpochStartData(arguments)
+	epoch, err := blproc.NewEpochStartData(arguments)
+	require.Nil(t, err)
+	require.False(t, check.IfNil(epoch))
+
 	round := uint64(10)
 
 	shardHdr := &block.Header{Round: round}

@@ -31,7 +31,6 @@ func TestNewAdapterGenericCacheToSortedTransactionsProvider(t *testing.T) {
 	cacher := &mock.CacherMock{}
 	cacheKey := "key"
 	adapter := newAdapterGenericCacheToSortedTransactionsProvider(nil, cacher, cacheKey)
-
 	assert.NotNil(t, adapter)
 	assert.False(t, adapter.IsInterfaceNil())
 }
