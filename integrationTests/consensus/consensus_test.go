@@ -174,7 +174,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 	assert.Nil(t, err)
 
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint64(2)

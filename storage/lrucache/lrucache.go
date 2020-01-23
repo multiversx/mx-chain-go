@@ -65,7 +65,7 @@ func (c *LRUCache) RegisterHandler(handler func(key []byte)) {
 // Get looks up a key's value from the cache.
 func (c *LRUCache) Get(key []byte) (value interface{}, ok bool) {
 	v, ok := c.cache.Get(string(key))
-	if ok == false {
+	if !ok {
 		return nil, ok
 	}
 	return v, ok
@@ -82,7 +82,7 @@ func (c *LRUCache) Has(key []byte) bool {
 func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
 	v, ok := c.cache.Peek(string(key))
 
-	if ok == false {
+	if !ok {
 		return nil, ok
 	}
 

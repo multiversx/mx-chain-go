@@ -43,7 +43,7 @@ func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, er
 		return nil, ErrInvalidRoundDuration
 	}
 
-	shardStats := make(map[uint32]ShardStatistic, 0)
+	shardStats := make(map[uint32]ShardStatistic)
 	for i := uint32(0); i < nrOfShards; i++ {
 		shardStats[i] = &ShardStatistics{
 			roundTime:             roundDuration,
@@ -54,7 +54,7 @@ func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, er
 		nrOfShards:            nrOfShards,
 		roundTime:             roundDuration,
 		shardStatistics:       shardStats,
-		missingNonces:         make(map[uint64]struct{}, 0),
+		missingNonces:         make(map[uint64]struct{}),
 		totalProcessedTxCount: big.NewInt(0),
 		averageBlockTxCount:   big.NewInt(0),
 	}, nil
@@ -236,10 +236,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *TpsBenchmark) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }
 
 // ShardID returns the shard id of the current statistic object
@@ -284,8 +281,5 @@ func (ss *ShardStatistics) TotalProcessedTxCount() *big.Int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *ShardStatistics) IsInterfaceNil() bool {
-	if ss == nil {
-		return true
-	}
-	return false
+	return ss == nil
 }

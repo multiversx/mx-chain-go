@@ -2,7 +2,6 @@ package storageUnit
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -149,7 +148,7 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 			// if found in persistence unit, add it in cache
 			u.cacher.Put(key, v)
 		} else {
-			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
 	}
 

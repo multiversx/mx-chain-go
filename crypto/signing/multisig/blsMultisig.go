@@ -332,10 +332,7 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bms *blsMultiSigner) IsInterfaceNil() bool {
-	if bms == nil {
-		return true
-	}
-	return false
+	return bms == nil
 }
 
 func aggregatePublicKeys(

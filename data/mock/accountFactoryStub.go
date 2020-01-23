@@ -12,8 +12,5 @@ func (afs *AccountsFactoryStub) CreateAccount(address state.AddressContainer, tr
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (afs *AccountsFactoryStub) IsInterfaceNil() bool {
-	if afs == nil {
-		return true
-	}
-	return false
+	return afs == nil
 }

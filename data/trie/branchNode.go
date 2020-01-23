@@ -254,7 +254,6 @@ func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 		return
 	}
 	bn.hash = hash
-	return
 }
 
 func (bn *branchNode) hashChildren() error {

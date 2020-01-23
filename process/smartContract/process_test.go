@@ -1966,9 +1966,8 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	accTracker.JournalizeCalled = func(entry state.JournalEntry) {
-		return
-	}
+	accTracker.JournalizeCalled = func(entry state.JournalEntry) {}
+
 	accTracker.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
 		testAcc = accountHandler.(*state.Account)
 		return nil

@@ -76,7 +76,7 @@ func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 	case tpc.canDoClean <- struct{}{}:
 		startTime := time.Now()
 		haveTime := func() bool {
-			return time.Now().Sub(startTime) < duration
+			return time.Since(startTime) < duration
 		}
 
 		tpc.cleanPools(haveTime)

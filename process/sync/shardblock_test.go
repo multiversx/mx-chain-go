@@ -171,7 +171,6 @@ func createBlockProcessor() *mock.BlockProcessorMock {
 			return nil
 		},
 		RevertAccountStateCalled: func() {
-			return
 		},
 		CommitBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
@@ -3086,7 +3085,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	}
 
 	store.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-		mapToRet := make(map[string][]byte, 0)
+		mapToRet := make(map[string][]byte)
 		mb := block.MiniBlock{ReceiverShardID: 1, SenderShardID: 0}
 		mshlzdMb, _ := json.Marshal(mb)
 		mapToRet["mb1"] = mshlzdMb

@@ -68,7 +68,6 @@ func getMessenger() *mock.MessengerStub {
 			return nil
 		},
 		BroadcastCalled: func(topic string, buff []byte) {
-			return
 		},
 	}
 
