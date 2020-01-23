@@ -40,7 +40,7 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(int64(index) * rnd.timeDuration.Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(index * rnd.timeDuration.Nanoseconds()))
 	}
 }
 

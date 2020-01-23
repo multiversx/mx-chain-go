@@ -107,14 +107,6 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{
-				MergeCalled: func(u uint64, hashMap dataRetriever.ShardIdHashMap) {},
-				HasCalled: func(nonce uint64, shardId uint32) bool {
-					return true
-				},
-			}
-		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -163,9 +155,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		HeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			cs := &mock.HeadersCacherStub{}
+			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
 			return cs
 		},
@@ -203,11 +195,9 @@ func generateTestCache() storage.Cacher {
 }
 
 func generateTestUnit() storage.Storer {
-	memDB, _ := memorydb.New()
-
 	storer, _ := storageUnit.NewStorageUnit(
 		generateTestCache(),
-		memDB,
+		memorydb.New(),
 	)
 
 	return storer
@@ -487,6 +477,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -579,6 +570,7 @@ func createPreProcessorContainerWithDataPool(
 			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -767,7 +759,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
-	assert.True(t, finalized)
+	assert.False(t, finalized)
 }
 
 func createTestMetablock() *block.MetaBlock {
@@ -897,6 +889,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 				return 0
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1002,6 +995,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 				return totalGasConsumed
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1545,6 +1539,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1722,6 +1717,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1851,6 +1847,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1989,6 +1986,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2121,6 +2119,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			RemoveGasConsumedCalled: func(hashes [][]byte) {
 			},
 		},
+		&mock.BlockTrackerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2390,4 +2389,29 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 	assert.Nil(t, err)
 
 	assert.True(t, intermediateTxWereSaved)
+}
+
+func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool.MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		createInterimProcessorContainer(),
+		&mock.GasHandlerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	preProcLen := len(tc.keysTxPreProcs)
+	lastKey := tc.keysTxPreProcs[preProcLen-1]
+
+	assert.Equal(t, block.RewardsBlock, lastKey)
 }

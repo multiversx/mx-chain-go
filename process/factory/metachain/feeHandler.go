@@ -10,30 +10,31 @@ import (
 type TransactionFeeHandler struct {
 }
 
+// MaxGasLimitPerBlock will return the maximum gas limit to exist in a block
 func (t *TransactionFeeHandler) MaxGasLimitPerBlock() uint64 {
 	return 1500000000
 }
 
-func (t *TransactionFeeHandler) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+// ComputeGasLimit will return 0
+func (t *TransactionFeeHandler) ComputeGasLimit(_ process.TransactionWithFeeHandler) uint64 {
 	return 0
 }
 
-func (t *TransactionFeeHandler) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+// ComputeFee will return 0
+func (t *TransactionFeeHandler) ComputeFee(_ process.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)
 }
 
-func (t *TransactionFeeHandler) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+// CheckValidityTxValues will return nil for any tx
+func (t *TransactionFeeHandler) CheckValidityTxValues(_ process.TransactionWithFeeHandler) error {
 	return nil
 }
 
 // ProcessTransactionFee empty cost processing for metachain
-func (t *TransactionFeeHandler) ProcessTransactionFee(cost *big.Int) {
+func (t *TransactionFeeHandler) ProcessTransactionFee(_ *big.Int) {
 }
 
 // IsInterfaceNil verifies if underlying struct is nil
 func (t *TransactionFeeHandler) IsInterfaceNil() bool {
-	if t == nil {
-		return true
-	}
-	return false
+	return t == nil
 }

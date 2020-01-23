@@ -21,14 +21,8 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(arguments.PoolsHolder.MetaBlocks()) {
-		return nil, process.ErrNilMetaBlocksPool
-	}
-	if check.IfNil(arguments.PoolsHolder.ShardHeaders()) {
-		return nil, process.ErrNilShardBlockPool
-	}
-	if check.IfNil(arguments.PoolsHolder.HeadersNonces()) {
-		return nil, process.ErrNilHeadersNoncesDataPool
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
+		return nil, process.ErrNilHeadersDataPool
 	}
 
 	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer)
@@ -51,20 +45,24 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
+	blockBalancer, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                        arguments.Hasher,
 		headerValidator:               arguments.HeaderValidator,
 		marshalizer:                   arguments.Marshalizer,
 		rounder:                       arguments.Rounder,
 		shardCoordinator:              arguments.ShardCoordinator,
-		metaBlocksPool:                arguments.PoolsHolder.MetaBlocks(),
-		shardHeadersPool:              arguments.PoolsHolder.ShardHeaders(),
-		headersNoncesPool:             arguments.PoolsHolder.HeadersNonces(),
+		headersPool:                   arguments.PoolsHolder.Headers(),
 		store:                         arguments.Store,
 		crossNotarizer:                crossNotarizer,
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancer,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
@@ -76,8 +74,9 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
+	blockProcessorObject, err := NewBlockProcessor(
 		arguments.HeaderValidator,
+		arguments.RequestHandler,
 		arguments.ShardCoordinator,
 		&mbt,
 		crossNotarizer,
@@ -88,11 +87,10 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
-	mbt.blockProcessor = blockProcessor
+	mbt.blockProcessor = blockProcessorObject
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
-	mbt.metaBlocksPool.RegisterHandler(mbt.receivedMetaBlock)
-	mbt.shardHeadersPool.RegisterHandler(mbt.receivedShardHeader)
+	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 
 	return &mbt, nil
 }
@@ -102,14 +100,14 @@ func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*h
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Debug("getSelfHeaders", process.ErrWrongTypeAssertion)
+		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfMetaBlocksInfo
 	}
 
 	for _, metaBlockHash := range header.MetaBlockHashes {
-		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.metaBlocksPool, mbt.marshalizer, mbt.store)
+		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.headersPool, mbt.marshalizer, mbt.store)
 		if err != nil {
-			log.Debug("GetMetaHeader", err.Error())
+			log.Trace("getSelfHeaders.GetMetaHeader", "error", err.Error())
 			continue
 		}
 
@@ -128,4 +126,7 @@ func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte
 
 	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
+}
+
+func (mbt *metaBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
 }

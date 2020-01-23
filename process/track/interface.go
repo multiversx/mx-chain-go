@@ -28,6 +28,12 @@ type blockProcessorHandler interface {
 
 type blockTrackerHandler interface {
 	getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo
+	computeNumPendingMiniBlocks(headers []data.HeaderHandler)
 	computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+}
+
+type blockBalancerHandler interface {
+	getNumPendingMiniBlocks(shardID uint32) uint32
+	setNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
 }

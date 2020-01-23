@@ -2,7 +2,6 @@ package sync
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -30,7 +29,7 @@ type MetaBootstrap struct {
 
 // NewMetaBootstrap creates a new Bootstrap object
 func NewMetaBootstrap(
-	poolsHolder dataRetriever.MetaPoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	rounder consensus.Rounder,
@@ -48,19 +47,20 @@ func NewMetaBootstrap(
 	storageBootstrapper process.BootstrapperFromStorage,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochBootstrap process.EpochBootstrapper,
+	epochHandler dataRetriever.EpochHandler,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.HeadersNonces()) {
-		return nil, process.ErrNilHeadersNoncesDataPool
-	}
-	if check.IfNil(poolsHolder.MetaBlocks()) {
+	if check.IfNil(poolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 	if check.IfNil(epochBootstrap) {
 		return nil, process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(epochHandler) {
+		return nil, process.ErrNilEpochHandler
 	}
 
 	err := checkBootstrapNilParameters(
@@ -86,8 +86,7 @@ func NewMetaBootstrap(
 		blkc:                  blkc,
 		blkExecutor:           blkExecutor,
 		store:                 store,
-		headers:               poolsHolder.MetaBlocks(),
-		headersNonces:         poolsHolder.HeadersNonces(),
+		headers:               poolsHolder.Headers(),
 		rounder:               rounder,
 		waitTime:              waitTime,
 		hasher:                hasher,
@@ -101,6 +100,7 @@ func NewMetaBootstrap(
 		storageBootstrapper:   storageBootstrapper,
 		requestedItemsHandler: requestedItemsHandler,
 		miniBlocks:            poolsHolder.MiniBlocks(),
+		epochHandler:          epochHandler,
 	}
 
 	boot := MetaBootstrap{
@@ -155,8 +155,7 @@ func NewMetaBootstrap(
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
-	boot.headers.RegisterHandler(boot.receivedHeader)
+	boot.headers.RegisterHandler(boot.processReceivedHeader)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 
 	boot.chStopSync = make(chan bool)
@@ -189,16 +188,6 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 	}
 
 	return block.Body(miniBlocks), nil
-}
-
-func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
-		return
-	}
-
-	boot.processReceivedHeader(header, headerHash)
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -251,7 +240,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	err := boot.hdrRes.RequestDataFromNonce(nonce)
+	err := boot.hdrRes.RequestDataFromNonce(nonce, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
 		return
@@ -276,7 +265,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	err := boot.hdrRes.RequestDataFromHash(hash)
+	err := boot.hdrRes.RequestDataFromHash(hash, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
 		return
@@ -299,20 +288,18 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
 	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 	if err != nil {
 		_ = process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
-		err := boot.waitForHeaderNonce()
+		err = boot.waitForHeaderNonce()
 		if err != nil {
 			return nil, err
 		}
 
 		hdr, _, err = process.GetMetaHeaderFromPoolWithNonce(
 			nonce,
-			boot.headers,
-			boot.headersNonces)
+			boot.headers)
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +315,7 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 	if err != nil {
 		_ = process.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)
-		err := boot.waitForHeaderHash()
+		err = boot.waitForHeaderHash()
 		if err != nil {
 			return nil, err
 		}
@@ -387,8 +374,7 @@ func (boot *MetaBootstrap) IsInterfaceNil() bool {
 func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
-		boot.headers,
-		boot.headersNonces)
+		boot.headers)
 
 	return err == nil
 }
@@ -420,20 +406,16 @@ func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.He
 	return blockBody, nil
 }
 
-func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint32, nonce uint64) {
+func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerHandler data.HeaderHandler) {
 	nextBlockNonce := boot.getNonceForNextBlock()
 	maxNonce := core.MinUint64(nextBlockNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
-	if nonce < nextBlockNonce || nonce > maxNonce {
+	if headerHandler.GetNonce() < nextBlockNonce || headerHandler.GetNonce() > maxNonce {
 		return
 	}
 
-	header, _, err := process.GetMetaHeaderFromPoolWithNonce(
-		nonce,
-		boot.headers,
-		boot.headersNonces)
-
-	if err != nil {
-		log.Trace("GetMetaHeaderFromPoolWithNonce", "error", err.Error())
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Warn("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 
@@ -450,7 +432,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
+		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes, boot.epochHandler.Epoch())
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
@@ -471,8 +453,5 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 }
 
 func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
-	return boot.forkInfo.IsDetected &&
-		boot.forkInfo.Nonce != math.MaxUint64 &&
-		boot.forkInfo.Round != math.MaxUint64 &&
-		boot.forkInfo.Hash != nil
+	return false
 }

@@ -2,6 +2,7 @@ package pruning_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -37,7 +38,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return memorydb.New()
+			return memorydb.New(), nil
 		},
 	}
 	return &pruning.StorerArgs{
@@ -135,7 +136,7 @@ func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
 				assert.Fail(t, "path not set correctly")
 			}
 
-			return memorydb.New()
+			return memorydb.New(), nil
 		},
 	}
 	ps, err := pruning.NewShardedPruningStorer(args, shardId)
@@ -223,7 +224,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"], _ = memorydb.New()
+	persistersByPath["Epoch_0"] = memorydb.New()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -232,7 +233,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -316,7 +317,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"], _ = memorydb.New()
+	persistersByPath["Epoch_0"] = memorydb.New()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -325,7 +326,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -372,7 +373,7 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers, _ := memorydb.New()
+			newPers := memorydb.New()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -387,6 +388,62 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 	_ = ps.ChangeEpoch(3)
 
 	assert.Equal(t, 1, len(persistersByPath))
+}
+
+func TestPruningStorer_SearchFirst(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 3
+	args.NumOfEpochsToKeep = 4
+
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// add a key and then make 2 epoch changes so the data won't be available anymore
+	testKey, _ := json.Marshal([]byte("key"))
+	testVal := []byte("value")
+	err := ps.Put(testKey, testVal)
+	assert.Nil(t, err)
+
+	ps.ClearCache()
+
+	// check the SearchFirst method works for only one active persister
+	res, _ := ps.SearchFirst(testKey)
+	assert.Equal(t, testVal, res)
+
+	// now skip 1 epoch and data should still be available
+	_ = ps.ChangeEpoch(1)
+	ps.ClearCache()
+	res, _ = ps.SearchFirst(testKey)
+	assert.Equal(t, testVal, res)
+
+	// skip one more epoch and data should still be available
+	_ = ps.ChangeEpoch(2)
+	ps.ClearCache()
+	res, _ = ps.SearchFirst(testKey)
+	assert.Equal(t, testVal, res)
+
+	// when we skip one more epoch, the number of active persisters is exceeded and data shouldn't be available anymore
+	_ = ps.ChangeEpoch(1)
+	ps.ClearCache()
+	res, err = ps.SearchFirst(testKey)
+	assert.Nil(t, res)
+	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
 }
 
 func TestRegex(t *testing.T) {

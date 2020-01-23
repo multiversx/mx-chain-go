@@ -15,11 +15,11 @@ func NewSoftwareVersionFactory(statusHandler core.AppStatusHandler) (*softwareVe
 		return nil, core.ErrNilAppStatusHandler
 	}
 
-	softwareVersionFactory := &softwareVersionFactory{
+	softwareVersionFactoryObject := &softwareVersionFactory{
 		statusHandler: statusHandler,
 	}
 
-	return softwareVersionFactory, nil
+	return softwareVersionFactoryObject, nil
 }
 
 // Create returns an software version checker object

@@ -71,9 +71,9 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	}
 
 	accountBalance := account.Balance
-	txTotalValue := interceptedTx.TotalValue()
-	if accountBalance.Cmp(txTotalValue) < 0 {
-		return fmt.Errorf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance)
+	txFee := interceptedTx.Fee()
+	if accountBalance.Cmp(txFee) < 0 {
+		return fmt.Errorf("insufficient balance. Needed at least %d (fee), account has %d", txFee, accountBalance)
 	}
 
 	return nil

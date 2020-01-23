@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
@@ -383,8 +384,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-	logLevel := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevel)
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err := logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -404,7 +405,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 	}
-	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -539,8 +540,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
 			defaultDBPath)
@@ -606,7 +607,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -740,6 +741,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		0,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
+		generalConfig.StateTrieConfig.RoundsModulus,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -855,6 +857,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
 	log.Info("terminating at user's signal...")
+
+	log.Debug("closing all store units....")
+	err = dataComponents.Store.CloseAll()
+	log.LogIfError(err)
+
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
 
 	if rm != nil {
 		err = rm.Close()
@@ -977,7 +989,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	rater sharding.RaterHandler,
+	_ sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -997,9 +1009,9 @@ func createNodesCoordinator(
 	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
+			validator, errNewValidator := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if errNewValidator != nil {
+				return nil, errNewValidator
 			}
 
 			validators = append(validators, validator)
@@ -1165,6 +1177,7 @@ func createNode(
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
+		node.WithBlockTracker(process.BlockTracker),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1175,11 +1188,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1189,7 +1204,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
@@ -1197,8 +1212,15 @@ func createNode(
 	return nd, nil
 }
 
-func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
-	workingDir string) error {
+func initStatsFileMonitor(
+	config *config.Config,
+	pubKey crypto.PublicKey,
+	log logger.Logger,
+	workingDir string,
+	pathManager storage.PathManagerHandler,
+	shardId string,
+) error {
+
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
@@ -1210,7 +1232,7 @@ func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log lo
 	if err != nil {
 		return err
 	}
-	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1238,12 +1260,18 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 	return errors.New("could not init core service container")
 }
 
-func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log logger.Logger) error {
-	if !config.Enabled {
+func startStatisticsMonitor(
+	file *os.File,
+	generalConfig *config.Config,
+	log logger.Logger,
+	pathManager storage.PathManagerHandler,
+	shardId string,
+) error {
+	if !generalConfig.ResourceStats.Enabled {
 		return nil
 	}
 
-	if config.RefreshIntervalInSec < 1 {
+	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
@@ -1254,9 +1282,9 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 
 	go func() {
 		for {
-			err = resMon.SaveStatistics()
+			err = resMon.SaveStatistics(generalConfig, pathManager, shardId)
 			log.LogIfError(err)
-			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}
 	}()
 

@@ -130,7 +130,7 @@ func createSigShares(
 
 		// set the <i> commitment for all signers
 		for j := uint16(0); j < nbSigs; j++ {
-			multiSigners[j].StoreCommitment(i, comm)
+			_ = multiSigners[j].StoreCommitment(i, comm)
 		}
 	}
 
@@ -346,7 +346,7 @@ func TestBelNevSigner_CreateOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, comm := multiSig.CreateCommitment()
-	multiSig.StoreCommitment(0, comm)
+	_ = multiSig.StoreCommitment(0, comm)
 
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 	mSig, _ := multiSigCreated.(multiSignerBN)

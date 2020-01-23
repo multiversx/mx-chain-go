@@ -72,12 +72,12 @@ func (bn *blockNotarizer) cleanupNotarizedHeadersBehindNonce(shardID uint32, non
 	}
 
 	headersInfo := make([]*headerInfo, 0)
-	for _, headerInfo := range notarizedHeaders {
-		if headerInfo.header.GetNonce() < nonce {
+	for _, hdrInfo := range notarizedHeaders {
+		if hdrInfo.header.GetNonce() < nonce {
 			continue
 		}
 
-		headersInfo = append(headersInfo, headerInfo)
+		headersInfo = append(headersInfo, hdrInfo)
 	}
 
 	bn.notarizedHeaders[shardID] = headersInfo
@@ -108,11 +108,11 @@ func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32, message string
 		"shard", shardID,
 		"nb", len(notarizedHeaders))
 
-	for _, headerInfo := range notarizedHeaders {
+	for _, hdrInfo := range notarizedHeaders {
 		log.Trace("notarized header info",
-			"round", headerInfo.header.GetRound(),
-			"nonce", headerInfo.header.GetNonce(),
-			"hash", headerInfo.hash)
+			"round", hdrInfo.header.GetRound(),
+			"nonce", hdrInfo.header.GetNonce(),
+			"hash", hdrInfo.hash)
 	}
 }
 
@@ -124,12 +124,12 @@ func (bn *blockNotarizer) getLastNotarizedHeader(shardID uint32) (data.HeaderHan
 		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
 	}
 
-	headerInfo := bn.lastNotarizedHeaderInfo(shardID)
-	if headerInfo == nil {
+	hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
+	if hdrInfo == nil {
 		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
 	}
 
-	return headerInfo.header, headerInfo.hash, nil
+	return hdrInfo.header, hdrInfo.hash, nil
 }
 
 func (bn *blockNotarizer) getLastNotarizedHeaderNonce(shardID uint32) uint64 {
@@ -140,12 +140,12 @@ func (bn *blockNotarizer) getLastNotarizedHeaderNonce(shardID uint32) uint64 {
 		return 0
 	}
 
-	headerInfo := bn.lastNotarizedHeaderInfo(shardID)
-	if headerInfo == nil {
+	hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
+	if hdrInfo == nil {
 		return 0
 	}
 
-	return headerInfo.header.GetNonce()
+	return hdrInfo.header.GetNonce()
 }
 
 func (bn *blockNotarizer) lastNotarizedHeaderInfo(shardID uint32) *headerInfo {
@@ -175,9 +175,9 @@ func (bn *blockNotarizer) getNotarizedHeader(shardID uint32, offset uint64) (dat
 		return nil, nil, ErrNotarizedHeaderOffsetIsOutOfBound
 	}
 
-	headerInfo := headersInfo[notarizedHeadersCount-offset-1]
+	hdrInfo := headersInfo[notarizedHeadersCount-offset-1]
 
-	return headerInfo.header, headerInfo.hash, nil
+	return hdrInfo.header, hdrInfo.hash, nil
 }
 
 func (bn *blockNotarizer) initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
@@ -190,8 +190,7 @@ func (bn *blockNotarizer) initNotarizedHeaders(startHeaders map[uint32]data.Head
 
 	bn.notarizedHeaders = make(map[uint32][]*headerInfo)
 
-	for _, startHeader := range startHeaders {
-		shardID := startHeader.GetShardID()
+	for shardID, startHeader := range startHeaders {
 		startHeaderHash, err := core.CalculateHash(bn.marshalizer, bn.hasher, startHeader)
 		if err != nil {
 			return err

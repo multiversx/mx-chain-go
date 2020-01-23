@@ -11,6 +11,7 @@ import (
 
 type blockProcessor struct {
 	headerValidator  process.HeaderConstructionValidator
+	requestHandler   process.RequestHandler
 	shardCoordinator sharding.Coordinator
 
 	blockTracker                  blockTrackerHandler
@@ -24,6 +25,7 @@ type blockProcessor struct {
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
 func NewBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
+	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	blockTracker blockTrackerHandler,
 	crossNotarizer blockNotarizerHandler,
@@ -33,6 +35,7 @@ func NewBlockProcessor(
 
 	err := checkBlockProcessorNilParameters(
 		headerValidator,
+		requestHandler,
 		shardCoordinator,
 		blockTracker,
 		crossNotarizer,
@@ -45,6 +48,7 @@ func NewBlockProcessor(
 
 	bp := blockProcessor{
 		headerValidator:               headerValidator,
+		requestHandler:                requestHandler,
 		shardCoordinator:              shardCoordinator,
 		blockTracker:                  blockTracker,
 		crossNotarizer:                crossNotarizer,
@@ -81,6 +85,7 @@ func (bp *blockProcessor) doJobOnReceivedHeader(shardID uint32) {
 func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bp.computeLongestChainFromLastCrossNotarized(shardID)
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
+	bp.blockTracker.computeNumPendingMiniBlocks(crossNotarizedHeaders)
 
 	if len(crossNotarizedHeaders) > 0 {
 		bp.crossNotarizedHeadersNotifier.callHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
@@ -152,6 +157,8 @@ func (bp *blockProcessor) computeLongestChain(shardID uint32, header data.Header
 		headers = append(headers, sortedHeaders[index])
 		headersHashes = append(headersHashes, sortedHeadersHashes[index])
 	}
+
+	bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 
 	return headers, headersHashes
 }
@@ -230,8 +237,62 @@ func (bp *blockProcessor) checkHeaderFinality(
 	return nil
 }
 
+func (bp *blockProcessor) requestHeadersIfNeeded(
+	lastNotarizedHeader data.HeaderHandler,
+	sortedHeaders []data.HeaderHandler,
+	longestChainHeaders []data.HeaderHandler,
+) {
+	if check.IfNil(lastNotarizedHeader) {
+		return
+	}
+
+	nbSortedHeaders := len(sortedHeaders)
+	if nbSortedHeaders == 0 {
+		return
+	}
+
+	highestNonceReceived := sortedHeaders[nbSortedHeaders-1].GetNonce()
+	highestNonceInLongestChain := lastNotarizedHeader.GetNonce()
+	nbLongestChainHeaders := len(longestChainHeaders)
+	if nbLongestChainHeaders > 0 {
+		highestNonceInLongestChain = longestChainHeaders[nbLongestChainHeaders-1].GetNonce()
+	}
+
+	if highestNonceReceived <= highestNonceInLongestChain+bp.blockFinality {
+		return
+	}
+
+	shouldRequestHeaders := nbLongestChainHeaders == 0 ||
+		(nbLongestChainHeaders > 0 && highestNonceReceived%process.NonceModulusTrigger == 0)
+	if !shouldRequestHeaders {
+		return
+	}
+
+	log.Debug("requestHeadersIfNeeded",
+		"shard", lastNotarizedHeader.GetShardID(),
+		"last notarized nonce", lastNotarizedHeader.GetNonce(),
+		"highest nonce received", highestNonceReceived,
+		"highest nonce in longest chain", highestNonceInLongestChain)
+
+	shardID := lastNotarizedHeader.GetShardID()
+	fromNonce := highestNonceInLongestChain + 1
+	toNonce := fromNonce + bp.blockFinality
+	for nonce := fromNonce; nonce <= toNonce; nonce++ {
+		log.Debug("request header",
+			"shard", shardID,
+			"nonce", nonce)
+
+		if shardID == sharding.MetachainShardId {
+			go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+		} else {
+			go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+		}
+	}
+}
+
 func checkBlockProcessorNilParameters(
 	headerValidator process.HeaderConstructionValidator,
+	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	blockTracker blockTrackerHandler,
 	crossNotarizer blockNotarizerHandler,
@@ -240,6 +301,9 @@ func checkBlockProcessorNilParameters(
 ) error {
 	if check.IfNil(headerValidator) {
 		return process.ErrNilHeaderValidator
+	}
+	if check.IfNil(requestHandler) {
+		return process.ErrNilRequestHandler
 	}
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator

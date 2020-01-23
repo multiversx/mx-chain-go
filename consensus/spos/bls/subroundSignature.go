@@ -63,7 +63,10 @@ func checkNewSubroundSignatureParams(
 
 // doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
-	if !sr.CanDoSubroundJob(SrSignature) {
+	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		return true
+	}
+	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
 
@@ -94,12 +97,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		log.Debug("step 2: signature has been sent",
 			"type", "spos/bls",
 			"time [s]", sr.SyncTimer().FormattedCurrentTime())
-
-		// Validator has finished its job for this round
-		sr.RoundCanceled = true
 	}
 
-	err = sr.SetSelfJobDone(SrSignature, true)
+	err = sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		debugError("SetSelfJobDone", err)
 		return false
@@ -112,6 +112,10 @@ func (sr *subroundSignature) doSignatureJob() bool {
 // If the signature is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
+	if !sr.IsSelfLeaderInCurrentRound() {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
@@ -122,17 +126,15 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrSignature) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
 		return false
 	}
 
 	// if this node is leader in this round and it already received 2/3 + 1 of signatures
 	// it will ignore any others received later
-	if sr.IsSelfLeaderInCurrentRound() {
-		threshold := sr.Threshold(SrSignature)
-		if ok, _ := sr.signaturesCollected(threshold); ok {
-			return false
-		}
+	threshold := sr.Threshold(sr.Current())
+	if ok, _ := sr.signaturesCollected(threshold); ok {
+		return false
 	}
 
 	index, err := sr.ConsensusGroupIndex(node)
@@ -148,21 +150,19 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	err = sr.SetJobDone(node, SrSignature, true)
+	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
 		debugError("SetJobDone", err)
 		return false
 	}
 
-	if sr.IsSelfLeaderInCurrentRound() {
-		threshold := sr.Threshold(SrSignature)
-		if ok, n := sr.signaturesCollected(threshold); ok {
-			log.Debug("step 2: signatures",
-				"type", "spos/bls",
-				"time [s]", sr.SyncTimer().FormattedCurrentTime(),
-				"received", n,
-				"total", len(sr.ConsensusGroup()))
-		}
+	threshold = sr.Threshold(sr.Current())
+	if ok, n := sr.signaturesCollected(threshold); ok {
+		log.Debug("step 2: signatures",
+			"type", "spos/bls",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"received", n,
+			"total", len(sr.ConsensusGroup()))
 	}
 
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
@@ -175,19 +175,29 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(SrSignature) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 
 		return true
 	}
 
-	threshold := sr.Threshold(SrSignature)
-	if ok, _ := sr.signaturesCollected(threshold); ok {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
+
+	threshold := sr.Threshold(sr.Current())
+	areSignaturesCollected, _ := sr.signaturesCollected(threshold)
+
+	isJobDoneByLeader := isSelfLeader && areSignaturesCollected
+	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
+
+	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
+
+	if isSubroundFinished {
 		log.Debug("step 2: Subround has been finished",
 			"type", "spos/bls",
 			"subround", sr.Name(),
 			"time [s]", sr.SyncTimer().FormattedCurrentTime())
-		sr.SetStatus(SrSignature, spos.SsFinished)
+		sr.SetStatus(sr.Current(), spos.SsFinished)
 
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 
@@ -205,7 +215,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 
-		isSignJobDone, err := sr.JobDone(node, SrSignature)
+		isSignJobDone, err := sr.JobDone(node, sr.Current())
 		if err != nil {
 			debugError("JobDone", err)
 			continue

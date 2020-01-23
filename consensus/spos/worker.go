@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -46,8 +47,11 @@ type Worker struct {
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 
-	mapHashConsensusMessage map[string][]*consensus.Message
-	mutHashConsensusMessage sync.RWMutex
+	mapDisplayHashConsensusMessage map[string][]*consensus.Message
+	mutDisplayHashConsensusMessage sync.RWMutex
+
+	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
+	mutReceivedHeadersHandler sync.RWMutex
 }
 
 // NewWorker creates a new Worker object
@@ -109,13 +113,14 @@ func NewWorker(
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
+	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
 
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 
 	return &wrk, nil
 }
@@ -188,10 +193,36 @@ func checkNewWorkerParams(
 
 func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	if isNodeSynchronized {
-		if len(wrk.consensusStateChangedChannel) == 0 {
-			wrk.consensusStateChangedChannel <- true
+		select {
+		case wrk.consensusStateChangedChannel <- true:
+		default:
 		}
 	}
+}
+
+func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
+		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
+		return
+	}
+
+	wrk.mutReceivedHeadersHandler.RLock()
+	for _, handler := range wrk.receivedHeadersHandlers {
+		handler(headerHandler)
+	}
+	wrk.mutReceivedHeadersHandler.RUnlock()
+
+	select {
+	case wrk.consensusStateChangedChannel <- true:
+	default:
+	}
+}
+
+// AddReceivedHeaderHandler adds a new handler function for a received header
+func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
+	wrk.mutReceivedHeadersHandler.Lock()
+	wrk.receivedHeadersHandlers = append(wrk.receivedHeadersHandlers, handler)
+	wrk.mutReceivedHeadersHandler.Unlock()
 }
 
 func (wrk *Worker) initReceivedMessages() {
@@ -247,14 +278,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return err
 	}
 	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
-		err := fmt.Errorf("%w received: %s, wanted %s",
+		return fmt.Errorf("%w : received: %s, wanted: %s",
 			ErrInvalidChainID,
 			hex.EncodeToString(cnsDta.ChainID),
-			hex.EncodeToString(wrk.chainID),
-		)
-		log.Debug("consensus data chain ID mismatch",
-			"error", err)
-		return err
+			hex.EncodeToString(wrk.chainID))
 	}
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
@@ -268,7 +295,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
-		return ErrSenderNotOk
+		return fmt.Errorf("%w : node with public key %s is not in eligible list",
+			ErrSenderNotOk,
+			display.DisplayByteSlice(cnsDta.PubKey))
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
@@ -284,9 +313,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		log.Debug("verify consensus data signature failed",
-			"error", sigVerifErr)
-		return ErrInvalidSignature
+		return fmt.Errorf("%w : verify consensus data signature failed: %s",
+			ErrInvalidSignature,
+			sigVerifErr.Error())
 	}
 
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
@@ -295,7 +324,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {
-			return ErrInvalidHeader
+			return fmt.Errorf("%w : received header from consensus topic is invalid",
+				ErrInvalidHeader)
 		}
 
 		log.Debug("received proposed block",
@@ -306,33 +336,32 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"prev hash", header.GetPrevHash(),
 		)
 
+		err = header.CheckChainID(wrk.chainID)
+		if err != nil {
+			return fmt.Errorf("%w : chain ID in received header from consensus topic is invalid",
+				err)
+		}
+
 		err = wrk.headerSigVerifier.VerifyRandSeed(header)
 		if err != nil {
-			log.Debug("verify rand seed failed",
-				"error", err)
-			return err
+			return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",
+				err)
 		}
 
-		err := header.CheckChainID(wrk.chainID)
+		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if err != nil {
-			log.Debug("chain ID mismatch",
-				"error", err)
-			return err
-		}
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
-		if err != nil {
-			log.Trace("add header in forkdetector", "error", err.Error())
+			log.Debug("add received header from consensus topic to fork detector failed",
+				"error", err.Error())
 			//we should not return error here because the other peers connected to self might need this message
 			//to advance the consensus
 		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.mutHashConsensusMessage.Lock()
+		wrk.mutDisplayHashConsensusMessage.Lock()
 		hash := string(cnsDta.BlockHeaderHash)
-		wrk.mapHashConsensusMessage[hash] = append(wrk.mapHashConsensusMessage[hash], cnsDta)
-		wrk.mutHashConsensusMessage.Unlock()
+		wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsDta)
+		wrk.mutDisplayHashConsensusMessage.Unlock()
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -440,8 +469,9 @@ func (wrk *Worker) checkChannels() {
 			msgType := consensus.MessageType(rcvDta.MsgType)
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.consensusStateChangedChannel) == 0 {
-						wrk.consensusStateChangedChannel <- true
+					select {
+					case wrk.consensusStateChangedChannel <- true:
+					default:
 					}
 				}
 			}
@@ -454,11 +484,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
-	wrk.displaySignatureStatistic()
-
-	wrk.mutHashConsensusMessage.Lock()
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.mutHashConsensusMessage.Unlock()
+	wrk.DisplayStatistics()
 
 	if wrk.consensusService.IsSubroundStartRound(subroundId) {
 		return
@@ -492,9 +518,9 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
-func (wrk *Worker) displaySignatureStatistic() {
-	wrk.mutHashConsensusMessage.RLock()
-	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
+func (wrk *Worker) DisplayStatistics() {
+	wrk.mutDisplayHashConsensusMessage.Lock()
+	for hash, consensusMessages := range wrk.mapDisplayHashConsensusMessage {
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
 			"sigs num", len(consensusMessages),
@@ -506,7 +532,10 @@ func (wrk *Worker) displaySignatureStatistic() {
 		}
 
 	}
-	wrk.mutHashConsensusMessage.RUnlock()
+
+	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
+
+	wrk.mutDisplayHashConsensusMessage.Unlock()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -523,8 +552,5 @@ func (wrk *Worker) ExecuteStoredMessages() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
-	if wrk == nil {
-		return true
-	}
-	return false
+	return wrk == nil
 }

@@ -2,9 +2,15 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Size   uint32 `json:"size"`
 	Type   string `json:"type"`
+	Size   uint32 `json:"size"`
 	Shards uint32 `json:"shards"`
+}
+
+//HeadersPoolConfig will map the headers cache configuration
+type HeadersPoolConfig struct {
+	MaxHeadersPerShard            int
+	NumElementsToRemoveOnEviction int
 }
 
 // DBConfig will map the json db configuration
@@ -60,6 +66,12 @@ type NTPConfig struct {
 	Version             int
 }
 
+// EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
+type EvictionWaitingListConfig struct {
+	Size uint     `json:"size"`
+	DB   DBConfig `json:"db"`
+}
+
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs int64
@@ -86,29 +98,24 @@ type Config struct {
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
+	StateTrieConfig         StateTrieConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
-	StateBlockBodyDataPool      CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
-	BlockHeaderDataPool         CacheConfig
-	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	MetaBlockBodyDataPool       CacheConfig
-
-	MiniBlockHeaderHashesDataPool CacheConfig
-	ShardHeadersDataPool          CacheConfig
-	MetaHeaderNoncesDataPool      CacheConfig
-
-	EpochStartConfig EpochStartConfig
-	Logger           LoggerConfig
-	Address          AddressConfig
-	BLSPublicKey     AddressConfig
-	Hasher           TypeConfig
-	MultisigHasher   TypeConfig
-	Marshalizer      MarshalizerConfig
+	TrieNodesDataPool           CacheConfig
+	EpochStartConfig            EpochStartConfig
+	Logger                      LoggerConfig
+	Address                     AddressConfig
+	BLSPublicKey                AddressConfig
+	Hasher                      TypeConfig
+	MultisigHasher              TypeConfig
+	Marshalizer                 MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
@@ -117,7 +124,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
 
-	NTPConfig NTPConfig
+	NTPConfig         NTPConfig
+	HeadersPoolConfig HeadersPoolConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -137,10 +145,12 @@ type StoragePruningConfig struct {
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	RandezVous           string
-	InitialPeerList      []string
+	Enabled                          bool
+	RefreshIntervalInSec             uint32
+	RandezVous                       string
+	InitialPeerList                  []string
+	BucketSize                       uint32
+	RoutingTableRefreshIntervalInSec uint32
 }
 
 // P2PConfig will hold all the P2P settings
@@ -191,4 +201,10 @@ type ElasticSearchConfig struct {
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
+}
+
+// StateTrieConfig will hold information about state trie
+type StateTrieConfig struct {
+	RoundsModulus  uint
+	PruningEnabled bool
 }
