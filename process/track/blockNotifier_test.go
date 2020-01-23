@@ -11,18 +11,21 @@ import (
 )
 
 func TestNewBlockNotifier_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, err := track.NewBlockNotifier()
 	assert.Nil(t, err)
 	assert.NotNil(t, bn)
 }
 
 func TestRegisterHandler_ShouldNotRegisterNilHandler(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotifier()
 	bn.RegisterHandler(nil)
 	assert.Equal(t, 0, len(bn.GetNotarizedHeadersHandlers()))
 }
 
 func TestRegisterHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotifier()
 
 	f1 := func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {}
@@ -35,6 +38,7 @@ func TestRegisterHandler_ShouldWork(t *testing.T) {
 }
 
 func TestCallHandler_ShouldNotCallHandlersWhenHeadersSliceIsEmpty(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotifier()
 
 	var callf1, callf2 bool
@@ -55,6 +59,7 @@ func TestCallHandler_ShouldNotCallHandlersWhenHeadersSliceIsEmpty(t *testing.T) 
 }
 
 func TestCallHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotifier()
 
 	wg := sync.WaitGroup{}

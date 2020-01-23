@@ -13,30 +13,35 @@ import (
 )
 
 func TestNewBlockNotarizer_ShouldErrNilHasher(t *testing.T) {
+	t.Parallel()
 	bn, err := track.NewBlockNotarizer(nil, &mock.MarshalizerMock{})
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, bn)
 }
 
 func TestNewBlockNotarizer_ShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, nil)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, bn)
 }
 
 func TestNewBlockNotarizer_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, bn)
 }
 
 func TestAddNotarizedHeader_ShouldNotAddNilHeader(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, nil, nil)
 	assert.Equal(t, 0, len(bn.GetNotarizedHeaders()[0]))
 }
 
 func TestAddNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -50,6 +55,7 @@ func TestAddNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenNonceIsZero(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	bn.CleanupNotarizedHeadersBehindNonce(0, 0)
@@ -57,6 +63,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenNonceIsZero(t
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenShardIsInvalid(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	bn.CleanupNotarizedHeadersBehindNonce(1, 1)
@@ -64,6 +71,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenShardIsInvali
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -80,6 +88,7 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
 }
 
 func TestNotarizedHeaders_ShouldNotDisplayWhenGivenShardIsInvalid(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	bn.AddNotarizedHeader(0, &block.Header{Nonce: 1}, nil)
@@ -88,6 +97,7 @@ func TestNotarizedHeaders_ShouldNotDisplayWhenGivenShardIsInvalid(t *testing.T) 
 }
 
 func TestNotarizedHeaders_ShouldNotDisplayWhenTheOnlyNotarizedHeaderHasNonceZero(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
@@ -96,6 +106,7 @@ func TestNotarizedHeaders_ShouldNotDisplayWhenTheOnlyNotarizedHeaderHasNonceZero
 }
 
 func TestNotarizedHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -107,12 +118,14 @@ func TestNotarizedHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestGetLastNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	_, _, err := bn.GetLastNotarizedHeader(0)
 	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
 
 func TestGetLastNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -125,6 +138,7 @@ func TestGetLastNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestGetLastNotarizedHeaderNonce_ShouldReturnZeroWhenNotarizedHeadersForGivenShardDoesNotExist(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	lastNotarizedHeaderNonce := bn.GetLastNotarizedHeaderNonce(1)
 
@@ -132,6 +146,7 @@ func TestGetLastNotarizedHeaderNonce_ShouldReturnZeroWhenNotarizedHeadersForGive
 }
 
 func TestGetLastNotarizedHeaderNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 3}
@@ -142,23 +157,27 @@ func TestGetLastNotarizedHeaderNonce_ShouldWork(t *testing.T) {
 }
 
 func TestLastNotarizedHeaderInfo_ShouldReturnNilWhenNotarizedHeadersForGivenShardDoesNotExist(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	assert.Nil(t, bn.LastNotarizedHeaderInfo(0))
 }
 
 func TestLastNotarizedHeaderInfo_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	assert.NotNil(t, bn.LastNotarizedHeaderInfo(0))
 }
 
 func TestGetNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	_, _, err := bn.GetNotarizedHeaderWithOffset(0, 0)
 	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
 
 func TestGetNotarizedHeader_ShouldErrNotarizedHeaderOffsetIsOutOfBound(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	_, _, err := bn.GetNotarizedHeaderWithOffset(0, 1)
@@ -166,6 +185,7 @@ func TestGetNotarizedHeader_ShouldErrNotarizedHeaderOffsetIsOutOfBound(t *testin
 }
 
 func TestGetNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -186,12 +206,14 @@ func TestGetNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestInitNotarizedHeaders_ShouldErrWhenStartHeadersSliceIsNil(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	err := bn.InitNotarizedHeaders(nil)
 	assert.Equal(t, process.ErrNotarizedHeadersSliceIsNil, err)
 }
 
 func TestInitNotarizedHeaders_ShouldErrWhenCalculateHashFail(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{
 		Fail: true,
 	})
@@ -204,6 +226,7 @@ func TestInitNotarizedHeaders_ShouldErrWhenCalculateHashFail(t *testing.T) {
 }
 
 func TestInitNotarizedHeaders_ShouldInitNotarizedHeaders(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	startHeaders := make(map[uint32]data.HeaderHandler)
@@ -218,6 +241,7 @@ func TestInitNotarizedHeaders_ShouldInitNotarizedHeaders(t *testing.T) {
 }
 
 func TestRemoveLastNotarizedHeader_ShouldNotRemoveIfExistOnlyOneNotarizedHeader(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	bn.RemoveLastNotarizedHeader()
@@ -225,6 +249,7 @@ func TestRemoveLastNotarizedHeader_ShouldNotRemoveIfExistOnlyOneNotarizedHeader(
 }
 
 func TestRemoveLastNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}
@@ -244,6 +269,7 @@ func TestRemoveLastNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestRestoreNotarizedHeadersToGenesis_ShouldNotRestoreIfExistOnlyOneNotarizedHeader(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
 	bn.RestoreNotarizedHeadersToGenesis()
@@ -251,6 +277,7 @@ func TestRestoreNotarizedHeadersToGenesis_ShouldNotRestoreIfExistOnlyOneNotarize
 }
 
 func TestRestoreNotarizedHeadersToGenesis_ShouldWork(t *testing.T) {
+	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	hdr1 := block.Header{Nonce: 1}

@@ -164,6 +164,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 }
 
 func TestNewBlockTrack_ShouldErrCheckTrackerNilParameters(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.Hasher = nil
 	sbt, err := track.NewShardBlockTrack(shardArguments)
@@ -178,6 +179,7 @@ func TestNewBlockTrack_ShouldErrCheckTrackerNilParameters(t *testing.T) {
 }
 
 func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.PoolsHolder = nil
 	sbt, err := track.NewShardBlockTrack(shardArguments)
@@ -192,6 +194,7 @@ func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
 }
 
 func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -214,6 +217,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 }
 
 func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.StartHeaders = nil
 	sbt, err := track.NewShardBlockTrack(shardArguments)
@@ -228,6 +232,7 @@ func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
 }
 
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, err := track.NewShardBlockTrack(shardArguments)
 	assert.Nil(t, err)
@@ -240,6 +245,7 @@ func TestNewBlockTrack_ShouldWork(t *testing.T) {
 }
 
 func TestGetSelfHeaders_ShouldReturnEmptySliceWhenErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 	headerInfo := sbt.GetSelfHeaders(&block.Header{})
@@ -252,6 +258,7 @@ func TestGetSelfHeaders_ShouldReturnEmptySliceWhenErrWrongTypeAssertion(t *testi
 }
 
 func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenNoHeadersForSelfShard(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -264,6 +271,7 @@ func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenNoHeadersForSelfShard(t *
 }
 
 func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenErrGetShardHeader(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -276,6 +284,7 @@ func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenErrGetShardHeader(t *test
 }
 
 func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -297,6 +306,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestMetaGetSelfHeaders_ShouldReturnEmptySliceWhenErrGetMetaHeader(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -309,6 +319,7 @@ func TestMetaGetSelfHeaders_ShouldReturnEmptySliceWhenErrGetMetaHeader(t *testin
 }
 
 func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	metaArguments.PoolsHolder = &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -330,6 +341,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestShardComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHeader(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 	sbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 1, 1)
@@ -339,6 +351,7 @@ func TestShardComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHead
 }
 
 func TestShardComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestChainReturnNil(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -347,6 +360,7 @@ func TestShardComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestCh
 }
 
 func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -396,6 +410,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 }
 
 func TestMetaComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHeader(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 	mbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 1, 1)
@@ -405,6 +420,7 @@ func TestMetaComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHeade
 }
 
 func TestMetaComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestChainReturnNil(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -413,6 +429,7 @@ func TestMetaComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestCha
 }
 
 func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -462,6 +479,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 }
 
 func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenHeadersSliceIsEmpty(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -470,6 +488,7 @@ func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenHeadersSliceIsEmpty(
 }
 
 func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -478,6 +497,7 @@ func TestComputePendingMiniBlockHeaders_ShouldReturnZeroWhenErrWrongTypeAssertio
 }
 
 func TestComputePendingMiniBlockHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -493,6 +513,7 @@ func TestComputePendingMiniBlockHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestReceivedHeader_ShouldAddMetaBlockToTrackedHeaders(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -506,6 +527,7 @@ func TestReceivedHeader_ShouldAddMetaBlockToTrackedHeaders(t *testing.T) {
 }
 
 func TestReceivedHeader_ShouldAddShardHeaderToTrackedHeaders(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -519,6 +541,7 @@ func TestReceivedHeader_ShouldAddShardHeaderToTrackedHeaders(t *testing.T) {
 }
 
 func TestReceivedShardHeader_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -531,6 +554,7 @@ func TestReceivedShardHeader_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T)
 }
 
 func TestReceivedShardHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -544,6 +568,7 @@ func TestReceivedShardHeader_ShouldWork(t *testing.T) {
 }
 
 func TestReceivedMetaBlock_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -556,6 +581,7 @@ func TestReceivedMetaBlock_ShouldReturnWhenErrWrongTypeAssertion(t *testing.T) {
 }
 
 func TestReceivedMetaBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -569,6 +595,7 @@ func TestReceivedMetaBlock_ShouldWork(t *testing.T) {
 }
 
 func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -587,6 +614,7 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 }
 
 func TestAddHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -612,6 +640,7 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 }
 
 func TestAddCrossNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -626,6 +655,7 @@ func TestAddCrossNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestAddSelfNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -641,6 +671,7 @@ func TestAddSelfNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestAddTrackedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -656,6 +687,7 @@ func TestAddTrackedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestCleanupHeadersBehindNonce_ShouldCleanSelfNotarizedHeaders(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -688,6 +720,7 @@ func TestCleanupHeadersBehindNonce_ShouldCleanSelfNotarizedHeaders(t *testing.T)
 }
 
 func TestCleanupHeadersBehindNonce_ShouldCleanCrossNotarizedHeaders(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -720,6 +753,7 @@ func TestCleanupHeadersBehindNonce_ShouldCleanCrossNotarizedHeaders(t *testing.T
 }
 
 func TestCleanupTrackedHeadersBehindNonce_ShouldReturnWhenNonceIsZeroOrShardNotExist(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -740,6 +774,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldReturnWhenNonceIsZeroOrShardNotE
 }
 
 func TestCleanupTrackedHeadersBehindNonce_ShouldNotCleanupWhenNonceIsGreaterOrEqual(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -756,6 +791,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldNotCleanupWhenNonceIsGreaterOrEq
 }
 
 func TestCleanupTrackedHeadersBehindNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -772,6 +808,7 @@ func TestCleanupTrackedHeadersBehindNonce_ShouldWork(t *testing.T) {
 }
 
 func TestComputeLongestChain_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -816,6 +853,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 }
 
 func TestComputeLongestMetaChainFromLastNotarized_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -825,6 +863,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldErrNotarizedHeadersSlice
 }
 
 func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -870,6 +909,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 }
 
 func TestComputeLongestShardsChainsFromLastNotarized_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -881,6 +921,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldErrNotarizedHeadersSl
 }
 
 func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -958,6 +999,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 }
 
 func TestDisplayTrackedHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -981,6 +1023,7 @@ func TestDisplayTrackedHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestDisplayTrackedHeadersForShard_ShouldNotDisplayWhenTrackedHeadersSliceIsEmpty(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -989,6 +1032,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotDisplayWhenTrackedHeadersSliceIs
 }
 
 func TestDisplayTrackedHeadersForShard_ShouldNotDisplayWhenTheOnlyTrackedHeaderHasNonceZero(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1004,6 +1048,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotDisplayWhenTheOnlyTrackedHeaderH
 }
 
 func TestDisplayTrackedHeadersForShard_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1019,6 +1064,7 @@ func TestDisplayTrackedHeadersForShard_ShouldWork(t *testing.T) {
 }
 
 func TestGetCrossNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1043,6 +1089,7 @@ func TestGetCrossNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestGetLastCrossNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1064,6 +1111,7 @@ func TestGetLastCrossNotarizedHeader_ShouldWork(t *testing.T) {
 }
 
 func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -1087,6 +1135,7 @@ func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
 }
 
 func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1112,6 +1161,7 @@ func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestGetTrackedHeadersForAllShards_ShouldWork(t *testing.T) {
+	t.Parallel()
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -1136,6 +1186,7 @@ func TestGetTrackedHeadersForAllShards_ShouldWork(t *testing.T) {
 }
 
 func TestSortHeadersFromNonce_ShouldNotSortWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1144,6 +1195,7 @@ func TestSortHeadersFromNonce_ShouldNotSortWhenTrackedHeadersSliceForShardIsEmpt
 }
 
 func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1171,6 +1223,7 @@ func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
 }
 
 func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1179,6 +1232,7 @@ func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForSha
 }
 
 func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForNonceIsEmpty(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1200,6 +1254,7 @@ func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForNon
 }
 
 func TestGetTrackedHeadersWithNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1223,6 +1278,7 @@ func TestGetTrackedHeadersWithNonce_ShouldWork(t *testing.T) {
 }
 
 func TestIsShardStuck_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1278,6 +1334,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 }
 
 func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1321,6 +1378,7 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 }
 
 func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1364,6 +1422,7 @@ func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 }
 
 func TestRemoveLastNotarizedHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1394,6 +1453,7 @@ func TestRemoveLastNotarizedHeaders_ShouldWork(t *testing.T) {
 }
 
 func TestRestoreToGenesis_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1442,6 +1502,7 @@ func TestRestoreToGenesis_ShouldWork(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilHasher(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.Hasher = nil
@@ -1451,6 +1512,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilHasher(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilHeaderValidator(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.HeaderValidator = nil
@@ -1460,6 +1522,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilHeaderValidator(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.Marshalizer = nil
@@ -1469,6 +1532,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilRequestHandler(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.RequestHandler = nil
@@ -1478,6 +1542,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilRequestHandler(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilRounder(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.Rounder = nil
@@ -1487,6 +1552,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilRounder(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilShardCoordinator(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 
 	baseArguments.ShardCoordinator = nil
@@ -1496,6 +1562,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilShardCoordinator(t *testing.T) {
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
 	baseArguments := CreateBaseTrackerMockArguments()
 	baseArguments.Store = nil
 
@@ -1505,6 +1572,7 @@ func TestCheckTrackerNilParameters_ShouldErrNilStorage(t *testing.T) {
 }
 
 func TestInitNotarizedHeaders_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1514,6 +1582,7 @@ func TestInitNotarizedHeaders_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) 
 }
 
 func TestInitNotarizedHeaders_ShouldWork(t *testing.T) {
+	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1533,4 +1602,44 @@ func TestInitNotarizedHeaders_ShouldWork(t *testing.T) {
 	assert.Equal(t, metachainStartHeader, lastCrossNotarizedHeaderForMetachain)
 	assert.Equal(t, selfStartHeader, lastSelfNotarizedHeaderForSelfShard)
 	assert.Equal(t, selfStartHeader, lastSelfNotarizedHeaderForMetachain)
+}
+
+func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
+	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
+
+	longestChain := uint64(1000)
+	chains := uint64(10)
+
+	for j := uint64(0); j < chains; j++ {
+		prevHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+		prevSeed := startHeader.GetRandSeed()
+		for i := uint64(1); i <= longestChain+1+j; i++ {
+			randSeed := shardArguments.Hasher.Compute(string(prevSeed))
+			round := i
+			if i > j {
+				round += j
+			}
+			hdr := &block.Header{
+				Round:        round,
+				Nonce:        i,
+				PrevHash:     prevHash,
+				PrevRandSeed: prevSeed,
+				RandSeed:     randSeed,
+			}
+			hdrMarshalized, _ := shardArguments.Marshalizer.Marshal(hdr)
+			prevHash = shardArguments.Hasher.Compute(string(hdrMarshalized))
+			prevSeed = hdr.RandSeed
+			if i > j {
+				sbt.AddTrackedHeader(hdr, prevHash)
+			}
+		}
+	}
+
+	headers, _ := sbt.ComputeLongestChain(shardArguments.ShardCoordinator.SelfId(), startHeader)
+	assert.Equal(t, longestChain+chains-1, uint64(len(headers)))
 }
