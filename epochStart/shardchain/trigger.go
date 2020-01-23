@@ -463,6 +463,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
+	t.epoch = shardHdr.Epoch
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
@@ -475,7 +476,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert() {
+func (t *trigger) Revert(_ uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
