@@ -2,8 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/net"
-	"github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"os"
 	"path"
@@ -16,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/shirou/gopsutil/net"
+	"github.com/shirou/gopsutil/process"
 )
 
 // ResourceMonitor outputs statistics about resources used by the binary

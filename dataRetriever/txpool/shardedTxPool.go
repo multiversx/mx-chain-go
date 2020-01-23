@@ -155,8 +155,10 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
+	var txFromCache data.TransactionHandler
+	var hashExists bool
 	for _, shard := range txPool.backingMap {
-		txFromCache, hashExists := shard.Cache.GetByTxHash(txHash)
+		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
 		if hashExists {
 			return txFromCache, true
 		}

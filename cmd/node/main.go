@@ -1203,7 +1203,12 @@ func createNode(
 			return nil, err
 		}
 	}
-
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
+		if err != nil {
+			return nil, errors.New("error creating meta-node: " + err.Error())
+		}
+	}
 	return nd, nil
 }
 

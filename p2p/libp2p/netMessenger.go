@@ -19,8 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-var sendTimeout = time.Microsecond * 100
-
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
@@ -38,6 +36,8 @@ const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 
 const defaultThresholdMinConnectedPeers = 3
+
+const durationBetweenSends = time.Microsecond * 100
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -226,14 +226,12 @@ func (netMes *networkMessenger) sendMessage() {
 		return
 	}
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), sendTimeout)
-	defer cancelFunc()
-
-	err := topic.Publish(ctx, sendableData.Buff)
+	err := topic.Publish(context.Background(), sendableData.Buff)
 	if err != nil {
 		log.Trace("error sending data",
 			"error", err)
 	}
+	time.Sleep(durationBetweenSends)
 }
 
 // Close closes the host, connections and streams

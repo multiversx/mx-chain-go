@@ -77,20 +77,16 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
-	var v []consensus.MessageType
+	v := make([]consensus.MessageType, 0)
 	bnService, _ := bn.NewConsensusService()
 
 	messagesRange := bnService.GetMessageRange()
+	assert.NotNil(t, messagesRange)
+
 	for i := bn.MtBlockBody; i <= bn.MtSignature; i++ {
 		v = append(v, i)
 	}
-
-	assert.NotNil(t, messagesRange)
-
-	if v == nil {
-		assert.Fail(t, "v should not be nil")
-		return
-	}
+	assert.NotNil(t, v)
 
 	for i, val := range messagesRange {
 		assert.Equal(t, v[i], val)

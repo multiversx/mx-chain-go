@@ -130,15 +130,20 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		return err
 	}
 
+	var pubKey string
+	var isCommJobDone bool
+	var commitment []byte
+	var receivedCommitmentHash []byte
+	var computedCommitmentHash []byte
+	var indexRequired bool
 	for i := 0; i < size; i++ {
-		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
+		indexRequired = (bitmap[i/8] & (1 << uint16(i%8))) > 0
 
 		if !indexRequired {
 			continue
 		}
 
-		pubKey := consensusGroup[i]
-		var isCommJobDone bool
+		pubKey = consensusGroup[i]
 		isCommJobDone, err = sr.JobDone(pubKey, SrCommitment)
 		if err != nil {
 			return err
@@ -148,14 +153,12 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 			return spos.ErrNilCommitment
 		}
 
-		var commitment []byte
 		commitment, err = currentMultiSigner.Commitment(uint16(i))
 		if err != nil {
 			return err
 		}
 
-		computedCommitmentHash := sr.Hasher().Compute(string(commitment))
-		var receivedCommitmentHash []byte
+		computedCommitmentHash = sr.Hasher().Compute(string(commitment))
 		receivedCommitmentHash, err = currentMultiSigner.CommitmentHash(uint16(i))
 
 		if err != nil {

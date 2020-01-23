@@ -334,7 +334,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	assert.False(t, r)
 }
 
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConsensusGroup(t *testing.T) {
+func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsensusGroup(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -347,7 +347,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
-	assert.False(t, r)
+	assert.True(t, r)
 }
 
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *testing.T) {

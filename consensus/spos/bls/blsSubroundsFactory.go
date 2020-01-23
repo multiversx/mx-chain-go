@@ -257,6 +257,9 @@ func (fct *factory) generateEndRoundSubround() error {
 	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
+		spos.MaxThresholdPercent,
+		getSubroundName,
+		fct.worker.DisplayStatistics,
 	)
 	if err != nil {
 		return err
@@ -267,6 +270,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
+	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil
@@ -280,10 +284,7 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
+	return fct == nil
 }
 
 func debugError(message string, err error) {
