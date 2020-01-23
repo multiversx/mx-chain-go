@@ -58,6 +58,7 @@ func NewInterceptorsContainerFactory(
 	blackList process.BlackListHandler,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
+	currInterceptorsContainter process.InterceptorsContainer,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
