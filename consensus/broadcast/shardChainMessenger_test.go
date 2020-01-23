@@ -353,8 +353,7 @@ func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
+	channelCalled := make(chan bool)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{

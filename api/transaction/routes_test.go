@@ -277,6 +277,88 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, txHashResponse.TxHash, txHash)
 }
 
+func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
+}
+
+func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+	ws := startNodeServer(&facade)
+
+	jsonStr := `{"wrong": json}`
+
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
+	assert.Empty(t, transactionResponse.TxResp)
+}
+
+func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
+	t.Parallel()
+
+	createTxWasCalled := false
+	sendBulkTxsWasCalled := false
+
+	facade := mock.Facade{
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (i *tr.Transaction, e error) {
+			createTxWasCalled = true
+			return &tr.Transaction{}, nil
+		},
+		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, e error) {
+			sendBulkTxsWasCalled = true
+			return 0, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx0 := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      []byte{},
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	tx1 := tx0
+	tx1.Sender = "sender2"
+	txs := []*transaction.SendTxRequest{&tx0, &tx1}
+
+	jsonBytes, _ := json.Marshal(txs)
+
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.True(t, createTxWasCalled)
+	assert.True(t, sendBulkTxsWasCalled)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
