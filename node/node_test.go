@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -34,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func logError(err error) {
@@ -91,9 +93,8 @@ func getHasher() hashing.Hasher {
 func TestNewNode(t *testing.T) {
 	n, err := node.NewNode()
 
-	assert.NotNil(t, n)
 	assert.Nil(t, err)
-	assert.False(t, n.IsInterfaceNil())
+	assert.False(t, check.IfNil(n))
 }
 
 func TestNewNode_NotRunning(t *testing.T) {
@@ -134,6 +135,24 @@ func TestStart_CorrectParams(t *testing.T) {
 	defer func() { _ = n.Stop() }()
 	assert.Nil(t, err)
 	assert.True(t, n.IsRunning())
+}
+
+func TestStart_CannotApplyOptions(t *testing.T) {
+
+	messenger := getMessenger()
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithHasher(getHasher()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+	)
+	err := n.Start()
+	require.Nil(t, err)
+	defer func() { _ = n.Stop() }()
+
+	err = n.ApplyOptions(node.WithDataPool(&mock.PoolsHolderStub{}))
+	require.Error(t, err)
 }
 
 func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
@@ -995,6 +1014,120 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrWrongValues, err)
 }
 
+func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode()
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, node.ErrNilShardCoordinator, err)
+}
+
+func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
+	t.Parallel()
+
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode(
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return true
+			},
+		}),
+	)
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, node.ErrValidatorAlreadySet, err)
+}
+
+func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("error")
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode(
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return localError
+			},
+		}),
+	)
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, localError, err)
+}
+
+func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(node.WithShardCoordinator(&mock.ShardCoordinatorMock{}))
+
+	err := n.CreateConsensusTopic(nil)
+	require.Equal(t, node.ErrNilMessenger, err)
+}
+
+func TestNode_GetCurrentPubKey(t *testing.T) {
+	t.Parallel()
+
+	publicKey := "publicKey"
+	n, _ := node.NewNode(node.WithTxSignPubKey(&mock.PublicKeyMock{ToByteArrayHandler: func() (i []byte, err error) {
+		return []byte(publicKey), nil
+	}}))
+
+	pubKey := n.GetCurrentPublicKey()
+
+	expectedKey := fmt.Sprintf("%x", []byte(publicKey))
+	require.Equal(t, expectedKey, pubKey)
+}
+
+func TestNode_GetCurrentPubKeyNilTxSignPubKey(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	pubKey := n.GetCurrentPublicKey()
+	require.Equal(t, "", pubKey)
+}
+
+func TestNode_ValidatorStatisticsApi(t *testing.T) {
+	t.Parallel()
+
+	initialPubKeys := make(map[uint32][]string)
+	keys := [][]string{{"key0"}, {"key1"}, {"key2"}}
+	initialPubKeys[0] = keys[0]
+	initialPubKeys[1] = keys[1]
+	initialPubKeys[2] = keys[2]
+
+	n, _ := node.NewNode(
+		node.WithInitialNodesPubKeys(initialPubKeys),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
+				switch {
+				case bytes.Equal(address, []byte(keys[0][0])):
+					return nil, errors.New("error")
+				case bytes.Equal(address, []byte(keys[1][0])):
+					return &mock.PeerAccountHandlerMock{}, nil
+				default:
+					return state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+				}
+			},
+		}),
+	)
+
+	expectedData := &state.ValidatorApiResponse{}
+	validatorsData, err := n.ValidatorStatisticsApi()
+	require.Equal(t, expectedData, validatorsData[hex.EncodeToString([]byte(keys[2][0]))])
+	require.Nil(t, err)
+}
+
 func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1556,7 +1689,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 	}
 	rf := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverMock{}, nil
+			return &mock.MiniBlocksResolverStub{}, nil
 		},
 	}
 
@@ -1658,10 +1791,10 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 	}
 	rf := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverMock{}, nil
+			return &mock.MiniBlocksResolverStub{}, nil
 		},
 		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverMock{}, nil
+			return &mock.HeaderResolverStub{}, nil
 		},
 	}
 
@@ -1747,10 +1880,10 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	}
 	rf := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverMock{}, nil
+			return &mock.MiniBlocksResolverStub{}, nil
 		},
 		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverMock{}, nil
+			return &mock.HeaderResolverStub{}, nil
 		},
 	}
 
@@ -1835,10 +1968,10 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	}
 	rf := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverMock{}, nil
+			return &mock.MiniBlocksResolverStub{}, nil
 		},
 		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverMock{}, nil
+			return &mock.HeaderResolverStub{}, nil
 		},
 	}
 
