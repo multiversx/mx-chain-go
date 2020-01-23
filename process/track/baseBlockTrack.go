@@ -275,6 +275,15 @@ func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64
 	return bbt.crossNotarizer.getNotarizedHeader(shardID, offset)
 }
 
+// GetFinalHeader returns final header for a given shard
+func (bbt *baseBlockTrack) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	if shardID != bbt.shardCoordinator.SelfId() {
+		return bbt.crossNotarizer.getFirstNotarizedHeader(shardID)
+	}
+
+	return bbt.selfNotarizer.getFirstNotarizedHeader(shardID)
+}
+
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard
 func (bbt *baseBlockTrack) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	return bbt.crossNotarizer.getLastNotarizedHeader(shardID)
