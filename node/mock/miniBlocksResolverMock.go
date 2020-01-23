@@ -35,8 +35,5 @@ func (hrm *MiniBlocksResolverMock) GetMiniBlocksFromPool(hashes [][]byte) (block
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hrm *MiniBlocksResolverMock) IsInterfaceNil() bool {
-	if hrm == nil {
-		return true
-	}
-	return false
+	return hrm == nil
 }
