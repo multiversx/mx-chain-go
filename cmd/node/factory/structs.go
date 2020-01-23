@@ -174,6 +174,7 @@ type Process struct {
 	HeaderSigVerifier     HeaderSigVerifierHandler
 	ValidatorsStatistics  process.ValidatorStatisticsProcessor
 	BlockTracker          process.BlockTracker
+	PendingMiniBlocks     process.PendingMiniBlocksHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -724,6 +725,18 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	var pendingMiniBlocks process.PendingMiniBlocksHandler
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		pendingMiniBlocks, err = newPendingMiniBlocks(
+			args.data.Store,
+			args.core.Marshalizer,
+			args.data.Datapool,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	forkDetector, err := newForkDetector(
 		rounder,
 		args.shardCoordinator,
@@ -745,6 +758,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		validatorStatisticsProcessor,
 		headerValidator,
 		blockTracker,
+		pendingMiniBlocks,
 	)
 	if err != nil {
 		return nil, err
@@ -762,6 +776,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		HeaderSigVerifier:     headerSigVerifier,
 		ValidatorsStatistics:  validatorStatisticsProcessor,
 		BlockTracker:          blockTracker,
+		PendingMiniBlocks:     pendingMiniBlocks,
 	}, nil
 }
 
@@ -977,7 +992,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(badBlockCache)
+		var blockChain *blockchain.BlockChain
+		blockChain, err = blockchain.NewBlockChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -990,7 +1006,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(badBlockCache)
+		var blockChain *blockchain.MetaChain
+		blockChain, err = blockchain.NewMetaChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -1389,7 +1406,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			continue
 		}
 
-		newShardCoordinator, account, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var accountsAdapter state.AccountsAdapter
+		newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			shardId,
@@ -1398,8 +1417,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		genesisBlock, err := createGenesisBlockAndApplyInitialBalances(
-			account,
+		var genesisBlock data.HeaderHandler
+		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
+			accountsAdapter,
 			newShardCoordinator,
 			stateComponents.AddressConverter,
 			genesisConfig,
@@ -1414,7 +1434,8 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+		var genesisBlockForCurrentShard data.HeaderHandler
+		genesisBlockForCurrentShard, err = createGenesisBlockAndApplyInitialBalances(
 			stateComponents.AccountsAdapter,
 			shardCoordinator,
 			stateComponents.AddressConverter,
@@ -1446,7 +1467,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var newAccounts state.AccountsAdapter
+		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			sharding.MetachainShardId,
@@ -1455,9 +1478,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, err := createInMemoryStoreBlkc(newShardCoordinator)
-		if err != nil {
-			return nil, err
+		newStore, newBlkc, errPoolCreation := createInMemoryStoreBlkc(newShardCoordinator)
+		if errPoolCreation != nil {
+			return nil, errPoolCreation
 		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -1603,6 +1626,36 @@ func newBlockTracker(
 	return nil, errors.New("could not create block tracker")
 }
 
+func newPendingMiniBlocks(
+	store dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	dataPool dataRetriever.PoolsHolder,
+) (process.PendingMiniBlocksHandler, error) {
+
+	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
+	if check.IfNil(miniBlockHeaderStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
+	}
+
+	metaBlocksStore := store.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaBlocksStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
+	}
+
+	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
+		Marshalizer:      marshalizer,
+		Storage:          miniBlockHeaderStore,
+		MetaBlockPool:    dataPool.Headers(),
+		MetaBlockStorage: metaBlocksStore,
+	}
+	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return pendingMiniBlocks, nil
+}
+
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -1630,6 +1683,7 @@ func newBlockProcessor(
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	pendingMiniBlocks process.PendingMiniBlocksHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1702,6 +1756,7 @@ func newBlockProcessor(
 			bootStorer,
 			headerValidator,
 			blockTracker,
+			pendingMiniBlocks,
 		)
 	}
 
@@ -1879,6 +1934,7 @@ func newShardBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -1973,6 +2029,7 @@ func newMetaBlockProcessor(
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	pendingMiniBlocks process.PendingMiniBlocksHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2080,6 +2137,7 @@ func newMetaBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -2121,27 +2179,6 @@ func newMetaBlockProcessor(
 		ScQuery:     scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockHeaderStore := data.Store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
-	if check.IfNil(miniBlockHeaderStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
-	}
-
-	metaBlocksStore := data.Store.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaBlocksStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
-	}
-
-	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
-		Marshalizer:      core.Marshalizer,
-		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    data.Datapool.Headers(),
-		MetaBlockStorage: metaBlocksStore,
-	}
-	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {
 		return nil, err
 	}

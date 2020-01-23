@@ -113,9 +113,8 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 
-	startTime := time.Time{}
-	startTime = rounder.TimeStamp()
-	maxTime := rounder.TimeDuration() * maxThresholdPercent / 100
+	startTime := rounder.TimeStamp()
+	maxTime := rounder.TimeDuration() * MaxThresholdPercent / 100
 
 	sr.Job()
 	if sr.Check() {
@@ -130,6 +129,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 			}
 		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
+				sr.RoundCanceled = true
 				sr.Extend(sr.current)
 			}
 

@@ -391,7 +391,7 @@ type PeerJournalEntryTempRating struct {
 	oldTempRating uint32
 }
 
-// NewPeerJournalEntryRating outputs a new PeerJournalEntryRating implementation used to revert a state change
+// NewPeerJournalEntryTempRating outputs a new PeerJournalEntryTempRating implementation used to revert a state change
 func NewPeerJournalEntryTempRating(account *PeerAccount, oldTempRating uint32) (*PeerJournalEntryTempRating, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -421,7 +421,7 @@ type PeerJournalEntryUnStakedNonce struct {
 	oldUnStakedNonce uint64
 }
 
-// PeerJournalEntryUnStakedNonce outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+// NewPeerJournalEntryUnStakedNonce outputs a new PeerJournalEntryUnStakedNonce implementation used to revert a state change
 func NewPeerJournalEntryUnStakedNonce(account *PeerAccount, oldUnStakedNonce uint64) (*PeerJournalEntryUnStakedNonce, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler

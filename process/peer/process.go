@@ -196,14 +196,14 @@ func (vs *validatorStatistics) updatePeerState(
 	}
 
 	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(peerChange.Address)
+		err = account.SetRewardAddressWithJournal(peerChange.Address)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+		err = account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -212,14 +212,14 @@ func (vs *validatorStatistics) updatePeerState(
 	zero := big.NewInt(0)
 	if peerChange.ValueChange.Cmp(zero) != 0 {
 		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
-		err := account.SetStakeWithJournal(actualValue)
+		err = account.SetStakeWithJournal(actualValue)
 		if err != nil {
 			return err
 		}
 	}
 
 	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
-		err := account.SetNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (vs *validatorStatistics) updatePeerState(
 	}
 
 	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
-		err := account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}
@@ -323,7 +323,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	sw.Start("checkForMissedBlocks")
 	defer func() {
 		sw.Stop("checkForMissedBlocks")
-		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
+		log.Trace("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {

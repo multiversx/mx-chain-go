@@ -294,6 +294,7 @@ type ForkDetector interface {
 	SetRollBackNonce(nonce uint64)
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
+	ResetProbableHighestNonce()
 	IsInterfaceNil() bool
 }
 
@@ -377,7 +378,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert()
+	Revert(round uint64)
 	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
@@ -395,6 +396,8 @@ type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
+	GetNumPendingMiniBlocks(shardID uint32) uint32
+	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
 	IsInterfaceNil() bool
 }
 
@@ -626,5 +629,12 @@ type BlockTracker interface {
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
+	IsInterfaceNil() bool
+}
+
+// EpochStartDataCreator defines the functionality for node to create epoch start data
+type EpochStartDataCreator interface {
+	CreateEpochStartData() (*block.EpochStart, error)
+	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }

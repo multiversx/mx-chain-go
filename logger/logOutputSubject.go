@@ -48,7 +48,7 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 	line.Message = logLine.Message
 	line.LogLevel = int32(logLine.LogLevel)
 	line.Args = make([]string, len(logLine.Args))
-	line.Timestamp = logLine.Timestamp.Unix()
+	line.Timestamp = logLine.Timestamp.UnixNano()
 
 	mutDisplayByteSlice.RLock()
 	displayHandler := displayByteSlice

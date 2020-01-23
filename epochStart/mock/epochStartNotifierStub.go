@@ -7,7 +7,9 @@ type EpochStartNotifierStub struct {
 }
 
 func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
-	esnm.NotifyAllCalled(hdr)
+	if esnm.NotifyAllCalled != nil {
+		esnm.NotifyAllCalled(hdr)
+	}
 }
 
 func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {

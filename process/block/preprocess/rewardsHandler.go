@@ -221,6 +221,7 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	return miniBlocks
 }
 
+// GetCreatedInShardMiniBlock will return a clone of the intra shard mini block
 func (rtxh *rewardsHandler) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
