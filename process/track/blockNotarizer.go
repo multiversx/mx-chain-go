@@ -116,6 +116,22 @@ func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32, message string
 	}
 }
 
+func (bn *blockNotarizer) getFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	bn.mutNotarizedHeaders.RLock()
+	defer bn.mutNotarizedHeaders.RUnlock()
+
+	if bn.notarizedHeaders == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
+	}
+
+	hdrInfo := bn.firstNotarizedHeaderInfo(shardID)
+	if hdrInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
+	}
+
+	return hdrInfo.header, hdrInfo.hash, nil
+}
+
 func (bn *blockNotarizer) getLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
@@ -146,6 +162,15 @@ func (bn *blockNotarizer) getLastNotarizedHeaderNonce(shardID uint32) uint64 {
 	}
 
 	return hdrInfo.header.GetNonce()
+}
+
+func (bn *blockNotarizer) firstNotarizedHeaderInfo(shardID uint32) *headerInfo {
+	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+	if notarizedHeadersCount > 0 {
+		return bn.notarizedHeaders[shardID][0]
+	}
+
+	return nil
 }
 
 func (bn *blockNotarizer) lastNotarizedHeaderInfo(shardID uint32) *headerInfo {

@@ -60,6 +60,20 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
+	err := bbt.checkBlockBasicValidity(shardHeader)
+	if err != nil {
+		log.Trace("receivedShardHeader.checkBlockBasicValidity",
+			"error", err.Error(),
+			"shard", shardHeader.GetShardID(),
+			"round", shardHeader.GetRound(),
+			"nonce", shardHeader.GetNonce(),
+			"hash", shardHeader,
+			"chronology round", bbt.rounder.Index(),
+		)
+
+		return
+	}
+
 	log.Debug("received shard header from network in block tracker",
 		"shard", shardHeader.GetShardID(),
 		"round", shardHeader.GetRound(),
@@ -78,6 +92,20 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
+	err := bbt.checkBlockBasicValidity(metaBlock)
+	if err != nil {
+		log.Trace("receivedMetaBlock.checkBlockBasicValidity",
+			"error", err.Error(),
+			"shard", metaBlock.GetShardID(),
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
+			"hash", metaBlock,
+			"chronology round", bbt.rounder.Index(),
+		)
+
+		return
+	}
+
 	log.Debug("received meta block from network in block tracker",
 		"shard", metaBlock.GetShardID(),
 		"round", metaBlock.GetRound(),
@@ -87,6 +115,15 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.processReceivedHeader(metaBlock)
+}
+
+func (bbt *baseBlockTrack) checkBlockBasicValidity(headerHandler data.HeaderHandler) error {
+	nextRound := bbt.rounder.Index() + 1
+	if int64(headerHandler.GetRound()) > nextRound {
+		return ErrHigherRoundInBlock
+	}
+
+	return nil
 }
 
 func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
@@ -273,6 +310,15 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message
 // GetCrossNotarizedHeader returns a cross notarized header for a given shard with a given offset, behind last cross notarized header
 func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	return bbt.crossNotarizer.getNotarizedHeader(shardID, offset)
+}
+
+// GetFinalHeader returns final header for a given shard
+func (bbt *baseBlockTrack) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	if shardID != bbt.shardCoordinator.SelfId() {
+		return bbt.crossNotarizer.getFirstNotarizedHeader(shardID)
+	}
+
+	return bbt.selfNotarizer.getFirstNotarizedHeader(shardID)
 }
 
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard

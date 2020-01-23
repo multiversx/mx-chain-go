@@ -8,6 +8,7 @@ type blockNotarizerHandler interface {
 	addNotarizedHeader(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
 	cleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64)
 	displayNotarizedHeaders(shardID uint32, message string)
+	getFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	getLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	getLastNotarizedHeaderNonce(shardID uint32) uint64
 	getNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)

@@ -26,6 +26,7 @@ type BlockTrackerMock struct {
 	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeadersCalled                       func()
 	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	GetFinalHeaderCalled                              func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
@@ -216,6 +217,14 @@ func (btm *BlockTrackerMock) DisplayTrackedHeaders() {
 func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	if btm.GetCrossNotarizedHeaderCalled != nil {
 		return btm.GetCrossNotarizedHeaderCalled(shardID, offset)
+	}
+
+	return nil, nil, nil
+}
+
+func (btm *BlockTrackerMock) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	if btm.GetFinalHeaderCalled != nil {
+		return btm.GetFinalHeaderCalled(shardID)
 	}
 
 	return nil, nil, nil
