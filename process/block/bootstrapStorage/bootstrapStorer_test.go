@@ -48,7 +48,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
 
-	headerInfo := bootstrapStorage.BootstrapHeaderInfo{2, 3, []byte("Hash")}
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{ShardId: 2, Nonce: 3, Hash: []byte("Hash")}
 	dataBoot := bootstrapStorage.BootstrapData{
 		LastHeader:                headerInfo,
 		LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{headerInfo},

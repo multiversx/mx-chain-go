@@ -47,9 +47,9 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
 	return fdm.GetHighestFinalBlockHashCalled()
 }
 
-// GetProbableHighestNonce is a mock implementation for GetProbableHighestNonce
-func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return f.ProbableHighestNonceCalled()
+// ProbableHighestNonce is a mock implementation for ProbableHighestNonce
+func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
+	return fdm.ProbableHighestNonceCalled()
 }
 
 func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {

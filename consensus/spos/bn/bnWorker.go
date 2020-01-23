@@ -89,8 +89,5 @@ func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *worker) IsInterfaceNil() bool {
-	if wrk == nil {
-		return true
-	}
-	return false
+	return wrk == nil
 }

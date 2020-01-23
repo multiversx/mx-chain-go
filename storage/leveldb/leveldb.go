@@ -155,7 +155,7 @@ func (s *DB) createBatch() storage.Batcher {
 
 // putBatch writes the Batch data into the database
 func (s *DB) putBatch(b storage.Batcher) error {
-	batch, ok := b.(*batch)
+	dbBatch, ok := b.(*batch)
 	if !ok {
 		return storage.ErrInvalidBatch
 	}
@@ -164,7 +164,7 @@ func (s *DB) putBatch(b storage.Batcher) error {
 		Sync: true,
 	}
 
-	return s.db.Write(batch.batch, wopt)
+	return s.db.Write(dbBatch.batch, wopt)
 }
 
 // Close closes the files/resources associated to the storage medium

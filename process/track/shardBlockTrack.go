@@ -75,7 +75,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
+	blockProcessorObject, err := NewBlockProcessor(
 		arguments.HeaderValidator,
 		arguments.RequestHandler,
 		arguments.ShardCoordinator,
@@ -88,7 +88,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, err
 	}
 
-	sbt.blockProcessor = blockProcessor
+	sbt.blockProcessor = blockProcessorObject
 
 	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)

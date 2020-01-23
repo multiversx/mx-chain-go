@@ -13,16 +13,16 @@ type HeaderResolverMock struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
-func (hrs *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
-	if hrs.RequestDataFromEpochCalled != nil {
-		return hrs.RequestDataFromEpochCalled(identifier)
+func (hrm *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
+	if hrm.RequestDataFromEpochCalled != nil {
+		return hrm.RequestDataFromEpochCalled(identifier)
 	}
 	return nil
 }
 
-func (hrs *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
-	if hrs.SetEpochHandlerCalled != nil {
-		return hrs.SetEpochHandlerCalled(epochHandler)
+func (hrm *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	if hrm.SetEpochHandlerCalled != nil {
+		return hrm.SetEpochHandlerCalled(epochHandler)
 	}
 	return nil
 }
