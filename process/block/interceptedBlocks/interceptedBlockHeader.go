@@ -90,13 +90,27 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	return inHdr.hdr.CheckChainID(inHdr.chainID)
 }
 
+func (inHdr *InterceptedHeader) isEpochCorrect() bool {
+	return true
+	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		return true
+	}
+	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
+		return true
+	}
+	if inHdr.hdr.GetEpoch() >= inHdr.epochStartTrigger.Epoch() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
+		return true
+	}
+
+	return false
+}
+
 // integrity checks the integrity of the header block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
-	isShardHeaderWithOldEpochAndBadRound := inHdr.hdr.Epoch < inHdr.epochStartTrigger.Epoch() &&
-		inHdr.hdr.Round > inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		inHdr.epochStartTrigger.EpochStartRound() < inHdr.epochStartTrigger.EpochFinalityAttestingRound()
-
-	if isShardHeaderWithOldEpochAndBadRound {
+	if !inHdr.isEpochCorrect() {
 		return fmt.Errorf("%w : shard header with old epoch and bad round: "+
 			"round=%v, "+
 			"shardEpoch=%v, "+

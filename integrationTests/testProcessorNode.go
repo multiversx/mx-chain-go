@@ -297,6 +297,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -304,7 +305,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initHeaderValidator()
 	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()

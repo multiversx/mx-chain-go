@@ -54,14 +54,15 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -78,7 +79,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())

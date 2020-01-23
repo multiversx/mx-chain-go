@@ -121,6 +121,9 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(epochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
