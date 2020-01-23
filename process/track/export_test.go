@@ -307,3 +307,15 @@ func (bp *blockProcessor) DoJobOnReceivedHeader(shardID uint32) {
 func (bp *blockProcessor) DoJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	bp.doJobOnReceivedCrossNotarizedHeader(shardID)
 }
+
+func (bp *blockProcessor) ComputeLongestChainFromLastCrossNotarized(shardID uint32) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	return bp.computeLongestChainFromLastCrossNotarized(shardID)
+}
+
+func (bp *blockProcessor) ComputeSelfNotarizedHeaders(headers []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+	return bp.computeSelfNotarizedHeaders(headers)
+}
+
+func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+	return bp.computeLongestChain(shardID, header)
+}
