@@ -57,18 +57,18 @@ func initNodesAndTest(
 
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
+			iCopy := i
 			nodes[0][i].blkProcessor.ProcessBlockCalled = func(
 				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				body data.BodyHandler,
 				haveTime func() time.Duration,
 			) error {
-
 				fmt.Println(
 					"process block invalid ",
 					header.GetRound(),
 					header.GetNonce(),
-					getPkEncoded(nodes[0][i].pk),
+					getPkEncoded(nodes[0][iCopy].pk),
 				)
 				return process.ErrBlockHashDoesNotMatch
 			}
@@ -92,8 +92,9 @@ func initNodesAndTest(
 
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
 	for _, n := range nodes {
+		nCopy := n
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
+			nCopy.blkProcessor.NrCommitBlockCalled++
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
 

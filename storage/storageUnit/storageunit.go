@@ -114,8 +114,8 @@ func (u *Unit) Put(key, data []byte) error {
 }
 
 // Close will close unit
-func (s *Unit) Close() error {
-	err := s.persister.Close()
+func (u *Unit) Close() error {
+	err := u.persister.Close()
 	if err != nil {
 		log.Error("cannot close storage unit persister", err)
 		return err

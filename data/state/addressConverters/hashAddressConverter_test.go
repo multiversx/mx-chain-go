@@ -1,9 +1,9 @@
 package addressConverters_test
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 
