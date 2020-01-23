@@ -223,8 +223,8 @@ func (stp *stakingToPeer) updatePeerState(
 	account *state.PeerAccount,
 	blsPubKey []byte,
 ) error {
-	if !bytes.Equal(stakingData.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(stakingData.Address)
+	if !bytes.Equal(stakingData.RewardAddress, account.RewardAddress) {
+		err := account.SetRewardAddressWithJournal(stakingData.RewardAddress)
 		if err != nil {
 			return err
 		}
@@ -285,9 +285,9 @@ func (stp *stakingToPeer) createPeerChangeData(
 
 	if len(account.RewardAddress) == 0 {
 		actualPeerChange.Action = block.PeerRegistration
-		actualPeerChange.TimeStamp = stakingData.StartNonce
+		actualPeerChange.TimeStamp = stakingData.RegisterNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
-		actualPeerChange.Address = stakingData.Address
+		actualPeerChange.Address = stakingData.RewardAddress
 		actualPeerChange.PublicKey = blsKey
 
 		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
@@ -309,7 +309,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 		}
 	}
 
-	if stakingData.StartNonce == nonce {
+	if stakingData.RegisterNonce == nonce {
 		actualPeerChange.Action = block.PeerRegistration
 	}
 

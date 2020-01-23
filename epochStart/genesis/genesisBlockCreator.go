@@ -381,7 +381,7 @@ func setStakedData(
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,
-				Data:      "stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis")),
+				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
 
@@ -401,7 +401,7 @@ func setStakedData(
 			SndAddr:   nodeInfo.Address(),
 			GasPrice:  0,
 			GasLimit:  0,
-			Data:      "stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis")),
+			Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
 			Signature: nil,
 		}
 
