@@ -614,3 +614,12 @@ var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
+
+// ErrNotEpochStartBlock signals that block is not of type epoch start
+var ErrNotEpochStartBlock = errors.New("not epoch start block")
+
+// ErrGettingShardDataFromEpochStartData signals that could not get shard data from previous epoch start block
+var ErrGettingShardDataFromEpochStartData = errors.New("could not find shard data from previous epoch start metablock")
+
+// ErrNotEnoughDataToCalculatePendingMiniBlocks signals that there is not enough data to calculate pending miniblocks
+var ErrNotEnoughDataToCalculatePendingMiniBlocks = errors.New("not enough data to calculate pending miniblocks")

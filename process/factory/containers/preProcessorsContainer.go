@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
@@ -37,12 +38,11 @@ func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, er
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *preProcessorsContainer) Add(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil || preProcessor.IsInterfaceNil() {
+	if check.IfNil(preProcessor) {
 		return process.ErrNilContainerElement
 	}
 
 	ok := ppc.objects.Insert(uint8(key), preProcessor)
-
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -69,7 +69,7 @@ func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors 
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *preProcessorsContainer) Replace(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil || preProcessor.IsInterfaceNil() {
+	if check.IfNil(preProcessor) {
 		return process.ErrNilContainerElement
 	}
 

@@ -159,14 +159,6 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
-func (mp *metaProcessor) CreateEpochStartForMetablock() (*block.EpochStart, error) {
-	return mp.createEpochStartForMetablock()
-}
-
-func (mp *metaProcessor) GetLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
-	return mp.getLastFinalizedMetaHashForShard(shardHdr)
-}
-
 func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
@@ -343,4 +335,8 @@ func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.He
 
 func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
 	return mp.verifyCrossShardMiniBlockDstMe(header)
+}
+
+func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
+	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
 }

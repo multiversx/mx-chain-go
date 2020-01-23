@@ -354,7 +354,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(currentBlockHeader.GetRound())
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -547,7 +547,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Revert()
+		sp.epochStartTrigger.Revert(header.GetRound())
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
@@ -970,7 +970,7 @@ func (sp *shardProcessor) getLastSelfNotarizedHeader() (data.HeaderHandler, []by
 	hash := sp.forkDetector.GetHighestFinalBlockHash()
 	header, err := process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error())
+		log.Warn("getLastSelfNotarizedHeader.GetShardHeader", "error", err.Error(), "hash", hash, "nonce", sp.forkDetector.GetHighestFinalBlockNonce())
 		return nil, nil
 	}
 
