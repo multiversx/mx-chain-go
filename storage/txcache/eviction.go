@@ -24,7 +24,7 @@ func (cache *TxCache) doEviction() evictionJournal {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
-	log.Info("TxCache.doEviction()")
+	log.Debug("TxCache.doEviction()")
 
 	journal := evictionJournal{}
 
