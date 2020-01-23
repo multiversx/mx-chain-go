@@ -100,7 +100,7 @@ func TestingConcurrency5Secs(t *testing.T, marshalizer marshal.Marshalizer) {
 		defer wg.Done()
 
 		start := time.Now()
-		for time.Now().Sub(start) < time.Second*5 {
+		for time.Since(start) < time.Second*5 {
 			TestingIntMarshaling(t, marshalizer)
 
 			counter1++
@@ -111,7 +111,7 @@ func TestingConcurrency5Secs(t *testing.T, marshalizer marshal.Marshalizer) {
 		defer wg.Done()
 
 		start := time.Now()
-		for time.Now().Sub(start) < time.Second*5 {
+		for time.Since(start) < time.Second*5 {
 			TestingIntMarshaling(t, marshalizer)
 
 			counter2++

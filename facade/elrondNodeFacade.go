@@ -117,7 +117,6 @@ func (ef *ElrondNodeFacade) startRest() {
 	switch ef.RestApiInterface() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
-		break
 	default:
 		log.Debug("starting web server")
 		err := api.Start(ef)

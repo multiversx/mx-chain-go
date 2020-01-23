@@ -3054,7 +3054,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	store := &mock.ChainStorerMock{
 		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-			m := make(map[string][]byte, 0)
+			m := make(map[string][]byte)
 			m[string(txHash)] = buffTx
 			return m, nil
 		},
@@ -3831,7 +3831,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniblockHashes := make(map[string]uint32, 0)
+	miniblockHashes := make(map[string]uint32)
 
 	meta := block.MetaBlock{
 		Nonce:     1,
@@ -4150,7 +4150,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniblockHashes := make(map[string]uint32, 0)
+	miniblockHashes := make(map[string]uint32)
 
 	testMBHash := []byte("hash")
 	shardMBHdr := block.ShardMiniBlockHeader{
