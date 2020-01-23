@@ -84,6 +84,8 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
+	//TODO check the received header's round against the chronology round
+
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err

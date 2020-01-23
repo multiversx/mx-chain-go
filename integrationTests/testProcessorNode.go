@@ -323,6 +323,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
+	tpn.applyBlockTrackerOnInterceptors()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1319,4 +1320,17 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 	}
 
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
+}
+
+func (tpn *TestProcessorNode) applyBlockTrackerOnInterceptors() {
+	tpn.InterceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+		dataFactory := interceptor.InterceptedDataFactory()
+		setter, ok := dataFactory.(interceptedDataFactoryWithFinalAttesterSetter)
+		if ok {
+			foundErr := setter.SetFinalityAttester(tpn.BlockTracker)
+			return foundErr == nil
+		}
+
+		return true
+	})
 }

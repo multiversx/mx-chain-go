@@ -7,23 +7,23 @@ import (
 type InterceptorsContainerStub struct {
 }
 
-func (ics *InterceptorsContainerStub) Get(key string) (process.Interceptor, error) {
+func (ics *InterceptorsContainerStub) Get(_ string) (process.Interceptor, error) {
 	panic("implement me")
 }
 
-func (ics *InterceptorsContainerStub) Add(key string, val process.Interceptor) error {
+func (ics *InterceptorsContainerStub) Add(_ string, _ process.Interceptor) error {
 	panic("implement me")
 }
 
-func (ics *InterceptorsContainerStub) AddMultiple(keys []string, interceptors []process.Interceptor) error {
+func (ics *InterceptorsContainerStub) AddMultiple(_ []string, _ []process.Interceptor) error {
 	panic("implement me")
 }
 
-func (ics *InterceptorsContainerStub) Replace(key string, val process.Interceptor) error {
+func (ics *InterceptorsContainerStub) Replace(_ string, _ process.Interceptor) error {
 	panic("implement me")
 }
 
-func (ics *InterceptorsContainerStub) Remove(key string) {
+func (ics *InterceptorsContainerStub) Remove(_ string) {
 	panic("implement me")
 }
 
@@ -31,10 +31,10 @@ func (ics *InterceptorsContainerStub) Len() int {
 	panic("implement me")
 }
 
+func (ics *InterceptorsContainerStub) Iterate(_ func(key string, interceptor process.Interceptor) bool) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ics *InterceptorsContainerStub) IsInterfaceNil() bool {
-	if ics == nil {
-		return true
-	}
-	return false
+	return ics == nil
 }

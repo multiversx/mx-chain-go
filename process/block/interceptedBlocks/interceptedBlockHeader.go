@@ -100,6 +100,8 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
+	//TODO check the received header's round against the chronology round
+
 	err = checkMiniblocks(inHdr.hdr.MiniBlockHeaders, inHdr.shardCoordinator)
 	if err != nil {
 		return err

@@ -725,6 +725,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = applyblockTrackerOnInterceptors(blockTracker, interceptorsContainer)
+	if err != nil {
+		return nil, err
+	}
+
 	var pendingMiniBlocks process.PendingMiniBlocksHandler
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		pendingMiniBlocks, err = newPendingMiniBlocks(
@@ -778,6 +783,26 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockTracker:          blockTracker,
 		PendingMiniBlocks:     pendingMiniBlocks,
 	}, nil
+}
+
+func applyblockTrackerOnInterceptors(
+	finalityAttester process.FinalityAttester,
+	interceptorsContainer process.InterceptorsContainer,
+) error {
+
+	var foundErr error
+	interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+		dataFactory := interceptor.InterceptedDataFactory()
+		setter, ok := dataFactory.(interceptedDataFactoryWithFinalAttesterSetter)
+		if ok {
+			foundErr = setter.SetFinalityAttester(finalityAttester)
+			return foundErr == nil
+		}
+
+		return true
+	})
+
+	return foundErr
 }
 
 func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {

@@ -117,12 +117,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.blockProcessor.processReceivedHeader(metaBlock)
 }
 
-func (bbt *baseBlockTrack) checkBlockBasicValidity(headerHandler data.HeaderHandler) error {
-	nextRound := bbt.rounder.Index() + 1
-	if int64(headerHandler.GetRound()) > nextRound {
-		return ErrHigherRoundInBlock
-	}
-
+func (bbt *baseBlockTrack) checkBlockBasicValidity(_ data.HeaderHandler) error {
 	return nil
 }
 
