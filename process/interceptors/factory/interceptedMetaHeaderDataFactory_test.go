@@ -141,3 +141,27 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)
 	assert.True(t, ok)
 }
+
+func TestInterceptedMetaHeaderDataFactory_SetFinalityAttesterWithNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	imh, _ := NewInterceptedMetaHeaderDataFactory(arg)
+
+	err := imh.SetFinalityAttester(nil)
+
+	assert.Equal(t, process.ErrNilFinalityAttester, err)
+}
+
+func TestInterceptedMetaHeaderDataFactory_SetFinalityAttester(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	imh, _ := NewInterceptedMetaHeaderDataFactory(arg)
+	newAttester := &nilFinalityAttester{}
+
+	err := imh.SetFinalityAttester(newAttester)
+
+	assert.Nil(t, err)
+	assert.True(t, imh.finalityAttester == newAttester)
+}

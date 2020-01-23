@@ -15,6 +15,7 @@ type interceptedShardHeaderDataFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
+	finalityAttester  process.FinalityAttester
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -44,6 +45,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
+		finalityAttester:  &nilFinalityAttester{},
 	}, nil
 }
 
@@ -56,15 +58,23 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ShardCoordinator:  ishdf.shardCoordinator,
 		HeaderSigVerifier: ishdf.headerSigVerifier,
 		ChainID:           ishdf.chainID,
+		FinalityAttester:  ishdf.finalityAttester,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
 }
 
+// SetFinalityAttester sets the finality attester
+func (ishdf *interceptedShardHeaderDataFactory) SetFinalityAttester(attester process.FinalityAttester) error {
+	if check.IfNil(attester) {
+		return process.ErrNilFinalityAttester
+	}
+
+	ishdf.finalityAttester = attester
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ishdf *interceptedShardHeaderDataFactory) IsInterfaceNil() bool {
-	if ishdf == nil {
-		return true
-	}
-	return false
+	return ishdf == nil
 }

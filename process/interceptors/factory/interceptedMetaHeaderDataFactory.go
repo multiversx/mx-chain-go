@@ -15,6 +15,7 @@ type interceptedMetaHeaderDataFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
+	finalityAttester  process.FinalityAttester
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -44,6 +45,7 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
+		finalityAttester:  &nilFinalityAttester{},
 	}, nil
 }
 
@@ -56,15 +58,23 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ShardCoordinator:  imhdf.shardCoordinator,
 		HeaderSigVerifier: imhdf.headerSigVerifier,
 		ChainID:           imhdf.chainID,
+		FinalityAttester:  imhdf.finalityAttester,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
 }
 
+// SetFinalityAttester sets the finality attester
+func (imhdf *interceptedMetaHeaderDataFactory) SetFinalityAttester(attester process.FinalityAttester) error {
+	if check.IfNil(attester) {
+		return process.ErrNilFinalityAttester
+	}
+
+	imhdf.finalityAttester = attester
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (imhdf *interceptedMetaHeaderDataFactory) IsInterfaceNil() bool {
-	if imhdf == nil {
-		return true
-	}
-	return false
+	return imhdf == nil
 }

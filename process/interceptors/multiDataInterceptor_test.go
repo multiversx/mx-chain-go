@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
@@ -73,15 +74,17 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 func TestNewMultiDataInterceptor(t *testing.T) {
 	t.Parallel()
 
+	factory := &mock.InterceptedDataFactoryStub{}
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		&mock.MarshalizerMock{},
-		&mock.InterceptedDataFactoryStub{},
+		factory,
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 	)
 
-	assert.False(t, check.IfNil(mdi))
-	assert.Nil(t, err)
+	require.False(t, check.IfNil(mdi))
+	require.Nil(t, err)
+	assert.True(t, mdi.InterceptedDataFactory() == factory)
 }
 
 //------- ProcessReceivedMessage

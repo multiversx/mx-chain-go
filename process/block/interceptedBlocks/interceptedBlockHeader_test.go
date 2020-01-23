@@ -27,7 +27,8 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID: []byte("chain ID"),
+		ChainID:           []byte("chain ID"),
+		FinalityAttester:  &mock.FinalityAttesterStub{},
 	}
 
 	hdr := createMockShardHeader()
@@ -230,6 +231,23 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedHeader_CheckValidityHeaderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgument()
+	expectedErr := errors.New("expected error")
+	arg.FinalityAttester = &mock.FinalityAttesterStub{
+		GetFinalHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+			return nil, nil, expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
 }
 
 //------- getters

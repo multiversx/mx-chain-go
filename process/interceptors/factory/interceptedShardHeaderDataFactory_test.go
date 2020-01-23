@@ -80,3 +80,27 @@ func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	assert.True(t, ok)
 }
+
+func TestInterceptedShardHeaderDataFactory_SetFinalityAttesterWithNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	ish, _ := NewInterceptedShardHeaderDataFactory(arg)
+
+	err := ish.SetFinalityAttester(nil)
+
+	assert.Equal(t, process.ErrNilFinalityAttester, err)
+}
+
+func TestInterceptedShardHeaderDataFactory_SetFinalityAttester(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	ish, _ := NewInterceptedShardHeaderDataFactory(arg)
+	newAttester := &nilFinalityAttester{}
+
+	err := ish.SetFinalityAttester(newAttester)
+
+	assert.Nil(t, err)
+	assert.True(t, ish.finalityAttester == newAttester)
+}

@@ -19,7 +19,8 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID: 		   []byte("chain ID"),
+		ChainID:           []byte("chain ID"),
+		FinalityAttester:  &mock.FinalityAttesterStub{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -133,6 +134,23 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_CheckValidityHeaderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.FinalityAttester = &mock.FinalityAttesterStub{
+		GetFinalHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+			return nil, nil, expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
 }
 
 //------- getters

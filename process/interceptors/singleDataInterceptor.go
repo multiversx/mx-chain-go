@@ -79,10 +79,12 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	return nil
 }
 
+// InterceptedDataFactory returns the factory used for creating intercepted data out of received byte slices
+func (sdi *SingleDataInterceptor) InterceptedDataFactory() process.InterceptedDataFactory {
+	return sdi.factory
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
-	if sdi == nil {
-		return true
-	}
-	return false
+	return sdi == nil
 }

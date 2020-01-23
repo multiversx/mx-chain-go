@@ -621,5 +621,5 @@ var ErrNotEpochStartBlock = errors.New("not epoch start block")
 // ErrGettingShardDataFromEpochStartData signals that could not get shard data from previous epoch start block
 var ErrGettingShardDataFromEpochStartData = errors.New("could not find shard data from previous epoch start metablock")
 
-// ErrNotEnoughDataToCalculatePendingMiniBlocks signals that there is not enough data to calculate pending miniblocks
-var ErrNotEnoughDataToCalculatePendingMiniBlocks = errors.New("not enough data to calculate pending miniblocks")
+// ErrNilFinalityAttester signals that a nil finality attester has been provided
+var ErrNilFinalityAttester = errors.New("nil finality attester")

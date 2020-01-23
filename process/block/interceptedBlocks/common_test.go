@@ -1,8 +1,10 @@
 package interceptedBlocks
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,6 +19,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		HdrBuff:           []byte("test buffer"),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		FinalityAttester:  &mock.FinalityAttesterStub{},
 	}
 
 	return arg
@@ -132,6 +135,17 @@ func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
+func TestCheckBlockHeaderArgument_NilFinalityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.FinalityAttester = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilFinalityAttester, err)
+}
+
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -139,6 +153,68 @@ func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 
 	err := checkBlockHeaderArgument(arg)
 
+	assert.Nil(t, err)
+}
+
+//-------- checkHeaderHandlerFinality
+
+func TestCheckHeaderHandlerFinality_ErrorsShouldReturnErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	attester := &mock.FinalityAttesterStub{
+		GetFinalHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+			return nil, nil, expectedErr
+		},
+	}
+	err := checkHeaderHandlerFinality(&block.Header{}, attester)
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestCheckHeaderHandlerFinality_HeaderIsUnderFinalityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	attester := &mock.FinalityAttesterStub{
+		GetFinalHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+			return &block.Header{
+					Nonce: 1,
+				},
+				make([]byte, 0),
+				nil
+		},
+	}
+	err := checkHeaderHandlerFinality(&block.Header{}, attester)
+
+	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
+}
+
+func TestCheckHeaderHandlerFinality_HeaderEqualOrOverShouldWork(t *testing.T) {
+	t.Parallel()
+
+	finalHeaderNonce := uint64(1)
+	attester := &mock.FinalityAttesterStub{
+		GetFinalHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+			return &block.Header{
+					Nonce: finalHeaderNonce,
+				},
+				make([]byte, 0),
+				nil
+		},
+	}
+
+	err := checkHeaderHandlerFinality(
+		&block.Header{
+			Nonce: finalHeaderNonce,
+		},
+		attester)
+	assert.Nil(t, err)
+
+	err = checkHeaderHandlerFinality(
+		&block.Header{
+			Nonce: finalHeaderNonce + 1,
+		},
+		attester)
 	assert.Nil(t, err)
 }
 

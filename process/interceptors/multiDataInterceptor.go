@@ -134,10 +134,12 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 	return interceptedData, nil
 }
 
+// InterceptedDataFactory returns the factory used for creating intercepted data out of received byte slices
+func (mdi *MultiDataInterceptor) InterceptedDataFactory() process.InterceptedDataFactory {
+	return mdi.factory
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }
