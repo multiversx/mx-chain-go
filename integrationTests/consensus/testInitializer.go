@@ -66,11 +66,11 @@ func init() {
 type testNode struct {
 	node         *node.Node
 	mesenger     p2p.Messenger
-	shardId      uint32
 	blkc         data.ChainHandler
 	blkProcessor *mock.BlockProcessorMock
 	sk           crypto.PrivateKey
 	pk           crypto.PublicKey
+	shardId      uint32
 }
 
 type keyPair struct {

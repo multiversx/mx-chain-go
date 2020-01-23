@@ -59,7 +59,6 @@ type Option func(*Node) error
 //  required services as requested
 type Node struct {
 	marshalizer              marshal.Marshalizer
-	sizeCheckDelta           uint32
 	ctx                      context.Context
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
@@ -104,7 +103,6 @@ type Node struct {
 	consensusType  string
 
 	isRunning                bool
-	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
@@ -117,6 +115,9 @@ type Node struct {
 	chainID           []byte
 	blockTracker      process.BlockTracker
 	pendingMiniBlocks process.PendingMiniBlocksHandler
+
+	txStorageSize  uint32
+	sizeCheckDelta uint32
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
