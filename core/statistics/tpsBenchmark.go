@@ -188,12 +188,6 @@ func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
 	delete(s.missingNonces, nonce)
 }
 
-func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
-	bigNonce := big.NewInt(0)
-	bigNonce.SetUint64(round)
-	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, bigNonce)
-}
-
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round

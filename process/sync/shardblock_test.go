@@ -29,7 +29,6 @@ import (
 const waitTime = 100 * time.Millisecond
 
 type removedFlags struct {
-	flagHdrRemovedFromNonces       bool
 	flagHdrRemovedFromHeaders      bool
 	flagHdrRemovedFromStorage      bool
 	flagHdrRemovedFromForkDetector bool

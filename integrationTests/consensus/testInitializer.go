@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -65,20 +64,13 @@ func init() {
 }
 
 type testNode struct {
-	node             *node.Node
-	mesenger         p2p.Messenger
-	shardId          uint32
-	accntState       state.AccountsAdapter
-	blkc             data.ChainHandler
-	blkProcessor     *mock.BlockProcessorMock
-	sk               crypto.PrivateKey
-	pk               crypto.PublicKey
-	dPool            dataRetriever.PoolsHolder
-	headersRecv      int32
-	mutHeaders       sync.Mutex
-	headersHashes    [][]byte
-	headers          []data.HeaderHandler
-	metachainHdrRecv int32
+	node         *node.Node
+	mesenger     p2p.Messenger
+	shardId      uint32
+	blkc         data.ChainHandler
+	blkProcessor *mock.BlockProcessorMock
+	sk           crypto.PrivateKey
+	pk           crypto.PublicKey
 }
 
 type keyPair struct {

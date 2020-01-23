@@ -89,7 +89,6 @@ type BloomConfig struct {
 // holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
-	batcher     storage.Batcher
 	persister   storage.Persister
 	cacher      storage.Cacher
 	bloomFilter storage.BloomFilter
