@@ -5,15 +5,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
 type metaStorageBootstrapper struct {
 	*storageBootstrapper
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 // NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
-func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorageBootstrapper, error) {
+func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
 	base := &storageBootstrapper{
 		bootStorer:       arguments.BootStorer,
 		forkDetector:     arguments.ForkDetector,
@@ -22,6 +23,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 		marshalizer:      arguments.Marshalizer,
 		store:            arguments.Store,
 		shardCoordinator: arguments.ShardCoordinator,
+		blockTracker:     arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -29,6 +31,7 @@ func NewMetaStorageBootstrapper(arguments ArgsStorageBootstrapper) (*metaStorage
 
 	boot := metaStorageBootstrapper{
 		storageBootstrapper: base,
+		pendingMiniBlocks:   arguments.PendingMiniBlocks,
 	}
 
 	base.bootstrapper = &boot
@@ -47,23 +50,21 @@ func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
 	return msb == nil
 }
 
-func (msb *metaStorageBootstrapper) applyNotarizedBlocks(
-	lastNotarized map[uint32]*sync.HdrInfo,
-) error {
-	for i := uint32(0); i < msb.shardCoordinator.NumberOfShards(); i++ {
-		if lastNotarized[i] == nil {
-			continue
-		}
-		if lastNotarized[i].Hash == nil {
-			return sync.ErrNilHash
-		}
-
-		headerHandler, err := process.GetShardHeaderFromStorage(lastNotarized[i].Hash, msb.marshalizer, msb.store)
+func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
+	for _, crossNotarizedHeader := range crossNotarizedHeaders {
+		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
 		if err != nil {
 			return err
 		}
 
-		msb.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
+		log.Debug("added cross notarized header in block tracker",
+			"shard", crossNotarizedHeader.ShardId,
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", crossNotarizedHeader.Hash)
+
+		msb.blockTracker.AddCrossNotarizedHeader(crossNotarizedHeader.ShardId, header, crossNotarizedHeader.Hash)
+		msb.blockTracker.AddTrackedHeader(header, crossNotarizedHeader.Hash)
 	}
 
 	return nil
@@ -93,7 +94,8 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 
 	for _, shardHeaderHash := range shardHeaderHashes {
-		shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
+		var shardHeader *block.Header
+		shardHeader, err = process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
 		if err != nil {
 			log.Debug("shard header is not found in BlockHeaderUnit storage",
 				"hash", shardHeaderHash)
@@ -116,5 +118,20 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 				"hash", shardHeaderHash,
 				"error", err.Error())
 		}
+	}
+}
+
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	return selfNotarizedHeaders, nil
+}
+
+func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
+	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
+		msb.pendingMiniBlocks.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
+
+		log.Debug("set pending miniblocks",
+			"shard", pendingMiniBlockInfo.ShardID,
+			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
 	}
 }

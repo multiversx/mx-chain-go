@@ -118,8 +118,8 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	consensusType := ctx.GlobalString(consensusType.Name)
-	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusType))
+	consensusTypeFlagValue := ctx.GlobalString(consensusType.Name)
+	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusTypeFlagValue))
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {

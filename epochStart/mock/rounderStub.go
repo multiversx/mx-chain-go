@@ -27,7 +27,7 @@ func (rndm *RounderStub) TimeDuration() time.Duration {
 		return rndm.TimeDurationCalled()
 	}
 
-	return time.Duration(4000 * time.Millisecond)
+	return 4000 * time.Millisecond
 }
 
 func (rndm *RounderStub) TimeStamp() time.Time {
@@ -52,13 +52,10 @@ func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duratio
 		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
 
-	return time.Duration(4000 * time.Millisecond)
+	return 4000 * time.Millisecond
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rndm *RounderStub) IsInterfaceNil() bool {
-	if rndm == nil {
-		return true
-	}
-	return false
+	return rndm == nil
 }

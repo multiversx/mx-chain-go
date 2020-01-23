@@ -63,7 +63,7 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 func (host *vmContext) GetStorage(key []byte) []byte {
 	strAdr := string(host.scAddress)
 	if _, ok := host.storageUpdate[strAdr]; ok {
-		if value, ok := host.storageUpdate[strAdr][string(key)]; ok {
+		if value, isInMap := host.storageUpdate[strAdr][string(key)]; isInMap {
 			return value
 		}
 	}

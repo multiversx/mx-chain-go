@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
@@ -39,7 +40,7 @@ func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler,
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
 
@@ -57,7 +58,6 @@ func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(initialHdrData, haveTime)
 }

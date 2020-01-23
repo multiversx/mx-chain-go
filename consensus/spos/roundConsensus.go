@@ -101,14 +101,14 @@ func (rcns *roundConsensus) SetSelfPubKey(selfPubKey string) {
 // in subround given by the subroundId parameter
 func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 	rcns.mut.RLock()
-	roundState := rcns.validatorRoundStates[key]
+	currentRoundState := rcns.validatorRoundStates[key]
 
-	if roundState == nil {
+	if currentRoundState == nil {
 		rcns.mut.RUnlock()
 		return false, ErrInvalidKey
 	}
 
-	retcode := roundState.JobDone(subroundId)
+	retcode := currentRoundState.JobDone(subroundId)
 	rcns.mut.RUnlock()
 
 	return retcode, nil
@@ -119,14 +119,14 @@ func (rcns *roundConsensus) JobDone(key string, subroundId int) (bool, error) {
 func (rcns *roundConsensus) SetJobDone(key string, subroundId int, value bool) error {
 	rcns.mut.Lock()
 
-	roundState := rcns.validatorRoundStates[key]
+	currentRoundState := rcns.validatorRoundStates[key]
 
-	if roundState == nil {
+	if currentRoundState == nil {
 		rcns.mut.Unlock()
 		return ErrInvalidKey
 	}
 
-	roundState.SetJobDone(subroundId, value)
+	currentRoundState.SetJobDone(subroundId, value)
 	rcns.mut.Unlock()
 
 	return nil
@@ -189,14 +189,15 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 func (rcns *roundConsensus) ResetRoundState() {
 	rcns.mut.Lock()
 
+	var currentRoundState *roundState
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		roundState := rcns.validatorRoundStates[rcns.consensusGroup[i]]
-		if roundState == nil {
+		currentRoundState = rcns.validatorRoundStates[rcns.consensusGroup[i]]
+		if currentRoundState == nil {
 			log.Debug("validatorRoundStates", "error", ErrNilRoundState.Error())
 			continue
 		}
 
-		roundState.ResetJobsDone()
+		currentRoundState.ResetJobsDone()
 
 	}
 

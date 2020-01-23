@@ -18,7 +18,7 @@ type PeerAction uint8
 
 // Constants mapping the actions that a node can take
 const (
-	PeerRegistrantion PeerAction = iota + 1
+	PeerRegistration PeerAction = iota + 1
 	PeerUnstaking
 	PeerDeregistration
 	PeerJailed
@@ -29,7 +29,7 @@ const (
 
 func (pa PeerAction) String() string {
 	switch pa {
-	case PeerRegistrantion:
+	case PeerRegistration:
 		return "PeerRegistration"
 	case PeerUnstaking:
 		return "PeerUnstaking"
@@ -79,6 +79,7 @@ type ShardData struct {
 	Round                 uint64                 `capid:"7"`
 	PrevHash              []byte                 `capid:"8"`
 	Nonce                 uint64                 `capid:"9"`
+	NumPendingMiniBlocks  uint32
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash
@@ -118,7 +119,6 @@ type MetaBlock struct {
 	EpochStart             EpochStart        `capid:"17"`
 	ChainID                []byte            `capid:"18"`
 }
-
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
 func (p *PeerData) Save(w io.Writer) error {
@@ -555,7 +555,7 @@ func (m *MetaBlock) GetReceiptsHash() []byte {
 }
 
 // SetShardID sets header shard ID
-func (m *MetaBlock) SetShardID(shId uint32) {
+func (m *MetaBlock) SetShardID(_ uint32) {
 }
 
 // SetNonce sets header nonce

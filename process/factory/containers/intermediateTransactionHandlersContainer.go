@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/cornelk/hashmap"
@@ -37,12 +38,11 @@ func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (proces
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil || interProcessor.IsInterfaceNil() {
+	if check.IfNil(interProcessor) {
 		return process.ErrNilContainerElement
 	}
 
 	ok := ppc.objects.Insert(uint8(key), interProcessor)
-
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -69,7 +69,7 @@ func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Ty
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil || interProcessor.IsInterfaceNil() {
+	if check.IfNil(interProcessor) {
 		return process.ErrNilContainerElement
 	}
 
@@ -104,8 +104,5 @@ func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppc *intermediateTransactionHandlersContainer) IsInterfaceNil() bool {
-	if ppc == nil {
-		return true
-	}
-	return false
+	return ppc == nil
 }

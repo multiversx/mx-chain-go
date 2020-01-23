@@ -27,6 +27,7 @@ type persisterData struct {
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
+	pruningEnabled        bool
 	lock                  sync.RWMutex
 	shardCoordinator      sharding.Coordinator
 	fullArchive           bool
@@ -114,6 +115,7 @@ func initPruningStorer(
 	persistersMapByEpoch[args.StartingEpoch] = persisters[0]
 
 	pdb := &PruningStorer{
+		pruningEnabled:        args.PruningEnabled,
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
 		activePersisters:      persisters,
@@ -202,6 +204,25 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return v.([]byte), nil
 }
 
+// Close will close PruningStorer
+func (ps *PruningStorer) Close() error {
+	closedSuccessfully := true
+	for _, persister := range ps.activePersisters {
+		err := persister.persister.Close()
+
+		if err != nil {
+			log.Error("cannot close persister", err)
+			closedSuccessfully = false
+		}
+	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
+}
+
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	// TODO: this will be used when requesting from resolvers
@@ -213,17 +234,17 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		return v.([]byte), nil
 	}
 
-	persisterData, exists := ps.persistersMapByEpoch[epoch]
+	pd, exists := ps.persistersMapByEpoch[epoch]
 	if !exists {
 		return nil, fmt.Errorf("key %s not found in %s",
 			base64.StdEncoding.EncodeToString(key), ps.identifier)
 	}
 
-	if !persisterData.isClosed {
-		return persisterData.persister.Get(key)
+	if !pd.isClosed {
+		return pd.persister.Get(key)
 	}
 
-	persister, err := ps.persisterFactory.Create(persisterData.path)
+	persister, err := ps.persisterFactory.Create(pd.path)
 	if err != nil {
 		log.Debug("open old persister", "error", err.Error())
 		return nil, err
@@ -256,6 +277,33 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	return nil, fmt.Errorf("key %s not found in %s",
 		base64.StdEncoding.EncodeToString(key), ps.identifier)
 
+}
+
+// SearchFirst will search a given key in all the active persisters, from the newest to the oldest
+func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	v, ok := ps.cacher.Get(key)
+	if ok {
+		return v.([]byte), nil
+	}
+
+	var res []byte
+	var err error
+	for _, pd := range ps.activePersisters {
+		res, err = pd.persister.Get(key)
+		if err == nil {
+			return res, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
+		storage.ErrKeyNotFound,
+		ps.identifier,
+		base64.StdEncoding.EncodeToString(key),
+		len(ps.activePersisters),
+	)
 }
 
 // Has checks if the key is in the Unit.
@@ -297,16 +345,16 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 	}
 
 	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		persisterData, ok := ps.persistersMapByEpoch[epoch]
+		pd, ok := ps.persistersMapByEpoch[epoch]
 		if !ok {
 			return storage.ErrKeyNotFound
 		}
 
-		if !persisterData.isClosed {
-			return persisterData.persister.Has(key)
+		if !pd.isClosed {
+			return pd.persister.Has(key)
 		}
 
-		persister, err := ps.persisterFactory.Create(persisterData.path)
+		persister, err := ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -338,8 +386,8 @@ func (ps *PruningStorer) Remove(key []byte) error {
 
 	var err error
 	ps.cacher.Remove(key)
-	for _, persisterData := range ps.activePersisters {
-		err = persisterData.persister.Remove(key)
+	for _, pd := range ps.activePersisters {
+		err = pd.persister.Remove(key)
 		if err == nil {
 			return nil
 		}
@@ -367,11 +415,11 @@ func (ps *PruningStorer) DestroyUnit() error {
 	var err error
 	numOfPersistersRemoved := 0
 	totalNumOfPersisters := len(ps.persistersMapByEpoch)
-	for _, persisterData := range ps.persistersMapByEpoch {
-		if persisterData.isClosed {
-			err = persisterData.persister.DestroyClosed()
+	for _, pd := range ps.persistersMapByEpoch {
+		if pd.isClosed {
+			err = pd.persister.DestroyClosed()
 		} else {
-			err = persisterData.persister.Destroy()
+			err = pd.persister.Destroy()
 		}
 
 		if err != nil {
@@ -407,12 +455,18 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
+	// if pruning is not enabled, don't create new persisters, but use the same one instead
+	if !ps.pruningEnabled {
+		log.Debug("PruningStorer - change epoch - pruning is disabled")
+		return nil
+	}
+
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
 	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
 	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
-	//filePath := ps.getNewFilePath(epoch)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
 		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())

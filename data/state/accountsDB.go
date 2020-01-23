@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
 	"sync"
@@ -9,7 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // AccountsDB is the struct used for accessing accounts
@@ -23,6 +24,8 @@ type AccountsDB struct {
 	entries    []JournalEntry
 	mutEntries sync.RWMutex
 }
+
+var log = logger.GetOrCreate("state")
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
@@ -61,7 +64,7 @@ func (adb *AccountsDB) PutCode(accountHandler AccountHandler, code []byte) error
 	if code == nil {
 		return ErrNilCode
 	}
-	if accountHandler == nil || accountHandler.IsInterfaceNil() {
+	if check.IfNil(accountHandler) {
 		return ErrNilAccountHandler
 	}
 
@@ -88,7 +91,8 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	}
 	if val == nil {
 		//append a journal entry as the code needs to be inserted in the trie
-		entry, err := NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
+		var entry *BaseJournalEntryCreation
+		entry, err = NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -97,6 +101,32 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	}
 
 	return nil
+}
+
+// ClosePersister will close trie persister
+func (adb *AccountsDB) ClosePersister() error {
+	closedSuccessfully := true
+
+	err := adb.mainTrie.ClosePersister()
+	log.LogIfError(err)
+	if err != nil {
+		closedSuccessfully = false
+	}
+
+	trees := adb.dataTries.GetAll()
+	for _, trie := range trees {
+		err = trie.ClosePersister()
+		if err != nil {
+			log.Error("cannot close accounts trie persister", err)
+			closedSuccessfully = false
+		}
+	}
+
+	if closedSuccessfully {
+		return nil
+	}
+
+	return storage.ErrClosingPersisters
 }
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
@@ -157,22 +187,18 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		originalValue := trackableDataTrie.OriginalValue([]byte(k))
+		flagHasDirtyData = true
 
-		if !bytes.Equal(v, originalValue) {
-			flagHasDirtyData = true
+		val, err := dataTrie.Get([]byte(k))
+		if err != nil {
+			return err
+		}
 
-			val, err := dataTrie.Get([]byte(k))
-			if err != nil {
-				return err
-			}
+		oldValues[k] = val
 
-			oldValues[k] = val
-
-			err = dataTrie.Update([]byte(k), v)
-			if err != nil {
-				return err
-			}
+		err = dataTrie.Update([]byte(k), v)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -374,13 +400,17 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	copy(jEntries, adb.entries)
 	adb.mutEntries.RUnlock()
 
+	oldHashes := make([][]byte, 0)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
+		oldTrieHashes := dataTries[i].ResetOldHashes()
 		err := dataTries[i].Commit()
 		if err != nil {
 			return nil, err
 		}
+
+		oldHashes = append(oldHashes, oldTrieHashes...)
 	}
 	adb.dataTries.Reset()
 
@@ -388,6 +418,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.clearJournal()
 
 	//Step 3. commit main trie
+	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err := adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
@@ -457,10 +488,32 @@ func (adb *AccountsDB) clearJournal() {
 	adb.mutEntries.Unlock()
 }
 
+// PruneTrie removes old values from the trie database
+func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
+	return adb.mainTrie.Prune(rootHash, data.OldRoot)
+}
+
+// CancelPrune clears the trie's evictionWaitingList
+func (adb *AccountsDB) CancelPrune(rootHash []byte) {
+	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
+}
+
+// SnapshotState triggers the snapshotting process of the state trie
+func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+	adb.mainTrie.TakeSnapshot(rootHash)
+}
+
+// SetStateCheckpoint sets a checkpoint for the state trie
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mainTrie.SetCheckpoint(rootHash)
+}
+
+// IsPruningEnabled returns true if state pruning is enabled
+func (adb *AccountsDB) IsPruningEnabled() bool {
+	return adb.mainTrie.IsPruningEnabled()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
-	if adb == nil {
-		return true
-	}
-	return false
+	return adb == nil
 }

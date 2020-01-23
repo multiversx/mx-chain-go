@@ -298,7 +298,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -362,7 +362,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
-		Data:     "1",
+		Data:     []byte("1"),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)

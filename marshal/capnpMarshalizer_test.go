@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,7 +15,7 @@ import (
 type dataGenerator interface {
 	// GenerateDummyArray generates an array of data of the implementer type
 	// The implementer needs to implement CapnpHelper as well
-	GenerateDummyArray() []data.CapnpHelper
+	GenerateDummyArray() []marshal.CapnpHelper
 }
 
 type Header struct {
@@ -78,7 +77,7 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		n := i % l
-		err := m.Unmarshal(obj.(data.CapnpHelper), serialized[n])
+		err := m.Unmarshal(obj.(marshal.CapnpHelper), serialized[n])
 
 		assert.Nil(b, err)
 
@@ -236,8 +235,8 @@ func BenchmarkJsonHeaderUnmarshalValidate(b *testing.B) {
 }
 
 // GenerateDummyArray is used to generate an array of MiniBlockHeaders with dummy data
-func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
-	sBlocks := make([]data.CapnpHelper, 0, 1000)
+func (sBlock *MiniBlock) GenerateDummyArray() []marshal.CapnpHelper {
+	sBlocks := make([]marshal.CapnpHelper, 0, 1000)
 
 	for i := 0; i < 1000; i++ {
 		lenTxHashes := rand.Intn(20) + 1
@@ -258,8 +257,8 @@ func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 }
 
 // GenerateDummyArray is used to generate an array of block headers with dummy data
-func (h *Header) GenerateDummyArray() []data.CapnpHelper {
-	headers := make([]data.CapnpHelper, 0, 1000)
+func (h *Header) GenerateDummyArray() []marshal.CapnpHelper {
+	headers := make([]marshal.CapnpHelper, 0, 1000)
 
 	mbh := block.MiniBlockHeader{
 		Hash:            []byte("mini block header"),
@@ -297,8 +296,8 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 }
 
 // GenerateDummyArray is used to generate an array of transactions with dummy data
-func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
-	transactions := make([]data.CapnpHelper, 0, 1000)
+func (tx *Transaction) GenerateDummyArray() []marshal.CapnpHelper {
+	transactions := make([]marshal.CapnpHelper, 0, 1000)
 
 	val := big.NewInt(0)
 	_ = val.GobDecode([]byte(RandomStr(32)))
@@ -312,7 +311,7 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),
 				GasLimit:  uint64(rand.Int63n(10000)),
-				Data:      RandomStr(32),
+				Data:      []byte(RandomStr(32)),
 				Signature: []byte(RandomStr(32)),
 			},
 		})

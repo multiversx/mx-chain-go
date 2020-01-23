@@ -578,7 +578,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -607,7 +607,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -637,7 +637,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -667,7 +667,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "617eff4f"
 
 	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -737,7 +737,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		value.String(),
 		0,
 		0,
-		txData,
+		[]byte(txData),
 		signature)
 
 	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
@@ -745,7 +745,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		Value:     value,
 		SndAddr:   senderBuff.Bytes(),
 		RcvAddr:   receiverBuff.Bytes(),
-		Data:      txData,
+		Data:      []byte(txData),
 		Signature: signature,
 	})
 	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))
@@ -801,8 +801,8 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
-	dataPool.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -828,7 +828,8 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dataPool.HeadersCalled = func() storage.Cacher {
+
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return nil
 	}
 	n, _ := node.NewNode(
@@ -860,12 +861,11 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	txShardedData.CreateShardStoreCalled = func(cacherId string) {
 		txShardedStores = append(txShardedStores, cacherId)
 	}
-	headerShardedData := &mock.CacherStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txShardedData
 	}
-	dataPool.HeadersCalled = func() storage.Cacher {
-		return headerShardedData
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -1714,7 +1714,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
 		GasLimit:  11,
-		Data:      "",
+		Data:      []byte(""),
 		Signature: []byte("sig0"),
 	})
 
@@ -1725,7 +1725,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
 		GasLimit:  12,
-		Data:      "",
+		Data:      []byte(""),
 		Signature: []byte("sig1"),
 	})
 
@@ -1736,7 +1736,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,
 		GasLimit:  13,
-		Data:      "",
+		Data:      []byte(""),
 		Signature: []byte("sig2"),
 	})
 

@@ -75,13 +75,13 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 }
 
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
-	shardStore, err := newShardStore(cacheId, sd.cacherConfig)
+	shardStoreObject, err := newShardStore(cacheId, sd.cacherConfig)
 	if err != nil {
 		log.Debug("newShardStore", "error", err.Error())
 	}
 
-	sd.shardedDataStore[cacheId] = shardStore
-	return shardStore
+	sd.shardedDataStore[cacheId] = shardStoreObject
+	return shardStoreObject
 }
 
 // ShardStore returns a shard store of data associated with a given destination cacheId
@@ -192,21 +192,6 @@ func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
 	sd.mutShardedDataStore.Lock()
 	delete(sd.shardedDataStore, sourceCacheId)
 	sd.mutShardedDataStore.Unlock()
-}
-
-// MoveData will move all given data associated with the sourceCacheId to the destCacheId
-func (sd *shardedData) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
-	sourceStore := sd.ShardDataStore(sourceCacheId)
-
-	if sourceStore != nil {
-		for _, key := range key {
-			val, ok := sourceStore.Get(key)
-			if ok {
-				sd.AddData(key, val, destCacheId)
-				sd.RemoveData(key, sourceCacheId)
-			}
-		}
-	}
 }
 
 // Clear will delete all shard stores and associated data

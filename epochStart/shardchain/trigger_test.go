@@ -24,21 +24,8 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool: &mock.PoolsHolderStub{
-			MetaBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
-					PeekCalled: func(key []byte) (value interface{}, ok bool) {
-						return nil, true
-					},
-				}
-			},
-			HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-				return &mock.Uint64SyncMapCacherStub{
-					GetCalled: func(nonce uint64) (hashMap dataRetriever.ShardIdHashMap, b bool) {
-						return &mock.ShardIdHasMapStub{LoadCalled: func(shardId uint32) (bytes []byte, b bool) {
-							return []byte("hash"), true
-						}}, true
-					},
-				}
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{}
 			},
 		},
 		Storage: &mock.ChainStorerStub{
@@ -131,39 +118,6 @@ func TestNewEpochStartTrigger_NilRequestHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
-}
-
-func TestNewEpochStartTrigger_NilMetaBlockPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &mock.PoolsHolderStub{
-		MetaBlocksCalled: func() storage.Cacher {
-			return nil
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaBlocksPool, err)
-}
-
-func TestNewEpochStartTrigger_NilHeadersNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &mock.PoolsHolderStub{
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return nil
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilHeaderNoncesPool, err)
 }
 
 func TestNewEpochStartTrigger_NilUint64ConverterShouldErr(t *testing.T) {
@@ -313,7 +267,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	assert.False(t, et.isEpochStart)
 	assert.False(t, et.newEpochHdrReceived)
 
-	et.Revert()
+	et.Revert(epochStartRound)
 	assert.True(t, et.isEpochStart)
 	assert.True(t, et.newEpochHdrReceived)
 }

@@ -36,7 +36,7 @@ type ValidatorApiResponse struct {
 type PeerAccount struct {
 	BLSPublicKey     []byte
 	SchnorrPublicKey []byte
-	Address          []byte
+	RewardAddress    []byte
 	Stake            *big.Int
 
 	JailTime      TimePeriod
@@ -79,7 +79,7 @@ func NewPeerAccount(
 		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(nil),
+		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
 	}, nil
 }
 
@@ -177,19 +177,19 @@ func (a *PeerAccount) DataTrieTracker() DataTrieTracker {
 	return a.dataTrieTracker
 }
 
-// SetAddressWithJournal sets the account's address, saving the old address before changing
-func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
+// SetRewardAddressWithJournal sets the account's reward address, saving the old address before changing
+func (a *PeerAccount) SetRewardAddressWithJournal(address []byte) error {
 	if len(address) < 1 {
 		return ErrEmptyAddress
 	}
 
-	entry, err := NewPeerJournalEntryAddress(a, a.Address)
+	entry, err := NewPeerJournalEntryAddress(a, a.RewardAddress)
 	if err != nil {
 		return err
 	}
 
 	a.accountTracker.Journalize(entry)
-	a.Address = address
+	a.RewardAddress = address
 
 	return a.accountTracker.SaveAccount(a)
 }

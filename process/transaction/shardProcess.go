@@ -25,7 +25,6 @@ type txProcessor struct {
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
 	shardCoordinator sharding.Coordinator
-	economicsFee     process.FeeHandler
 	receiptForwarder process.IntermediateTransactionHandler
 	badTxForwarder   process.IntermediateTransactionHandler
 }
@@ -83,6 +82,7 @@ func NewTxProcessor(
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		adrConv:          addressConv,
+		economicsFee:     economicsFee,
 	}
 
 	return &txProcessor{
@@ -92,7 +92,6 @@ func NewTxProcessor(
 		scProcessor:      scProcessor,
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
-		economicsFee:     economicsFee,
 		receiptForwarder: receiptForwarder,
 		badTxForwarder:   badTxForwarder,
 	}, nil
@@ -156,13 +155,10 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return process.ErrWrongTypeAssertion
 	}
 
-	cost := txProc.economicsFee.ComputeFee(tx)
-	if account.Balance.Cmp(cost) < 0 {
-		cost.Set(account.Balance)
-	}
+	txFee := txProc.economicsFee.ComputeFee(tx)
 
 	operation := big.NewInt(0)
-	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, cost))
+	err := account.SetBalanceWithJournal(operation.Sub(account.Balance, txFee))
 	if err != nil {
 		return err
 	}
@@ -183,9 +179,9 @@ func (txProc *txProcessor) executingFailedTransaction(
 	}
 
 	rpt := &receipt.Receipt{
-		Value:   big.NewInt(0).Set(cost),
+		Value:   big.NewInt(0).Set(txFee),
 		SndAddr: tx.SndAddr,
-		Data:    txError.Error(),
+		Data:    []byte(txError.Error()),
 		TxHash:  txHash,
 	}
 
@@ -193,6 +189,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 	if err != nil {
 		return err
 	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return process.ErrFailedTransaction
 }
@@ -224,7 +222,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(tx *transaction.Transact
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
 		SndAddr: tx.SndAddr,
-		Data:    "refundedGas",
+		Data:    []byte("refundedGas"),
 		TxHash:  txHash,
 	}
 
@@ -241,19 +239,10 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 		return big.NewInt(0), nil
 	}
 
-	err := txProc.economicsFee.CheckValidityTxValues(tx)
-	if err != nil {
-		receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
-		if receiptErr != nil {
-			return nil, receiptErr
-		}
-		return nil, err
-	}
-
 	cost := txProc.economicsFee.ComputeFee(tx)
 
 	operation := big.NewInt(0)
-	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
 	if err != nil {
 		return nil, err
 	}
@@ -364,8 +353,5 @@ func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txProc *txProcessor) IsInterfaceNil() bool {
-	if txProc == nil {
-		return true
-	}
-	return false
+	return txProc == nil
 }
