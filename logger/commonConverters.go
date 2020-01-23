@@ -8,9 +8,9 @@ import (
 const msgFixedLength = 40
 
 func displayTime(timestamp int64) string {
-	t := time.Unix(timestamp, 0)
+	t := time.Unix(0, timestamp)
 
-	return t.Format("2006-01-02 15:04:05")
+	return t.Format("2006-01-02 15:04:05.000")
 }
 
 func formatMessage(msg string) string {

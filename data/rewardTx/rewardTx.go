@@ -86,7 +86,7 @@ func (rtx *RewardTx) GetValue() *big.Int {
 }
 
 // GetNonce returns 0 as reward transactions do not have a nonce
-func (scr *RewardTx) GetNonce() uint64 {
+func (rtx *RewardTx) GetNonce() uint64 {
 	return 0
 }
 
@@ -106,12 +106,12 @@ func (rtx *RewardTx) GetSndAddress() []byte {
 }
 
 // GetGasLimit returns the gas limit of the smart reward transaction
-func (scr *RewardTx) GetGasLimit() uint64 {
+func (rtx *RewardTx) GetGasLimit() uint64 {
 	return 0
 }
 
 // GetGasPrice returns the gas price of the smart reward transaction
-func (scr *RewardTx) GetGasPrice() uint64 {
+func (rtx *RewardTx) GetGasPrice() uint64 {
 	return 0
 }
 

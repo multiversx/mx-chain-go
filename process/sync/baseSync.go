@@ -80,8 +80,10 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched sync.RWMutex
-	roundIndex     int64
+	mutNodeSynched     sync.RWMutex
+	isNodeSynchronized bool
+	hasLastBlock       bool
+	roundIndex         int64
 
 	forkInfo *process.ForkInfo
 
@@ -90,6 +92,8 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
+	requestsWithTimeout   uint32
+	syncWithErrors        uint32
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
@@ -108,10 +112,6 @@ type baseBootstrap struct {
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
 	miniBlocksResolver dataRetriever.MiniBlocksResolver
-
-	requestsWithTimeout uint32
-	isNodeSynchronized  bool
-	hasLastBlock        bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -453,17 +453,17 @@ func (boot *baseBootstrap) syncBlocks() {
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
+	boot.syncWithErrors++
+
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
 
-	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	allowedRequestsWithTimeOutLimitReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 
-	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
+	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutLimitReached && isInProperRound)
 	if shouldRollBack {
-		boot.requestsWithTimeout = 0
-
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -474,6 +474,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 			log.Debug("rollBack", "error", errNotCritical.Error())
 		}
 	}
+
+	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
+	if allowedSyncWithErrorsLimitReached && isInProperRound {
+		boot.forkDetector.ResetProbableHighestNonce()
+	}
+
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -554,6 +560,8 @@ func (boot *baseBootstrap) syncBlock() error {
 	log.Debug("block has been synced successfully",
 		"nonce", hdr.GetNonce(),
 	)
+
+	boot.syncWithErrors = 0
 	boot.requestsWithTimeout = 0
 
 	return nil

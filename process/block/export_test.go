@@ -225,10 +225,6 @@ func (mp *metaProcessor) GetShardsHeadersNonce() *sync.Map {
 	return mp.shardsHeadersNonce
 }
 
-func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
-	return &baseProcessor{shardCoordinator: shardCord}
-}
-
 func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	return sp.saveLastNotarizedHeader(shardId, processedHdrs)
 }

@@ -491,7 +491,7 @@ func createNodes(
 	}
 
 	for i := 0; i < nodesPerShard; i++ {
-		testNode := &testNode{
+		testNodeObject := &testNode{
 			shardId: uint32(0),
 		}
 
@@ -511,7 +511,7 @@ func createNodes(
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,
 			nodesCoordinator,
-			testNode.shardId,
+			testNodeObject.shardId,
 			uint32(i),
 			serviceID,
 			uint32(consensusSize),
@@ -522,14 +522,14 @@ func createNodes(
 			consensusType,
 		)
 
-		testNode.node = n
-		testNode.node = n
-		testNode.sk = kp.sk
-		testNode.mesenger = mes
-		testNode.pk = kp.pk
-		testNode.blkProcessor = blkProcessor
-		testNode.blkc = blkc
-		nodesList[i] = testNode
+		testNodeObject.node = n
+		testNodeObject.node = n
+		testNodeObject.sk = kp.sk
+		testNodeObject.mesenger = mes
+		testNodeObject.pk = kp.pk
+		testNodeObject.blkProcessor = blkProcessor
+		testNodeObject.blkc = blkc
+		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList
 

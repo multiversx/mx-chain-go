@@ -7,12 +7,6 @@ type CacherMock struct {
 	dataMap map[string]interface{}
 }
 
-func NewCacherMock() *CacherMock {
-	return &CacherMock{
-		dataMap: make(map[string]interface{}),
-	}
-}
-
 func (cm *CacherMock) Clear() {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()

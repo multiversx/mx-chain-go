@@ -566,23 +566,26 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 		log.Warn("elastic search: update TPS write serialized info", "error", err.Error())
 	}
 
+	var serializedShardInfo []byte
+	var serializedMetaInfo []byte
+	var res *esapi.Response
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
-		if serializedInfo == nil {
+		serializedShardInfo, serializedMetaInfo = ei.serializeShardInfo(shardInfo)
+		if serializedShardInfo == nil {
 			continue
 		}
 
-		buff.Grow(len(meta) + len(serializedInfo))
-		_, err = buff.Write(meta)
+		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
+		_, err = buff.Write(serializedMetaInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write meta", "error", err.Error())
 		}
-		_, err = buff.Write(serializedInfo)
+		_, err = buff.Write(serializedShardInfo)
 		if err != nil {
 			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
 		}
 
-		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
+		res, err = ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
 			log.Warn("indexer: error indexing tps information")
 			continue
@@ -597,10 +600,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ei *elasticIndexer) IsInterfaceNil() bool {
-	if ei == nil {
-		return true
-	}
-	return false
+	return ei == nil
 }
 
 func closeESResponseBody(res *esapi.Response) {

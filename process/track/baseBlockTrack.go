@@ -106,8 +106,8 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 		bbt.headers[shardID] = headersForShard
 	}
 
-	for _, headerInfo := range headersForShard[nonce] {
-		if bytes.Equal(headerInfo.hash, hash) {
+	for _, hdrInfo := range headersForShard[nonce] {
+		if bytes.Equal(hdrInfo.hash, hash) {
 			return
 		}
 	}
@@ -342,9 +342,9 @@ func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
-	for _, headerInfo := range sortedHeadersInfo {
-		headers = append(headers, headerInfo.header)
-		headersHashes = append(headersHashes, headerInfo.hash)
+	for _, hdrInfo := range sortedHeadersInfo {
+		headers = append(headers, hdrInfo.header)
+		headersHashes = append(headersHashes, hdrInfo.hash)
 	}
 
 	return headers, headersHashes
@@ -368,9 +368,9 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
-	for _, headerInfo := range headersForShardWithNonce {
-		headers = append(headers, headerInfo.header)
-		headersHashes = append(headersHashes, headerInfo.hash)
+	for _, hdrInfo := range headersForShardWithNonce {
+		headers = append(headers, hdrInfo.header)
+		headersHashes = append(headersHashes, hdrInfo.hash)
 	}
 
 	return headers, headersHashes

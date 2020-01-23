@@ -193,7 +193,7 @@ func doPost(facadeMock interface{}, url string, request VMValueRequest, response
 	jsonBody, _ := json.Marshal(request)
 
 	server := startNodeServer(facadeMock)
-	httpRequest, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonBody)))
+	httpRequest, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 
 	responseRecorder := httptest.NewRecorder()
 	server.ServeHTTP(responseRecorder, httpRequest)

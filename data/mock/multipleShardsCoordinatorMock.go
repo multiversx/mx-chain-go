@@ -12,10 +12,6 @@ type MultipleShardsCoordinatorMock struct {
 	CurrentShard    uint32
 }
 
-func NewMultipleShardsCoordinatorMock() *MultipleShardsCoordinatorMock {
-	return &MultipleShardsCoordinatorMock{NoShards: 1}
-}
-
 func NewMultiShardsCoordinatorMock(nrShard uint32) *MultipleShardsCoordinatorMock {
 	return &MultipleShardsCoordinatorMock{NoShards: nrShard}
 }
