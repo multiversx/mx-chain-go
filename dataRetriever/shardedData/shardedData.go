@@ -75,13 +75,13 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 }
 
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
-	shardStore, err := newShardStore(cacheId, sd.cacherConfig)
+	shardStoreObject, err := newShardStore(cacheId, sd.cacherConfig)
 	if err != nil {
 		log.Debug("newShardStore", "error", err.Error())
 	}
 
-	sd.shardedDataStore[cacheId] = shardStore
-	return shardStore
+	sd.shardedDataStore[cacheId] = shardStoreObject
+	return shardStoreObject
 }
 
 // ShardStore returns a shard store of data associated with a given destination cacheId

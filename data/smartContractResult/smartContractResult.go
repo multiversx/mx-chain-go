@@ -24,7 +24,7 @@ type SmartContractResult struct {
 // Save saves the serialized data of a SmartContractResult into a stream through Capnp protocol
 func (scr *SmartContractResult) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	SmartContractResultGoToCapn(seg, scr)
+	ConvertSmartContractResultGoToCapn(seg, scr)
 	_, err := seg.WriteTo(w)
 	return err
 }
@@ -37,12 +37,12 @@ func (scr *SmartContractResult) Load(r io.Reader) error {
 	}
 
 	z := capnp.ReadRootSmartContractResultCapn(capMsg)
-	SmartContractResultCapnToGo(z, scr)
+	ConvertSmartContractResultCapnToGo(z, scr)
 	return nil
 }
 
-// SmartContractResultCapnToGo is a helper function to copy fields from a SmartContractResultCapn object to a SmartContractResult object
-func SmartContractResultCapnToGo(src capnp.SmartContractResultCapn, dest *SmartContractResult) *SmartContractResult {
+// ConvertSmartContractResultCapnToGo is a helper function to copy fields from a SmartContractResultCapn object to a SmartContractResult object
+func ConvertSmartContractResultCapnToGo(src capnp.SmartContractResultCapn, dest *SmartContractResult) *SmartContractResult {
 	if dest == nil {
 		dest = &SmartContractResult{}
 	}
@@ -67,8 +67,8 @@ func SmartContractResultCapnToGo(src capnp.SmartContractResultCapn, dest *SmartC
 	return dest
 }
 
-// SmartContractResultGoToCapn is a helper function to copy fields from a SmartContractResult object to a SmartContractResultCapn object
-func SmartContractResultGoToCapn(seg *capn.Segment, src *SmartContractResult) capnp.SmartContractResultCapn {
+// ConvertSmartContractResultGoToCapn is a helper function to copy fields from a SmartContractResult object to a SmartContractResultCapn object
+func ConvertSmartContractResultGoToCapn(seg *capn.Segment, src *SmartContractResult) capnp.SmartContractResultCapn {
 	dest := capnp.AutoNewSmartContractResultCapn(seg)
 
 	value, _ := src.Value.GobEncode()
@@ -76,7 +76,7 @@ func SmartContractResultGoToCapn(seg *capn.Segment, src *SmartContractResult) ca
 	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
-	dest.SetData([]byte(src.Data))
+	dest.SetData(src.Data)
 	dest.SetCode(src.Code)
 	dest.SetTxHash(src.TxHash)
 

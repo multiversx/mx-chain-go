@@ -25,10 +25,10 @@ func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, erro
 		return nil, err
 	}
 
-	headersCache := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
+	headersCacheObject := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
 
 	return &headersPool{
-		cache:                headersCache,
+		cache:                headersCacheObject,
 		mutAddedDataHandlers: sync.RWMutex{},
 		mutHeadersPool:       sync.RWMutex{},
 		addedDataHandlers:    make([]func(headerHandler data.HeaderHandler, headerHash []byte), 0),

@@ -384,8 +384,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-	logLevel := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevel)
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err := logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -405,7 +405,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 	}
-	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -540,8 +540,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
 			defaultDBPath)
@@ -1009,9 +1009,9 @@ func createNodesCoordinator(
 	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
+			validator, errNewValidator := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if errNewValidator != nil {
+				return nil, errNewValidator
 			}
 
 			validators = append(validators, validator)

@@ -217,7 +217,7 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	subroundSignature, err := NewSubroundSignature(
+	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
 	)
@@ -225,13 +225,13 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	err = subroundSignature.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundSignatureObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.consensusCore.Chronology().AddSubround(subroundSignature)
+	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
+	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
 }
@@ -254,7 +254,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	subroundEndRound, err := NewSubroundEndRound(
+	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
@@ -265,13 +265,13 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundEndRoundObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedHeaderHandler(subroundEndRound.receivedHeader)
-	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
+	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
+	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil
 }
@@ -284,10 +284,7 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
+	return fct == nil
 }
 
 func debugError(message string, err error) {

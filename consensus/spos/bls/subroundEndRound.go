@@ -231,13 +231,14 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 
 	receivedHeaders := sr.GetReceivedHeaders()
 
+	var receivedHeaderHash []byte
 	for index := range receivedHeaders {
 		receivedHeader := receivedHeaders[index].Clone()
 		receivedHeader.SetLeaderSignature(nil)
 		receivedHeader.SetPubKeysBitmap(nil)
 		receivedHeader.SetSignature(nil)
 
-		receivedHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
+		receivedHeaderHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
 		if err != nil {
 			log.Debug("isConsensusHeaderReceived: calculate received header hash", "error", err.Error())
 			return false, nil
@@ -266,7 +267,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
