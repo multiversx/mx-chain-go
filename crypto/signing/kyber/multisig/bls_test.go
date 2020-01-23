@@ -343,7 +343,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.
 	llSig := &multisig.KyberMultiSignerBLS{}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
 	// make first sig share invalid
-	sigShares[0][0] &= 0xFF
+	sigShares[0][0] ^= 0xFF
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares...)
 
 	assert.NotNil(t, err)
