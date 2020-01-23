@@ -13,7 +13,6 @@ type PeerAccountHandlerMock struct {
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
-	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled      func(nonce uint64) error
@@ -149,8 +148,5 @@ func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) erro
 }
 
 func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	if pahm == nil {
-		return true
-	}
-	return false
+	return pahm == nil
 }
