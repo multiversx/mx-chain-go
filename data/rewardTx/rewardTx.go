@@ -10,11 +10,11 @@ import (
 
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
-	Round   uint64   `capid:"1" json:"round"`
-	Value   *big.Int `capid:"3" json:"value"`
-	RcvAddr []byte   `capid:"4" json:"receiver"`
-	ShardId uint32   `capid:"5" json:"shardId"`
-	Epoch   uint32   `capid:"2" json:"epoch"`
+	Round   uint64
+	Value   *big.Int
+	RcvAddr []byte
+	ShardId uint32
+	Epoch   uint32
 }
 
 // Save saves the serialized data of a RewardTx into a stream through Capnp protocol
