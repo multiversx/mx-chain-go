@@ -1,18 +1,8 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. message.proto
 package consensus
 
 // MessageType specifies what type of message was received
 type MessageType int
-
-// Message defines the data needed by spos to communicate between nodes over network in all subrounds
-type Message struct {
-	BlockHeaderHash []byte
-	SubRoundData    []byte
-	PubKey          []byte
-	Signature       []byte
-	MsgType         int
-	TimeStamp       uint64
-	RoundIndex      int64
-}
 
 // NewConsensusMessage creates a new Message object
 func NewConsensusMessage(
@@ -30,7 +20,7 @@ func NewConsensusMessage(
 		SubRoundData:    subRoundData,
 		PubKey:          pubKey,
 		Signature:       sig,
-		MsgType:         msg,
+		MsgType:         int64(msg),
 		TimeStamp:       tms,
 		RoundIndex:      roundIndex,
 	}
