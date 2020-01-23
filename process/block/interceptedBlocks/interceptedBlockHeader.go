@@ -2,6 +2,7 @@ package interceptedBlocks
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -91,10 +92,6 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
-	return true
-	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		return true
-	}
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
 		return true
 	}
