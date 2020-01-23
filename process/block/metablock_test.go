@@ -1525,7 +1525,6 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// test header not in pool and defer called
 	err := mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrMissingHeader, err)
-	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// wrong header type in pool and defer called
@@ -1536,7 +1535,6 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// put headers in pool
@@ -1548,7 +1546,6 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
-	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))
 }
 

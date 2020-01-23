@@ -500,10 +500,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				break
 			}
 
-			if maxTxSpaceRemained <= 0 {
-				break
-			}
-
 			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
 			if mbSpaceRemained <= 0 {
 				break

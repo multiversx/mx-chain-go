@@ -1368,7 +1368,6 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
 	rootHash := []byte("rootHash")
-	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
@@ -1376,7 +1375,6 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 		SenderShardID:   1,
 		TxHashes:        txHashes,
 	}
-	body = append(body, &miniblock)
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}

@@ -1174,10 +1174,10 @@ func TestBelNevSigner_VerifyBitmapMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := []byte("message")
-	multiSigner, aggSig, bitmap := createAggregatedSig(msg)
+	multiSigner, aggSig, _ := createAggregatedSig(msg)
 	_ = multiSigner.SetAggregatedSig(aggSig)
 	// set a smaller bitmap
-	bitmap = make([]byte, 1)
+	bitmap := make([]byte, 1)
 
 	err := multiSigner.Verify(msg, bitmap)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)
