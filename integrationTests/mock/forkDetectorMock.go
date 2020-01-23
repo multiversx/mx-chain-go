@@ -17,6 +17,7 @@ type ForkDetectorMock struct {
 	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
 	RestoreToGenesisCalled          func()
 	SetRollBackNonceCalled          func(nonce uint64)
+	ResetProbableHighestNonceCalled func()
 }
 
 func (fdm *ForkDetectorMock) RestoreToGenesis() {
@@ -47,9 +48,9 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
 	return fdm.GetHighestFinalBlockHashCalled()
 }
 
-// GetProbableHighestNonce is a mock implementation for GetProbableHighestNonce
-func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return f.ProbableHighestNonceCalled()
+// ProbableHighestNonce is a mock implementation for ProbableHighestNonce
+func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
+	return fdm.ProbableHighestNonceCalled()
 }
 
 func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
@@ -64,6 +65,12 @@ func (fdm *ForkDetectorMock) ResetFork() {
 
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 	return fdm.GetNotarizedHeaderHashCalled(nonce)
+}
+
+func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
+	if fdm.ResetProbableHighestNonceCalled != nil {
+		fdm.ResetProbableHighestNonceCalled()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

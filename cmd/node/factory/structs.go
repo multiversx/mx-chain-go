@@ -1001,7 +1001,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(badBlockCache)
+		var blockChain *blockchain.BlockChain
+		blockChain, err = blockchain.NewBlockChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -1014,7 +1015,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(badBlockCache)
+		var blockChain *blockchain.MetaChain
+		blockChain, err = blockchain.NewMetaChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -1470,7 +1472,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			continue
 		}
 
-		newShardCoordinator, account, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var accountsAdapter state.AccountsAdapter
+		newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			shardId,
@@ -1479,8 +1483,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		genesisBlock, err := createGenesisBlockAndApplyInitialBalances(
-			account,
+		var genesisBlock data.HeaderHandler
+		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
+			accountsAdapter,
 			newShardCoordinator,
 			stateComponents.AddressConverter,
 			genesisConfig,
@@ -1495,7 +1500,8 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+		var genesisBlockForCurrentShard data.HeaderHandler
+		genesisBlockForCurrentShard, err = createGenesisBlockAndApplyInitialBalances(
 			stateComponents.AccountsAdapter,
 			shardCoordinator,
 			stateComponents.AddressConverter,
@@ -1527,7 +1533,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var newAccounts state.AccountsAdapter
+		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			sharding.MetachainShardId,
@@ -1536,9 +1544,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, err := createInMemoryStoreBlkc(newShardCoordinator)
-		if err != nil {
-			return nil, err
+		newStore, newBlkc, errPoolCreation := createInMemoryStoreBlkc(newShardCoordinator)
+		if errPoolCreation != nil {
+			return nil, errPoolCreation
 		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator

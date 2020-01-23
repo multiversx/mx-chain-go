@@ -7,10 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// SignMessage will sign and return the given message
 func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, error) {
 	return cm.signMessage(message)
 }
 
+// NewCommonMessenger will return a new instance of a commonMessenger
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,

@@ -32,8 +32,8 @@ func defaultSubround(
 
 	return spos.NewSubround(
 		-1,
-		int(SrStartRound),
-		int(SrBlock),
+		SrStartRound,
+		SrBlock,
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
