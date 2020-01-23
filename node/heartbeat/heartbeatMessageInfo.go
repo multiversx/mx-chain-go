@@ -14,17 +14,17 @@ type heartbeatMessageInfo struct {
 	totalUpTime                 Duration
 	totalDownTime               Duration
 
-	getTimeHandler     func() time.Time
 	timeStamp          time.Time
-	isActive           bool
-	receivedShardID    uint32
-	computedShardID    uint32
-	versionNumber      string
-	nodeDisplayName    string
-	isValidator        bool
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
+	versionNumber      string
+	nodeDisplayName    string
+	receivedShardID    uint32
+	computedShardID    uint32
 	updateMutex        sync.Mutex
+	getTimeHandler     func() time.Time
+	isActive           bool
+	isValidator        bool
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
