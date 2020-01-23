@@ -59,6 +59,7 @@ func newHeartbeatMessageInfo(
 	return hbmi, nil
 }
 
+// ComputeActive will update the isActive field
 func (hbmi *heartbeatMessageInfo) ComputeActive(crtTime time.Time) {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
@@ -177,6 +178,7 @@ func maxDuration(first, second time.Duration) time.Duration {
 	return second
 }
 
+// GetIsActive will return true if the peer is set as active
 func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
@@ -184,6 +186,7 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 	return isActive
 }
 
+// GetIsValidator will return true is the peer is a validator
 func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()

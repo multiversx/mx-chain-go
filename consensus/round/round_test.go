@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(10 * time.Millisecond)
+const roundTimeDuration = 10 * time.Millisecond
 
 func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
 	t.Parallel()

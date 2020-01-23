@@ -64,7 +64,7 @@ func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 	txShardPool := cache
 
 	keys := txShardPool.Keys()
-	transactions := make([]data.TransactionHandler, 0, len(keys))
+	txsSlice := make([]data.TransactionHandler, 0, len(keys))
 	txHashes := make([][]byte, 0, len(keys))
 
 	mTxHashes := make(map[uint64][][]byte, len(keys))
@@ -99,15 +99,15 @@ func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 	})
 
 	for _, nonce := range nonces {
-		keys := mTxHashes[nonce]
+		keysForNonce := mTxHashes[nonce]
 
-		for idx, key := range keys {
+		for idx, key := range keysForNonce {
 			txHashes = append(txHashes, key)
-			transactions = append(transactions, mTransactions[nonce][idx])
+			txsSlice = append(txsSlice, mTransactions[nonce][idx])
 		}
 	}
 
-	return transaction.TrimSliceHandler(transactions), sliceUtil.TrimSliceSliceByte(txHashes)
+	return transaction.TrimSliceHandler(txsSlice), sliceUtil.TrimSliceSliceByte(txHashes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

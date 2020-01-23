@@ -74,7 +74,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
+	blockProcessorObject, err := NewBlockProcessor(
 		arguments.HeaderValidator,
 		arguments.RequestHandler,
 		arguments.ShardCoordinator,
@@ -87,7 +87,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
-	mbt.blockProcessor = blockProcessor
+	mbt.blockProcessor = blockProcessorObject
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)

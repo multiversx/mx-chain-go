@@ -421,7 +421,7 @@ func setBalancesToTrie(
 	}
 
 	for i, v := range initialBalances {
-		err := setBalanceToTrie(accounts, shardCoordinator, addrConv, []byte(i), v)
+		err = setBalanceToTrie(accounts, shardCoordinator, addrConv, []byte(i), v)
 
 		if err != nil {
 			return nil, err

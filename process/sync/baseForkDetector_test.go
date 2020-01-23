@@ -72,7 +72,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 	t.Parallel()
 
 	genesisTime := time.Now().Unix()
-	roundTimeDuration := time.Duration(4 * time.Second)
+	roundTimeDuration := 4 * time.Second
 	round := uint64(2)
 	incorrectTimeStamp := uint64(genesisTime + int64(roundTimeDuration)*int64(round) - 1)
 

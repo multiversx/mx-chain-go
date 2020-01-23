@@ -68,6 +68,7 @@ func (f *Facade) GetCurrentPublicKey() string {
 	return f.GetCurrentPublicKeyHandler()
 }
 
+// GetHeartbeats returns the slice of heartbeat info
 func (f *Facade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
 	return f.GetHeartbeatsHandler()
 }
