@@ -23,37 +23,20 @@ type blockProcessor struct {
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
-func NewBlockProcessor(
-	headerValidator process.HeaderConstructionValidator,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	blockTracker blockTrackerHandler,
-	crossNotarizer blockNotarizerHandler,
-	crossNotarizedHeadersNotifier blockNotifierHandler,
-	selfNotarizedHeadersNotifier blockNotifierHandler,
-) (*blockProcessor, error) {
-
-	err := checkBlockProcessorNilParameters(
-		headerValidator,
-		requestHandler,
-		shardCoordinator,
-		blockTracker,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
+	err := checkBlockProcessorNilParameters(arguments)
 	if err != nil {
 		return nil, err
 	}
 
 	bp := blockProcessor{
-		headerValidator:               headerValidator,
-		requestHandler:                requestHandler,
-		shardCoordinator:              shardCoordinator,
-		blockTracker:                  blockTracker,
-		crossNotarizer:                crossNotarizer,
-		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		headerValidator:               arguments.HeaderValidator,
+		requestHandler:                arguments.RequestHandler,
+		shardCoordinator:              arguments.ShardCoordinator,
+		blockTracker:                  arguments.BlockTracker,
+		crossNotarizer:                arguments.CrossNotarizer,
+		crossNotarizedHeadersNotifier: arguments.CrossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  arguments.SelfNotarizedHeadersNotifier,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -290,34 +273,26 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	}
 }
 
-func checkBlockProcessorNilParameters(
-	headerValidator process.HeaderConstructionValidator,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	blockTracker blockTrackerHandler,
-	crossNotarizer blockNotarizerHandler,
-	crossNotarizedHeadersNotifier blockNotifierHandler,
-	selfNotarizedHeadersNotifier blockNotifierHandler,
-) error {
-	if check.IfNil(headerValidator) {
+func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
+	if check.IfNil(arguments.HeaderValidator) {
 		return process.ErrNilHeaderValidator
 	}
-	if check.IfNil(requestHandler) {
+	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if blockTracker == nil {
+	if arguments.BlockTracker == nil {
 		return ErrNilBlockTrackerHandler
 	}
-	if crossNotarizer == nil {
+	if arguments.CrossNotarizer == nil {
 		return ErrNilCrossNotarizer
 	}
-	if crossNotarizedHeadersNotifier == nil {
+	if arguments.CrossNotarizedHeadersNotifier == nil {
 		return ErrCrossNotarizedHeadersNotifier
 	}
-	if selfNotarizedHeadersNotifier == nil {
+	if arguments.SelfNotarizedHeadersNotifier == nil {
 		return ErrSelfNotarizedHeadersNotifier
 	}
 

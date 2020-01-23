@@ -1363,7 +1363,83 @@ func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 	assert.True(t, called)
 }
 
-//###################################################################
+func TestRemoveLastNotarizedHeaders_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+	}
+	metaBlockHash := []byte("hash")
+	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
+
+	header := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+	sbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+
+	lastCrossNotarizedHeader, _, _ := sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
+	lastSelfNotarizedHeader, _, _ := sbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	assert.Equal(t, metaBlock, lastCrossNotarizedHeader)
+	assert.Equal(t, header, lastSelfNotarizedHeader)
+
+	sbt.RemoveLastNotarizedHeaders()
+
+	lastCrossNotarizedHeader, _, _ = sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
+	lastSelfNotarizedHeader, _, _ = sbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	assert.Equal(t, shardArguments.StartHeaders[metaBlock.GetShardID()], lastCrossNotarizedHeader)
+	assert.Equal(t, shardArguments.StartHeaders[header.GetShardID()], lastSelfNotarizedHeader)
+}
+
+func TestRestoreToGenesis_ShouldWork(t *testing.T) {
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+	}
+	metaBlockHash := []byte("hash")
+	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
+	sbt.AddTrackedHeader(metaBlock, metaBlockHash)
+
+	header := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+	sbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+	sbt.AddTrackedHeader(header, headerHash)
+
+	trackedHeaders, _ := sbt.GetTrackedHeaders(metaBlock.GetShardID())
+	assert.Equal(t, 1, len(trackedHeaders))
+	assert.Equal(t, metaBlock, trackedHeaders[0])
+
+	trackedHeaders, _ = sbt.GetTrackedHeaders(header.GetShardID())
+	assert.Equal(t, 1, len(trackedHeaders))
+	assert.Equal(t, header, trackedHeaders[0])
+
+	lastCrossNotarizedHeader, _, _ := sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
+	assert.Equal(t, metaBlock, lastCrossNotarizedHeader)
+
+	lastSelfNotarizedHeader, _, _ := sbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	assert.Equal(t, header, lastSelfNotarizedHeader)
+
+	sbt.RestoreToGenesis()
+
+	trackedHeaders, _ = sbt.GetTrackedHeaders(metaBlock.GetShardID())
+	assert.Equal(t, 0, len(trackedHeaders))
+
+	trackedHeaders, _ = sbt.GetTrackedHeaders(header.GetShardID())
+	assert.Equal(t, 0, len(trackedHeaders))
+
+	lastCrossNotarizedHeader, _, _ = sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
+	assert.Equal(t, shardArguments.StartHeaders[metaBlock.GetShardID()], lastCrossNotarizedHeader)
+
+	lastSelfNotarizedHeader, _, _ = sbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	assert.Equal(t, shardArguments.StartHeaders[header.GetShardID()], lastSelfNotarizedHeader)
+}
 
 func TestCheckTrackerNilParameters_ShouldErrNilHasher(t *testing.T) {
 	baseArguments := CreateBaseTrackerMockArguments()

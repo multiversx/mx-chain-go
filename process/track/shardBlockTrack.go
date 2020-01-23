@@ -75,15 +75,17 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
-		arguments.HeaderValidator,
-		arguments.RequestHandler,
-		arguments.ShardCoordinator,
-		&sbt,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+	argBlockProcessor := ArgBlockProcessor{
+		HeaderValidator:               arguments.HeaderValidator,
+		RequestHandler:                arguments.RequestHandler,
+		ShardCoordinator:              arguments.ShardCoordinator,
+		BlockTracker:                  &sbt,
+		CrossNotarizer:                crossNotarizer,
+		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+	}
+
+	blockProcessor, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}

@@ -74,15 +74,17 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
-		arguments.HeaderValidator,
-		arguments.RequestHandler,
-		arguments.ShardCoordinator,
-		&mbt,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+	argBlockProcessor := ArgBlockProcessor{
+		HeaderValidator:               arguments.HeaderValidator,
+		RequestHandler:                arguments.RequestHandler,
+		ShardCoordinator:              arguments.ShardCoordinator,
+		BlockTracker:                  &mbt,
+		CrossNotarizer:                crossNotarizer,
+		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+	}
+
+	blockProcessor, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
