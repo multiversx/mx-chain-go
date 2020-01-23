@@ -71,7 +71,7 @@ func (b *Bloom) Add(data []byte) {
 		b.mutex.Lock()
 		pos, bitMask := getBytePositionAndBitMask(res[i])
 
-		b.filter[pos] = b.filter[pos] | bitMask
+		b.filter[pos] |= bitMask
 		b.mutex.Unlock()
 	}
 

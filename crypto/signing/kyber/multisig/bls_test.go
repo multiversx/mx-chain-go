@@ -284,7 +284,7 @@ func TestKyberMultiSignerBLS_VerifySigBytesInvalidSigShouldErr(t *testing.T) {
 	privKey, pubKey, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	// change the signature so that it becomes invalid
-	sig[0] = sig[0] ^ 0xFF
+	sig[0] ^= 0xFF
 	err := lls.VerifySigBytes(pubKey.Suite(), sig)
 
 	assert.NotNil(t, err)
@@ -343,7 +343,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.
 	llSig := &multisig.KyberMultiSignerBLS{}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
 	// make first sig share invalid
-	sigShares[0][0] = sigShares[0][0] ^ 0xFF
+	sigShares[0][0] &= 0xFF
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares...)
 
 	assert.NotNil(t, err)
@@ -417,7 +417,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigInvalidAggPKBytesShouldErr(t *te
 	pubKeysPoints := pointsFromPubKeys(pubKeys)
 	aggPks, _ := llSig.AggregatePublicKeys(pubKeys[0].Suite(), pubKeysPoints...)
 	//make aggregated pubKeys invalid
-	aggPks[0] = aggPks[0] ^ 0xFF
+	aggPks[0] ^= 0xFF
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, aggSig, msg)
 
 	assert.NotNil(t, err)
@@ -447,7 +447,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *t
 	pubKeysPoints := pointsFromPubKeys(pubKeys)
 	aggPks, _ := llSig.AggregatePublicKeys(pubKeys[0].Suite(), pubKeysPoints...)
 	//make aggregated sig invalid
-	aggSig[0] = aggSig[0] ^ 0xFF
+	aggSig[0] ^= 0xFF
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, aggSig, msg)
 
 	assert.NotNil(t, err)
