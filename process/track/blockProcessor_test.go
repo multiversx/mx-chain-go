@@ -1,6 +1,7 @@
 package track_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -40,7 +41,6 @@ func TestNewBlockProcessor_ShouldErrNilHeaderValidator(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.HeaderValidator = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, process.ErrNilHeaderValidator, err)
@@ -51,7 +51,6 @@ func TestNewBlockProcessor_ShouldErrNilRequestHandler(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.RequestHandler = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
@@ -62,7 +61,6 @@ func TestNewBlockProcessor_ShouldErrNilShardCoordinator(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.ShardCoordinator = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -73,7 +71,6 @@ func TestNewBlockProcessor_ShouldErrNilBlockTrackerHandler(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.BlockTracker = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrNilBlockTrackerHandler, err)
@@ -84,7 +81,6 @@ func TestNewBlockProcessor_ShouldErrNilCrossNotarizer(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.CrossNotarizer = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrNilCrossNotarizer, err)
@@ -95,7 +91,6 @@ func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) 
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrCrossNotarizedHeadersNotifier, err)
@@ -106,7 +101,6 @@ func TestNewBlockProcessor_ShouldErrSelfNotarizedHeadersNotifier(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.SelfNotarizedHeadersNotifier = nil
-
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrSelfNotarizedHeadersNotifier, err)
@@ -372,6 +366,7 @@ func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenHeaderIsNil(t *te
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	headers, _ := bp.ComputeLongestChain(blockProcessorArguments.ShardCoordinator.SelfId(), nil)
+
 	assert.Equal(t, 0, len(headers))
 }
 
@@ -381,6 +376,7 @@ func TestComputeSelfNotarizedHeaders_ShouldReturnEmptySliceWhenSortHeadersFromNo
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	headers, _ := bp.ComputeLongestChain(blockProcessorArguments.ShardCoordinator.SelfId(), &block2.Header{})
+
 	assert.Equal(t, 0, len(headers))
 }
 
@@ -437,7 +433,6 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenPrevHeaderIsNil(t *testing.T) {
 	longestChainHeadersIndexes := make([]int, 0)
 	headersIndexes := make([]int, 0)
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 1}}
-
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, nil, sortedHeaders, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
@@ -452,7 +447,6 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenSortedHeadersHaveHigherNonces(t
 	headersIndexes := make([]int, 0)
 	prevHeader := &block2.Header{}
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2}}
-
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
@@ -467,7 +461,6 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderConstructionIsNotValid(t 
 	headersIndexes := make([]int, 0)
 	prevHeader := &block2.Header{}
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 1}}
-
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
@@ -498,7 +491,6 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *t
 	}
 
 	sortedHeaders := []data.HeaderHandler{header2}
-
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
@@ -537,7 +529,6 @@ func TestGetNextHeader_ShouldWork(t *testing.T) {
 	}
 
 	sortedHeaders := []data.HeaderHandler{header2, header3}
-
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, 0)
 
 	assert.Equal(t, 1, len(longestChainHeadersIndexes))
@@ -550,7 +541,6 @@ func TestCheckHeaderFinality_ShouldErrNilBlockHeader(t *testing.T) {
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 1}}
-
 	err := bp.CheckHeaderFinality(nil, sortedHeaders, 0)
 
 	assert.Equal(t, process.ErrNilBlockHeader, err)
@@ -563,7 +553,6 @@ func TestCheckHeaderFinality_ShouldErrHeaderNotFinal(t *testing.T) {
 
 	header := &block2.Header{}
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 1}}
-
 	err := bp.CheckHeaderFinality(header, sortedHeaders, 0)
 
 	assert.Equal(t, process.ErrHeaderNotFinal, err)
@@ -591,7 +580,6 @@ func TestCheckHeaderFinality_ShouldWork(t *testing.T) {
 	}
 
 	sortedHeaders := []data.HeaderHandler{header2}
-
 	err := bp.CheckHeaderFinality(header1, sortedHeaders, 0)
 
 	assert.Nil(t, err)
@@ -615,9 +603,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
 
 	sortedHeaders := []data.HeaderHandler{&block2.Header{}}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{}}
-
 	bp.RequestHeadersIfNeeded(nil, sortedHeaders, longestChainHeaders)
-
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -641,9 +627,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfSortedHeadersAreEmpty(t *testi
 
 	lastNotarizedHeader := &block2.Header{}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{}}
-
 	bp.RequestHeadersIfNeeded(lastNotarizedHeader, nil, longestChainHeaders)
-
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -668,9 +652,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfNodeIsSync(t *testing.T) {
 	lastNotarizedHeader := &block2.Header{}
 	sortedHeaders := []data.HeaderHandler{&block2.Header{}}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{}}
-
 	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
-
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -695,59 +677,67 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *tes
 	lastNotarizedHeader := &block2.Header{}
 	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 1}}
 	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3}}
-
 	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
-
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
 }
 
-//func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *testing.T) {
-//	t.Parallel()
-//	blockProcessorArguments := CreateBlockProcessorMockArguments()
-//
-//	wg := sync.WaitGroup{}
-//	wg.Add(2)
-//
-//	calledMeta := false
-//	calledShard := false
-//
-//	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
-//		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
-//			wg.Done()
-//			calledMeta = true
-//		},
-//		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
-//			wg.Done()
-//			calledShard = true
-//		},
-//	}
-//
-//	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
-//
-//	lastNotarizedHeader := &block2.Header{}
-//	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2}}
-//
-//	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, nil)
-//
-//	wg.Wait()
-//
-//	assert.False(t, calledMeta)
-//	assert.True(t, calledShard)
-//
-//	wg.Add(2)
-//
-//	calledMeta = false
-//	calledShard = false
-//
-//	lastNotarizedHeader2 := &block2.MetaBlock{}
-//	sortedHeaders2 := []data.HeaderHandler{&block2.MetaBlock{Nonce: 2}}
-//
-//	bp.RequestHeadersIfNeeded(lastNotarizedHeader2, sortedHeaders2, nil)
-//
-//	wg.Wait()
-//
-//	assert.True(t, calledMeta)
-//	assert.False(t, calledShard)
-//}
+func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *testing.T) {
+	t.Parallel()
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	var mutCalled sync.RWMutex
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+
+	mutCalled.Lock()
+	calledMeta := false
+	calledShard := false
+	mutCalled.Unlock()
+
+	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			wg.Done()
+			mutCalled.Lock()
+			calledMeta = true
+			mutCalled.Unlock()
+		},
+		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+			wg.Done()
+			mutCalled.Lock()
+			calledShard = true
+			mutCalled.Unlock()
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	lastNotarizedHeader := &block2.Header{}
+	sortedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2}}
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, nil)
+	wg.Wait()
+
+	mutCalled.RLock()
+	assert.False(t, calledMeta)
+	assert.True(t, calledShard)
+	mutCalled.RUnlock()
+
+	wg.Add(2)
+
+	mutCalled.Lock()
+	calledMeta = false
+	calledShard = false
+	mutCalled.Unlock()
+
+	lastNotarizedHeader2 := &block2.MetaBlock{}
+	sortedHeaders2 := []data.HeaderHandler{&block2.MetaBlock{Nonce: 2}}
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader2, sortedHeaders2, nil)
+	wg.Wait()
+
+	mutCalled.RLock()
+	assert.True(t, calledMeta)
+	assert.False(t, calledShard)
+	mutCalled.RUnlock()
+}

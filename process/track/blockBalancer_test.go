@@ -10,6 +10,7 @@ import (
 func TestNewBlockBalancer_ShouldWork(t *testing.T) {
 	t.Parallel()
 	bb, err := track.NewBlockBalancer()
+
 	assert.Nil(t, err)
 	assert.NotNil(t, bb)
 }
