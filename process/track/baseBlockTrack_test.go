@@ -1043,7 +1043,7 @@ func TestDisplayTrackedHeaders_ShouldNotPanic(t *testing.T) {
 	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
 	sbt.AddTrackedHeader(metaBlock, metaBlockHash)
 
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	sbt.DisplayTrackedHeaders()
 }
 
@@ -1059,7 +1059,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotPanicWhenTrackedHeadersSliceIsEm
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	sbt.DisplayTrackedHeadersForShard(0, "test")
 }
 
@@ -1082,7 +1082,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotPanicWhenTheOnlyTrackedHeaderHas
 	headerHash := []byte("hash")
 	sbt.AddTrackedHeader(header, headerHash)
 
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	sbt.DisplayTrackedHeadersForShard(0, "test")
 }
 
@@ -1105,7 +1105,7 @@ func TestDisplayTrackedHeadersForShard_ShouldNotPanic(t *testing.T) {
 	headerHash := []byte("hash")
 	sbt.AddTrackedHeader(header, headerHash)
 
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	sbt.DisplayTrackedHeadersForShard(0, "test")
 }
 

@@ -111,7 +111,7 @@ func TestNotarizedHeaders_ShouldNotPanicWhenGivenShardIsInvalid(t *testing.T) {
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	bn.AddNotarizedHeader(0, &block.Header{Nonce: 1}, nil)
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	bn.DisplayNotarizedHeaders(1, "test")
 }
 
@@ -127,7 +127,7 @@ func TestNotarizedHeaders_ShouldNotPanicWhenTheOnlyNotarizedHeaderHasNonceZero(t
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	bn.DisplayNotarizedHeaders(0, "test")
 }
 
@@ -146,7 +146,7 @@ func TestNotarizedHeaders_ShouldNotPanic(t *testing.T) {
 	hdr2 := block.Header{Nonce: 2}
 	bn.AddNotarizedHeader(0, &hdr2, nil)
 	bn.AddNotarizedHeader(0, &hdr1, nil)
-	logger.SetLogLevel("track:DEBUG")
+	_ = logger.SetLogLevel("track:DEBUG")
 	bn.DisplayNotarizedHeaders(0, "test")
 }
 
