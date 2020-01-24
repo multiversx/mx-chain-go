@@ -2,6 +2,7 @@ package track
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -273,6 +274,55 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message
 // GetCrossNotarizedHeader returns a cross notarized header for a given shard with a given offset, behind last cross notarized header
 func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	return bbt.crossNotarizer.getNotarizedHeader(shardID, offset)
+}
+
+// CheckBlockBasicValidity checks if the given header is valid related to some basic checks
+func (bbt *baseBlockTrack) CheckBlockBasicValidity(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return fmt.Errorf("nil header handler")
+	}
+
+	finalHeader, _, err := bbt.GetFinalHeader(headerHandler.GetShardID())
+	if err != nil {
+		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
+			err,
+			headerHandler.GetShardID(),
+			headerHandler.GetRound(),
+			headerHandler.GetNonce())
+	}
+
+	roundDif := int64(headerHandler.GetRound()) - int64(finalHeader.GetRound())
+	nonceDif := int64(headerHandler.GetNonce()) - int64(finalHeader.GetNonce())
+	nextRound := bbt.rounder.Index() + 1
+
+	if roundDif < 0 {
+		return fmt.Errorf("lower round in block: header round: %d, final header round: %d",
+			headerHandler.GetRound(),
+			finalHeader.GetRound())
+	}
+	if nonceDif < 0 {
+		return fmt.Errorf("lower nonce in block: header nonce: %d, final header nonce: %d",
+			headerHandler.GetNonce(),
+			finalHeader.GetNonce())
+	}
+	if int64(headerHandler.GetRound()) > nextRound {
+		return fmt.Errorf("higher round in block: header round: %d, next chronology round: %d",
+			headerHandler.GetRound(),
+			nextRound)
+	}
+	if roundDif < nonceDif {
+		return fmt.Errorf("higher nonce in block: "+
+			"header round: %d, final header round: %d, round dif: %d"+
+			"header nonce: %d, final header nonce: %d, nonce dif: %d",
+			headerHandler.GetRound(),
+			finalHeader.GetRound(),
+			roundDif,
+			headerHandler.GetNonce(),
+			finalHeader.GetNonce(),
+			nonceDif)
+	}
+
+	return nil
 }
 
 // GetFinalHeader returns final header for a given shard

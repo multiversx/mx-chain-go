@@ -75,15 +75,15 @@ func TestNewInterceptedShardHeaderDataFactory_NilChainIdShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
-func TestNewInterceptedShardHeaderDataFactory_NilFinalityAttesterShouldErr(t *testing.T) {
+func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.FinalityAttester = nil
+	arg.ValidityAttester = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrNilFinalityAttester, err)
+	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {

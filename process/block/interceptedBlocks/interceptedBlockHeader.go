@@ -19,7 +19,7 @@ type InterceptedHeader struct {
 	hash              []byte
 	isForCurrentShard bool
 	chainID           []byte
-	finalityAttester  process.FinalityAttester
+	validityAttester  process.ValidityAttester
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -40,7 +40,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		sigVerifier:      arg.HeaderSigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
 		chainID:          arg.ChainID,
-		finalityAttester: arg.FinalityAttester,
+		validityAttester: arg.ValidityAttester,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -95,7 +95,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkHeaderHandlerHasLowerNonceThanFinalHeader(inHdr.HeaderHandler(), inHdr.finalityAttester)
+	err = inHdr.validityAttester.CheckBlockBasicValidity(inHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}

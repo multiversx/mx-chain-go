@@ -69,7 +69,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		FeeHandler:        createMockFeeHandler(),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
-		FinalityAttester:  &mock.FinalityAttesterStub{},
+		ValidityAttester:  &mock.ValidityAttesterStub{},
 	}
 }
 
@@ -137,15 +137,15 @@ func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
-func TestNewInterceptedMetaHeaderDataFactory_NilFinalityAttesterShouldErr(t *testing.T) {
+func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.FinalityAttester = nil
+	arg.ValidityAttester = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrNilFinalityAttester, err)
+	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {

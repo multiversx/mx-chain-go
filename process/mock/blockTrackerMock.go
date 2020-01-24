@@ -20,6 +20,7 @@ type BlockTrackerMock struct {
 	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
 	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                      func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
+	CheckBlockBasicValidityCalled                     func(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonceCalled                   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                         func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled    func() ([]data.HeaderHandler, [][]byte, error)
@@ -126,6 +127,14 @@ func (btm *BlockTrackerMock) AddSelfNotarizedHeader(shardID uint32, selfNotarize
 	if btm.AddSelfNotarizedHeaderCalled != nil {
 		btm.AddSelfNotarizedHeaderCalled(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
+}
+
+func (btm *BlockTrackerMock) CheckBlockBasicValidity(headerHandler data.HeaderHandler) error {
+	if btm.CheckBlockBasicValidityCalled != nil {
+		return btm.CheckBlockBasicValidityCalled(headerHandler)
+	}
+
+	return nil
 }
 
 func (btm *BlockTrackerMock) CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64) {

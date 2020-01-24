@@ -1226,7 +1226,7 @@ func newInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-	finalityAttester process.FinalityAttester,
+	validityAttester process.ValidityAttester,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1241,7 +1241,7 @@ func newInterceptorContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
-			finalityAttester,
+			validityAttester,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1256,7 +1256,7 @@ func newInterceptorContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
-			finalityAttester,
+			validityAttester,
 		)
 	}
 
@@ -1304,7 +1304,7 @@ func newShardInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-	finalityAttester process.FinalityAttester,
+	validityAttester process.ValidityAttester,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
@@ -1329,7 +1329,7 @@ func newShardInterceptorContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
-		finalityAttester,
+		validityAttester,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1349,7 +1349,7 @@ func newMetaInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-	finalityAttester process.FinalityAttester,
+	validityAttester process.ValidityAttester,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1373,7 +1373,7 @@ func newMetaInterceptorContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
-		finalityAttester,
+		validityAttester,
 	)
 	if err != nil {
 		return nil, nil, err
