@@ -11,7 +11,7 @@ import (
 // ConcurrentMap is a thread safe map of type string:Anything.
 // To avoid lock bottlenecks this map is divided to several map chunks.
 type ConcurrentMap struct {
-	mutex   sync.Mutex
+	mutex   sync.RWMutex
 	nChunks uint32
 	chunks  []*concurrentMapChunk
 }
@@ -52,11 +52,6 @@ func (m *ConcurrentMap) initializeChunks() {
 	}
 }
 
-// getChunk returns the chunk holding the given key.
-func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {
-	return m.chunks[fnv32(key)%m.nChunks]
-}
-
 // Set sets the given value under the specified key.
 func (m *ConcurrentMap) Set(key string, value interface{}) {
 	chunk := m.getChunk(key)
@@ -67,7 +62,6 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 
 // SetIfAbsent sets the given value under the specified key if no value was associated with it.
 func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
-	// Get map shard.
 	chunk := m.getChunk(key)
 	chunk.Lock()
 	_, ok := chunk.items[key]
@@ -87,18 +81,6 @@ func (m *ConcurrentMap) Get(key string) (interface{}, bool) {
 	return val, ok
 }
 
-// Count returns the number of elements within the map.
-func (m *ConcurrentMap) Count() int {
-	count := 0
-	for i := uint32(0); i < m.nChunks; i++ {
-		chunk := m.chunks[i]
-		chunk.RLock()
-		count += len(chunk.items)
-		chunk.RUnlock()
-	}
-	return count
-}
-
 // Has looks up an item under specified key.
 func (m *ConcurrentMap) Has(key string) bool {
 	chunk := m.getChunk(key)
@@ -116,19 +98,11 @@ func (m *ConcurrentMap) Remove(key string) {
 	chunk.Unlock()
 }
 
-// IterCb is an iterator callback
-type IterCb func(key string, v interface{})
-
-// IterCb iterates over the map (cheapest way to read all elements in a map)
-func (m *ConcurrentMap) IterCb(fn IterCb) {
-	for idx := range m.chunks {
-		chunk := (m.chunks)[idx]
-		chunk.RLock()
-		for key, value := range chunk.items {
-			fn(key, value)
-		}
-		chunk.RUnlock()
-	}
+// getChunk returns the chunk holding the given key.
+func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.chunks[fnv32(key)%m.nChunks]
 }
 
 // fnv32 implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -149,33 +123,57 @@ func (m *ConcurrentMap) Clear() {
 	m.initializeChunks()
 }
 
+// Count returns the number of elements within the map.
+func (m *ConcurrentMap) Count() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	count := 0
+	for i := uint32(0); i < m.nChunks; i++ {
+		chunk := m.chunks[i]
+		chunk.RLock()
+		count += len(chunk.items)
+		chunk.RUnlock()
+	}
+	return count
+}
+
 // Keys returns all keys as []string
 func (m *ConcurrentMap) Keys() []string {
 	count := m.Count()
-	ch := make(chan string, count)
-	go func() {
-		// Foreach shard.
-		wg := sync.WaitGroup{}
-		wg.Add(int(m.nChunks))
-		for _, shard := range m.chunks {
-			go func(shard *concurrentMapChunk) {
-				// Foreach key, value pair.
-				shard.RLock()
-				for key := range shard.items {
-					ch <- key
-				}
-				shard.RUnlock()
-				wg.Done()
-			}(shard)
-		}
-		wg.Wait()
-		close(ch)
-	}()
 
-	// Generate keys
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
 	keys := make([]string, 0, count)
-	for k := range ch {
-		keys = append(keys, k)
+
+	for _, chunk := range m.chunks {
+		chunk.RLock()
+		defer chunk.RUnlock()
+
+		for key := range chunk.items {
+			keys = append(keys, key)
+		}
 	}
+
 	return keys
+}
+
+// IterCb is an iterator callback
+type IterCb func(key string, v interface{})
+
+// IterCb iterates over the map (cheapest way to read all elements in a map)
+func (m *ConcurrentMap) IterCb(fn IterCb) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	for idx := range m.chunks {
+		chunk := (m.chunks)[idx]
+		chunk.RLock()
+		for key, value := range chunk.items {
+			fn(key, value)
+		}
+		chunk.RUnlock()
+	}
 }

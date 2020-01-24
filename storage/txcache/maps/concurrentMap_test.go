@@ -1,6 +1,7 @@
 package maps
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -79,6 +80,65 @@ func TestConcurrentMap_Clear(t *testing.T) {
 	myMap.Clear()
 
 	require.Equal(t, 0, myMap.Count())
+}
+
+func TestConcurrentMap_ClearConcurrentWithRead(t *testing.T) {
+	myMap := NewConcurrentMap(4)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		for j := 0; j < 1000; j++ {
+			myMap.Clear()
+		}
+
+		wg.Done()
+	}()
+
+	go func() {
+		for j := 0; j < 1000; j++ {
+			require.Equal(t, 0, myMap.Count())
+			require.Len(t, myMap.Keys(), 0)
+			require.Equal(t, false, myMap.Has("foobar"))
+			item, ok := myMap.Get("foobar")
+			require.Nil(t, item)
+			require.False(t, ok)
+			myMap.IterCb(func(key string, item interface{}) {
+			})
+		}
+
+		wg.Done()
+	}()
+
+	wg.Wait()
+}
+
+func TestConcurrentMap_ClearConcurrentWithWrite(t *testing.T) {
+	myMap := NewConcurrentMap(4)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		for j := 0; j < 10000; j++ {
+			myMap.Clear()
+		}
+
+		wg.Done()
+	}()
+
+	go func() {
+		for j := 0; j < 10000; j++ {
+			myMap.Set("foobar", "foobar")
+			myMap.SetIfAbsent("foobar", "foobar")
+			myMap.Remove("foobar")
+		}
+
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func TestConcurrentMap_IterCb(t *testing.T) {
