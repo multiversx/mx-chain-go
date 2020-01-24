@@ -6,7 +6,7 @@ import (
 
 // BucketSortedMap is
 type BucketSortedMap struct {
-	globalMutex  sync.Mutex
+	mutex        sync.RWMutex
 	nChunks      uint32
 	nScoreChunks uint32
 	maxScore     uint32
@@ -42,8 +42,8 @@ func NewBucketSortedMap(nChunks uint32, nScoreChunks uint32) *BucketSortedMap {
 
 func (sortedMap *BucketSortedMap) initializeChunks() {
 	// Assignment is not an atomic operation, so we have to wrap this in a critical section
-	sortedMap.globalMutex.Lock()
-	defer sortedMap.globalMutex.Unlock()
+	sortedMap.mutex.Lock()
+	defer sortedMap.mutex.Unlock()
 
 	sortedMap.chunks = make([]*MapChunk, sortedMap.nChunks)
 	sortedMap.scoreChunks = make([]*MapChunk, sortedMap.nScoreChunks)
@@ -83,7 +83,7 @@ func (sortedMap *BucketSortedMap) OnScoreChange(item BucketSortedMapItem) {
 		newScore = sortedMap.maxScore
 	}
 
-	newScoreChunk := sortedMap.scoreChunks[newScore]
+	newScoreChunk := sortedMap.getScoreChunks()[newScore]
 	if newScoreChunk != item.GetScoreChunk() {
 		removeFromScoreChunk(item)
 		newScoreChunk.setItem(item)
@@ -107,42 +107,6 @@ func (sortedMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
 	return val, ok
 }
 
-// Count returns the number of elements within the map
-func (sortedMap *BucketSortedMap) Count() uint32 {
-	count := uint32(0)
-	for _, chunk := range sortedMap.chunks {
-		count += chunk.countItems()
-	}
-	return count
-}
-
-// CountSorted returns the number of sorted elements within the map
-func (sortedMap *BucketSortedMap) CountSorted() uint32 {
-	count := uint32(0)
-	for _, chunk := range sortedMap.scoreChunks {
-		count += chunk.countItems()
-	}
-	return count
-}
-
-// ChunksCounts returns the number of elements by chunk
-func (sortedMap *BucketSortedMap) ChunksCounts() []uint32 {
-	counts := make([]uint32, sortedMap.nChunks)
-	for i, chunk := range sortedMap.chunks {
-		counts[i] = chunk.countItems()
-	}
-	return counts
-}
-
-// ScoreChunksCounts returns the number of elements by chunk
-func (sortedMap *BucketSortedMap) ScoreChunksCounts() []uint32 {
-	counts := make([]uint32, sortedMap.nScoreChunks)
-	for i, chunk := range sortedMap.scoreChunks {
-		counts[i] = chunk.countItems()
-	}
-	return counts
-}
-
 // Has looks up an item under specified key
 func (sortedMap *BucketSortedMap) Has(key string) bool {
 	chunk := sortedMap.getChunk(key)
@@ -161,52 +125,10 @@ func (sortedMap *BucketSortedMap) Remove(key string) {
 	}
 }
 
-// SortedMapIterCb is an iterator callback
-type SortedMapIterCb func(key string, value BucketSortedMapItem)
-
-// GetSnapshotAscending gets a snapshot of the items
-// This applies a read lock on all chunks, so that they aren't mutated during snapshot
-func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
-	counter := uint32(0)
-
-	for _, chunk := range sortedMap.scoreChunks {
-		chunk.RLock()
-		counter += uint32(len(chunk.items))
-	}
-
-	snapshot := make([]BucketSortedMapItem, 0, counter)
-
-	for _, chunk := range sortedMap.scoreChunks {
-		for _, item := range chunk.items {
-			snapshot = append(snapshot, item)
-		}
-	}
-
-	for _, chunk := range sortedMap.scoreChunks {
-		chunk.RUnlock()
-	}
-
-	return snapshot
-}
-
-// IterCbSortedAscending iterates over the sorted elements in the map
-func (sortedMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
-	for _, chunk := range sortedMap.scoreChunks {
-		chunk.forEachItem(callback)
-	}
-}
-
-// IterCbSortedDescending iterates over the sorted elements in the map
-func (sortedMap *BucketSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
-	chunks := sortedMap.scoreChunks
-	for i := len(chunks) - 1; i >= 0; i-- {
-		chunk := chunks[i]
-		chunk.forEachItem(callback)
-	}
-}
-
 // getChunk returns the chunk holding the given key.
 func (sortedMap *BucketSortedMap) getChunk(key string) *MapChunk {
+	sortedMap.mutex.RLock()
+	defer sortedMap.mutex.RUnlock()
 	return sortedMap.chunks[fnv32Hash(key)%sortedMap.nChunks]
 }
 
@@ -223,20 +145,99 @@ func fnv32Hash(key string) uint32 {
 
 // Clear clears the map
 func (sortedMap *BucketSortedMap) Clear() {
-	// TODO-TXCACHE: fix possible race condition. While Clear() happens, concurrent iteration over chunks is not possible.
-	// TODO: possibly, hold extra lock for chunks field?
-
 	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
 	sortedMap.initializeChunks()
 }
 
+// Count returns the number of elements within the map
+func (sortedMap *BucketSortedMap) Count() uint32 {
+	count := uint32(0)
+	for _, chunk := range sortedMap.getChunks() {
+		count += chunk.countItems()
+	}
+	return count
+}
+
+// CountSorted returns the number of sorted elements within the map
+func (sortedMap *BucketSortedMap) CountSorted() uint32 {
+	count := uint32(0)
+	for _, chunk := range sortedMap.getScoreChunks() {
+		count += chunk.countItems()
+	}
+	return count
+}
+
+// ChunksCounts returns the number of elements by chunk
+func (sortedMap *BucketSortedMap) ChunksCounts() []uint32 {
+	counts := make([]uint32, sortedMap.nChunks)
+	for i, chunk := range sortedMap.getChunks() {
+		counts[i] = chunk.countItems()
+	}
+	return counts
+}
+
+// ScoreChunksCounts returns the number of elements by chunk
+func (sortedMap *BucketSortedMap) ScoreChunksCounts() []uint32 {
+	counts := make([]uint32, sortedMap.nScoreChunks)
+	for i, chunk := range sortedMap.getScoreChunks() {
+		counts[i] = chunk.countItems()
+	}
+	return counts
+}
+
+// SortedMapIterCb is an iterator callback
+type SortedMapIterCb func(key string, value BucketSortedMapItem)
+
+// GetSnapshotAscending gets a snapshot of the items
+// This applies a read lock on all chunks, so that they aren't mutated during snapshot
+func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
+	counter := uint32(0)
+	scoreChunks := sortedMap.getScoreChunks()
+
+	for _, chunk := range scoreChunks {
+		chunk.RLock()
+		counter += uint32(len(chunk.items))
+	}
+
+	snapshot := make([]BucketSortedMapItem, 0, counter)
+
+	for _, chunk := range scoreChunks {
+		for _, item := range chunk.items {
+			snapshot = append(snapshot, item)
+		}
+	}
+
+	for _, chunk := range scoreChunks {
+		chunk.RUnlock()
+	}
+
+	return snapshot
+}
+
+// IterCbSortedAscending iterates over the sorted elements in the map
+func (sortedMap *BucketSortedMap) IterCbSortedAscending(callback SortedMapIterCb) {
+	for _, chunk := range sortedMap.getScoreChunks() {
+		chunk.forEachItem(callback)
+	}
+}
+
+// IterCbSortedDescending iterates over the sorted elements in the map
+func (sortedMap *BucketSortedMap) IterCbSortedDescending(callback SortedMapIterCb) {
+	chunks := sortedMap.getScoreChunks()
+	for i := len(chunks) - 1; i >= 0; i-- {
+		chunk := chunks[i]
+		chunk.forEachItem(callback)
+	}
+}
+
 // Keys returns all keys as []string
 func (sortedMap *BucketSortedMap) Keys() []string {
 	count := sortedMap.Count()
+	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
 	keys := make([]string, 0, count)
 
-	for _, chunk := range sortedMap.chunks {
+	for _, chunk := range sortedMap.getChunks() {
 		keys = chunk.appendKeys(keys)
 	}
 
@@ -246,13 +247,26 @@ func (sortedMap *BucketSortedMap) Keys() []string {
 // KeysSorted returns all keys of the sorted items as []string
 func (sortedMap *BucketSortedMap) KeysSorted() []string {
 	count := sortedMap.CountSorted()
+	// count is not exact anymore, since we are in a different lock than the one aquired by CountSorted() (but is a good approximation)
 	keys := make([]string, 0, count)
 
-	for _, chunk := range sortedMap.scoreChunks {
+	for _, chunk := range sortedMap.getScoreChunks() {
 		keys = chunk.appendKeys(keys)
 	}
 
 	return keys
+}
+
+func (sortedMap *BucketSortedMap) getChunks() []*MapChunk {
+	sortedMap.mutex.RLock()
+	defer sortedMap.mutex.RUnlock()
+	return sortedMap.chunks
+}
+
+func (sortedMap *BucketSortedMap) getScoreChunks() []*MapChunk {
+	sortedMap.mutex.RLock()
+	defer sortedMap.mutex.RUnlock()
+	return sortedMap.scoreChunks
 }
 
 func (chunk *MapChunk) removeItem(item BucketSortedMapItem) {

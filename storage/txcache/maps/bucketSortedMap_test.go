@@ -260,3 +260,70 @@ func TestBucketSortedMap_AddManyItems(t *testing.T) {
 		require.Equal(t, uint32(1000), counts[i])
 	}
 }
+
+func TestBucketSortedMap_ClearConcurrentWithRead(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 4)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		for j := 0; j < 1000; j++ {
+			myMap.Clear()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		for j := 0; j < 1000; j++ {
+			require.Equal(t, uint32(0), myMap.Count())
+			require.Equal(t, uint32(0), myMap.CountSorted())
+			require.Len(t, myMap.ChunksCounts(), 4)
+			require.Len(t, myMap.ScoreChunksCounts(), 4)
+			require.Len(t, myMap.Keys(), 0)
+			require.Len(t, myMap.KeysSorted(), 0)
+			require.Equal(t, false, myMap.Has("foobar"))
+			item, ok := myMap.Get("foobar")
+			require.Nil(t, item)
+			require.False(t, ok)
+			require.Len(t, myMap.GetSnapshotAscending(), 0)
+			myMap.IterCbSortedAscending(func(key string, item BucketSortedMapItem) {
+			})
+			myMap.IterCbSortedDescending(func(key string, item BucketSortedMapItem) {
+			})
+		}
+	}()
+
+	wg.Wait()
+}
+
+func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 4)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		for j := 0; j < 10000; j++ {
+			myMap.Clear()
+		}
+
+		wg.Done()
+	}()
+
+	go func() {
+		for j := 0; j < 10000; j++ {
+			myMap.Set(newDummyItem("foobar"))
+			myMap.Remove("foobar")
+			myMap.OnScoreChange(newDummyItem("foobar"))
+			myMap.OnScoreChangeByKey("foobar")
+		}
+
+		wg.Done()
+	}()
+
+	wg.Wait()
+}
