@@ -38,14 +38,6 @@ func (po *kyberPoint) Null() crypto.Point {
 	return &po2
 }
 
-// Base returns the Group's base point.
-func (po *kyberPoint) Base() crypto.Point {
-	po2 := kyberPoint{Point: po.Point.Clone()}
-	_ = po2.Point.Base()
-
-	return &po2
-}
-
 // Set sets the receiver equal to another Point p.
 func (po *kyberPoint) Set(p crypto.Point) error {
 	if p == nil || p.IsInterfaceNil() {
@@ -163,8 +155,5 @@ func (po *kyberPoint) UnmarshalBinary(point []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (po *kyberPoint) IsInterfaceNil() bool {
-	if po == nil {
-		return true
-	}
-	return false
+	return po == nil
 }

@@ -218,9 +218,7 @@ func (bn *belNevSigner) CommitmentHash(index uint16) ([]byte, error) {
 func (bn *belNevSigner) CreateCommitment() (commSecret []byte, commitment []byte) {
 	suite := bn.keyGen.Suite()
 	rand := suite.RandomStream()
-	sk, _ := suite.CreateScalar().Pick(rand)
-	pk := suite.CreatePoint().Base()
-	pk, _ = pk.Mul(sk)
+	sk, pk := suite.CreateKeyPair(rand)
 
 	bn.mutSigData.Lock()
 	bn.data.commSecret = sk
@@ -460,8 +458,7 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, message [
 	sigScalar := suite.CreateScalar()
 	_ = sigScalar.UnmarshalBinary(sig)
 	// s_i * G
-	basePoint := suite.CreatePoint().Base()
-	left, _ := basePoint.Mul(sigScalar)
+	left := suite.CreatePointForScalar(sigScalar)
 
 	bn.mutSigData.RLock()
 	defer bn.mutSigData.RUnlock()
@@ -673,14 +670,14 @@ func (bn *belNevSigner) Verify(message []byte, bitmap []byte) error {
 
 	// R + Sum(H1(<L'>||X_i||R||m)*X_i)
 	right, _ = right.Add(bn.data.aggCommitment)
-	// s * G
-	left := suite.CreatePoint().Base()
 
 	if bn.data.aggSig == nil {
 		return crypto.ErrNilSignature
 	}
 
-	left, _ = left.Mul(bn.data.aggSig)
+	// s * G
+	left := suite.CreatePointForScalar(bn.data.aggSig)
+
 	// s * G = R + Sum(H1(<L'>||X_i||R||m)*X_i)
 	eq, _ := right.Equal(left)
 
@@ -693,8 +690,5 @@ func (bn *belNevSigner) Verify(message []byte, bitmap []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *belNevSigner) IsInterfaceNil() bool {
-	if bn == nil {
-		return true
-	}
-	return false
+	return bn == nil
 }

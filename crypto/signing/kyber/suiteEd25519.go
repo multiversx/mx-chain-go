@@ -35,6 +35,17 @@ func (s *suiteEd25519) CreatePoint() crypto.Point {
 	return &po
 }
 
+// CreatePointForScalar creates a new point corresponding to the given scalar
+func (s *suiteEd25519) CreatePointForScalar(scalar crypto.Scalar) crypto.Point {
+	sc := scalar.(*kyberScalar)
+	p := kyberPoint{}
+
+	p1 := s.suite.Curve.Point().Base().Mul(sc.Scalar, nil)
+	p.Point = p1
+
+	return &p
+}
+
 // String returns the string for the group
 func (s *suiteEd25519) String() string {
 	return s.suite.Curve.String()

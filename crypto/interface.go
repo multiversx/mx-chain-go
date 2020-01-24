@@ -60,8 +60,6 @@ type Point interface {
 	Equal(p Point) (bool, error)
 	// Null returns the neutral identity element.
 	Null() Point
-	// Base returns the Group's base point.
-	Base() Point
 	// Set sets the receiver equal to another Point p.
 	Set(p Point) error
 	// Clone returns a clone of the receiver.
@@ -97,6 +95,8 @@ type Group interface {
 	PointLen() int
 	// CreatePoint creates a new point
 	CreatePoint() Point
+	// CreatePointForScalar creates a new point corresponding to the given scalar
+	CreatePointForScalar(scalar Scalar) Point
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

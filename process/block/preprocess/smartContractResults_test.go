@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
