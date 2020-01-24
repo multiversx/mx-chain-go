@@ -694,6 +694,10 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this test does not perform well in TC with race detector on")
+	}
+
 	port := 4000
 	msg := []byte("test message")
 	numBroadcasts := 2 * libp2p.BroadcastGoRoutines
