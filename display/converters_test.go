@@ -44,7 +44,7 @@ func TestDisplayByteSlice_WithSetCanBeCalledConcurrently(t *testing.T) {
 	wg.Wait()
 }
 
-func TestToHexShort_EmptyHashShouldReturnEmptyString(t *testing.T) {
+func TestToHexShort_EmptySliceShouldReturnEmptyString(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("")
@@ -53,24 +53,24 @@ func TestToHexShort_EmptyHashShouldReturnEmptyString(t *testing.T) {
 	assert.Equal(t, 0, len(res))
 }
 
-func TestToHexShort_ShortHashShouldDoNothing(t *testing.T) {
+func TestToHexShort_SliceLengthSmallShouldNotChange(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("short")
-	hexHash := hex.EncodeToString(hash)
+	input := []byte("short")
+	hexHash := hex.EncodeToString(input)
 
-	res := display.ToHexShort(hash)
+	res := display.ToHexShort(input)
 
 	assert.Equal(t, hexHash, res)
 }
 
-func TestToHexShort_LongHashShouldTrim(t *testing.T) {
+func TestToHexShort_SliceLengthBigShouldTrim(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("long enough hash so it should be trimmed")
-	hexHash := hex.EncodeToString(hash)
+	input := []byte("long enough input so it should be trimmed")
+	hexHash := hex.EncodeToString(input)
 
-	res := display.ToHexShort(hash)
+	res := display.ToHexShort(input)
 
 	assert.NotEqual(t, len(hexHash), len(res))
 	assert.True(t, strings.Contains(res, "..."))

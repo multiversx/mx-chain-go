@@ -66,7 +66,7 @@ func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
 	assert.True(t, putCalled)
 }
 
-func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingWrongTypeShouldErr(t *testing.T) {
+func TestTrieNodeInterceptorProcessor_SignalEndOfProcessingWrongTypeShouldNotPutInCache(t *testing.T) {
 	t.Parallel()
 
 	cacheMock := &mock.CacherStub{

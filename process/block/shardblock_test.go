@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin/json"
 	"math/big"
 	"reflect"
 	"sync"
@@ -35,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1525,6 +1525,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 
 func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool([]byte("tx_hash1"))
 	errPersister := errors.New("failure")
 	wasCalled := false
@@ -1551,8 +1552,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	body := make(block.Body, 0)
 	hdrUnit := &mock.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
-			hdrToRet, _ := marshalizer.Marshal(&block.Header{})
-			return hdrToRet, nil
+			return marshalizer.Marshal(&block.Header{})
 		},
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true

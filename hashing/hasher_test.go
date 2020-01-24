@@ -28,15 +28,15 @@ func TestFnv(t *testing.T) {
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
-	TestingNilInterface(t, h)
-	TestingSize(t, h)
-	TestingCalculateHash(t, h)
-	TestingCalculateEmptyHash(t, h)
-	TestingNilReturn(t, h)
+	testNilInterface(t, h)
+	testEvenSize(t, h)
+	testCalculateHash(t, h)
+	testCalculateEmptyHash(t, h)
+	testNilReturn(t, h)
 
 }
 
-func TestingNilInterface(t *testing.T, h hashing.Hasher) {
+func testNilInterface(t *testing.T, h hashing.Hasher) {
 
 	res := h.IsInterfaceNil()
 
@@ -44,7 +44,7 @@ func TestingNilInterface(t *testing.T, h hashing.Hasher) {
 
 }
 
-func TestingSize(t *testing.T, h hashing.Hasher) {
+func testEvenSize(t *testing.T, h hashing.Hasher) {
 
 	res := h.Size()
 
@@ -52,7 +52,7 @@ func TestingSize(t *testing.T, h hashing.Hasher) {
 
 }
 
-func TestingCalculateHash(t *testing.T, h hashing.Hasher) {
+func testCalculateHash(t *testing.T, h hashing.Hasher) {
 
 	h1 := h.Compute("a")
 	h2 := h.Compute("b")
@@ -61,7 +61,7 @@ func TestingCalculateHash(t *testing.T, h hashing.Hasher) {
 
 }
 
-func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
+func testCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("")
 	h2 := h.EmptyHash()
 
@@ -69,7 +69,7 @@ func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
 
 }
 
-func TestingNilReturn(t *testing.T, h hashing.Hasher) {
+func testNilReturn(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("a")
 	assert.NotNil(t, h1)
 }
