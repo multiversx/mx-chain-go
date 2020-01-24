@@ -3,7 +3,6 @@ package preprocess
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -193,12 +192,6 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 	}
 	return sdp
-}
-
-func TestFzxc(t *testing.T) {
-	a := uint32(7)
-	b := a - uint32(14)
-	fmt.Println(b)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {

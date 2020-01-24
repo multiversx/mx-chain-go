@@ -2341,17 +2341,10 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	test := "test"
 	result := ""
 	sep := "@"
-	result += test
-	result += sep
-	result += test
-	result += sep
-	result += test
-	result += sep
-	result += test
-	result += sep
-	result += test
-	result += sep
-	result += test
+	for i := 0; i < 6; i++ {
+		result += test
+		result += sep
+	}
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
