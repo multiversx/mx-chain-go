@@ -1,12 +1,17 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
 
 type ChainHandlerStub struct {
-	GetGenesisHeaderCalled     func() data.HeaderHandler
-	GetGenesisHeaderHashCalled func() []byte
-	SetGenesisHeaderCalled     func(gb data.HeaderHandler) error
-	SetGenesisHeaderHashCalled func(hash []byte)
+	GetGenesisHeaderCalled      func() data.HeaderHandler
+	GetGenesisHeaderHashCalled  func() []byte
+	SetGenesisHeaderCalled      func(gb data.HeaderHandler) error
+	SetGenesisHeaderHashCalled  func(hash []byte)
+	SetCurrentBlockHeaderCalled func(bh data.HeaderHandler) error
+	SetCurrentBlockBodyCalled   func(body data.BodyHandler) error
 }
 
 func (chs *ChainHandlerStub) GetGenesisHeader() data.HeaderHandler {
@@ -26,11 +31,14 @@ func (chs *ChainHandlerStub) SetGenesisHeaderHash(hash []byte) {
 }
 
 func (chs *ChainHandlerStub) GetCurrentBlockHeader() data.HeaderHandler {
-	panic("implement me")
+	return &block.Header{}
 }
 
 func (chs *ChainHandlerStub) SetCurrentBlockHeader(bh data.HeaderHandler) error {
-	panic("implement me")
+	if chs.SetCurrentBlockHeaderCalled != nil {
+		return chs.SetCurrentBlockHeaderCalled(bh)
+	}
+	return nil
 }
 
 func (chs *ChainHandlerStub) GetCurrentBlockHeaderHash() []byte {
@@ -38,7 +46,7 @@ func (chs *ChainHandlerStub) GetCurrentBlockHeaderHash() []byte {
 }
 
 func (chs *ChainHandlerStub) SetCurrentBlockHeaderHash(hash []byte) {
-	panic("implement me")
+
 }
 
 func (chs *ChainHandlerStub) GetCurrentBlockBody() data.BodyHandler {
@@ -46,7 +54,10 @@ func (chs *ChainHandlerStub) GetCurrentBlockBody() data.BodyHandler {
 }
 
 func (chs *ChainHandlerStub) SetCurrentBlockBody(body data.BodyHandler) error {
-	panic("implement me")
+	if chs.SetCurrentBlockBodyCalled != nil {
+		return chs.SetCurrentBlockBodyCalled(body)
+	}
+	return nil
 }
 
 func (chs *ChainHandlerStub) GetLocalHeight() int64 {
@@ -75,8 +86,5 @@ func (chs *ChainHandlerStub) PutBadBlock(blockHash []byte) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (chs *ChainHandlerStub) IsInterfaceNil() bool {
-	if chs == nil {
-		return true
-	}
-	return false
+	return chs == nil
 }
