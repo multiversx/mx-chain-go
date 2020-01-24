@@ -156,9 +156,9 @@ func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//-------- checkHeaderHandlerFinality
+//-------- checkHeaderHandlerHasLowerNonceThanFinalHeader
 
-func TestCheckHeaderHandlerFinality_ErrorsShouldReturnErr(t *testing.T) {
+func TestCheckHeaderHandlerHasLowerNonceThanFinalHeader_ErrorsShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
@@ -167,12 +167,12 @@ func TestCheckHeaderHandlerFinality_ErrorsShouldReturnErr(t *testing.T) {
 			return nil, nil, expectedErr
 		},
 	}
-	err := checkHeaderHandlerFinality(&block.Header{}, attester)
+	err := checkHeaderHandlerHasLowerNonceThanFinalHeader(&block.Header{}, attester)
 
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestCheckHeaderHandlerFinality_HeaderIsUnderFinalityShouldErr(t *testing.T) {
+func TestCheckHeaderHandlerHasLowerNonceThanFinalHeader_HeaderIsUnderFinalityShouldErr(t *testing.T) {
 	t.Parallel()
 
 	attester := &mock.FinalityAttesterStub{
@@ -184,12 +184,12 @@ func TestCheckHeaderHandlerFinality_HeaderIsUnderFinalityShouldErr(t *testing.T)
 				nil
 		},
 	}
-	err := checkHeaderHandlerFinality(&block.Header{}, attester)
+	err := checkHeaderHandlerHasLowerNonceThanFinalHeader(&block.Header{}, attester)
 
 	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
 }
 
-func TestCheckHeaderHandlerFinality_HeaderEqualOrOverShouldWork(t *testing.T) {
+func TestCheckHeaderHandlerHasLowerNonceThanFinalHeader_HeaderEqualOrOverShouldWork(t *testing.T) {
 	t.Parallel()
 
 	finalHeaderNonce := uint64(1)
@@ -203,14 +203,14 @@ func TestCheckHeaderHandlerFinality_HeaderEqualOrOverShouldWork(t *testing.T) {
 		},
 	}
 
-	err := checkHeaderHandlerFinality(
+	err := checkHeaderHandlerHasLowerNonceThanFinalHeader(
 		&block.Header{
 			Nonce: finalHeaderNonce,
 		},
 		attester)
 	assert.Nil(t, err)
 
-	err = checkHeaderHandlerFinality(
+	err = checkHeaderHandlerHasLowerNonceThanFinalHeader(
 		&block.Header{
 			Nonce: finalHeaderNonce + 1,
 		},

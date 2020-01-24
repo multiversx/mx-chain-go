@@ -14,10 +14,12 @@ func (fas *FinalityAttesterStub) GetFinalHeader(shardID uint32) (data.HeaderHand
 		return fas.GetFinalHeaderCalled(shardID)
 	}
 
-	return &block.Header{
-		ShardId: shardID,
+	hdr := &block.Header{
 		Nonce:   0,
-	}, make([]byte, 0), nil
+		ShardId: shardID,
+	}
+
+	return hdr, make([]byte, 0), nil
 }
 
 func (fas *FinalityAttesterStub) IsInterfaceNil() bool {

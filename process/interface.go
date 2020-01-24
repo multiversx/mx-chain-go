@@ -305,7 +305,6 @@ type InterceptorsContainer interface {
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int
-	Iterate(handler func(key string, interceptor Interceptor) bool)
 	IsInterfaceNil() bool
 }
 

@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -20,8 +19,4 @@ type HeaderSigVerifierHandler interface {
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
-}
-
-type interceptedDataFactoryWithFinalAttesterSetter interface {
-	SetFinalityAttester(attester process.FinalityAttester) error
 }

@@ -21,7 +21,3 @@ type TestEpochStartTrigger interface {
 	SetTrigger(triggerHandler epochStart.TriggerHandler)
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
-
-type interceptedDataFactoryWithFinalAttesterSetter interface {
-	SetFinalityAttester(attester process.FinalityAttester) error
-}

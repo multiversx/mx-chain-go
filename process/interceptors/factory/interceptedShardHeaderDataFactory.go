@@ -38,6 +38,9 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(argument.FinalityAttester) {
+		return nil, process.ErrNilFinalityAttester
+	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
@@ -45,7 +48,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
-		finalityAttester:  &nilFinalityAttester{},
+		finalityAttester:  argument.FinalityAttester,
 	}, nil
 }
 
@@ -62,16 +65,6 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
-}
-
-// SetFinalityAttester sets the finality attester
-func (ishdf *interceptedShardHeaderDataFactory) SetFinalityAttester(attester process.FinalityAttester) error {
-	if check.IfNil(attester) {
-		return process.ErrNilFinalityAttester
-	}
-
-	ishdf.finalityAttester = attester
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

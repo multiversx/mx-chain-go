@@ -79,7 +79,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	err = checkHeaderHandlerFinality(imh.HeaderHandler(), imh.finalityAttester)
+	err = checkHeaderHandlerHasLowerNonceThanFinalHeader(imh.HeaderHandler(), imh.finalityAttester)
 	if err != nil {
 		return err
 	}

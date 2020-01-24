@@ -31,9 +31,6 @@ func (ics *InterceptorsContainerStub) Len() int {
 	panic("implement me")
 }
 
-func (ics *InterceptorsContainerStub) Iterate(_ func(key string, interceptor process.Interceptor) bool) {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ics *InterceptorsContainerStub) IsInterfaceNil() bool {
 	return ics == nil

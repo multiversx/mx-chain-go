@@ -82,7 +82,7 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	return nil
 }
 
-func checkHeaderHandlerFinality(hdr data.HeaderHandler, attester process.FinalityAttester) error {
+func checkHeaderHandlerHasLowerNonceThanFinalHeader(hdr data.HeaderHandler, attester process.FinalityAttester) error {
 	attestedHdr, _, err := attester.GetFinalHeader(hdr.GetShardID())
 	if err != nil {
 		return err

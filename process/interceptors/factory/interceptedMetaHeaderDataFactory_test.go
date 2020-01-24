@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -68,6 +69,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		FeeHandler:        createMockFeeHandler(),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		FinalityAttester:  &mock.FinalityAttesterStub{},
 	}
 }
 
@@ -76,7 +78,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilArgumentShouldErr(t *testing.T) 
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(nil)
 
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
@@ -87,7 +89,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.
 	arg.Marshalizer = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -98,7 +100,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	arg.Hasher = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
@@ -109,7 +111,7 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *te
 	arg.HeaderSigVerifier = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 }
 
@@ -120,8 +122,30 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.ChainID = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilFinalityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.FinalityAttester = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilFinalityAttester, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
@@ -130,7 +154,7 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	arg := createMockArgument()
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.NotNil(t, imh)
+	assert.False(t, check.IfNil(imh))
 	assert.Nil(t, err)
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -140,28 +164,4 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)
 	assert.True(t, ok)
-}
-
-func TestInterceptedMetaHeaderDataFactory_SetFinalityAttesterWithNilShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	imh, _ := NewInterceptedMetaHeaderDataFactory(arg)
-
-	err := imh.SetFinalityAttester(nil)
-
-	assert.Equal(t, process.ErrNilFinalityAttester, err)
-}
-
-func TestInterceptedMetaHeaderDataFactory_SetFinalityAttester(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	imh, _ := NewInterceptedMetaHeaderDataFactory(arg)
-	newAttester := &nilFinalityAttester{}
-
-	err := imh.SetFinalityAttester(newAttester)
-
-	assert.Nil(t, err)
-	assert.True(t, imh.finalityAttester == newAttester)
 }

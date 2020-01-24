@@ -1,7 +1,6 @@
 package containers_test
 
 import (
-	"sync/atomic"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -213,106 +212,4 @@ func TestInterceptorsContainer_LenShouldWork(t *testing.T) {
 
 	c.Remove("key1")
 	assert.Equal(t, 1, c.Len())
-}
-
-//-------- Iterate
-
-func TestInterceptorsContainer_IterateNilHandlerShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have paniced")
-		}
-	}()
-
-	c := containers.NewInterceptorsContainer()
-
-	_ = c.Add("key1", &mock.InterceptorStub{})
-	_ = c.Add("key2", &mock.InterceptorStub{})
-
-	c.Iterate(nil)
-}
-
-func TestInterceptorsContainer_IterateNotAValidKeyShouldWorkAndNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have paniced")
-		}
-	}()
-
-	c := containers.NewInterceptorsContainer()
-
-	_ = c.Add("key1", &mock.InterceptorStub{})
-	c.Objects().Set([]byte("not a string"), &mock.InterceptorStub{})
-
-	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
-		atomic.AddUint32(&runs, 1)
-		return true
-	})
-
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
-}
-
-func TestInterceptorsContainer_IterateNotAValidValueShouldWorkAndNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have paniced")
-		}
-	}()
-
-	c := containers.NewInterceptorsContainer()
-
-	_ = c.Add("key1", &mock.InterceptorStub{})
-	c.Objects().Set("key 2", struct{}{})
-
-	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
-		atomic.AddUint32(&runs, 1)
-		return true
-	})
-
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
-}
-
-func TestInterceptorsContainer_Iterate(t *testing.T) {
-	t.Parallel()
-
-	c := containers.NewInterceptorsContainer()
-
-	_ = c.Add("key1", &mock.InterceptorStub{})
-	_ = c.Add("key2", &mock.InterceptorStub{})
-
-	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
-		atomic.AddUint32(&runs, 1)
-		return true
-	})
-
-	assert.Equal(t, uint32(2), atomic.LoadUint32(&runs))
-}
-
-func TestInterceptorsContainer_IterateEarlyExitShouldWork(t *testing.T) {
-	t.Parallel()
-
-	c := containers.NewInterceptorsContainer()
-
-	_ = c.Add("key1", &mock.InterceptorStub{})
-	_ = c.Add("key2", &mock.InterceptorStub{})
-
-	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
-		atomic.AddUint32(&runs, 1)
-		return false
-	})
-
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
 }

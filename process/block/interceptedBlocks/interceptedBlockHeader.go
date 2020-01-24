@@ -95,7 +95,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkHeaderHandlerFinality(inHdr.HeaderHandler(), inHdr.finalityAttester)
+	err = checkHeaderHandlerHasLowerNonceThanFinalHeader(inHdr.HeaderHandler(), inHdr.finalityAttester)
 	if err != nil {
 		return err
 	}

@@ -38,6 +38,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(argument.FinalityAttester) {
+		return nil, process.ErrNilFinalityAttester
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:       argument.Marshalizer,
@@ -45,7 +48,7 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
-		finalityAttester:  &nilFinalityAttester{},
+		finalityAttester:  argument.FinalityAttester,
 	}, nil
 }
 
@@ -62,16 +65,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
-}
-
-// SetFinalityAttester sets the finality attester
-func (imhdf *interceptedMetaHeaderDataFactory) SetFinalityAttester(attester process.FinalityAttester) error {
-	if check.IfNil(attester) {
-		return process.ErrNilFinalityAttester
-	}
-
-	imhdf.finalityAttester = attester
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
