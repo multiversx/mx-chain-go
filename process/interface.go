@@ -410,7 +410,6 @@ type BlockChainHookHandler interface {
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
-	InterceptedDataFactory() InterceptedDataFactory
 	IsInterfaceNil() bool
 }
 

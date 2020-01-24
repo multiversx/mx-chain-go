@@ -76,11 +76,11 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.NodesCoordinator,
 	)
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
+	tpn.initInterceptors()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -139,7 +139,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker: tpn.BlockTracker,
-		DataPool: tpn.DataPool,
+		DataPool:     tpn.DataPool,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

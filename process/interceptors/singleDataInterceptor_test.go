@@ -92,7 +92,6 @@ func TestNewSingleDataInterceptor(t *testing.T) {
 
 	require.False(t, check.IfNil(sdi))
 	require.Nil(t, err)
-	assert.True(t, sdi.InterceptedDataFactory() == factory)
 }
 
 //------- ProcessReceivedMessage

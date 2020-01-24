@@ -84,7 +84,6 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 
 	require.False(t, check.IfNil(mdi))
 	require.Nil(t, err)
-	assert.True(t, mdi.InterceptedDataFactory() == factory)
 }
 
 //------- ProcessReceivedMessage
