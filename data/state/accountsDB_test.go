@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -104,9 +105,8 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 		&mock.AccountsFactoryStub{},
 	)
 
-	assert.NotNil(t, adb)
 	assert.Nil(t, err)
-	assert.False(t, adb.IsInterfaceNil())
+	assert.False(t, check.IfNil(adb))
 }
 
 //------- PutCode

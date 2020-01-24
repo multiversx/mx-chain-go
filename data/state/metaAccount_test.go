@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -48,9 +49,8 @@ func TestMetaAccount_NewMetaAccountOk(t *testing.T) {
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
-	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.False(t, acc.IsInterfaceNil())
+	assert.False(t, check.IfNil(acc))
 }
 
 func TestMetaAccount_AddressContainer(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/pkg/errors"
@@ -17,8 +18,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 	trie := &mock.TrieStub{}
 	tdaw := state.NewTrackableDataTrie(identifier, trie)
 
-	assert.NotNil(t, tdaw)
-	assert.False(t, tdaw.IsInterfaceNil())
+	assert.False(t, check.IfNil(tdaw))
 }
 
 func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
@@ -102,8 +102,6 @@ func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	}
 	mdaw := state.NewTrackableDataTrie(identifier, trie)
 	assert.NotNil(t, mdaw)
-
-	//mdaw.DirtyData()[string(expectedKey)] = value
 
 	valRecovered, err := mdaw.RetrieveValue(expectedKey)
 	assert.Nil(t, err)

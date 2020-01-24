@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -381,8 +382,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 	t.Parallel()
 
 	fct := *initFactory()
-	assert.NotNil(t, fct)
-	assert.False(t, fct.IsInterfaceNil())
+	assert.False(t, check.IfNil(&fct))
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {

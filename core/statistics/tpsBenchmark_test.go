@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestTpsBenchmark_NewTPSBenchmark(t *testing.T) {
 
 	assert.Equal(t, gotNrOfShards, nrOfShards)
 	assert.Equal(t, tpsBenchmark.RoundTime(), roundDuration)
-	assert.False(t, tpsBenchmark.IsInterfaceNil())
+	assert.False(t, check.IfNil(tpsBenchmark))
 	assert.False(t, tpsBenchmark.ShardStatistics()[0].IsInterfaceNil())
 }
 

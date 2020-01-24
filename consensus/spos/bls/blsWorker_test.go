@@ -1,13 +1,13 @@
 package bls_test
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,8 +58,7 @@ func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
 
 	service, err := bls.NewConsensusService()
 	assert.Nil(t, err)
-	require.NotNil(t, service)
-	assert.False(t, service.IsInterfaceNil())
+	assert.False(t, check.IfNil(service))
 }
 
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {

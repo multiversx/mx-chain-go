@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +15,7 @@ func TestNewDataTriesHolder(t *testing.T) {
 	t.Parallel()
 
 	dth := state.NewDataTriesHolder()
-	assert.NotNil(t, dth)
-	assert.False(t, dth.IsInterfaceNil())
+	assert.False(t, check.IfNil(dth))
 }
 
 func TestDataTriesHolder_PutAndGet(t *testing.T) {

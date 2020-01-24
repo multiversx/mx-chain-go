@@ -3,6 +3,7 @@ package multisig_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -256,8 +257,7 @@ func TestNewBLSMultisig_OK(t *testing.T) {
 	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, multiSig)
-	assert.False(t, multiSig.IsInterfaceNil())
+	assert.False(t, check.IfNil(multiSig))
 }
 
 func TestBLSMultiSigner_CreateNilPubKeysShouldErr(t *testing.T) {

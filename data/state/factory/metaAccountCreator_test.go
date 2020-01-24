@@ -3,6 +3,7 @@ package factory_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -44,7 +45,7 @@ func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 
 	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
 	assert.Nil(t, err)
-	assert.False(t, accF.IsInterfaceNil())
+	assert.False(t, check.IfNil(accF))
 
 	_, ok := accF.(*factory.MetaAccountCreator)
 	assert.Equal(t, true, ok)

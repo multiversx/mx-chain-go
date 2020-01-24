@@ -3,8 +3,8 @@ package serviceContainer_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
-
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,8 +41,7 @@ func TestServiceContainer_NewServiceContainerWithTPSBenchmark(t *testing.T) {
 
 	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithTPSBenchmark(tpsBenchmark))
 	assert.Nil(t, err)
-	assert.NotNil(t, sc)
-	assert.False(t, sc.IsInterfaceNil())
+	assert.False(t, check.IfNil(sc))
 	assert.Equal(t, tpsBenchmark, sc.TPSBenchmark())
 }
 

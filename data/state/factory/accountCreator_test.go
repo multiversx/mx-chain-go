@@ -3,6 +3,7 @@ package factory_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -50,7 +51,6 @@ func TestAccountCreator_CreateAccountOk(t *testing.T) {
 
 	acc, err := accF.CreateAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
-	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.False(t, acc.IsInterfaceNil())
+	assert.False(t, check.IfNil(acc))
 }

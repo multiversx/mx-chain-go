@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/stretchr/testify/assert"
@@ -16,8 +17,7 @@ func TestNewBigEndianConverter(t *testing.T) {
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
 
-	assert.NotNil(t, bec)
-	assert.False(t, bec.IsInterfaceNil())
+	assert.False(t, check.IfNil(bec))
 }
 
 func TestBigEndianConverter_ToUint64NilBuffShouldErr(t *testing.T) {

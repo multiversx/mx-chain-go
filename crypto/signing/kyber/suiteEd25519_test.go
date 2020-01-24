@@ -3,6 +3,7 @@ package kyber_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/stretchr/testify/assert"
 )
@@ -10,8 +11,7 @@ import (
 func TestNewBlakeSHA256Ed25519(t *testing.T) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 
-	assert.NotNil(t, suite)
-	assert.False(t, suite.IsInterfaceNil())
+	assert.False(t, check.IfNil(suite))
 }
 
 func TestSuiteEd25519_RandomStream(t *testing.T) {

@@ -1,13 +1,15 @@
 package sposFactory_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
@@ -25,7 +27,7 @@ func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
 	csf, err := sposFactory.GetConsensusCoreFactory(factory.BlsConsensusType)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, csf)
+	assert.False(t, check.IfNil(csf))
 }
 
 func TestGetConsensusCoreFactory_BnShouldWork(t *testing.T) {
@@ -34,7 +36,7 @@ func TestGetConsensusCoreFactory_BnShouldWork(t *testing.T) {
 	csf, err := sposFactory.GetConsensusCoreFactory(factory.BnConsensusType)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, csf)
+	assert.False(t, check.IfNil(csf))
 }
 
 func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
@@ -100,7 +102,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		chainID,
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, sf)
+	assert.False(t, check.IfNil(sf))
 }
 
 func TestGetSubroundsFactory_BnNilConsensusCoreShouldErr(t *testing.T) {

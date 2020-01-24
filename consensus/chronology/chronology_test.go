@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,9 +67,8 @@ func TestChronology_NewChronologyShouldWork(t *testing.T) {
 		syncTimerMock,
 	)
 
-	assert.NotNil(t, chr)
 	assert.Nil(t, err)
-	assert.False(t, chr.IsInterfaceNil())
+	assert.False(t, check.IfNil(chr))
 }
 
 func TestChronology_AddSubroundShouldWork(t *testing.T) {

@@ -1,9 +1,10 @@
 package blockchain_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/stretchr/testify/assert"
@@ -26,8 +27,7 @@ func TestNewBlockChain_ShouldWork(t *testing.T) {
 	blck, err := blockchain.NewBlockChain(badBlocksStub)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, blck)
-	assert.False(t, blck.IsInterfaceNil())
+	assert.False(t, check.IfNil(blck))
 }
 
 func TestBlockChain_IsBadBlock(t *testing.T) {

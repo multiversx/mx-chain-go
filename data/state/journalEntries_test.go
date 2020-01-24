@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +28,9 @@ func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewJournalEntryBalance(accnt, nil)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
+
 }
 
 func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {

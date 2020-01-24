@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -642,9 +643,8 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		chainID,
 	)
 
-	assert.NotNil(t, wrk)
 	assert.Nil(t, err)
-	assert.False(t, wrk.IsInterfaceNil())
+	assert.False(t, check.IfNil(wrk))
 }
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {

@@ -3,6 +3,7 @@ package kyber
 import (
 	"crypto/cipher"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"go.dedis.ch/kyber/v3"
 )
@@ -15,7 +16,7 @@ type kyberPoint struct {
 // Equal tests if receiver is equal with the Point p given as parameter.
 // Both Points need to be derived from the same Group
 func (kp *kyberPoint) Equal(p crypto.Point) (bool, error) {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return false, crypto.ErrNilParam
 	}
 

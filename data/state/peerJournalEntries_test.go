@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -23,9 +24,8 @@ func TestPeerJournalEntryAddress_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryAddress(accnt, []byte("address"))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryAddress_RevertOkValsShouldWork(t *testing.T) {
@@ -191,9 +191,8 @@ func TestPeerJournalEntryCurrentShardId_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryCurrentShardId(accnt, 0)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryCurrentShardId_RevertOkValsShouldWork(t *testing.T) {
@@ -222,9 +221,8 @@ func TestPeerJournalEntryNextShardId_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryNextShardId(accnt, 0)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryNextShardId_RevertOkValsShouldWork(t *testing.T) {
@@ -253,9 +251,8 @@ func TestPeerJournalEntryInWaitingList_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryInWaitingList(accnt, true)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryInWaitingList_RevertOkValsShouldWork(t *testing.T) {
@@ -287,9 +284,8 @@ func TestPeerJournalEntryValidatorSuccessRate_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryValidatorSuccessRate(accnt, successRate)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryValidatorSuccessRate_RevertOkValsShouldWork(t *testing.T) {
@@ -322,9 +318,8 @@ func TestPeerJournalEntryLeaderSuccessRate_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryLeaderSuccessRate(accnt, successRate)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryLeaderSuccessRate_RevertOkValsShouldWork(t *testing.T) {
@@ -354,9 +349,8 @@ func TestPeerJournalEntryRating_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryRating(accnt, 10)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryRating_RevertOkValsShouldWork(t *testing.T) {
@@ -385,9 +379,8 @@ func TestPeerJournalEntryTempRating_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryTempRating(accnt, 10)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryTempRating_RevertOkValsShouldWork(t *testing.T) {
@@ -417,9 +410,8 @@ func TestPeerJournalEntryUnStakedNonce_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryUnStakedNonce(accnt, 10)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryUnStakedNonce_RevertOkValsShouldWork(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -27,8 +28,7 @@ func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
 
 	pac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
-	assert.NotNil(t, pac)
-	assert.False(t, pac.IsInterfaceNil())
+	assert.False(t, check.IfNil(pac))
 }
 
 //------- CreateAddressFromPublicKeyBytes

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -34,8 +35,7 @@ func TestNewAddressConverterOkValsShouldWork(t *testing.T) {
 
 	hac, err := addressConverters.NewHashAddressConverter(&mock.HasherMock{}, 32, "")
 	assert.Nil(t, err)
-	assert.NotNil(t, hac)
-	assert.False(t, hac.IsInterfaceNil())
+	assert.False(t, check.IfNil(hac))
 }
 
 //------- CreateAddressFromPublicKeyBytes

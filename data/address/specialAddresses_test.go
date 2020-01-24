@@ -3,6 +3,7 @@ package address
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -110,9 +111,8 @@ func TestNewSpecialAddressHolderOK(t *testing.T) {
 	args := initDefaultArgs()
 	addr, err := createSpecialAddressFromArgs(args)
 
-	assert.NotNil(t, addr)
 	assert.Nil(t, err)
-	assert.False(t, addr.IsInterfaceNil())
+	assert.False(t, check.IfNil(addr))
 }
 
 func TestSpecialAddresses_ClearMetaConsensusDataOK(t *testing.T) {

@@ -2,6 +2,8 @@ package state
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 //------- JournalEntryBalance
@@ -47,7 +49,7 @@ type JournalEntryDataTrieUpdates struct {
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
 func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*JournalEntryDataTrieUpdates, error) {
-	if account == nil || account.IsInterfaceNil() {
+	if check.IfNil(account) {
 		return nil, ErrNilAccountHandler
 	}
 	if len(trieUpdates) == 0 {

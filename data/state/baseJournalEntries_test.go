@@ -3,6 +3,7 @@ package state_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -33,9 +34,8 @@ func TestNewBaseJournalEntryCreation_ShouldWork(t *testing.T) {
 
 	entry, err := state.NewBaseJournalEntryCreation([]byte("key"), &mock.UpdaterStub{})
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
