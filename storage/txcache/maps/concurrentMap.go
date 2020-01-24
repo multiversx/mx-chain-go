@@ -98,7 +98,6 @@ func (m *ConcurrentMap) Remove(key string) {
 	chunk.Unlock()
 }
 
-// getChunk returns the chunk holding the given key.
 func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -123,14 +122,10 @@ func (m *ConcurrentMap) Clear() {
 	m.initializeChunks()
 }
 
-// Count returns the number of elements within the map.
+// Count returns the number of elements within the map
 func (m *ConcurrentMap) Count() int {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
 	count := 0
-	for i := uint32(0); i < m.nChunks; i++ {
-		chunk := m.chunks[i]
+	for _, chunk := range m.getChunks() {
 		chunk.RLock()
 		count += len(chunk.items)
 		chunk.RUnlock()
@@ -142,13 +137,10 @@ func (m *ConcurrentMap) Count() int {
 func (m *ConcurrentMap) Keys() []string {
 	count := m.Count()
 
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
 	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
 	keys := make([]string, 0, count)
 
-	for _, chunk := range m.chunks {
+	for _, chunk := range m.getChunks() {
 		chunk.RLock()
 		defer chunk.RUnlock()
 
@@ -165,15 +157,17 @@ type IterCb func(key string, v interface{})
 
 // IterCb iterates over the map (cheapest way to read all elements in a map)
 func (m *ConcurrentMap) IterCb(fn IterCb) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	for idx := range m.chunks {
-		chunk := (m.chunks)[idx]
+	for _, chunk := range m.getChunks() {
 		chunk.RLock()
 		for key, value := range chunk.items {
 			fn(key, value)
 		}
 		chunk.RUnlock()
 	}
+}
+
+func (m *ConcurrentMap) getChunks() []*concurrentMapChunk {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.chunks
 }
