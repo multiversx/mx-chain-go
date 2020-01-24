@@ -10,11 +10,11 @@ import (
 
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
-	Round   uint64   `capid:"1" json:"round"`
-	Epoch   uint32   `capid:"2" json:"epoch"`
-	Value   *big.Int `capid:"3" json:"value"`
-	RcvAddr []byte   `capid:"4" json:"receiver"`
-	ShardId uint32   `capid:"5" json:"shardId"`
+	Round   uint64
+	Value   *big.Int
+	RcvAddr []byte
+	ShardId uint32
+	Epoch   uint32
 }
 
 // Save saves the serialized data of a RewardTx into a stream through Capnp protocol
@@ -86,7 +86,7 @@ func (rtx *RewardTx) GetValue() *big.Int {
 }
 
 // GetNonce returns 0 as reward transactions do not have a nonce
-func (scr *RewardTx) GetNonce() uint64 {
+func (rtx *RewardTx) GetNonce() uint64 {
 	return 0
 }
 
@@ -106,12 +106,12 @@ func (rtx *RewardTx) GetSndAddress() []byte {
 }
 
 // GetGasLimit returns the gas limit of the smart reward transaction
-func (scr *RewardTx) GetGasLimit() uint64 {
+func (rtx *RewardTx) GetGasLimit() uint64 {
 	return 0
 }
 
 // GetGasPrice returns the gas price of the smart reward transaction
-func (scr *RewardTx) GetGasPrice() uint64 {
+func (rtx *RewardTx) GetGasPrice() uint64 {
 	return 0
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// ScalarMock represents a mock implementation of a Scalar
 type ScalarMock struct {
 	X int
 

@@ -37,9 +37,9 @@ type KadDhtDiscoverer struct {
 	peersRefreshInterval time.Duration
 	randezVous           string
 	initialPeersList     []string
-	bucketSize           uint32
 	routingTableRefresh  time.Duration
 	initConns            bool // Initiate new connections
+	bucketSize           uint32
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
