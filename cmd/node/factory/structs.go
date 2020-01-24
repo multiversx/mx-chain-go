@@ -82,7 +82,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -315,6 +315,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 
 type dataComponentsFactoryArgs struct {
 	config             *config.Config
+	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
 	core               *Core
 	pathManager        storage.PathManagerHandler
@@ -325,6 +326,7 @@ type dataComponentsFactoryArgs struct {
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
 func NewDataComponentsFactoryArgs(
 	config *config.Config,
+	economicsData *economics.EconomicsData,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
@@ -333,6 +335,7 @@ func NewDataComponentsFactoryArgs(
 ) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
 		config:             config,
+		economicsData:      economicsData,
 		shardCoordinator:   shardCoordinator,
 		core:               core,
 		pathManager:        pathManager,
@@ -362,13 +365,13 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	}
 
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
-		datapool, err = createShardDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+		datapool, err = createShardDataPoolFromConfig(args.config, args.economicsData, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.economicsData, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
@@ -991,12 +994,13 @@ func createDataStoreFromConfig(
 
 func createShardDataPoolFromConfig(
 	config *config.Config,
+	economicsData *economics.EconomicsData,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
 	log.Debug("creatingShardDataPool from config")
 
-	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool), economicsData)
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -1074,6 +1078,7 @@ func createShardDataPoolFromConfig(
 
 func createMetaDataPoolFromConfig(
 	config *config.Config,
+	economicsData *economics.EconomicsData,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
@@ -1108,7 +1113,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool), economicsData)
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -1490,7 +1495,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, newMetaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		newStore, newBlkc, newMetaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator, economics)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -1518,6 +1523,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 
 func createInMemoryStoreBlkcAndMetaDataPool(
 	shardCoordinator sharding.Coordinator,
+	economics *economics.EconomicsData,
 ) (dataRetriever.StorageService, data.ChainHandler, dataRetriever.MetaPoolsHolder, error) {
 
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
@@ -1526,7 +1532,7 @@ func createInMemoryStoreBlkcAndMetaDataPool(
 		return nil, nil, nil, err
 	}
 
-	metaDataPool, err := createMemMetaDataPool()
+	metaDataPool, err := createMemMetaDataPool(economics)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -2269,7 +2275,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
+func createMemMetaDataPool(economics *economics.EconomicsData) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
 	metaBlocks, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
@@ -2298,7 +2304,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
-	txPool, err := txpool.CreateTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	txPool, err := txpool.CreateTxPool(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1}, economics)
 	if err != nil {
 		return nil, err
 	}

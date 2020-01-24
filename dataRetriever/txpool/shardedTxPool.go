@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -31,8 +32,8 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
-	err := verifyConfig(config)
+func NewShardedTxPool(config storageUnit.CacheConfig, economics *economics.EconomicsData) (dataRetriever.ShardedDataCacherNotifier, error) {
+	err := verifyDependencies(config, economics)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 	return shardedTxPool, nil
 }
 
-func verifyConfig(config storageUnit.CacheConfig) error {
+func verifyDependencies(config storageUnit.CacheConfig, economics *economics.EconomicsData) error {
 	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
@@ -67,6 +68,9 @@ func verifyConfig(config storageUnit.CacheConfig) error {
 	}
 	if config.Shards < 1 {
 		return dataRetriever.ErrCacheConfigInvalidShards
+	}
+	if economics.MinGasPrice() < 1 {
+		return dataRetriever.ErrCacheConfigInvalidEconomics
 	}
 
 	return nil
