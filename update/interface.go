@@ -110,7 +110,7 @@ type ImportHandler interface {
 	IsInterfaceNil() bool
 }
 
-// HeadersSyncHandler defines the methods to sync and get the epoch start metablock
+// HeaderSyncHandler defines the methods to sync and get the epoch start metablock
 type HeaderSyncHandler interface {
 	SyncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) (*block.MetaBlock, error)
 	GetMetaBlock() (*block.MetaBlock, error)

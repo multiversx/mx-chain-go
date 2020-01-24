@@ -16,7 +16,7 @@ import (
 )
 
 type syncTries struct {
-	tries       map[string]data.Trie
+	tries       *concurrentTriesMap
 	trieSyncers update.TrieSyncContainer
 	activeTries state.TriesHolder
 	mutSynced   sync.Mutex
@@ -39,7 +39,7 @@ func NewSyncTriesHandler(args ArgsNewSyncTriesHandler) (*syncTries, error) {
 	}
 
 	st := &syncTries{
-		tries:       make(map[string]data.Trie),
+		tries:       newConcurrentTriesMap(),
 		trieSyncers: args.TrieSyncers,
 		activeTries: args.ActiveTries,
 		synced:      false,
@@ -95,25 +95,26 @@ func (st *syncTries) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration
 		return err
 	}
 
-	if errFound == nil {
-		st.mutSynced.Lock()
-		st.synced = true
-		st.mutSynced.Unlock()
+	if errFound != nil {
+		return errFound
 	}
 
-	return errFound
+	st.mutSynced.Lock()
+	st.synced = true
+	st.mutSynced.Unlock()
+
+	return nil
 }
 
 func (st *syncTries) syncMeta(meta *block.MetaBlock) error {
-
 	err := st.syncTrieOfType(factory.UserAccount, sharding.MetachainShardId, meta.RootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = st.syncTrieOfType(factory.ValidatorAccount, sharding.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
@@ -147,12 +148,12 @@ func (st *syncTries) syncTrieOfType(accountType factory.Type, shardId uint32, ro
 		return err
 	}
 
-	st.tries[accAdapterIdentifier] = trieSyncer.Trie()
+	st.tries.setTrie(accAdapterIdentifier, trieSyncer.Trie())
 	return nil
 }
 
 func (st *syncTries) tryRecreateTrie(id string, rootHash []byte) bool {
-	savedTrie, ok := st.tries[id]
+	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
 		currHash, err := savedTrie.Root()
 		if err == nil && bytes.Equal(currHash, rootHash) {
@@ -175,20 +176,17 @@ func (st *syncTries) tryRecreateTrie(id string, rootHash []byte) bool {
 		return false
 	}
 
-	st.tries[id] = trie
+	st.tries.setTrie(id, trie)
 	return true
 }
 
 // GetTries returns the synced tries
 func (st *syncTries) GetTries() (map[string]data.Trie, error) {
-	st.mutSynced.Lock()
-	defer st.mutSynced.Unlock()
-
 	if !st.synced {
 		return nil, update.ErrNotSynced
 	}
 
-	return st.tries, nil
+	return st.tries.getTries(), nil
 }
 
 // IsInterfaceNil returns nil if underlying object is nil

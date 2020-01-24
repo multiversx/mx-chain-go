@@ -21,7 +21,7 @@ type syncState struct {
 	transactions update.PendingTransactionsSyncHandler
 }
 
-// Arguments defines the arguments for the new sync state
+// ArgsNewSyncState defines the arguments for the new sync state
 type ArgsNewSyncState struct {
 	Headers      update.HeaderSyncHandler
 	Tries        update.EpochStartTriesSyncHandler
