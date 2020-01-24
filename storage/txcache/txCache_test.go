@@ -233,9 +233,9 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumTxsToEvictForASenderWithALot: 0,
 	}
 
-	// 1000 * 1000
+	// 100 * 1000
 	cache = NewTxCacheWithEviction("", 16, config)
-	addManyTransactionsWithUniformDistribution(cache, 1000, 1000)
+	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
 	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 

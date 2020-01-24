@@ -44,13 +44,13 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 	defer listForSender.mutex.Unlock()
 
 	nonce := tx.GetNonce()
-	mark := listForSender.findTxWithLargerNonce(nonce)
+	mark := listForSender.findTxWithLowerNonce(nonce)
 	newNode := txListForSenderNode{txHash, tx}
 
 	if mark == nil {
-		listForSender.items.PushBack(newNode)
+		listForSender.items.PushFront(newNode)
 	} else {
-		listForSender.items.InsertBefore(newNode, mark)
+		listForSender.items.InsertAfter(newNode, mark)
 	}
 
 	listForSender.onAddedTransaction(tx)
@@ -63,10 +63,10 @@ func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHand
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.Element {
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
 		value := element.Value.(txListForSenderNode)
-		if value.tx.GetNonce() > nonce {
+		if value.tx.GetNonce() < nonce {
 			return element
 		}
 	}
