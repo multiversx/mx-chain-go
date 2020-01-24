@@ -1,6 +1,7 @@
 package external
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -13,10 +14,10 @@ type NodeApiResolver struct {
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
 func NewNodeApiResolver(scQueryService SCQueryService, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
-	if scQueryService == nil || scQueryService.IsInterfaceNil() {
+	if check.IfNil(scQueryService) {
 		return nil, ErrNilSCQueryService
 	}
-	if statusMetricsHandler == nil || statusMetricsHandler.IsInterfaceNil() {
+	if check.IfNil(statusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
 
@@ -38,8 +39,5 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nar *NodeApiResolver) IsInterfaceNil() bool {
-	if nar == nil {
-		return true
-	}
-	return false
+	return nar == nil
 }

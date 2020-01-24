@@ -16,32 +16,32 @@ type Heartbeat struct {
 
 // PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
-	HexPublicKey    string    `json:"hexPublicKey"`
 	TimeStamp       time.Time `json:"timeStamp"`
-	MaxInactiveTime Duration  `json:"maxInactiveTime"`
-	IsActive        bool      `json:"isActive"`
-	ReceivedShardID uint32    `json:"receivedShardID"`
-	ComputedShardID uint32    `json:"computedShardID"`
+	HexPublicKey    string    `json:"hexPublicKey"`
+	VersionNumber   string    `json:"versionNumber"`
+	NodeDisplayName string    `json:"nodeDisplayName"`
 	TotalUpTime     int       `json:"totalUpTimeSec"`
 	TotalDownTime   int       `json:"totalDownTimeSec"`
-	VersionNumber   string    `json:"versionNumber"`
+	MaxInactiveTime Duration  `json:"maxInactiveTime"`
+	ReceivedShardID uint32    `json:"receivedShardID"`
+	ComputedShardID uint32    `json:"computedShardID"`
 	IsValidator     bool      `json:"isValidator"`
-	NodeDisplayName string    `json:"nodeDisplayName"`
+	IsActive        bool      `json:"isActive"`
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
 type HeartbeatDTO struct {
+	LastUptimeDowntime          time.Time
+	GenesisTime                 time.Time
+	TimeStamp                   time.Time
+	VersionNumber               string
+	NodeDisplayName             string
 	MaxDurationPeerUnresponsive time.Duration
 	MaxInactiveTime             Duration
 	TotalUpTime                 Duration
 	TotalDownTime               Duration
-	TimeStamp                   time.Time
-	IsActive                    bool
 	ReceivedShardID             uint32
 	ComputedShardID             uint32
-	VersionNumber               string
-	NodeDisplayName             string
 	IsValidator                 bool
-	LastUptimeDowntime          time.Time
-	GenesisTime                 time.Time
+	IsActive                    bool
 }

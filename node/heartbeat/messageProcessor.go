@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -20,13 +21,13 @@ func NewMessageProcessor(
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 ) (*MessageProcessor, error) {
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return nil, ErrNilSingleSigner
 	}
-	if keygen == nil || keygen.IsInterfaceNil() {
+	if check.IfNil(keygen) {
 		return nil, ErrNilKeyGenerator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
 
@@ -39,7 +40,7 @@ func NewMessageProcessor(
 
 // CreateHeartbeatFromP2pMessage will return a heartbeat if all the checks pass
 func (mp *MessageProcessor) CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error) {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return nil, ErrNilMessage
 	}
 	if message.Data() == nil {
@@ -84,8 +85,5 @@ func (mp *MessageProcessor) verifySignature(hbRecv *Heartbeat) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *MessageProcessor) IsInterfaceNil() bool {
-	if mp == nil {
-		return true
-	}
-	return false
+	return mp == nil
 }
