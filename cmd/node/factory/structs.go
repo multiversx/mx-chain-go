@@ -541,8 +541,8 @@ type processComponentsFactoryArgs struct {
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
-	startEpochNum          uint32
 	rater                  sharding.RaterHandler
+	startEpochNum          uint32
 	sizeCheckDelta         uint32
 	stateCheckpointModulus uint
 }
