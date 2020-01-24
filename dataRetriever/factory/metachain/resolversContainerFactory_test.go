@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -265,12 +266,11 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		createTriesHolder(),
-		1,
+		0,
 	)
 
-	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
-	assert.False(t, rcf.IsInterfaceNil())
+	assert.False(t, check.IfNil(rcf))
 }
 
 //------- Create

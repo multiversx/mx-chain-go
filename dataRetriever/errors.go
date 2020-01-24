@@ -13,8 +13,8 @@ var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty.
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrCannotFindTxInBlockPool signals the value is nil
-var ErrCannotFindTxInBlockPool = errors.New("cannot find tx in current block pool")
+// ErrTxNotFoundInBlockPool signals the value is nil
+var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
 
 // ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
 var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")

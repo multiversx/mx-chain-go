@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -23,6 +24,8 @@ var defaultTestConfig = storageUnit.CacheConfig{
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 0,
 		Type: storageUnit.LRUCache,
@@ -34,6 +37,8 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
 		Type: storageUnit.LRUCache,
@@ -41,11 +46,12 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
 	assert.Nil(t, err)
-	assert.NotNil(t, sd)
-	assert.False(t, sd.IsInterfaceNil())
+	assert.False(t, check.IfNil(sd))
 }
 
 func TestNewShardedData_CreateShardStore(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
 		Type: storageUnit.LRUCache,

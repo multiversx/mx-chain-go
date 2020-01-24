@@ -37,7 +37,7 @@ func (tmc *transactionMapCacher) GetTx(txHash []byte) (data.TransactionHandler, 
 
 	tx, ok := tmc.txsForBlock[string(txHash)]
 	if !ok {
-		return nil, dataRetriever.ErrCannotFindTxInBlockPool
+		return nil, dataRetriever.ErrTxNotFoundInBlockPool
 	}
 
 	return tx, nil

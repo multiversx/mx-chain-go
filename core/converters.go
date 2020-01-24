@@ -115,7 +115,7 @@ func EpochStartIdentifier(epoch uint32) string {
 // IsUnknownEpochIdentifier return if the epoch identifier represents unknown epoch
 func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
 	splitString := strings.Split(string(identifier), "_")
-	if len(splitString) <= 1 || len(splitString[1]) == 0 {
+	if len(splitString) < 2 || len(splitString[1]) == 0 {
 		return false, ErrInvalidIdentifierForEpochStartBlockRequest
 	}
 

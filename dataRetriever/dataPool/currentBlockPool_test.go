@@ -1,10 +1,11 @@
 package dataPool
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCurrentBlockPool_AddGetCleanTx(t *testing.T) {
@@ -21,7 +22,7 @@ func TestCurrentBlockPool_AddGetCleanTx(t *testing.T) {
 
 	txFromPool, err := currentBlockPool.GetTx([]byte("wrong hash"))
 	require.Nil(t, txFromPool)
-	require.Equal(t, dataRetriever.ErrCannotFindTxInBlockPool, err)
+	require.Equal(t, dataRetriever.ErrTxNotFoundInBlockPool, err)
 
 	txFromPool, err = currentBlockPool.GetTx(txHash)
 	require.Nil(t, err)
@@ -30,6 +31,6 @@ func TestCurrentBlockPool_AddGetCleanTx(t *testing.T) {
 	currentBlockPool.Clean()
 	txFromPool, err = currentBlockPool.GetTx(txHash)
 	require.Nil(t, txFromPool)
-	require.Equal(t, dataRetriever.ErrCannotFindTxInBlockPool, err)
+	require.Equal(t, dataRetriever.ErrTxNotFoundInBlockPool, err)
 
 }

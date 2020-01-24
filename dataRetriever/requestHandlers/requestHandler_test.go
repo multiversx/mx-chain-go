@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutSendRequests = time.Second * 2
@@ -83,8 +85,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		100,
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, rrh)
-	assert.False(t, rrh.IsInterfaceNil())
+	assert.False(t, check.IfNil(rrh))
 }
 
 //------- NewShardResolver
@@ -537,17 +538,12 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not panic")
-		}
-	}()
-
+	called := false
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
+				called = true
 				return true
 			},
 		},
@@ -557,6 +553,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
+	require.True(t, called)
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
@@ -568,7 +565,6 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 			assert.Fail(t, "should not panic")
 		}
 	}()
-
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
