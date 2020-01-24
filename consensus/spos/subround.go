@@ -74,7 +74,7 @@ func NewSubround(
 		Job:                          nil,
 		Check:                        nil,
 		Extend:                       nil,
-		appStatusHandler:             &statusHandler.NilStatusHandler{},
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
 	}
 
 	return &sr, nil
@@ -178,7 +178,7 @@ func (sr *Subround) ChainID() []byte {
 	return sr.chainID
 }
 
-// SetAppStatusHandler method set appStatusHandler
+// SetAppStatusHandler method sets appStatusHandler
 func (sr *Subround) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler

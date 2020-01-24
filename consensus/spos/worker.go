@@ -111,7 +111,7 @@ func NewWorker(
 		syncTimer:          syncTimer,
 		headerSigVerifier:  headerSigVerifier,
 		chainID:            chainID,
-		appStatusHandler:   &statusHandler.NilStatusHandler{},
+		appStatusHandler:   statusHandler.NewNilStatusHandler(),
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -203,9 +203,12 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	}
 }
 
+// ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
-	if headerHandler.GetShardID() != wrk.shardCoordinator.SelfId() ||
-		int64(headerHandler.GetRound()) != wrk.rounder.Index() {
+	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
+	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.rounder.Index()
+	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
+	if headerCanNotBeProcessed {
 		return
 	}
 
@@ -533,6 +536,7 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
+// DisplayStatistics logs the consensus messages split on proposed headers
 func (wrk *Worker) DisplayStatistics() {
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	for hash, consensusMessages := range wrk.mapDisplayHashConsensusMessage {
@@ -565,6 +569,7 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
+// SetAppStatusHandler sets the status metric handler
 func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler

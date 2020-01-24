@@ -85,7 +85,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreateProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreatedProposedBlock)
 
 	hdr, err := sr.createHeader()
 	if err != nil {
