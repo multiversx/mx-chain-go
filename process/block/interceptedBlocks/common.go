@@ -1,8 +1,6 @@
 package interceptedBlocks
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -32,8 +30,8 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if len(arg.ChainID) == 0 {
 		return process.ErrInvalidChainID
 	}
-	if check.IfNil(arg.FinalityAttester) {
-		return process.ErrNilFinalityAttester
+	if check.IfNil(arg.ValidityAttester) {
+		return process.ErrNilValidityAttester
 	}
 
 	return nil
@@ -77,24 +75,6 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	}
 	if hdr.GetPrevRandSeed() == nil {
 		return process.ErrNilPrevRandSeed
-	}
-
-	return nil
-}
-
-func checkHeaderHandlerHasLowerNonceThanFinalHeader(hdr data.HeaderHandler, attester process.FinalityAttester) error {
-	attestedHdr, _, err := attester.GetFinalHeader(hdr.GetShardID())
-	if err != nil {
-		return err
-	}
-
-	isHeaderReceivedUnderFinal := hdr.GetNonce() < attestedHdr.GetNonce()
-	if isHeaderReceivedUnderFinal {
-		return fmt.Errorf("%w while checking attested hdr, got nonce: %d, final hdr nonce: %d",
-			process.ErrWrongNonceInBlock,
-			hdr.GetNonce(),
-			attestedHdr.GetNonce(),
-		)
 	}
 
 	return nil

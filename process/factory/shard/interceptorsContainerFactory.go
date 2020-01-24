@@ -62,7 +62,7 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
-	finalityAttester process.FinalityAttester,
+	validityAttester process.ValidityAttester,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -121,8 +121,8 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if check.IfNil(finalityAttester) {
-		return nil, process.ErrNilFinalityAttester
+	if check.IfNil(validityAttester) {
+		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
@@ -139,7 +139,7 @@ func NewInterceptorsContainerFactory(
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           chainID,
-		FinalityAttester:  finalityAttester,
+		ValidityAttester:  validityAttester,
 	}
 
 	icf := &interceptorsContainerFactory{

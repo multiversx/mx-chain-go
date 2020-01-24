@@ -15,7 +15,7 @@ type interceptedShardHeaderDataFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
 	chainID           []byte
-	finalityAttester  process.FinalityAttester
+	validityAttester  process.ValidityAttester
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -38,8 +38,8 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if check.IfNil(argument.FinalityAttester) {
-		return nil, process.ErrNilFinalityAttester
+	if check.IfNil(argument.ValidityAttester) {
+		return nil, process.ErrNilValidityAttester
 	}
 
 	return &interceptedShardHeaderDataFactory{
@@ -48,7 +48,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
-		finalityAttester:  argument.FinalityAttester,
+		validityAttester:  argument.ValidityAttester,
 	}, nil
 }
 
@@ -61,7 +61,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ShardCoordinator:  ishdf.shardCoordinator,
 		HeaderSigVerifier: ishdf.headerSigVerifier,
 		ChainID:           ishdf.chainID,
-		FinalityAttester:  ishdf.finalityAttester,
+		ValidityAttester:  ishdf.validityAttester,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

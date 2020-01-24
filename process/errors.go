@@ -621,5 +621,5 @@ var ErrNotEpochStartBlock = errors.New("not epoch start block")
 // ErrGettingShardDataFromEpochStartData signals that could not get shard data from previous epoch start block
 var ErrGettingShardDataFromEpochStartData = errors.New("could not find shard data from previous epoch start metablock")
 
-// ErrNilFinalityAttester signals that a nil finality attester has been provided
-var ErrNilFinalityAttester = errors.New("nil finality attester")
+// ErrNilValidityAttester signals that a nil validity attester has been provided
+var ErrNilValidityAttester = errors.New("nil validity attester")

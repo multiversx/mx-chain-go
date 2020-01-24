@@ -8,6 +8,7 @@ type BlockTrackerStub struct {
 	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
 	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                      func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
+	CheckBlockBasicValidityCalled                     func(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonceCalled                   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                         func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled    func() ([]data.HeaderHandler, [][]byte, error)
@@ -43,6 +44,14 @@ func (bts *BlockTrackerStub) AddSelfNotarizedHeader(shardID uint32, selfNotarize
 	if bts.AddSelfNotarizedHeaderCalled != nil {
 		bts.AddSelfNotarizedHeaderCalled(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
+}
+
+func (bts *BlockTrackerStub) CheckBlockBasicValidity(headerHandler data.HeaderHandler) error {
+	if bts.CheckBlockBasicValidityCalled != nil {
+		return bts.CheckBlockBasicValidityCalled(headerHandler)
+	}
+
+	return nil
 }
 
 func (bts *BlockTrackerStub) CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64) {
