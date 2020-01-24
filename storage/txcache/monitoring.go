@@ -4,21 +4,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"time"
 )
 
 var log = logger.GetOrCreate("txcache")
-
-func (cache *TxCache) monitorContentRegularly() {
-	go func() {
-		for {
-			txListBySenderMap := cache.txListBySender.backingMap
-			log.Trace("TxCache.content:", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-			log.Trace("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
-			time.Sleep(60 * time.Second)
-		}
-	}()
-}
 
 func (cache *TxCache) monitorTxAddition() {
 	cache.numTxAddedBetweenSelections.Increment()

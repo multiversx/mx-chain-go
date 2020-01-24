@@ -34,8 +34,6 @@ func NewTxCache(name string, nChunksHint uint32) *TxCache {
 		evictionJournal: evictionJournal{},
 	}
 
-	txCache.monitorContentRegularly()
-
 	return txCache
 }
 
