@@ -1728,7 +1728,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		},
 	}
 	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = sharding.MetachainShardId
+	shardingCoordinator.CurrentShard = core.MetachainShardId
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return nil
@@ -2062,6 +2062,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithMultiSigner(&mock.MultisignMock{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 	)
 
 	err := n.StartConsensus()
