@@ -132,7 +132,6 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 }
 
 func txPoolRegister(n *integrationTests.TestProcessorNode, mutex *sync.Mutex) {
-
 	n.DataPool.Transactions().RegisterHandler(func(key []byte) {
 		mutex.Lock()
 		receivedTxsPerShard[n.ShardCoordinator.SelfId()]++

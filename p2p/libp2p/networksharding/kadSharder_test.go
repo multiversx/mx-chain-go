@@ -42,7 +42,6 @@ var (
 )
 
 func TestCutoOffBits(t *testing.T) {
-
 	i := []byte{0xff, 0xff}[:]
 
 	testData := []struct {
@@ -84,7 +83,6 @@ func TestCutoOffBits(t *testing.T) {
 			r := k.resetDistanceBits(i)
 			assert.Equal(t, big.NewInt(0).SetBytes(r), tdCopy.exp, "Should match")
 		})
-
 	}
 }
 

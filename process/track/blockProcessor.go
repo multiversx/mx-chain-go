@@ -32,7 +32,6 @@ func NewBlockProcessor(
 	crossNotarizedHeadersNotifier blockNotifierHandler,
 	selfNotarizedHeadersNotifier blockNotifierHandler,
 ) (*blockProcessor, error) {
-
 	err := checkBlockProcessorNilParameters(
 		headerValidator,
 		requestHandler,

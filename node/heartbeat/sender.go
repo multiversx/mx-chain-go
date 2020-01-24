@@ -32,7 +32,6 @@ func NewSender(
 	versionNumber string,
 	nodeDisplayName string,
 ) (*Sender, error) {
-
 	if peerMessenger == nil || peerMessenger.IsInterfaceNil() {
 		return nil, ErrNilMessenger
 	}

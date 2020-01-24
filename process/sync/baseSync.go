@@ -471,7 +471,6 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
 	}
-
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool

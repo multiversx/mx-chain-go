@@ -29,7 +29,6 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
-
 	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
 		return nil, ErrBadBlocksCacheNil
 	}

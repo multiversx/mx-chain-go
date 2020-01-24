@@ -45,7 +45,6 @@ func NewMonitor(
 	storer HeartbeatStorageHandler,
 	timer Timer,
 ) (*Monitor, error) {
-
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}

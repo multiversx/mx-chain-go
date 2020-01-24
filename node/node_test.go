@@ -99,7 +99,6 @@ func TestNewNode_NilOptionShouldError(t *testing.T) {
 }
 
 func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
-
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
@@ -113,7 +112,6 @@ func TestStart_NoMessenger(t *testing.T) {
 }
 
 func TestStart_CorrectParams(t *testing.T) {
-
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),

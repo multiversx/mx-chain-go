@@ -69,7 +69,6 @@ func NewElasticIndexer(
 	hasher hashing.Hasher,
 	options *Options,
 ) (Indexer, error) {
-
 	err := checkElasticSearchParams(
 		url,
 		shardCoordinator,
@@ -720,7 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-
 	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
 
 	return &Transaction{
