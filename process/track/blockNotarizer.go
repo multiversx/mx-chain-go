@@ -39,7 +39,8 @@ func NewBlockNotarizer(hasher hashing.Hasher, marshalizer marshal.Marshalizer) (
 	return &bn, nil
 }
 
-func (bn *blockNotarizer) addNotarizedHeader(
+// AddNotarizedHeader adds a notarized header to the given shard
+func (bn *blockNotarizer) AddNotarizedHeader(
 	shardID uint32,
 	notarizedHeader data.HeaderHandler,
 	notarizedHeaderHash []byte,
@@ -58,7 +59,8 @@ func (bn *blockNotarizer) addNotarizedHeader(
 	bn.mutNotarizedHeaders.Unlock()
 }
 
-func (bn *blockNotarizer) cleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64) {
+// CleanupNotarizedHeadersBehindNonce cleanups notarized headers for a given shard behind a given nonce
+func (bn *blockNotarizer) CleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64) {
 	if nonce == 0 {
 		return
 	}
@@ -83,7 +85,8 @@ func (bn *blockNotarizer) cleanupNotarizedHeadersBehindNonce(shardID uint32, non
 	bn.notarizedHeaders[shardID] = headersInfo
 }
 
-func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32, message string) {
+// DisplayNotarizedHeaders displays notarized headers for a given shard
+func (bn *blockNotarizer) DisplayNotarizedHeaders(shardID uint32, message string) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
@@ -116,7 +119,8 @@ func (bn *blockNotarizer) displayNotarizedHeaders(shardID uint32, message string
 	}
 }
 
-func (bn *blockNotarizer) getLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+// GetLastNotarizedHeader gets the last notarized header for a given shard
+func (bn *blockNotarizer) GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
@@ -132,7 +136,8 @@ func (bn *blockNotarizer) getLastNotarizedHeader(shardID uint32) (data.HeaderHan
 	return hdrInfo.Header, hdrInfo.Hash, nil
 }
 
-func (bn *blockNotarizer) getLastNotarizedHeaderNonce(shardID uint32) uint64 {
+// GetLastNotarizedHeaderNonce gets the nonce of the last notarized header for a given shard
+func (bn *blockNotarizer) GetLastNotarizedHeaderNonce(shardID uint32) uint64 {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
@@ -157,7 +162,8 @@ func (bn *blockNotarizer) lastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
 	return nil
 }
 
-func (bn *blockNotarizer) getNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+// GetNotarizedHeader gets notarized header for a given shard with a given offset
+func (bn *blockNotarizer) GetNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
@@ -180,7 +186,8 @@ func (bn *blockNotarizer) getNotarizedHeader(shardID uint32, offset uint64) (dat
 	return hdrInfo.Header, hdrInfo.Hash, nil
 }
 
-func (bn *blockNotarizer) initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
+// InitNotarizedHeaders initializes all notarized headers for each shard with the genesis value (nonce 0)
+func (bn *blockNotarizer) InitNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
 	if startHeaders == nil {
 		return process.ErrNotarizedHeadersSliceIsNil
 	}
@@ -202,7 +209,8 @@ func (bn *blockNotarizer) initNotarizedHeaders(startHeaders map[uint32]data.Head
 	return nil
 }
 
-func (bn *blockNotarizer) removeLastNotarizedHeader() {
+// RemoveLastNotarizedHeader removes last notarized header from each shard
+func (bn *blockNotarizer) RemoveLastNotarizedHeader() {
 	bn.mutNotarizedHeaders.Lock()
 	for shardID := range bn.notarizedHeaders {
 		notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
@@ -213,7 +221,8 @@ func (bn *blockNotarizer) removeLastNotarizedHeader() {
 	bn.mutNotarizedHeaders.Unlock()
 }
 
-func (bn *blockNotarizer) restoreNotarizedHeadersToGenesis() {
+// RestoreNotarizedHeadersToGenesis restores all notarized headers from each shard to the genesis value (nonce 0)
+func (bn *blockNotarizer) RestoreNotarizedHeadersToGenesis() {
 	bn.mutNotarizedHeaders.Lock()
 	for shardID := range bn.notarizedHeaders {
 		notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
@@ -222,4 +231,9 @@ func (bn *blockNotarizer) restoreNotarizedHeadersToGenesis() {
 		}
 	}
 	bn.mutNotarizedHeaders.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bn *blockNotarizer) IsInterfaceNil() bool {
+	return bn == nil
 }

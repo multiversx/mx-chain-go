@@ -1,14 +1,17 @@
 package track_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	block2 "github.com/ElrondNetwork/elrond-go/process/block"
+	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -16,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
@@ -89,11 +93,11 @@ func generateTestCache() storage.Cacher {
 func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
-	argsHeaderValidator := block2.ArgsHeaderValidator{
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-	headerValidator, _ := block2.NewHeaderValidator(argsHeaderValidator)
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -116,11 +120,11 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinatorMock.CurrentShard = sharding.MetachainShardId
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
-	argsHeaderValidator := block2.ArgsHeaderValidator{
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-	headerValidator, _ := block2.NewHeaderValidator(argsHeaderValidator)
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -142,11 +146,11 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
-	argsHeaderValidator := block2.ArgsHeaderValidator{
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
-	headerValidator, _ := block2.NewHeaderValidator(argsHeaderValidator)
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 
 	arguments := track.ArgBaseTracker{
 		Hasher:           &mock.HasherMock{},
@@ -378,8 +382,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.Header{
 		Round:        1,
@@ -387,8 +390,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.Header{
 		Round:        2,
@@ -396,8 +398,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	hdr3 := &block.Header{
 		Round:        3,
@@ -405,8 +406,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr3)
-	hdr3Hash := shardArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr3)
 
 	sbt.AddTrackedHeader(hdr1, hdr1Hash)
 	sbt.AddTrackedHeader(hdr2, hdr2Hash)
@@ -414,7 +414,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 
 	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := sbt.ComputeLongestSelfChain()
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, startHeaderHash, lastNotarizedHeaderHash)
 	assert.Equal(t, hashes[0], hdr1Hash)
 	assert.Equal(t, hashes[1], hdr2Hash)
@@ -450,8 +450,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	startHeader := metaArguments.StartHeaders[metaArguments.ShardCoordinator.SelfId()]
-	startHeaderMarshalized, _ := metaArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := metaArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
 		Round:        1,
@@ -459,8 +458,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := metaArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1)
 
 	hdr2 := &block.MetaBlock{
 		Round:        2,
@@ -468,8 +466,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := metaArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Round:        3,
@@ -477,8 +474,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr3)
-	hdr3Hash := metaArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr3)
 
 	mbt.AddTrackedHeader(hdr1, hdr1Hash)
 	mbt.AddTrackedHeader(hdr2, hdr2Hash)
@@ -486,7 +482,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 
 	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := mbt.ComputeLongestSelfChain()
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, startHeaderHash, lastNotarizedHeaderHash)
 	assert.Equal(t, hashes[0], hdr1Hash)
 	assert.Equal(t, hashes[1], hdr2Hash)
@@ -541,7 +537,7 @@ func TestReceivedHeader_ShouldAddMetaBlockToTrackedHeaders(t *testing.T) {
 	sbt.ReceivedHeader(metaBlock, metaBlockHash)
 	headers, _ := sbt.GetTrackedHeaders(metaBlock.GetShardID())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, metaBlock, headers[0])
 }
 
@@ -555,7 +551,7 @@ func TestReceivedHeader_ShouldAddShardHeaderToTrackedHeaders(t *testing.T) {
 	sbt.ReceivedHeader(header, headerHash)
 	headers, _ := sbt.GetTrackedHeaders(header.GetShardID())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
 }
 
@@ -582,7 +578,7 @@ func TestReceivedShardHeader_ShouldWork(t *testing.T) {
 	sbt.ReceivedShardHeader(header, headerHash)
 	headers, _ := sbt.GetTrackedHeaders(header.GetShardID())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
 }
 
@@ -609,7 +605,7 @@ func TestReceivedMetaBlock_ShouldWork(t *testing.T) {
 	sbt.ReceivedMetaBlock(metaBlock, metaBlockHash)
 	headers, _ := sbt.GetTrackedHeaders(metaBlock.GetShardID())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, metaBlock, headers[0])
 }
 
@@ -629,7 +625,7 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
 }
 
@@ -655,7 +651,7 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, hdr1, headers[0])
 	assert.Equal(t, hdr2, headers[1])
 }
@@ -706,7 +702,7 @@ func TestAddTrackedHeader_ShouldWork(t *testing.T) {
 	sbt.AddTrackedHeader(header, headerHash)
 	headers, _ := sbt.GetTrackedHeaders(header.GetShardID())
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
 }
 
@@ -845,8 +841,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.Header{
 		Round:        1,
@@ -854,8 +849,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.Header{
 		Round:        2,
@@ -863,8 +857,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	hdr3 := &block.Header{
 		Round:        3,
@@ -872,8 +865,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr3)
-	hdr3Hash := shardArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr3)
 
 	sbt.AddTrackedHeader(hdr1, hdr1Hash)
 	sbt.AddTrackedHeader(hdr2, hdr2Hash)
@@ -881,7 +873,7 @@ func TestComputeLongestChain_ShouldWork(t *testing.T) {
 
 	headers, _ := sbt.ComputeLongestChain(shardArguments.ShardCoordinator.SelfId(), hdr1)
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, hdr2, headers[0])
 }
 
@@ -902,8 +894,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
 		Round:        1,
@@ -911,8 +902,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.MetaBlock{
 		Round:        2,
@@ -920,8 +910,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Round:        3,
@@ -929,8 +918,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr3)
-	hdr3Hash := shardArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr3)
 
 	sbt.AddTrackedHeader(hdr1, hdr1Hash)
 	sbt.AddTrackedHeader(hdr2, hdr2Hash)
@@ -938,7 +926,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 
 	headers, _, _ := sbt.ComputeLongestMetaChainFromLastNotarized()
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, hdr1, headers[0])
 	assert.Equal(t, hdr2, headers[1])
 }
@@ -962,8 +950,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	startHeaderShard0 := metaArguments.StartHeaders[0]
-	startHeaderShard0Marshalized, _ := metaArguments.Marshalizer.Marshal(startHeaderShard0)
-	startHeaderShard0Hash := metaArguments.Hasher.Compute(string(startHeaderShard0Marshalized))
+	startHeaderShard0Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard0)
 
 	hdr1Shard0 := &block.Header{
 		ShardId:      0,
@@ -972,8 +959,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderShard0Hash,
 		PrevRandSeed: startHeaderShard0.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr1Shard0)
-	hdr1Hash := metaArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard0)
 
 	hdr2Shard0 := &block.Header{
 		ShardId:      0,
@@ -982,8 +968,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1Shard0.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr2Shard0)
-	hdr2Hash := metaArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard0)
 
 	hdr3Shard0 := &block.Header{
 		ShardId:      0,
@@ -992,16 +977,14 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2Shard0.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := metaArguments.Marshalizer.Marshal(hdr3Shard0)
-	hdr3Hash := metaArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr3Shard0)
 
 	mbt.AddTrackedHeader(hdr1Shard0, hdr1Hash)
 	mbt.AddTrackedHeader(hdr2Shard0, hdr2Hash)
 	mbt.AddTrackedHeader(hdr3Shard0, hdr3Hash)
 
 	startHeaderShard1 := metaArguments.StartHeaders[1]
-	startHeaderShard1Marshalized, _ := metaArguments.Marshalizer.Marshal(startHeaderShard1)
-	startHeaderShard1Hash := metaArguments.Hasher.Compute(string(startHeaderShard1Marshalized))
+	startHeaderShard1Hash, _ := core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, startHeaderShard1)
 
 	hdr1Shard1 := &block.Header{
 		ShardId:      1,
@@ -1010,8 +993,7 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderShard1Hash,
 		PrevRandSeed: startHeaderShard1.GetRandSeed(),
 	}
-	hdr1Marshalized, _ = metaArguments.Marshalizer.Marshal(hdr1Shard1)
-	hdr1Hash = metaArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ = core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr1Shard1)
 
 	hdr2Shard1 := &block.Header{
 		ShardId:      1,
@@ -1020,19 +1002,111 @@ func TestComputeLongestShardsChainsFromLastNotarized_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1Shard1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ = metaArguments.Marshalizer.Marshal(hdr2Shard1)
-	hdr2Hash = metaArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ = core.CalculateHash(metaArguments.Marshalizer, metaArguments.Hasher, hdr2Shard1)
 
 	mbt.AddTrackedHeader(hdr1Shard1, hdr1Hash)
 	mbt.AddTrackedHeader(hdr2Shard1, hdr2Hash)
 
 	_, _, mapShardHeaders, _ := mbt.ComputeLongestShardsChainsFromLastNotarized()
 
-	assert.Equal(t, 2, len(mapShardHeaders[0]))
-	assert.Equal(t, 1, len(mapShardHeaders[1]))
+	require.Equal(t, 2, len(mapShardHeaders[0]))
+	require.Equal(t, 1, len(mapShardHeaders[1]))
 	assert.Equal(t, hdr1Shard0, mapShardHeaders[0][0])
 	assert.Equal(t, hdr2Shard0, mapShardHeaders[0][1])
 	assert.Equal(t, hdr1Shard1, mapShardHeaders[1][0])
+}
+
+func TestDisplayTrackedHeaders_ShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+	sbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+	sbt.AddTrackedHeader(header, headerHash)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+	}
+	metaBlockHash := []byte("hash")
+	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
+	sbt.AddTrackedHeader(metaBlock, metaBlockHash)
+
+	logger.SetLogLevel("track:DEBUG")
+	sbt.DisplayTrackedHeaders()
+}
+
+func TestDisplayTrackedHeadersForShard_ShouldNotPanicWhenTrackedHeadersSliceIsEmpty(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	logger.SetLogLevel("track:DEBUG")
+	sbt.DisplayTrackedHeadersForShard(0, "test")
+}
+
+func TestDisplayTrackedHeadersForShard_ShouldNotPanicWhenTheOnlyTrackedHeaderHasNonceZero(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   0,
+	}
+	headerHash := []byte("hash")
+	sbt.AddTrackedHeader(header, headerHash)
+
+	logger.SetLogLevel("track:DEBUG")
+	sbt.DisplayTrackedHeadersForShard(0, "test")
+}
+
+func TestDisplayTrackedHeadersForShard_ShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+	sbt.AddTrackedHeader(header, headerHash)
+
+	logger.SetLogLevel("track:DEBUG")
+	sbt.DisplayTrackedHeadersForShard(0, "test")
 }
 
 func TestGetCrossNotarizedHeader_ShouldWork(t *testing.T) {
@@ -1130,7 +1204,7 @@ func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
 
 	trackedHeaders, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
-	assert.Equal(t, 2, len(trackedHeaders))
+	require.Equal(t, 2, len(trackedHeaders))
 	assert.Equal(t, header1, trackedHeaders[0])
 	assert.Equal(t, header2, trackedHeaders[1])
 }
@@ -1191,13 +1265,13 @@ func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
 
 	headers, _ := sbt.SortHeadersFromNonce(0, 1)
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, headers[0], shardHeader1)
 	assert.Equal(t, headers[1], shardHeader2)
 
 	headers, _ = sbt.SortHeadersFromNonce(0, 2)
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, headers[0], shardHeader2)
 }
 
@@ -1254,7 +1328,7 @@ func TestGetTrackedHeadersWithNonce_ShouldWork(t *testing.T) {
 
 	headers, _ := sbt.GetTrackedHeadersWithNonce(0, 1)
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, headers[0], shardHeader2)
 	assert.Equal(t, headers[1], shardHeader1)
 }
@@ -1265,8 +1339,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
 		Round: 1,
@@ -1279,8 +1352,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.MetaBlock{
 		Round: 2,
@@ -1293,8 +1365,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Round:        3,
@@ -1302,8 +1373,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		PrevHash:     hdr2Hash,
 		PrevRandSeed: hdr2.GetRandSeed(),
 	}
-	hdr3Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr3)
-	hdr3Hash := shardArguments.Hasher.Compute(string(hdr3Marshalized))
+	hdr3Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr3)
 
 	sbt.ReceivedMetaBlock(hdr1, hdr1Hash)
 	sbt.ReceivedMetaBlock(hdr2, hdr2Hash)
@@ -1330,8 +1400,7 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 	})
 
 	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
 		Round:        1,
@@ -1339,8 +1408,7 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.MetaBlock{
 		Round:        2,
@@ -1348,8 +1416,7 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	sbt.ReceivedMetaBlock(hdr1, hdr1Hash)
 	sbt.ReceivedMetaBlock(hdr2, hdr2Hash)
@@ -1374,8 +1441,7 @@ func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 	})
 
 	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
-	startHeaderHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.Header{
 		Round:        1,
@@ -1383,8 +1449,7 @@ func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 	}
-	hdr1Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr1)
-	hdr1Hash := shardArguments.Hasher.Compute(string(hdr1Marshalized))
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
 
 	hdr2 := &block.Header{
 		Round:        2,
@@ -1392,8 +1457,7 @@ func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     hdr1Hash,
 		PrevRandSeed: hdr1.GetRandSeed(),
 	}
-	hdr2Marshalized, _ := shardArguments.Marshalizer.Marshal(hdr2)
-	hdr2Hash := shardArguments.Hasher.Compute(string(hdr2Marshalized))
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
 
 	sbt.ReceivedShardHeader(hdr1, hdr1Hash)
 	sbt.ReceivedShardHeader(hdr2, hdr2Hash)
@@ -1457,11 +1521,11 @@ func TestRestoreToGenesis_ShouldWork(t *testing.T) {
 	sbt.AddTrackedHeader(header, headerHash)
 
 	trackedHeaders, _ := sbt.GetTrackedHeaders(metaBlock.GetShardID())
-	assert.Equal(t, 1, len(trackedHeaders))
+	require.Equal(t, 1, len(trackedHeaders))
 	assert.Equal(t, metaBlock, trackedHeaders[0])
 
 	trackedHeaders, _ = sbt.GetTrackedHeaders(header.GetShardID())
-	assert.Equal(t, 1, len(trackedHeaders))
+	require.Equal(t, 1, len(trackedHeaders))
 	assert.Equal(t, header, trackedHeaders[0])
 
 	lastCrossNotarizedHeader, _, _ := sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
@@ -1594,13 +1658,13 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	startHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
-	startHeaderMarshalized, _ := shardArguments.Marshalizer.Marshal(startHeader)
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	longestChain := uint64(1000)
 	chains := uint64(10)
 
 	for j := uint64(0); j < chains; j++ {
-		prevHash := shardArguments.Hasher.Compute(string(startHeaderMarshalized))
+		prevHash := startHeaderHash
 		prevSeed := startHeader.GetRandSeed()
 		for i := uint64(1); i <= longestChain+1+j; i++ {
 			randSeed := shardArguments.Hasher.Compute(string(prevSeed))
@@ -1615,8 +1679,7 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 				PrevRandSeed: prevSeed,
 				RandSeed:     randSeed,
 			}
-			hdrMarshalized, _ := shardArguments.Marshalizer.Marshal(hdr)
-			prevHash = shardArguments.Hasher.Compute(string(hdrMarshalized))
+			prevHash, _ = core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr)
 			prevSeed = hdr.RandSeed
 			if i > j {
 				sbt.AddTrackedHeader(hdr, prevHash)

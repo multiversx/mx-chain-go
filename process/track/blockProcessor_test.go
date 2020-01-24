@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
@@ -28,10 +29,10 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 		HeaderValidator:               headerValidator,
 		RequestHandler:                &mock.RequestHandlerStub{},
 		ShardCoordinator:              shardCoordinatorMock,
-		BlockTracker:                  &track.BlockTrackerHandlerMock{},
-		CrossNotarizer:                &track.BlockNotarizerHandlerMock{},
-		CrossNotarizedHeadersNotifier: &track.BlockNotifierHandlerMock{},
-		SelfNotarizedHeadersNotifier:  &track.BlockNotifierHandlerMock{},
+		BlockTracker:                  &mock.BlockTrackerHandlerMock{},
+		CrossNotarizer:                &mock.BlockNotarizerHandlerMock{},
+		CrossNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{},
+		SelfNotarizedHeadersNotifier:  &mock.BlockNotifierHandlerMock{},
 	}
 
 	return arguments
@@ -121,7 +122,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromSelfShard(t *testing.T)
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		ComputeLongestSelfChainCalled: func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 			called = true
 			return nil, nil, nil, nil
@@ -140,7 +141,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromCrossShard(t *testing.T
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.CrossNotarizer = &track.BlockNotarizerHandlerMock{
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			called = true
 			return nil, nil, nil
@@ -162,14 +163,14 @@ func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
 		ShardId: blockProcessorArguments.ShardCoordinator.SelfId(),
 	}
 
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		ComputeLongestSelfChainCalled: func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 			return nil, nil, []data.HeaderHandler{header}, nil
 		},
 	}
 
 	called := false
-	blockProcessorArguments.SelfNotarizedHeadersNotifier = &track.BlockNotifierHandlerMock{
+	blockProcessorArguments.SelfNotarizedHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			if shardID == blockProcessorArguments.ShardCoordinator.SelfId() {
 				called = true
@@ -223,13 +224,13 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	metaBlock3Marshalized, _ := marshalizerMock.Marshal(metaBlock3)
 	metaBlockHash3 := hasherMock.Compute(string(metaBlock3Marshalized))
 
-	blockProcessorArguments.CrossNotarizer = &track.BlockNotarizerHandlerMock{
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			return metaBlock1, metaBlockHash1, nil
 		},
 	}
 
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 			return []data.HeaderHandler{metaBlock2, metaBlock3}, [][]byte{metaBlockHash2, metaBlockHash3}
 		},
@@ -240,13 +241,13 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 
 	called := 0
 
-	blockProcessorArguments.SelfNotarizedHeadersNotifier = &track.BlockNotifierHandlerMock{
+	blockProcessorArguments.SelfNotarizedHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},
 	}
 
-	blockProcessorArguments.CrossNotarizedHeadersNotifier = &track.BlockNotifierHandlerMock{
+	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},
@@ -262,7 +263,7 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 func TestComputeLongestChainFromLastCrossNotarized_ShouldReturnNil(t *testing.T) {
 	t.Parallel()
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
-	blockProcessorArguments.CrossNotarizer = &track.BlockNotarizerHandlerMock{
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			return nil, nil, errors.New("error")
 		},
@@ -309,13 +310,13 @@ func TestComputeLongestChainFromLastCrossNotarized_ShouldWork(t *testing.T) {
 	metaBlock3Marshalized, _ := marshalizerMock.Marshal(metaBlock3)
 	metaBlockHash3 := hasherMock.Compute(string(metaBlock3Marshalized))
 
-	blockProcessorArguments.CrossNotarizer = &track.BlockNotarizerHandlerMock{
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			return metaBlock1, metaBlockHash1, nil
 		},
 	}
 
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 			return []data.HeaderHandler{metaBlock2, metaBlock3}, [][]byte{metaBlockHash2, metaBlockHash3}
 		},
@@ -343,7 +344,7 @@ func TestComputeSelfNotarizedHeaders_ShouldWork(t *testing.T) {
 	headerInfo1 := track.HeaderInfo{Hash: hash1, Header: header1}
 	headerInfo2 := track.HeaderInfo{Hash: hash2, Header: header2}
 
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		GetSelfHeadersCalled: func(headerHandler data.HeaderHandler) []*track.HeaderInfo {
 			return []*track.HeaderInfo{&headerInfo2, &headerInfo1}
 		},
@@ -353,7 +354,7 @@ func TestComputeSelfNotarizedHeaders_ShouldWork(t *testing.T) {
 
 	headers, hashes := bp.ComputeSelfNotarizedHeaders([]data.HeaderHandler{&block2.MetaBlock{}})
 
-	assert.Equal(t, 2, len(headers))
+	require.Equal(t, 2, len(headers))
 	assert.Equal(t, header1, headers[0])
 	assert.Equal(t, hash1, hashes[0])
 	assert.Equal(t, header2, headers[1])
@@ -410,7 +411,7 @@ func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 	header3Marshalized, _ := marshalizerMock.Marshal(header3)
 	headerHash3 := hasherMock.Compute(string(header3Marshalized))
 
-	blockProcessorArguments.BlockTracker = &track.BlockTrackerHandlerMock{
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 		SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 			return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
 		},
@@ -420,7 +421,7 @@ func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 
 	headers, hashes := bp.ComputeLongestChain(blockProcessorArguments.ShardCoordinator.SelfId(), header1)
 
-	assert.Equal(t, 1, len(headers))
+	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header2, headers[0])
 	assert.Equal(t, headerHash2, hashes[0])
 }
@@ -531,7 +532,7 @@ func TestGetNextHeader_ShouldWork(t *testing.T) {
 	sortedHeaders := []data.HeaderHandler{header2, header3}
 	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, 0)
 
-	assert.Equal(t, 1, len(longestChainHeadersIndexes))
+	require.Equal(t, 1, len(longestChainHeadersIndexes))
 	assert.Equal(t, 0, longestChainHeadersIndexes[0])
 }
 

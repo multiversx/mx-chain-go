@@ -1,14 +1,17 @@
 package track_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBlockNotarizer_ShouldErrNilHasher(t *testing.T) {
@@ -53,9 +56,9 @@ func TestAddNotarizedHeader_ShouldWork(t *testing.T) {
 	bn.AddNotarizedHeader(0, &hdr2, nil)
 	bn.AddNotarizedHeader(0, &hdr1, nil)
 
-	assert.Equal(t, 2, len(bn.GetNotarizedHeaders()[0]))
-	assert.Equal(t, &hdr1, bn.GetNotarizedHeader(0, 0))
-	assert.Equal(t, &hdr2, bn.GetNotarizedHeader(0, 1))
+	require.Equal(t, 2, len(bn.GetNotarizedHeaders()[0]))
+	assert.Equal(t, &hdr1, bn.GetNotarizedHeaderWithIndex(0, 0))
+	assert.Equal(t, &hdr2, bn.GetNotarizedHeaderWithIndex(0, 1))
 }
 
 func TestCleanupNotarizedHeadersBehindNonce_ShouldNotCleanWhenGivenNonceIsZero(t *testing.T) {
@@ -90,9 +93,61 @@ func TestCleanupNotarizedHeadersBehindNonce_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(bn.GetNotarizedHeaders()[0]))
 
 	bn.CleanupNotarizedHeadersBehindNonce(0, 2)
-
 	assert.Equal(t, 1, len(bn.GetNotarizedHeaders()[0]))
-	assert.Equal(t, &hdr2, bn.GetNotarizedHeader(0, 0))
+
+	header, _, _ := bn.GetNotarizedHeader(0, 0)
+	assert.Equal(t, &hdr2, header)
+}
+
+func TestNotarizedHeaders_ShouldNotPanicWhenGivenShardIsInvalid(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	bn.AddNotarizedHeader(0, &block.Header{Nonce: 1}, nil)
+	logger.SetLogLevel("track:DEBUG")
+	bn.DisplayNotarizedHeaders(1, "test")
+}
+
+func TestNotarizedHeaders_ShouldNotPanicWhenTheOnlyNotarizedHeaderHasNonceZero(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	bn.AddNotarizedHeader(0, &block.Header{}, nil)
+	logger.SetLogLevel("track:DEBUG")
+	bn.DisplayNotarizedHeaders(0, "test")
+}
+
+func TestNotarizedHeaders_ShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	hdr1 := block.Header{Nonce: 1}
+	hdr2 := block.Header{Nonce: 2}
+	bn.AddNotarizedHeader(0, &hdr2, nil)
+	bn.AddNotarizedHeader(0, &hdr1, nil)
+	logger.SetLogLevel("track:DEBUG")
+	bn.DisplayNotarizedHeaders(0, "test")
 }
 
 func TestGetLastNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
@@ -157,7 +212,7 @@ func TestGetNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testi
 	t.Parallel()
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	_, _, err := bn.GetNotarizedHeaderWithOffset(0, 0)
+	_, _, err := bn.GetNotarizedHeader(0, 0)
 
 	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
 }
@@ -167,7 +222,7 @@ func TestGetNotarizedHeader_ShouldErrNotarizedHeaderOffsetIsOutOfBound(t *testin
 	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	bn.AddNotarizedHeader(0, &block.Header{}, nil)
-	_, _, err := bn.GetNotarizedHeaderWithOffset(0, 1)
+	_, _, err := bn.GetNotarizedHeader(0, 1)
 
 	assert.Equal(t, track.ErrNotarizedHeaderOffsetIsOutOfBound, err)
 }
@@ -183,13 +238,13 @@ func TestGetNotarizedHeader_ShouldWork(t *testing.T) {
 	bn.AddNotarizedHeader(0, &hdr2, nil)
 	bn.AddNotarizedHeader(0, &hdr1, nil)
 
-	notarizedHeaderWithOffset, _, _ := bn.GetNotarizedHeaderWithOffset(0, 0)
+	notarizedHeaderWithOffset, _, _ := bn.GetNotarizedHeader(0, 0)
 	assert.Equal(t, &hdr3, notarizedHeaderWithOffset)
 
-	notarizedHeaderWithOffset, _, _ = bn.GetNotarizedHeaderWithOffset(0, 1)
+	notarizedHeaderWithOffset, _, _ = bn.GetNotarizedHeader(0, 1)
 	assert.Equal(t, &hdr2, notarizedHeaderWithOffset)
 
-	notarizedHeaderWithOffset, _, _ = bn.GetNotarizedHeaderWithOffset(0, 2)
+	notarizedHeaderWithOffset, _, _ = bn.GetNotarizedHeader(0, 2)
 	assert.Equal(t, &hdr1, notarizedHeaderWithOffset)
 }
 
