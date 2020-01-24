@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -302,7 +303,7 @@ func (n *Node) StartConsensus() error {
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
-	err = n.createConsensusTopic(worker, n.shardCoordinator)
+	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
 	}
@@ -523,7 +524,6 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 // createConsensusState method creates a consensusState object
 func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
-
 	if err != nil {
 		return nil, err
 	}
@@ -549,15 +549,15 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
+	if check.IfNil(n.shardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if messageProcessor == nil || messageProcessor.IsInterfaceNil() {
+	if check.IfNil(messageProcessor) {
 		return ErrNilMessenger
 	}
 
-	n.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	n.consensusTopic = core.ConsensusTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}

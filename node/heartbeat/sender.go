@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -32,19 +33,19 @@ func NewSender(
 	versionNumber string,
 	nodeDisplayName string,
 ) (*Sender, error) {
-	if peerMessenger == nil || peerMessenger.IsInterfaceNil() {
+	if check.IfNil(peerMessenger) {
 		return nil, ErrNilMessenger
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return nil, ErrNilSingleSigner
 	}
-	if privKey == nil || privKey.IsInterfaceNil() {
+	if check.IfNil(privKey) {
 		return nil, ErrNilPrivateKey
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if shardCoordinator == nil {
+	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
 
