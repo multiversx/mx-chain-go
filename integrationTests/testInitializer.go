@@ -1431,6 +1431,7 @@ func ProposeAndSyncOneBlock(
 	nonce uint64,
 ) (uint64, uint64) {
 
+	UpdateRound(nodes, round)
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
