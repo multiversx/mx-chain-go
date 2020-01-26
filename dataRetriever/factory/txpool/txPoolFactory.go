@@ -8,13 +8,13 @@ import (
 )
 
 // CreateTxPool creates a new tx pool, according to the configuration
-func CreateTxPool(config storageUnit.CacheConfig, economics txpool.Economics) (dataRetriever.ShardedDataCacherNotifier, error) {
+func CreateTxPool(config storageUnit.CacheConfig, economics txpool.Economics, sharding txpool.Sharding) (dataRetriever.ShardedDataCacherNotifier, error) {
 	switch config.Type {
 	case storageUnit.FIFOShardedCache:
 		return shardedData.NewShardedData(config)
 	case storageUnit.LRUCache:
 		return shardedData.NewShardedData(config)
 	default:
-		return txpool.NewShardedTxPool(config, economics)
+		return txpool.NewShardedTxPool(config, economics, sharding)
 	}
 }

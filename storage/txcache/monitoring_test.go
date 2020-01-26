@@ -8,12 +8,13 @@ import (
 
 func TestMonitoring_numTxAddedDuringEviction(t *testing.T) {
 	config := CacheConfig{
+		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache("", 16, config)
+	cache := NewTxCache(config)
 
 	cache.isEvictionInProgress.Set()
 
@@ -30,12 +31,13 @@ func TestMonitoring_numTxAddedDuringEviction(t *testing.T) {
 
 func TestMonitoring_numTxAddedBetweenSelections(t *testing.T) {
 	config := CacheConfig{
+		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache("", 16, config)
+	cache := NewTxCache(config)
 
 	require.Equal(t, int64(0), cache.numTxAddedBetweenSelections.Get())
 

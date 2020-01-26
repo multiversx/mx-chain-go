@@ -17,12 +17,11 @@ var log = logger.GetOrCreate("dataretriever/txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
-	mutex             sync.RWMutex
-	backingMap        map[string]*txPoolShard
-	mutexAddCallbacks sync.RWMutex
-	onAddCallbacks    []func(key []byte)
-	nChunksHint       uint32
-	cacheConfig       txcache.CacheConfig
+	mutex                sync.RWMutex
+	backingMap           map[string]*txPoolShard
+	mutexAddCallbacks    sync.RWMutex
+	onAddCallbacks       []func(key []byte)
+	cacheConfigPrototype txcache.CacheConfig
 }
 
 type txPoolShard struct {
@@ -41,7 +40,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, shard
 	numShards := sharding.NumberOfShards()
 	const oneTrilion = 1000000 * 1000000
 
-	cacheConfig := txcache.CacheConfig{
+	cacheConfigPrototype := txcache.CacheConfig{
+		NumChunksHint:                   config.Shards,
 		EvictionEnabled:                 true,
 		NumBytesThreshold:               config.SizeInBytes / numShards,
 		CountThreshold:                  config.Size / numShards,
@@ -52,12 +52,11 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, shard
 	}
 
 	shardedTxPool := &shardedTxPool{
-		mutex:             sync.RWMutex{},
-		backingMap:        make(map[string]*txPoolShard),
-		mutexAddCallbacks: sync.RWMutex{},
-		onAddCallbacks:    make([]func(key []byte), 0),
-		cacheConfig:       cacheConfig,
-		nChunksHint:       config.Shards,
+		mutex:                sync.RWMutex{},
+		backingMap:           make(map[string]*txPoolShard),
+		mutexAddCallbacks:    sync.RWMutex{},
+		onAddCallbacks:       make([]func(key []byte), 0),
+		cacheConfigPrototype: cacheConfigPrototype,
 	}
 
 	return shardedTxPool, nil
@@ -120,7 +119,10 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		cache := txcache.NewTxCache(cacheID, txPool.nChunksHint, txPool.cacheConfig)
+		// Here we clone the config structure
+		cacheConfig := txPool.cacheConfigPrototype
+		cacheConfig.Name = cacheID
+		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,

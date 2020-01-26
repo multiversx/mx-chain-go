@@ -75,13 +75,13 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 
 	pool := poolAsInterface.(*shardedTxPool)
 
-	require.Equal(t, true, pool.cacheConfig.EvictionEnabled)
-	require.Equal(t, uint32(1000000000), pool.cacheConfig.NumBytesThreshold)
-	require.Equal(t, uint32(100000), pool.cacheConfig.CountThreshold)
-	require.Equal(t, uint32(100), pool.cacheConfig.NumSendersToEvictInOneStep)
-	require.Equal(t, uint32(500), pool.cacheConfig.ALotOfTransactionsForASender)
-	require.Equal(t, uint32(100), pool.cacheConfig.NumTxsToEvictForASenderWithALot)
-	require.Equal(t, uint32(100), pool.cacheConfig.MinGasPriceMicroErd)
+	require.Equal(t, true, pool.cacheConfigPrototype.EvictionEnabled)
+	require.Equal(t, uint32(1000000000), pool.cacheConfigPrototype.NumBytesThreshold)
+	require.Equal(t, uint32(100000), pool.cacheConfigPrototype.CountThreshold)
+	require.Equal(t, uint32(100), pool.cacheConfigPrototype.NumSendersToEvictInOneStep)
+	require.Equal(t, uint32(500), pool.cacheConfigPrototype.ALotOfTransactionsForASender)
+	require.Equal(t, uint32(100), pool.cacheConfigPrototype.NumTxsToEvictForASenderWithALot)
+	require.Equal(t, uint32(100), pool.cacheConfigPrototype.MinGasPriceMicroErd)
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {

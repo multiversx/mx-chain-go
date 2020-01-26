@@ -23,14 +23,15 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-// "nChunksHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(name string, nChunksHint uint32, cacheConfig CacheConfig) *TxCache {
-	// Note: for simplicity, we use the same "nChunksHint" for both internal concurrent maps
+func NewTxCache(config CacheConfig) *TxCache {
+	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
+	numChunksHint := config.NumChunksHint
+
 	txCache := &TxCache{
-		name:            name,
-		txListBySender:  newTxListBySenderMap(nChunksHint, &cacheConfig),
-		txByHash:        newTxByHashMap(nChunksHint),
-		config:          cacheConfig,
+		name:            config.Name,
+		txListBySender:  newTxListBySenderMap(numChunksHint, &config),
+		txByHash:        newTxByHashMap(numChunksHint),
+		config:          config,
 		evictionJournal: evictionJournal{},
 	}
 
