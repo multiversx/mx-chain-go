@@ -13,7 +13,7 @@ func TestMonitoring_numTxAddedDuringEviction(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCacheWithEviction("", 16, config)
+	cache := NewTxCache("", 16, config)
 
 	cache.isEvictionInProgress.Set()
 
@@ -35,7 +35,7 @@ func TestMonitoring_numTxAddedBetweenSelections(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCacheWithEviction("", 16, config)
+	cache := NewTxCache("", 16, config)
 
 	require.Equal(t, int64(0), cache.numTxAddedBetweenSelections.Get())
 

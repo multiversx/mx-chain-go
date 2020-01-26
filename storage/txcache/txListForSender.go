@@ -20,6 +20,7 @@ type txListForSender struct {
 	sender            string
 	scoreChunk        *maps.MapChunk
 	lastComputedScore core.AtomicUint32
+	cacheConfig       *CacheConfig
 }
 
 // txListForSenderNode is a node of the linked list
@@ -29,10 +30,11 @@ type txListForSenderNode struct {
 }
 
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string) *txListForSender {
+func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSender {
 	return &txListForSender{
-		items:  list.New(),
-		sender: sender,
+		items:       list.New(),
+		sender:      sender,
+		cacheConfig: cacheConfig,
 	}
 }
 

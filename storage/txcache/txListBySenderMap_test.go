@@ -9,7 +9,7 @@ import (
 )
 
 func Test_AddTx_IncrementsCounter(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
+	myMap := newSendersMapToTest()
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
 	myMap.addTx([]byte("aa"), createTx("alice", uint64(2)))
@@ -20,7 +20,7 @@ func Test_AddTx_IncrementsCounter(t *testing.T) {
 }
 
 func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
-	myMap := newTxListBySenderMap(4)
+	myMap := newSendersMapToTest()
 
 	txAlice1 := createTx("alice", uint64(1))
 	txAlice2 := createTx("alice", uint64(2))
@@ -44,7 +44,7 @@ func Test_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 }
 
 func Test_RemoveSender(t *testing.T) {
-	myMap := newTxListBySenderMap(1)
+	myMap := newSendersMapToTest()
 
 	myMap.addTx([]byte("a"), createTx("alice", uint64(1)))
 	require.Equal(t, int64(1), myMap.counter.Get())
@@ -80,7 +80,7 @@ func Benchmark_GetSnapshotAscending(b *testing.B) {
 }
 
 func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
-	myMap := createTxListBySenderMap(100)
+	myMap := newSendersMapToTest()
 
 	var wg sync.WaitGroup
 
@@ -109,7 +109,7 @@ func Test_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
 }
 
 func createTxListBySenderMap(numSenders int) txListBySenderMap {
-	myMap := newTxListBySenderMap(16)
+	myMap := newSendersMapToTest()
 	for i := 0; i < numSenders; i++ {
 		sender := fmt.Sprintf("Sender-%d", i)
 		hash := createFakeTxHash([]byte(sender), 1)
@@ -117,4 +117,8 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 	}
 
 	return myMap
+}
+
+func newSendersMapToTest() txListBySenderMap {
+	return newTxListBySenderMap(4, &CacheConfig{})
 }

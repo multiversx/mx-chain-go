@@ -37,6 +37,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (data
 		return nil, err
 	}
 
+	const oneTrilion = 1000000 * 1000000
+
 	cacheConfig := txcache.CacheConfig{
 		EvictionEnabled:                 true,
 		NumBytesThreshold:               config.SizeInBytes,
@@ -44,6 +46,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (data
 		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
 		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
+		MinGasPriceMicroErd:             uint32(economics.MinGasPrice() / oneTrilion),
 	}
 
 	shardedTxPool := &shardedTxPool{
@@ -106,7 +109,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		cache := txcache.NewTxCacheWithEviction(cacheID, txPool.nChunksHint, txPool.cacheConfig)
+		cache := txcache.NewTxCache(cacheID, txPool.nChunksHint, txPool.cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,

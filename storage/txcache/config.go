@@ -8,4 +8,5 @@ type CacheConfig struct {
 	NumSendersToEvictInOneStep      uint32
 	ALotOfTransactionsForASender    uint32
 	NumTxsToEvictForASenderWithALot uint32
+	MinGasPriceMicroErd             uint32
 }

@@ -13,6 +13,8 @@ type senderScoreParams struct {
 	// Fee is in micro ERD
 	fee uint64
 	gas uint64
+	// Price is in micro ERD
+	minGasPrice uint32
 }
 
 // GetKey return the key
@@ -36,8 +38,9 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 	gas := listForSender.totalGas.GetUint64()
 	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
+	minGasPrice := listForSender.cacheConfig.MinGasPriceMicroErd
 
-	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas})
+	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice})
 }
 
 func computeSenderScore(params senderScoreParams) float64 {
@@ -46,9 +49,7 @@ func computeSenderScore(params senderScoreParams) float64 {
 		return 0
 	}
 
-	// PPU (price per gas unit) is in micro ERD
-	// TODO-TXCACHE get from economics config
-	const PPUMin = float64(100)
+	PPUMin := float64(params.minGasPrice)
 	PPUAvg := float64(params.fee) / float64(params.gas)
 	PPUScore := math.Pow(PPUAvg/PPUMin, 3)
 
