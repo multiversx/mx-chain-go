@@ -13,3 +13,7 @@ func NewShardingStubForTxPool(numShards uint32) *ShardingStubForTxPool {
 func (stub *ShardingStubForTxPool) NumberOfShards() uint32 {
 	return stub.numShards
 }
+
+func (stub *ShardingStubForTxPool) IsInterfaceNil() bool {
+	return stub == nil
+}

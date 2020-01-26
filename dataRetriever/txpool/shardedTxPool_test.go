@@ -49,7 +49,17 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
 
+	pool, err = NewShardedTxPool(goodConfig, nil, goodSharding)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
+
 	pool, err = NewShardedTxPool(goodConfig, goodEconomics, mock.NewShardingStubForTxPool(0))
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)
+
+	pool, err = NewShardedTxPool(goodConfig, goodEconomics, nil)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)

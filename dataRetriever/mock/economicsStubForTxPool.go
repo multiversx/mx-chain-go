@@ -13,3 +13,7 @@ func NewEconomicsStubForTxPool(minGasPrice uint64) *EconomicsStubForTxPool {
 func (stub *EconomicsStubForTxPool) MinGasPrice() uint64 {
 	return stub.minGasPrice
 }
+
+func (stub *EconomicsStubForTxPool) IsInterfaceNil() bool {
+	return stub == nil
+}

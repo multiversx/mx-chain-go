@@ -3,6 +3,7 @@ package txpool
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -63,8 +64,12 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, shard
 }
 
 func verifyDependencies(config storageUnit.CacheConfig, economics Economics, sharding Sharding) error {
-	// todo alsocheck if nil
-
+	if check.IfNil(economics) {
+		return dataRetriever.ErrCacheConfigInvalidEconomics
+	}
+	if check.IfNil(sharding) {
+		return dataRetriever.ErrCacheConfigInvalidSharding
+	}
 	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
