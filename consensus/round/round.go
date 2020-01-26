@@ -71,8 +71,5 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rnd *round) IsInterfaceNil() bool {
-	if rnd == nil {
-		return true
-	}
-	return false
+	return rnd == nil
 }
