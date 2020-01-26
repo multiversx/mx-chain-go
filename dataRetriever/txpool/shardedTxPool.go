@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -32,7 +31,7 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig, economics *economics.EconomicsData) (dataRetriever.ShardedDataCacherNotifier, error) {
+func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (dataRetriever.ShardedDataCacherNotifier, error) {
 	err := verifyDependencies(config, economics)
 	if err != nil {
 		return nil, err
@@ -59,7 +58,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics *economics.Econo
 	return shardedTxPool, nil
 }
 
-func verifyDependencies(config storageUnit.CacheConfig, economics *economics.EconomicsData) error {
+func verifyDependencies(config storageUnit.CacheConfig, economics Economics) error {
 	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
