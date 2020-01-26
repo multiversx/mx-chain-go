@@ -203,7 +203,7 @@ func (vs *validatorStatistics) updatePeerData(
 	}
 
 	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(peerChange.Address)
+		err = account.SetRewardAddressWithJournal(peerChange.Address)
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (vs *validatorStatistics) updatePeerData(
 	//  change the old and the new public key. Also, important: the peer statistics data and the
 	//  rating from the old account needs to be associated to the new account
 	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+		err = account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -223,14 +223,14 @@ func (vs *validatorStatistics) updatePeerData(
 	zero := big.NewInt(0)
 	if peerChange.ValueChange.Cmp(zero) != 0 {
 		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
-		err := account.SetStakeWithJournal(actualValue)
+		err = account.SetStakeWithJournal(actualValue)
 		if err != nil {
 			return err
 		}
 	}
 
 	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
-		err := account.SetNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}
@@ -242,7 +242,7 @@ func (vs *validatorStatistics) updatePeerData(
 	}
 
 	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
-		err := account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}

@@ -992,3 +992,67 @@ func TestWithChainID_OkValueShouldWork(t *testing.T) {
 	assert.Equal(t, node.chainID, chainId)
 	assert.Nil(t, err)
 }
+
+func TestWithBootstrapRoundIndex(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	roundIndex := uint64(0)
+	opt := WithBootstrapRoundIndex(roundIndex)
+
+	err := opt(node)
+	assert.Equal(t, roundIndex, node.bootstrapRoundIndex)
+	assert.Nil(t, err)
+}
+
+func TestWithTxStorageSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	txStorageSize := uint32(100)
+	opt := WithTxStorageSize(txStorageSize)
+
+	err := opt(node)
+	assert.Equal(t, txStorageSize, node.txStorageSize)
+	assert.Nil(t, err)
+}
+
+func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithBlackListHandler(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilBlackListHandler, err)
+}
+
+func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithEpochStartTrigger(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilEpochStartTrigger, err)
+}
+
+func TestWithTxSingleSigner_NilTxSingleSigner(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithTxSingleSigner(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithPubKey_NilPublicKey(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithPubKey(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilPublicKey, err)
+}

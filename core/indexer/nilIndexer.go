@@ -19,7 +19,8 @@ func (ni *NilIndexer) SaveBlock(body data.BodyHandler, header data.HeaderHandler
 	return
 }
 
-func (im *NilIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+// SaveMetaBlock will do nothing
+func (ni *NilIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
 	return
 }
 
@@ -40,10 +41,7 @@ func (ni *NilIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byt
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ni *NilIndexer) IsInterfaceNil() bool {
-	if ni == nil {
-		return true
-	}
-	return false
+	return ni == nil
 }
 
 // IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer

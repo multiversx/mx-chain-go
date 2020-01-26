@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -25,10 +26,10 @@ func NewHeartbeatDbStorer(
 	storer storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*HeartbeatDbStorer, error) {
-	if storer == nil || storer.IsInterfaceNil() {
+	if check.IfNil(storer) {
 		return nil, heartbeat.ErrNilMonitorDb
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, heartbeat.ErrNilMarshalizer
 	}
 
@@ -153,8 +154,5 @@ func (hs *HeartbeatDbStorer) SavePubkeyData(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hs *HeartbeatDbStorer) IsInterfaceNil() bool {
-	if hs == nil {
-		return true
-	}
-	return false
+	return hs == nil
 }
