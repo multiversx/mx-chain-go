@@ -78,8 +78,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, entry)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
@@ -125,7 +124,6 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 	}
 
 	accnt.SetDataTrie(trie)
-	//accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()
@@ -155,7 +153,6 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	}
 
 	accnt.SetDataTrie(trie)
-	//accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()

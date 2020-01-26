@@ -73,9 +73,8 @@ func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
 
 	entry, err := state.NewBaseJournalEntryCodeHash(mock.NewAccountWrapMock(nil, nil), nil)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
@@ -108,9 +107,8 @@ func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewBaseJournalEntryNonce(accnt, 0)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {

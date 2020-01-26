@@ -54,9 +54,8 @@ func TestPeerJournalEntrySchnorrPublicKey_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntrySchnorrPublicKey(accnt, []byte("address"))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntrySchnorrPublicKey_RevertOkValsShouldWork(t *testing.T) {
@@ -85,9 +84,8 @@ func TestPeerJournalEntryBLSPublicKey_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryBLSPublicKey(accnt, []byte("address"))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryBLSPublicKey_RevertOkValsShouldWork(t *testing.T) {
@@ -116,9 +114,8 @@ func TestPeerJournalEntryStake_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryStake(accnt, big.NewInt(9))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryStake_RevertOkValsShouldWork(t *testing.T) {
@@ -156,9 +153,8 @@ func TestPeerJournalEntryJailTime_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewPeerAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewPeerJournalEntryJailTime(accnt, jailTime)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-	assert.False(t, entry.IsInterfaceNil())
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestPeerJournalEntryJailTime_RevertOkValsShouldWork(t *testing.T) {
