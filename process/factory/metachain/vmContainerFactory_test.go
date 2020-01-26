@@ -39,6 +39,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
+	assert.False(t, vmf.IsInterfaceNil())
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {

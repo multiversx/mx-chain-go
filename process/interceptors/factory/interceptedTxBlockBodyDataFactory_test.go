@@ -60,6 +60,7 @@ func TestInterceptedTxBlockBodyDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedTxBlockBodyDataFactory(arg)
 	assert.NotNil(t, imh)
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyBlockBody := &block.Body{}
