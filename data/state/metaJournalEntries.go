@@ -23,18 +23,15 @@ func NewMetaJournalEntryRound(account *MetaAccount, oldRound uint64) (*MetaJourn
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryRound) Revert() (AccountHandler, error) {
-	jen.account.Round = jen.oldRound
+func (mjer *MetaJournalEntryRound) Revert() (AccountHandler, error) {
+	mjer.account.Round = mjer.oldRound
 
-	return jen.account, nil
+	return mjer.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jen *MetaJournalEntryRound) IsInterfaceNil() bool {
-	if jen == nil {
-		return true
-	}
-	return false
+func (mjer *MetaJournalEntryRound) IsInterfaceNil() bool {
+	return mjer == nil
 }
 
 //------- MetaJournalEntryTxCount
@@ -58,18 +55,15 @@ func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*Met
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
-	jen.account.TxCount = jen.oldTxCount
+func (mjetc *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
+	mjetc.account.TxCount = mjetc.oldTxCount
 
-	return jen.account, nil
+	return mjetc.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jen *MetaJournalEntryTxCount) IsInterfaceNil() bool {
-	if jen == nil {
-		return true
-	}
-	return false
+func (mjetc *MetaJournalEntryTxCount) IsInterfaceNil() bool {
+	return mjetc == nil
 }
 
 //------- MetaJournalEntryMiniBlocksData
@@ -93,18 +87,15 @@ func NewMetaJournalEntryMiniBlocksData(account *MetaAccount, oldMiniBlocksData [
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryMiniBlocksData) Revert() (AccountHandler, error) {
-	jen.account.MiniBlocks = jen.oldMiniBlocksData
+func (mjembd *MetaJournalEntryMiniBlocksData) Revert() (AccountHandler, error) {
+	mjembd.account.MiniBlocks = mjembd.oldMiniBlocksData
 
-	return jen.account, nil
+	return mjembd.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jen *MetaJournalEntryMiniBlocksData) IsInterfaceNil() bool {
-	if jen == nil {
-		return true
-	}
-	return false
+func (mjembd *MetaJournalEntryMiniBlocksData) IsInterfaceNil() bool {
+	return mjembd == nil
 }
 
 //------- MetaJournalEntryShardRootHash
@@ -128,16 +119,13 @@ func NewMetaJournalEntryShardRootHash(account *MetaAccount, oldShardRootHash []b
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryShardRootHash) Revert() (AccountHandler, error) {
-	jen.account.ShardRootHash = jen.oldShardRootHash
+func (mjesrh *MetaJournalEntryShardRootHash) Revert() (AccountHandler, error) {
+	mjesrh.account.ShardRootHash = mjesrh.oldShardRootHash
 
-	return jen.account, nil
+	return mjesrh.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jen *MetaJournalEntryShardRootHash) IsInterfaceNil() bool {
-	if jen == nil {
-		return true
-	}
-	return false
+func (mjesrh *MetaJournalEntryShardRootHash) IsInterfaceNil() bool {
+	return mjesrh == nil
 }

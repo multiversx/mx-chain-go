@@ -3,6 +3,7 @@ package state_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -33,8 +34,8 @@ func TestNewBaseJournalEntryCreation_ShouldWork(t *testing.T) {
 
 	entry, err := state.NewBaseJournalEntryCreation([]byte("key"), &mock.UpdaterStub{})
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
@@ -72,8 +73,8 @@ func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
 
 	entry, err := state.NewBaseJournalEntryCodeHash(mock.NewAccountWrapMock(nil, nil), nil)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
@@ -106,8 +107,8 @@ func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewBaseJournalEntryNonce(accnt, 0)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestBaseJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {

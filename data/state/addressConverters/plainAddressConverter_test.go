@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -25,8 +26,9 @@ func TestNewPlainAddressConverter_NegativeSizeShouldErr(t *testing.T) {
 func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, err := addressConverters.NewPlainAddressConverter(32, "")
+	pac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(pac))
 }
 
 //------- CreateAddressFromPublicKeyBytes
@@ -238,4 +240,12 @@ func TestPlainAddressConverter_FromBech32AddressValidDataWithPrefixShouldWork(t 
 
 	//check that we got back the same bytes
 	assert.Equal(t, buff, adr2.Bytes())
+}
+
+func TestPlainAddressConverter_AddressLen(t *testing.T) {
+	t.Parallel()
+
+	addressLen := 128
+	ac, _ := addressConverters.NewPlainAddressConverter(addressLen, "0x")
+	assert.Equal(t, addressLen, ac.AddressLen())
 }

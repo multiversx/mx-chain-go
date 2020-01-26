@@ -31,10 +31,7 @@ func (bjec *BaseJournalEntryCreation) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bjec *BaseJournalEntryCreation) IsInterfaceNil() bool {
-	if bjec == nil {
-		return true
-	}
-	return false
+	return bjec == nil
 }
 
 //------- BaseJournalEntryCodeHash
@@ -66,10 +63,7 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bjech *BaseJournalEntryCodeHash) IsInterfaceNil() bool {
-	if bjech == nil {
-		return true
-	}
-	return false
+	return bjech == nil
 }
 
 //------- BaseJournalEntryNonce
@@ -101,8 +95,5 @@ func (bjen *BaseJournalEntryNonce) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bjen *BaseJournalEntryNonce) IsInterfaceNil() bool {
-	if bjen == nil {
-		return true
-	}
-	return false
+	return bjen == nil
 }
