@@ -155,8 +155,11 @@ var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid,
 // ErrCacheConfigInvalidShards signals that the cache parameter "shards" is invalid
 var ErrCacheConfigInvalidShards = errors.New("cache parameter [shards] is not valid, it must be a positive number")
 
-// ErrCacheConfigInvalidEconomics signals that an economics parameter required by the cache parameter is invalid
+// ErrCacheConfigInvalidEconomics signals that an economics parameter required by the cache is invalid
 var ErrCacheConfigInvalidEconomics = errors.New("cache-economics parameter is not valid")
+
+// ErrCacheConfigInvalidSharding signals that a sharding parameter required by the cache is invalid
+var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not valid")
 
 // ErrNilMetaBlockPool signals that a nil meta block data pool was provided
 var ErrNilMetaBlockPool = errors.New("nil meta block data pool")

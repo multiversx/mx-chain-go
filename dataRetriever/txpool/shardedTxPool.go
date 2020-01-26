@@ -31,18 +31,19 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (dataRetriever.ShardedDataCacherNotifier, error) {
-	err := verifyDependencies(config, economics)
+func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, sharding Sharding) (dataRetriever.ShardedDataCacherNotifier, error) {
+	err := verifyDependencies(config, economics, sharding)
 	if err != nil {
 		return nil, err
 	}
 
+	numShards := sharding.NumberOfShards()
 	const oneTrilion = 1000000 * 1000000
 
 	cacheConfig := txcache.CacheConfig{
 		EvictionEnabled:                 true,
-		NumBytesThreshold:               config.SizeInBytes,
-		CountThreshold:                  config.Size,
+		NumBytesThreshold:               config.SizeInBytes / numShards,
+		CountThreshold:                  config.Size / numShards,
 		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
 		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
@@ -61,7 +62,9 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (data
 	return shardedTxPool, nil
 }
 
-func verifyDependencies(config storageUnit.CacheConfig, economics Economics) error {
+func verifyDependencies(config storageUnit.CacheConfig, economics Economics, sharding Sharding) error {
+	// todo alsocheck if nil
+
 	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
@@ -73,6 +76,9 @@ func verifyDependencies(config storageUnit.CacheConfig, economics Economics) err
 	}
 	if economics.MinGasPrice() < 1 {
 		return dataRetriever.ErrCacheConfigInvalidEconomics
+	}
+	if sharding.NumberOfShards() < 1 {
+		return dataRetriever.ErrCacheConfigInvalidSharding
 	}
 
 	return nil

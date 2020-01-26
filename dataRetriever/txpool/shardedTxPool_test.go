@@ -25,29 +25,42 @@ func Test_NewShardedTxPool(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
-	pool, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1}, mock.NewEconomicsStub(100000000000000))
+	goodConfig := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
+	goodEconomics := mock.NewEconomicsStubForTxPool(100000000000000)
+	goodSharding := mock.NewShardingStubForTxPool(4)
+
+	pool, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1}, goodEconomics, goodSharding)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, dataRetriever.ErrCacheConfigInvalidSizeInBytes, err)
 
-	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Size: 1}, mock.NewEconomicsStub(100000000000000))
+	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Size: 1}, goodEconomics, goodSharding)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, dataRetriever.ErrCacheConfigInvalidShards, err)
 
-	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1}, mock.NewEconomicsStub(100000000000000))
+	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1}, goodEconomics, goodSharding)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSize)
 
-	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1, Size: 1}, mock.NewEconomicsStub(0))
+	pool, err = NewShardedTxPool(goodConfig, mock.NewEconomicsStubForTxPool(0), goodSharding)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
+
+	pool, err = NewShardedTxPool(goodConfig, goodEconomics, mock.NewShardingStubForTxPool(0))
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	poolAsInterface, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1000000000, Size: 100000, Shards: 1}, mock.NewEconomicsStub(100000000000000))
+	config := storageUnit.CacheConfig{SizeInBytes: 4000000000, Size: 400000, Shards: 1}
+	economics := mock.NewEconomicsStubForTxPool(100000000000000)
+	sharding := mock.NewShardingStubForTxPool(4)
+
+	poolAsInterface, err := NewShardedTxPool(config, economics, sharding)
 	require.Nil(t, err)
 
 	pool := poolAsInterface.(*shardedTxPool)
@@ -282,5 +295,8 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	return NewShardedTxPool(storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}, mock.NewEconomicsStub(100000000000000))
+	config := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
+	economics := mock.NewEconomicsStubForTxPool(100000000000000)
+	sharding := mock.NewShardingStubForTxPool(4)
+	return NewShardedTxPool(config, economics, sharding)
 }
