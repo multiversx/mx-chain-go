@@ -210,8 +210,8 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               math.MaxUint32,
 		CountThreshold:                  100,
 		NumSendersToEvictInOneStep:      1,
@@ -224,8 +224,8 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
-	config = EvictionConfig{
-		Enabled:                         true,
+	config = CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               math.MaxUint32,
 		CountThreshold:                  250000,
 		NumSendersToEvictInOneStep:      1,

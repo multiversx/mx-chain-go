@@ -9,7 +9,7 @@ import (
 )
 
 func TestEviction_EvictHighNonceTransactions(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:                  400,
 		ALotOfTransactionsForASender:    50,
 		NumTxsToEvictForASenderWithALot: 25,
@@ -40,7 +40,7 @@ func TestEviction_EvictHighNonceTransactions(t *testing.T) {
 }
 
 func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:                  0,
 		ALotOfTransactionsForASender:    0,
 		NumTxsToEvictForASenderWithALot: 1,
@@ -60,7 +60,7 @@ func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T
 }
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 20,
 		NumBytesThreshold:          math.MaxUint32,
@@ -90,7 +90,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          numBytesPerTx * 100,
 		NumSendersToEvictInOneStep: 20,
@@ -118,7 +118,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             2,
 		NumSendersToEvictInOneStep: 2,
@@ -144,7 +144,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          1000,
 		NumSendersToEvictInOneStep: 2,
@@ -174,7 +174,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 1,
 	}
@@ -189,7 +189,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 }
 
 func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 42,
 	}
@@ -206,7 +206,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 }
 
 func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 1,
 	}
@@ -234,8 +234,8 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 		return
 	}
 
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      10,
@@ -254,8 +254,8 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 		return
 	}
 
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      100,
@@ -274,8 +274,8 @@ func Benchmark_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSender
 		return
 	}
 
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,
@@ -294,8 +294,8 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 		return
 	}
 
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,
@@ -314,8 +314,8 @@ func BenchmarkEviction_UniformDistribution_1x250000(b *testing.B) {
 		return
 	}
 
-	config := EvictionConfig{
-		Enabled:                         true,
+	config := CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               1000000000,
 		CountThreshold:                  240000,
 		NumSendersToEvictInOneStep:      1000,

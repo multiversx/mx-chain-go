@@ -46,18 +46,18 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
 }
 
-func Test_NewShardedTxPool_ComputesEvictionConfig(t *testing.T) {
+func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	poolAsInterface, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1000000000, Size: 100000, Shards: 1}, mock.NewEconomicsStub(100000000000000))
 	require.Nil(t, err)
 
 	pool := poolAsInterface.(*shardedTxPool)
 
-	require.Equal(t, true, pool.evictionConfig.Enabled)
-	require.Equal(t, uint32(1000000000), pool.evictionConfig.NumBytesThreshold)
-	require.Equal(t, uint32(100000), pool.evictionConfig.CountThreshold)
-	require.Equal(t, uint32(100), pool.evictionConfig.NumSendersToEvictInOneStep)
-	require.Equal(t, uint32(500), pool.evictionConfig.ALotOfTransactionsForASender)
-	require.Equal(t, uint32(100), pool.evictionConfig.NumTxsToEvictForASenderWithALot)
+	require.Equal(t, true, pool.cacheConfig.EvictionEnabled)
+	require.Equal(t, uint32(1000000000), pool.cacheConfig.NumBytesThreshold)
+	require.Equal(t, uint32(100000), pool.cacheConfig.CountThreshold)
+	require.Equal(t, uint32(100), pool.cacheConfig.NumSendersToEvictInOneStep)
+	require.Equal(t, uint32(500), pool.cacheConfig.ALotOfTransactionsForASender)
+	require.Equal(t, uint32(100), pool.cacheConfig.NumTxsToEvictForASenderWithALot)
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {

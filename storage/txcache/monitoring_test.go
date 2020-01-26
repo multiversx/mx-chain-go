@@ -7,7 +7,7 @@ import (
 )
 
 func TestMonitoring_numTxAddedDuringEviction(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,
@@ -29,7 +29,7 @@ func TestMonitoring_numTxAddedDuringEviction(t *testing.T) {
 }
 
 func TestMonitoring_numTxAddedBetweenSelections(t *testing.T) {
-	config := EvictionConfig{
+	config := CacheConfig{
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,

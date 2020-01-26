@@ -13,7 +13,7 @@ type TxCache struct {
 	name                        string
 	txListBySender              txListBySenderMap
 	txByHash                    txByHashMap
-	evictionConfig              EvictionConfig
+	cacheConfig                 CacheConfig
 	evictionMutex               sync.Mutex
 	evictionJournal             evictionJournal
 	evictionSnapshotOfSenders   []*txListForSender
@@ -30,7 +30,7 @@ func NewTxCache(name string, nChunksHint uint32) *TxCache {
 		name:            name,
 		txListBySender:  newTxListBySenderMap(nChunksHint),
 		txByHash:        newTxByHashMap(nChunksHint),
-		evictionConfig:  EvictionConfig{Enabled: false},
+		cacheConfig:     CacheConfig{EvictionEnabled: false},
 		evictionJournal: evictionJournal{},
 	}
 
@@ -38,9 +38,9 @@ func NewTxCache(name string, nChunksHint uint32) *TxCache {
 }
 
 // NewTxCacheWithEviction creates a new transaction cache with eviction
-func NewTxCacheWithEviction(name string, nChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
+func NewTxCacheWithEviction(name string, nChunksHint uint32, cacheConfig CacheConfig) *TxCache {
 	txCache := NewTxCache(name, nChunksHint)
-	txCache.evictionConfig = evictionConfig
+	txCache.cacheConfig = cacheConfig
 
 	return txCache
 }
@@ -55,7 +55,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 		return
 	}
 
-	if cache.evictionConfig.Enabled {
+	if cache.cacheConfig.EvictionEnabled {
 		cache.doEviction()
 	}
 

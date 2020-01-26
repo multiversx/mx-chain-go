@@ -4,16 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-// EvictionConfig is a cache eviction model
-type EvictionConfig struct {
-	Enabled                         bool
-	NumBytesThreshold               uint32
-	CountThreshold                  uint32
-	NumSendersToEvictInOneStep      uint32
-	ALotOfTransactionsForASender    uint32
-	NumTxsToEvictForASenderWithALot uint32
-}
-
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
 func (cache *TxCache) doEviction() {
@@ -60,19 +50,19 @@ func (cache *TxCache) makeSnapshotOfSenders() {
 
 func (cache *TxCache) areThereTooManyBytes() bool {
 	numBytes := cache.NumBytes()
-	tooManyBytes := numBytes > int64(cache.evictionConfig.NumBytesThreshold)
+	tooManyBytes := numBytes > int64(cache.cacheConfig.NumBytesThreshold)
 	return tooManyBytes
 }
 
 func (cache *TxCache) areThereTooManySenders() bool {
 	numSenders := cache.CountSenders()
-	tooManySenders := numSenders > int64(cache.evictionConfig.CountThreshold)
+	tooManySenders := numSenders > int64(cache.cacheConfig.CountThreshold)
 	return tooManySenders
 }
 
 func (cache *TxCache) areThereTooManyTxs() bool {
 	numTxs := cache.CountTx()
-	tooManyTxs := numTxs > int64(cache.evictionConfig.CountThreshold)
+	tooManyTxs := numTxs > int64(cache.cacheConfig.CountThreshold)
 	return tooManyTxs
 }
 
@@ -87,8 +77,8 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	aLot := cache.evictionConfig.ALotOfTransactionsForASender
-	numTxsToEvict := cache.evictionConfig.NumTxsToEvictForASenderWithALot
+	aLot := cache.cacheConfig.ALotOfTransactionsForASender
+	numTxsToEvict := cache.cacheConfig.NumTxsToEvictForASenderWithALot
 
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(aLot) {
@@ -123,7 +113,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 	}
 
 	batchesSource := cache.evictionSnapshotOfSenders
-	batchSize := cache.evictionConfig.NumSendersToEvictInOneStep
+	batchSize := cache.cacheConfig.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
 	for step = 0; shouldContinue(); step++ {

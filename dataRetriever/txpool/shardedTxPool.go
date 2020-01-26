@@ -20,8 +20,8 @@ type shardedTxPool struct {
 	backingMap        map[string]*txPoolShard
 	mutexAddCallbacks sync.RWMutex
 	onAddCallbacks    []func(key []byte)
-	cacheConfig       storageUnit.CacheConfig
-	evictionConfig    txcache.EvictionConfig
+	nChunksHint       uint32
+	cacheConfig       txcache.CacheConfig
 }
 
 type txPoolShard struct {
@@ -37,8 +37,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (data
 		return nil, err
 	}
 
-	evictionConfig := txcache.EvictionConfig{
-		Enabled:                         true,
+	cacheConfig := txcache.CacheConfig{
+		EvictionEnabled:                 true,
 		NumBytesThreshold:               config.SizeInBytes,
 		CountThreshold:                  config.Size,
 		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
@@ -51,8 +51,8 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics) (data
 		backingMap:        make(map[string]*txPoolShard),
 		mutexAddCallbacks: sync.RWMutex{},
 		onAddCallbacks:    make([]func(key []byte), 0),
-		cacheConfig:       config,
-		evictionConfig:    evictionConfig,
+		cacheConfig:       cacheConfig,
+		nChunksHint:       config.Shards,
 	}
 
 	return shardedTxPool, nil
@@ -106,9 +106,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		nChunksHint := txPool.cacheConfig.Shards
-		evictionConfig := txPool.evictionConfig
-		cache := txcache.NewTxCacheWithEviction(cacheID, nChunksHint, evictionConfig)
+		cache := txcache.NewTxCacheWithEviction(cacheID, txPool.nChunksHint, txPool.cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
