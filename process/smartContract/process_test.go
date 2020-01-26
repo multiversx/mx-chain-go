@@ -320,6 +320,7 @@ func TestNewSmartContractProcessor(t *testing.T) {
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
+	assert.False(t, sc.IsInterfaceNil())
 }
 
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {

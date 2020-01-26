@@ -95,8 +95,5 @@ func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContain
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmf *vmContainerFactory) IsInterfaceNil() bool {
-	if vmf == nil {
-		return true
-	}
-	return false
+	return vmf == nil
 }

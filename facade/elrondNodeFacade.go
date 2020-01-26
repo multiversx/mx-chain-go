@@ -211,8 +211,5 @@ func (ef *ElrondNodeFacade) PprofEnabled() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
-	if ef == nil {
-		return true
-	}
-	return false
+	return ef == nil
 }

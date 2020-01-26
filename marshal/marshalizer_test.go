@@ -85,6 +85,7 @@ func TestingIntMarshaling(t *testing.T, marshalizer marshal.Marshalizer) {
 	assert.Nil(t, err)
 
 	err = marshalizer.Unmarshal(tjm2, buff)
+	assert.Nil(t, err)
 
 	assert.Equal(t, tjm, *tjm2)
 }

@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -117,6 +119,7 @@ func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, bh)
 	assert.Nil(t, err)
+	assert.False(t, bh.IsInterfaceNil())
 }
 
 //------- AccountExists
@@ -530,4 +533,95 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	assert.False(t, bytes.Equal(scAddress1, scAddress2))
 
 	fmt.Printf("%s \n%s \n", hex.EncodeToString(scAddress1), hex.EncodeToString(scAddress2))
+}
+
+func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	hdrToRet := &block.Header{Nonce: 2}
+	hashToRet := []byte("hash")
+	adrConv := mock.NewAddressConverterFake(32, "")
+	args := createMockVMAccountsArguments()
+	args.AddrConv = adrConv
+	args.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return hdrToRet
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return hashToRet
+		},
+	}
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	hash, err := bh.GetBlockhash(2)
+	assert.Nil(t, err)
+	assert.Equal(t, hashToRet, hash)
+}
+
+func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(37)
+	round := uint64(5)
+	timestamp := uint64(1234)
+	randSeed := []byte("a")
+	rootHash := []byte("b")
+	epoch := uint32(7)
+	hdrToRet := &block.Header{
+		Nonce:     nonce,
+		Round:     round,
+		TimeStamp: timestamp,
+		RandSeed:  randSeed,
+		RootHash:  rootHash,
+		Epoch:     epoch,
+	}
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	args := createMockVMAccountsArguments()
+	args.AddrConv = adrConv
+	args.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return hdrToRet
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	assert.Equal(t, nonce, bh.LastNonce())
+	assert.Equal(t, round, bh.LastRound())
+	assert.Equal(t, timestamp, bh.LastTimeStamp())
+	assert.Equal(t, epoch, bh.LastEpoch())
+	assert.Equal(t, randSeed, bh.LastRandomSeed())
+	assert.Equal(t, rootHash, bh.GetStateRootHash())
+}
+
+func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(37)
+	round := uint64(5)
+	timestamp := uint64(1234)
+	randSeed := []byte("a")
+	epoch := uint32(7)
+	hdr := &block.Header{
+		Nonce:     nonce,
+		Round:     round,
+		TimeStamp: timestamp,
+		RandSeed:  randSeed,
+		Epoch:     epoch,
+	}
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	args := createMockVMAccountsArguments()
+	args.AddrConv = adrConv
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	bh.SetCurrentHeader(hdr)
+
+	assert.Equal(t, nonce, bh.CurrentNonce())
+	assert.Equal(t, round, bh.CurrentRound())
+	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
+	assert.Equal(t, epoch, bh.CurrentEpoch())
+	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
 }

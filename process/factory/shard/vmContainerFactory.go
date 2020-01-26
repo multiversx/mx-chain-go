@@ -69,8 +69,5 @@ func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandle
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmf *vmContainerFactory) IsInterfaceNil() bool {
-	if vmf == nil {
-		return true
-	}
-	return false
+	return vmf == nil
 }

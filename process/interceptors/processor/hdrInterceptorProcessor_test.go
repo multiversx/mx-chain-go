@@ -74,6 +74,7 @@ func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(hip))
 	assert.Nil(t, err)
+	assert.False(t, hip.IsInterfaceNil())
 }
 
 //------- Validate

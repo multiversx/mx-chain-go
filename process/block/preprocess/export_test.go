@@ -28,6 +28,10 @@ func (txs *transactions) SetMissingTxs(missingTxs int) {
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
 
+func (txs *transactions) SetRcvdTxChan() {
+	txs.chRcvAllTxs <- true
+}
+
 func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	defer scr.scrForBlock.mutTxsForBlock.Unlock()

@@ -944,8 +944,5 @@ func (sc *scProcessor) processSimpleSCR(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *scProcessor) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }
