@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/require"
 )
@@ -25,41 +24,39 @@ func Test_NewShardedTxPool(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
-	goodConfig := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
-	goodEconomics := mock.NewEconomicsStubForTxPool(100000000000000)
-	goodSharding := mock.NewShardingStubForTxPool(4)
+	goodArgs := ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}, MinGasPrice: 100000000000000, NumberOfShards: 1}
 
-	pool, err := NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 1}, goodEconomics, goodSharding)
+	args := goodArgs
+	args.Config = storageUnit.CacheConfig{SizeInBytes: 1}
+	pool, err := NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, dataRetriever.ErrCacheConfigInvalidSizeInBytes, err)
 
-	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Size: 1}, goodEconomics, goodSharding)
+	args = goodArgs
+	args.Config = storageUnit.CacheConfig{SizeInBytes: 40960, Size: 1}
+	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, dataRetriever.ErrCacheConfigInvalidShards, err)
 
-	pool, err = NewShardedTxPool(storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1}, goodEconomics, goodSharding)
+	args = goodArgs
+	args.Config = storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1}
+	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSize)
 
-	pool, err = NewShardedTxPool(goodConfig, mock.NewEconomicsStubForTxPool(0), goodSharding)
+	args = goodArgs
+	args.MinGasPrice = 0
+	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
 
-	pool, err = NewShardedTxPool(goodConfig, nil, goodSharding)
-	require.Nil(t, pool)
-	require.NotNil(t, err)
-	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
-
-	pool, err = NewShardedTxPool(goodConfig, goodEconomics, mock.NewShardingStubForTxPool(0))
-	require.Nil(t, pool)
-	require.NotNil(t, err)
-	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)
-
-	pool, err = NewShardedTxPool(goodConfig, goodEconomics, nil)
+	args = goodArgs
+	args.NumberOfShards = 0
+	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)
@@ -67,10 +64,9 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{SizeInBytes: 4000000000, Size: 400000, Shards: 1}
-	economics := mock.NewEconomicsStubForTxPool(100000000000000)
-	sharding := mock.NewShardingStubForTxPool(4)
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4}
 
-	poolAsInterface, err := NewShardedTxPool(config, economics, sharding)
+	poolAsInterface, err := NewShardedTxPool(args)
 	require.Nil(t, err)
 
 	pool := poolAsInterface.(*shardedTxPool)
@@ -306,7 +302,6 @@ type thisIsNotATransaction struct {
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	config := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
-	economics := mock.NewEconomicsStubForTxPool(100000000000000)
-	sharding := mock.NewShardingStubForTxPool(4)
-	return NewShardedTxPool(config, economics, sharding)
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4}
+	return NewShardedTxPool(args)
 }

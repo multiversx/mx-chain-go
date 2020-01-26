@@ -3,13 +3,11 @@ package txpool
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -31,24 +29,23 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, sharding Sharding) (dataRetriever.ShardedDataCacherNotifier, error) {
-	err := verifyDependencies(config, economics, sharding)
+func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	numShards := sharding.NumberOfShards()
 	const oneTrilion = 1000000 * 1000000
 
 	cacheConfigPrototype := txcache.CacheConfig{
-		NumChunksHint:                   config.Shards,
+		NumChunksHint:                   args.Config.Shards,
 		EvictionEnabled:                 true,
-		NumBytesThreshold:               config.SizeInBytes / numShards,
-		CountThreshold:                  config.Size / numShards,
+		NumBytesThreshold:               args.Config.SizeInBytes / args.NumberOfShards,
+		CountThreshold:                  args.Config.Size / args.NumberOfShards,
 		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
 		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
-		MinGasPriceMicroErd:             uint32(economics.MinGasPrice() / oneTrilion),
+		MinGasPriceMicroErd:             uint32(args.MinGasPrice / oneTrilion),
 	}
 
 	shardedTxPool := &shardedTxPool{
@@ -60,32 +57,6 @@ func NewShardedTxPool(config storageUnit.CacheConfig, economics Economics, shard
 	}
 
 	return shardedTxPool, nil
-}
-
-func verifyDependencies(config storageUnit.CacheConfig, economics Economics, sharding Sharding) error {
-	if check.IfNil(economics) {
-		return dataRetriever.ErrCacheConfigInvalidEconomics
-	}
-	if check.IfNil(sharding) {
-		return dataRetriever.ErrCacheConfigInvalidSharding
-	}
-	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
-		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
-	}
-	if config.Size < 1 {
-		return dataRetriever.ErrCacheConfigInvalidSize
-	}
-	if config.Shards < 1 {
-		return dataRetriever.ErrCacheConfigInvalidShards
-	}
-	if economics.MinGasPrice() < 1 {
-		return dataRetriever.ErrCacheConfigInvalidEconomics
-	}
-	if sharding.NumberOfShards() < 1 {
-		return dataRetriever.ErrCacheConfigInvalidSharding
-	}
-
-	return nil
 }
 
 // ShardDataStore returns the requested cache, as the generic Cacher interface
