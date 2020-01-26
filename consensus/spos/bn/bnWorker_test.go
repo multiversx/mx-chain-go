@@ -247,3 +247,15 @@ func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 	ret = service.IsMessageWithBlockHeader(bn.MtBlockHeader)
 	assert.True(t, ret)
 }
+
+func TestWorker_IsSubroundSignature(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bn.NewConsensusService()
+
+	ret := service.IsSubroundSignature(bn.SrStartRound)
+	assert.False(t, ret)
+
+	ret = service.IsSubroundSignature(bn.SrSignature)
+	assert.True(t, ret)
+}

@@ -64,8 +64,5 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (imhdf *interceptedMetaHeaderDataFactory) IsInterfaceNil() bool {
-	if imhdf == nil {
-		return true
-	}
-	return false
+	return imhdf == nil
 }

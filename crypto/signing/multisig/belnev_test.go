@@ -3,6 +3,7 @@ package multisig_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -288,7 +289,7 @@ func TestNewBelNevMultisig_OK(t *testing.T) {
 	multiSig, err := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, multiSig)
+	assert.False(t, check.IfNil(multiSig))
 }
 
 func TestBelNevSigner_CreateNilPubKeysShouldErr(t *testing.T) {

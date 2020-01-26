@@ -117,8 +117,5 @@ func (hac *HashAddressConverter) AddressLen() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hac *HashAddressConverter) IsInterfaceNil() bool {
-	if hac == nil {
-		return true
-	}
-	return false
+	return hac == nil
 }

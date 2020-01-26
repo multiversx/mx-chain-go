@@ -69,8 +69,5 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ishdf *interceptedShardHeaderDataFactory) IsInterfaceNil() bool {
-	if ishdf == nil {
-		return true
-	}
-	return false
+	return ishdf == nil
 }

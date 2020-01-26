@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -48,8 +49,8 @@ func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
-	assert.NotNil(t, acc)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(acc))
 }
 
 func TestPeerAccount_AddressContainer(t *testing.T) {

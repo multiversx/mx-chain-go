@@ -3,6 +3,7 @@ package blockchain_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -24,7 +25,7 @@ func TestNewMetachainConfigOK(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, b)
+	assert.False(t, check.IfNil(b))
 }
 
 func TestMetaChain_IsBadBlock(t *testing.T) {

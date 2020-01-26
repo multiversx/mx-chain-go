@@ -365,10 +365,7 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (boot *MetaBootstrap) IsInterfaceNil() bool {
-	if boot == nil {
-		return true
-	}
-	return false
+	return boot == nil
 }
 
 func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
