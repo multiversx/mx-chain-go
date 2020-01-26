@@ -63,6 +63,7 @@ func TestNewTxTypeHandler_ValsOk(t *testing.T) {
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
+	assert.False(t, tth.IsInterfaceNil())
 }
 
 func generateRandomByteSlice(size int) []byte {
