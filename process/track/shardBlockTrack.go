@@ -75,33 +75,36 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessorObject, err := NewBlockProcessor(
-		arguments.HeaderValidator,
-		arguments.RequestHandler,
-		arguments.ShardCoordinator,
-		&sbt,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+	argBlockProcessor := ArgBlockProcessor{
+		HeaderValidator:               arguments.HeaderValidator,
+		RequestHandler:                arguments.RequestHandler,
+		ShardCoordinator:              arguments.ShardCoordinator,
+		BlockTracker:                  &sbt,
+		CrossNotarizer:                crossNotarizer,
+		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+	}
+
+	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
 
 	sbt.blockProcessor = blockProcessorObject
 
-	sbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	sbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 
 	return &sbt, nil
 }
 
-func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
-	selfHeadersInfo := make([]*headerInfo, 0)
+// GetSelfHeaders gets a slice of self headers from a given metablock
+func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
+	selfHeadersInfo := make([]*HeaderInfo, 0)
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("GetSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
 
@@ -112,20 +115,21 @@ func (sbt *shardBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*
 
 		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
-			log.Trace("getSelfHeaders.GetShardHeader", "error", err.Error())
+			log.Trace("GetSelfHeaders.GetShardHeader", "error", err.Error())
 			continue
 		}
 
-		selfHeadersInfo = append(selfHeadersInfo, &headerInfo{hash: shardInfo.HeaderHash, header: header})
+		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.HeaderHash, Header: header})
 	}
 
 	return selfHeadersInfo
 }
 
-func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.getLastNotarizedHeader(sharding.MetachainShardId)
+// ComputeLongestSelfChain computes the longest chain from self shard
+func (sbt *shardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := sbt.selfNotarizer.GetLastNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
-		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
+		log.Warn("ComputeLongestSelfChain.GetLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
 	}
 
@@ -133,7 +137,8 @@ func (sbt *shardBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byt
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-func (sbt *shardBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
+// ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of metablocks
+func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
 	lenHeaders := len(headers)
 	if lenHeaders == 0 {
 		return
@@ -141,17 +146,17 @@ func (sbt *shardBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHan
 
 	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
 	if !ok {
-		log.Debug("computeNumPendingMiniBlocks", "error", process.ErrWrongTypeAssertion)
+		log.Debug("ComputeNumPendingMiniBlocks", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
-		sbt.blockBalancer.setNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
+		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
 	}
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
 		log.Trace("pending miniblocks",
 			"shard", shardID,
-			"num", sbt.blockBalancer.getNumPendingMiniBlocks(shardID))
+			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	}
 }
