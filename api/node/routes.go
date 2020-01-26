@@ -36,14 +36,14 @@ type statisticsResponse struct {
 }
 
 type shardStatisticsResponse struct {
-	ShardID               uint32   `json:"shardID"`
 	LiveTPS               float64  `json:"liveTPS"`
 	AverageTPS            *big.Int `json:"averageTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
-	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
-	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
+	ShardID               uint32   `json:"shardID"`
+	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 }
 
 // Routes defines node related routes

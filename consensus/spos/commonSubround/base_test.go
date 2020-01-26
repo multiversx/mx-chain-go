@@ -33,7 +33,7 @@ const (
 	MtBlockHeader
 )
 
-const roundTimeDuration = time.Duration(100 * time.Millisecond)
+const roundTimeDuration = 100 * time.Millisecond
 
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{

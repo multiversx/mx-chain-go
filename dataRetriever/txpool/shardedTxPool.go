@@ -47,7 +47,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
 	}
 
-	shardedTxPool := &shardedTxPool{
+	shardedTxPoolObject := &shardedTxPool{
 		mutex:             sync.RWMutex{},
 		backingMap:        make(map[string]*txPoolShard),
 		mutexAddCallbacks: sync.RWMutex{},
@@ -56,7 +56,7 @@ func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedData
 		evictionConfig:    evictionConfig,
 	}
 
-	return shardedTxPool, nil
+	return shardedTxPoolObject, nil
 }
 
 func verifyConfig(config storageUnit.CacheConfig) error {
@@ -155,10 +155,12 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
+	var txFromCache data.TransactionHandler
+	var hashExists bool
 	for _, shard := range txPool.backingMap {
-		tx, ok := shard.Cache.GetByTxHash(txHash)
-		if ok {
-			return tx, ok
+		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
+		if hashExists {
+			return txFromCache, true
 		}
 	}
 

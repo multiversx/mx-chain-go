@@ -743,7 +743,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		if len(outAcc.StorageUpdates) > 0 {
 			//SC with data variables
-			err := sc.accounts.SaveDataTrie(acc)
+			err = sc.accounts.SaveDataTrie(acc)
 			if err != nil {
 				return err
 			}
