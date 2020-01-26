@@ -474,8 +474,6 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 
 		sp.txCoordinator.RequestMiniBlocks(orderedMetaBlocks[i])
 	}
-
-	return
 }
 
 func (sp *shardProcessor) indexBlockIfNeeded(

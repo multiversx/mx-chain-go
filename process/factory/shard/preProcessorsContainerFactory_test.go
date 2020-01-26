@@ -493,6 +493,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
+	assert.False(t, ppcm.IsInterfaceNil())
 }
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
