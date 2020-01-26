@@ -39,16 +39,12 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epoch                       uint32
+	epochMetaBlockHash          []byte
 	currentRoundIndex           int64
 	epochStartRound             uint64
-	epochMetaBlockHash          []byte
-	isEpochStart                bool
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
-
-	newEpochHdrReceived bool
 
 	mutTrigger        sync.RWMutex
 	mapHashHdr        map[string]*block.MetaBlock
@@ -66,6 +62,11 @@ type trigger struct {
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.StartOfEpochNotifier
+
+	epoch uint32
+
+	newEpochHdrReceived bool
+	isEpochStart        bool
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch

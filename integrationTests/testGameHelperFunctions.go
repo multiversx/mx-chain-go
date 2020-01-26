@@ -28,7 +28,7 @@ func ScCallTxWithParams(
 
 	fmt.Println("Deploying SC...")
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	txArgs := &txArgs{
+	txArgsObject := &txArgs{
 		nonce:    nonce,
 		value:    value,
 		rcvAddr:  make([]byte, 32),
@@ -41,7 +41,7 @@ func ScCallTxWithParams(
 	txDeploy := generateTx(
 		sk,
 		senderNode.OwnAccount.SingleSigner,
-		txArgs,
+		txArgsObject,
 	)
 
 	_, _ = senderNode.SendTransaction(txDeploy)

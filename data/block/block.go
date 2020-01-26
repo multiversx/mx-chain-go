@@ -94,27 +94,27 @@ type PeerChange struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce                  uint64            `capid:"0"`
-	PrevHash               []byte            `capid:"1"`
-	PrevRandSeed           []byte            `capid:"2"`
-	RandSeed               []byte            `capid:"3"`
-	PubKeysBitmap          []byte            `capid:"4"`
-	ShardId                uint32            `capid:"5"`
-	TimeStamp              uint64            `capid:"6"`
-	Round                  uint64            `capid:"7"`
-	Epoch                  uint32            `capid:"8"`
-	BlockBodyType          Type              `capid:"9"`
-	Signature              []byte            `capid:"10"`
-	LeaderSignature        []byte            `capid:"11"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"12"`
-	PeerChanges            []PeerChange      `capid:"13"`
-	RootHash               []byte            `capid:"14"`
-	ValidatorStatsRootHash []byte            `capid:"15"`
-	MetaBlockHashes        [][]byte          `capid:"16"`
-	EpochStartMetaHash     []byte            `capid:"17"`
-	TxCount                uint32            `capid:"18"`
-	ReceiptsHash           []byte            `capid:"19"`
-	ChainID                []byte            `capid:"20"`
+	Nonce                  uint64
+	PrevHash               []byte
+	PrevRandSeed           []byte
+	RandSeed               []byte
+	PubKeysBitmap          []byte
+	TimeStamp              uint64
+	Round                  uint64
+	Signature              []byte
+	LeaderSignature        []byte
+	RootHash               []byte
+	ValidatorStatsRootHash []byte
+	MetaBlockHashes        [][]byte
+	EpochStartMetaHash     []byte
+	ReceiptsHash           []byte
+	ChainID                []byte
+	MiniBlockHeaders       []MiniBlockHeader
+	PeerChanges            []PeerChange
+	Epoch                  uint32
+	TxCount                uint32
+	ShardId                uint32
+	BlockBodyType          Type
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -238,21 +238,21 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 }
 
 // Save saves the serialized data of a MiniBlock into a stream through Capnp protocol
-func (s *MiniBlock) Save(w io.Writer) error {
+func (mb *MiniBlock) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	MiniBlockGoToCapn(seg, s)
+	MiniBlockGoToCapn(seg, mb)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
 // Load loads the data from the stream into a MiniBlock object through Capnp protocol
-func (s *MiniBlock) Load(r io.Reader) error {
+func (mb *MiniBlock) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		return err
 	}
 	z := capnp.ReadRootMiniBlockCapn(capMsg)
-	MiniBlockCapnToGo(z, s)
+	MiniBlockCapnToGo(z, mb)
 	return nil
 }
 

@@ -90,7 +90,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		destinationAddressBytes,
 		accnts,
 		transferOnCalls,
-		string(scCode),
+		scCode,
 		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable)})
 }
 

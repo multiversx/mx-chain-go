@@ -105,8 +105,5 @@ func (tdaw *TrackableDataTrie) DataTrie() data.Trie {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tdaw *TrackableDataTrie) IsInterfaceNil() bool {
-	if tdaw == nil {
-		return true
-	}
-	return false
+	return tdaw == nil
 }

@@ -30,7 +30,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 
 	if rndm.RoundIndex != index {
 		rndm.RoundIndex = index
-		rndm.RoundTimeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(index) * rndm.RoundTimeDuration.Nanoseconds()))
+		rndm.RoundTimeStamp = genesisRoundTimeStamp.Add(time.Duration(index * rndm.RoundTimeDuration.Nanoseconds()))
 	}
 }
 

@@ -743,7 +743,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		if len(outAcc.StorageUpdates) > 0 {
 			//SC with data variables
-			err := sc.accounts.SaveDataTrie(acc)
+			err = sc.accounts.SaveDataTrie(acc)
 			if err != nil {
 				return err
 			}
@@ -944,8 +944,5 @@ func (sc *scProcessor) processSimpleSCR(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *scProcessor) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }
