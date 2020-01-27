@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -65,20 +64,13 @@ func init() {
 }
 
 type testNode struct {
-	node             *node.Node
-	mesenger         p2p.Messenger
-	shardId          uint32
-	accntState       state.AccountsAdapter
-	blkc             data.ChainHandler
-	blkProcessor     *mock.BlockProcessorMock
-	sk               crypto.PrivateKey
-	pk               crypto.PublicKey
-	dPool            dataRetriever.PoolsHolder
-	headersRecv      int32
-	mutHeaders       sync.Mutex
-	headersHashes    [][]byte
-	headers          []data.HeaderHandler
-	metachainHdrRecv int32
+	node         *node.Node
+	mesenger     p2p.Messenger
+	blkc         data.ChainHandler
+	blkProcessor *mock.BlockProcessorMock
+	sk           crypto.PrivateKey
+	pk           crypto.PublicKey
+	shardId      uint32
 }
 
 type keyPair struct {
@@ -109,7 +101,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 }
 
 func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string {
-	keysMap := make(map[uint32][]string, 0)
+	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))
@@ -491,7 +483,7 @@ func createNodes(
 	}
 
 	for i := 0; i < nodesPerShard; i++ {
-		testNode := &testNode{
+		testNodeObject := &testNode{
 			shardId: uint32(0),
 		}
 
@@ -511,7 +503,7 @@ func createNodes(
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,
 			nodesCoordinator,
-			testNode.shardId,
+			testNodeObject.shardId,
 			uint32(i),
 			serviceID,
 			uint32(consensusSize),
@@ -522,14 +514,14 @@ func createNodes(
 			consensusType,
 		)
 
-		testNode.node = n
-		testNode.node = n
-		testNode.sk = kp.sk
-		testNode.mesenger = mes
-		testNode.pk = kp.pk
-		testNode.blkProcessor = blkProcessor
-		testNode.blkc = blkc
-		nodesList[i] = testNode
+		testNodeObject.node = n
+		testNodeObject.node = n
+		testNodeObject.sk = kp.sk
+		testNodeObject.mesenger = mes
+		testNodeObject.pk = kp.pk
+		testNodeObject.blkProcessor = blkProcessor
+		testNodeObject.blkc = blkc
+		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList
 

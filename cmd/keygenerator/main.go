@@ -73,7 +73,6 @@ func backupFileIfExists(filename string) {
 	}
 	//if we reached here the file probably exists, make a timestamped backup
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
-
 }
 
 func generateFiles(ctx *cli.Context) error {
@@ -118,8 +117,8 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	consensusType := ctx.GlobalString(consensusType.Name)
-	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusType))
+	consensusTypeFlagValue := ctx.GlobalString(consensusType.Name)
+	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusTypeFlagValue))
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {

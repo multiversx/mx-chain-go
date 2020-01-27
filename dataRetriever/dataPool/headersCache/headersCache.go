@@ -39,8 +39,8 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 
 	cache.tryToDoEviction(headerShardId)
 
-	headerInfo := headerInfo{headerNonce: headerNonce, headerShardId: headerShardId}
-	added := cache.headersByHash.addElement(headerHash, headerInfo)
+	hdrInfo := headerInfo{headerNonce: headerNonce, headerShardId: headerShardId}
+	added := cache.headersByHash.addElement(headerHash, hdrInfo)
 	if added {
 		return false
 	}
@@ -51,7 +51,6 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	cache.headersCounter.increment(headerShardId)
 
 	return true
-
 }
 
 //tryToDoEviction will check if pool is full and if it is will do eviction
@@ -179,7 +178,7 @@ func (cache *headersCache) getHeaderByHash(hash []byte) (data.HeaderHandler, err
 	headers.timestamp = time.Now()
 	shard.setListOfHeaders(info.headerNonce, headers)
 
-	if header, ok := headers.findHeaderByHash(hash); ok {
+	if header, hashExists := headers.findHeaderByHash(hash); hashExists {
 		return header, nil
 	}
 
@@ -208,9 +207,9 @@ func (cache *headersCache) getHeadersAndHashesByNonceAndShardId(nonce uint64, sh
 
 	headers := make([]data.HeaderHandler, 0, len(headersList))
 	hashes := make([][]byte, 0, len(headersList))
-	for _, headerDetails := range headersList {
-		headers = append(headers, headerDetails.header)
-		hashes = append(hashes, headerDetails.headerHash)
+	for _, hdrDetails := range headersList {
+		headers = append(headers, hdrDetails.header)
+		hashes = append(hashes, hdrDetails.headerHash)
 	}
 
 	return headers, hashes, true

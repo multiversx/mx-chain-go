@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // This file holds the data structures related with the functionality of a shard block
@@ -31,17 +31,19 @@ const (
 	// TxBlock identifies a miniblock holding transactions
 	TxBlock Type = 0
 	// StateBlock identifies a miniblock holding account state
-	StateBlock Type = 1
+	StateBlock Type = 30
 	// PeerBlock identifies a miniblock holding peer assignation
-	PeerBlock Type = 2
+	PeerBlock Type = 60
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
-	SmartContractResultBlock Type = 3
-	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
-	RewardsBlock Type = 4
+	SmartContractResultBlock Type = 90
 	// InvalidBlock identifies a miniblock holding invalid transactions
-	InvalidBlock Type = 5
+	InvalidBlock Type = 120
 	// ReceiptBlock identifies a miniblock holding receipts
-	ReceiptBlock Type = 6
+	ReceiptBlock Type = 150
+	// TODO: leave rewards with highest value
+
+	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	RewardsBlock Type = 255
 )
 
 // String returns the string representation of the Type
@@ -93,27 +95,27 @@ type PeerChange struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce                  uint64            `capid:"0"`
-	PrevHash               []byte            `capid:"1"`
-	PrevRandSeed           []byte            `capid:"2"`
-	RandSeed               []byte            `capid:"3"`
-	PubKeysBitmap          []byte            `capid:"4"`
-	ShardId                uint32            `capid:"5"`
-	TimeStamp              uint64            `capid:"6"`
-	Round                  uint64            `capid:"7"`
-	Epoch                  uint32            `capid:"8"`
-	BlockBodyType          Type              `capid:"9"`
-	Signature              []byte            `capid:"10"`
-	LeaderSignature        []byte            `capid:"11"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"12"`
-	PeerChanges            []PeerChange      `capid:"13"`
-	RootHash               []byte            `capid:"14"`
-	ValidatorStatsRootHash []byte            `capid:"15"`
-	MetaBlockHashes        [][]byte          `capid:"16"`
-	EpochStartMetaHash     []byte            `capid:"17"`
-	TxCount                uint32            `capid:"18"`
-	ReceiptsHash           []byte            `capid:"19"`
-	ChainID                []byte            `capid:"20"`
+	Nonce                  uint64
+	PrevHash               []byte
+	PrevRandSeed           []byte
+	RandSeed               []byte
+	PubKeysBitmap          []byte
+	TimeStamp              uint64
+	Round                  uint64
+	Signature              []byte
+	LeaderSignature        []byte
+	RootHash               []byte
+	ValidatorStatsRootHash []byte
+	MetaBlockHashes        [][]byte
+	EpochStartMetaHash     []byte
+	ReceiptsHash           []byte
+	ChainID                []byte
+	MiniBlockHeaders       []MiniBlockHeader
+	PeerChanges            []PeerChange
+	Epoch                  uint32
+	TxCount                uint32
+	ShardId                uint32
+	BlockBodyType          Type
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -171,8 +173,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.RootHash = src.RootHash()
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 
-	var n int
-	n = src.MetaHdrHashes().Len()
+	n := src.MetaHdrHashes().Len()
 	dest.MetaBlockHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.MetaBlockHashes[i] = src.MetaHdrHashes().At(i)
@@ -237,21 +238,21 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 }
 
 // Save saves the serialized data of a MiniBlock into a stream through Capnp protocol
-func (s *MiniBlock) Save(w io.Writer) error {
+func (mb *MiniBlock) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	MiniBlockGoToCapn(seg, s)
+	MiniBlockGoToCapn(seg, mb)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
 // Load loads the data from the stream into a MiniBlock object through Capnp protocol
-func (s *MiniBlock) Load(r io.Reader) error {
+func (mb *MiniBlock) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		return err
 	}
 	z := capnp.ReadRootMiniBlockCapn(capMsg)
-	MiniBlockCapnToGo(z, s)
+	MiniBlockCapnToGo(z, mb)
 	return nil
 }
 
@@ -261,9 +262,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 		dest = &MiniBlock{}
 	}
 
-	var n int
-
-	n = src.TxHashes().Len()
+	n := src.TxHashes().Len()
 	dest.TxHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.TxHashes[i] = src.TxHashes().At(i)
@@ -535,7 +534,7 @@ func (h *Header) SetTxCount(txCount uint32) {
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
 			hashDst[string(val.Hash)] = val.SenderShardID
@@ -546,7 +545,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		hashDst[string(val.Hash)] = val.SenderShardID
 	}

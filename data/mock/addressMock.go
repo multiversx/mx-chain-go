@@ -9,7 +9,6 @@ import (
 // AddressMock implements a mock address generator used in testing
 type AddressMock struct {
 	bytes []byte
-	hash  []byte
 }
 
 var r *rand.Rand

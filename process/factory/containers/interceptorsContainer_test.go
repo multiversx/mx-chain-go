@@ -15,6 +15,7 @@ func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
 	c := containers.NewInterceptorsContainer()
 
 	assert.NotNil(t, c)
+	assert.False(t, c.IsInterfaceNil())
 }
 
 //------- Add

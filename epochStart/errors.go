@@ -11,9 +11,6 @@ var ErrNilEpochStartSettings = errors.New("nil start of epoch settings")
 // ErrInvalidSettingsForEpochStartTrigger signals that settings for start of epoch trigger are invalid
 var ErrInvalidSettingsForEpochStartTrigger = errors.New("invalid start of epoch trigger settings")
 
-// ErrNilSyncTimer signals that sync timer is nil
-var ErrNilSyncTimer = errors.New("nil sync timer")
-
 // ErrNilArgsNewShardEpochStartTrigger signals that nil arguments for shard epoch trigger has been provided
 var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard start of epoch trigger")
 
@@ -70,9 +67,6 @@ var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
 
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
-
-// ErrNilHeaderNoncesPool signals that nil header nonces pool has been provided
-var ErrNilHeaderNoncesPool = errors.New("nil header nonces pool")
 
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")

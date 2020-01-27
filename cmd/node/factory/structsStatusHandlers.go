@@ -105,12 +105,12 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	statusHandlersInfo := new(statusHandlersInfo)
-	statusHandlersInfo.StatusHandler = handler
-	statusHandlersInfo.UseTermUI = useTermui
-	statusHandlersInfo.StatusMetrics = statusMetrics
-	statusHandlersInfo.PersistentHandler = persistentHandler
-	return statusHandlersInfo, nil
+	statusHandlersInfoObject := new(statusHandlersInfo)
+	statusHandlersInfoObject.StatusHandler = handler
+	statusHandlersInfoObject.UseTermUI = useTermui
+	statusHandlersInfoObject.StatusMetrics = statusMetrics
+	statusHandlersInfoObject.PersistentHandler = persistentHandler
+	return statusHandlersInfoObject, nil
 }
 
 // UpdateStorerAndMetricsForPersistentHandler will set storer for persistent status handler

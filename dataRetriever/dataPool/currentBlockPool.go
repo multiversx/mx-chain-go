@@ -3,6 +3,7 @@ package dataPool
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
@@ -36,7 +37,7 @@ func (tmc *transactionMapCacher) GetTx(txHash []byte) (data.TransactionHandler, 
 
 	tx, ok := tmc.txsForBlock[string(txHash)]
 	if !ok {
-		return nil, dataRetriever.ErrNilValue
+		return nil, dataRetriever.ErrTxNotFoundInBlockPool
 	}
 
 	return tx, nil
@@ -44,7 +45,7 @@ func (tmc *transactionMapCacher) GetTx(txHash []byte) (data.TransactionHandler, 
 
 // AddTx writes the tx to the map
 func (tmc *transactionMapCacher) AddTx(txHash []byte, tx data.TransactionHandler) {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return
 	}
 

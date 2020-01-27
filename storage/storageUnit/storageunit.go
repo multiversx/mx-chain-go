@@ -2,7 +2,6 @@ package storageUnit
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -65,8 +64,8 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Size   uint32
 	Type   CacheType
+	Size   uint32
 	Shards uint32
 }
 
@@ -89,7 +88,6 @@ type BloomConfig struct {
 // holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
-	batcher     storage.Batcher
 	persister   storage.Persister
 	cacher      storage.Cacher
 	bloomFilter storage.BloomFilter
@@ -116,8 +114,8 @@ func (u *Unit) Put(key, data []byte) error {
 }
 
 // Close will close unit
-func (s *Unit) Close() error {
-	err := s.persister.Close()
+func (u *Unit) Close() error {
+	err := u.persister.Close()
 	if err != nil {
 		log.Error("cannot close storage unit persister", err)
 		return err
@@ -150,7 +148,7 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 			// if found in persistence unit, add it in cache
 			u.cacher.Put(key, v)
 		} else {
-			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
 	}
 
@@ -311,42 +309,6 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	return NewStorageUnitWithBloomFilter(cache, db, bf)
 }
 
-// NewShardedStorageUnitFromConf creates a new sharded storage unit from a storage unit config
-func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig, shardId uint32) (*Unit, error) {
-	var cache storage.Cacher
-	var db storage.Persister
-	var bf storage.BloomFilter
-	var err error
-
-	defer func() {
-		if err != nil && db != nil {
-			_ = db.Destroy()
-		}
-	}()
-
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
-	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	if reflect.DeepEqual(bloomFilterConf, BloomConfig{}) {
-		return NewStorageUnit(cache, db)
-	}
-
-	bf, err = NewBloomFilter(bloomFilterConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewStorageUnitWithBloomFilter(cache, db, bf)
-}
-
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
 func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, error) {
@@ -405,7 +367,8 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 	var hashers []hashing.Hasher
 
 	for _, hashString := range conf.HashFunc {
-		hasher, err := hashString.NewHasher()
+		var hasher hashing.Hasher
+		hasher, err = hashString.NewHasher()
 		if err == nil {
 			hashers = append(hashers, hasher)
 		} else {

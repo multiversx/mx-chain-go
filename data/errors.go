@@ -4,12 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNilHeadersDataPool signals that a nil header pool has been provided
-var ErrNilHeadersDataPool = errors.New("nil headers data pool")
-
-// ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
-var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
-
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
@@ -24,9 +18,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrMiniBlockEmpty signals that mini block is empty
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
-
-// ErrWrongTypeAssertion signals that wrong type was provided
-var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrNilElrondAddress signals that nil elrond address was provided
 var ErrNilElrondAddress = errors.New("nil elrond address")
