@@ -294,6 +294,7 @@ type ForkDetector interface {
 	SetRollBackNonce(nonce uint64)
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
+	ResetProbableHighestNonce()
 	IsInterfaceNil() bool
 }
 
@@ -377,7 +378,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler)
-	Revert()
+	Revert(round uint64)
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
@@ -397,6 +398,8 @@ type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
+	GetNumPendingMiniBlocks(shardID uint32) uint32
+	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
 	IsInterfaceNil() bool
 }
 
@@ -429,6 +432,7 @@ type DataPacker interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
+	SetEpoch(epoch uint32)
 	RequestShardHeader(shardId uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
@@ -437,7 +441,7 @@ type RequestHandler interface {
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
-	RequestTrieNodes(shardId uint32, hash []byte)
+	RequestTrieNodes(shardId uint32, hash []byte, topic string)
 	IsInterfaceNil() bool
 }
 
@@ -627,5 +631,12 @@ type BlockTracker interface {
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
+	IsInterfaceNil() bool
+}
+
+// EpochStartDataCreator defines the functionality for node to create epoch start data
+type EpochStartDataCreator interface {
+	CreateEpochStartData() (*block.EpochStart, error)
+	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }

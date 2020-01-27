@@ -15,6 +15,7 @@ import (
 type resolverRequestHandler struct {
 	resolversFinder       dataRetriever.ResolversFinder
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	epoch                 uint32
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
@@ -43,6 +44,7 @@ func NewShardResolverRequestHandler(
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
 		requestedItemsHandler: requestedItemsHandler,
+		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
@@ -72,11 +74,17 @@ func NewMetaResolverRequestHandler(
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
 		requestedItemsHandler: requestedItemsHandler,
+		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               core.MetachainShardId,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
 
 	return rrh, nil
+}
+
+// SetEpoch will update the current epoch so the request handler will make requests for this received epoch
+func (rrh *resolverRequestHandler) SetEpoch(epoch uint32) {
+	rrh.epoch = epoch
 }
 
 // RequestTransaction method asks for transactions from the connected peers
@@ -108,14 +116,15 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
-		sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+		var sliceBatches [][][]byte
+		sliceBatches, err = dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 		if err != nil {
 			log.Debug("requesting transactions", "error", err.Error())
 			return
 		}
 
 		for _, batch := range sliceBatches {
-			err = txResolver.RequestDataFromHashArray(batch)
+			err = txResolver.RequestDataFromHashArray(batch, rrh.epoch)
 			if err != nil {
 				log.Debug("requesting tx batch", "error", err.Error())
 			}
@@ -154,7 +163,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	err = resolver.RequestDataFromHash(miniblockHash)
+	err = resolver.RequestDataFromHash(miniblockHash, rrh.epoch)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -177,7 +186,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardId uint32, hash []byt
 		return
 	}
 
-	err = headerResolver.RequestDataFromHash(hash)
+	err = headerResolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestShardHeader", "error", err.Error())
 		return
@@ -200,7 +209,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	err = resolver.RequestDataFromHash(hash)
+	err = resolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeader, RequestDataFromHash", "error", err.Error())
 		return
@@ -224,7 +233,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 		return
 	}
 
-	err = headerResolver.RequestDataFromNonce(nonce)
+	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestShardHeaderByNonce", "error", err.Error())
 		return
@@ -234,8 +243,8 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardId uint32, non
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
-func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte) {
-	rrh.requestByHash(shardId, hash, factory.TrieNodesTopic)
+func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte, topic string) {
+	rrh.requestByHash(shardId, hash, topic)
 }
 
 func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
@@ -255,7 +264,8 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 		return
 	}
 
-	err = resolver.RequestDataFromHash(hash)
+	// epoch doesn't matter because that parameter is not used in trie's resolver
+	err = resolver.RequestDataFromHash(hash, 0)
 	if err != nil {
 		log.Debug(err.Error())
 	}
@@ -276,7 +286,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	err = headerResolver.RequestDataFromNonce(nonce)
+	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeaderByNonce", "error", err.Error())
 		return

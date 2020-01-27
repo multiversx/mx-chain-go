@@ -67,6 +67,10 @@ const NonceDifferenceWhenSynced = 0
 // before a special action to be applied
 const MaxRequestsWithTimeoutAllowed = 5
 
+// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
+// before a special action to be applied
+const MaxSyncWithErrorsAllowed = 10
+
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance,
 // if they are missing
 const MaxHeadersToRequestInAdvance = 10
@@ -102,3 +106,6 @@ const TxPoolALotOfTransactionsForASender = uint32(500)
 // TxPoolNumTxsToEvictForASenderWithALot instructs tx pool eviction algorithm to remove this many transactions
 // for "a sender with a lot of transactions" when eviction takes place
 const TxPoolNumTxsToEvictForASenderWithALot = uint32(100)
+
+// MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
+const MaxNumPendingMiniBlocks = 100

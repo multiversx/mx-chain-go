@@ -69,6 +69,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
 	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
+	dataPool                     dataRetriever.PoolsHolder
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -808,8 +809,8 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		LastHeader:                 args.headerInfo,
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
+		PendingMiniBlocks:          args.pendingMiniBlocks,
 		HighestFinalBlockNonce:     args.highestFinalBlockNonce,
-		ProcessedMiniBlocks:        args.processedMiniBlocks,
 		NodesCoordinatorConfigKey:  args.nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}

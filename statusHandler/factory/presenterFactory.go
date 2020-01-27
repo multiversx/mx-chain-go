@@ -10,9 +10,9 @@ type presenterFactory struct {
 
 // NewPresenterFactory is responsible for creating a new presenter factory object
 func NewPresenterFactory() *presenterFactory {
-	presenterFactory := presenterFactory{}
+	presenterFactoryObject := presenterFactory{}
 
-	return &presenterFactory
+	return &presenterFactoryObject
 }
 
 // Create returns an presenter object that will hold presenter in the system

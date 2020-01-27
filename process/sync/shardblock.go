@@ -45,6 +45,7 @@ func NewShardBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
+	epochHandler dataRetriever.EpochHandler,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*ShardBootstrap, error) {
 
@@ -94,6 +95,7 @@ func NewShardBootstrap(
 		networkWatcher:        networkWatcher,
 		bootStorer:            bootStorer,
 		storageBootstrapper:   storageBootstrapper,
+		epochHandler:          epochHandler,
 		requestedItemsHandler: requestedItemsHandler,
 		miniBlocks:            poolsHolder.MiniBlocks(),
 	}
@@ -214,7 +216,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	err := boot.hdrRes.RequestDataFromNonce(nonce)
+	err := boot.hdrRes.RequestDataFromNonce(nonce, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
 		return
@@ -239,7 +241,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	err := boot.hdrRes.RequestDataFromHash(hash)
+	err := boot.hdrRes.RequestDataFromHash(hash, boot.epochHandler.Epoch())
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
 		return
@@ -386,7 +388,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
+		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes, boot.epochHandler.Epoch())
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return

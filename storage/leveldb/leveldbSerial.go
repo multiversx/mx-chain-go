@@ -164,7 +164,7 @@ func (s *SerialDB) Init() error {
 // putBatch writes the Batch data into the database
 func (s *SerialDB) putBatch() error {
 	s.mutBatch.Lock()
-	batch, ok := s.batch.(*batch)
+	dbBatch, ok := s.batch.(*batch)
 	if !ok {
 		s.mutBatch.Unlock()
 		return storage.ErrInvalidBatch
@@ -175,7 +175,7 @@ func (s *SerialDB) putBatch() error {
 
 	ch := make(chan error)
 	req := &putBatchAct{
-		batch:   batch,
+		batch:   dbBatch,
 		resChan: ch,
 	}
 

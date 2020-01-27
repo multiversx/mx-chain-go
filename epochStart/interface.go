@@ -21,7 +21,7 @@ type TriggerHandler interface {
 	SetProcessed(header data.HeaderHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
-	Revert()
+	Revert(round uint64)
 	SetCurrentEpochStartRound(round uint64)
 	IsInterfaceNil() bool
 }
@@ -31,6 +31,8 @@ type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
+	GetNumPendingMiniBlocksForShard(shardID uint32) uint32
+	SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32)
 	IsInterfaceNil() bool
 }
 

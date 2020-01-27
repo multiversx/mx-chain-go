@@ -83,8 +83,10 @@ type SubroundsFactory interface {
 
 //WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
-	//AddReceivedMessageCall adds a new handler function for a received messege type
+	//AddReceivedMessageCall adds a new handler function for a received message type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	//AddReceivedHeaderHandler adds a new handler function for a received header
+	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
 	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
@@ -95,6 +97,10 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
+	//DisplayStatistics method displays statistics of worker at the end of the round
+	DisplayStatistics()
+	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

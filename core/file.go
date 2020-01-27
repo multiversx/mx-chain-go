@@ -161,6 +161,10 @@ func LoadSkFromPemFile(relativePath string, skIndex int) ([]byte, error) {
 		}
 	}
 
+	if blkRecovered == nil {
+		return nil, ErrNilPemBLock
+	}
+
 	return blkRecovered.Bytes, nil
 }
 

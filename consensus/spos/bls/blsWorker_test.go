@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(100 * time.Millisecond)
+const roundTimeDuration = 100 * time.Millisecond
 
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
@@ -78,15 +78,16 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var v []consensus.MessageType
+	v := make([]consensus.MessageType, 0)
 	blsService, _ := bls.NewConsensusService()
 
 	messagesRange := blsService.GetMessageRange()
+	assert.NotNil(t, messagesRange)
+
 	for i := bls.MtBlockBody; i <= bls.MtSignature; i++ {
 		v = append(v, i)
 	}
-
-	assert.NotNil(t, messagesRange)
+	assert.NotNil(t, v)
 
 	for i, val := range messagesRange {
 		assert.Equal(t, v[i], val)

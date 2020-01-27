@@ -58,7 +58,6 @@ func (blProcMock *BlockProcessorMock) CreateNewHeader(_ uint64) data.HeaderHandl
 	return blProcMock.CreateNewHeaderCalled()
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(initialHdrData, haveTime)
 }

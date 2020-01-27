@@ -37,7 +37,7 @@ func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
 	return nil
 }
 
-func (e *EpochStartTriggerStub) Revert() {
+func (e *EpochStartTriggerStub) Revert(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) EpochStartRound() uint64 {

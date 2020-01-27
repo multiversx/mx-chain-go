@@ -17,8 +17,8 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
-// ArgsStorageBootstrapper is structure used to create a new storage bootstrapper
-type ArgsStorageBootstrapper struct {
+// ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
+type ArgsBaseStorageBootstrapper struct {
 	BootStorer          process.BootStorer
 	ForkDetector        process.ForkDetector
 	BlockProcessor      process.BlockProcessor
@@ -32,6 +32,17 @@ type ArgsStorageBootstrapper struct {
 	EpochStartTrigger   process.EpochStartTriggerHandler
 	ResolversFinder     dataRetriever.ResolversFinder
 	BlockTracker        process.BlockTracker
+}
+
+// ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
+type ArgsShardStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+}
+
+// ArgsMetaStorageBootstrapper is structure used to create a new storage bootstrapper for metachain
+type ArgsMetaStorageBootstrapper struct {
+	ArgsBaseStorageBootstrapper
+	PendingMiniBlocks process.PendingMiniBlocksHandler
 }
 
 type storageBootstrapper struct {
@@ -86,7 +97,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 			continue
 		}
 
-		bootInfos, err := st.getBootInfos(headerInfo)
+		var bootInfos []bootstrapStorage.BootstrapData
+		bootInfos, err = st.getBootInfos(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -109,6 +121,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
+
+	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
 	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
 	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
@@ -219,13 +233,15 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
 		}
 
-		selfNotarizedHeaders, err := st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
+		var selfNotarizedHeaders []data.HeaderHandler
+		selfNotarizedHeaders, err = st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
 		if err != nil {
 			log.Debug("cannot apply self notarized headers", "error", err.Error())
 			return err
 		}
 
-		header, err := st.bootstrapper.getHeader(bootInfos[i].LastHeader.Hash)
+		var header data.HeaderHandler
+		header, err = st.bootstrapper.getHeader(bootInfos[i].LastHeader.Hash)
 		if err != nil {
 			return err
 		}

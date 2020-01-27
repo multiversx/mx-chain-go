@@ -52,3 +52,8 @@ func (dth *dataTriesHolder) Reset() {
 	dth.tries = make(map[string]data.Trie)
 	dth.mutex.Unlock()
 }
+
+// IsInterfaceNil returns true if underlying struct is nil
+func (dth *dataTriesHolder) IsInterfaceNil() bool {
+	return dth == nil
+}

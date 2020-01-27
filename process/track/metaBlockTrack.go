@@ -45,6 +45,11 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
+	blockBalancer, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                        arguments.Hasher,
 		headerValidator:               arguments.HeaderValidator,
@@ -57,6 +62,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancer,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
@@ -68,7 +74,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
+	blockProcessorObject, err := NewBlockProcessor(
 		arguments.HeaderValidator,
 		arguments.RequestHandler,
 		arguments.ShardCoordinator,
@@ -81,7 +87,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
-	mbt.blockProcessor = blockProcessor
+	mbt.blockProcessor = blockProcessorObject
 
 	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
@@ -120,4 +126,7 @@ func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte
 
 	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
+}
+
+func (mbt *metaBlockTrack) computeNumPendingMiniBlocks(headers []data.HeaderHandler) {
 }

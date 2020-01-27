@@ -126,7 +126,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {

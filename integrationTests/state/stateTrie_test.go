@@ -23,6 +23,7 @@ import (
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1516,7 +1517,7 @@ func collectSnapshotAndCheckpointHashes(
 			continue
 		}
 
-		checkpointRound := currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0
+		checkpointRound := currentBlockHeader.GetRound()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
@@ -1534,23 +1535,24 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	prunedRootHashes [][]byte,
 ) {
 
+	stateTrie := node.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	assert.Equal(t, 3, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
-		tr, err := node.StateTrie.Recreate(checkpointsRootHashes[i])
+		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
 		assert.Nil(t, err)
 		assert.NotNil(t, tr)
 	}
 
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
-		tr, err := node.StateTrie.Recreate(snapshotsRootHashes[i])
+		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
 		assert.Nil(t, err)
 		assert.NotNil(t, tr)
 	}
 
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
-		tr, err := node.StateTrie.Recreate(prunedRootHashes[i])
+		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}

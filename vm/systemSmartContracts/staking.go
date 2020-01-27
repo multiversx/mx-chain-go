@@ -15,6 +15,7 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 const ownerKey = "owner"
 const initialStakeKey = "initialStake"
 
+// StakingData represents a data transfer object for details about staking
 type StakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
 	Staked        bool     `json:"Staked"`
@@ -173,8 +174,8 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	if !bytes.Equal(args.CallerAddr, registrationData.Address) {
 		log.Debug("unStake possible only from staker",
-				"caller", args.CallerAddr,
-				"staker", registrationData.Address,
+			"caller", args.CallerAddr,
+			"staker", registrationData.Address,
 		)
 		return vmcommon.UserError
 	}

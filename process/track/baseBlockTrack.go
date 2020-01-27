@@ -39,6 +39,7 @@ type baseBlockTrack struct {
 	selfNotarizer                 blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+	blockBalancer                 blockBalancerHandler
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32]map[uint64][]*headerInfo
@@ -106,8 +107,8 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 		bbt.headers[shardID] = headersForShard
 	}
 
-	for _, headerInfo := range headersForShard[nonce] {
-		if bytes.Equal(headerInfo.hash, hash) {
+	for _, hdrInfo := range headersForShard[nonce] {
+		if bytes.Equal(hdrInfo.hash, hash) {
 			return
 		}
 	}
@@ -342,9 +343,9 @@ func (bbt *baseBlockTrack) sortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
-	for _, headerInfo := range sortedHeadersInfo {
-		headers = append(headers, headerInfo.header)
-		headersHashes = append(headersHashes, headerInfo.hash)
+	for _, hdrInfo := range sortedHeadersInfo {
+		headers = append(headers, hdrInfo.header)
+		headersHashes = append(headersHashes, hdrInfo.hash)
 	}
 
 	return headers, headersHashes
@@ -368,47 +369,19 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
-	for _, headerInfo := range headersForShardWithNonce {
-		headers = append(headers, headerInfo.header)
-		headersHashes = append(headersHashes, headerInfo.hash)
+	for _, hdrInfo := range headersForShardWithNonce {
+		headers = append(headers, hdrInfo.header)
+		headersHashes = append(headersHashes, hdrInfo.hash)
 	}
 
 	return headers, headersHashes
 }
 
 // IsShardStuck returns true if the given shard is stuck
-func (bbt *baseBlockTrack) IsShardStuck(shardId uint32) bool {
-	header := bbt.getLastHeader(shardId)
-	if check.IfNil(header) {
-		return false
-	}
-
-	isShardStuck := bbt.rounder.Index()-int64(header.GetRound()) >= process.MaxRoundsWithoutCommittedBlock
+func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
+	numPendingMiniBlocks := bbt.blockBalancer.getNumPendingMiniBlocks(shardID)
+	isShardStuck := numPendingMiniBlocks >= process.MaxNumPendingMiniBlocks
 	return isShardStuck
-}
-
-func (bbt *baseBlockTrack) getLastHeader(shardID uint32) data.HeaderHandler {
-	bbt.mutHeaders.RLock()
-	defer bbt.mutHeaders.RUnlock()
-
-	var lastHeaderForShard data.HeaderHandler
-
-	headersForShard, ok := bbt.headers[shardID]
-	if !ok {
-		return lastHeaderForShard
-	}
-
-	maxRound := uint64(0)
-	for _, headersInfo := range headersForShard {
-		for _, headerInfo := range headersInfo {
-			if headerInfo.header.GetRound() > maxRound {
-				maxRound = headerInfo.header.GetRound()
-				lastHeaderForShard = headerInfo.header
-			}
-		}
-	}
-
-	return lastHeaderForShard
 }
 
 // RegisterCrossNotarizedHeadersHandler registers a new handler to be called when cross notarized header is changed
@@ -481,7 +454,13 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 		return err
 	}
 
-	err = bbt.selfNotarizer.initNotarizedHeaders(startHeaders)
+	selfStartHeader := startHeaders[bbt.shardCoordinator.SelfId()]
+	selfStartHeaders := make(map[uint32]data.HeaderHandler)
+	for shardID := range startHeaders {
+		selfStartHeaders[shardID] = selfStartHeader
+	}
+
+	err = bbt.selfNotarizer.initNotarizedHeaders(selfStartHeaders)
 	if err != nil {
 		return err
 	}

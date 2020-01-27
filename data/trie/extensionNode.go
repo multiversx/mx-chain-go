@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -54,10 +55,10 @@ func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *ex
 }
 
 func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*extensionNode, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -250,7 +251,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(pos byte, db data.DBWriteCacher) error {
+func (en *extensionNode) resolveCollapsed(_ byte, db data.DBWriteCacher) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -268,7 +269,7 @@ func (en *extensionNode) isCollapsed() bool {
 	return en.child == nil && len(en.EncodedChild) != 0
 }
 
-func (en *extensionNode) isPosCollapsed(pos int) bool {
+func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 

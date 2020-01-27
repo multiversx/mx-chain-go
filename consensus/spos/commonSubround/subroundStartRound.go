@@ -102,7 +102,7 @@ func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 
@@ -156,20 +156,13 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("canceled round, not in the consensus group",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
-			"round", sr.Rounder().Index(),
-			"subround", sr.getSubroundName(sr.Current()))
-
-		sr.RoundCanceled = true
-
+		log.Debug("not in consensus group",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
-
-		return false
+	} else {
+		sr.appStatusHandler.Increment(core.MetricCountConsensus)
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 	}
-
-	sr.appStatusHandler.Increment(core.MetricCountConsensus)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
@@ -180,8 +173,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",

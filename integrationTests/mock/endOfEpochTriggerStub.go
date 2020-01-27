@@ -47,7 +47,7 @@ func (e *EpochStartTriggerStub) GetRoundsPerEpoch() uint64 {
 func (e *EpochStartTriggerStub) SetTrigger(_ epochStart.TriggerHandler) {
 }
 
-func (e *EpochStartTriggerStub) Revert() {
+func (e *EpochStartTriggerStub) Revert(_ uint64) {
 }
 
 func (e *EpochStartTriggerStub) EpochStartRound() uint64 {

@@ -273,7 +273,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
 	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
 			return txReturnedAsBuffer, nil
@@ -320,7 +320,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 	errExpected := errors.New("expected error")
 
 	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
 		}
@@ -428,7 +428,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.DataPackerStub{},
 	)
 
-	assert.Nil(t, txRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, txRes.RequestDataFromHash(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: buffRequested,
@@ -462,7 +462,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 
 	buff, _ := marshalizer.Marshal(buffRequested)
 
-	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested))
+	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashArrayType,
 		Value: buff,

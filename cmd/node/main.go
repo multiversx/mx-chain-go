@@ -386,8 +386,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-	logLevel := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevel)
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err := logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 	}
-	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -548,8 +548,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Debug("no epoch db found in storage", "error", err.Error())
 	}
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
 			defaultDBPath)
@@ -878,11 +878,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	err = coreComponents.Trie.ClosePersister()
-	log.LogIfError(err)
-
-	err = stateComponents.PeerAccounts.ClosePersister()
-	log.LogIfError(err)
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
 
 	if rm != nil {
 		err = rm.Close()
@@ -1023,14 +1023,14 @@ func createNodesCoordinator(
 	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
-	eligibleValidators, err := nodesInfoToValidators(eligibleNodesInfo)
-	if err != nil {
-		return nil, err
+	eligibleValidators, errEligibleValidators := nodesInfoToValidators(eligibleNodesInfo)
+	if errEligibleValidators != nil {
+		return nil, errEligibleValidators
 	}
 
-	waitingValidators, err := nodesInfoToValidators(waitingNodesInfo)
-	if err != nil {
-		return nil, err
+	waitingValidators, errWaitingValidators := nodesInfoToValidators(waitingNodesInfo)
+	if errWaitingValidators != nil {
+		return nil, errWaitingValidators
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
@@ -1234,11 +1234,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1248,7 +1250,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
