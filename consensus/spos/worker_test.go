@@ -2,6 +2,7 @@ package spos_test
 
 import (
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -892,6 +893,60 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	assert.True(t, errors.Is(err, spos.ErrSenderNotOk))
 }
 
+func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
+		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+			return &block.Header{
+				ChainID: chainID,
+			}
+		},
+		RevertAccountStateCalled: func() {
+		},
+	})
+	roundDuration := time.Millisecond * 1000
+	delay := time.Millisecond * 430
+	roundStartTimeStamp := time.Now()
+	wrk.SetRounder(&mock.RounderMock{
+		RoundIndex: 0,
+		TimeDurationCalled: func() time.Duration {
+			return roundDuration
+		},
+		TimeStampCalled: func() time.Time {
+			return roundStartTimeStamp
+		},
+	})
+	blk := make(block.Body, 0)
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		message,
+		nil,
+		[]byte("A"),
+		[]byte("sig"),
+		int(bn.MtBlockHeader),
+		0,
+		chainID,
+	)
+	receivedValue := uint64(0)
+	_ = wrk.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			receivedValue = value
+		},
+	})
+
+	time.Sleep(delay)
+
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+
+	minimumExpectedValue := uint64(delay * 100 / roundDuration)
+	assert.True(t,
+		receivedValue >= minimumExpectedValue,
+		fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
+	)
+}
+
 func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1617,4 +1672,24 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
+}
+
+func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	wrk := spos.Worker{}
+	err := wrk.SetAppStatusHandler(nil)
+
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestWorker_SetAppStatusHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wrk := spos.Worker{}
+	handler := &mock.AppStatusHandlerStub{}
+	err := wrk.SetAppStatusHandler(handler)
+
+	assert.Nil(t, err)
+	assert.True(t, handler == wrk.AppStatusHandler())
 }
