@@ -6,10 +6,10 @@ import (
 
 // Receipt holds all the data needed for a transaction receipt
 type Receipt struct {
-	Value   *big.Int
-	SndAddr []byte
-	Data    []byte
-	TxHash  []byte
+	Value   *big.Int `json:"value"`
+	SndAddr []byte   `json:"sender"`
+	Data    []byte   `json:"data,omitempty"`
+	TxHash  []byte   `json:"txHash"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil

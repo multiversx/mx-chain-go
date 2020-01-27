@@ -6,15 +6,15 @@ import (
 
 // SmartContractResult holds all the data needed for results coming from smart contract processing
 type SmartContractResult struct {
-	Nonce    uint64
-	Value    *big.Int
-	RcvAddr  []byte
-	SndAddr  []byte
-	Code     []byte
-	Data     []byte
-	TxHash   []byte
-	GasLimit uint64
-	GasPrice uint64
+	Nonce    uint64   `json:"nonce"`
+	Value    *big.Int `json:"value"`
+	RcvAddr  []byte   `json:"receiver"`
+	SndAddr  []byte   `json:"sender"`
+	Code     []byte   `json:"code,omitempty"`
+	Data     []byte   `json:"data,omitempty"`
+	TxHash   []byte   `json:"txHash"`
+	GasLimit uint64   `json:"gasLimit"`
+	GasPrice uint64   `json:"gasPrice"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil

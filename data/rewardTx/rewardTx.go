@@ -6,11 +6,11 @@ import (
 
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
-	Round   uint64
-	Value   *big.Int
-	RcvAddr []byte
-	ShardId uint32
-	Epoch   uint32
+	Round   uint64   `json:"round"`
+	Value   *big.Int `json:"value"`
+	RcvAddr []byte   `json:"receiver"`
+	ShardId uint32   `json:"shardId"`
+	Epoch   uint32   `json:"epoch"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil

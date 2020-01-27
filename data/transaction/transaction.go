@@ -9,14 +9,14 @@ import (
 
 // Transaction holds all the data needed for a value transfer or SC call
 type Transaction struct {
-	Nonce     uint64
-	Value     *big.Int
-	RcvAddr   []byte
-	SndAddr   []byte
-	GasPrice  uint64
-	GasLimit  uint64
-	Data      []byte
-	Signature []byte
+	Nonce     uint64   `json:"nonce"`
+	Value     *big.Int `json:"value"`
+	RcvAddr   []byte   `json:"receiver"`
+	SndAddr   []byte   `json:"sender"`
+	GasPrice  uint64   `json:"gasPrice,omitempty"`
+	GasLimit  uint64   `json:"gasLimit,omitempty"`
+	Data      []byte   `json:"data,omitempty"`
+	Signature []byte   `json:"signature,omitempty"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil
