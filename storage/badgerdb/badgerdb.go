@@ -117,12 +117,12 @@ func (s *DB) createBatch() storage.Batcher {
 
 // putBatch writes the Batch data into the database
 func (s *DB) putBatch(b storage.Batcher) error {
-	batch, ok := b.(*batch)
+	dbBatch, ok := b.(*batch)
 	if !ok {
 		return storage.ErrInvalidBatch
 	}
 
-	return batch.batch.Commit()
+	return dbBatch.batch.Commit()
 }
 
 // Get returns the value associated to the key
@@ -215,8 +215,5 @@ func (s *DB) DestroyClosed() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

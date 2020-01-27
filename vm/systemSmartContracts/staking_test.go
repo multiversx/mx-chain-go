@@ -16,13 +16,13 @@ import (
 func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 	return &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala1"),
+			CallerAddr:  []byte("cllraddr"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
 		},
-		RecipientAddr: []byte("tralala2"),
+		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
 	}
 }

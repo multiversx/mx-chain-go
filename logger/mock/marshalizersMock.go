@@ -53,7 +53,7 @@ type JsonMarshalizer struct{}
 
 func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
-		return nil, errors.New("NIL object to serilize from!")
+		return nil, errors.New("nil object to serialize from")
 	}
 
 	return json.Marshal(obj)
@@ -61,7 +61,7 @@ func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 
 func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
-		return errors.New("nil object to serilize to")
+		return errors.New("nil object to serialize to")
 	}
 	if buff == nil {
 		return errors.New("nil byte buffer to deserialize from")

@@ -27,7 +27,6 @@ func logError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	return
 }
 
 func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storageUnit.Unit {
@@ -785,7 +784,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)
@@ -805,7 +804,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)
@@ -825,7 +824,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)

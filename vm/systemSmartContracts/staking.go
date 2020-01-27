@@ -15,6 +15,7 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 const ownerKey = "owner"
 const initialStakeKey = "initialStake"
 
+// StakingData represents a data transfer object for details about staking
 type StakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
 	Staked        bool     `json:"Staked"`

@@ -23,7 +23,7 @@ func NewSystemVM(
 	if systemContracts == nil || systemContracts.IsInterfaceNil() {
 		return nil, vm.ErrNilSystemContractsContainer
 	}
-	if vmType == nil || len(vmType) == 0 {
+	if len(vmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
 

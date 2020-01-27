@@ -40,7 +40,7 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(int64(index) * rnd.timeDuration.Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(index * rnd.timeDuration.Nanoseconds()))
 	}
 }
 
@@ -71,8 +71,5 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rnd *round) IsInterfaceNil() bool {
-	if rnd == nil {
-		return true
-	}
-	return false
+	return rnd == nil
 }

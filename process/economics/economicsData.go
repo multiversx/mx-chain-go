@@ -249,10 +249,7 @@ func (ed *EconomicsData) UnBoundPeriod() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
-	if ed == nil {
-		return true
-	}
-	return false
+	return ed == nil
 }
 
 // RatingsData will return the ratingsDataObject

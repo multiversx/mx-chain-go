@@ -50,14 +50,14 @@ func main() {
 	for i := 0; i < 99; i++ {
 		argPeer := arg
 		argPeer.InitialPeersList = []string{getConnectableAddress(advertiser)}
-		peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(argPeer)
+		peerDiscoverer, _ := discovery.NewKadDhtPeerDiscoverer(argPeer)
 		netPeer, _ := libp2p.NewNetworkMessenger(
 			context.Background(),
 			startingPort,
 			genPrivKey(),
 			nil,
 			loadBalancer.NewOutgoingChannelLoadBalancer(),
-			peerDiscovery,
+			peerDiscoverer,
 			libp2p.ListenLocalhostAddrWithIp4AndTcp,
 			0,
 		)

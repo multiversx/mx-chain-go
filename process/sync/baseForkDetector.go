@@ -265,7 +265,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	defer bfd.mutHeaders.Unlock()
 
 	hdrInfos := bfd.headers[hdrInfo.nonce]
-	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
+	isHdrInfosNilOrEmpty := len(hdrInfos) == 0 // no need for nil check, len() for nil returns 0
 	if isHdrInfosNilOrEmpty {
 		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
 		return true
@@ -298,13 +298,21 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
-	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
-	probableHighestNonce := bfd.computeProbableHighestNonce()
-	bfd.setProbableHighestNonce(probableHighestNonce)
+	bfd.ResetProbableHighestNonce()
 	bfd.setLastRoundWithForcedFork(bfd.rounder.Index())
 
 	log.Debug("forkDetector.ResetFork",
-		"probable highest nonce", probableHighestNonce)
+		"last round with forced fork", bfd.lastRoundWithForcedFork())
+}
+
+// ResetProbableHighestNonce resets the probable highest nonce to the last checkpoint nonce / highest notarized nonce
+func (bfd *baseForkDetector) ResetProbableHighestNonce() {
+	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.ResetProbableHighestNonce",
+		"probable highest nonce", bfd.probableHighestNonce())
 }
 
 func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {
@@ -404,19 +412,19 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		forkHeaderEpoch uint32
 	)
 
-	forkInfo := process.NewForkInfo()
+	forkInfoObject := process.NewForkInfo()
 
 	if bfd.isConsensusStuck() {
-		forkInfo.IsDetected = true
-		return forkInfo
+		forkInfoObject.IsDetected = true
+		return forkInfoObject
 	}
 
 	rollBackNonce := bfd.getRollBackNonce()
 	if rollBackNonce < math.MaxUint64 {
-		forkInfo.IsDetected = true
-		forkInfo.Nonce = rollBackNonce
+		forkInfoObject.IsDetected = true
+		forkInfoObject.Nonce = rollBackNonce
 		bfd.SetRollBackNonce(math.MaxUint64)
-		return forkInfo
+		return forkInfoObject
 	}
 
 	bfd.mutHeaders.Lock()
@@ -450,17 +458,17 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		}
 
 		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound, forkHeaderEpoch) {
-			forkInfo.IsDetected = true
-			if nonce < forkInfo.Nonce {
-				forkInfo.Nonce = nonce
-				forkInfo.Round = forkHeaderRound
-				forkInfo.Hash = forkHeaderHash
+			forkInfoObject.IsDetected = true
+			if nonce < forkInfoObject.Nonce {
+				forkInfoObject.Nonce = nonce
+				forkInfoObject.Round = forkHeaderRound
+				forkInfoObject.Hash = forkHeaderHash
 			}
 		}
 	}
 	bfd.mutHeaders.Unlock()
 
-	return forkInfo
+	return forkInfoObject
 }
 
 func getMaxEpochFromHdrsInfo(hdrInfos []*headerInfo) uint32 {

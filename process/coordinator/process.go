@@ -608,7 +608,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			appended = true
 
-			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
+			var currMrsTxs [][]byte
+			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
@@ -625,7 +626,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			}
 
-			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+			var currMrsInterTxs [][]byte
+			currMrsInterTxs, err = interimProc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
@@ -642,8 +644,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler, 0)
-	interTxPool := make(map[string]data.TransactionHandler, 0)
+	txPool := make(map[string]data.TransactionHandler)
+	interTxPool := make(map[string]data.TransactionHandler)
 
 	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {
@@ -767,6 +769,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.Header
 	return nil
 }
 
+// CreateReceiptsHash will return the hash for the receipts
 func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 	allReceiptsHashes := make([]byte, 0)
 

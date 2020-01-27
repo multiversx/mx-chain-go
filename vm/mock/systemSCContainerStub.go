@@ -36,7 +36,6 @@ func (s *SystemSCContainerStub) Remove(key []byte) {
 	if s.RemoveCalled != nil {
 		s.RemoveCalled(key)
 	}
-	return
 }
 
 func (s *SystemSCContainerStub) Len() int {
@@ -54,8 +53,5 @@ func (s *SystemSCContainerStub) Keys() [][]byte {
 }
 
 func (s *SystemSCContainerStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

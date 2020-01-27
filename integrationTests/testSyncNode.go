@@ -79,6 +79,8 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initHeaderValidator()
+	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -114,14 +116,6 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
-	}
-	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
-
-	tpn.initBlockTracker(headerValidator)
-
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -137,7 +131,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		HeaderValidator:              headerValidator,
+		HeaderValidator:              tpn.HeaderValidator,
 		Rounder:                      &mock.RounderMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
@@ -162,7 +156,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
-
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector

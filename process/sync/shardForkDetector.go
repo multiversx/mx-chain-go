@@ -174,8 +174,8 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 	indexBHProcessed := -1
 	indexBHNotarized := -1
 
-	for index, headerInfo := range headersInfo {
-		switch headerInfo.state {
+	for index, hdrInfo := range headersInfo {
+		switch hdrInfo.state {
 		case process.BHProcessed:
 			indexBHProcessed = index
 		case process.BHNotarized:

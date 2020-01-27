@@ -1,12 +1,12 @@
 package networksharding
 
 import (
+	"crypto/sha256"
 	"math/big"
 	"sort"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/minio/sha256-simd"
 )
 
 var (

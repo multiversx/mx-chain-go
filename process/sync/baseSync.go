@@ -42,14 +42,6 @@ type notarizedInfo struct {
 	startNonce              uint64
 }
 
-func (ni *notarizedInfo) reset() {
-	ni.lastNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.finalNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
-	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
-	ni.startNonce = uint64(0)
-}
-
 type baseBootstrap struct {
 	headers dataRetriever.HeadersPool
 
@@ -93,6 +85,7 @@ type baseBootstrap struct {
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	requestsWithTimeout   uint32
+	syncWithErrors        uint32
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
@@ -274,7 +267,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
@@ -452,17 +445,17 @@ func (boot *baseBootstrap) syncBlocks() {
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
+	boot.syncWithErrors++
+
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
 
-	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	allowedRequestsWithTimeOutLimitReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 
-	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
+	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutLimitReached && isInProperRound)
 	if shouldRollBack {
-		boot.requestsWithTimeout = 0
-
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -472,6 +465,11 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 		if errNotCritical != nil {
 			log.Debug("rollBack", "error", errNotCritical.Error())
 		}
+	}
+
+	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
+	if allowedSyncWithErrorsLimitReached && isInProperRound {
+		boot.forkDetector.ResetProbableHighestNonce()
 	}
 }
 
@@ -553,6 +551,8 @@ func (boot *baseBootstrap) syncBlock() error {
 	log.Debug("block has been synced successfully",
 		"nonce", hdr.GetNonce(),
 	)
+
+	boot.syncWithErrors = 0
 	boot.requestsWithTimeout = 0
 
 	return nil
@@ -714,20 +714,6 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
-}
-
-func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
-	header, err := boot.getHeaderFromPool(hash)
-	if err != nil {
-		return err
-	}
-
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (boot *baseBootstrap) isForcedFork() bool {

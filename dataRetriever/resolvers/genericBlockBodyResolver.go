@@ -23,7 +23,6 @@ func NewGenericBlockBodyResolver(
 	miniBlockStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*genericBlockBodyResolver, error) {
-
 	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
