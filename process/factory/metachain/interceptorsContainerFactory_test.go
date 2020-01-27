@@ -616,6 +616,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		chainID,
 		0,
 		nil,
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -646,6 +647,7 @@ func TestNewInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testing.T
 		&mock.HeaderSigVerifierStub{},
 		nil,
 		0,
+		&mock.ValidityAttesterStub{},
 		nil,
 	)
 

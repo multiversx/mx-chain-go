@@ -726,6 +726,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerSigVerifier,
 		args.sizeCheckDelta,
 		blockTracker,
+		epochStartTrigger,
 	)
 	if err != nil {
 		return nil, err

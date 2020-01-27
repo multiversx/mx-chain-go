@@ -39,7 +39,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -62,7 +62,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
