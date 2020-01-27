@@ -1,7 +1,6 @@
 package rewardTx_test
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
@@ -9,31 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRewardTx_SaveLoad(t *testing.T) {
-	smrS := rewardTx.RewardTx{
-		Round:   uint64(1),
-		Epoch:   uint32(1),
-		Value:   big.NewInt(1),
-		RcvAddr: []byte("receiver_address"),
-		ShardId: 10,
-	}
-
-	var b bytes.Buffer
-	err := smrS.Save(&b)
-	assert.Nil(t, err)
-
-	loadSMR := rewardTx.RewardTx{}
-	err = loadSMR.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, smrS, loadSMR)
-}
-
 func TestRewardTx_GettersAndSetters(t *testing.T) {
 	t.Parallel()
 
 	rwdTx := rewardTx.RewardTx{}
-	assert.False(t, rwdTx.IsInterfaceNil())
 
 	addr := []byte("address")
 	value := big.NewInt(37)

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -398,24 +397,6 @@ func TestNode_childPosOutOfRange(t *testing.T) {
 
 	assert.True(t, childPosOutOfRange(17))
 	assert.False(t, childPosOutOfRange(5))
-}
-
-func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
-	_, hasher := getTestMarshAndHasher()
-	marsh := &marshal.CapnpMarshalizer{}
-
-	_, collapsedBn := getBnAndCollapsedBn(marsh, hasher)
-	collapsedBn.dirty = false
-
-	bn, _ := newBranchNode(marsh, hasher)
-
-	encBn, err := marsh.Marshal(collapsedBn)
-	assert.Nil(t, err)
-	assert.NotNil(t, encBn)
-
-	err = marsh.Unmarshal(bn, encBn)
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, bn)
 }
 
 func TestKeyBytesToHex(t *testing.T) {
