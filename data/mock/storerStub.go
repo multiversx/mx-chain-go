@@ -9,6 +9,7 @@ type StorerStub struct {
 	SearchFirstCalled  func(key []byte) ([]byte, error)
 	RemoveCalled       func(key []byte) error
 	ClearCacheCalled   func()
+	CloseCalled        func() error
 	DestroyUnitCalled  func() error
 }
 
@@ -25,6 +26,9 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 }
 
 func (ss *StorerStub) Close() error {
+	if ss.CloseCalled != nil {
+		return ss.CloseCalled()
+	}
 	return nil
 }
 

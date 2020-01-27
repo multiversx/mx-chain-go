@@ -19,6 +19,8 @@ func (rdt RequestDataType) String() string {
 		return "hash array type"
 	case NonceType:
 		return "nonce type"
+	case EpochType:
+		return "epoch type"
 	default:
 		return fmt.Sprintf("unknown type %d", rdt)
 	}
