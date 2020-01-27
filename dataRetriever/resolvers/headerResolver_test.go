@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -125,9 +126,8 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 	)
 
-	assert.NotNil(t, hdrRes)
 	assert.Nil(t, err)
-	assert.False(t, hdrRes.IsInterfaceNil())
+	assert.False(t, check.IfNil(hdrRes))
 }
 
 //------- ProcessReceivedMessage
