@@ -613,12 +613,15 @@ type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
+	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error)
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
@@ -636,5 +639,12 @@ type BlockTracker interface {
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
 	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	IsInterfaceNil() bool
+}
+
+// ValidityAttester is able to manage the valid blocks
+type ValidityAttester interface {
+	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

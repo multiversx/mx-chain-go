@@ -45,7 +45,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
-	blockBalancer, err := NewBlockBalancer()
+	blockBalancerInstance, err := NewBlockBalancer()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
-		blockBalancer:                 blockBalancer,
+		blockBalancer:                 blockBalancerInstance,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
@@ -133,5 +133,5 @@ func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte
 }
 
 // ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of headers
-func (mbt *metaBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
+func (mbt *metaBlockTrack) ComputeNumPendingMiniBlocks(_ []data.HeaderHandler) {
 }
