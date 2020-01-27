@@ -327,7 +327,7 @@ func Benchmark_AddWithEviction_UniformDistribution_10x25000(b *testing.B) {
 	require.Equal(b, int64(240000), cache.CountTx())
 }
 
-func BenchmarkEviction_UniformDistribution_1x250000(b *testing.B) {
+func Benchmark_AddWithEviction_UniformDistribution_1x250000(b *testing.B) {
 	if b.N > 1 {
 		fmt.Println("impractical benchmark: b.N too high")
 		return
