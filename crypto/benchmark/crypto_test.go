@@ -69,13 +69,14 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 
 	// Set aggregate mask in nodes
 	for i := 0; i < n-f; i++ {
-		masks[i].SetMask(aggMask)
+		_ = masks[i].SetMask(aggMask)
 	}
 
 	// Compute challenge
 	var c []kyber.Scalar
 	for i := 0; i < n-f; i++ {
-		ci, err := cosi.Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
+		var ci kyber.Scalar
+		ci, err = cosi.Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			fmt.Println("CoSi challenge creation failed", err)
 			return nil, errors.New("CoSi challenge creation failed")
@@ -86,8 +87,10 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 	// Compute responses
 	var r []kyber.Scalar
 	for i := 0; i < n-f; i++ {
-		ri, _ := cosi.Response(testSuite, privates[i], v[i], c[i])
-		r = append(r, ri)
+		if v != nil && c != nil {
+			ri, _ := cosi.Response(testSuite, privates[i], v[i], c[i])
+			r = append(r, ri)
+		}
 	}
 
 	// Aggregate responses
@@ -176,12 +179,14 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 	var masks []*cosi.Mask
 	var byteMasks [][]byte
 	for i := 0; i < n-f; i++ {
-		m, err := cosi.NewMask(testSuite, publics, publics[i])
-		if err != nil {
-			fmt.Println("Error CoSi masking")
+		if publics != nil {
+			m, err := cosi.NewMask(testSuite, publics, publics[i])
+			if err != nil {
+				fmt.Println("Error CoSi masking")
+			}
+			masks = append(masks, m)
+			byteMasks = append(byteMasks, masks[i].Mask())
 		}
-		masks = append(masks, m)
-		byteMasks = append(byteMasks, masks[i].Mask())
 	}
 
 	nameCosi := fmt.Sprintf("Cosi group size:%d offline: %d", n, f)
@@ -205,7 +210,7 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 
 	b.Run(nameCosi+"verify", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			cosiVerify(msg, sigs[i%nbValCosi], publics, n, f)
+			_ = cosiVerify(msg, sigs[i%nbValCosi], publics, n, f)
 		}
 	})
 
@@ -234,7 +239,7 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 
 	b.Run(nameTbls+"verify", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tblsVerify(sigsTbls[i%nbValTbls], msg, suite, pubPoly.Commit())
+			_ = tblsVerify(sigsTbls[i%nbValTbls], msg, suite, pubPoly.Commit())
 		}
 	})
 }

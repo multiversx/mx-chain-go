@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +28,7 @@ func ScCallTxWithParams(
 
 	fmt.Println("Deploying SC...")
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	txArgs := &txArgs{
+	txArgsObject := &txArgs{
 		nonce:    nonce,
 		value:    value,
 		rcvAddr:  make([]byte, 32),
@@ -42,18 +41,18 @@ func ScCallTxWithParams(
 	txDeploy := generateTx(
 		sk,
 		senderNode.OwnAccount.SingleSigner,
-		txArgs,
+		txArgsObject,
 	)
 
 	_, _ = senderNode.SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 }
 
 // DeployScTx creates and sends a SC tx
-func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
+func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string, vmType []byte) {
 	fmt.Println("Deploying SC...")
-	data := scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine)
+	data := scCode + "@" + hex.EncodeToString(vmType)
 	txDeploy := generateTx(
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,
@@ -69,7 +68,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -167,7 +166,7 @@ func NodeDoesWithdraw(
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -195,7 +194,7 @@ func NodeDoesTopUp(
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }

@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -117,6 +118,7 @@ func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
 
 	assert.NotNil(t, mcm)
 	assert.Equal(t, nil, err)
+	assert.False(t, mcm.IsInterfaceNil())
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldErrNilMetaHeader(t *testing.T) {
@@ -180,25 +182,6 @@ func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaChainMessenger_BroadcastShardHeaderShouldWork(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
-
-	err := mcm.BroadcastShardHeader(nil)
-	assert.Nil(t, err)
-}
-
 func TestMetaChainMessenger_BroadcastMiniBlocksShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
@@ -235,4 +218,62 @@ func TestMetaChainMessenger_BroadcastTransactionsShouldWork(t *testing.T) {
 
 	err := mcm.BroadcastTransactions(nil)
 	assert.Nil(t, err)
+}
+
+func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
+	marshalizerMock := &mock.MarshalizerMock{}
+	messengerMock := &mock.MessengerStub{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	mcm, _ := broadcast.NewMetaChainMessenger(
+		marshalizerMock,
+		messengerMock,
+		privateKeyMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	err := mcm.BroadcastHeader(nil)
+	assert.Equal(t, spos.ErrNilHeader, err)
+}
+
+func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
+	channelCalled := make(chan bool)
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	messengerMock := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			channelCalled <- true
+		},
+	}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	mcm, _ := broadcast.NewMetaChainMessenger(
+		marshalizerMock,
+		messengerMock,
+		privateKeyMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	hdr := block.Header{
+		Nonce: 10,
+	}
+
+	err := mcm.BroadcastHeader(&hdr)
+	assert.Nil(t, err)
+
+	wasCalled := false
+	select {
+	case <-channelCalled:
+		wasCalled = true
+	case <-time.After(time.Millisecond * 100):
+	}
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
 }

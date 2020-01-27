@@ -36,3 +36,33 @@ var ErrNilNode = errors.New("the node is nil")
 
 // ErrInvalidLength signals that length of the array is invalid
 var ErrInvalidLength = errors.New("invalid array length")
+
+// ErrWrongTypeAssertion signals that wrong type was provided
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilTrie is raised when the trie is nil
+var ErrNilTrie = errors.New("the trie is nil")
+
+// ErrNilResolver is raised when the given resolver is nil
+var ErrNilResolver = errors.New("the resolver is nil")
+
+// ErrInvalidHash is raised when the given hash is invalid
+var ErrInvalidHash = errors.New("the received hash is invalid")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")
+
+// ErrHashNotFound signals that the given hash was not found in db or snapshots
+var ErrHashNotFound = errors.New("hash not found")
+
+// ErrNilTrieStorage is raised when a nil trie storage is provided
+var ErrNilTrieStorage = errors.New("nil trie storage provided")
+
+// ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
+var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
+
+// ErrNilSnapshotDbConfig is raised when a nil snapshot db config is provided
+var ErrNilSnapshotDbConfig = errors.New("nil snapshot db config provided")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ func TestNewDataTriesHolder(t *testing.T) {
 	t.Parallel()
 
 	dth := state.NewDataTriesHolder()
-	assert.NotNil(t, dth)
+	assert.False(t, check.IfNil(dth))
 }
 
 func TestDataTriesHolder_PutAndGet(t *testing.T) {
@@ -62,7 +63,7 @@ func TestDataTriesHolder_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	dth := state.NewDataTriesHolder()
-	numTries := 1000
+	numTries := 50
 
 	wg := sync.WaitGroup{}
 	wg.Add(numTries)

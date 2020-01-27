@@ -3,6 +3,7 @@ package bootstrapStorage
 import (
 	"errors"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -31,14 +32,21 @@ type BootstrapHeaderInfo struct {
 	Hash    []byte
 }
 
+//PendingMiniBlockInfo is used to store information about the number of pending miniblocks
+type PendingMiniBlockInfo struct {
+	ShardID              uint32
+	NumPendingMiniBlocks uint32
+}
+
 // BootstrapData is used to store information that are needed for bootstrap
 type BootstrapData struct {
-	LastHeader           BootstrapHeaderInfo
-	LastNotarizedHeaders []BootstrapHeaderInfo
-	LastFinals           []BootstrapHeaderInfo
-	ProcessedMiniBlocks  []MiniBlocksInMeta
-	HighestFinalNonce    uint64
-	LastRound            int64
+	LastHeader                BootstrapHeaderInfo
+	LastCrossNotarizedHeaders []BootstrapHeaderInfo
+	LastSelfNotarizedHeaders  []BootstrapHeaderInfo
+	ProcessedMiniBlocks       []MiniBlocksInMeta
+	PendingMiniBlocks         []PendingMiniBlockInfo
+	HighestFinalBlockNonce    uint64
+	LastRound                 int64
 }
 
 type bootstrapStorer struct {
@@ -70,7 +78,7 @@ func NewBootstrapStorer(
 
 // Put will save bootData in storage
 func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
-	bootData.LastRound = bs.lastRound
+	bootData.LastRound = atomic.LoadInt64(&bs.lastRound)
 
 	// save bootstrap round information
 	bootDataBytes, err := bs.marshalizer.Marshal(&bootData)
@@ -95,7 +103,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 		return err
 	}
 
-	bs.lastRound = round
+	atomic.StoreInt64(&bs.lastRound, round)
 
 	return nil
 }
@@ -135,7 +143,7 @@ func (bs *bootstrapStorer) GetHighestRound() int64 {
 
 // SaveLastRound will save the last round
 func (bs *bootstrapStorer) SaveLastRound(round int64) error {
-	bs.lastRound = round
+	atomic.StoreInt64(&bs.lastRound, round)
 
 	// save round with a static key
 	roundBytes, err := bs.marshalizer.Marshal(&round)

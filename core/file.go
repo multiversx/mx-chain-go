@@ -18,7 +18,7 @@ func OpenFile(relativePath string) (*os.File, error) {
 		log.Warn("cannot create absolute path for the provided file", "error", err.Error())
 		return nil, err
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 	return os.OpenFile(
 		filepath.Join(absPath, fileName+"."+fileExtension),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		0666)
+		FileModeUserReadWrite)
 }
 
 // LoadSkFromPemFile loads the secret key bytes stored in the file
@@ -159,6 +159,10 @@ func LoadSkFromPemFile(relativePath string, skIndex int) ([]byte, error) {
 		if blkRecovered == nil {
 			return nil, ErrPemFileIsInvalid
 		}
+	}
+
+	if blkRecovered == nil {
+		return nil, ErrNilPemBLock
 	}
 
 	return blkRecovered.Bytes, nil

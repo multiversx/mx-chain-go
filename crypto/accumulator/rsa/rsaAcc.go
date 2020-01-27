@@ -51,7 +51,6 @@ func (acc *accumulator) Accumulate(data ...[]byte) (proofs []*big.Int) {
 
 	for i := range primes {
 		_ = acc.value.Exp(acc.value, primes[i], Modulus)
-
 	}
 
 	for i := range primes {
@@ -137,7 +136,6 @@ func bezoutCoefficients(a, b *big.Int) (oldS, oldT *big.Int) {
 
 // shamirTrick computes the (xy)-th root of an element
 func shamirTrick(p1, p2, x, y *big.Int) *big.Int {
-
 	a, b := bezoutCoefficients(x, y)
 
 	p1b := new(big.Int).Exp(p1, b, Modulus)
@@ -150,7 +148,6 @@ func shamirTrick(p1, p2, x, y *big.Int) *big.Int {
 // AggregateProofs takes the proofs for a set of items and the set of items, and returns a single
 // proof for the whole set
 func (acc *accumulator) AggregateProofs(proofs []*big.Int, data ...[]byte) (proof *big.Int, err error) {
-
 	if len(proofs) != len(data) {
 		return nil, errors.New("length of data must me equal to the length of proofs")
 	}
@@ -172,8 +169,5 @@ func (acc *accumulator) AggregateProofs(proofs []*big.Int, data ...[]byte) (proo
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (acc *accumulator) IsInterfaceNil() bool {
-	if acc == nil {
-		return true
-	}
-	return false
+	return acc == nil
 }

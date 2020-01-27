@@ -3,6 +3,8 @@ package bn
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -98,6 +100,14 @@ func (fct *factory) GenerateSignatureSubround() error {
 
 func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
+}
+
+func (fct *factory) AppStatusHandler() core.AppStatusHandler {
+	return fct.appStatusHandler
+}
+
+func (fct *factory) Indexer() indexer.Indexer {
+	return fct.indexer
 }
 
 // subroundCommitmentHash

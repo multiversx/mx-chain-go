@@ -30,10 +30,11 @@ type rewardsHandler struct {
 	protocolRewardsMeta []data.TransactionHandler
 	feeRewards          []data.TransactionHandler
 
-	mut               sync.Mutex
-	accumulatedFees   *big.Int
-	rewardTxsForBlock map[string]*rewardTx.RewardTx
-	economicsRewards  process.RewardsHandler
+	mut                 sync.Mutex
+	accumulatedFees     *big.Int
+	rewardTxsForBlock   map[string]*rewardTx.RewardTx
+	economicsRewards    process.RewardsHandler
+	intraShardMiniBlock *block.MiniBlock
 }
 
 // NewRewardTxHandler constructor for the reward transaction handler
@@ -160,6 +161,10 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
 
+	if _, ok := miniBlocks[rtxh.shardCoordinator.SelfId()]; ok {
+		rtxh.intraShardMiniBlock = miniBlocks[rtxh.shardCoordinator.SelfId()].Clone()
+	}
+
 	return miniBlocks
 }
 
@@ -184,7 +189,7 @@ func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHa
 func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	rewardTxs []data.TransactionHandler,
 ) map[uint32]*block.MiniBlock {
-	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
+	miniBlocks := make(map[uint32]*block.MiniBlock)
 
 	for _, rTx := range rewardTxs {
 		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
@@ -214,6 +219,18 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	}
 
 	return miniBlocks
+}
+
+// GetCreatedInShardMiniBlock will return a clone of the intra shard mini block
+func (rtxh *rewardsHandler) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	rtxh.mut.Lock()
+	defer rtxh.mut.Unlock()
+
+	if rtxh.intraShardMiniBlock == nil {
+		return nil
+	}
+
+	return rtxh.intraShardMiniBlock.Clone()
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
@@ -266,6 +283,7 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.mut.Lock()
 	rtxh.accumulatedFees = big.NewInt(0)
 	rtxh.rewardTxsForBlock = make(map[string]*rewardTx.RewardTx)
+	rtxh.intraShardMiniBlock = nil
 	rtxh.mut.Unlock()
 
 	rtxh.mutGenRewardTxs.Lock()
@@ -273,6 +291,7 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.protocolRewards = make([]data.TransactionHandler, 0)
 	rtxh.protocolRewardsMeta = make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.Unlock()
+
 }
 
 func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
@@ -474,8 +493,5 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtxh *rewardsHandler) IsInterfaceNil() bool {
-	if rtxh == nil {
-		return true
-	}
-	return false
+	return rtxh == nil
 }

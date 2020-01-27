@@ -27,7 +27,7 @@ func (rndm *RounderMock) TimeDuration() time.Duration {
 		return rndm.TimeDurationCalled()
 	}
 
-	return time.Duration(4000 * time.Millisecond)
+	return 4000 * time.Millisecond
 }
 
 func (rndm *RounderMock) TimeStamp() time.Time {
@@ -52,7 +52,7 @@ func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duratio
 		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
 
-	return time.Duration(4000 * time.Millisecond)
+	return 4000 * time.Millisecond
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

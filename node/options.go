@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -33,11 +34,12 @@ func WithMessenger(mes P2PMessenger) Option {
 }
 
 // WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
+func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
 	return func(n *Node) error {
 		if marshalizer == nil || marshalizer.IsInterfaceNil() {
 			return ErrNilMarshalizer
 		}
+		n.sizeCheckDelta = sizeCheckDelta
 		n.marshalizer = marshalizer
 		return nil
 	}
@@ -258,17 +260,6 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
-// WithMetaDataPool sets up the data pools option for the Node
-func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
-	return func(n *Node) error {
-		if dataPool == nil || dataPool.IsInterfaceNil() {
-			return ErrNilDataPool
-		}
-		n.metaDataPool = dataPool
-		return nil
-	}
-}
-
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
@@ -403,6 +394,17 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	}
 }
 
+// WithEpochStartTrigger sets up an start of epoch trigger option for the node
+func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(epochStartTrigger) {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartTrigger = epochStartTrigger
+		return nil
+	}
+}
+
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
@@ -486,6 +488,28 @@ func WithChainID(chainID []byte) Option {
 		}
 		n.chainID = chainID
 
+		return nil
+	}
+}
+
+// WithBlockTracker sets up the block tracker for the Node
+func WithBlockTracker(blockTracker process.BlockTracker) Option {
+	return func(n *Node) error {
+		if check.IfNil(blockTracker) {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
+		return nil
+	}
+}
+
+// WithPendingMiniBlocks sets up the pending miniblocks for the Node
+func WithPendingMiniBlocks(pendingMiniBlocks process.PendingMiniBlocksHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(pendingMiniBlocks) {
+			return ErrNilPendingMiniBlocksHandler
+		}
+		n.pendingMiniBlocks = pendingMiniBlocks
 		return nil
 	}
 }

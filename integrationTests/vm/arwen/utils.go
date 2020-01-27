@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/big"
+	"path/filepath"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -40,6 +41,7 @@ type testParticipant struct {
 	Balance *big.Int
 }
 
+// AddressHex will return the participant address in hex string format
 func (participant *testParticipant) AddressHex() string {
 	return hex.EncodeToString(participant.Address)
 }
@@ -115,7 +117,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 		SndAddr:  owner.Address,
 		GasPrice: 1,
 		GasLimit: math.MaxInt32,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)
@@ -132,7 +134,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 }
 
 func getSCCode(fileName string) string {
-	code, _ := ioutil.ReadFile(fileName)
+	code, _ := ioutil.ReadFile(filepath.Clean(fileName))
 	codeEncoded := hex.EncodeToString(code)
 
 	return codeEncoded
@@ -150,7 +152,7 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 		SndAddr:  sender.Address,
 		GasPrice: 1,
 		GasLimit: math.MaxInt32,
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 
 	err := context.TxProcessor.ProcessTransaction(tx)
@@ -183,6 +185,7 @@ func (context *testContext) querySC(function string, args [][]byte) []byte {
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
+		return []byte{}
 	}
 
 	firstResult := vmOutput.ReturnData[0]

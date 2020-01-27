@@ -24,6 +24,7 @@ type MetaAccount struct {
 	MiniBlocks    []*MiniBlockData
 	PubKeyLeader  []byte
 	ShardRootHash []byte
+	Address       []byte
 
 	addressContainer AddressContainer
 	code             []byte
@@ -40,163 +41,163 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 		return nil, ErrNilAccountTracker
 	}
 
+	addressBytes := addressContainer.Bytes()
+
 	return &MetaAccount{
 		TxCount:          big.NewInt(0),
 		addressContainer: addressContainer,
+		Address:          addressBytes,
 		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(nil),
+		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (a *MetaAccount) IsInterfaceNil() bool {
-	if a == nil {
-		return true
-	}
-	return false
+func (ma *MetaAccount) IsInterfaceNil() bool {
+	return ma == nil
 }
 
 // AddressContainer returns the address associated with the account
-func (a *MetaAccount) AddressContainer() AddressContainer {
-	return a.addressContainer
+func (ma *MetaAccount) AddressContainer() AddressContainer {
+	return ma.addressContainer
 }
 
 // SetRoundWithJournal sets the account's round, saving the old round before changing
-func (a *MetaAccount) SetRoundWithJournal(round uint64) error {
-	entry, err := NewMetaJournalEntryRound(a, a.Round)
+func (ma *MetaAccount) SetRoundWithJournal(round uint64) error {
+	entry, err := NewMetaJournalEntryRound(ma, ma.Round)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.Round = round
+	ma.accountTracker.Journalize(entry)
+	ma.Round = round
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 // SetTxCountWithJournal sets the total tx count for this shard, saving the old txCount before changing
-func (a *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
-	entry, err := NewMetaJournalEntryTxCount(a, a.TxCount)
+func (ma *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
+	entry, err := NewMetaJournalEntryTxCount(ma, ma.TxCount)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.TxCount = txCount
+	ma.accountTracker.Journalize(entry)
+	ma.TxCount = txCount
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 // SetMiniBlocksDataWithJournal sets the current final mini blocks header data,
 // saving the old mini blocks header data before changing
-func (a *MetaAccount) SetMiniBlocksDataWithJournal(miniBlocksData []*MiniBlockData) error {
-	entry, err := NewMetaJournalEntryMiniBlocksData(a, a.MiniBlocks)
+func (ma *MetaAccount) SetMiniBlocksDataWithJournal(miniBlocksData []*MiniBlockData) error {
+	entry, err := NewMetaJournalEntryMiniBlocksData(ma, ma.MiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.MiniBlocks = miniBlocksData
+	ma.accountTracker.Journalize(entry)
+	ma.MiniBlocks = miniBlocksData
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 // SetShardRootHashWithJournal sets the account's root hash, saving the old root hash before changing
-func (a *MetaAccount) SetShardRootHashWithJournal(shardRootHash []byte) error {
-	entry, err := NewMetaJournalEntryShardRootHash(a, a.ShardRootHash)
+func (ma *MetaAccount) SetShardRootHashWithJournal(shardRootHash []byte) error {
+	entry, err := NewMetaJournalEntryShardRootHash(ma, ma.ShardRootHash)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.ShardRootHash = shardRootHash
+	ma.accountTracker.Journalize(entry)
+	ma.ShardRootHash = shardRootHash
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 //------- code / code hash
 
 // GetCodeHash returns the code hash associated with this account
-func (a *MetaAccount) GetCodeHash() []byte {
-	return a.CodeHash
+func (ma *MetaAccount) GetCodeHash() []byte {
+	return ma.CodeHash
 }
 
 // SetCodeHash sets the code hash associated with the account
-func (a *MetaAccount) SetCodeHash(roothash []byte) {
-	a.CodeHash = roothash
+func (ma *MetaAccount) SetCodeHash(roothash []byte) {
+	ma.CodeHash = roothash
 }
 
 // SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing
-func (a *MetaAccount) SetCodeHashWithJournal(codeHash []byte) error {
-	entry, err := NewBaseJournalEntryCodeHash(a, a.CodeHash)
+func (ma *MetaAccount) SetCodeHashWithJournal(codeHash []byte) error {
+	entry, err := NewBaseJournalEntryCodeHash(ma, ma.CodeHash)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.CodeHash = codeHash
+	ma.accountTracker.Journalize(entry)
+	ma.CodeHash = codeHash
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 // GetCode gets the actual code that needs to be run in the VM
-func (a *MetaAccount) GetCode() []byte {
-	return a.code
+func (ma *MetaAccount) GetCode() []byte {
+	return ma.code
 }
 
 // SetCode sets the actual code that needs to be run in the VM
-func (a *MetaAccount) SetCode(code []byte) {
-	a.code = code
+func (ma *MetaAccount) SetCode(code []byte) {
+	ma.code = code
 }
 
 //------- data trie / root hash
 
 // GetRootHash returns the root hash associated with this account
-func (a *MetaAccount) GetRootHash() []byte {
-	return a.RootHash
+func (ma *MetaAccount) GetRootHash() []byte {
+	return ma.RootHash
 }
 
 // SetRootHash sets the root hash associated with the account
-func (a *MetaAccount) SetRootHash(roothash []byte) {
-	a.RootHash = roothash
+func (ma *MetaAccount) SetRootHash(roothash []byte) {
+	ma.RootHash = roothash
 }
 
 // SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
-func (a *MetaAccount) SetNonceWithJournal(nonce uint64) error {
-	entry, err := NewBaseJournalEntryNonce(a, a.Nonce)
+func (ma *MetaAccount) SetNonceWithJournal(nonce uint64) error {
+	entry, err := NewBaseJournalEntryNonce(ma, ma.Nonce)
 	if err != nil {
 		return err
 	}
 
-	a.accountTracker.Journalize(entry)
-	a.Nonce = nonce
+	ma.accountTracker.Journalize(entry)
+	ma.Nonce = nonce
 
-	return a.accountTracker.SaveAccount(a)
+	return ma.accountTracker.SaveAccount(ma)
 }
 
 //SetNonce saves the nonce to the account
-func (a *MetaAccount) SetNonce(nonce uint64) {
-	a.Nonce = nonce
+func (ma *MetaAccount) SetNonce(nonce uint64) {
+	ma.Nonce = nonce
 }
 
 // GetNonce gets the nonce of the account
-func (a *MetaAccount) GetNonce() uint64 {
-	return a.Nonce
+func (ma *MetaAccount) GetNonce() uint64 {
+	return ma.Nonce
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *MetaAccount) DataTrie() data.Trie {
-	return a.dataTrieTracker.DataTrie()
+func (ma *MetaAccount) DataTrie() data.Trie {
+	return ma.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *MetaAccount) SetDataTrie(trie data.Trie) {
-	a.dataTrieTracker.SetDataTrie(trie)
+func (ma *MetaAccount) SetDataTrie(trie data.Trie) {
+	ma.dataTrieTracker.SetDataTrie(trie)
 }
 
 // DataTrieTracker returns the trie wrapper used in managing the SC data
-func (a *MetaAccount) DataTrieTracker() DataTrieTracker {
-	return a.dataTrieTracker
+func (ma *MetaAccount) DataTrieTracker() DataTrieTracker {
+	return ma.dataTrieTracker
 }
 
 //TODO add Cap'N'Proto converter funcs

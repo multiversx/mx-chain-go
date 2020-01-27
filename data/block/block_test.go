@@ -1,120 +1,14 @@
 package block_test
 
 import (
-	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestHeader_SaveLoad(t *testing.T) {
-	t.Parallel()
-
-	mb := block.MiniBlockHeader{
-		Hash:            []byte("mini block hash"),
-		ReceiverShardID: uint32(0),
-		SenderShardID:   uint32(10),
-		TxCount:         uint32(10),
-	}
-
-	pc := block.PeerChange{
-		PubKey:      []byte("peer1"),
-		ShardIdDest: uint32(0),
-	}
-
-	h := block.Header{
-		Nonce:            uint64(1),
-		PrevHash:         []byte("previous hash"),
-		PrevRandSeed:     []byte("prev random seed"),
-		RandSeed:         []byte("current random seed"),
-		PubKeysBitmap:    []byte("pub key bitmap"),
-		ShardId:          uint32(10),
-		TimeStamp:        uint64(1234),
-		Round:            uint64(1),
-		Epoch:            uint32(1),
-		BlockBodyType:    block.TxBlock,
-		Signature:        []byte("signature"),
-		MiniBlockHeaders: []block.MiniBlockHeader{mb},
-		PeerChanges:      []block.PeerChange{pc},
-		RootHash:         []byte("root hash"),
-		MetaBlockHashes:  make([][]byte, 0),
-		TxCount:          uint32(10),
-		LeaderSignature:  []byte("leader_sig"),
-		ChainID:          []byte("chain ID"),
-	}
-
-	var b bytes.Buffer
-	err := h.Save(&b)
-	assert.Nil(t, err)
-
-	loadHeader := block.Header{}
-	err = loadHeader.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, loadHeader, h)
-}
-
-func TestPeerChange_SaveLoad(t *testing.T) {
-	t.Parallel()
-
-	pc := block.PeerChange{
-		PubKey:      []byte("pubKey"),
-		ShardIdDest: uint32(1),
-	}
-
-	var b bytes.Buffer
-	err := pc.Save(&b)
-	assert.Nil(t, err)
-
-	loadPc := block.PeerChange{}
-	err = loadPc.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, loadPc, pc)
-}
-
-func TestMiniBlockHeader_SaveLoad(t *testing.T) {
-	t.Parallel()
-
-	mbh := block.MiniBlockHeader{
-		Hash:            []byte("mini block hash"),
-		SenderShardID:   uint32(1),
-		ReceiverShardID: uint32(0),
-	}
-
-	var b bytes.Buffer
-	err := mbh.Save(&b)
-	assert.Nil(t, err)
-
-	loadMbh := block.MiniBlockHeader{}
-	err = loadMbh.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, loadMbh, mbh)
-}
-
-func TestMiniBlock_SaveLoad(t *testing.T) {
-	t.Parallel()
-
-	mb := block.MiniBlock{
-		TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
-		ReceiverShardID: uint32(0),
-		SenderShardID:   uint32(0),
-	}
-
-	var b bytes.Buffer
-	err := mb.Save(&b)
-	assert.Nil(t, err)
-
-	loadMb := block.MiniBlock{}
-	err = loadMb.Load(&b)
-	assert.Nil(t, err)
-
-	assert.Equal(t, loadMb, mb)
-}
 
 func TestHeader_GetEpoch(t *testing.T) {
 	t.Parallel()
@@ -439,4 +333,19 @@ func TestHeader_CheckChainID(t *testing.T) {
 
 	assert.Nil(t, hdr.CheckChainID(okChainID))
 	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
+}
+
+func TestMiniBlock_Clone(t *testing.T) {
+	t.Parallel()
+
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("something"), []byte("something2")},
+		ReceiverShardID: 1,
+		SenderShardID:   2,
+		Type:            0,
+	}
+
+	clonedMB := miniBlock.Clone()
+
+	assert.True(t, reflect.DeepEqual(miniBlock, clonedMB))
 }

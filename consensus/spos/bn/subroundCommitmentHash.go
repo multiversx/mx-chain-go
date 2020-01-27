@@ -65,7 +65,6 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtCommitmentHash),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
@@ -234,16 +233,20 @@ func (sr *subroundCommitmentHash) isCommitmentHashReceived(threshold int) bool {
 func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool {
 	n := 0
 
+	var isCommHashJobDone bool
+	var isBitmapJobDone bool
+	var err error
+	var node string
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		node := sr.ConsensusGroup()[i]
-		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
+		node = sr.ConsensusGroup()[i]
+		isBitmapJobDone, err = sr.JobDone(node, SrBitmap)
 		if err != nil {
 			debugError("JobDone SrBitmap", err)
 			continue
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err := sr.JobDone(node, SrCommitmentHash)
+			isCommHashJobDone, err = sr.JobDone(node, SrCommitmentHash)
 			if err != nil {
 				debugError("JobDone SrCommitmentHash", err)
 				continue

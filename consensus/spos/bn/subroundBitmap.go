@@ -65,7 +65,6 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBitmap),
-		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 	)
@@ -82,7 +81,8 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		pubKey := sr.ConsensusGroup()[i]
-		isJobCommHashJobDone, err := sr.JobDone(pubKey, SrCommitmentHash)
+		var isJobCommHashJobDone bool
+		isJobCommHashJobDone, err = sr.JobDone(pubKey, SrCommitmentHash)
 		if err != nil {
 			log.Debug("spos/bn JobDone", "error", err.Error())
 			continue

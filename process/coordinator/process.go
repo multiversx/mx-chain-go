@@ -1,15 +1,19 @@
 package coordinator
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,6 +26,8 @@ type transactionCoordinator struct {
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
 	miniBlockPool    storage.Cacher
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
 
 	mutPreProcessor sync.RWMutex
 	txPreProcessors map[block.Type]process.PreProcessor
@@ -40,6 +46,8 @@ type transactionCoordinator struct {
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
 func NewTransactionCoordinator(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	miniBlockPool storage.Cacher,
@@ -70,11 +78,19 @@ func NewTransactionCoordinator(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
 		gasHandler:       gasHandler,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -180,7 +196,6 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
-
 				return
 			}
 
@@ -354,7 +369,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		}
 
 		preproc := tc.getPreProcessor(blockType)
-		if preproc == nil || preproc.IsInterfaceNil() {
+		if check.IfNil(preproc) {
 			return process.ErrMissingPreProcessor
 		}
 
@@ -381,8 +396,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
 
-	if hdr == nil || hdr.IsInterfaceNil() {
-		return miniBlocks, nrTxAdded, true
+	if check.IfNil(hdr) {
+		return miniBlocks, nrTxAdded, false
 	}
 
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
@@ -409,7 +424,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
-		if preproc == nil || preproc.IsInterfaceNil() {
+		if check.IfNil(preproc) {
 			continue
 		}
 
@@ -441,6 +456,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
+
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 
@@ -592,7 +608,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			appended = true
 
-			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
+			var currMrsTxs [][]byte
+			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
@@ -609,7 +626,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			}
 
-			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+			var currMrsInterTxs [][]byte
+			currMrsInterTxs, err = interimProc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
@@ -626,8 +644,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler, 0)
-	interTxPool := make(map[string]data.TransactionHandler, 0)
+	txPool := make(map[string]data.TransactionHandler)
+	interTxPool := make(map[string]data.TransactionHandler)
 
 	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {
@@ -708,22 +726,16 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
-func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
+func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body block.Body) error {
 	tc.mutInterimProcessors.RLock()
 	defer tc.mutInterimProcessors.RUnlock()
 	errMutex := sync.Mutex{}
 	var errFound error
-	// TODO: think if it is good in parallel or it is needed in sequences
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(tc.interimProcessors))
 
-	for key, interimProc := range tc.interimProcessors {
-		if key == block.RewardsBlock {
-			// this has to be processed last
-			wg.Done()
-			continue
-		}
-
+	for _, interimProc := range tc.interimProcessors {
 		go func(intermediateProcessor process.IntermediateTransactionHandler) {
 			err := intermediateProcessor.VerifyInterMiniBlocks(body)
 			if err != nil {
@@ -741,18 +753,46 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 		return errFound
 	}
 
-	interimProc := tc.getInterimProcessor(block.RewardsBlock)
-	if interimProc == nil {
-		return nil
+	if check.IfNil(hdr) {
+		return process.ErrNilBlockHeader
 	}
 
-	return interimProc.VerifyInterMiniBlocks(body)
+	createdReceiptHash, err := tc.CreateReceiptsHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(createdReceiptHash, hdr.GetReceiptsHash()) {
+		return process.ErrReceiptsHashMissmatch
+	}
+
+	return nil
+}
+
+// CreateReceiptsHash will return the hash for the receipts
+func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
+	allReceiptsHashes := make([]byte, 0)
+
+	for _, value := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[value]
+		if !ok {
+			continue
+		}
+
+		mb := interProc.GetCreatedInShardMiniBlock()
+		currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+
+		allReceiptsHashes = append(allReceiptsHashes, currHash...)
+	}
+
+	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, allReceiptsHashes)
+	return finalReceiptHash, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
-	if tc == nil {
-		return true
-	}
-	return false
+	return tc == nil
 }

@@ -32,6 +32,7 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
+	assert.False(t, target.IsInterfaceNil())
 }
 
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
@@ -211,7 +212,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 		uint64(math.MaxUint64),
 	)
 
-	noOfGoRoutines := 1000
+	noOfGoRoutines := 50
 	wg := sync.WaitGroup{}
 	wg.Add(noOfGoRoutines)
 	for i := 0; i < noOfGoRoutines; i++ {

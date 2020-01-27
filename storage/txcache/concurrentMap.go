@@ -11,6 +11,7 @@ import (
 // ConcurrentMap is a thread safe map of type string:Anything.
 // To avoid lock bottlenecks this map is divided to several map chunks.
 type ConcurrentMap struct {
+	mutex   sync.Mutex
 	nChunks uint32
 	chunks  []*concurrentMapChunk
 }
@@ -23,6 +24,11 @@ type concurrentMapChunk struct {
 
 // NewConcurrentMap creates a new concurrent map.
 func NewConcurrentMap(nChunks uint32) *ConcurrentMap {
+	// We cannot have a map with no chunks
+	if nChunks == 0 {
+		nChunks = 1
+	}
+
 	m := ConcurrentMap{
 		nChunks: nChunks,
 		chunks:  make([]*concurrentMapChunk, nChunks),
@@ -48,6 +54,19 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 	chunk.Lock()
 	chunk.items[key] = value
 	chunk.Unlock()
+}
+
+// SetIfAbsent sets the given value under the specified key if no value was associated with it.
+func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
+	// Get map shard.
+	chunk := m.getChunk(key)
+	chunk.Lock()
+	_, ok := chunk.items[key]
+	if !ok {
+		chunk.items[key] = value
+	}
+	chunk.Unlock()
+	return !ok
 }
 
 // Get retrieves an element from map under given key.
@@ -88,11 +107,6 @@ func (m *ConcurrentMap) Remove(key string) {
 	chunk.Unlock()
 }
 
-// IsEmpty checks if map is empty.
-func (m *ConcurrentMap) IsEmpty() bool {
-	return m.Count() == 0
-}
-
 // IterCb is an iterator callback
 type IterCb func(key string, v interface{})
 
@@ -117,4 +131,46 @@ func fnv32(key string) uint32 {
 		hash ^= uint32(key[i])
 	}
 	return hash
+}
+
+// Clear clears the map
+func (m *ConcurrentMap) Clear() {
+	// There is no need to explicitly remove each item for each shard
+	// The garbage collector will remove the data from memory
+
+	// Assignment is not an atomic operation, so we have to wrap this in a critical section
+	m.mutex.Lock()
+	m.chunks = make([]*concurrentMapChunk, m.nChunks)
+	m.mutex.Unlock()
+}
+
+// Keys returns all keys as []string
+func (m *ConcurrentMap) Keys() []string {
+	count := m.Count()
+	ch := make(chan string, count)
+	go func() {
+		// Foreach shard.
+		wg := sync.WaitGroup{}
+		wg.Add(int(m.nChunks))
+		for _, shard := range m.chunks {
+			go func(shard *concurrentMapChunk) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key := range shard.items {
+					ch <- key
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
+		}
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Generate keys
+	keys := make([]string, 0, count)
+	for k := range ch {
+		keys = append(keys, k)
+	}
+	return keys
 }

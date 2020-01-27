@@ -1,7 +1,6 @@
 package boltdb
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,9 +42,9 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	parentFolder := filepath.Base(dir)
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte(parentFolder))
-		if err != nil {
-			return errors.New(fmt.Sprintf("create bucket: %s", err))
+		_, errBucketCreation := tx.CreateBucket([]byte(parentFolder))
+		if errBucketCreation != nil {
+			return fmt.Errorf("create bucket: %s", errBucketCreation)
 		}
 		return nil
 	})
@@ -140,10 +139,12 @@ func (s *DB) Destroy() error {
 	return err
 }
 
+// DestroyClosed removes the already closed storage medium stored data
+func (s *DB) DestroyClosed() error {
+	return os.RemoveAll(s.path)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

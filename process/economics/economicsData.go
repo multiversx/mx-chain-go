@@ -11,17 +11,20 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue        *big.Int
-	communityPercentage float64
-	leaderPercentage    float64
-	burnPercentage      float64
-	maxGasLimitPerBlock uint64
-	minGasPrice         uint64
-	minGasLimit         uint64
-	communityAddress    string
-	burnAddress         string
-	stakeValue          *big.Int
-	unBoundPeriod       uint64
+	rewardsValue         *big.Int
+	communityPercentage  float64
+	leaderPercentage     float64
+	burnPercentage       float64
+	maxGasLimitPerBlock  uint64
+	gasPerDataByte       uint64
+	dataLimitForBaseCalc uint64
+	minGasPrice          uint64
+	minGasLimit          uint64
+	communityAddress     string
+	burnAddress          string
+	stakeValue           *big.Int
+	unBoundPeriod        uint64
+	ratingsData          *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -44,22 +47,30 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	rd, err := NewRatingsData(economics.RatingSettings)
+	if err != nil {
+		return nil, err
+	}
+
 	if data.maxGasLimitPerBlock < data.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
 	return &EconomicsData{
-		rewardsValue:        data.rewardsValue,
-		communityPercentage: economics.RewardsSettings.CommunityPercentage,
-		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		maxGasLimitPerBlock: data.maxGasLimitPerBlock,
-		minGasPrice:         data.minGasPrice,
-		minGasLimit:         data.minGasLimit,
-		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:         economics.EconomicsAddresses.BurnAddress,
-		stakeValue:          data.stakeValue,
-		unBoundPeriod:       data.unBoundPeriod,
+		rewardsValue:         data.rewardsValue,
+		communityPercentage:  economics.RewardsSettings.CommunityPercentage,
+		leaderPercentage:     economics.RewardsSettings.LeaderPercentage,
+		burnPercentage:       economics.RewardsSettings.BurnPercentage,
+		maxGasLimitPerBlock:  data.maxGasLimitPerBlock,
+		minGasPrice:          data.minGasPrice,
+		minGasLimit:          data.minGasLimit,
+		communityAddress:     economics.EconomicsAddresses.CommunityAddress,
+		burnAddress:          economics.EconomicsAddresses.BurnAddress,
+		stakeValue:           data.stakeValue,
+		unBoundPeriod:        data.unBoundPeriod,
+		gasPerDataByte:       data.gasPerDataByte,
+		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
+		ratingsData:          rd,
 	}, nil
 }
 
@@ -99,13 +110,25 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
+	gasPerDataByte, err := strconv.ParseUint(economics.FeeSettings.GasPerDataByte, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidGasPerDataByte
+	}
+
+	dataLimitForBaseCalc, err := strconv.ParseUint(economics.FeeSettings.DataLimitForBaseCalc, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidGasPerDataByte
+	}
+
 	return &EconomicsData{
-		rewardsValue:        rewardsValue,
-		minGasPrice:         minGasPrice,
-		minGasLimit:         minGasLimit,
-		stakeValue:          stakeValue,
-		unBoundPeriod:       unBoundPeriod,
-		maxGasLimitPerBlock: maxGasLimitPerBlock,
+		rewardsValue:         rewardsValue,
+		minGasPrice:          minGasPrice,
+		minGasLimit:          minGasLimit,
+		stakeValue:           stakeValue,
+		unBoundPeriod:        unBoundPeriod,
+		maxGasLimitPerBlock:  maxGasLimitPerBlock,
+		gasPerDataByte:       gasPerDataByte,
+		dataLimitForBaseCalc: dataLimitForBaseCalc,
 	}, nil
 }
 
@@ -191,10 +214,15 @@ func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
 func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit
 
-	//TODO: change this method of computing the gas limit of a notarizing tx
-	// it should follow an exponential curve as to disincentivise notarizing large data
-	// also, take into account if destination address is 0000...00000 as this will be a SC deploy tx
-	gasLimit += uint64(len(tx.GetData()))
+	dataLen := uint64(len(tx.GetData()))
+	gasLimit += dataLen * ed.gasPerDataByte
+	//TODO reevaluate the formula or delete
+	/* if dataLen < ed.dataLimitForBaseCalc || core.IsEmptyAddress(tx.GetRecvAddress()) {
+		return gasLimit
+	}
+
+	overDataLimit := dataLen - ed.dataLimitForBaseCalc
+	gasLimit += overDataLimit * overDataLimit * ed.gasPerDataByte */
 
 	return gasLimit
 }
@@ -221,8 +249,10 @@ func (ed *EconomicsData) UnBoundPeriod() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
-	if ed == nil {
-		return true
-	}
-	return false
+	return ed == nil
+}
+
+// RatingsData will return the ratingsDataObject
+func (ed *EconomicsData) RatingsData() *RatingsData {
+	return ed.ratingsData
 }

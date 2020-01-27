@@ -3,7 +3,6 @@ package node
 import (
 	"math/big"
 	"net/http"
-	"net/url"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -16,7 +15,6 @@ import (
 type FacadeHandler interface {
 	IsNodeRunning() bool
 	StartNode() error
-	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
@@ -38,40 +36,21 @@ type statisticsResponse struct {
 }
 
 type shardStatisticsResponse struct {
-	ShardID               uint32   `json:"shardID"`
 	LiveTPS               float64  `json:"liveTPS"`
 	AverageTPS            *big.Int `json:"averageTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
-	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
-	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
+	ShardID               uint32   `json:"shardID"`
+	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 }
 
 // Routes defines node related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
-}
-
-// Address returns the information about the address passed as parameter
-func Address(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	currentAddress := ef.GetCurrentPublicKey()
-	address, err := url.Parse(currentAddress)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrCouldNotParsePubKey.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"address": address.String()})
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node

@@ -101,12 +101,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		debugError("BroadcastBlock", err)
 	}
 
-	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
-	if err != nil {
-		debugError("BroadcastShardHeader", err)
-	}
-
 	log.Debug("step 6: TxBlockBody and Header has been committed and broadcast",
 		"type", "spos/bn",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
@@ -132,7 +126,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {

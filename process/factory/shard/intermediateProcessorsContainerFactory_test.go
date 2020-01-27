@@ -122,6 +122,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ipcf)
+	assert.False(t, ipcf.IsInterfaceNil())
 }
 
 func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
@@ -144,5 +145,5 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 
 	container, err := ipcf.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, container.Len())
+	assert.Equal(t, 4, container.Len())
 }

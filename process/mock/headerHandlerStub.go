@@ -17,12 +17,23 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled               func(reference []byte) error
 }
 
+func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
+	return []byte("hash")
+}
+
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
 	return hhs.CloneCalled()
 }
 
+func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
+	return false
+}
+
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
 	return 1
+}
+
+func (hhs *HeaderHandlerStub) SetShardID(shId uint32) {
 }
 
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {

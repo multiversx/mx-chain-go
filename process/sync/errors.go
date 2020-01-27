@@ -23,8 +23,8 @@ var ErrLowerRoundInBlock = errors.New("lower round in block")
 // ErrHigherRoundInBlock signals that the round index in block is higher than the current round of chronology
 var ErrHigherRoundInBlock = errors.New("higher round in block")
 
-// ErrBlockIsNotSigned signals that the block is not signed
-var ErrBlockIsNotSigned = errors.New("block is not signed")
+//ErrCorruptBootstrapFromStorageDb signals that the bootstrap database is corrupt
+var ErrCorruptBootstrapFromStorageDb = errors.New("corrupt bootstrap storage database")
 
 // ErrSignedBlock signals that a block is signed
 type ErrSignedBlock struct {
@@ -39,14 +39,8 @@ func (err ErrSignedBlock) Error() string {
 // ErrRollBackBehindFinalHeader signals that a roll back behind final header has been attempted
 var ErrRollBackBehindFinalHeader = errors.New("roll back behind final header is not permitted")
 
-// ErrRandomSeedNotValid signals that the random seed is not valid
-var ErrRandomSeedNotValid = errors.New("random seed is not valid")
-
-// ErrInvalidShardId signals that an invalid shard id has been provided
-var ErrInvalidShardId = errors.New("invalid shard id")
-
-// ErrNilNotarizedHeader signals that an nil notarized header has been provided
-var ErrNilNotarizedHeader = errors.New("nil notarized header")
+// ErrRollBackBehindForkNonce signals that a roll back behind fork nonce is not permitted
+var ErrRollBackBehindForkNonce = errors.New("roll back behind fork nonce is not permitted")
 
 // ErrGenesisTimeMissmatch signals that a received header has a genesis time missmatch
 var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")

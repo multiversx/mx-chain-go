@@ -50,11 +50,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return &mock.Uint64SyncMapCacherStub{}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
@@ -70,6 +67,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	}
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
+	}
+	pools.TrieNodesCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
@@ -109,6 +109,9 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -138,6 +141,9 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -167,6 +173,9 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -196,6 +205,9 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -225,6 +237,9 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -254,6 +269,41 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		nil,
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -283,6 +333,9 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -312,6 +365,9 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -341,6 +397,9 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -370,6 +429,9 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -399,6 +461,9 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -428,6 +493,9 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -457,6 +525,9 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -486,6 +557,9 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		nil,
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -515,10 +589,77 @@ func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		nil,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+		nil,
+		&mock.EpochStartTriggerStub{},
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilValidityAttester, err)
+}
+
+func TestNewInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -544,6 +685,41 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
+	)
+
+	assert.NotNil(t, icf)
+	assert.Nil(t, err)
+	assert.False(t, icf.IsInterfaceNil())
+}
+func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		1,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -575,6 +751,9 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -590,7 +769,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.HeadersTopic, ""),
+		createStubTopicHandler(factory.ShardBlocksTopic, ""),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -606,6 +785,9 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -637,6 +819,9 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -668,6 +853,9 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -699,6 +887,9 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -714,7 +905,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.HeadersTopic),
+		createStubTopicHandler("", factory.ShardBlocksTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -730,6 +921,9 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -761,6 +955,9 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -792,6 +989,43 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
+	)
+
+	container, err := icf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
+func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -830,6 +1064,9 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -881,6 +1118,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.BlackListHandlerStub{},
 		&mock.HeaderSigVerifierStub{},
 		chainID,
+		0,
+		&mock.ValidityAttesterStub{},
+		&mock.EpochStartTriggerStub{},
 	)
 
 	container, err := icf.Create()
@@ -891,8 +1131,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
 	numInterceptorMetachainHeaders := 1
+	numInterceptorTrieNodes := 2
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
-		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

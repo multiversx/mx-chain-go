@@ -39,10 +39,7 @@ func (sc *serviceContainer) TPSBenchmark() statistics.TPSBenchmark {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *serviceContainer) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }
 
 // WithIndexer sets up the database indexer for the core serviceContainer

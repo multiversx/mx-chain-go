@@ -27,15 +27,13 @@ func logError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	return
 }
 
 func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storageUnit.Unit {
-	mdb, err1 := memorydb.New()
+	mdb := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
 	bf := bloom.NewDefaultFilter()
 
-	assert.Nil(t, err1, "failed creating db: %s", err1)
 	assert.Nil(t, err2, "no error expected but got %s", err2)
 
 	sUnit, err := storageUnit.NewStorageUnitWithBloomFilter(cache, mdb, bf)
@@ -46,10 +44,9 @@ func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storageUnit.Unit {
 }
 
 func initStorageUnitWithNilBloomFilter(t *testing.T, cSize int) *storageUnit.Unit {
-	mdb, err1 := memorydb.New()
+	mdb := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
 
-	assert.Nil(t, err1, "failed creating db: %s", err1)
 	assert.Nil(t, err2, "no error expected but got %s", err2)
 
 	sUnit, err := storageUnit.NewStorageUnit(cache, mdb)
@@ -71,34 +68,28 @@ func TestStorageUnitNilPersister(t *testing.T) {
 }
 
 func TestStorageUnitNilCacher(t *testing.T) {
-	mdb, err1 := memorydb.New()
+	mdb := memorydb.New()
 	bf := bloom.NewDefaultFilter()
 
-	assert.Nil(t, err1, "failed creating db")
-
-	_, err1 = storageUnit.NewStorageUnitWithBloomFilter(nil, mdb, bf)
-
+	_, err1 := storageUnit.NewStorageUnitWithBloomFilter(nil, mdb, bf)
 	assert.NotNil(t, err1, "expected failure")
 }
 
 func TestStorageUnitNilBloomFilter(t *testing.T) {
 	cache, err1 := lrucache.NewCache(10)
-	mdb, err2 := memorydb.New()
+	mdb := memorydb.New()
 
 	assert.Nil(t, err1, "no error expected but got %s", err1)
-	assert.Nil(t, err2, "failed creating db")
 
 	_, err := storageUnit.NewStorageUnit(cache, mdb)
-
 	assert.Nil(t, err, "did not expect failure")
 }
 
 func TestStorageUnit_NilBloomFilterShouldErr(t *testing.T) {
 	cache, err1 := lrucache.NewCache(10)
-	mdb, err2 := memorydb.New()
+	mdb := memorydb.New()
 
 	assert.Nil(t, err1, "no error expected but got %s", err1)
-	assert.Nil(t, err2, "failed creating db")
 
 	sUnit, err := storageUnit.NewStorageUnitWithBloomFilter(cache, mdb, nil)
 
@@ -793,7 +784,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)
@@ -813,7 +804,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)
@@ -833,7 +824,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
-		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, "invalid", storageUnit.Fnv},
 	})
 
 	assert.NotNil(t, err)
