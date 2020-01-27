@@ -78,12 +78,12 @@ func checkNewFactoryParams(
 
 // SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return spos.ErrNilAppStatusHandler
 	}
-
 	fct.appStatusHandler = ash
-	return nil
+
+	return fct.worker.SetAppStatusHandler(ash)
 }
 
 // SetIndexer method will update the value of the factory's indexer
@@ -153,7 +153,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 	)
+	if err != nil {
+		return err
+	}
 
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -165,12 +169,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
 	)
-
-	if err != nil {
-		return err
-	}
-
-	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -196,6 +194,11 @@ func (fct *factory) generateBlockSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -237,7 +240,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		return err
 	}
 
-	subroundCommitmentHash, err := NewSubroundCommitmentHash(
+	subroundCommitmentHashObject, err := NewSubroundCommitmentHash(
 		subround,
 		fct.worker.Extend,
 	)
@@ -245,8 +248,8 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtCommitmentHash, subroundCommitmentHash.receivedCommitmentHash)
-	fct.consensusCore.Chronology().AddSubround(subroundCommitmentHash)
+	fct.worker.AddReceivedMessageCall(MtCommitmentHash, subroundCommitmentHashObject.receivedCommitmentHash)
+	fct.consensusCore.Chronology().AddSubround(subroundCommitmentHashObject)
 
 	return nil
 }
@@ -269,7 +272,7 @@ func (fct *factory) generateBitmapSubround() error {
 		return err
 	}
 
-	subroundBitmap, err := NewSubroundBitmap(
+	subroundBitmapObject, err := NewSubroundBitmap(
 		subround,
 		fct.worker.Extend,
 	)
@@ -277,14 +280,14 @@ func (fct *factory) generateBitmapSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBitmap, subroundBitmap.receivedBitmap)
-	fct.consensusCore.Chronology().AddSubround(subroundBitmap)
+	fct.worker.AddReceivedMessageCall(MtBitmap, subroundBitmapObject.receivedBitmap)
+	fct.consensusCore.Chronology().AddSubround(subroundBitmapObject)
 
 	return nil
 }
 
 func (fct *factory) generateCommitmentSubround() error {
-	subround, err := spos.NewSubround(
+	subroundObject, err := spos.NewSubround(
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
@@ -301,16 +304,16 @@ func (fct *factory) generateCommitmentSubround() error {
 		return err
 	}
 
-	subroundCommitment, err := NewSubroundCommitment(
-		subround,
+	subroundCommitmentObject, err := NewSubroundCommitment(
+		subroundObject,
 		fct.worker.Extend,
 	)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtCommitment, subroundCommitment.receivedCommitment)
-	fct.consensusCore.Chronology().AddSubround(subroundCommitment)
+	fct.worker.AddReceivedMessageCall(MtCommitment, subroundCommitmentObject.receivedCommitment)
+	fct.consensusCore.Chronology().AddSubround(subroundCommitmentObject)
 
 	return nil
 }
@@ -333,7 +336,7 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	subroundSignature, err := NewSubroundSignature(
+	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
 	)
@@ -341,8 +344,8 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.consensusCore.Chronology().AddSubround(subroundSignature)
+	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
+	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
 }
@@ -365,7 +368,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	subroundEndRound, err := NewSubroundEndRound(
+	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
 	)
@@ -373,12 +376,12 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundEndRoundObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
+	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil
 }
@@ -394,10 +397,7 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
+	return fct == nil
 }
 
 func debugError(message string, err error) {

@@ -106,9 +106,10 @@ func TestPathManager_PathForEpoch(t *testing.T) {
 	staticPathTemplate := "Shard_[S]/[I]"
 	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate)
 	for _, tt := range tests {
+		ttCopy := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pm.PathForEpoch(tt.args.shardId, tt.args.epoch, tt.args.identifier); got != tt.want {
-				t.Errorf("PathForEpoch() = %v, want %v", got, tt.want)
+			if got := pm.PathForEpoch(ttCopy.args.shardId, ttCopy.args.epoch, ttCopy.args.identifier); got != ttCopy.want {
+				t.Errorf("PathForEpoch() = %v, want %v", got, ttCopy.want)
 			}
 		})
 	}
@@ -143,9 +144,10 @@ func TestPathManager_PathForStatic(t *testing.T) {
 	staticPathTemplate := "Static/Shard_[S]/[I]"
 	pm, _ := pathmanager.NewPathManager(pruningPathTemplate, staticPathTemplate)
 	for _, tt := range tests {
+		ttCopy := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pm.PathForStatic(tt.args.shardId, tt.args.identifier); got != tt.want {
-				t.Errorf("PathForEpoch() = %v, want %v", got, tt.want)
+			if got := pm.PathForStatic(ttCopy.args.shardId, ttCopy.args.identifier); got != ttCopy.want {
+				t.Errorf("PathForEpoch() = %v, want %v", got, ttCopy.want)
 			}
 		})
 	}

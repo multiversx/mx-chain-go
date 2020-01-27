@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -153,14 +154,14 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-			n.ShardDataPool.MetaBlocks().Put(metaHdrFromShardHash, metaHdrFromShard)
+			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.MetaDataPool.MetaBlocks().Put(metaHdrHashFromMetachain, metaHdrFromMetachain)
-	node1Shard0.ShardDataPool.MetaBlocks().Clear()
-	node1Shard0.ShardDataPool.MetaBlocks().RegisterHandler(func(key []byte) {
+	node4Meta.DataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node1Shard0.DataPool.Headers().Clear()
+	node1Shard0.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		chanReceived <- struct{}{}
 	})
 
@@ -179,7 +180,7 @@ func requestAndRetrieveMetaHeader(
 ) *block.MetaBlock {
 
 	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
-	_ = resolver.RequestDataFromHash(hash)
+	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {
 	case <-chanReceived:
@@ -187,7 +188,7 @@ func requestAndRetrieveMetaHeader(
 		return nil
 	}
 
-	retrievedObject, _ := node.ShardDataPool.MetaBlocks().Get(hash)
+	retrievedObject, _ := node.DataPool.Headers().GetHeaderByHash(hash)
 
 	return retrievedObject.(*block.MetaBlock)
 }

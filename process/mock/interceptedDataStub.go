@@ -7,7 +7,11 @@ type InterceptedDataStub struct {
 }
 
 func (ids *InterceptedDataStub) Hash() []byte {
-	return ids.HashCalled()
+	if ids.HashCalled != nil {
+		return ids.HashCalled()
+	}
+
+	return []byte("mock hash")
 }
 
 func (ids *InterceptedDataStub) CheckValidity() error {
@@ -18,9 +22,10 @@ func (ids *InterceptedDataStub) IsForCurrentShard() bool {
 	return ids.IsForCurrentShardCalled()
 }
 
+func (ids *InterceptedDataStub) Type() string {
+	return "intercepted data stub"
+}
+
 func (ids *InterceptedDataStub) IsInterfaceNil() bool {
-	if ids == nil {
-		return true
-	}
-	return false
+	return ids == nil
 }

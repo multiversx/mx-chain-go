@@ -58,7 +58,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 	numOfIntraShardTxsToSend := 20
 	totalNumOfTxs := numOfCrossShardTxsToSend + numOfIntraShardTxsToSend
 	numOfAccounts := 20
-	receivedTxsPerShard = make(map[uint32]int, 0)
+	receivedTxsPerShard = make(map[uint32]int)
 	mutGeneratedTxHashes := sync.Mutex{}
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
@@ -70,7 +70,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 
 	// generate a given number of accounts
 	accounts := generateAccounts(numOfAccounts)
-	accountsByShard := make(map[uint32][]keyPair, 0)
+	accountsByShard := make(map[uint32][]keyPair)
 	for _, acc := range accounts {
 		pkBytes, _ := acc.pk.ToByteArray()
 		shardId := nodes[0].ShardCoordinator.ComputeId(state.NewAddress(pkBytes))
@@ -132,8 +132,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 }
 
 func txPoolRegister(n *integrationTests.TestProcessorNode, mutex *sync.Mutex) {
-
-	n.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
+	n.DataPool.Transactions().RegisterHandler(func(key []byte) {
 		mutex.Lock()
 		receivedTxsPerShard[n.ShardCoordinator.SelfId()]++
 		mutex.Unlock()

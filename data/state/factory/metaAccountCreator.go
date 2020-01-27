@@ -12,7 +12,7 @@ func NewMetaAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (c *MetaAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+func (mac *MetaAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	account, err := state.NewMetaAccount(address, tracker)
 	if err != nil {
 		return nil, err
@@ -22,9 +22,6 @@ func (c *MetaAccountCreator) CreateAccount(address state.AddressContainer, track
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (c *MetaAccountCreator) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+func (mac *MetaAccountCreator) IsInterfaceNil() bool {
+	return mac == nil
 }

@@ -21,128 +21,164 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte) error
+	SnapshotStateCalled         func(rootHash []byte)
+	SetStateCheckpointCalled    func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte)
+	IsPruningEnabledCalled      func() bool
 }
 
 var errNotImplemented = errors.New("not implemented")
 
-func NewAccountsStub() *AccountsStub {
-	return &AccountsStub{}
-}
-
-func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	if aam.AddJournalEntryCalled != nil {
-		aam.AddJournalEntryCalled(je)
+func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
+	if as.AddJournalEntryCalled != nil {
+		as.AddJournalEntryCalled(je)
 	}
 }
 
-func (aam *AccountsStub) Commit() ([]byte, error) {
-	if aam.CommitCalled != nil {
-		return aam.CommitCalled()
+func (as *AccountsStub) Commit() ([]byte, error) {
+	if as.CommitCalled != nil {
+		return as.CommitCalled()
 	}
 
 	return nil, errNotImplemented
 }
 
-func (aam *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-	if aam.GetAccountWithJournalCalled != nil {
-		return aam.GetAccountWithJournalCalled(addressContainer)
+func (as *AccountsStub) ClosePersister() error {
+	return nil
+}
+
+func (as *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+	if as.GetAccountWithJournalCalled != nil {
+		return as.GetAccountWithJournalCalled(addressContainer)
 	}
 
 	return nil, errNotImplemented
 }
 
-func (aam *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-	if aam.GetExistingAccountCalled != nil {
-		return aam.GetExistingAccountCalled(addressContainer)
+func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+	if as.GetExistingAccountCalled != nil {
+		return as.GetExistingAccountCalled(addressContainer)
 	}
 
 	return nil, errNotImplemented
 }
 
-func (aam *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
-	if aam.HasAccountStateCalled != nil {
-		return aam.HasAccountStateCalled(addressContainer)
+func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
+	if as.HasAccountStateCalled != nil {
+		return as.HasAccountStateCalled(addressContainer)
 	}
 
 	return false, errNotImplemented
 }
 
-func (aam *AccountsStub) JournalLen() int {
-	if aam.JournalLenCalled != nil {
-		return aam.JournalLenCalled()
+func (as *AccountsStub) JournalLen() int {
+	if as.JournalLenCalled != nil {
+		return as.JournalLenCalled()
 	}
 
 	return 0
 }
 
-func (aam *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
-	if aam.PutCodeCalled != nil {
-		return aam.PutCodeCalled(accountHandler, code)
+func (as *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
+	if as.PutCodeCalled != nil {
+		return as.PutCodeCalled(accountHandler, code)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
-	if aam.RemoveAccountCalled != nil {
-		return aam.RemoveAccountCalled(addressContainer)
+func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
+	if as.RemoveAccountCalled != nil {
+		return as.RemoveAccountCalled(addressContainer)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) RemoveCode(codeHash []byte) error {
-	if aam.RemoveCodeCalled != nil {
-		return aam.RemoveCodeCalled(codeHash)
+func (as *AccountsStub) RemoveCode(codeHash []byte) error {
+	if as.RemoveCodeCalled != nil {
+		return as.RemoveCodeCalled(codeHash)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) RevertToSnapshot(snapshot int) error {
-	if aam.RevertToSnapshotCalled != nil {
-		return aam.RevertToSnapshotCalled(snapshot)
+func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
+	if as.RevertToSnapshotCalled != nil {
+		return as.RevertToSnapshotCalled(snapshot)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
-	if aam.SaveAccountStateCalled != nil {
-		return aam.SaveAccountStateCalled(journalizedAccountHandler)
+func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
+	if as.SaveAccountStateCalled != nil {
+		return as.SaveAccountStateCalled(journalizedAccountHandler)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
-	if aam.SaveDataTrieCalled != nil {
-		return aam.SaveDataTrieCalled(journalizedAccountHandler)
+func (as *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
+	if as.SaveDataTrieCalled != nil {
+		return as.SaveDataTrieCalled(journalizedAccountHandler)
 	}
 
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) RootHash() ([]byte, error) {
-	if aam.RootHashCalled != nil {
-		return aam.RootHashCalled()
+func (as *AccountsStub) RootHash() ([]byte, error) {
+	if as.RootHashCalled != nil {
+		return as.RootHashCalled()
 	}
 
 	return nil, errNotImplemented
 }
 
-func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
-	if aam.RecreateTrieCalled != nil {
-		return aam.RecreateTrieCalled(rootHash)
+func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
+	if as.RecreateTrieCalled != nil {
+		return as.RecreateTrieCalled(rootHash)
 	}
 
 	return errNotImplemented
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (aam *AccountsStub) IsInterfaceNil() bool {
-	if aam == nil {
-		return true
+func (as *AccountsStub) PruneTrie(rootHash []byte) error {
+	if as.PruneTrieCalled != nil {
+		return as.PruneTrieCalled(rootHash)
 	}
+
+	return errNotImplemented
+}
+
+func (as *AccountsStub) CancelPrune(rootHash []byte) {
+	if as.CancelPruneCalled != nil {
+		as.CancelPruneCalled(rootHash)
+	}
+}
+
+func (as *AccountsStub) SnapshotState(rootHash []byte) {
+	if as.SnapshotStateCalled != nil {
+		as.SnapshotStateCalled(rootHash)
+	}
+}
+
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+	if as.SetStateCheckpointCalled != nil {
+		as.SetStateCheckpointCalled(rootHash)
+	}
+}
+
+func (as *AccountsStub) IsPruningEnabled() bool {
+	if as.IsPruningEnabledCalled != nil {
+		return as.IsPruningEnabledCalled()
+	}
+
 	return false
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (as *AccountsStub) IsInterfaceNil() bool {
+	return as == nil
 }

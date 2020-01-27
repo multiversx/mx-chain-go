@@ -72,7 +72,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
 
 	require.Equal(t, int64(3), cache.CountTx())
-	require.Equal(t, int(3), cache.Len())
+	require.Equal(t, 3, cache.Len())
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {

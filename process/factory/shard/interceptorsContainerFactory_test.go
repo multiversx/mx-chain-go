@@ -50,11 +50,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return &mock.Uint64SyncMapCacherStub{}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
@@ -70,6 +67,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	}
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
+	}
+	pools.TrieNodesCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
@@ -594,6 +594,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, icf)
 	assert.Nil(t, err)
+	assert.False(t, icf.IsInterfaceNil())
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
@@ -884,6 +885,38 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 	assert.Equal(t, errExpected, err)
 }
 
+func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		createStubTopicHandler("", factory.AccountTrieNodesTopic),
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		0,
+	)
+
+	container, err := icf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -977,8 +1010,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
 	numInterceptorMetachainHeaders := 1
+	numInterceptorTrieNodes := 2
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
-		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

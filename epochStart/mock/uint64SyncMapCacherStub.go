@@ -39,8 +39,5 @@ func (usmcs *Uint64SyncMapCacherStub) Remove(nonce uint64, shardId uint32) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (usmcs *Uint64SyncMapCacherStub) IsInterfaceNil() bool {
-	if usmcs == nil {
-		return true
-	}
-	return false
+	return usmcs == nil
 }

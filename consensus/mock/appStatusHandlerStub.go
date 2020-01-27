@@ -12,10 +12,7 @@ type AppStatusHandlerStub struct {
 }
 
 func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
-	if ashs == nil {
-		return true
-	}
-	return false
+	return ashs == nil
 }
 
 // AddUint64 will call the handler of the stub for incrementing

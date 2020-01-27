@@ -196,14 +196,14 @@ func (vs *validatorStatistics) updatePeerState(
 	}
 
 	if !bytes.Equal(peerChange.Address, account.RewardAddress) {
-		err := account.SetRewardAddressWithJournal(peerChange.Address)
+		err = account.SetRewardAddressWithJournal(peerChange.Address)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !bytes.Equal(peerChange.PublicKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
+		err = account.SetBLSPublicKeyWithJournal(peerChange.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -212,14 +212,14 @@ func (vs *validatorStatistics) updatePeerState(
 	zero := big.NewInt(0)
 	if peerChange.ValueChange.Cmp(zero) != 0 {
 		actualValue := zero.Add(account.Stake, peerChange.ValueChange)
-		err := account.SetStakeWithJournal(actualValue)
+		err = account.SetStakeWithJournal(actualValue)
 		if err != nil {
 			return err
 		}
 	}
 
 	if peerChange.Action == block.PeerRegistration && peerChange.TimeStamp != account.Nonce {
-		err := account.SetNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (vs *validatorStatistics) updatePeerState(
 	}
 
 	if peerChange.Action == block.PeerUnstaking && peerChange.TimeStamp != account.UnStakedNonce {
-		err := account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
+		err = account.SetUnStakedNonceWithJournal(peerChange.TimeStamp)
 		if err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.MetaBlocks(), vs.marshalizer, vs.storageService)
+	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	sw.Start("checkForMissedBlocks")
 	defer func() {
 		sw.Stop("checkForMissedBlocks")
-		log.Debug("measurements checkForMissedBlocks", sw.GetMeasurements()...)
+		log.Trace("measurements checkForMissedBlocks", sw.GetMeasurements()...)
 	}()
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
@@ -615,7 +615,7 @@ func (vs *validatorStatistics) loadMissingPrevShardDataFromStorage(missingPrevio
 			break
 		}
 
-		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), vs.dataPool.MetaBlocks(), vs.marshalizer, vs.storageService)
+		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 		if err != nil {
 			return nil, err
 		}
@@ -638,11 +638,6 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 	vs.mutPrevShardInfo.Lock()
 	defer vs.mutPrevShardInfo.Unlock()
 
-	metaDataPool, ok := vs.dataPool.(dataRetriever.MetaPoolsHolder)
-	if !ok {
-		return process.ErrInvalidMetaPoolHolder
-	}
-
 	for _, shardData := range header.ShardInfo {
 		if shardData.Nonce == 1 {
 			continue
@@ -650,7 +645,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 
 		previousHeader, err := process.GetShardHeader(
 			shardData.PrevHash,
-			metaDataPool.ShardHeaders(),
+			vs.dataPool.Headers(),
 			vs.marshalizer,
 			vs.storageService,
 		)

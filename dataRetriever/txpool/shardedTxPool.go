@@ -50,7 +50,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceMicroErd:             uint32(args.MinGasPrice / oneTrilion),
 	}
 
-	shardedTxPool := &shardedTxPool{
+	shardedTxPoolObject := &shardedTxPool{
 		mutex:                sync.RWMutex{},
 		backingMap:           make(map[string]*txPoolShard),
 		mutexAddCallbacks:    sync.RWMutex{},
@@ -58,7 +58,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		cacheConfigPrototype: cacheConfigPrototype,
 	}
 
-	return shardedTxPool, nil
+	return shardedTxPoolObject, nil
 }
 
 // ShardDataStore returns the requested cache, as the generic Cacher interface
@@ -147,10 +147,12 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
+	var txFromCache data.TransactionHandler
+	var hashExists bool
 	for _, shard := range txPool.backingMap {
-		tx, ok := shard.Cache.GetByTxHash(txHash)
-		if ok {
-			return tx, ok
+		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
+		if hashExists {
+			return txFromCache, true
 		}
 	}
 

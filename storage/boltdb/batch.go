@@ -40,8 +40,5 @@ func (b *batch) Reset() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *batch) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+	return b == nil
 }

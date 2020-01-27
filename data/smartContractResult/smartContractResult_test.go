@@ -29,78 +29,53 @@ func TestSmartContractResult_SaveLoad(t *testing.T) {
 	assert.Equal(t, smrS, loadSMR)
 }
 
-func TestSmartContractResult_GetData(t *testing.T) {
+func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{Data: data}
+	nonce := uint64(5)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10)
+	scr := smartContractResult.SmartContractResult{
+		Nonce:    nonce,
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+	assert.False(t, scr.IsInterfaceNil())
 
-	assert.Equal(t, data, scr.Data)
-}
+	rcvAddr := []byte("rcv address")
+	sndAddr := []byte("snd address")
+	value := big.NewInt(37)
+	data := []byte("unStake")
 
-func TestSmartContractResult_GetRecvAddr(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{RcvAddr: data}
-
-	assert.Equal(t, data, scr.RcvAddr)
-}
-
-func TestSmartContractResult_GetSndAddr(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{SndAddr: data}
-
-	assert.Equal(t, data, scr.SndAddr)
-}
-
-func TestSmartContractResult_GetValue(t *testing.T) {
-	t.Parallel()
-
-	value := big.NewInt(10)
-	scr := &smartContractResult.SmartContractResult{Value: value}
-
-	assert.Equal(t, value, scr.Value)
-}
-
-func TestSmartContractResult_SetData(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{}
+	scr.SetRecvAddress(rcvAddr)
+	scr.SetSndAddress(sndAddr)
+	scr.SetValue(value)
 	scr.SetData(data)
 
-	assert.Equal(t, data, scr.Data)
+	assert.Equal(t, sndAddr, scr.GetSndAddress())
+	assert.Equal(t, rcvAddr, scr.GetRecvAddress())
+	assert.Equal(t, value, scr.GetValue())
+	assert.Equal(t, data, scr.GetData())
+	assert.Equal(t, gasLimit, scr.GetGasLimit())
+	assert.Equal(t, gasPrice, scr.GetGasPrice())
+	assert.Equal(t, nonce, scr.GetNonce())
 }
 
-func TestSmartContractResult_SetRecvAddr(t *testing.T) {
+func TestTrimSlicePtr(t *testing.T) {
 	t.Parallel()
 
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{}
-	scr.SetRecvAddress(data)
+	scrSlice := make([]*smartContractResult.SmartContractResult, 0, 5)
+	scr1 := &smartContractResult.SmartContractResult{Nonce: 3}
+	scr2 := &smartContractResult.SmartContractResult{Nonce: 5}
 
-	assert.Equal(t, data, scr.RcvAddr)
-}
+	scrSlice = append(scrSlice, scr1)
+	scrSlice = append(scrSlice, scr2)
 
-func TestSmartContractResult_SetSndAddr(t *testing.T) {
-	t.Parallel()
+	assert.Equal(t, 2, len(scrSlice))
+	assert.Equal(t, 5, cap(scrSlice))
 
-	data := []byte("data")
-	scr := &smartContractResult.SmartContractResult{}
-	scr.SetSndAddress(data)
+	scrSlice = smartContractResult.TrimSlicePtr(scrSlice)
 
-	assert.Equal(t, data, scr.SndAddr)
-}
-
-func TestSmartContractResult_SetValue(t *testing.T) {
-	t.Parallel()
-
-	value := big.NewInt(10)
-	scr := &smartContractResult.SmartContractResult{}
-	scr.SetValue(value)
-
-	assert.Equal(t, value, scr.Value)
+	assert.Equal(t, 2, len(scrSlice))
+	assert.Equal(t, 2, len(scrSlice))
 }

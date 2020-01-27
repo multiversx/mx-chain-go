@@ -29,11 +29,7 @@ func NewStopWatch() *StopWatch {
 // Start marks a start event for a provided identifier
 func (sw *StopWatch) Start(identifier string) {
 	sw.mut.Lock()
-	_, hasStarted := sw.started[identifier]
-	_, hasElapsed := sw.elapsed[identifier]
-	if !hasStarted && !hasElapsed {
-		sw.identifiers = append(sw.identifiers, identifier)
-	}
+	sw.addIdentifier(identifier)
 
 	sw.started[identifier] = time.Now()
 	sw.mut.Unlock()
@@ -130,11 +126,12 @@ func (sw *StopWatch) getContainingDuration() (map[string]time.Duration, []string
 
 // Add adds a time measure containing duration list to self
 func (sw *StopWatch) Add(src *StopWatch) {
+	data, identifiers := src.getContainingDuration()
+
 	sw.mut.Lock()
-	data, _ := src.getContainingDuration()
-	for identifier, duration := range data {
+	for _, identifier := range identifiers {
 		sw.addIdentifier(identifier)
-		sw.elapsed[identifier] += duration
+		sw.elapsed[identifier] += data[identifier]
 	}
 	sw.mut.Unlock()
 }

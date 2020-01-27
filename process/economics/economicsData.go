@@ -24,7 +24,7 @@ type EconomicsData struct {
 	burnAddress          string
 	stakeValue           *big.Int
 	unBoundPeriod        uint64
-	ratingsData         *RatingsData
+	ratingsData          *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -70,7 +70,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		unBoundPeriod:        data.unBoundPeriod,
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
-		ratingsData:         rd,
+		ratingsData:          rd,
 	}, nil
 }
 
@@ -254,10 +254,7 @@ func (ed *EconomicsData) UnBoundPeriod() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
-	if ed == nil {
-		return true
-	}
-	return false
+	return ed == nil
 }
 
 // RatingsData will return the ratingsDataObject

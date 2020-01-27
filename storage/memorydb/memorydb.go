@@ -15,11 +15,11 @@ type DB struct {
 }
 
 // New creates a new memorydb object
-func New() (*DB, error) {
+func New() *DB {
 	return &DB{
 		db:   make(map[string][]byte),
 		mutx: sync.RWMutex{},
-	}, nil
+	}
 }
 
 // Put adds the value to the (key, val) storage medium
@@ -40,7 +40,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	val, ok := s.db[string(key)]
 
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+		return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 	}
 
 	return val, nil
@@ -98,8 +98,5 @@ func (s *DB) DestroyClosed() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

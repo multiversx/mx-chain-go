@@ -2,8 +2,6 @@ package marshal
 
 import (
 	"bytes"
-
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // CapnpMarshalizer implements marshaling with capnproto
@@ -12,10 +10,10 @@ type CapnpMarshalizer struct {
 
 // Marshal does the actual serialization of an object through capnproto
 // The object to be serialized must implement the data.CapnpHelper interface
-func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (cm *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	out := bytes.NewBuffer(nil)
 
-	o := obj.(data.CapnpHelper)
+	o := obj.(CapnpHelper)
 	// set the members to capnp struct
 	err := o.Save(out)
 
@@ -28,10 +26,10 @@ func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 
 // Unmarshal does the actual deserialization of an object through capnproto
 // The object to be deserialized must implement the data.CapnpHelper interface
-func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (cm *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	out := bytes.NewBuffer(buff)
 
-	o := obj.(data.CapnpHelper)
+	o := obj.(CapnpHelper)
 	// set the members to capnp struct
 	err := o.Load(out)
 
@@ -39,9 +37,6 @@ func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (x *CapnpMarshalizer) IsInterfaceNil() bool {
-	if x == nil {
-		return true
-	}
-	return false
+func (cm *CapnpMarshalizer) IsInterfaceNil() bool {
+	return cm == nil
 }
