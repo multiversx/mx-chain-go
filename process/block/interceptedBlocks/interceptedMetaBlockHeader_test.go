@@ -136,13 +136,30 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInterceptedMetaHeader_CheckValidityHeaderAttesterFailsShouldErr(t *testing.T) {
+func TestInterceptedMetaHeader_CheckAgainstRounderAttesterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultMetaArgument()
 	expectedErr := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
-		CheckBlockBasicValidityCalled: func(headerHandler data.HeaderHandler) error {
+		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
 			return expectedErr
 		},
 	}

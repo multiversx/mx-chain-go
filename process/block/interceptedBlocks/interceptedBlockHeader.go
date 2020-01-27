@@ -95,12 +95,15 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = inHdr.validityAttester.CheckBlockBasicValidity(inHdr.HeaderHandler())
+	err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}
 
-	//TODO check the received header's round against the chronology round
+	err = inHdr.validityAttester.CheckBlockAgainstRounder(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
 
 	err = checkMiniblocks(inHdr.hdr.MiniBlockHeaders, inHdr.shardCoordinator)
 	if err != nil {

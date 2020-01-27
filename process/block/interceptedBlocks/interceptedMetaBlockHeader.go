@@ -79,12 +79,15 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	err = imh.validityAttester.CheckBlockBasicValidity(imh.HeaderHandler())
+	err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
 	if err != nil {
 		return err
 	}
 
-	//TODO check the received header's round against the chronology round
+	err = imh.validityAttester.CheckBlockAgainstRounder(imh.HeaderHandler())
+	if err != nil {
+		return err
+	}
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {

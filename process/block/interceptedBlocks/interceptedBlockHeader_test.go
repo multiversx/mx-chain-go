@@ -233,13 +233,30 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInterceptedHeader_CheckValidityHeaderAttesterFailsShouldErr(t *testing.T) {
+func TestInterceptedHeader_CheckAgainstRounderErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultShardArgument()
 	expectedErr := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
-		CheckBlockBasicValidityCalled: func(headerHandler data.HeaderHandler) error {
+		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
 			return expectedErr
 		},
 	}

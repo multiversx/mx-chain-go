@@ -5,12 +5,21 @@ import (
 )
 
 type ValidityAttesterStub struct {
-	CheckBlockBasicValidityCalled func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRounderCalled func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinalCalled   func(headerHandler data.HeaderHandler) error
 }
 
-func (vas *ValidityAttesterStub) CheckBlockBasicValidity(headerHandler data.HeaderHandler) error {
-	if vas.CheckBlockBasicValidityCalled != nil {
-		return vas.CheckBlockBasicValidityCalled(headerHandler)
+func (vas *ValidityAttesterStub) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
+	if vas.CheckBlockAgainstRounderCalled != nil {
+		return vas.CheckBlockAgainstRounderCalled(headerHandler)
+	}
+
+	return nil
+}
+
+func (vas *ValidityAttesterStub) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
+	if vas.CheckBlockAgainstFinalCalled != nil {
+		return vas.CheckBlockAgainstFinalCalled(headerHandler)
 	}
 
 	return nil

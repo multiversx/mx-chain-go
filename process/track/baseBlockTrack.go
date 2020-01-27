@@ -276,8 +276,20 @@ func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64
 	return bbt.crossNotarizer.getNotarizedHeader(shardID, offset)
 }
 
-// CheckBlockBasicValidity checks if the given header is valid related to some basic checks
-func (bbt *baseBlockTrack) CheckBlockBasicValidity(headerHandler data.HeaderHandler) error {
+// CheckBlockAgainstRounder verifies the provided header against the rounder's current round
+func (bbt *baseBlockTrack) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
+	nextRound := bbt.rounder.Index() + 1
+	if int64(headerHandler.GetRound()) > nextRound {
+		return fmt.Errorf("higher round in block: header round: %d, next chronology round: %d",
+			headerHandler.GetRound(),
+			nextRound)
+	}
+
+	return nil
+}
+
+// CheckBlockAgainstFinal checks if the given header is valid related to the final header
+func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
 	if check.IfNil(headerHandler) {
 		return fmt.Errorf("nil header handler")
 	}
@@ -293,7 +305,6 @@ func (bbt *baseBlockTrack) CheckBlockBasicValidity(headerHandler data.HeaderHand
 
 	roundDif := int64(headerHandler.GetRound()) - int64(finalHeader.GetRound())
 	nonceDif := int64(headerHandler.GetNonce()) - int64(finalHeader.GetNonce())
-	nextRound := bbt.rounder.Index() + 1
 
 	if roundDif < 0 {
 		return fmt.Errorf("lower round in block: header round: %d, final header round: %d",
@@ -304,11 +315,6 @@ func (bbt *baseBlockTrack) CheckBlockBasicValidity(headerHandler data.HeaderHand
 		return fmt.Errorf("lower nonce in block: header nonce: %d, final header nonce: %d",
 			headerHandler.GetNonce(),
 			finalHeader.GetNonce())
-	}
-	if int64(headerHandler.GetRound()) > nextRound {
-		return fmt.Errorf("higher round in block: header round: %d, next chronology round: %d",
-			headerHandler.GetRound(),
-			nextRound)
 	}
 	if roundDif < nonceDif {
 		return fmt.Errorf("higher nonce in block: "+

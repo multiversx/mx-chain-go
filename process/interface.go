@@ -612,7 +612,8 @@ type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
-	CheckBlockBasicValidity(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
@@ -642,6 +643,7 @@ type EpochStartDataCreator interface {
 
 // ValidityAttester is able to manage the valid blocks
 type ValidityAttester interface {
-	CheckBlockBasicValidity(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
