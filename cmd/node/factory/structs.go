@@ -408,7 +408,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	datapool, err = createDataPoolFromConfig(args.config)
+	datapool, err = createDataPoolFromConfig(args)
 	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -1044,11 +1044,10 @@ func createDataStoreFromConfig(
 	return nil, errors.New("can not create data store")
 }
 
-func createDataPoolFromConfig(
-	config *config.Config,
-) (dataRetriever.PoolsHolder, error) {
-
+func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
+
+	config := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
 		Config:         storageFactory.GetCacherFromConfig(config.TxDataPool),
