@@ -62,6 +62,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		HeaderSigVerifier: imhdf.headerSigVerifier,
 		ChainID:           imhdf.chainID,
 		ValidityAttester:  imhdf.validityAttester,
+		EpochStartTrigger: &nilEpochTrigger{},
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

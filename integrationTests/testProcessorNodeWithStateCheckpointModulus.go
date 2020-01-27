@@ -54,6 +54,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -61,6 +62,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -77,7 +79,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()

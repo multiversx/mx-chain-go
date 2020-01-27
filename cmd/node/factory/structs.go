@@ -1227,6 +1227,7 @@ func newInterceptorContainerFactory(
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1242,6 +1243,7 @@ func newInterceptorContainerFactory(
 			headerSigVerifier,
 			sizeCheckDelta,
 			validityAttester,
+			epochStartTrigger,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1257,6 +1259,7 @@ func newInterceptorContainerFactory(
 			headerSigVerifier,
 			sizeCheckDelta,
 			validityAttester,
+			epochStartTrigger,
 		)
 	}
 
@@ -1305,6 +1308,7 @@ func newShardInterceptorContainerFactory(
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
@@ -1330,6 +1334,7 @@ func newShardInterceptorContainerFactory(
 		core.ChainID,
 		sizeCheckDelta,
 		validityAttester,
+		epochStartTrigger,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1350,6 +1355,7 @@ func newMetaInterceptorContainerFactory(
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1374,6 +1380,7 @@ func newMetaInterceptorContainerFactory(
 		core.ChainID,
 		sizeCheckDelta,
 		validityAttester,
+		epochStartTrigger,
 	)
 	if err != nil {
 		return nil, nil, err

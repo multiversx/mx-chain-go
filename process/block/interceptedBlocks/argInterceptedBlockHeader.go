@@ -16,4 +16,5 @@ type ArgInterceptedBlockHeader struct {
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 	ChainID           []byte
 	ValidityAttester  process.ValidityAttester
+	EpochStartTrigger process.EpochStartTriggerHandler
 }

@@ -65,6 +65,7 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -78,7 +79,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initHeaderValidator()
+	tpn.initInterceptors()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()

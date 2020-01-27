@@ -297,6 +297,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -304,6 +305,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -320,7 +322,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
@@ -410,6 +411,22 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime: tpn.Rounder.TimeStamp(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			Storage:            tpn.Storage,
+			Marshalizer:        TestMarshalizer,
+		}
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
@@ -432,6 +449,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.ChainID,
 			sizeCheckDelta,
 			tpn.BlockTracker,
+			tpn.EpochStartTrigger,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -439,6 +457,23 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			fmt.Println(err.Error())
 		}
 	} else {
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    tpn.HeaderValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.DataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		}
+		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 			tpn.AccntState,
 			tpn.ShardCoordinator,
@@ -461,6 +496,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.ChainID,
 			sizeCheckDelta,
 			tpn.BlockTracker,
+			tpn.EpochStartTrigger,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -819,7 +855,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		HeaderValidator:              tpn.HeaderValidator,
-		Rounder:                      &mock.RounderMock{},
+		Rounder:                      tpn.Rounder,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -830,22 +866,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-
-		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: argumentsBase.Rounder.TimeStamp(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1000,
-				RoundsPerEpoch:         10000,
-			},
-			Epoch:              0,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
-			Storage:            tpn.Storage,
-			Marshalizer:        TestMarshalizer,
-		}
-		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
-		tpn.EpochStartTrigger = &metachain.TestTrigger{}
-		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
@@ -874,23 +894,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			HeaderValidator:    tpn.HeaderValidator,
-			Uint64Converter:    TestUint64Converter,
-			DataPool:           tpn.DataPool,
-			Storage:            tpn.Storage,
-			RequestHandler:     tpn.RequestHandler,
-			Epoch:              0,
-			Validity:           1,
-			Finality:           1,
-			EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		}
-		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
-		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
-		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
