@@ -27,7 +27,6 @@ func logError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	return
 }
 
 func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storageUnit.Unit {

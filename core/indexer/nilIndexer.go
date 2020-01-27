@@ -16,27 +16,22 @@ func NewNilIndexer() *NilIndexer {
 
 // SaveBlock will do nothing
 func (ni *NilIndexer) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64) {
-	return
 }
 
 // SaveMetaBlock will do nothing
 func (ni *NilIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
-	return
 }
 
 // SaveRoundInfo will do nothing
 func (ni *NilIndexer) SaveRoundInfo(info RoundInfo) {
-	return
 }
 
 // UpdateTPS will do nothing
 func (ni *NilIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	return
 }
 
 // SaveValidatorsPubKeys will do nothing
 func (ni *NilIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

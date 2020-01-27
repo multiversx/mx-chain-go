@@ -931,7 +931,6 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSh
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
-	hash := []byte("X")
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -944,7 +943,6 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLo
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
-	hash := []byte("X")
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -961,7 +959,6 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
-	hash := []byte("X")
 	nonce := uint64(1)
 	shardId := uint32(0)
 

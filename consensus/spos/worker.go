@@ -482,15 +482,13 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 // during the round, different messages from the nodes which are in the validators group
 func (wrk *Worker) checkChannels() {
 	for {
-		select {
-		case rcvDta := <-wrk.executeMessageChannel:
-			msgType := consensus.MessageType(rcvDta.MsgType)
-			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
-				if callReceivedMessage(rcvDta) {
-					select {
-					case wrk.consensusStateChangedChannel <- true:
-					default:
-					}
+		rcvDta := <-wrk.executeMessageChannel
+		msgType := consensus.MessageType(rcvDta.MsgType)
+		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
+			if callReceivedMessage(rcvDta) {
+				select {
+				case wrk.consensusStateChangedChannel <- true:
+				default:
 				}
 			}
 		}

@@ -33,7 +33,6 @@ func NewSender(
 	versionNumber string,
 	nodeDisplayName string,
 ) (*Sender, error) {
-
 	if check.IfNil(peerMessenger) {
 		return nil, ErrNilMessenger
 	}

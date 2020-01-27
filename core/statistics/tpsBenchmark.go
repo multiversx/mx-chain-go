@@ -43,7 +43,7 @@ func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, er
 		return nil, ErrInvalidRoundDuration
 	}
 
-	shardStats := make(map[uint32]ShardStatistic, 0)
+	shardStats := make(map[uint32]ShardStatistic)
 	for i := uint32(0); i < nrOfShards; i++ {
 		shardStats[i] = &ShardStatistics{
 			roundTime:             roundDuration,
@@ -54,7 +54,7 @@ func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, er
 		nrOfShards:            nrOfShards,
 		roundTime:             roundDuration,
 		shardStatistics:       shardStats,
-		missingNonces:         make(map[uint64]struct{}, 0),
+		missingNonces:         make(map[uint64]struct{}),
 		totalProcessedTxCount: big.NewInt(0),
 		averageBlockTxCount:   big.NewInt(0),
 	}, nil
@@ -186,12 +186,6 @@ func (s *TpsBenchmark) addMissingNonce(nonce uint64) {
 
 func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
 	delete(s.missingNonces, nonce)
-}
-
-func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
-	bigNonce := big.NewInt(0)
-	bigNonce.SetUint64(round)
-	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, bigNonce)
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {

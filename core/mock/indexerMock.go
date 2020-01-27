@@ -17,7 +17,6 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 }
 
 func (im *IndexerMock) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
-	return
 }
 
 func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
@@ -34,10 +33,7 @@ func (im *IndexerMock) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]by
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (im *IndexerMock) IsInterfaceNil() bool {
-	if im == nil {
-		return true
-	}
-	return false
+	return im == nil
 }
 
 func (im *IndexerMock) IsNilIndexer() bool {

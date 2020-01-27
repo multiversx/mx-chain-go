@@ -252,7 +252,7 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}
 	logLine.Timestamp = time.Now().UnixNano()
 
-	*count = *count + 1
+	*count++
 
 	return logLine
 }

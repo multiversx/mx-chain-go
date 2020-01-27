@@ -734,7 +734,6 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 				atomic.AddUint32(&numErrors, 1)
 			}
 			wg.Done()
-
 		}()
 	}
 
@@ -1179,7 +1178,6 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	assert.True(t, existInList(peerList, pid2))
 	assert.True(t, existInList(peerList, pid3))
 	assert.True(t, existInList(peerList, pid4))
-
 }
 
 func existInList(list []p2p.PeerID, pid p2p.PeerID) bool {

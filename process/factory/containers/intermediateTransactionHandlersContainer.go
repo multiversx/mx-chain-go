@@ -52,13 +52,13 @@ func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interPr
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Type, IntermediateTransactionHandlers []process.IntermediateTransactionHandler) error {
-	if len(keys) != len(IntermediateTransactionHandlers) {
+func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Type, intermediateTransactionHandlers []process.IntermediateTransactionHandler) error {
+	if len(keys) != len(intermediateTransactionHandlers) {
 		return process.ErrLenMismatch
 	}
 
 	for idx, key := range keys {
-		err := ppc.Add(key, IntermediateTransactionHandlers[idx])
+		err := ppc.Add(key, intermediateTransactionHandlers[idx])
 		if err != nil {
 			return err
 		}
