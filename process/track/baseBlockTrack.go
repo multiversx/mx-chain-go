@@ -278,6 +278,10 @@ func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64
 
 // CheckBlockAgainstRounder verifies the provided header against the rounder's current round
 func (bbt *baseBlockTrack) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return fmt.Errorf("nil header handler")
+	}
+
 	nextRound := bbt.rounder.Index() + 1
 	if int64(headerHandler.GetRound()) > nextRound {
 		return fmt.Errorf("higher round in block: header round: %d, next chronology round: %d",
