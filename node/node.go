@@ -114,8 +114,9 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID      []byte
-	blockTracker process.BlockTrackerpendingMiniBlocks process.PendingMiniBlocksHandler
+	chainID           []byte
+	blockTracker      process.BlockTracker
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 
 	txStorageSize  uint32
 	sizeCheckDelta uint32
@@ -519,6 +520,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.bootStorer,
 		metaStorageBootstrapper,
 		n.requestedItemsHandler,
+		n.epochStartTrigger,
 		n.epochStartTrigger,
 	)
 

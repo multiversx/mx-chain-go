@@ -43,6 +43,7 @@ type BootstrapData struct {
 	LastHeader                 BootstrapHeaderInfo
 	LastCrossNotarizedHeaders  []BootstrapHeaderInfo
 	LastSelfNotarizedHeaders   []BootstrapHeaderInfo
+	ProcessedMiniBlocks        []MiniBlocksInMeta
 	PendingMiniBlocks          []PendingMiniBlockInfo
 	NodesCoordinatorConfigKey  []byte
 	EpochStartTriggerConfigKey []byte

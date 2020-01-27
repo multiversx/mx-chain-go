@@ -1055,7 +1055,8 @@ func (mp *metaProcessor) CommitBlock(
 		round:                      header.Round,
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
-		pendingMiniBlocks: 		    pendingMiniBlocks:
+		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
+		processedMiniBlocks:        nil,
 		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
 	}
 

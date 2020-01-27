@@ -883,8 +883,7 @@ func (sp *shardProcessor) CommitBlock(
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
 		round:                      header.Round,
-		selfNotarizedHeaders:       sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
-		selfNotarizedHeadersHashes: nil,
+		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
 		highestFinalBlockNonce:     sp.lowestNonceInSelfNotarizedHeaders,
 		processedMiniBlocks:        sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,

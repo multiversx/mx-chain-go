@@ -39,12 +39,10 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epochMetaBlockHash          []byte
 	currentRoundIndex           int64
 	epochStartRound             uint64
 	epochMetaBlockHash          []byte
 	triggerStateKey             []byte
-	isEpochStart                bool
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
