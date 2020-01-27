@@ -294,6 +294,7 @@ type ForkDetector interface {
 	SetRollBackNonce(nonce uint64)
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
+	ResetProbableHighestNonce()
 	IsInterfaceNil() bool
 }
 

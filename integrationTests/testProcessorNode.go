@@ -873,7 +873,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
-
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:        TestMarshalizer,

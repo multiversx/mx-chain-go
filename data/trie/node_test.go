@@ -260,8 +260,7 @@ func TestNode_concat(t *testing.T) {
 	t.Parallel()
 
 	a := []byte{1, 2, 3}
-	var b byte
-	b = 4
+	b := byte(4)
 	ab := []byte{1, 2, 3, 4}
 	assert.Equal(t, ab, concat(a, b))
 }

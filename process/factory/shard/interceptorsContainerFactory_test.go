@@ -642,6 +642,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, icf)
 	assert.Nil(t, err)
+	assert.False(t, icf.IsInterfaceNil())
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {

@@ -3,6 +3,8 @@ package heartbeat
 import (
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
@@ -12,17 +14,17 @@ type heartbeatMessageInfo struct {
 	totalUpTime                 Duration
 	totalDownTime               Duration
 
-	getTimeHandler     func() time.Time
 	timeStamp          time.Time
-	isActive           bool
-	receivedShardID    uint32
-	computedShardID    uint32
-	versionNumber      string
-	nodeDisplayName    string
-	isValidator        bool
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
+	versionNumber      string
+	nodeDisplayName    string
+	receivedShardID    uint32
+	computedShardID    uint32
 	updateMutex        sync.Mutex
+	getTimeHandler     func() time.Time
+	isActive           bool
+	isValidator        bool
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -36,7 +38,7 @@ func newHeartbeatMessageInfo(
 	if maxDurationPeerUnresponsive == 0 {
 		return nil, ErrInvalidMaxDurationPeerUnresponsive
 	}
-	if timer == nil || timer.IsInterfaceNil() {
+	if check.IfNil(timer) {
 		return nil, ErrNilTimer
 	}
 

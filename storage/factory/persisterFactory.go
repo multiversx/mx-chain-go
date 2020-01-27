@@ -31,7 +31,7 @@ func NewPersisterFactory(config config.DBConfig) *PersisterFactory {
 
 // Create will return a new instance of a DB with a given path
 func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
-	if len(path) < 0 {
+	if len(path) == 0 {
 		return nil, errors.New("invalid file path")
 	}
 

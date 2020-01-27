@@ -31,10 +31,7 @@ func (pje *PeerJournalEntryAddress) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pje *PeerJournalEntryAddress) IsInterfaceNil() bool {
-	if pje == nil {
-		return true
-	}
-	return false
+	return pje == nil
 }
 
 //------- PeerJournalEntrySchnorrPublicKey
@@ -69,10 +66,7 @@ func (jens *PeerJournalEntrySchnorrPublicKey) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (jens *PeerJournalEntrySchnorrPublicKey) IsInterfaceNil() bool {
-	if jens == nil {
-		return true
-	}
-	return false
+	return jens == nil
 }
 
 //------- PeerJournalEntryBLSPublicKey
@@ -104,10 +98,7 @@ func (pjeb *PeerJournalEntryBLSPublicKey) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjeb *PeerJournalEntryBLSPublicKey) IsInterfaceNil() bool {
-	if pjeb == nil {
-		return true
-	}
-	return false
+	return pjeb == nil
 }
 
 //------- PeerJournalEntryStake
@@ -139,10 +130,7 @@ func (pjes *PeerJournalEntryStake) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjes *PeerJournalEntryStake) IsInterfaceNil() bool {
-	if pjes == nil {
-		return true
-	}
-	return false
+	return pjes == nil
 }
 
 // PeerJournalEntryJailTime is used to revert a balance change
@@ -172,10 +160,7 @@ func (pjej *PeerJournalEntryJailTime) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjej *PeerJournalEntryJailTime) IsInterfaceNil() bool {
-	if pjej == nil {
-		return true
-	}
-	return false
+	return pjej == nil
 }
 
 // PeerJournalEntryCurrentShardId is used to revert a shardId change
@@ -205,10 +190,7 @@ func (pjec *PeerJournalEntryCurrentShardId) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjec *PeerJournalEntryCurrentShardId) IsInterfaceNil() bool {
-	if pjec == nil {
-		return true
-	}
-	return false
+	return pjec == nil
 }
 
 // PeerJournalEntryNextShardId is used to revert a shardId change
@@ -238,10 +220,7 @@ func (pjen *PeerJournalEntryNextShardId) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjen *PeerJournalEntryNextShardId) IsInterfaceNil() bool {
-	if pjen == nil {
-		return true
-	}
-	return false
+	return pjen == nil
 }
 
 // PeerJournalEntryInWaitingList is used to revert a shardId change
@@ -274,10 +253,7 @@ func (pjew *PeerJournalEntryInWaitingList) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjew *PeerJournalEntryInWaitingList) IsInterfaceNil() bool {
-	if pjew == nil {
-		return true
-	}
-	return false
+	return pjew == nil
 }
 
 // PeerJournalEntryValidatorSuccessRate is used to revert a success rate change
@@ -310,10 +286,7 @@ func (pjev *PeerJournalEntryValidatorSuccessRate) Revert() (AccountHandler, erro
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjev *PeerJournalEntryValidatorSuccessRate) IsInterfaceNil() bool {
-	if pjev == nil {
-		return true
-	}
-	return false
+	return pjev == nil
 }
 
 // PeerJournalEntryLeaderSuccessRate is used to revert a success rate change
@@ -346,10 +319,7 @@ func (pjel *PeerJournalEntryLeaderSuccessRate) Revert() (AccountHandler, error) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjel *PeerJournalEntryLeaderSuccessRate) IsInterfaceNil() bool {
-	if pjel == nil {
-		return true
-	}
-	return false
+	return pjel == nil
 }
 
 // PeerJournalEntryRating is used to revert a rating change
@@ -379,10 +349,7 @@ func (pjer *PeerJournalEntryRating) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
-	if pjer == nil {
-		return true
-	}
-	return false
+	return pjer == nil
 }
 
 // PeerJournalEntryTempRating is used to revert a rating change
@@ -442,8 +409,5 @@ func (pjec *PeerJournalEntryUnStakedNonce) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjec *PeerJournalEntryUnStakedNonce) IsInterfaceNil() bool {
-	if pjec == nil {
-		return true
-	}
-	return false
+	return pjec == nil
 }

@@ -94,6 +94,7 @@ func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.False(t, check.IfNil(imh))
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyBlockHeader := &block.Header{}

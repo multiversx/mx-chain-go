@@ -265,7 +265,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	defer bfd.mutHeaders.Unlock()
 
 	hdrInfos := bfd.headers[hdrInfo.nonce]
-	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
+	isHdrInfosNilOrEmpty := len(hdrInfos) == 0 // no need for nil check, len() for nil returns 0
 	if isHdrInfosNilOrEmpty {
 		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
 		return true
@@ -298,13 +298,21 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
-	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
-	probableHighestNonce := bfd.computeProbableHighestNonce()
-	bfd.setProbableHighestNonce(probableHighestNonce)
+	bfd.ResetProbableHighestNonce()
 	bfd.setLastRoundWithForcedFork(bfd.rounder.Index())
 
 	log.Debug("forkDetector.ResetFork",
-		"probable highest nonce", probableHighestNonce)
+		"last round with forced fork", bfd.lastRoundWithForcedFork())
+}
+
+// ResetProbableHighestNonce resets the probable highest nonce to the last checkpoint nonce / highest notarized nonce
+func (bfd *baseForkDetector) ResetProbableHighestNonce() {
+	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.ResetProbableHighestNonce",
+		"probable highest nonce", bfd.probableHighestNonce())
 }
 
 func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {

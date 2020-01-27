@@ -38,8 +38,8 @@ const (
 // RequestData holds the requested data
 // This struct will be serialized and sent to the other peers
 type RequestData struct {
-	Type  RequestDataType
 	Value []byte
+	Type  RequestDataType
 	Epoch uint32
 }
 

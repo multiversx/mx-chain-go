@@ -32,6 +32,7 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
+	assert.False(t, target.IsInterfaceNil())
 }
 
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {

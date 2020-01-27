@@ -156,6 +156,7 @@ func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.False(t, check.IfNil(imh))
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyMetaHeader := &block.Header{}
