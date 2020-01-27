@@ -226,8 +226,5 @@ func (sd *shardedData) RegisterHandler(handler func(key []byte)) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *shardedData) IsInterfaceNil() bool {
-	if sd == nil {
-		return true
-	}
-	return false
+	return sd == nil
 }
