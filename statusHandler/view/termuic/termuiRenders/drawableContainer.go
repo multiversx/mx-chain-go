@@ -15,7 +15,6 @@ type DrawableContainer struct {
 	minWidth  int
 	maxWidth  int
 	maxHeight int
-	items     []termui.Drawable
 }
 
 //NewDrawableContainer method is used to return a new NewDrawableContainer structure

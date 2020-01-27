@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"math/big"
-	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -36,16 +35,6 @@ func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
 	}
 
 	return valStr
-}
-
-func (psh *PresenterStatusHandler) getFloatFromStringMetric(metric string) float64 {
-	stringValue := psh.getFromCacheAsString(metric)
-	floatMetric, err := strconv.ParseFloat(stringValue, 64)
-	if err != nil {
-		return 0.0
-	}
-
-	return floatMetric
 }
 
 func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big.Int {

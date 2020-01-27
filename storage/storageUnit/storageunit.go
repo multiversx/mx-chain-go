@@ -2,7 +2,6 @@ package storageUnit
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -89,7 +88,6 @@ type BloomConfig struct {
 // holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
-	batcher     storage.Batcher
 	persister   storage.Persister
 	cacher      storage.Cacher
 	bloomFilter storage.BloomFilter
@@ -116,8 +114,8 @@ func (u *Unit) Put(key, data []byte) error {
 }
 
 // Close will close unit
-func (s *Unit) Close() error {
-	err := s.persister.Close()
+func (u *Unit) Close() error {
+	err := u.persister.Close()
 	if err != nil {
 		log.Error("cannot close storage unit persister", err)
 		return err
@@ -150,7 +148,7 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 			// if found in persistence unit, add it in cache
 			u.cacher.Put(key, v)
 		} else {
-			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
 	}
 

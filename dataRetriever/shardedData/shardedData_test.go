@@ -227,7 +227,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		if !bytes.Equal([]byte("aaaa"), key) {
@@ -273,7 +273,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		wg.Done()

@@ -30,11 +30,7 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 
 	isSCAddress := bytes.Equal(rcvAddress[:(NumInitCharactersForScAddress-VMTypeLen)],
 		make([]byte, NumInitCharactersForScAddress-VMTypeLen))
-	if isSCAddress {
-		return true
-	}
-
-	return false
+	return isSCAddress
 }
 
 // IsMetachainIdentifier verifies if the identifier is of type metachain

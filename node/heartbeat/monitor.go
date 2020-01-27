@@ -45,7 +45,6 @@ func NewMonitor(
 	storer HeartbeatStorageHandler,
 	timer Timer,
 ) (*Monitor, error) {
-
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
@@ -92,8 +91,8 @@ func NewMonitor(
 }
 
 func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string) error {
-	pubKeysMapCopy := make(map[uint32][]string, 0)
-	pubKeysToSave := make(map[string]*heartbeatMessageInfo, 0)
+	pubKeysMapCopy := make(map[uint32][]string)
+	pubKeysToSave := make(map[string]*heartbeatMessageInfo)
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
 			e := m.initializeHeartBeatForPK(pubkey, shardId, pubKeysToSave, pubKeysMapCopy)

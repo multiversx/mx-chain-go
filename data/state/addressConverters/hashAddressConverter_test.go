@@ -1,9 +1,9 @@
 package addressConverters_test
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 
@@ -161,7 +161,7 @@ func TestAddressConverterCreateAddressFromHexEmptyBadStringShouldErr(t *testing.
 
 	adr := ""
 	for i := 0; i < 64; i++ {
-		adr = adr + "t"
+		adr += "t"
 	}
 
 	_, err = ac.CreateAddressFromHex(adr)

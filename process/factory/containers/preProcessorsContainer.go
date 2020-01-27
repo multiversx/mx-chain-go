@@ -52,13 +52,13 @@ func (ppc *preProcessorsContainer) Add(key block.Type, preProcessor process.PreP
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors []process.PreProcessor) error {
-	if len(keys) != len(PreProcessors) {
+func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, preProcessors []process.PreProcessor) error {
+	if len(keys) != len(preProcessors) {
 		return process.ErrLenMismatch
 	}
 
 	for idx, key := range keys {
-		err := ppc.Add(key, PreProcessors[idx])
+		err := ppc.Add(key, preProcessors[idx])
 		if err != nil {
 			return err
 		}

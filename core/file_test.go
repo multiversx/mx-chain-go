@@ -125,7 +125,7 @@ func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	t.Parallel()
 
 	fileName := "testFile7"
-	_, err := os.Create(fileName)
+	_, _ = os.Create(fileName)
 
 	data, err := core.LoadSkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
@@ -183,9 +183,6 @@ func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	fileName := "testFile10"
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
-
-	skBytes := make([]byte, 0)
-	skBytes = append(skBytes, 10, 20, 30, 40, 50, 60)
 
 	_, _ = file.WriteString("-----BEGIN PRIVATE KEY for data-----\n")
 	_, _ = file.WriteString("ChQeKDI8\n")

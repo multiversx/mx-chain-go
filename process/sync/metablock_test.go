@@ -63,7 +63,6 @@ func createMetaBlockProcessor() *mock.BlockProcessorMock {
 			return nil
 		},
 		RevertAccountStateCalled: func() {
-			return
 		},
 		CommitBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			return nil

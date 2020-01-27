@@ -1967,9 +1967,8 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	accTracker.JournalizeCalled = func(entry state.JournalEntry) {
-		return
-	}
+	accTracker.JournalizeCalled = func(entry state.JournalEntry) {}
+
 	accTracker.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
 		testAcc = accountHandler.(*state.Account)
 		return nil
@@ -1980,12 +1979,12 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	assert.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
-	outacc1.Nonce = outacc1.Nonce + 1
+	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
 	err = sc.processSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
 
-	outacc1.Nonce = outacc1.Nonce + 1
+	outacc1.Nonce++
 	outacc1.BalanceDelta = big.NewInt(int64(10))
 	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
@@ -2343,17 +2342,10 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	test := "test"
 	result := ""
 	sep := "@"
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
+	for i := 0; i < 6; i++ {
+		result += test
+		result += sep
+	}
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
