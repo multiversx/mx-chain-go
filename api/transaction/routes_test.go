@@ -287,7 +287,7 @@ func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
 
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
 }
 

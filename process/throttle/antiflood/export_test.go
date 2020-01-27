@@ -8,8 +8,8 @@ func (qfp *quotaFloodPreventer) SetGlobalQuotaValues(maxMessages uint32, size ui
 }
 
 func (tfp *topicFloodPreventer) CountForTopicAndIdentifier(topic string, identifier string) uint32 {
-	tfp.mutOperation.RLock()
-	defer tfp.mutOperation.RUnlock()
+	tfp.mutTopicMaxMessages.RLock()
+	defer tfp.mutTopicMaxMessages.RUnlock()
 
 	mapForTopic, ok := tfp.counterMap[topic]
 	if !ok {

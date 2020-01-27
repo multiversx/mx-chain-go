@@ -14,9 +14,9 @@ const wildcardCharacter = "*"
 
 var log = logger.GetOrCreate("process/throttle/antiflood")
 
-// topicFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
+// topicFloodPreventer represents a flood preventer based on limitations of messages per given topics
 type topicFloodPreventer struct {
-	mutOperation              *sync.RWMutex
+	mutTopicMaxMessages       *sync.RWMutex
 	topicMaxMessages          map[string]uint32
 	counterMap                map[string]map[string]uint32
 	defaultMaxMessagesPerPeer uint32
@@ -36,7 +36,7 @@ func NewTopicFloodPreventer(
 	}
 
 	return &topicFloodPreventer{
-		mutOperation:              &sync.RWMutex{},
+		mutTopicMaxMessages:       &sync.RWMutex{},
 		topicMaxMessages:          make(map[string]uint32),
 		counterMap:                make(map[string]map[string]uint32),
 		defaultMaxMessagesPerPeer: maxMessagesPerPeer,
@@ -46,8 +46,8 @@ func NewTopicFloodPreventer(
 // Accumulate tries to increment the counter values held at "identifier" position for the given topic
 // It returns true if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
 func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool {
-	tfp.mutOperation.Lock()
-	defer tfp.mutOperation.Unlock()
+	tfp.mutTopicMaxMessages.Lock()
+	defer tfp.mutTopicMaxMessages.Unlock()
 
 	_, ok := tfp.counterMap[topic]
 	if !ok {
@@ -70,15 +70,15 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
 func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages uint32) {
 	log.Debug("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
-	tfp.mutOperation.Lock()
+	tfp.mutTopicMaxMessages.Lock()
 	tfp.topicMaxMessages[topic] = numMessages
-	tfp.mutOperation.Unlock()
+	tfp.mutTopicMaxMessages.Unlock()
 }
 
 // ResetForTopic clears all map values for a given topic
 func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
-	tfp.mutOperation.Lock()
-	defer tfp.mutOperation.Unlock()
+	tfp.mutTopicMaxMessages.Lock()
+	defer tfp.mutTopicMaxMessages.Unlock()
 
 	if strings.Contains(topic, wildcardCharacter) {
 		tfp.resetTopicWithWildCard(topic)
