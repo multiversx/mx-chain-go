@@ -10,14 +10,12 @@ func estimateTxSize(tx data.TransactionHandler) int64 {
 	return int64(estimatedSizeOfBoundedTxFields) + sizeOfData
 }
 
-// TODO-TXCACHE uint64
 // estimateTxGas returns an approximation for the necessary computation units (gas units)
 func estimateTxGas(tx data.TransactionHandler) int64 {
 	gasLimit := int64(tx.GetGasLimit())
 	return gasLimit
 }
 
-// TODO-TXCACHE uint64
 // estimateTxFee returns an approximation for the cost of a transaction, in micro ERD (1/1000000 ERD)
 func estimateTxFee(tx data.TransactionHandler) int64 {
 	// In order to obtain the result as micro ERD, we have to divide by 10^12 (since 1 ERD = 10^18 gas currency units)
