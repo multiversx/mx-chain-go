@@ -1,7 +1,9 @@
 package track
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // metaBlockTrack
@@ -46,6 +48,26 @@ func (bbt *baseBlockTrack) CleanupTrackedHeadersBehindNonce(shardID uint32, nonc
 
 func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message string) {
 	bbt.displayTrackedHeadersForShard(shardID, message)
+}
+
+func (bbt *baseBlockTrack) SetRounder(rounder consensus.Rounder) {
+	bbt.rounder = rounder
+}
+
+func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
+	bbt.crossNotarizer = notarizer
+}
+
+func (bbt *baseBlockTrack) SetSelfNotarizer(notarizer blockNotarizerHandler) {
+	bbt.selfNotarizer = notarizer
+}
+
+func (bbt *baseBlockTrack) SetShardCoordinator(coordinator sharding.Coordinator) {
+	bbt.shardCoordinator = coordinator
+}
+
+func NewBaseBlockTrack() *baseBlockTrack {
+	return &baseBlockTrack{}
 }
 
 // blockNotifier

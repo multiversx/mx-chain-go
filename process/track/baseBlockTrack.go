@@ -280,12 +280,13 @@ func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64
 // CheckBlockAgainstRounder verifies the provided header against the rounder's current round
 func (bbt *baseBlockTrack) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
 	if check.IfNil(headerHandler) {
-		return fmt.Errorf("nil header handler")
+		return process.ErrNilHeaderHandler
 	}
 
 	nextRound := bbt.rounder.Index() + 1
 	if int64(headerHandler.GetRound()) > nextRound {
-		return fmt.Errorf("higher round in block: header round: %d, next chronology round: %d",
+		return fmt.Errorf("%w header round: %d, next chronology round: %d",
+			process.ErrHigherRoundInBlock,
 			headerHandler.GetRound(),
 			nextRound)
 	}
@@ -296,7 +297,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstRounder(headerHandler data.HeaderHan
 // CheckBlockAgainstFinal checks if the given header is valid related to the final header
 func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
 	if check.IfNil(headerHandler) {
-		return fmt.Errorf("nil header handler")
+		return process.ErrNilHeaderHandler
 	}
 
 	finalHeader, _, err := bbt.GetFinalHeader(headerHandler.GetShardID())
@@ -312,19 +313,22 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 	nonceDif := int64(headerHandler.GetNonce()) - int64(finalHeader.GetNonce())
 
 	if roundDif < 0 {
-		return fmt.Errorf("lower round in block: header round: %d, final header round: %d",
+		return fmt.Errorf("%w for header round: %d, final header round: %d",
+			process.ErrLowerRoundInBlock,
 			headerHandler.GetRound(),
 			finalHeader.GetRound())
 	}
 	if nonceDif < 0 {
-		return fmt.Errorf("lower nonce in block: header nonce: %d, final header nonce: %d",
+		return fmt.Errorf("%w for header nonce: %d, final header nonce: %d",
+			process.ErrLowerNonceInBlock,
 			headerHandler.GetNonce(),
 			finalHeader.GetNonce())
 	}
 	if roundDif < nonceDif {
-		return fmt.Errorf("higher nonce in block: "+
+		return fmt.Errorf("%w for "+
 			"header round: %d, final header round: %d, round dif: %d"+
 			"header nonce: %d, final header nonce: %d, nonce dif: %d",
+			process.ErrHigherNonceInBlock,
 			headerHandler.GetRound(),
 			finalHeader.GetRound(),
 			roundDif,
@@ -339,10 +343,10 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 // GetFinalHeader returns final header for a given shard
 func (bbt *baseBlockTrack) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if shardID != bbt.shardCoordinator.SelfId() {
-		return bbt.crossNotarizer.getFirstNotarizedHeader(shardID)
+		return bbt.crossNotarizer.GetFirstNotarizedHeader(shardID)
 	}
 
-	return bbt.selfNotarizer.getFirstNotarizedHeader(shardID)
+	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
 }
 
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard

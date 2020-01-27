@@ -278,6 +278,15 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
+// ErrHigherRoundInBlock signals that a block with higher round than permitted has been provided
+var ErrHigherRoundInBlock = errors.New("higher round in block")
+
+// ErrLowerNonceInBlock signals that a block with lower nonce than permitted has been provided
+var ErrLowerNonceInBlock = errors.New("lower nonce in block")
+
+// ErrHigherNonceInBlock signals that a block with higher nonce than permitted has been provided
+var ErrHigherNonceInBlock = errors.New("higher nonce in block")
+
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
 var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
 
@@ -623,3 +632,6 @@ var ErrGettingShardDataFromEpochStartData = errors.New("could not find shard dat
 
 // ErrNilValidityAttester signals that a nil validity attester has been provided
 var ErrNilValidityAttester = errors.New("nil validity attester")
+
+// ErrNilHeaderHandler signals that a nil header handler has been provided
+var ErrNilHeaderHandler = errors.New("nil header handler")
