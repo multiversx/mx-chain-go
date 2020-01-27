@@ -113,8 +113,9 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID      []byte
-	blockTracker process.BlockTrackerpendingMiniBlocks process.PendingMiniBlocksHandler
+	chainID           []byte
+	blockTracker      process.BlockTracker
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 
 	txStorageSize  uint32
 	sizeCheckDelta uint32
