@@ -215,7 +215,7 @@ func hexToKeyBytes(hex []byte) ([]byte, error) {
 	hexSliceIndex := 0
 	for i := len(key) - 1; i >= 0; i-- {
 		key[i] = hex[hexSliceIndex+1]<<nibbleSize | hex[hexSliceIndex]
-		hexSliceIndex = hexSliceIndex + 2
+		hexSliceIndex += 2
 	}
 
 	return key, nil

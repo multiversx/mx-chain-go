@@ -215,8 +215,5 @@ func (s *DB) DestroyClosed() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

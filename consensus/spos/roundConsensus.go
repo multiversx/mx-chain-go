@@ -198,7 +198,6 @@ func (rcns *roundConsensus) ResetRoundState() {
 		}
 
 		currentRoundState.ResetJobsDone()
-
 	}
 
 	rcns.mut.Unlock()

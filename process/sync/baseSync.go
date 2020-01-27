@@ -42,14 +42,6 @@ type notarizedInfo struct {
 	startNonce              uint64
 }
 
-func (ni *notarizedInfo) reset() {
-	ni.lastNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.finalNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
-	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
-	ni.startNonce = uint64(0)
-}
-
 type baseBootstrap struct {
 	headers dataRetriever.HeadersPool
 
@@ -275,7 +267,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
@@ -479,7 +471,6 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
 	}
-
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -723,20 +714,6 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
-}
-
-func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
-	header, err := boot.getHeaderFromPool(hash)
-	if err != nil {
-		return err
-	}
-
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (boot *baseBootstrap) isForcedFork() bool {

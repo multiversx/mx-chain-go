@@ -82,10 +82,7 @@ func (kg *keyGenerator) Suite() crypto.Suite {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (kg *keyGenerator) IsInterfaceNil() bool {
-	if kg == nil {
-		return true
-	}
-	return false
+	return kg == nil
 }
 
 func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point, err error) {

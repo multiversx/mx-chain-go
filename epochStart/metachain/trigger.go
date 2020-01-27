@@ -221,11 +221,11 @@ func (t *trigger) Revert(round uint64) {
 	}
 
 	t.currEpochStartRound = t.prevEpochStartRound
-	t.epoch = t.epoch - 1
+	t.epoch--
 	t.isEpochStart = false
 	t.currentRound = round
 	if t.currentRound > 0 {
-		t.currentRound = t.currentRound - 1
+		t.currentRound--
 	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -75,12 +76,12 @@ func checkNewFactoryParams(
 
 // SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return spos.ErrNilAppStatusHandler
 	}
-
 	fct.appStatusHandler = ash
-	return nil
+
+	return fct.worker.SetAppStatusHandler(ash)
 }
 
 // SetIndexer method will update the value of the factory's indexer
@@ -139,6 +140,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
 	subroundStartRound, err := commonSubround.NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
@@ -146,11 +152,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -176,6 +177,11 @@ func (fct *factory) generateBlockSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}

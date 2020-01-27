@@ -343,7 +343,6 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 	err := txRes.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errExpected, err)
-
 }
 
 func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCallSliceSplitter(t *testing.T) {
@@ -433,7 +432,6 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		Type:  dataRetriever.HashType,
 		Value: buffRequested,
 	}, requested)
-
 }
 
 //------- RequestDataFromHashArray
@@ -467,5 +465,4 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		Type:  dataRetriever.HashArrayType,
 		Value: buff,
 	}, requested)
-
 }

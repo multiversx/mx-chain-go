@@ -23,8 +23,6 @@ type TpsBenchmarkMock struct {
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
 	shardStatistics       map[uint32]statistics.ShardStatistic
-	missingNonces         map[uint64]struct{}
-	missingNoncesLock     sync.RWMutex
 }
 
 // ActiveNodes returns the number of active nodes

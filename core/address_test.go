@@ -2,8 +2,9 @@ package core
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddress_isSmartContractAddress(t *testing.T) {

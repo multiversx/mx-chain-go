@@ -11,26 +11,23 @@ type ChannelLoadBalancerStub struct {
 	CollectOneElementFromChannelsCalled func() *p2p.SendableData
 }
 
-func (plbs *ChannelLoadBalancerStub) AddChannel(pipe string) error {
-	return plbs.AddChannelCalled(pipe)
+func (clbs *ChannelLoadBalancerStub) AddChannel(pipe string) error {
+	return clbs.AddChannelCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
-	return plbs.RemoveChannelCalled(pipe)
+func (clbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
+	return clbs.RemoveChannelCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
-	return plbs.GetChannelOrDefaultCalled(pipe)
+func (clbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
+	return clbs.GetChannelOrDefaultCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
-	return plbs.CollectOneElementFromChannelsCalled()
+func (clbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
+	return clbs.CollectOneElementFromChannelsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (plbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
-	if plbs == nil {
-		return true
-	}
-	return false
+func (clbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
+	return clbs == nil
 }

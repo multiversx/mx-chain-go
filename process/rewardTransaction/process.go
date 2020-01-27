@@ -108,8 +108,5 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxProcessor) IsInterfaceNil() bool {
-	if rtp == nil {
-		return true
-	}
-	return false
+	return rtp == nil
 }

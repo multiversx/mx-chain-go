@@ -178,7 +178,7 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 			if err != nil {
 				//could not connect, wait and try next one
 				startIndex++
-				startIndex = startIndex % len(initialPeersList)
+				startIndex %= len(initialPeersList)
 
 				time.Sleep(intervalBetweenAttempts)
 
