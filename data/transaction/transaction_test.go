@@ -1,36 +1,15 @@
 package transaction_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestTransaction_SaveLoad(t *testing.T) {
-	tx := transaction.Transaction{
-		Nonce:     uint64(1),
-		Value:     big.NewInt(1),
-		RcvAddr:   []byte("receiver_address"),
-		SndAddr:   []byte("sender_address"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data"),
-		Signature: []byte("signature"),
-	}
-
-	var b bytes.Buffer
-	_ = tx.Save(&b)
-
-	loadTx := transaction.Transaction{}
-	_ = loadTx.Load(&b)
-
-	assert.Equal(t, loadTx, tx)
-}
 
 func TestTransaction_SettersAndGetters(t *testing.T) {
 	t.Parallel()
@@ -48,7 +27,7 @@ func TestTransaction_SettersAndGetters(t *testing.T) {
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.False(t, tx.IsInterfaceNil())
+	assert.False(t, check.IfNil(tx))
 
 	tx.SetSndAddress(sender)
 	tx.SetData(txData)
