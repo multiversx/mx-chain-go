@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-var log = logger.GetOrCreate("dataretriever/txpool")
+var log = logger.GetOrCreate("txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
@@ -30,6 +30,8 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+	log.Trace("NewShardedTxPool", "args", args)
+
 	err := args.verify()
 	if err != nil {
 		return nil, err

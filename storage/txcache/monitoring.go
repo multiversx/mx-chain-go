@@ -66,13 +66,13 @@ func (cache *TxCache) displaySendersHistogram() {
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
 	// This happens when one transaction is processed and it has to be removed from the cache, but it has already been evicted soon after its selection.
-	log.Debug("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "name", cache.name, "tx", txHash)
+	log.Trace("TxCache.onRemoveTxInconsistency(): detected maps sync inconsistency", "name", cache.name, "tx", txHash)
 }
 
 func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
 	// This happens when a sender whose transactions were selected for processing is evicted from cache.
 	// When it comes to remove one if its transactions due to processing, they don't exist in cache anymore.
-	log.Debug("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
+	log.Trace("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
 }
 
 // evictionJournal keeps a short journal about the eviction process
