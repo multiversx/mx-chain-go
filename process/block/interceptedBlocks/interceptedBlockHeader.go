@@ -115,19 +115,17 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 func (inHdr *InterceptedHeader) integrity() error {
 	if !inHdr.isEpochCorrect() {
 		return fmt.Errorf("%w : shard header with old epoch and bad round: "+
-			"round=%v, "+
-			"shardEpoch=%v, "+
 			"shardHeaderHash=%s, "+
 			"shardId=%v, "+
 			"metaEpoch=%v, "+
+			"shardEpoch=%v, "+
 			"shardRound=%v, "+
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
-			inHdr.hdr.Round,
-			inHdr.hdr.Epoch,
 			core.ToHex(inHdr.hash),
 			inHdr.hdr.ShardId,
 			inHdr.epochStartTrigger.Epoch(),
+			inHdr.hdr.Epoch,
 			inHdr.hdr.Round,
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}

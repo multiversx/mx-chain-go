@@ -238,6 +238,9 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
 
+			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
+			log.Debug(display.Headline(msg, "", "#"))
+
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
 				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
@@ -250,9 +253,6 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
 				continue
 			}
-
-			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
-			log.Debug(display.Headline(msg, "", "#"))
 		}
 	}
 }

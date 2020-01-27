@@ -270,7 +270,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
-		log.Debug("process.GetMetaHeader", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		log.Debug("UpdatePeerState after process.GetMetaHeader", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, err
 	}
 
@@ -651,7 +651,7 @@ func (vs *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBl
 			vs.storageService,
 		)
 		if err != nil {
-			log.Debug("loadPreviousShardHeadersMeta", "error", err.Error(), "prevHash", shardData.PrevHash, "shardId", shardData.ShardID, "round", shardData.Round, "nonce", shardData.Nonce)
+			log.Debug("loadPreviousShardHeadersMeta after process.GetShardHeader", "error", err.Error(), "prevHash", shardData.PrevHash, "shardId", shardData.ShardID, "round", shardData.Round, "nonce", shardData.Nonce)
 			return err
 		}
 
