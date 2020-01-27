@@ -34,8 +34,5 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHashArray(hashes [][]byte, epo
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hsrs *HashSliceResolverStub) IsInterfaceNil() bool {
-	if hsrs == nil {
-		return true
-	}
-	return false
+	return hsrs == nil
 }

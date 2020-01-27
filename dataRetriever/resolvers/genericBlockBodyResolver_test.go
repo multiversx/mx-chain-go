@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //------- NewBlockBodyResolver
@@ -83,6 +84,45 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, gbbRes)
+}
+
+func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
+	t.Parallel()
+
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{
+			Fail: true,
+		},
+	)
+	assert.Nil(t, err)
+
+	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
+	require.NotNil(t, err)
+}
+
+func TestRequestDataFromHashArray(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
+		&mock.TopicResolverSenderStub{
+			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+				called = true
+				return nil
+			},
+		},
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+	)
+	assert.Nil(t, err)
+
+	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
+	require.Nil(t, err)
+	require.True(t, called)
 }
 
 //------- ProcessReceivedMessage
