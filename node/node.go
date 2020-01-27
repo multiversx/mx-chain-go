@@ -646,9 +646,9 @@ func (n *Node) SendTransaction(
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	transactionsByShards := make(map[uint32][][]byte, 0)
+	transactionsByShards := make(map[uint32][][]byte)
 
-	if txs == nil || len(txs) == 0 {
+	if len(txs) == 0 { // no need for nil check, len() for nil returns 0
 		return 0, ErrNoTxToProcess
 	}
 

@@ -21,7 +21,6 @@ type serialQueryer interface {
 
 type getAct struct {
 	key     []byte
-	val     []byte
 	resChan chan<- *pairResult
 }
 

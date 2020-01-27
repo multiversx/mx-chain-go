@@ -69,7 +69,6 @@ func NewElasticIndexer(
 	hasher hashing.Hasher,
 	options *Options,
 ) (Indexer, error) {
-
 	err := checkElasticSearchParams(
 		url,
 		shardCoordinator,
@@ -284,7 +283,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	valPubKeys := make(map[uint32][]string, 0)
+	valPubKeys := make(map[uint32][]string)
 	for shardId, shardPubKeys := range validatorsPubKeys {
 		for _, pubKey := range shardPubKeys {
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
@@ -720,7 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-
 	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
 
 	return &Transaction{

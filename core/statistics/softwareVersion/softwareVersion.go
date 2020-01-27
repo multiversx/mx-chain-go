@@ -54,12 +54,9 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*Softwar
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 	go func() {
-		svc.readLatestStableVersion()
 		for {
-			select {
-			case <-time.After(svc.checkRandInterval):
-				svc.readLatestStableVersion()
-			}
+			svc.readLatestStableVersion()
+			time.Sleep(svc.checkRandInterval)
 		}
 	}()
 }

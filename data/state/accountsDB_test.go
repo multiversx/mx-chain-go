@@ -542,7 +542,7 @@ func TestAccountsDB_LoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr, account, adb := generateAddressAccountAccountsDB(&mock.TrieStub{})
+	adr, account, _ := generateAddressAccountAccountsDB(&mock.TrieStub{})
 
 	trieStub := mock.TrieStub{}
 	trieStub.GetCalled = func(key []byte) (bytes []byte, e error) {
@@ -550,7 +550,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 		return adr.Bytes(), nil
 	}
 	marshalizer := mock.MarshalizerMock{}
-	adb, _ = state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},

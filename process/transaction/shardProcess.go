@@ -24,7 +24,6 @@ type txProcessor struct {
 	marshalizer      marshal.Marshalizer
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
-	shardCoordinator sharding.Coordinator
 	receiptForwarder process.IntermediateTransactionHandler
 	badTxForwarder   process.IntermediateTransactionHandler
 }

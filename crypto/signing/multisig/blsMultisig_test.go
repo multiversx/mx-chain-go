@@ -707,10 +707,10 @@ func TestBLSMultiSigner_VerifyNilBitmapShouldErr(t *testing.T) {
 func TestBLSMultiSigner_VerifyBitmapMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 	msg := []byte("message")
-	multiSigner, aggSig, bitmap := createAggregatedSigBLS(msg, t)
+	multiSigner, aggSig, _ := createAggregatedSigBLS(msg, t)
 	_ = multiSigner.SetAggregatedSig(aggSig)
 	// set a smaller bitmap
-	bitmap = make([]byte, 1)
+	bitmap := make([]byte, 1)
 
 	err := multiSigner.Verify(msg, bitmap)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)

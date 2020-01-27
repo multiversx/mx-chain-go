@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // This file holds the data structures related with the functionality of a shard block
@@ -41,6 +41,7 @@ const (
 	// ReceiptBlock identifies a miniblock holding receipts
 	ReceiptBlock Type = 150
 	// TODO: leave rewards with highest value
+
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 255
 )
@@ -172,8 +173,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.RootHash = src.RootHash()
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 
-	var n int
-	n = src.MetaHdrHashes().Len()
+	n := src.MetaHdrHashes().Len()
 	dest.MetaBlockHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.MetaBlockHashes[i] = src.MetaHdrHashes().At(i)
@@ -262,9 +262,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 		dest = &MiniBlock{}
 	}
 
-	var n int
-
-	n = src.TxHashes().Len()
+	n := src.TxHashes().Len()
 	dest.TxHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.TxHashes[i] = src.TxHashes().At(i)
@@ -536,7 +534,7 @@ func (h *Header) SetTxCount(txCount uint32) {
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
 			hashDst[string(val.Hash)] = val.SenderShardID
@@ -547,7 +545,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		hashDst[string(val.Hash)] = val.SenderShardID
 	}

@@ -51,7 +51,6 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	cache.headersCounter.increment(headerShardId)
 
 	return true
-
 }
 
 //tryToDoEviction will check if pool is full and if it is will do eviction

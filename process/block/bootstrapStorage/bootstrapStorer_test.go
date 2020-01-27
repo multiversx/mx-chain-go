@@ -77,7 +77,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 		data, err := bt.Get(round)
 		assert.Nil(t, err)
 		assert.Equal(t, dataBoot, data)
-		round = round - 1
+		round--
 	}
 }
 

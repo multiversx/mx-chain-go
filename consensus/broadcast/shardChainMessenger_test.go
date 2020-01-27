@@ -203,8 +203,7 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool, 100)
+	channelCalled := make(chan bool, 100)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
@@ -246,8 +245,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
+	channelCalled := make(chan bool)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
@@ -295,8 +293,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
+	channelCalled := make(chan bool)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{

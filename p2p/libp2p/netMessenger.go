@@ -162,7 +162,6 @@ func createMessenger(
 	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
 	if err != nil {
 		return nil, err
-
 	}
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 

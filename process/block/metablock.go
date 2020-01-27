@@ -134,12 +134,12 @@ func createEpochStartDataCreator(arguments ArgMetaProcessor) (process.EpochStart
 		ShardCoordinator:  arguments.ShardCoordinator,
 		EpochStartTrigger: arguments.EpochStartTrigger,
 	}
-	epochStartData, err := NewEpochStartData(argsNewEpochStartData)
+	epochStartDataObject, err := NewEpochStartData(argsNewEpochStartData)
 	if err != nil {
 		return nil, err
 	}
 
-	return epochStartData, nil
+	return epochStartDataObject, nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -748,7 +748,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, currMBProcessed...)
-			txsAdded = txsAdded + currTxsAdded
+			txsAdded += currTxsAdded
 
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
 			hdrsAdded++

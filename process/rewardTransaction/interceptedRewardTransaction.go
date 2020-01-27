@@ -33,7 +33,6 @@ func NewInterceptedRewardTransaction(
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedRewardTransaction, error) {
-
 	if rewardTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
