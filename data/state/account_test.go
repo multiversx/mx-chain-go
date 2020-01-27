@@ -55,6 +55,7 @@ func TestAccount_NewAccountOk(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
+	assert.False(t, acc.IsInterfaceNil())
 }
 
 func TestAccount_AddressContainer(t *testing.T) {
@@ -79,6 +80,18 @@ func TestAccount_GetCode(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Equal(t, code, acc.GetCode())
+}
+
+func TestAccount_SetAndGetNonce(t *testing.T) {
+	t.Parallel()
+
+	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
+
+	nonce := uint64(37)
+	acc.SetNonce(nonce)
+
+	assert.Equal(t, nonce, acc.GetNonce())
 }
 
 func TestAccount_GetCodeHash(t *testing.T) {

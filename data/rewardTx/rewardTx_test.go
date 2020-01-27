@@ -29,40 +29,23 @@ func TestRewardTx_SaveLoad(t *testing.T) {
 	assert.Equal(t, smrS, loadSMR)
 }
 
-func TestRewardTx_GetRecvAddr(t *testing.T) {
+func TestRewardTx_GettersAndSetters(t *testing.T) {
 	t.Parallel()
 
-	data := []byte("data")
-	scr := &rewardTx.RewardTx{RcvAddr: data}
+	rwdTx := rewardTx.RewardTx{}
+	assert.False(t, rwdTx.IsInterfaceNil())
 
-	assert.Equal(t, data, scr.RcvAddr)
-}
+	addr := []byte("address")
+	value := big.NewInt(37)
 
-func TestRewardTx_GetValue(t *testing.T) {
-	t.Parallel()
+	rwdTx.SetRecvAddress(addr)
+	rwdTx.SetValue(value)
 
-	value := big.NewInt(10)
-	scr := &rewardTx.RewardTx{Value: value}
-
-	assert.Equal(t, value, scr.Value)
-}
-
-func TestRewardTx_SetRecvAddr(t *testing.T) {
-	t.Parallel()
-
-	data := []byte("data")
-	scr := &rewardTx.RewardTx{}
-	scr.SetRecvAddress(data)
-
-	assert.Equal(t, data, scr.RcvAddr)
-}
-
-func TestRewardTx_SetValue(t *testing.T) {
-	t.Parallel()
-
-	value := big.NewInt(10)
-	scr := &rewardTx.RewardTx{}
-	scr.SetValue(value)
-
-	assert.Equal(t, value, scr.Value)
+	assert.Equal(t, []byte(nil), rwdTx.GetSndAddress())
+	assert.Equal(t, addr, rwdTx.GetRecvAddress())
+	assert.Equal(t, value, rwdTx.GetValue())
+	assert.Equal(t, []byte(""), rwdTx.GetData())
+	assert.Equal(t, uint64(0), rwdTx.GetGasLimit())
+	assert.Equal(t, uint64(0), rwdTx.GetGasPrice())
+	assert.Equal(t, uint64(0), rwdTx.GetNonce())
 }

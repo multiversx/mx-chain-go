@@ -1,6 +1,9 @@
 package bootstrapStorage_test
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -37,6 +40,7 @@ func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, bt)
 	assert.Nil(t, err)
+	assert.False(t, bt.IsInterfaceNil())
 }
 
 func TestBootstrapStorer_PutAndGet(t *testing.T) {
@@ -75,4 +79,50 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 		assert.Equal(t, dataBoot, data)
 		round = round - 1
 	}
+}
+
+func TestBootstrapStorer_SaveLastRound(t *testing.T) {
+	t.Parallel()
+
+	putWasCalled := false
+	roundInStorage := int64(5)
+	storer := &mock.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			putWasCalled = true
+			err := json.Unmarshal(data, &roundInStorage)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			return nil
+		},
+		GetCalled: func(key []byte) ([]byte, error) {
+			k := []byte(strconv.FormatInt(roundInStorage, 10))
+			return k, nil
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+
+	assert.Equal(t, roundInStorage, bt.GetHighestRound())
+	newRound := int64(37)
+	err := bt.SaveLastRound(newRound)
+	assert.Equal(t, newRound, bt.GetHighestRound())
+	assert.Nil(t, err)
+	assert.True(t, putWasCalled)
+}
+
+func TestTrimHeaderInfoSlice(t *testing.T) {
+	t.Parallel()
+
+	input := make([]bootstrapStorage.BootstrapHeaderInfo, 0, 5)
+	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
+	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
+
+	assert.Equal(t, 2, len(input))
+	assert.Equal(t, 5, cap(input))
+
+	input = bootstrapStorage.TrimHeaderInfoSlice(input)
+
+	assert.Equal(t, 2, len(input))
+	assert.Equal(t, 2, cap(input))
 }

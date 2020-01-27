@@ -128,8 +128,5 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *shardChainMessenger) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

@@ -181,8 +181,5 @@ func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChain) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
-	}
-	return false
+	return bc == nil
 }

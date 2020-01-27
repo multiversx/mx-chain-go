@@ -39,6 +39,10 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 
 // IsMetachainIdentifier verifies if the identifier is of type metachain
 func IsMetachainIdentifier(identifier []byte) bool {
+	if len(identifier) == 0 {
+		return false
+	}
+
 	for i := 0; i < len(identifier); i++ {
 		if identifier[i] != metaChainShardIdentifier {
 			return false
@@ -62,7 +66,8 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 		return false
 	}
 
-	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[NumInitCharactersForScAddress:(NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
+	leftSide := rcvAddress[NumInitCharactersForScAddress:(NumInitCharactersForScAddress + numInitCharactersForOnMetachainSC)]
+	isOnMetaChainSCAddress := bytes.Equal(leftSide,
 		make([]byte, numInitCharactersForOnMetachainSC))
 	return isOnMetaChainSCAddress
 }
