@@ -1335,18 +1335,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.epochStartTrigger.Epoch() &&
-		shardHeader.Round > mp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		mp.epochStartTrigger.EpochStartRound() < mp.epochStartTrigger.EpochFinalityAttestingRound()
-	if isShardHeaderWithOldEpochAndBadRound {
-		log.Debug("shard header with old epoch and bad round",
-			"shardEpoch", shardHeader.Epoch,
-			"metaEpoch", mp.epochStartTrigger.Epoch(),
-			"shardRound", shardHeader.Round,
-			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
-	}
-
-	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) || isShardHeaderWithOldEpochAndBadRound {
+	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) {
 		shardHeadersPool.RemoveHeaderByHash(shardHeaderHash)
 
 		return

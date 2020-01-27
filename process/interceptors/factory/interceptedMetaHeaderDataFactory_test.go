@@ -68,6 +68,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		FeeHandler:        createMockFeeHandler(),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 }
 
