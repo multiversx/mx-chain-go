@@ -62,6 +62,7 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (*interceptorsContainerFactory, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -120,6 +121,9 @@ func NewInterceptorsContainerFactory(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if check.IfNil(epochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -135,6 +139,7 @@ func NewInterceptorsContainerFactory(
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           chainID,
+		EpochStartTrigger: epochStartTrigger,
 	}
 
 	icf := &interceptorsContainerFactory{

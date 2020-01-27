@@ -17,7 +17,7 @@ func NewSimpleEpochProviderByNonce(epochHandler dataRetriever.EpochHandler) *sim
 }
 
 // EpochForNonce will return the current epoch from the epoch handler
-func (sepbn *simpleEpochProviderByNonce) EpochForNonce(nonce uint64) (uint32, error) {
+func (sepbn *simpleEpochProviderByNonce) EpochForNonce(_ uint64) (uint32, error) {
 	return sepbn.epochHandler.Epoch(), nil
 }
 
