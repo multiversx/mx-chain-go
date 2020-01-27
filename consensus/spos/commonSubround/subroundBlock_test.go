@@ -812,3 +812,66 @@ func RemainingTimeWithStruct(startTime time.Time, maxTime time.Duration) time.Du
 	remainingTime := maxTime - elapsedTime
 	return remainingTime
 }
+
+func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
+	t.Parallel()
+
+	srStartTime := int64(5 * roundTimeDuration / 100)
+	srEndTime := int64(25 * roundTimeDuration / 100)
+	srDuration := srEndTime - srStartTime
+	delay := srDuration * 430 / 1000
+
+	container := mock.InitConsensusCore()
+	container.SetBlockProcessor(&mock.BlockProcessorMock{
+		ProcessBlockCalled: func(_ data.ChainHandler, _ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
+			time.Sleep(time.Duration(delay))
+			return nil
+		},
+	})
+	sr := *initSubroundBlock(nil, container)
+	hdr := &block.Header{}
+	blk := make(block.Body, 0)
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsMsg := consensus.NewConsensusMessage(
+		message,
+		nil,
+		[]byte(sr.ConsensusGroup()[0]),
+		[]byte("sig"),
+		MtBlockBody,
+		0,
+		chainID,
+	)
+	sr.Header = hdr
+	sr.BlockBody = blk
+	receivedValue := uint64(0)
+	_ = sr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			receivedValue = value
+		},
+	})
+
+	minimumExpectedValue := uint64(delay * 100 / srDuration)
+	_ = sr.ProcessReceivedBlock(cnsMsg)
+
+	assert.True(t,
+		receivedValue >= minimumExpectedValue,
+		fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
+	)
+}
+
+func TestSubroundBlock_ReceivedBlockComputeProcessDurationWithZeroDurationShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have paniced", r)
+		}
+	}()
+
+	sr := &commonSubround.SubroundBlock{
+		Subround: &spos.Subround{},
+	}
+	sr.ComputeSubroundProcessingMetric(time.Now(), "dummy")
+}
