@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -19,7 +20,7 @@ func TestNewBlockNotarizer_ShouldErrNilHasher(t *testing.T) {
 	bn, err := track.NewBlockNotarizer(nil, &mock.MarshalizerMock{})
 
 	assert.Equal(t, process.ErrNilHasher, err)
-	assert.Nil(t, bn)
+	assert.True(t, check.IfNil(bn))
 }
 
 func TestNewBlockNotarizer_ShouldErrNilMarshalizer(t *testing.T) {
@@ -27,7 +28,7 @@ func TestNewBlockNotarizer_ShouldErrNilMarshalizer(t *testing.T) {
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, nil)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, bn)
+	assert.True(t, check.IfNil(bn))
 }
 
 func TestNewBlockNotarizer_ShouldWork(t *testing.T) {
@@ -35,7 +36,7 @@ func TestNewBlockNotarizer_ShouldWork(t *testing.T) {
 	bn, err := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	assert.Nil(t, err)
-	assert.NotNil(t, bn)
+	assert.False(t, check.IfNil(bn))
 }
 
 func TestAddNotarizedHeader_ShouldNotAddNilHeader(t *testing.T) {
@@ -167,6 +168,32 @@ func TestGetLastNotarizedHeader_ShouldWork(t *testing.T) {
 	hash1 := []byte("hash1")
 	bn.AddNotarizedHeader(0, &hdr1, hash1)
 	lastNotarizedHeader, lastNotarizedHeaderHash, _ := bn.GetLastNotarizedHeader(0)
+
+	assert.Equal(t, &hdr1, lastNotarizedHeader)
+	assert.Equal(t, hash1, lastNotarizedHeaderHash)
+}
+
+func TestGetFirstNotarizedHeader_ShouldErrNotarizedHeadersSliceForShardIsNil(t *testing.T) {
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	_, _, err := bn.GetFirstNotarizedHeader(0)
+
+	assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
+}
+
+func TestGetFirstNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
+	bn, _ := track.NewBlockNotarizer(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	hdr1 := block.Header{Nonce: 1}
+	hash1 := []byte("hash1")
+	hdr2 := block.Header{Nonce: 2}
+	hash2 := []byte("hash1")
+	shardId := uint32(0)
+	bn.AddNotarizedHeader(shardId, &hdr1, hash1)
+	bn.AddNotarizedHeader(shardId, &hdr2, hash2)
+	lastNotarizedHeader, lastNotarizedHeaderHash, _ := bn.GetFirstNotarizedHeader(shardId)
 
 	assert.Equal(t, &hdr1, lastNotarizedHeader)
 	assert.Equal(t, hash1, lastNotarizedHeaderHash)

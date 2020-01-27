@@ -109,8 +109,8 @@ var TimeSpanForBadHeaders = time.Second * 30
 // roundDuration defines the duration of the round
 const roundDuration = 5 * time.Second
 
-// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
-var IntegrationTestsChainID = []byte("integration tests chain ID")
+// ChainID is the chain ID identifier used in integration tests, processing nodes
+var ChainID = []byte("integration tests chain ID")
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -228,7 +228,7 @@ func NewTestProcessorNode(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -261,7 +261,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -305,7 +305,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initInterceptors()
 	tpn.initValidatorStatistics()
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -323,6 +322,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		rootHash,
 	)
 	tpn.initBlockTracker()
+	tpn.initInterceptors()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -447,6 +447,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.BlockTracker,
 			tpn.EpochStartTrigger,
 		)
 
@@ -493,6 +494,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.BlockTracker,
 			tpn.EpochStartTrigger,
 		)
 
