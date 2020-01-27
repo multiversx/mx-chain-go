@@ -26,7 +26,7 @@ type MetaPoolsHolderFake struct {
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf := &MetaPoolsHolderFake{}
 	mphf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.transactions, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, SizeInBytes: 1000000000, Shards: 1})
+	mphf.transactions, _ = txpool.NewShardedTxPool(txpool.ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 10000, SizeInBytes: 1000000000, Shards: 1}, MinGasPrice: 100000000000000, NumberOfShards: 1})
 	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)

@@ -734,7 +734,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 1})
+	txPool, _ := createTxPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -795,7 +795,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 1})
+	txPool, _ := createTxPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -858,7 +858,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCall(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 1})
+	txPool, _ := createTxPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -929,7 +929,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 	t.Parallel()
 
 	totalGasConsumed := uint64(0)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 1})
+	txPool, _ := createTxPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewTransactionPreprocessor(
 		txPool,
@@ -1059,4 +1059,8 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 	for i := 0; i < len(mbsValues); i++ {
 		assert.True(t, reflect.DeepEqual(mbsValues[i], *expandedMbs[i]))
 	}
+}
+
+func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
+	return txpool.NewShardedTxPool(txpool.ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 1}, MinGasPrice: 100000000000000, NumberOfShards: 1})
 }
