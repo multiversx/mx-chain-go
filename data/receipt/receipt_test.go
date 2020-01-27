@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +12,6 @@ func TestReceipt_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
 	r := receipt.Receipt{}
-	assert.False(t, check.IfNil(&r))
 
 	data := []byte("data")
 	value := big.NewInt(37)

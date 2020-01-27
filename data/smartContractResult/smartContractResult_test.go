@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +19,6 @@ func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.False(t, check.IfNil(&scr))
 
 	rcvAddr := []byte("rcv address")
 	sndAddr := []byte("snd address")
