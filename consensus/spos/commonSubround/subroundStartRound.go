@@ -89,6 +89,8 @@ func (sr *SubroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
+	topic := spos.GetConsensusTopicIDFromShardCoordinator(sr.ShardCoordinator())
+	sr.GetAntiFloodPreventer().ResetForTopic(topic)
 	return true
 }
 

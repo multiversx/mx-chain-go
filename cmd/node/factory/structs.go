@@ -594,6 +594,11 @@ func createAntifloodAndBlackListComponents(
 		return nil, nil, err
 	}
 
+	topicFloodPreventer, err := processAntiflood.NewTopicFloodPreventer(mainConfig.Antiflood.TopicAntifoodConfig.DefaultMaxMessagesPerSec)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	log.Debug("started antiflood & blacklist components",
 		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
 		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
@@ -605,10 +610,11 @@ func createAntifloodAndBlackListComponents(
 		"numFloodingRounds", mainConfig.Antiflood.BlackList.NumFloodingRounds,
 	)
 
-	startResetingFloodPreventer(floodPreventer)
+	topicFloodPreventer.SetMaxMessagesForTopic("heartbeat", mainConfig.Antiflood.TopicAntifoodConfig.HeartbeatMaxMessagesPerSec)
+	startResettingFloodPreventers(floodPreventer, topicFloodPreventer)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
-	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer)
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -616,11 +622,13 @@ func createAntifloodAndBlackListComponents(
 	return p2pAntiflood, p2pPeerBlackList, nil
 }
 
-func startResetingFloodPreventer(floodPreventer p2p.FloodPreventer) {
+func startResettingFloodPreventers(floodPreventer p2p.FloodPreventer, topicFloodPreventer p2p.TopicFloodPreventer) {
 	go func() {
 		for {
 			time.Sleep(time.Second)
 			floodPreventer.Reset()
+			topicFloodPreventer.ResetForTopic("heartbeat")
+			topicFloodPreventer.ResetForTopic("headers*")
 		}
 	}()
 }

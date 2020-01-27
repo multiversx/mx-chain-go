@@ -28,6 +28,7 @@ func TestConsensusCore_WithNilBlockchainShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -54,6 +55,7 @@ func TestConsensusCore_WithNilBlockProcessorShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -80,6 +82,7 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -106,6 +109,7 @@ func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -132,6 +136,7 @@ func TestConsensusCore_WithNilChronologyShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -158,6 +163,7 @@ func TestConsensusCore_WithNilHasherShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -184,6 +190,7 @@ func TestConsensusCore_WithNilMarshalizerShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -210,6 +217,7 @@ func TestConsensusCore_WithNilBlsPrivateKeyShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -236,6 +244,7 @@ func TestConsensusCore_WithNilBlsSingleSignerShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -262,6 +271,7 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -288,6 +298,7 @@ func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -314,6 +325,7 @@ func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {
 		nil,
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -340,6 +352,7 @@ func TestConsensusCore_WithNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		nil,
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
@@ -366,10 +379,38 @@ func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		nil,
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusCoreMock := mock.InitConsensusCore()
+
+	consensusCore, err := spos.NewConsensusCore(
+		consensusCoreMock.Blockchain(),
+		consensusCoreMock.BlockProcessor(),
+		consensusCoreMock.BootStrapper(),
+		consensusCoreMock.BroadcastMessenger(),
+		consensusCoreMock.Chronology(),
+		consensusCoreMock.Hasher(),
+		consensusCoreMock.Marshalizer(),
+		consensusCoreMock.PrivateKey(),
+		consensusCoreMock.SingleSigner(),
+		consensusCoreMock.MultiSigner(),
+		consensusCoreMock.Rounder(),
+		consensusCoreMock.ShardCoordinator(),
+		consensusCoreMock.NodesCoordinator(),
+		consensusCoreMock.SyncTimer(),
+		nil,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
@@ -392,6 +433,7 @@ func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
 		consensusCoreMock.ShardCoordinator(),
 		consensusCoreMock.NodesCoordinator(),
 		consensusCoreMock.SyncTimer(),
+		consensusCoreMock.GetAntiFloodPreventer(),
 	)
 
 	assert.NotNil(t, consensusCore)

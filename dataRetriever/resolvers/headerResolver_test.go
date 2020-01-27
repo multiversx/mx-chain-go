@@ -26,6 +26,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -43,6 +44,7 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -60,6 +62,7 @@ func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -77,6 +80,7 @@ func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -94,6 +98,7 @@ func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		nil,
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -111,10 +116,29 @@ func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nil,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
+	assert.Nil(t, hdrRes)
+}
+
+func TestNewHeaderResolver_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, err := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+		nil,
+		createMockP2PAntifloodHandler(),
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 	assert.Nil(t, hdrRes)
 }
 
@@ -128,6 +152,7 @@ func TestNewHeaderResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		nil,
 	)
 
@@ -145,6 +170,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -165,6 +191,7 @@ func TestHeaderResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		&mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return expectedErr
@@ -186,6 +213,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -203,6 +231,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -243,6 +272,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -289,6 +319,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		&mock.StorerStub{},
 		marshalizerStub,
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -334,6 +365,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -357,6 +389,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -396,6 +429,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		},
 		&mock.MarshalizerMock{},
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -443,6 +477,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -506,6 +541,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -564,6 +600,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		},
 		marshalizer,
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -601,6 +638,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 
@@ -629,6 +667,7 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
+		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
 

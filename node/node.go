@@ -319,6 +319,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.nodesCoordinator,
 		n.syncTimer,
+		n.antifloodHandler,
 	)
 	if err != nil {
 		return err

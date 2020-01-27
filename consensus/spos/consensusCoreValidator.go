@@ -1,5 +1,7 @@
 package spos
 
+import "github.com/ElrondNetwork/elrond-go/core/check"
+
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container == nil || container.IsInterfaceNil() {
@@ -46,6 +48,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if container.SingleSigner() == nil || container.SingleSigner().IsInterfaceNil() {
 		return ErrNilBlsSingleSigner
+	}
+	if check.IfNil(container.GetAntiFloodPreventer()) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil

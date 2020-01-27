@@ -119,6 +119,11 @@ func NewWorker(
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 
+	// set the limit for the antiflood handler
+	topic := GetConsensusTopicIDFromShardCoordinator(shardCoordinator)
+	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
+	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
+
 	go wrk.checkChannels()
 
 	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
@@ -252,6 +257,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	err := wrk.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
+	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
+	err = wrk.antifloodHandler.CanProcessMessageOnTopic(message.Peer(), topic)
 	if err != nil {
 		return err
 	}

@@ -2,28 +2,32 @@ package antiflood
 
 import (
 	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type p2pAntiflood struct {
 	p2p.FloodPreventer
+	p2p.TopicFloodPreventer
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
-func NewP2PAntiflood(floodPreventer p2p.FloodPreventer) (*p2pAntiflood, error) {
+func NewP2PAntiflood(floodPreventer p2p.FloodPreventer, topicFloodPreventer p2p.TopicFloodPreventer) (*p2pAntiflood, error) {
 	if check.IfNil(floodPreventer) {
 		return nil, p2p.ErrNilFloodPreventer
 	}
+	if check.IfNil(topicFloodPreventer) {
+		return nil, p2p.ErrNilTopicFloodPreventer
+	}
 
 	return &p2pAntiflood{
-		FloodPreventer: floodPreventer,
+		FloodPreventer:      floodPreventer,
+		TopicFloodPreventer: topicFloodPreventer,
 	}, nil
 }
 
-// CanProcessMessage signals if a p2p message can or not be processed
+// CanProcessMessage signals if a p2p message can be processed or not
 func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	floodPreventer := af.FloodPreventer
 	if check.IfNil(floodPreventer) {
@@ -50,7 +54,22 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	return nil
 }
 
+// CanProcessMessageOnTopic signals if a p2p message can be processed or not for a given topic
+func (af *p2pAntiflood) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
+	topicFloodPreventer := af.TopicFloodPreventer
+	if check.IfNil(topicFloodPreventer) {
+		return p2p.ErrNilTopicFloodPreventer
+	}
+
+	ok := topicFloodPreventer.Accumulate(peer.Pretty(), topic)
+	if !ok {
+		return fmt.Errorf("%w in p2pAntiflood for originator. peer id = %s", p2p.ErrSystemBusy, peer.Pretty())
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *p2pAntiflood) IsInterfaceNil() bool {
-	return af == nil || check.IfNil(af.FloodPreventer)
+	return af == nil || check.IfNil(af.FloodPreventer) || check.IfNil(af.TopicFloodPreventer)
 }

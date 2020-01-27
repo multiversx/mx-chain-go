@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
 
+const peerMaxMessagesPerSec = uint32(8)
+
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
 }
@@ -24,6 +26,11 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 	}
 
 	return receivedMessages
+}
+
+// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round for BN
+func (wrk *worker) GetMaxMessagesInARoundPerPeer() uint32 {
+	return peerMaxMessagesPerSec
 }
 
 //GetStringValue gets the name of the messageType

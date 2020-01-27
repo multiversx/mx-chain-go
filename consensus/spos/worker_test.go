@@ -27,6 +27,9 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
 		},
+		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+			return nil
+		},
 	}
 }
 
@@ -636,6 +639,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 	t.Parallel()
+
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -675,6 +679,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
+
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -710,6 +715,105 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 
 	assert.NotNil(t, wrk)
 	assert.Nil(t, err)
+}
+
+func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("flood detected")
+
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bn.NewConsensusService()
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return expectedErr
+		},
+	}
+
+	wrk, _ := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		antifloodHandler,
+	)
+
+	msg := &mock.P2PMessageMock{DataField: []byte("aaa")}
+	err := wrk.ProcessReceivedMessage(msg, "peer")
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("flood detected")
+
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bn.NewConsensusService()
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return nil
+		},
+		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+			return expectedErr
+		},
+	}
+
+	wrk, _ := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		&mock.HeaderSigVerifierStub{},
+		chainID,
+		antifloodHandler,
+	)
+
+	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicIDsField: []string{"topic1"}}
+	err := wrk.ProcessReceivedMessage(msg, "peer")
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
