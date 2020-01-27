@@ -56,6 +56,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ShardCoordinator:  imhdf.shardCoordinator,
 		HeaderSigVerifier: imhdf.headerSigVerifier,
 		ChainID:           imhdf.chainID,
+		EpochStartTrigger: &nilEpochTrigger{},
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

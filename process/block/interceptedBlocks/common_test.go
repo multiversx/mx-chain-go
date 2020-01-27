@@ -17,6 +17,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		HdrBuff:           []byte("test buffer"),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	return arg

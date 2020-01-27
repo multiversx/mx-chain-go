@@ -20,6 +20,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	hdr := createMockMetaHeader()
