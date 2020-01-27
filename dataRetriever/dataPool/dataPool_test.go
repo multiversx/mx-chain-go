@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //------- NewDataPool
@@ -137,7 +138,7 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
-func TestNewDataPool_OkValsShouldWork(t *testing.T) {
+func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
 	transactions := &mock.ShardedDataStub{}
 	scResults := &mock.ShardedDataStub{}
 	rewardTransactions := &mock.ShardedDataStub{}
@@ -154,10 +155,36 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		txBlocks,
 		peersBlock,
 		trieNodes,
-		&mock.TxForCurrentBlockStub{},
+		nil,
+	)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilCurrBlockTxs, err)
+}
+
+func TestNewDataPool_OkValsShouldWork(t *testing.T) {
+	transactions := &mock.ShardedDataStub{}
+	scResults := &mock.ShardedDataStub{}
+	rewardTransactions := &mock.ShardedDataStub{}
+	headers := &mock.HeadersCacherStub{}
+	txBlocks := &mock.CacherStub{}
+	peersBlock := &mock.CacherStub{}
+	trieNodes := &mock.CacherStub{}
+	currBlock := &mock.TxForCurrentBlockStub{}
+
+	tdp, err := dataPool.NewDataPool(
+		transactions,
+		scResults,
+		rewardTransactions,
+		headers,
+		txBlocks,
+		peersBlock,
+		trieNodes,
+		currBlock,
 	)
 
 	assert.Nil(t, err)
+	require.False(t, tdp.IsInterfaceNil())
 	//pointer checking
 	assert.True(t, transactions == tdp.Transactions())
 	assert.True(t, scResults == tdp.UnsignedTransactions())
@@ -166,4 +193,6 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, txBlocks == tdp.MiniBlocks())
 	assert.True(t, peersBlock == tdp.PeerChangesBlocks())
 	assert.True(t, scResults == tdp.UnsignedTransactions())
+	assert.True(t, currBlock == tdp.CurrentBlockTxs())
+	assert.True(t, trieNodes == tdp.TrieNodes())
 }

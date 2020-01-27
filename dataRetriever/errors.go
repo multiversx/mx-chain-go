@@ -13,6 +13,9 @@ var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty.
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
+// ErrTxNotFoundInBlockPool signals the value is nil
+var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
+
 // ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
 var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
 
@@ -127,12 +130,6 @@ var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
-
-// ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
-var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
-
-// ErrNilShardHeaderPool signals that a nil meta block data pool was provided
-var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
