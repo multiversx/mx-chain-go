@@ -1,33 +1,13 @@
 package smartContractResult_test
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestSmartContractResult_SaveLoad(t *testing.T) {
-	smrS := smartContractResult.SmartContractResult{
-		Nonce:   uint64(1),
-		Value:   big.NewInt(1),
-		RcvAddr: []byte("receiver_address"),
-		SndAddr: []byte("sender_address"),
-		Data:    []byte("scr_data"),
-		Code:    []byte("code"),
-		TxHash:  []byte("scrHash"),
-	}
-
-	var b bytes.Buffer
-	_ = smrS.Save(&b)
-
-	loadSMR := smartContractResult.SmartContractResult{}
-	_ = loadSMR.Load(&b)
-
-	assert.Equal(t, smrS, loadSMR)
-}
 
 func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 	t.Parallel()
@@ -40,7 +20,7 @@ func TestSmartContractResult_SettersAndGetters(t *testing.T) {
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.False(t, scr.IsInterfaceNil())
+	assert.False(t, check.IfNil(&scr))
 
 	rcvAddr := []byte("rcv address")
 	sndAddr := []byte("snd address")

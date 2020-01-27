@@ -18,18 +18,13 @@ require (
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-gonic/gin v1.3.0
 	github.com/gizak/termui/v3 v3.1.0
-	github.com/glycerine/go-capnproto v0.0.0-20190118050403-2d07de3aa7fc
-	github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31 // indirect
-	github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/gops v0.3.6
-	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
-	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.5.1
 	github.com/libp2p/go-libp2p-core v0.3.0

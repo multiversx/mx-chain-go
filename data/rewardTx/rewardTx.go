@@ -1,11 +1,7 @@
 package rewardTx
 
 import (
-	"io"
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx/capnp"
-	capn "github.com/glycerine/go-capnproto"
 )
 
 // RewardTx holds the data for a reward transaction
@@ -15,64 +11,6 @@ type RewardTx struct {
 	RcvAddr []byte
 	ShardId uint32
 	Epoch   uint32
-}
-
-// Save saves the serialized data of a RewardTx into a stream through Capnp protocol
-func (rtx *RewardTx) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	RewardTxGoToCapn(seg, rtx)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a RewardTx object through Capnp protocol
-func (rtx *RewardTx) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-
-	z := capnp.ReadRootRewardTxCapn(capMsg)
-	RewardTxCapnToGo(z, rtx)
-	return nil
-}
-
-// RewardTxCapnToGo is a helper function to copy fields from a RewardTxCapn object to a RewardTx object
-func RewardTxCapnToGo(src capnp.RewardTxCapn, dest *RewardTx) *RewardTx {
-	if dest == nil {
-		dest = &RewardTx{}
-	}
-
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
-	}
-
-	dest.Epoch = src.Epoch()
-	dest.Round = src.Round()
-	err := dest.Value.GobDecode(src.Value())
-
-	if err != nil {
-		return nil
-	}
-
-	dest.RcvAddr = src.RcvAddr()
-	dest.ShardId = src.ShardId()
-
-	return dest
-}
-
-// RewardTxGoToCapn is a helper function to copy fields from a RewardTx object to a RewardTxCapn object
-func RewardTxGoToCapn(seg *capn.Segment, src *RewardTx) capnp.RewardTxCapn {
-	dest := capnp.AutoNewRewardTxCapn(seg)
-
-	value, _ := src.Value.GobEncode()
-	dest.SetEpoch(src.Epoch)
-	dest.SetRound(src.Round)
-	dest.SetValue(value)
-	dest.SetRcvAddr(src.RcvAddr)
-	dest.SetShardId(src.ShardId)
-
-	return dest
 }
 
 // IsInterfaceNil verifies if underlying object is nil
