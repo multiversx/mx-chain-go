@@ -559,21 +559,23 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not panic")
-		}
-	}()
+	localErr := errors.New("err")
+	called := false
 	rrh, _ := NewShardResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localErr
+			},
+		},
 		&mock.RequestedItemsHandlerStub{},
 
 		1,
-		0,
+		sharding.MetachainShardId,
 	)
 
 	rrh.RequestShardHeaderByNonce(1, 0)
+	require.True(t, called)
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShouldNotPanic(t *testing.T) {
