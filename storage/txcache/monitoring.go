@@ -16,6 +16,14 @@ func (cache *TxCache) monitorTxAddition() {
 	}
 }
 
+func (cache *TxCache) monitorTxRemoval() {
+	cache.numTxRemovedBetweenSelections.Increment()
+
+	if cache.isEvictionInProgress.IsSet() {
+		cache.numTxRemovedDuringEviction.Increment()
+	}
+}
+
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 	log.Trace("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.displaySendersHistogram()
@@ -27,8 +35,9 @@ func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	stopWatch.Stop("eviction")
 	duration := stopWatch.GetMeasurement("eviction")
-	numTx := cache.numTxAddedDuringEviction.Reset()
-	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders(), "numTxAddedDuringEviction", numTx)
+	numTxAdded := cache.numTxAddedDuringEviction.Reset()
+	numTxRemoved := cache.numTxRemovedDuringEviction.Reset()
+	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders(), "numTxAddedDuringEviction", numTxAdded, "numTxRemovedDuringEviction", numTxRemoved)
 	cache.evictionJournal.display()
 	cache.displaySendersHistogram()
 }
@@ -44,8 +53,9 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
-	numTx := cache.numTxAddedBetweenSelections.Reset()
-	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTx)
+	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
+	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
+	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
 }
 

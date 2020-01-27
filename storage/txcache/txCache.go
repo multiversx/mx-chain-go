@@ -10,16 +10,18 @@ import (
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                        string
-	txListBySender              txListBySenderMap
-	txByHash                    txByHashMap
-	config                      CacheConfig
-	evictionMutex               sync.Mutex
-	evictionJournal             evictionJournal
-	evictionSnapshotOfSenders   []*txListForSender
-	isEvictionInProgress        core.AtomicFlag
-	numTxAddedBetweenSelections core.AtomicCounter
-	numTxAddedDuringEviction    core.AtomicCounter
+	name                          string
+	txListBySender                txListBySenderMap
+	txByHash                      txByHashMap
+	config                        CacheConfig
+	evictionMutex                 sync.Mutex
+	evictionJournal               evictionJournal
+	evictionSnapshotOfSenders     []*txListForSender
+	isEvictionInProgress          core.AtomicFlag
+	numTxAddedBetweenSelections   core.AtomicCounter
+	numTxAddedDuringEviction      core.AtomicCounter
+	numTxRemovedBetweenSelections core.AtomicCounter
+	numTxRemovedDuringEviction    core.AtomicCounter
 }
 
 // NewTxCache creates a new transaction cache
@@ -112,6 +114,8 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	if !ok {
 		return ErrTxNotFound
 	}
+
+	cache.monitorTxRemoval()
 
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
