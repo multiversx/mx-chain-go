@@ -94,8 +94,5 @@ func (cm *CacherMock) RegisterHandler(func(key []byte)) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (cm *CacherMock) IsInterfaceNil() bool {
-	if cm == nil {
-		return true
-	}
-	return false
+	return cm == nil
 }
