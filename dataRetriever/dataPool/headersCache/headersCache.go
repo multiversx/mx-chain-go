@@ -123,7 +123,7 @@ func (cache *headersCache) removeHeaderByHash(hash []byte) {
 	if !ok {
 		return
 	}
-
+	log.Debug("removeHeaderByHash", "nonce", info.headerNonce, "shardId", info.headerShardId)
 	cache.removeHeaderFromNonceMap(info, hash)
 	cache.headersByHash.deleteElement(hash)
 }
