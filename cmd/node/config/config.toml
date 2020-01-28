@@ -248,7 +248,7 @@
 
 # The main marshalizer, used in internod communication
 [Marshalizer]
-   Type = "json"
+   Type = "protobuf"
 
 # The marshalizer used for smartcontracts data exchage
 [VmMarshalizer]
