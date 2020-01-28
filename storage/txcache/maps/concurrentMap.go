@@ -125,7 +125,9 @@ func (m *ConcurrentMap) Clear() {
 // Count returns the number of elements within the map
 func (m *ConcurrentMap) Count() int {
 	count := 0
-	for _, chunk := range m.getChunks() {
+	chunks := m.getChunks()
+
+	for _, chunk := range chunks {
 		chunk.RLock()
 		count += len(chunk.items)
 		chunk.RUnlock()
@@ -136,11 +138,12 @@ func (m *ConcurrentMap) Count() int {
 // Keys returns all keys as []string
 func (m *ConcurrentMap) Keys() []string {
 	count := m.Count()
+	chunks := m.getChunks()
 
 	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
 	keys := make([]string, 0, count)
 
-	for _, chunk := range m.getChunks() {
+	for _, chunk := range chunks {
 		chunk.RLock()
 		defer chunk.RUnlock()
 
@@ -157,7 +160,9 @@ type IterCb func(key string, v interface{})
 
 // IterCb iterates over the map (cheapest way to read all elements in a map)
 func (m *ConcurrentMap) IterCb(fn IterCb) {
-	for _, chunk := range m.getChunks() {
+	chunks := m.getChunks()
+
+	for _, chunk := range chunks {
 		chunk.RLock()
 		for key, value := range chunk.items {
 			fn(key, value)
