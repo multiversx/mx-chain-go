@@ -55,7 +55,8 @@ func createMockFeeHandler() process.FeeHandler {
 
 func createMockArgument() *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		Marshalizer:       &mock.MarshalizerMock{},
+		ProtoMarshalizer:  &mock.MarshalizerMock{},
+		SignMarshalizer:   &mock.MarshalizerMock{},
 		Hasher:            mock.HasherMock{},
 		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
 		MultiSigVerifier:  mock.NewMultiSigner(),
@@ -83,7 +84,18 @@ func TestNewInterceptedMetaHeaderDataFactory_NilMarshalizerShouldErr(t *testing.
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.SignMarshalizer = nil
 
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.Nil(t, imh)

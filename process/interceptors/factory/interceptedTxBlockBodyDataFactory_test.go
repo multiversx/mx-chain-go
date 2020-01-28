@@ -23,7 +23,18 @@ func TestNewInterceptedTxBlockBodyDataFactory_NilMarshalizerShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedTxBlockBodyDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedTxBlockBodyDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.SignMarshalizer = nil
 
 	imh, err := NewInterceptedTxBlockBodyDataFactory(arg)
 	assert.Nil(t, imh)
@@ -62,7 +73,7 @@ func TestInterceptedTxBlockBodyDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	assert.Nil(t, err)
 
 	marshalizer := &mock.MarshalizerMock{}
-	emptyBlockBody := &block.Body{}
+	emptyBlockBody := &block.BodyHelper{block.Body{}}
 	emptyBlockBodyBuff, _ := marshalizer.Marshal(emptyBlockBody)
 	interceptedData, err := imh.Create(emptyBlockBodyBuff)
 

@@ -11,7 +11,7 @@ import (
 )
 
 type interceptedUnsignedTxDataFactory struct {
-	marshalizer      marshal.Marshalizer
+	protoMarshalizer marshal.Marshalizer
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
 	shardCoordinator sharding.Coordinator
@@ -22,7 +22,10 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Marshalizer) {
+	if check.IfNil(argument.ProtoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(argument.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -36,7 +39,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	}
 
 	return &interceptedUnsignedTxDataFactory{
-		marshalizer:      argument.Marshalizer,
+		protoMarshalizer: argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
 		addrConverter:    argument.AddrConv,
 		shardCoordinator: argument.ShardCoordinator,
@@ -47,7 +50,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 func (iutdf *interceptedUnsignedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
 		buff,
-		iutdf.marshalizer,
+		iutdf.protoMarshalizer,
 		iutdf.hasher,
 		iutdf.addrConverter,
 		iutdf.shardCoordinator,

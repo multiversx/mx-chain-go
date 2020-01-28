@@ -23,7 +23,18 @@ func TestNewInterceptedUnsignedTxDataFactory_NilMarshalizerShouldErr(t *testing.
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedUnsignedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.SignMarshalizer = nil
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)

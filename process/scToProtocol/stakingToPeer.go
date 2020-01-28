@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,11 +23,12 @@ import (
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	AdrConv     state.AddressConverter
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
-	PeerState   state.AccountsAdapter
-	BaseState   state.AccountsAdapter
+	AdrConv          state.AddressConverter
+	Hasher           hashing.Hasher
+	ProtoMarshalizer marshal.Marshalizer
+	VmMarshalizer    marshal.Marshalizer
+	PeerState        state.AccountsAdapter
+	BaseState        state.AccountsAdapter
 
 	ArgParser process.ArgumentsParser
 	CurrTxs   dataRetriever.TransactionCacher
@@ -36,11 +38,12 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	adrConv     state.AddressConverter
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
-	peerState   state.AccountsAdapter
-	baseState   state.AccountsAdapter
+	adrConv          state.AddressConverter
+	hasher           hashing.Hasher
+	protoMarshalizer marshal.Marshalizer
+	vmMarshalizer    marshal.Marshalizer
+	peerState        state.AccountsAdapter
+	baseState        state.AccountsAdapter
 
 	argParser process.ArgumentsParser
 	currTxs   dataRetriever.TransactionCacher
@@ -58,16 +61,17 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		adrConv:        args.AdrConv,
-		hasher:         args.Hasher,
-		marshalizer:    args.Marshalizer,
-		peerState:      args.PeerState,
-		baseState:      args.BaseState,
-		argParser:      args.ArgParser,
-		currTxs:        args.CurrTxs,
-		scQuery:        args.ScQuery,
-		mutPeerChanges: sync.Mutex{},
-		peerChanges:    make(map[string]block.PeerData),
+		adrConv:          args.AdrConv,
+		hasher:           args.Hasher,
+		protoMarshalizer: args.ProtoMarshalizer,
+		vmMarshalizer:    args.VmMarshalizer,
+		peerState:        args.PeerState,
+		baseState:        args.BaseState,
+		argParser:        args.ArgParser,
+		currTxs:          args.CurrTxs,
+		scQuery:          args.ScQuery,
+		mutPeerChanges:   sync.Mutex{},
+		peerChanges:      make(map[string]block.PeerData),
 	}
 
 	return st, nil
@@ -80,7 +84,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if args.ProtoMarshalizer == nil || args.ProtoMarshalizer.IsInterfaceNil() {
+		return process.ErrNilMarshalizer
+	}
+	if args.VmMarshalizer == nil || args.VmMarshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
 	if args.PeerState == nil || args.PeerState.IsInterfaceNil() {
@@ -168,7 +175,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		}
 
 		var stakingData systemSmartContracts.StakingData
-		err = stp.marshalizer.Unmarshal(&stakingData, data)
+		err = stp.vmMarshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
 		}
@@ -196,10 +203,10 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
-		ValueChange: data.NewProtoBigIntFromBigInt(account.Stake),
+		ValueChange: data.NewProtoBigIntFromBigInt(account.Stake.Get()),
 	}
 
-	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+	peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, actualPeerChange)
 	if err != nil {
 		return err
 	}
@@ -219,8 +226,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if stakingData.StakeValue.Cmp(account.Stake) != 0 {
-		err := account.SetStakeWithJournal(stakingData.StakeValue)
+	if stakingData.StakeValue.Get().Cmp(account.Stake.Get()) != 0 {
+		err := account.SetStakeWithJournal(stakingData.StakeValue.Get())
 		if err != nil {
 			return err
 		}
@@ -267,9 +274,9 @@ func (stp *stakingToPeer) createPeerChangeData(
 	if len(account.BLSPublicKey) == 0 {
 		actualPeerChange.Action = block.PeerRegistration
 		actualPeerChange.TimeStamp = stakingData.StartNonce
-		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
+		actualPeerChange.ValueChange.Set(stakingData.StakeValue.Get())
 
-		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+		peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, &actualPeerChange)
 		if err != nil {
 			return err
 		}
@@ -279,9 +286,9 @@ func (stp *stakingToPeer) createPeerChangeData(
 		return nil
 	}
 
-	if account.Stake.Cmp(stakingData.StakeValue) != 0 {
-		actualPeerChange.ValueChange.Get().Sub(account.Stake, stakingData.StakeValue)
-		if account.Stake.Cmp(stakingData.StakeValue) < 0 {
+	if account.Stake.Get().Cmp(stakingData.StakeValue.Get()) != 0 {
+		actualPeerChange.ValueChange.Get().Sub(account.Stake.Get(), stakingData.StakeValue.Get())
+		if account.Stake.Get().Cmp(stakingData.StakeValue.Get()) < 0 {
 			actualPeerChange.Action = block.PeerSlashed
 		} else {
 			actualPeerChange.Action = block.PeerReStake
@@ -296,7 +303,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 		actualPeerChange.Action = block.PeerUnstaking
 	}
 
-	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+	peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, &actualPeerChange)
 	if err != nil {
 		return err
 	}
@@ -362,15 +369,37 @@ func (stp *stakingToPeer) PeerChanges() []block.PeerData {
 	return peersData
 }
 
+func (stp *stakingToPeer) batchPeerData(pc []block.PeerData) (*batch.Batch, error) {
+	mrsPc := make([][]byte, len(pc))
+	for i := range pc {
+		var err error
+		mrsPc[i], err = stp.protoMarshalizer.Marshal(&pc[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &batch.Batch{mrsPc}, nil
+}
+
 // VerifyPeerChanges verifies if peer changes from header is the same as the one created while processing
 func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error {
 	createdPeersData := stp.PeerChanges()
-	createdHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, createdPeersData)
+	bcpd, err := stp.batchPeerData(createdPeersData)
 	if err != nil {
 		return err
 	}
 
-	receivedHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, peerChanges)
+	createdHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, bcpd)
+	if err != nil {
+		return err
+	}
+
+	bpd, err := stp.batchPeerData(peerChanges)
+	if err != nil {
+		return err
+	}
+
+	receivedHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, bpd)
 	if err != nil {
 		return err
 	}
