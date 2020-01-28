@@ -2,6 +2,7 @@ package partitioning
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
@@ -44,7 +45,7 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 		isBuffToLarge := lenChunk+len(element) >= limit
 		chunkNotEmpty := len(currentChunk) > 0
 		if isBuffToLarge && chunkNotEmpty {
-			marshaledChunk, _ := sdp.marshalizer.Marshal(currentChunk)
+			marshaledChunk, _ := sdp.marshalizer.Marshal(&batch.Batch{currentChunk})
 			returningBuff = append(returningBuff, marshaledChunk)
 			currentChunk = make([][]byte, 0)
 			lenChunk = 0
@@ -55,7 +56,7 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 	}
 
 	if len(currentChunk) > 0 {
-		marshaledElements, err := sdp.marshalizer.Marshal(currentChunk)
+		marshaledElements, err := sdp.marshalizer.Marshal(&batch.Batch{currentChunk})
 		if err != nil {
 			return nil, err
 		}

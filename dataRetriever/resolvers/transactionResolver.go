@@ -85,15 +85,13 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(b
 
 func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	txsBuff := make([][]byte, 0)
 
 	tx, err := txRes.fetchTxAsByteSlice(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	txsBuff = append(txsBuff, tx)
-	buffToSend, err := txRes.marshalizer.Marshal(txsBuff)
+	buffToSend, err := txRes.marshalizer.Marshal(&batch.Batch{[][]byte{tx}})
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +114,14 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	hashes := make([][]byte, 0)
-	err := txRes.marshalizer.Unmarshal(&hashes, hashesBuff)
+	b := batch.Batch{}
+	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
 		return err
 	}
+	hashes := b.Data
 
-	txsBuffSlice := make([][]byte, 0)
+	txsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
 		tx, err := txRes.fetchTxAsByteSlice(hash)
 		if err != nil {
