@@ -2,7 +2,6 @@ package txpool
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -16,7 +15,7 @@ type ArgShardedTxPool struct {
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 
-	if config.SizeInBytes < process.TxPoolMinSizeInBytes {
+	if config.SizeInBytes < dataRetriever.TxPoolMinSizeInBytes {
 		return dataRetriever.ErrCacheConfigInvalidSizeInBytes
 	}
 	if config.Size < 1 {

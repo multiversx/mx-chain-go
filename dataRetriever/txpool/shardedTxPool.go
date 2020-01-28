@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -44,9 +43,9 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		EvictionEnabled:                 true,
 		NumBytesThreshold:               args.Config.SizeInBytes / args.NumberOfShards,
 		CountThreshold:                  args.Config.Size / args.NumberOfShards,
-		NumSendersToEvictInOneStep:      process.TxPoolNumSendersToEvictInOneStep,
-		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
-		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
+		NumSendersToEvictInOneStep:      dataRetriever.TxPoolNumSendersToEvictInOneStep,
+		ALotOfTransactionsForASender:    dataRetriever.TxPoolALotOfTransactionsForASender,
+		NumTxsToEvictForASenderWithALot: dataRetriever.TxPoolNumTxsToEvictForASenderWithALot,
 		MinGasPriceMicroErd:             uint32(args.MinGasPrice / oneTrilion),
 	}
 
