@@ -9,6 +9,7 @@ type blockNotarizerHandler interface {
 	CleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64)
 	DisplayNotarizedHeaders(shardID uint32, message string)
 	GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastNotarizedHeaderNonce(shardID uint32) uint64
 	GetNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	InitNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error

@@ -3,15 +3,15 @@ package mock
 type MockDB struct {
 }
 
-func (MockDB) Put(key, val []byte) error {
+func (MockDB) Put(_, _ []byte) error {
 	return nil
 }
 
-func (MockDB) Get(key []byte) ([]byte, error) {
+func (MockDB) Get(_ []byte) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (MockDB) Has(key []byte) error {
+func (MockDB) Has(_ []byte) error {
 	return nil
 }
 
@@ -23,7 +23,7 @@ func (MockDB) Close() error {
 	return nil
 }
 
-func (MockDB) Remove(key []byte) error {
+func (MockDB) Remove(_ []byte) error {
 	return nil
 }
 
@@ -37,8 +37,5 @@ func (MockDB) DestroyClosed() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s MockDB) IsInterfaceNil() bool {
-	if &s == nil {
-		return true
-	}
 	return false
 }

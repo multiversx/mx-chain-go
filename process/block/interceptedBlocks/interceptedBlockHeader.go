@@ -22,6 +22,7 @@ type InterceptedHeader struct {
 	hash              []byte
 	isForCurrentShard bool
 	chainID           []byte
+	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
 }
 
@@ -38,12 +39,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		chainID:           arg.ChainID,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:              	hdr,
+		hasher:           	arg.Hasher,
+		sigVerifier:      	arg.HeaderSigVerifier,
+		shardCoordinator: 	arg.ShardCoordinator,
+		chainID:          	arg.ChainID,
+		validityAttester: 	arg.ValidityAttester,
+		epochStartTrigger:	arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -131,6 +133,16 @@ func (inHdr *InterceptedHeader) integrity() error {
 	}
 
 	err := checkHeaderHandler(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstRounder(inHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}
