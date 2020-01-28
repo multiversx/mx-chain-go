@@ -89,11 +89,13 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
-	Logger         LoggerConfig
-	Address        AddressConfig
-	Hasher         TypeConfig
-	MultisigHasher TypeConfig
-	Marshalizer    TypeConfig
+	Logger            LoggerConfig
+	Address           AddressConfig
+	Hasher            TypeConfig
+	MultisigHasher    TypeConfig
+	Marshalizer       TypeConfig
+	VmMarshalizer     TypeConfig
+	TxSignMarshalizer TypeConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig

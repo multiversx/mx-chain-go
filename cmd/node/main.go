@@ -564,7 +564,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -649,7 +649,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
 			shardCoordinator,
-			coreComponents.Marshalizer,
+			coreComponents.ProtoMarshalizer,
 			coreComponents.Hasher,
 		)
 		if err != nil {
@@ -753,7 +753,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AddressConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
-		coreComponents.Marshalizer,
+		coreComponents.ProtoMarshalizer,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -1073,7 +1073,8 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
-		node.WithMarshalizer(core.Marshalizer),
+		node.WithProtoMarshalizer(core.ProtoMarshalizer),
+		node.WithVmMarshalizer(core.VmMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
