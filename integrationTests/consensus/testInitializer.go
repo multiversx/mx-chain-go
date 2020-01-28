@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -489,7 +490,7 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-
+		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
@@ -497,6 +498,7 @@ func createNodes(
 			NbShards:                1,
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

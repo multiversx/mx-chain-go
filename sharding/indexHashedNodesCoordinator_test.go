@@ -58,6 +58,7 @@ func TestNewIndexHashedGroupSelector_NilHasherShouldErr(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -75,6 +76,7 @@ func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testi
 		NbShards:               1,
 		Nodes:                  nodesMap,
 		SelfPublicKey:          []byte("key"),
+		ConsensusGroupCache:    &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -91,6 +93,7 @@ func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
 		NbShards:                0,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -108,6 +111,7 @@ func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -124,11 +128,29 @@ func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) 
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           nil,
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
 	assert.Nil(t, ihgs)
 	assert.Equal(t, sharding.ErrNilPubKey, err)
+}
+
+func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
+	nodesMap := createDummyNodesMap()
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		NbShards:                1,
+		Nodes:                   nodesMap,
+		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     nil,
+	}
+	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
+
+	assert.Nil(t, ihgs)
+	assert.Equal(t, sharding.ErrNilCacher, err)
 }
 
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
@@ -142,6 +164,7 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -162,6 +185,7 @@ func TestIndexHashedGroupSelector_SetNilNodesMapShouldErr(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -179,6 +203,7 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -198,6 +223,7 @@ func TestIndexHashedGroupSelector_NewCoordinatorGroup0SizeShouldErr(t *testing.T
 		NbShards:               1,
 		Nodes:                  nodesMap,
 		SelfPublicKey:          []byte("key"),
+		ConsensusGroupCache:    &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -216,6 +242,7 @@ func TestIndexHashedGroupSelector_NewCoordinatorTooFewNodesShouldErr(t *testing.
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -234,6 +261,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0)
@@ -253,6 +281,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5)
@@ -279,6 +308,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0)
@@ -317,6 +347,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -368,6 +399,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -408,6 +440,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -486,6 +519,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -640,6 +674,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -870,6 +905,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPub
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -893,6 +929,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrValida
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -931,6 +968,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldWork(t *testing
 		NbShards:                2,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
@@ -990,6 +1028,7 @@ func TestIndexHashedGroupSelector_GetAllValidatorsPublicKeys(t *testing.T) {
 		NbShards:                2,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)

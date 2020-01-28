@@ -24,6 +24,7 @@ func createArguments() sharding.ArgNodesCoordinator {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("test"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	return arguments
 }
@@ -73,6 +74,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -98,6 +100,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	raterCalled := false
 	rater := &mock.RaterMock{GetRatingCalled: func(string) uint32 {
@@ -125,6 +128,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ratingPk0 := uint32(5)
@@ -174,6 +178,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
@@ -203,6 +208,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -220,6 +226,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
@@ -227,6 +234,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -266,6 +274,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		NbShards:                2,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -326,6 +335,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllValidatorsPublicKeys(t *testing
 		NbShards:                2,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 
 	nc, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -403,6 +413,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		NbShards:                1,
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 	ihgsRater, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})

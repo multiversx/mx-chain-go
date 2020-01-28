@@ -157,6 +157,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
+		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -165,6 +166,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			NbShards:                uint32(nbShards),
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     consensusCache,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -217,6 +219,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
+		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -225,6 +228,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			NbShards:                uint32(nbShards),
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
