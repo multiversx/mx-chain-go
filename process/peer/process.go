@@ -174,7 +174,7 @@ func (p *validatorStatistics) updatePeerState(
 
 	zero := big.NewInt(0)
 	if peerChange.ValueChange.Get().Cmp(zero) != 0 {
-		actualValue := zero.Add(account.Stake, peerChange.ValueChange.Get())
+		actualValue := zero.Add(account.Stake.Get(), peerChange.ValueChange.Get())
 		err := account.SetStakeWithJournal(actualValue)
 		if err != nil {
 			return err

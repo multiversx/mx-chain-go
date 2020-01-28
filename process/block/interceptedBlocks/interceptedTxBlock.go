@@ -42,13 +42,13 @@ func NewInterceptedTxBlockBody(arg *ArgInterceptedTxBlockBody) (*InterceptedTxBl
 }
 
 func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) (block.Body, error) {
-	txBlockBody := make(block.Body, 0)
+	txBlockBody := block.BodyHelper{}
 	err := marshalizer.Unmarshal(&txBlockBody, txBlockBodyBuff)
 	if err != nil {
 		return nil, err
 	}
 
-	return txBlockBody, nil
+	return txBlockBody.MiniBlocks, nil
 }
 
 func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {

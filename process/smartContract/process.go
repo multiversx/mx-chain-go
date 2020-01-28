@@ -214,7 +214,7 @@ func (sc *scProcessor) processIfError(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue().Get()))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance.Get(), tx.GetValue().Get()))
 		if err != nil {
 			return err
 		}
@@ -459,12 +459,12 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(cost) < 0 {
+	if stAcc.Balance.Get().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
-	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
+	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance.Get(), cost))
 	if err != nil {
 		return err
 	}
@@ -681,7 +681,7 @@ func (sc *scProcessor) createSCRForSender(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
+	newBalance := big.NewInt(0).Add(stAcc.Balance.Get(), refundErd)
 	err := stAcc.SetBalanceWithJournal(newBalance)
 	if err != nil {
 		return nil, nil, err
@@ -759,7 +759,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		// update the values according to SC output
 		updatedBalance := big.NewInt(0)
-		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
+		updatedBalance = updatedBalance.Add(stAcc.Balance.Get(), outAcc.BalanceDelta)
 		if updatedBalance.Cmp(big.NewInt(0)) < 0 {
 			return process.ErrOverallBalanceChangeFromSC
 		}
@@ -907,7 +907,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	operation := big.NewInt(0)
-	operation = operation.Add(scr.GetValue().Get(), stAcc.Balance)
+	operation = operation.Add(scr.GetValue().Get(), stAcc.Balance.Get())
 	err := stAcc.SetBalanceWithJournal(operation)
 	if err != nil {
 		return err

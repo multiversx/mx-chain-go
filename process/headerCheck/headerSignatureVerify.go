@@ -174,7 +174,7 @@ func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, head
 
 func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
 	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
-	headerBytes, err := hsv.marshalizer.Marshal(&headerCopy)
+	headerBytes, err := hsv.marshalizer.Marshal(headerCopy)
 	if err != nil {
 		return err
 	}

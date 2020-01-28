@@ -130,12 +130,12 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	}
 
 	cost := txProc.economicsFee.ComputeFee(tx)
-	if acntSnd.Balance.Cmp(cost) < 0 {
+	if acntSnd.Balance.Get().Cmp(cost) < 0 {
 		return nil, process.ErrInsufficientFunds
 	}
 
 	operation := big.NewInt(0)
-	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance.Get(), cost))
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 
 	// is sender address in node shard
 	if acntSrc != nil {
-		err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.Balance, value))
+		err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.Balance.Get(), value))
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 
 	// is receiver address in node shard
 	if acntDst != nil {
-		err := acntDst.SetBalanceWithJournal(operation2.Add(acntDst.Balance, value))
+		err := acntDst.SetBalanceWithJournal(operation2.Add(acntDst.Balance.Get(), value))
 		if err != nil {
 			return err
 		}

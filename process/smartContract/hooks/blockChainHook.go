@@ -113,7 +113,7 @@ func (bh *BlockChainHookImpl) GetBalance(address []byte) (*big.Int, error) {
 		return nil, err
 	}
 
-	return shardAccount.Balance, nil
+	return shardAccount.Balance.Get(), nil
 }
 
 // GetNonce returns the nonce of a shard account
@@ -394,7 +394,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 		return
 	}
 
-	account.Balance = balance
+	account.Balance.Set(balance)
 	account.Nonce = nonce
 
 	bh.tempAccounts[string(address)] = account

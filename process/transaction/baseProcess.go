@@ -136,7 +136,7 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(cost) < 0 {
+	if stAcc.Balance.Get().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
