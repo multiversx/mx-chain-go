@@ -2,12 +2,12 @@ package txcache
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-const estimatedSizeOfBoundedTxFields = uint32(128)
+const estimatedSizeOfBoundedTxFields = int64(128)
 
 // estimateTxSize returns an approximation
 func estimateTxSize(tx data.TransactionHandler) int64 {
 	sizeOfData := int64(len(tx.GetData()))
-	return int64(estimatedSizeOfBoundedTxFields) + sizeOfData
+	return estimatedSizeOfBoundedTxFields + sizeOfData
 }
 
 // estimateTxGas returns an approximation for the necessary computation units (gas units)
