@@ -92,6 +92,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -174,6 +175,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -188,6 +190,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

@@ -658,29 +658,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
-		args.shardCoordinator,
-		args.nodesCoordinator,
-		args.data,
-		args.core,
-		args.crypto,
-		args.state,
-		args.network,
-		args.economicsData,
-		headerSigVerifier,
-		args.sizeCheckDelta,
-		epochStartTrigger,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO refactor all these factory calls
-	interceptorsContainer, err := interceptorContainerFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
 	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
@@ -733,6 +710,30 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		rounder,
 		genesisBlocks,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
+		args.shardCoordinator,
+		args.nodesCoordinator,
+		args.data,
+		args.core,
+		args.crypto,
+		args.state,
+		args.network,
+		args.economicsData,
+		headerSigVerifier,
+		args.sizeCheckDelta,
+		blockTracker,
+		epochStartTrigger,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO refactor all these factory calls
+	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -1226,6 +1227,7 @@ func newInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
@@ -1241,6 +1243,7 @@ func newInterceptorContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
+			validityAttester,
 			epochStartTrigger,
 		)
 	}
@@ -1256,11 +1259,12 @@ func newInterceptorContainerFactory(
 			economics,
 			headerSigVerifier,
 			sizeCheckDelta,
+			validityAttester,
 			epochStartTrigger,
 		)
 	}
 
-	return nil, nil, errors.New("could not create interceptor and resolver container factory")
+	return nil, nil, errors.New("could not create interceptor container factory")
 }
 
 func newResolverContainerFactory(
@@ -1290,37 +1294,7 @@ func newResolverContainerFactory(
 		)
 	}
 
-	return nil, errors.New("could not create resolver container factory")
-}
-
-func newShardResolverContainerFactory(
-	shardCoordinator sharding.Coordinator,
-	data *Data,
-	core *Core,
-	network *Network,
-	sizeCheckDelta uint32,
-) (dataRetriever.ResolversContainerFactory, error) {
-	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
-	if err != nil {
-		return nil, err
-	}
-
-	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
-		shardCoordinator,
-		network.NetMessenger,
-		data.Store,
-		core.Marshalizer,
-		data.Datapool,
-		core.Uint64ByteSliceConverter,
-		dataPacker,
-		core.TriesContainer,
-		sizeCheckDelta,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return resolversContainerFactory, nil
+	return nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func newShardInterceptorContainerFactory(
@@ -1334,8 +1308,10 @@ func newShardInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1358,6 +1334,7 @@ func newShardInterceptorContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		validityAttester,
 		epochStartTrigger,
 	)
 	if err != nil {
@@ -1378,6 +1355,7 @@ func newMetaInterceptorContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
+	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
@@ -1402,6 +1380,7 @@ func newMetaInterceptorContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		validityAttester,
 		epochStartTrigger,
 	)
 	if err != nil {
@@ -1409,6 +1388,37 @@ func newMetaInterceptorContainerFactory(
 	}
 
 	return interceptorContainerFactory, headerBlackList, nil
+}
+
+func newShardResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	network *Network,
+	sizeCheckDelta uint32,
+) (dataRetriever.ResolversContainerFactory, error) {
+
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		data.Datapool,
+		core.Uint64ByteSliceConverter,
+		dataPacker,
+		core.TriesContainer,
+		sizeCheckDelta,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
 }
 
 func newMetaResolverContainerFactory(
