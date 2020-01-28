@@ -83,11 +83,11 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	aLot := cache.config.ALotOfTransactionsForASender
+	threshold := cache.config.ALotOfTransactionsForASender
 	numTxsToEvict := cache.config.NumTxsToEvictForASenderWithALot
 
 	for _, txList := range cache.evictionSnapshotOfSenders {
-		if txList.HasMoreThan(aLot) {
+		if txList.HasMoreThan(threshold) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
