@@ -99,7 +99,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	)
 
 	//Step 4. request tx
-	txResolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
+	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 
