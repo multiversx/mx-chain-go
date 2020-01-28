@@ -42,10 +42,15 @@ func (cache *TxCache) doEviction() {
 
 	cache.evictionJournal = journal
 	cache.monitorEvictionEnd(stopWatch)
+	cache.destroySnapshotOfSenders()
 }
 
 func (cache *TxCache) makeSnapshotOfSenders() {
 	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscending()
+}
+
+func (cache *TxCache) destroySnapshotOfSenders() {
+	cache.evictionSnapshotOfSenders = nil
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
