@@ -237,7 +237,7 @@
 
 [TxDataPool]
     Size = 1250000
-    SizeInBytes = 500000000
+    SizeInBytes = 524288000
     Type = "TxCache"
     Shards = 16
 
