@@ -12,7 +12,8 @@ import (
 )
 
 type interceptedTxDataFactory struct {
-	marshalizer      marshal.Marshalizer
+	protoMarshalizer marshal.Marshalizer
+	signMarshalizer  marshal.Marshalizer
 	hasher           hashing.Hasher
 	keyGen           crypto.KeyGenerator
 	singleSigner     crypto.SingleSigner
@@ -26,7 +27,10 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Marshalizer) {
+	if check.IfNil(argument.ProtoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(argument.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -49,7 +53,8 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	}
 
 	return &interceptedTxDataFactory{
-		marshalizer:      argument.Marshalizer,
+		protoMarshalizer: argument.ProtoMarshalizer,
+		signMarshalizer:  argument.SignMarshalizer,
 		hasher:           argument.Hasher,
 		keyGen:           argument.KeyGen,
 		singleSigner:     argument.Signer,
@@ -63,7 +68,8 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return transaction.NewInterceptedTransaction(
 		buff,
-		itdf.marshalizer,
+		itdf.protoMarshalizer,
+		itdf.signMarshalizer,
 		itdf.hasher,
 		itdf.keyGen,
 		itdf.singleSigner,

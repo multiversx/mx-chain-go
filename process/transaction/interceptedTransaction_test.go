@@ -77,6 +77,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 	return transaction.NewInterceptedTransaction(
 		txBuff,
 		marshalizer,
+		marshalizer,
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
@@ -98,6 +99,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		nil,
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -115,6 +117,26 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		nil,
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		nil,
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -134,6 +156,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		nil,
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -151,6 +174,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		nil,
@@ -170,6 +194,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		nil,
@@ -187,6 +212,7 @@ func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -206,6 +232,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -223,6 +250,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		make([]byte, 0),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -248,6 +276,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 				return errExpected
 			},
 		},
+		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
@@ -265,6 +294,7 @@ func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 
 	txi, err := transaction.NewInterceptedTransaction(
 		[]byte("{\"value\": \"0\"}"),
+		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -551,6 +581,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 
 	txIntercepted, err := transaction.NewInterceptedTransaction(
 		txBuff,
+		marshalizer,
 		marshalizer,
 		mock.HasherMock{},
 		createKeyGenMock(),

@@ -12,7 +12,8 @@ import (
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	Marshalizer       marshal.Marshalizer
+	ProtoMarshalizer  marshal.Marshalizer
+	SignMarshalizer   marshal.Marshalizer
 	Hasher            hashing.Hasher
 	ShardCoordinator  sharding.Coordinator
 	MultiSigVerifier  crypto.MultiSigVerifier

@@ -32,7 +32,7 @@ func createInteceptedTxBlockBody(txBlockBody block.Body) *interceptedBlocks.Inte
 		Marshalizer:      testMarshalizer,
 	}
 
-	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(txBlockBody)
+	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(&block.BodyHelper{txBlockBody})
 	inTxBody, _ := interceptedBlocks.NewInterceptedTxBlockBody(arg)
 
 	return inTxBody

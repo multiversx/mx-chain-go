@@ -99,7 +99,7 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -129,7 +129,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 		return shardId
 	}
 
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -161,7 +161,7 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -185,7 +185,7 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -210,7 +210,7 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -235,7 +235,7 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -260,7 +260,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *tes
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -284,7 +284,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -309,7 +309,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
@@ -334,7 +334,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,

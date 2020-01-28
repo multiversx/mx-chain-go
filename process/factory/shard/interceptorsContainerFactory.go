@@ -26,7 +26,8 @@ type interceptorsContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
 	messenger              process.TopicHandler
 	store                  dataRetriever.StorageService
-	marshalizer            marshal.Marshalizer
+	protoMarshalizer       marshal.Marshalizer
+	txSignMarshalizer      marshal.Marshalizer
 	hasher                 hashing.Hasher
 	keyGen                 crypto.KeyGenerator
 	singleSigner           crypto.SingleSigner
@@ -47,7 +48,8 @@ func NewInterceptorsContainerFactory(
 	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
-	marshalizer marshal.Marshalizer,
+	protoMarshalizer marshal.Marshalizer,
+	txSignMarshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
 	blockSignKeyGen crypto.KeyGenerator,
@@ -73,7 +75,10 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(store) {
 		return nil, process.ErrNilBlockChain
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(protoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(txSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(hasher) {
@@ -114,7 +119,8 @@ func NewInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:       marshalizer,
+		ProtoMarshalizer:  protoMarshalizer,
+		SignMarshalizer:   txSignMarshalizer,
 		Hasher:            hasher,
 		ShardCoordinator:  shardCoordinator,
 		MultiSigVerifier:  multiSigner,
@@ -133,7 +139,8 @@ func NewInterceptorsContainerFactory(
 		shardCoordinator:       shardCoordinator,
 		messenger:              messenger,
 		store:                  store,
-		marshalizer:            marshalizer,
+		protoMarshalizer:       protoMarshalizer,
+		txSignMarshalizer:      txSignMarshalizer,
 		hasher:                 hasher,
 		keyGen:                 keyGen,
 		singleSigner:           singleSigner,
@@ -292,7 +299,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		icf.protoMarshalizer,
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
@@ -360,7 +367,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic st
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		icf.protoMarshalizer,
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
@@ -429,7 +436,7 @@ func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(topic stri
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		icf.protoMarshalizer,
 		txFactory,
 		txProcessor,
 		icf.globalTxThrottler,
@@ -523,7 +530,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
 		MiniblockCache:   icf.dataPool.MiniBlocks(),
-		Marshalizer:      icf.marshalizer,
+		Marshalizer:      icf.protoMarshalizer,
 		Hasher:           icf.hasher,
 		ShardCoordinator: icf.shardCoordinator,
 	}

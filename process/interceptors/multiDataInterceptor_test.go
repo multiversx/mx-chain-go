@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -171,7 +172,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 		atomic.AddInt32(&broadcastNum, 1)
 	}
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -223,22 +224,22 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		throttler,
 	)
 	bradcastCallback := func(buffToSend []byte) {
-		unmarshalledBuffs := make([][]byte, 0)
-		err := marshalizer.Unmarshal(&unmarshalledBuffs, buffToSend)
+		b := batch.Batch{}
+		err := marshalizer.Unmarshal(&b, buffToSend)
 		if err != nil {
 			return
 		}
-		if len(unmarshalledBuffs) == 0 {
+		if len(b.Data) == 0 {
 			return
 		}
-		if !bytes.Equal(unmarshalledBuffs[0], correctData) {
+		if !bytes.Equal(b.Data[0], correctData) {
 			return
 		}
 
 		atomic.AddInt32(&broadcastNum, 1)
 	}
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -283,7 +284,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -326,7 +327,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -369,7 +370,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(buffData)
+	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}

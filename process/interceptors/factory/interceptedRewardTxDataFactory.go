@@ -22,7 +22,10 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Marshalizer) {
+	if check.IfNil(argument.ProtoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(argument.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -36,7 +39,7 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 	}
 
 	return &interceptedRewardTxDataFactory{
-		marshalizer:      argument.Marshalizer,
+		marshalizer:      argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
 		addrConverter:    argument.AddrConv,
 		shardCoordinator: argument.ShardCoordinator,

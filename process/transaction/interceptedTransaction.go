@@ -18,7 +18,8 @@ import (
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
 	tx                *transaction.Transaction
-	marshalizer       marshal.Marshalizer
+	protoMarshalizer  marshal.Marshalizer
+	signMarshalizer   marshal.Marshalizer
 	hasher            hashing.Hasher
 	keyGen            crypto.KeyGenerator
 	singleSigner      crypto.SingleSigner
@@ -35,7 +36,8 @@ type InterceptedTransaction struct {
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
 func NewInterceptedTransaction(
 	txBuff []byte,
-	marshalizer marshal.Marshalizer,
+	protoMarshalizer marshal.Marshalizer,
+	signMarshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
 	signer crypto.SingleSigner,
@@ -47,7 +49,10 @@ func NewInterceptedTransaction(
 	if txBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(protoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(signMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(hasher) {
@@ -69,20 +74,21 @@ func NewInterceptedTransaction(
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
-	tx, err := createTx(marshalizer, txBuff)
+	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
 		return nil, err
 	}
 
 	inTx := &InterceptedTransaction{
-		tx:           tx,
-		marshalizer:  marshalizer,
-		hasher:       hasher,
-		singleSigner: signer,
-		addrConv:     addrConv,
-		keyGen:       keyGen,
-		coordinator:  coordinator,
-		feeHandler:   feeHandler,
+		tx:               tx,
+		protoMarshalizer: protoMarshalizer,
+		signMarshalizer:  signMarshalizer,
+		hasher:           hasher,
+		singleSigner:     signer,
+		addrConv:         addrConv,
+		keyGen:           keyGen,
+		coordinator:      coordinator,
+		feeHandler:       feeHandler,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -171,7 +177,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 func (inTx *InterceptedTransaction) verifySig() error {
 	copiedTx := *inTx.tx
 	copiedTx.Signature = nil
-	buffCopiedTx, err := inTx.marshalizer.Marshal(&copiedTx)
+	buffCopiedTx, err := inTx.signMarshalizer.Marshal(&copiedTx)
 	if err != nil {
 		return err
 	}
