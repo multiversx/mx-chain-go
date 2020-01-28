@@ -867,6 +867,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.protoMarshalizer)
+	if err != nil {
+		return err
+	}
 	timer := &heartbeat.RealTimer{}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.protoMarshalizer,

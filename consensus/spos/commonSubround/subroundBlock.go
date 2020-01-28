@@ -151,7 +151,7 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 		return false
 	}
 
-	bh := &block.BodyHelper{bb}
+	bh := &block.BodyHelper{MiniBlocks: bb}
 	blkStr, err := sr.Marshalizer().Marshal(bh)
 	if err != nil {
 		log.Debug("Marshal", "error", err.Error())

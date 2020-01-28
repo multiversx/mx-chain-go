@@ -45,7 +45,7 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 		isBuffToLarge := lenChunk+len(element) >= limit
 		chunkNotEmpty := len(currentChunk) > 0
 		if isBuffToLarge && chunkNotEmpty {
-			marshaledChunk, _ := sdp.marshalizer.Marshal(&batch.Batch{currentChunk})
+			marshaledChunk, _ := sdp.marshalizer.Marshal(&batch.Batch{Data: currentChunk})
 			returningBuff = append(returningBuff, marshaledChunk)
 			currentChunk = make([][]byte, 0)
 			lenChunk = 0
@@ -56,7 +56,7 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 	}
 
 	if len(currentChunk) > 0 {
-		marshaledElements, err := sdp.marshalizer.Marshal(&batch.Batch{currentChunk})
+		marshaledElements, err := sdp.marshalizer.Marshal(&batch.Batch{Data: currentChunk})
 		if err != nil {
 			return nil, err
 		}
