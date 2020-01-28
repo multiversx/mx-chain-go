@@ -102,8 +102,11 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		}
 	}()
 
+	round := uint64(1)
+	nonce := uint64(1)
 	fmt.Println("Generating header and block body in shard 0, save it in datapool and metachain creates a request for it...")
-	_, hdr, _ := nodes[0].ProposeBlock(1, 1)
+	integrationTests.UpdateRound(nodes, round)
+	_, hdr, _ := nodes[0].ProposeBlock(round, nonce)
 	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
 	nodes[0].DataPool.Headers().AddHeader(shardHeaderHash, hdr)
@@ -127,7 +130,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
-	_, metaHdr, _ := nodes[1].ProposeBlock(1, 1)
+	_, metaHdr, _ := nodes[1].ProposeBlock(round, nonce)
 	nodes[1].BlockChain.SetCurrentBlockHeader(metaHdr)
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
@@ -153,8 +156,10 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
-	_, metaHdr2, _ := nodes[1].ProposeBlock(2, 2)
-	metaHdr2.SetNonce(64)
+	round++
+	nonce++
+	integrationTests.UpdateRound(nodes, round)
+	_, metaHdr2, _ := nodes[1].ProposeBlock(round, nonce)
 	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
 	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {

@@ -30,15 +30,6 @@ func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(csf))
 }
 
-func TestGetConsensusCoreFactory_BnShouldWork(t *testing.T) {
-	t.Parallel()
-
-	csf, err := sposFactory.GetConsensusCoreFactory(factory.BnConsensusType)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(csf))
-}
-
 func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -103,73 +94,6 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
-}
-
-func TestGetSubroundsFactory_BnNilConsensusCoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BnConsensusType
-	statusHandler := &mock.AppStatusHandlerMock{}
-	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		nil,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		statusHandler,
-		indexer,
-		chainID,
-	)
-
-	assert.Nil(t, sf)
-	assert.Equal(t, spos.ErrNilConsensusCore, err)
-}
-
-func TestGetSubroundsFactory_BnNilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	consensusCore := mock.InitConsensusCore()
-	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BnConsensusType
-	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		consensusCore,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		nil,
-		indexer,
-		chainID,
-	)
-
-	assert.Nil(t, sf)
-	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
-}
-
-func TestGetSubroundsFactory_BnShouldWork(t *testing.T) {
-	t.Parallel()
-
-	consensusCore := mock.InitConsensusCore()
-	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BnConsensusType
-	statusHandler := &mock.AppStatusHandlerMock{}
-	chainID := []byte("chain-id")
-	indexer := &mock.IndexerMock{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		consensusCore,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		statusHandler,
-		indexer,
-		chainID,
-	)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, sf)
 }
 
 func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {

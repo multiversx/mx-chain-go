@@ -45,7 +45,7 @@ func NewTestSyncNode(
 		},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
-		ChainID:             IntegrationTestsChainID,
+		ChainID:             ChainID,
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 	}
 
@@ -65,6 +65,7 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -76,11 +77,10 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.NodesCoordinator,
 	)
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
+	tpn.initInterceptors()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

@@ -8,6 +8,7 @@ type BlockNotarizerHandlerMock struct {
 	AddNotarizedHeaderCalled                 func(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
 	CleanupNotarizedHeadersBehindNonceCalled func(shardID uint32, nonce uint64)
 	DisplayNotarizedHeadersCalled            func(shardID uint32, message string)
+	GetFirstNotarizedHeaderCalled            func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastNotarizedHeaderCalled             func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastNotarizedHeaderNonceCalled        func(shardID uint32) uint64
 	GetNotarizedHeaderCalled                 func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
@@ -32,6 +33,14 @@ func (bngm *BlockNotarizerHandlerMock) DisplayNotarizedHeaders(shardID uint32, m
 	if bngm.DisplayNotarizedHeadersCalled != nil {
 		bngm.DisplayNotarizedHeadersCalled(shardID, message)
 	}
+}
+
+func (bngm *BlockNotarizerHandlerMock) GetFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	if bngm.GetFirstNotarizedHeaderCalled != nil {
+		return bngm.GetFirstNotarizedHeaderCalled(shardID)
+	}
+
+	return nil, nil, nil
 }
 
 func (bngm *BlockNotarizerHandlerMock) GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {

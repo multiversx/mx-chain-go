@@ -191,14 +191,6 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBNFullTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, bnConsensusType)
-}
-
 func TestConsensusBLSFullTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -238,14 +230,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	mutex.Lock()
 	assert.Equal(t, 0, totalCalled)
 	mutex.Unlock()
-}
-
-func TestConsensusBNNotEnoughValidators(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runConsensusWithNotEnoughValidators(t, bnConsensusType)
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {
