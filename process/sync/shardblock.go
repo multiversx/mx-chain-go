@@ -2,20 +2,13 @@ package sync
 
 import (
 	"math"
-	"time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -26,75 +19,42 @@ type ShardBootstrap struct {
 }
 
 // NewShardBootstrap creates a new Bootstrap object
-func NewShardBootstrap(
-	poolsHolder dataRetriever.PoolsHolder,
-	store dataRetriever.StorageService,
-	blkc data.ChainHandler,
-	rounder consensus.Rounder,
-	blkExecutor process.BlockProcessor,
-	waitTime time.Duration,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	forkDetector process.ForkDetector,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	blackListHandler process.BlackListHandler,
-	networkWatcher process.NetworkConnectionWatcher,
-	bootStorer process.BootStorer,
-	storageBootstrapper process.BootstrapperFromStorage,
-	epochHandler dataRetriever.EpochHandler,
-	miniBlocksResolver process.MiniBlocksResolver,
-) (*ShardBootstrap, error) {
-
-	if check.IfNil(poolsHolder) {
+func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) {
+	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.Headers()) {
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(poolsHolder.MiniBlocks()) {
+	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
 	}
 
-	err := checkBootstrapNilParameters(
-		blkc,
-		rounder,
-		blkExecutor,
-		hasher,
-		marshalizer,
-		forkDetector,
-		requestHandler,
-		shardCoordinator,
-		accounts,
-		store,
-		blackListHandler,
-		networkWatcher,
-		miniBlocksResolver,
-	)
+	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.Headers(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		requestHandler:      requestHandler,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
-		bootStorer:          bootStorer,
-		storageBootstrapper: storageBootstrapper,
-		epochHandler:        epochHandler,
-		miniBlocksResolver:  miniBlocksResolver,
+		chainHandler:        arguments.ChainHandler,
+		blockProcessor:      arguments.BlockProcessor,
+		store:               arguments.Store,
+		headers:             arguments.PoolsHolder.Headers(),
+		rounder:             arguments.Rounder,
+		waitTime:            arguments.WaitTime,
+		hasher:              arguments.Hasher,
+		marshalizer:         arguments.Marshalizer,
+		forkDetector:        arguments.ForkDetector,
+		requestHandler:      arguments.RequestHandler,
+		shardCoordinator:    arguments.ShardCoordinator,
+		accounts:            arguments.Accounts,
+		blackListHandler:    arguments.BlackListHandler,
+		networkWatcher:      arguments.NetworkWatcher,
+		bootStorer:          arguments.BootStorer,
+		storageBootstrapper: arguments.StorageBootstrapper,
+		epochHandler:        arguments.EpochHandler,
+		miniBlocksResolver:  arguments.MiniBlocksResolver,
+		uint64Converter:     arguments.Uint64Converter,
 	}
 
 	boot := ShardBootstrap{
@@ -121,7 +81,7 @@ func NewShardBootstrap(
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	poolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
+	arguments.PoolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.chStopSync = make(chan bool)
@@ -130,9 +90,6 @@ func NewShardBootstrap(
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
-
-	//TODO: This should be injected when BlockProcessor will be refactored
-	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 	return &boot, nil
 }
@@ -165,7 +122,7 @@ func (boot *ShardBootstrap) StartSync() {
 		)
 	} else {
 		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blkExecutor.SetNumProcessedObj(numTxs)
+		boot.blockProcessor.SetNumProcessedObj(numTxs)
 	}
 
 	go boot.syncBlocks()
@@ -270,7 +227,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 }
 
 func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
-	blockHeader := boot.blkc.GetCurrentBlockHeader()
+	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if blockHeader == nil {
 		return nil, process.ErrNilBlockHeader
 	}

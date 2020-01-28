@@ -1,20 +1,12 @@
 package sync
 
 import (
-	"time"
-
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -22,88 +14,54 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-	epochBootstrap process.EpochBootstrapper
+	epochBootstrapper process.EpochBootstrapper
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
-func NewMetaBootstrap(
-	poolsHolder dataRetriever.PoolsHolder,
-	store dataRetriever.StorageService,
-	blkc data.ChainHandler,
-	rounder consensus.Rounder,
-	blkExecutor process.BlockProcessor,
-	waitTime time.Duration,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	forkDetector process.ForkDetector,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	blackListHandler process.BlackListHandler,
-	networkWatcher process.NetworkConnectionWatcher,
-	bootStorer process.BootStorer,
-	storageBootstrapper process.BootstrapperFromStorage,
-	epochBootstrap process.EpochBootstrapper,
-	epochHandler dataRetriever.EpochHandler,
-	miniBlocksResolver process.MiniBlocksResolver,
-) (*MetaBootstrap, error) {
-
-	if check.IfNil(poolsHolder) {
+func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
+	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(poolsHolder.Headers()) {
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(epochBootstrap) {
+	if check.IfNil(arguments.EpochBootstrapper) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(epochHandler) {
+	if check.IfNil(arguments.EpochHandler) {
 		return nil, process.ErrNilEpochHandler
 	}
 
-	err := checkBootstrapNilParameters(
-		blkc,
-		rounder,
-		blkExecutor,
-		hasher,
-		marshalizer,
-		forkDetector,
-		requestHandler,
-		shardCoordinator,
-		accounts,
-		store,
-		blackListHandler,
-		networkWatcher,
-		miniBlocksResolver,
-	)
+	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.Headers(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		requestHandler:      requestHandler,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
-		bootStorer:          bootStorer,
-		storageBootstrapper: storageBootstrapper,
-		epochHandler:        epochHandler,
-		miniBlocksResolver:  miniBlocksResolver,
+		chainHandler:        arguments.ChainHandler,
+		blockProcessor:      arguments.BlockProcessor,
+		store:               arguments.Store,
+		headers:             arguments.PoolsHolder.Headers(),
+		rounder:             arguments.Rounder,
+		waitTime:            arguments.WaitTime,
+		hasher:              arguments.Hasher,
+		marshalizer:         arguments.Marshalizer,
+		forkDetector:        arguments.ForkDetector,
+		requestHandler:      arguments.RequestHandler,
+		shardCoordinator:    arguments.ShardCoordinator,
+		accounts:            arguments.Accounts,
+		blackListHandler:    arguments.BlackListHandler,
+		networkWatcher:      arguments.NetworkWatcher,
+		bootStorer:          arguments.BootStorer,
+		storageBootstrapper: arguments.StorageBootstrapper,
+		epochHandler:        arguments.EpochHandler,
+		miniBlocksResolver:  arguments.MiniBlocksResolver,
+		uint64Converter:     arguments.Uint64Converter,
 	}
 
 	boot := MetaBootstrap{
-		baseBootstrap:  base,
-		epochBootstrap: epochBootstrap,
+		baseBootstrap:     base,
+		epochBootstrapper: arguments.EpochBootstrapper,
 	}
 
 	base.blockBootstrapper = &boot
@@ -126,7 +84,7 @@ func NewMetaBootstrap(
 	boot.setRequestedMiniBlocks(nil)
 
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
-	poolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
+	arguments.PoolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
 
 	boot.chStopSync = make(chan bool)
 
@@ -134,9 +92,6 @@ func NewMetaBootstrap(
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
-
-	//TODO: This should be injected when BlockProcessor will be refactored
-	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 	return &boot, nil
 }
@@ -168,7 +123,7 @@ func (boot *MetaBootstrap) StartSync() {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {
 		_, numHdrs := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blkExecutor.SetNumProcessedObj(numHdrs)
+		boot.blockProcessor.SetNumProcessedObj(numHdrs)
 
 		boot.setLastEpochStartRound()
 	}
@@ -177,7 +132,7 @@ func (boot *MetaBootstrap) StartSync() {
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {
-	hdr := boot.blkc.GetCurrentBlockHeader()
+	hdr := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(hdr) || hdr.GetEpoch() < 1 {
 		return
 	}
@@ -194,7 +149,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 		return
 	}
 
-	boot.epochBootstrap.SetCurrentEpochStartRound(epochStartMetaBlock.GetRound())
+	boot.epochBootstrapper.SetCurrentEpochStartRound(epochStartMetaBlock.GetRound())
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -294,7 +249,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 }
 
 func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
-	blockHeader := boot.blkc.GetCurrentBlockHeader()
+	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if blockHeader == nil {
 		return nil, process.ErrNilBlockHeader
 	}

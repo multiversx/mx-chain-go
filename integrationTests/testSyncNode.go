@@ -193,26 +193,33 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	bootstrap, err := sync.NewShardBootstrap(
-		tpn.DataPool,
-		tpn.Storage,
-		tpn.BlockChain,
-		tpn.Rounder,
-		tpn.BlockProcessor,
-		tpn.Rounder.TimeDuration(),
-		TestHasher,
-		TestMarshalizer,
-		tpn.ForkDetector,
-		tpn.RequestHandler,
-		tpn.ShardCoordinator,
-		accountsStateWrapper,
-		tpn.BlackListHandler,
-		tpn.Messenger,
-		tpn.BootstrapStorer,
-		tpn.StorageBootstrapper,
-		tpn.EpochStartTrigger,
-		miniBlocksResolver,
-	)
+	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		PoolsHolder:         tpn.DataPool,
+		Store:               tpn.Storage,
+		ChainHandler:        tpn.BlockChain,
+		Rounder:             tpn.Rounder,
+		BlockProcessor:      tpn.BlockProcessor,
+		WaitTime:            tpn.Rounder.TimeDuration(),
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		ForkDetector:        tpn.ForkDetector,
+		RequestHandler:      tpn.RequestHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		Accounts:            accountsStateWrapper,
+		BlackListHandler:    tpn.BlackListHandler,
+		NetworkWatcher:      tpn.Messenger,
+		BootStorer:          tpn.BootstrapStorer,
+		StorageBootstrapper: tpn.StorageBootstrapper,
+		EpochHandler:        tpn.EpochStartTrigger,
+		MiniBlocksResolver:  miniBlocksResolver,
+		Uint64Converter:     TestUint64Converter,
+	}
+
+	argsShardBootstrapper := sync.ArgShardBootstrapper{
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+	}
+
+	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -233,28 +240,34 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	bootstrap, err := sync.NewMetaBootstrap(
-		tpn.DataPool,
-		tpn.Storage,
-		tpn.BlockChain,
-		tpn.Rounder,
-		tpn.BlockProcessor,
-		tpn.Rounder.TimeDuration(),
-		TestHasher,
-		TestMarshalizer,
-		tpn.ForkDetector,
-		tpn.RequestHandler,
-		tpn.ShardCoordinator,
-		tpn.AccntState,
-		tpn.BlackListHandler,
-		tpn.Messenger,
-		tpn.BootstrapStorer,
-		tpn.StorageBootstrapper,
-		tpn.EpochStartTrigger,
-		tpn.EpochStartTrigger,
-		miniBlocksResolver,
-	)
+	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		PoolsHolder:         tpn.DataPool,
+		Store:               tpn.Storage,
+		ChainHandler:        tpn.BlockChain,
+		Rounder:             tpn.Rounder,
+		BlockProcessor:      tpn.BlockProcessor,
+		WaitTime:            tpn.Rounder.TimeDuration(),
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		ForkDetector:        tpn.ForkDetector,
+		RequestHandler:      tpn.RequestHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		Accounts:            tpn.AccntState,
+		BlackListHandler:    tpn.BlackListHandler,
+		NetworkWatcher:      tpn.Messenger,
+		BootStorer:          tpn.BootstrapStorer,
+		StorageBootstrapper: tpn.StorageBootstrapper,
+		EpochHandler:        tpn.EpochStartTrigger,
+		MiniBlocksResolver:  miniBlocksResolver,
+		Uint64Converter:     TestUint64Converter,
+	}
 
+	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   tpn.EpochStartTrigger,
+	}
+
+	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
 	if err != nil {
 		return nil, err
 	}

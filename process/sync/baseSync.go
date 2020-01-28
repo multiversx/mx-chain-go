@@ -44,9 +44,9 @@ type notarizedInfo struct {
 type baseBootstrap struct {
 	headers dataRetriever.HeadersPool
 
-	blkc        data.ChainHandler
-	blkExecutor process.BlockProcessor
-	store       dataRetriever.StorageService
+	chainHandler   data.ChainHandler
+	blockProcessor process.BlockProcessor
+	store          dataRetriever.StorageService
 
 	rounder           consensus.Rounder
 	hasher            hashing.Hasher
@@ -221,8 +221,8 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.blkc != nil && boot.blkc.GetCurrentBlockHeader() != nil {
-		nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
+	if boot.chainHandler != nil && boot.chainHandler.GetCurrentBlockHeader() != nil {
+		nonce = boot.chainHandler.GetCurrentBlockHeader().GetNonce() + 1
 	}
 	return nonce
 }
@@ -263,10 +263,10 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if boot.blkc.GetCurrentBlockHeader() == nil {
+	if boot.chainHandler.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -313,58 +313,44 @@ func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHan
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
-func checkBootstrapNilParameters(
-	blkc data.ChainHandler,
-	rounder consensus.Rounder,
-	blkExecutor process.BlockProcessor,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	forkDetector process.ForkDetector,
-	requestHandler process.RequestHandler,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	store dataRetriever.StorageService,
-	blackListHandler process.BlackListHandler,
-	watcher process.NetworkConnectionWatcher,
-	miniBlocksResolver process.MiniBlocksResolver,
-) error {
-	if check.IfNil(blkc) {
+func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
+	if check.IfNil(arguments.ChainHandler) {
 		return process.ErrNilBlockChain
 	}
-	if check.IfNil(rounder) {
+	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
-	if check.IfNil(blkExecutor) {
+	if check.IfNil(arguments.BlockProcessor) {
 		return process.ErrNilBlockExecutor
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(forkDetector) {
+	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(requestHandler) {
+	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if check.IfNil(accounts) {
+	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(store) {
+	if check.IfNil(arguments.Store) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(blackListHandler) {
+	if check.IfNil(arguments.BlackListHandler) {
 		return process.ErrNilBlackListHandler
 	}
-	if check.IfNil(watcher) {
+	if check.IfNil(arguments.NetworkWatcher) {
 		return process.ErrNilNetworkWatcher
 	}
-	if check.IfNil(miniBlocksResolver) {
+	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
 	}
 	return nil
@@ -508,7 +494,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -518,7 +504,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -548,7 +534,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("starting roll back")
 	for {
-		currHeaderHash := boot.blkc.GetCurrentBlockHeaderHash()
+		currHeaderHash := boot.chainHandler.GetCurrentBlockHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -665,12 +651,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blkExecutor.RevertStateToBlock(prevHeader)
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
 	if err != nil {
 		return err
 	}
 
-	err = boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
 		return err
 	}
@@ -722,19 +708,19 @@ func (boot *baseBootstrap) restoreState(
 		"nonce", currHeader.GetNonce(),
 		"hash", currHeaderHash)
 
-	err := boot.blkc.SetCurrentBlockHeader(currHeader)
+	err := boot.chainHandler.SetCurrentBlockHeader(currHeader)
 	if err != nil {
 		log.Debug("SetCurrentBlockHeader", "error", err.Error())
 	}
 
-	err = boot.blkc.SetCurrentBlockBody(currBlockBody)
+	err = boot.chainHandler.SetCurrentBlockBody(currBlockBody)
 	if err != nil {
 		log.Debug("SetCurrentBlockBody", "error", err.Error())
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
+	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blkExecutor.RevertStateToBlock(currHeader)
+	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
 		log.Debug("RevertStateToBlock", "error", err.Error())
 	}
@@ -746,17 +732,17 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	body data.BodyHandler,
 ) error {
 
-	err := boot.blkc.SetCurrentBlockHeader(header)
+	err := boot.chainHandler.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = boot.blkc.SetCurrentBlockBody(body)
+	err = boot.chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
 }

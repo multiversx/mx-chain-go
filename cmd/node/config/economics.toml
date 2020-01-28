@@ -16,6 +16,7 @@
     MinGasLimit = "100000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
+
 [ValidatorSettings]
     StakeValue = "500000000000000000000000" #500000ERD
     UnBoundPeriod = "100000"
