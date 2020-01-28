@@ -83,6 +83,10 @@ func (msg *message) Peer() p2p.PeerID {
 	return msg.peer
 }
 
+func (msg *message) TraverseInfoTable() string {
+	return ""
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (msg *message) IsInterfaceNil() bool {
 	return msg == nil

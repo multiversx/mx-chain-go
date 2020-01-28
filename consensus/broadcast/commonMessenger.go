@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -104,4 +105,8 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	}
 
 	return nil
+}
+
+func (cm *commonMessenger) ID() p2p.PeerID {
+	return cm.messenger.ID()
 }

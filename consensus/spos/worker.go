@@ -278,6 +278,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		return ErrNilDataToProcess
 	}
 
+	log.Trace("received p2p message", "crt pid", wrk.broadcastMessenger.ID().Pretty())
+	log.Trace(fmt.Sprintf("\n%s", message.TraverseInfoTable()))
+
 	cnsDta := &consensus.Message{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {

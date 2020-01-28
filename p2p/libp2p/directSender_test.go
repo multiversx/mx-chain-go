@@ -13,13 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 )
 

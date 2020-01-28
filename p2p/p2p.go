@@ -174,6 +174,7 @@ type MessageP2P interface {
 	Signature() []byte
 	Key() []byte
 	Peer() PeerID
+	TraverseInfoTable() string
 	IsInterfaceNil() bool
 }
 

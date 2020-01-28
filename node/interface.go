@@ -19,5 +19,6 @@ type P2PMessenger interface {
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 	PeerAddress(pid p2p.PeerID) string
 	IsConnectedToTheNetwork() bool
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }

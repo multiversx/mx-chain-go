@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // Rounder defines the actions which should be handled by a round implementation
@@ -59,11 +60,13 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }

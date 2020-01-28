@@ -1,31 +1,49 @@
 package libp2p
 
 import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-pubsub"
 )
+
+type traverseInfo struct {
+	peer      p2p.PeerID
+	timestamp time.Time
+}
 
 // Message is a data holder struct
 type Message struct {
-	from      []byte
-	data      []byte
-	seqNo     []byte
-	topicIds  []string
-	signature []byte
-	key       []byte
-	peer      p2p.PeerID
+	from         []byte
+	data         []byte
+	seqNo        []byte
+	topicIds     []string
+	signature    []byte
+	key          []byte
+	peer         p2p.PeerID
+	traverseInfo []*traverseInfo
 }
 
 // NewMessage returns a new instance of a Message object
 func NewMessage(message *pubsub.Message) *Message {
 	msg := &Message{
-		from:      message.From,
-		data:      message.Data,
-		seqNo:     message.Seqno,
-		topicIds:  message.TopicIDs,
-		signature: message.Signature,
-		key:       message.Key,
+		from:         message.From,
+		data:         message.Data,
+		seqNo:        message.Seqno,
+		topicIds:     message.TopicIDs,
+		signature:    message.Signature,
+		key:          message.Key,
+		traverseInfo: make([]*traverseInfo, len(message.Traverse)),
+	}
+
+	for i, t := range message.Traverse {
+		id, _ := peer.IDFromBytes(t.Key)
+		msg.traverseInfo[i] = &traverseInfo{
+			peer:      p2p.PeerID(id),
+			timestamp: time.Unix(0, *t.Timestamp),
+		}
 	}
 
 	id, err := peer.IDFromBytes(msg.from)
@@ -73,10 +91,24 @@ func (m *Message) Peer() p2p.PeerID {
 	return m.peer
 }
 
+func (m *Message) TraverseInfoTable() string {
+	hdr := []string{"pid", "timestamp"}
+	lds := make([]*display.LineData, 0)
+
+	for _, ti := range m.traverseInfo {
+		ld := display.NewLineData(false, []string{
+			ti.peer.Pretty(),
+			ti.timestamp.Format("05.000000"),
+		})
+
+		lds = append(lds, ld)
+	}
+	tbl, _ := display.CreateTableString(hdr, lds)
+
+	return tbl
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *Message) IsInterfaceNil() bool {
-	if m == nil {
-		return true
-	}
-	return false
+	return m == nil
 }
