@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -137,7 +138,21 @@ func (sr *SubroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 
 // sendBlockBody method job the proposed block body in the subround Block
 func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
-	blkStr, err := sr.Marshalizer().Marshal(blockBody)
+
+	var err error
+
+	var bb block.Body
+	if b, ok := blockBody.(block.Body); ok {
+		bb = b
+	} else if b, ok := blockBody.(*block.Body); ok {
+		bb = *b
+	} else {
+		log.Debug("Marshal", "Not a block body")
+		return false
+	}
+
+	bh := &block.BodyHelper{bb}
+	blkStr, err := sr.Marshalizer().Marshal(bh)
 	if err != nil {
 		log.Debug("Marshal", "error", err.Error())
 		return false
@@ -161,7 +176,7 @@ func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 	log.Debug("step 1: block body has been sent",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
-	sr.BlockBody = blockBody
+	sr.BlockBody = bb
 
 	return true
 }

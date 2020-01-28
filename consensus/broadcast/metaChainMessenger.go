@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -93,7 +94,8 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 		return err
 	}
 
-	msgBlockBody, err := mcm.marshalizer.Marshal(blockBody)
+	bh := &block.BodyHelper{blockBody.(block.Body)}
+	msgBlockBody, err := mcm.marshalizer.Marshal(bh)
 	if err != nil {
 		return err
 	}
