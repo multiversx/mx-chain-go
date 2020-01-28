@@ -30,7 +30,7 @@ func (txMap *txListBySenderMap) addTx(txHash []byte, tx data.TransactionHandler)
 	sender := string(tx.GetSndAddress())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(txHash, tx)
-	txMap.backingMap.OnScoreChange(listForSender)
+	txMap.backingMap.NotifyScoreChange(listForSender)
 }
 
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
@@ -76,7 +76,7 @@ func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
 	} else {
-		txMap.backingMap.OnScoreChange(listForSender)
+		txMap.backingMap.NotifyScoreChange(listForSender)
 	}
 
 	return isFound

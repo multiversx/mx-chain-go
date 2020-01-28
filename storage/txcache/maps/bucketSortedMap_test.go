@@ -64,10 +64,10 @@ func TestBucketSortedMap_Count(t *testing.T) {
 	myMap.Set(newScoredDummyItem("c", 2))
 	myMap.Set(newScoredDummyItem("d", 3))
 
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
-	myMap.OnScoreChangeByKey("c")
-	myMap.OnScoreChangeByKey("d")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("c")
+	myMap.NotifyScoreChangeByKey("d")
 
 	require.Equal(t, uint32(4), myMap.Count())
 	require.Equal(t, uint32(4), myMap.CountSorted())
@@ -91,9 +91,9 @@ func TestBucketSortedMap_Keys(t *testing.T) {
 	myMap.Set(newDummyItem("b"))
 	myMap.Set(newDummyItem("c"))
 
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
-	myMap.OnScoreChangeByKey("c")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("c")
 
 	require.Equal(t, 3, len(myMap.Keys()))
 	require.Equal(t, 3, len(myMap.KeysSorted()))
@@ -109,12 +109,12 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	myMap.Set(newScoredDummyItem("f", 5))
 	myMap.Set(newScoredDummyItem("e", 4))
 
-	myMap.OnScoreChangeByKey("d")
-	myMap.OnScoreChangeByKey("e")
-	myMap.OnScoreChangeByKey("f")
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
-	myMap.OnScoreChangeByKey("c")
+	myMap.NotifyScoreChangeByKey("d")
+	myMap.NotifyScoreChangeByKey("e")
+	myMap.NotifyScoreChangeByKey("f")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("c")
 
 	keys := myMap.KeysSorted()
 	require.Equal(t, "a", keys[0])
@@ -128,7 +128,7 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, uint32(3), counts[3])
 }
 
-func TestBucketSortedMap_ItemMovesOnScoreChange(t *testing.T) {
+func TestBucketSortedMap_ItemMovesNotifyScoreChange(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	a := newScoredDummyItem("a", 1)
@@ -136,16 +136,16 @@ func TestBucketSortedMap_ItemMovesOnScoreChange(t *testing.T) {
 	myMap.Set(a)
 	myMap.Set(b)
 
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
 
 	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 
 	a.score = 2
 	b.score = 43
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
 
 	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
@@ -189,9 +189,9 @@ func TestBucketSortedMap_IterCb(t *testing.T) {
 	myMap.Set(newScoredDummyItem("a", 15))
 	myMap.Set(newScoredDummyItem("b", 101))
 	myMap.Set(newScoredDummyItem("c", 3))
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
-	myMap.OnScoreChangeByKey("c")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("c")
 
 	sorted := []string{"c", "a", "b"}
 
@@ -226,9 +226,9 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	myMap.Set(b)
 	myMap.Set(c)
 
-	myMap.OnScoreChangeByKey("a")
-	myMap.OnScoreChangeByKey("b")
-	myMap.OnScoreChangeByKey("c")
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+	myMap.NotifyScoreChangeByKey("c")
 
 	snapshot = myMap.GetSnapshotAscending()
 	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
@@ -252,7 +252,7 @@ func TestBucketSortedMap_AddManyItems(t *testing.T) {
 				key := fmt.Sprintf("%d_%d", i, j)
 				item := newScoredDummyItem(key, uint32(j%numScoreChunks))
 				myMap.Set(item)
-				myMap.OnScoreChangeByKey(key)
+				myMap.NotifyScoreChangeByKey(key)
 			}
 
 			waitGroup.Done()
@@ -328,8 +328,8 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 		for j := 0; j < 10000; j++ {
 			myMap.Set(newDummyItem("foobar"))
 			myMap.Remove("foobar")
-			myMap.OnScoreChange(newDummyItem("foobar"))
-			myMap.OnScoreChangeByKey("foobar")
+			myMap.NotifyScoreChange(newDummyItem("foobar"))
+			myMap.NotifyScoreChangeByKey("foobar")
 		}
 
 		wg.Done()
