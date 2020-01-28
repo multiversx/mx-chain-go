@@ -358,7 +358,6 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	getCounter := 0
 	putCounter := 0
 
-	//consensusGroup := list[0:21]
 	cacheMap := make(map[string]interface{})
 	cache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}) (evicted bool) {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"strconv"
 	"testing"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 // NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
@@ -99,7 +99,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	seedAddress string,
-	cache sharding.NodesCoordinatorCache,
+	cache sharding.Cacher,
 ) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -24,7 +23,7 @@ type indexHashedNodesCoordinator struct {
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
-	consensusGroupCache     NodesCoordinatorCache
+	consensusGroupCacher    Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -32,14 +31,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	err := checkArguments(arguments)
 	if err != nil {
 		return nil, err
-	}
-
-	var cache NodesCoordinatorCache
-
-	if arguments.ConsensusGroupCache == nil {
-		cache, err = lrucache.NewCache(defaultCacheSize)
-	} else {
-		cache = arguments.ConsensusGroupCache
 	}
 
 	if err != nil {
@@ -54,7 +45,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
-		consensusGroupCache:     cache,
+		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -82,6 +73,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.SelfPublicKey == nil {
 		return ErrNilPubKey
+	}
+	if arguments.ConsensusGroupCache == nil {
+		return ErrNilCacher
 	}
 
 	return nil
@@ -142,7 +136,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
-	value, ok := ihgs.consensusGroupCache.Get(key)
+	value, ok := ihgs.consensusGroupCacher.Get(key)
 	if ok {
 		consensusGroup, ok := value.([]Validator)
 		if ok {
@@ -166,7 +160,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
 
-	ihgs.consensusGroupCache.Put(key, tempList)
+	ihgs.consensusGroupCacher.Put(key, tempList)
 
 	return tempList, nil
 }
