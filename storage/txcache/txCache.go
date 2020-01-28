@@ -3,7 +3,7 @@ package txcache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -17,11 +17,11 @@ type TxCache struct {
 	evictionMutex                 sync.Mutex
 	evictionJournal               evictionJournal
 	evictionSnapshotOfSenders     []*txListForSender
-	isEvictionInProgress          core.AtomicFlag
-	numTxAddedBetweenSelections   core.AtomicCounter
-	numTxAddedDuringEviction      core.AtomicCounter
-	numTxRemovedBetweenSelections core.AtomicCounter
-	numTxRemovedDuringEviction    core.AtomicCounter
+	isEvictionInProgress          atomic.Flag
+	numTxAddedBetweenSelections   atomic.Counter
+	numTxAddedDuringEviction      atomic.Counter
+	numTxRemovedBetweenSelections atomic.Counter
+	numTxRemovedDuringEviction    atomic.Counter
 }
 
 // NewTxCache creates a new transaction cache

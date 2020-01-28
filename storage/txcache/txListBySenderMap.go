@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -12,7 +12,7 @@ const numberOfScoreChunks = uint32(100)
 type txListBySenderMap struct {
 	backingMap  *maps.BucketSortedMap
 	cacheConfig *CacheConfig
-	counter     core.AtomicCounter
+	counter     atomic.Counter
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
@@ -22,7 +22,6 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig *CacheConfig) txListBy
 	return txListBySenderMap{
 		backingMap:  backingMap,
 		cacheConfig: cacheConfig,
-		counter:     0,
 	}
 }
 

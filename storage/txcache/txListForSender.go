@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -14,12 +14,12 @@ type txListForSender struct {
 	items             *list.List
 	mutex             sync.Mutex
 	copyBatchIndex    *list.Element
-	totalBytes        core.AtomicCounter
-	totalGas          core.AtomicCounter
-	totalFee          core.AtomicCounter
+	totalBytes        atomic.Counter
+	totalGas          atomic.Counter
+	totalFee          atomic.Counter
 	sender            string
 	scoreChunk        *maps.MapChunk
-	lastComputedScore core.AtomicUint32
+	lastComputedScore atomic.Uint32
 	cacheConfig       *CacheConfig
 }
 
