@@ -1698,5 +1698,15 @@ func proposeBlocks(
 }
 
 func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(txpool.ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100000, SizeInBytes: 1000000000, Shards: 16}, MinGasPrice: 100000000000000, NumberOfShards: 1})
+	return txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
 }
