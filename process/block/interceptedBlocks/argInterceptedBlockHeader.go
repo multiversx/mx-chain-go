@@ -15,5 +15,6 @@ type ArgInterceptedBlockHeader struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 	ChainID           []byte
+	ValidityAttester  process.ValidityAttester
 	EpochStartTrigger process.EpochStartTriggerHandler
 }

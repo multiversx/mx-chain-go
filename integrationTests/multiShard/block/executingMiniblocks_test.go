@@ -192,6 +192,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	time.Sleep(time.Second)
 	nrRoundsToTest := 10
 	for i := 0; i <= nrRoundsToTest; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -284,6 +285,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	time.Sleep(2 * time.Second)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -308,6 +310,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	time.Sleep(time.Second)
 	numRoundsToTest := 6
 	for i := 0; i < numRoundsToTest; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

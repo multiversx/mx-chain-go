@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -134,9 +134,9 @@ func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConse
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetJobDone("3", bn.SrBlock, true)
+	_ = rcns.SetJobDone("3", bls.SrBlock, true)
 	rcns.SetConsensusGroup([]string{"1", "2"})
-	isJobDone, _ := rcns.JobDone("3", bn.SrBlock)
+	isJobDone, _ := rcns.JobDone("3", bls.SrBlock)
 	assert.False(t, isJobDone)
 }
 
@@ -145,8 +145,8 @@ func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensus
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetJobDone("4", bn.SrBlock, true)
-	isJobDone, _ := rcns.JobDone("4", bn.SrBlock)
+	_ = rcns.SetJobDone("4", bls.SrBlock, true)
+	isJobDone, _ := rcns.JobDone("4", bls.SrBlock)
 	assert.False(t, isJobDone)
 }
 
@@ -160,10 +160,10 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnFalse(t *testing.T) {
 			continue
 		}
 
-		_ = rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, true)
+		_ = rcns.SetJobDone(rcns.ConsensusGroup()[i], bls.SrBlock, true)
 	}
 
-	jobDone, _ := rcns.SelfJobDone(bn.SrBlock)
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
 	assert.False(t, jobDone)
 }
 
@@ -172,9 +172,9 @@ func TestRoundConsensus_GetSelfJobDoneShouldReturnTrue(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetJobDone("2", bn.SrBlock, true)
+	_ = rcns.SetJobDone("2", bls.SrBlock, true)
 
-	jobDone, _ := rcns.SelfJobDone(bn.SrBlock)
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
 	assert.True(t, jobDone)
 }
 
@@ -183,9 +183,9 @@ func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetSelfJobDone(bn.SrBlock, true)
+	_ = rcns.SetSelfJobDone(bls.SrBlock, true)
 
-	jobDone, _ := rcns.JobDone("2", bn.SrBlock)
+	jobDone, _ := rcns.JobDone("2", bls.SrBlock)
 	assert.True(t, jobDone)
 }
 
@@ -212,8 +212,8 @@ func TestRoundConsensus_ComputeSize(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetJobDone("1", bn.SrBlock, true)
-	assert.Equal(t, 1, rcns.ComputeSize(bn.SrBlock))
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	assert.Equal(t, 1, rcns.ComputeSize(bls.SrBlock))
 }
 
 func TestRoundConsensus_ResetValidationMap(t *testing.T) {
@@ -221,15 +221,15 @@ func TestRoundConsensus_ResetValidationMap(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetJobDone("1", bn.SrBlock, true)
-	jobDone, _ := rcns.JobDone("1", bn.SrBlock)
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	jobDone, _ := rcns.JobDone("1", bls.SrBlock)
 	assert.Equal(t, true, jobDone)
 
 	rcns.ConsensusGroup()[1] = "X"
 
 	rcns.ResetRoundState()
 
-	jobDone, err := rcns.JobDone("1", bn.SrBlock)
+	jobDone, err := rcns.JobDone("1", bls.SrBlock)
 	assert.Equal(t, false, jobDone)
 	assert.Nil(t, err)
 }
