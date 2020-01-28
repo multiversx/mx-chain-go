@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -48,7 +49,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.protoMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -184,7 +185,7 @@ func (n *Node) generateAndSignSingleTx(
 	dataField string,
 ) (*transaction.Transaction, []byte, error) {
 
-	if n.marshalizer == nil {
+	if n.protoMarshalizer == nil {
 		return nil, nil, ErrNilMarshalizer
 	}
 	if n.txSignPrivKey == nil {
@@ -201,7 +202,7 @@ func (n *Node) generateAndSignSingleTx(
 		Data:     dataField,
 	}
 
-	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	marshalizedTx, err := n.txSignMarshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
@@ -212,7 +213,7 @@ func (n *Node) generateAndSignSingleTx(
 	}
 
 	tx.Signature = sig
-	txBuff, err := n.marshalizer.Marshal(&tx)
+	txBuff, err := n.protoMarshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,7 +234,7 @@ func (n *Node) generateAndSignTxBuffArray(
 		return nil, nil, err
 	}
 
-	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
+	signedMarshalizedTx, err := n.protoMarshalizer.Marshal(&batch.Batch{[][]byte{txBuff}})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}

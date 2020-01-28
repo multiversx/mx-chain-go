@@ -246,7 +246,16 @@
 [MultisigHasher]
    Type = "blake2b"
 
+# The main marshalizer, used in internod communication
 [Marshalizer]
+   Type = "json"
+
+# The marshalizer used for smartcontracts data exchage
+[VmMarshalizer]
+   Type = "json"
+
+# The marshalizer used in transction signing
+[TxSignMarshalizer]
    Type = "json"
 
 # ResourceStats, if enabled, will output in a folder called "stats"

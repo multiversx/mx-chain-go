@@ -74,7 +74,7 @@ func (mp *MessageProcessor) verifySignature(hbRecv *Heartbeat) error {
 
 	copiedHeartbeat := *hbRecv
 	copiedHeartbeat.Signature = nil
-	buffCopiedHeartbeat, err := mp.marshalizer.Marshal(copiedHeartbeat)
+	buffCopiedHeartbeat, err := mp.marshalizer.Marshal(&copiedHeartbeat)
 	if err != nil {
 		return err
 	}
