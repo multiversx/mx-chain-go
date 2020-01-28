@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,6 +129,66 @@ func TestRoundConsensus_SetSelfPubKeyShouldChangeTheSelfPubKey(t *testing.T) {
 	assert.Equal(t, "X", rcns.SelfPubKey())
 }
 
+func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetJobDone("3", bls.SrBlock, true)
+	rcns.SetConsensusGroup([]string{"1", "2"})
+	isJobDone, _ := rcns.JobDone("3", bls.SrBlock)
+	assert.False(t, isJobDone)
+}
+
+func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetJobDone("4", bls.SrBlock, true)
+	isJobDone, _ := rcns.JobDone("4", bls.SrBlock)
+	assert.False(t, isJobDone)
+}
+
+func TestRoundConsensus_GetSelfJobDoneShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		if rcns.ConsensusGroup()[i] == rcns.SelfPubKey() {
+			continue
+		}
+
+		_ = rcns.SetJobDone(rcns.ConsensusGroup()[i], bls.SrBlock, true)
+	}
+
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
+	assert.False(t, jobDone)
+}
+
+func TestRoundConsensus_GetSelfJobDoneShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetJobDone("2", bls.SrBlock, true)
+
+	jobDone, _ := rcns.SelfJobDone(bls.SrBlock)
+	assert.True(t, jobDone)
+}
+
+func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetSelfJobDone(bls.SrBlock, true)
+
+	jobDone, _ := rcns.JobDone("2", bls.SrBlock)
+	assert.True(t, jobDone)
+}
+
 func TestRoundConsensus_IsNodeInConsensusGroup(t *testing.T) {
 	t.Parallel()
 
@@ -144,4 +205,31 @@ func TestRoundConsensus_IsNodeInEligibleList(t *testing.T) {
 
 	assert.Equal(t, false, rcns.IsNodeInEligibleList("4"))
 	assert.Equal(t, true, rcns.IsNodeInEligibleList(rcns.SelfPubKey()))
+}
+
+func TestRoundConsensus_ComputeSize(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	assert.Equal(t, 1, rcns.ComputeSize(bls.SrBlock))
+}
+
+func TestRoundConsensus_ResetValidationMap(t *testing.T) {
+	t.Parallel()
+
+	rcns := *initRoundConsensus()
+
+	_ = rcns.SetJobDone("1", bls.SrBlock, true)
+	jobDone, _ := rcns.JobDone("1", bls.SrBlock)
+	assert.Equal(t, true, jobDone)
+
+	rcns.ConsensusGroup()[1] = "X"
+
+	rcns.ResetRoundState()
+
+	jobDone, err := rcns.JobDone("1", bls.SrBlock)
+	assert.Equal(t, false, jobDone)
+	assert.Nil(t, err)
 }

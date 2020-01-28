@@ -1546,3 +1546,78 @@ func TestWorker_SetAppStatusHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, handler == wrk.AppStatusHandler())
 }
+
+func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{
+		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+			return nil
+		},
+		RevertAccountStateCalled: func() {
+		},
+	}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+		return nil
+	}
+	keyGeneratorMock, _, _ := mock.InitKeys()
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
+	syncTimerMock := &mock.SyncTimerMock{}
+
+	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
+		return process.ErrRandSeedDoesNotMatch
+	}
+
+	bnService, _ := bls.NewConsensusService()
+
+	wrk, _ := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		headerSigVerifier,
+		chainID,
+	)
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	cnsMsg := consensus.NewConsensusMessage(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bls.MtBlockHeader),
+		0,
+		chainID,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	time.Sleep(time.Second)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
+}
