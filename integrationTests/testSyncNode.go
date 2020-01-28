@@ -9,8 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -148,11 +150,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:   argumentsBase,
-			SCDataGetter:       &mock.ScQueryMock{},
-			SCToProtocol:       &mock.SCToProtocolStub{},
-			PeerChangesHandler: &mock.PeerChangesHandler{},
-			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+			ArgBaseProcessor:         argumentsBase,
+			SCDataGetter:             &mock.ScQueryMock{},
+			SCToProtocol:             &mock.SCToProtocolStub{},
+			PeerChangesHandler:       &mock.PeerChangesHandler{},
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -181,6 +183,16 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		return nil, err
 	}
 
+	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		tpn.DataPool,
 		tpn.Storage,
@@ -191,7 +203,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		TestHasher,
 		TestMarshalizer,
 		tpn.ForkDetector,
-		tpn.ResolverFinder,
+		tpn.RequestHandler,
 		tpn.ShardCoordinator,
 		accountsStateWrapper,
 		tpn.BlackListHandler,
@@ -199,7 +211,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
 		tpn.EpochStartTrigger,
-		tpn.RequestedItemsHandler,
+		miniBlocksResolver,
 	)
 	if err != nil {
 		return nil, err
@@ -211,6 +223,16 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 }
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
+	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	bootstrap, err := sync.NewMetaBootstrap(
 		tpn.DataPool,
 		tpn.Storage,
@@ -221,16 +243,16 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		TestHasher,
 		TestMarshalizer,
 		tpn.ForkDetector,
-		tpn.ResolverFinder,
+		tpn.RequestHandler,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		tpn.BlackListHandler,
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
-		tpn.RequestedItemsHandler,
 		tpn.EpochStartTrigger,
 		tpn.EpochStartTrigger,
+		miniBlocksResolver,
 	)
 
 	if err != nil {

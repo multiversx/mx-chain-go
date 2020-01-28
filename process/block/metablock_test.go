@@ -57,10 +57,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			DataPool:     mdp,
 		},
-		SCDataGetter:       &mock.ScQueryMock{},
-		SCToProtocol:       &mock.SCToProtocolStub{},
-		PeerChangesHandler: &mock.PeerChangesHandler{},
-		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+		SCDataGetter:             &mock.ScQueryMock{},
+		SCToProtocol:             &mock.SCToProtocolStub{},
+		PeerChangesHandler:       &mock.PeerChangesHandler{},
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 	}
 	return arguments
 }
@@ -283,7 +283,7 @@ func TestNewMetaProcessor_NilPendingMiniBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	arguments.PendingMiniBlocks = nil
+	arguments.PendingMiniBlocksHandler = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilPendingMiniBlocksHandler, err)

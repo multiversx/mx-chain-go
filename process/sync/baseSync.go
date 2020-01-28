@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -54,6 +53,7 @@ type baseBootstrap struct {
 	marshalizer       marshal.Marshalizer
 	epochHandler      dataRetriever.EpochHandler
 	forkDetector      process.ForkDetector
+	requestHandler    process.RequestHandler
 	shardCoordinator  sharding.Coordinator
 	accounts          state.AccountsAdapter
 	blockBootstrapper blockBootstrapper
@@ -92,18 +92,15 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore           storage.Storer
-	headerNonceHashStore  storage.Storer
-	hdrRes                dataRetriever.HeaderResolver
-	syncStarter           syncStarter
-	bootStorer            process.BootStorer
-	storageBootstrapper   process.BootstrapperFromStorage
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	headerStore          storage.Storer
+	headerNonceHashStore storage.Storer
+	syncStarter          syncStarter
+	bootStorer           process.BootStorer
+	storageBootstrapper  process.BootstrapperFromStorage
 
-	miniBlocks         storage.Cacher
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
+	miniBlocksResolver process.MiniBlocksResolver
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -323,13 +320,13 @@ func checkBootstrapNilParameters(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
-	resolversFinder dataRetriever.ResolversContainer,
+	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	miniBlocksResolver process.MiniBlocksResolver,
 ) error {
 	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
@@ -349,8 +346,8 @@ func checkBootstrapNilParameters(
 	if check.IfNil(forkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(resolversFinder) {
-		return process.ErrNilResolverContainer
+	if check.IfNil(requestHandler) {
+		return process.ErrNilRequestHandler
 	}
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -367,53 +364,35 @@ func checkBootstrapNilParameters(
 	if check.IfNil(watcher) {
 		return process.ErrNilNetworkWatcher
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return dataRetriever.ErrNilRequestedItemsHandler
+	if check.IfNil(miniBlocksResolver) {
+		return process.ErrNilMiniBlocksResolver
 	}
-
 	return nil
 }
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	nonce uint64,
-	haveHeaderInPoolWithNonce func(uint64) bool,
-	hdrRes dataRetriever.HeaderResolver) {
-
-	boot.requestedItemsHandler.Sweep()
-
+	haveHeaderInPoolWithNonce func(uint64) bool) {
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
-		key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), currentNonce)
-		if boot.requestedItemsHandler.Has(key) {
-			continue
-		}
-
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
 		if !haveHeader {
-			err := hdrRes.RequestDataFromNonce(currentNonce, boot.epochHandler.Epoch())
-			if err != nil {
-				log.Debug("RequestDataFromNonce", "error", err.Error())
-				continue
+			if boot.shardCoordinator.SelfId() == sharding.MetachainShardId {
+				boot.requestHandler.RequestMetaHeaderByNonce(currentNonce)
+			} else {
+				boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), currentNonce)
 			}
-
-			err = boot.requestedItemsHandler.Add(key)
-			if err != nil {
-				log.Trace("add requested item with error", "error", err.Error())
-			}
-
 			nbRequestedHdrs++
 		}
 	}
 
 	if nbRequestedHdrs > 0 {
-		log.Debug("requested in advance headers",
+		log.Trace("requested in advance headers",
 			"num headers", nbRequestedHdrs,
 			"from nonce", nonce,
 			"to", maxNonce,
-		)
-		log.Debug("probable highest nonce",
-			"nonce", boot.forkDetector.ProbableHighestNonce(),
+			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
 }
@@ -517,7 +496,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce, boot.hdrRes)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce)
 
 	blockBody, err := boot.blockBootstrapper.getBlockBodyRequestingIfMissing(hdr)
 	if err != nil {
@@ -621,7 +600,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {
-			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
+			log.Debug("save last round in storage",
+				"error", err.Error(),
+				"round", prevHeader.GetRound(),
+			)
 		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
@@ -807,24 +789,10 @@ func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
 // requestMiniBlocksByHashes method requests a block body from network when it is not found in the pool
 func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
-	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes, boot.epochHandler.Epoch())
-	if err != nil {
-		log.Debug("RequestDataFromHashArray", "error", err.Error())
-		return
-	}
-
-	boot.requestedItemsHandler.Sweep()
-
-	for _, hash := range hashes {
-		err = boot.requestedItemsHandler.Add(string(hash))
-		if err != nil {
-			log.Trace("add requested item with error", "error", err.Error())
-		}
-	}
-
-	log.Debug("requested mini blocks from network",
+	log.Debug("requesting mini blocks from network",
 		"num miniblocks", len(hashes),
 	)
+	boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), hashes)
 }
 
 // getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,

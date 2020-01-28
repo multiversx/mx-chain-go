@@ -113,12 +113,14 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID           []byte
-	blockTracker      process.BlockTracker
-	pendingMiniBlocks process.PendingMiniBlocksHandler
+	chainID                  []byte
+	blockTracker             process.BlockTracker
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	txStorageSize  uint32
 	sizeCheckDelta uint32
+
+	requestHandler process.RequestHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -440,6 +442,16 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
+	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -450,7 +462,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,
-		n.resolversFinder,
+		n.requestHandler,
 		n.shardCoordinator,
 		accountsWrapper,
 		n.blackListHandler,
@@ -458,7 +470,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.bootStorer,
 		shardStorageBootstrapper,
 		n.epochStartTrigger,
-		n.requestedItemsHandler,
+		miniBlocksResolver,
 	)
 	if err != nil {
 		return nil, err
@@ -484,12 +496,22 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 	arguments := storageBootstrap.ArgsMetaStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-		PendingMiniBlocks:           n.pendingMiniBlocks,
+		PendingMiniBlocksHandler:    n.pendingMiniBlocksHandler,
 	}
 
 	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(arguments)
 	if err != nil {
 		return nil, err
+	}
+
+	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(
@@ -502,16 +524,16 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,
-		n.resolversFinder,
+		n.requestHandler,
 		n.shardCoordinator,
 		n.accounts,
 		n.blackListHandler,
 		n.messenger,
 		n.bootStorer,
 		metaStorageBootstrapper,
-		n.requestedItemsHandler,
 		n.epochStartTrigger,
 		n.epochStartTrigger,
+		miniBlocksResolver,
 	)
 
 	if err != nil {

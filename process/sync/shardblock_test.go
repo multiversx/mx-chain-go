@@ -239,7 +239,7 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -247,7 +247,7 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -281,7 +281,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -289,7 +289,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -322,7 +322,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -330,7 +330,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -359,7 +359,7 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -367,7 +367,7 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -396,7 +396,7 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -404,7 +404,7 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -433,7 +433,7 @@ func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -441,7 +441,7 @@ func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -470,7 +470,7 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -478,7 +478,7 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -507,7 +507,7 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 		nil,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -515,7 +515,7 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -544,7 +544,7 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		hasher,
 		nil,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -552,7 +552,7 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -581,7 +581,7 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		nil,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -589,14 +589,14 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
-func TestNewShardBootstrap_NilResolversContainerShouldErr(t *testing.T) {
+func TestNewShardBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
@@ -627,11 +627,11 @@ func TestNewShardBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilResolverContainer, err)
+	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
 func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -656,7 +656,7 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		nil,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -664,7 +664,7 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -693,7 +693,7 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		nil,
 		&mock.BlackListHandlerStub{},
@@ -701,7 +701,7 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -731,7 +731,7 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversFinderStub{},
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		nil,
@@ -739,123 +739,11 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
-}
-
-func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-	pools := createMockPools()
-	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-				return &mock.ResolverStub{}, nil
-			}
-
-			return nil, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
-				return nil, errExpected
-			}
-
-			return nil, nil
-		},
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	bs, err := sync.NewShardBootstrap(
-		pools,
-		createStore(),
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		resFinder,
-		shardCoordinator,
-		account,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-		&mock.BoostrapStorerMock{},
-		&mock.StorageBootstrapperMock{},
-		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
-	)
-
-	assert.Nil(t, bs)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestNewShardBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-	pools := createMockPools()
-	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-				return nil, errExpected
-			}
-
-			return nil, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
-				return &mock.HeaderResolverMock{}, errExpected
-			}
-
-			return nil, nil
-		},
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	bs, err := sync.NewShardBootstrap(
-		pools,
-		createStore(),
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		resFinder,
-		shardCoordinator,
-		account,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-		&mock.BoostrapStorerMock{},
-		&mock.StorageBootstrapperMock{},
-		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
-	)
-
-	assert.Nil(t, bs)
-	assert.Equal(t, errExpected, err)
 }
 
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
@@ -903,7 +791,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -911,7 +799,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.NotNil(t, bs)
@@ -984,7 +872,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -996,7 +884,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	r := bs.SyncBlock()
@@ -1049,7 +937,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1061,7 +949,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	r := bs.SyncBlock()
@@ -1126,7 +1014,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinderNilMiniBlocks(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1138,7 +1026,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.RequestHeaderWithNonce(2)
@@ -1190,7 +1078,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1202,7 +1090,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.StartSync()
@@ -1298,7 +1186,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1310,7 +1198,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.StartSync()
@@ -1404,7 +1292,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1416,7 +1304,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	r := bs.SyncBlock()
@@ -1508,7 +1396,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1520,7 +1408,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	err := bs.SyncBlock()
@@ -1558,7 +1446,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1570,7 +1458,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1606,7 +1494,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1618,7 +1506,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1659,7 +1547,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1671,7 +1559,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1712,7 +1600,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1724,7 +1612,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1792,7 +1680,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1804,7 +1692,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
@@ -1887,7 +1775,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1899,7 +1787,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
@@ -1946,7 +1834,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -1954,7 +1842,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers())
@@ -2004,7 +1892,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2012,7 +1900,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers())
@@ -2024,20 +1912,6 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	blk := make(block.MiniBlockSlice, 0)
 
 	pools := createMockPools()
-
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
-		}
-		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(key, []byte("aaa")) {
-				return blk, true
-			}
-
-			return nil, false
-		}
-		return cs
-	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -2057,7 +1931,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2065,7 +1939,11 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{
+			GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+				return blk, nil
+			},
+		},
 	)
 
 	mbHashes := make([][]byte, 0)
@@ -2139,7 +2017,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2147,7 +2025,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.ReceivedHeaders(addedHdr, addedHash)
@@ -2180,7 +2058,7 @@ func TestBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2188,7 +2066,7 @@ func TestBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	err := bs.RollBack(false)
@@ -2218,7 +2096,7 @@ func TestBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2226,7 +2104,7 @@ func TestBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2275,7 +2153,7 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2283,7 +2161,7 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2411,7 +2289,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2419,7 +2297,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2581,7 +2459,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2589,7 +2467,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2642,21 +2520,9 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mb := &block.MiniBlock{}
 	txBlock := make(block.MiniBlockSlice, 0)
 
 	pools := createMockPools()
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal(key, mbh) {
-					return mb, true
-				}
-				return nil, false
-			},
-		}
-	}
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
 	)
@@ -2681,7 +2547,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2689,7 +2555,17 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{
+			GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+				for _, hash := range hashes {
+					if bytes.Equal(hash, mbh) {
+						return txBlock, nil
+					}
+				}
+
+				return nil, nil
+			},
+		},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2740,7 +2616,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinderNilMiniBlocks(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2748,7 +2624,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2768,17 +2644,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	pools := createMockPools()
 
-	txBlockUnit := &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, mbh) {
-				buff, _ := marshalizer.Marshal(txBlock)
-				return buff, nil
-			}
-
-			return nil, errors.New("not found")
-		},
-	}
-
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
 	)
@@ -2787,7 +2652,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	store := createFullStore()
-	store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2805,7 +2669,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2813,7 +2677,17 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{
+			GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+				for _, hash := range hashes {
+					if bytes.Equal(hash, mbh) {
+						return txBlock, nil
+					}
+				}
+
+				return nil, nil
+			},
+		},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2843,7 +2717,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2851,7 +2725,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	f1 := func(bool) {}
@@ -2889,7 +2763,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2897,7 +2771,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	mutex.RLock()
@@ -2981,7 +2855,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversFinder(),
+		&mock.RequestHandlerStub{},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -2989,7 +2863,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{},
 	)
 
 	err := bs.SetStatusHandler(nil)
@@ -3041,31 +2915,6 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return uint64(5)
 	}
-	resFinder := createMockResolversFinderNilMiniBlocks()
-	resFinder.IntraShardResolverCalled = func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-		if strings.Contains(baseTopic, factory.ShardBlocksTopic) {
-			return &mock.HeaderResolverMock{
-				RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-					return nil
-				},
-			}, nil
-		}
-
-		if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-			return &mock.MiniBlocksResolverMock{
-				RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
-					requestDataWasCalled = true
-					return nil
-				},
-				GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-					return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
-				},
-			}, nil
-		}
-
-		return nil, nil
-	}
-
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -3102,7 +2951,11 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		hasher,
 		marshalizer,
 		forkDetector,
-		resFinder,
+		&mock.RequestHandlerStub{
+			RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+				requestDataWasCalled = true
+			},
+		},
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{},
@@ -3110,7 +2963,11 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.EpochStartTriggerStub{},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.MiniBlocksResolverMock{
+			GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+				return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+			},
+		},
 	)
 
 	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(hdr)

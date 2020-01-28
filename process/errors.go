@@ -635,3 +635,6 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
+
+// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
+var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
