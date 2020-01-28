@@ -202,11 +202,15 @@ func TestBucketSortedMap_IterCb(t *testing.T) {
 		i++
 	})
 
+	require.Equal(t, 3, i)
+
 	i = len(sorted) - 1
 	myMap.IterCbSortedDescending(func(key string, value BucketSortedMapItem) {
 		require.Equal(t, sorted[i], key)
 		i--
 	})
+
+	require.Equal(t, 0, i+1)
 }
 
 func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
