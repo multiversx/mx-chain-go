@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -127,10 +128,13 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
 	_, metaHdr, _ := nodes[1].ProposeBlock(1, 1)
+	nodes[1].BlockChain.SetCurrentBlockHeader(metaHdr)
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
+	nodes[1].Storage.GetStorer(dataRetriever.MetaBlockUnit).Put(metaHeaderHash, metaHeaderBytes)
 	for i := 0; i < numMetaNodes; i++ {
 		nodes[i+1].DataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
+		nodes[i+1].BlockChain.SetCurrentBlockHeader(metaHdr)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
