@@ -149,19 +149,20 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
+	hmb := header.(*block.MetaBlock)
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
 		v, ok := metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
 		assert.True(t, ok)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 
 	// all nodes in shard do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, shardNode := range nodesMap[0] {
 		v, ok := shardNode.ShardDataPool.MetaBlocks().Get(headerHash)
 		assert.True(t, ok)
-		assert.Equal(t, header, v)
+		assert.True(t, hmb.Equal(v))
 	}
 }
 

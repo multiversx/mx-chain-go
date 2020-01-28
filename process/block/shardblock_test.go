@@ -109,7 +109,7 @@ func initBasicTestData() (*mock.PoolsHolderMock, *blockchain.BlockChain, []byte,
 	body = append(body, &miniblock)
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, nil, mbHash
 }
@@ -419,7 +419,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   0,
@@ -623,7 +623,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   0,
@@ -774,7 +774,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   0,
@@ -856,7 +856,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   0,
@@ -933,7 +933,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -1015,7 +1015,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 		ShardInfo: shardHdrs,
 		RandSeed:  randSeed,
 	}
-	metaBytes, _ := marshalizer.Marshal(meta)
+	metaBytes, _ := marshalizer.Marshal(&meta)
 	metaHash := hasher.Compute(string(metaBytes))
 
 	tdp.MetaBlocks().Put(metaHash, meta)
@@ -1025,7 +1025,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 		ShardInfo:    make([]block.ShardData, 0),
 		PrevRandSeed: randSeed,
 	}
-	metaBytes, _ = marshalizer.Marshal(meta)
+	metaBytes, _ = marshalizer.Marshal(&meta)
 	metaHash = hasher.Compute(string(metaBytes))
 
 	tdp.MetaBlocks().Put(metaHash, meta)
@@ -1083,7 +1083,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   0,
@@ -1153,7 +1153,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 		ShardInfo: shardHdrs,
 		RandSeed:  randSeed,
 	}
-	metaBytes, _ := marshalizer.Marshal(meta)
+	metaBytes, _ := marshalizer.Marshal(&meta)
 	metaHash := hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
@@ -1164,7 +1164,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 		ShardInfo:    make([]block.ShardData, 0),
 		PrevRandSeed: randSeed,
 	}
-	metaBytes, _ = marshalizer.Marshal(meta)
+	metaBytes, _ = marshalizer.Marshal(&meta)
 	metaHash = hasher.Compute(string(metaBytes))
 
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
@@ -1220,7 +1220,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		SenderShardID:   1,
@@ -1369,7 +1369,7 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -1477,7 +1477,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -2453,12 +2453,12 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	_, found := msh[0]
 	assert.False(t, found)
 
-	expectedBody := make(block.Body, 0)
-	err = marshalizer.Unmarshal(&expectedBody, msh[1])
+	bh := &block.BodyHelper{}
+	err = marshalizer.Unmarshal(bh, msh[1])
 	assert.Nil(t, err)
-	assert.Equal(t, len(expectedBody), 2)
-	assert.Equal(t, &mb1, expectedBody[0])
-	assert.Equal(t, &mb1, expectedBody[1])
+	assert.Equal(t, len(bh.MiniBlocks), 2)
+	assert.Equal(t, &mb1, bh.MiniBlocks[0])
+	assert.Equal(t, &mb1, bh.MiniBlocks[1])
 }
 
 func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
@@ -2725,7 +2725,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -3268,7 +3268,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	sp, err := blproc.NewShardProcessor(arguments)
 	body := make(block.Body, 0)
 	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
-	message, err := marshalizerMock.Marshal(body)
+	message, err := marshalizerMock.Marshal(&block.BodyHelper{body})
 	assert.Nil(t, err)
 
 	dcdBlk := sp.DecodeBlockBody(nil)
@@ -3531,8 +3531,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, miniBlocks []block.MiniBlock) []block.ShardData {
 	shardData := make([]block.ShardData, len(miniBlocks))
 	for i := 0; i < len(miniBlocks); i++ {
-		marshaled, _ := marshalizer.Marshal(miniBlocks[i])
-		hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
+		hashed, _ := core.CalculateHash(marshalizer, hasher, &miniBlocks[i])
 
 		shardMBHeader := block.ShardMiniBlockHeader{
 			ReceiverShardID: miniBlocks[i].ReceiverShardID,
@@ -3619,16 +3618,13 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	}
 	mbHeaders := make([]block.MiniBlockHeader, 0)
 
-	marshaled, _ := marshalizer.Marshal(miniblock1)
-	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ := core.CalculateHash(marshalizer, hasher, &miniblock1)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	marshaled, _ = marshalizer.Marshal(miniblock2)
-	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock2)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	marshaled, _ = marshalizer.Marshal(miniblock3)
-	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock3)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
@@ -3748,22 +3744,18 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		TxHashes:        txHashes,
 	}
 
-	mbHeaders := make([]block.MiniBlockHeader, 0)
+	mbHeaders := make([]block.MiniBlockHeader, 0, 4)
 
-	marshaled, _ := marshalizer.Marshal(miniblock1)
-	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ := core.CalculateHash(marshalizer, hasher, &miniblock1)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	marshaled, _ = marshalizer.Marshal(miniblock2)
-	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock2)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	marshaled, _ = marshalizer.Marshal(miniblock3)
-	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock3)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	marshaled, _ = marshalizer.Marshal(miniblock4)
-	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock4)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
@@ -3840,7 +3832,7 @@ func createOneHeaderOneBody() (*block.Header, block.Body) {
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -3953,7 +3945,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 
 	miniblockHashes := make(map[string]uint32, 0)
 
-	meta := block.MetaBlock{
+	meta := &block.MetaBlock{
 		Nonce:     1,
 		ShardInfo: make([]block.ShardData, 0),
 	}
@@ -3995,7 +3987,7 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 	}
 	hasher := &mock.HasherStub{}
 
-	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
 
 	shardMiniBlock := block.ShardMiniBlockHeader{

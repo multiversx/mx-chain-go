@@ -2,7 +2,6 @@ package transaction_test
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -272,7 +271,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 
-	acntSrc.Balance = big.NewInt(46)
+	acntSrc.Balance = data.NewProtoBigInt(46)
 	acntDst.SetCode([]byte{65})
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -328,7 +327,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(45)
+	acntSrc.Balance = data.NewProtoBigInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
@@ -395,7 +394,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(45)
+	acntSrc.Balance = data.NewProtoBigInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})

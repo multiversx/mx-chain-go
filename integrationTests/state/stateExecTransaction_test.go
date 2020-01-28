@@ -48,7 +48,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance.Get())
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
@@ -62,7 +62,8 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	//Step 1. create account with a nonce and a balance
 	address := integrationTests.CreateAccount(accnts, nonce, balance)
-	_, _ = accnts.Commit()
+	_, err := accnts.Commit()
+	assert.Nil(t, err)
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
@@ -74,14 +75,15 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 		GasPrice: 2,
 	}
 
-	err := txProcessor.ProcessTransaction(tx)
+	err = txProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
-	_ = accnts.RevertToSnapshot(0)
+	err = accnts.RevertToSnapshot(0)
+	assert.Nil(t, err)
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance.Get())
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
@@ -145,10 +147,10 @@ func testExecTransactionsMoreTxWithRevert(
 	newAccount, _ := accnts.GetAccountWithJournal(receiver)
 	account, _ := accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
+	assert.Equal(t, account.(*state.Account).Balance.Get(), big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
 	assert.Equal(t, account.(*state.Account).Nonce, uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.(*state.Account).Balance, big.NewInt(int64(txToGenerate)))
+	assert.Equal(t, newAccount.(*state.Account).Balance.Get().Int64(), int64(txToGenerate))
 	assert.Equal(t, newAccount.(*state.Account).Nonce, uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
@@ -166,7 +168,7 @@ func testExecTransactionsMoreTxWithRevert(
 	receiver2, _ := accnts.GetExistingAccount(receiver)
 	account, _ = accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance))
+	assert.Equal(t, account.(*state.Account).Balance.Get().Int64(), initialBalance)
 	assert.Equal(t, account.(*state.Account).Nonce, initialNonce)
 
 	assert.Nil(t, receiver2)

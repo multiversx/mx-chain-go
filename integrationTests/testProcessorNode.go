@@ -61,8 +61,14 @@ import (
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
 
-// TestMarshalizer represents a JSON marshalizer
-var TestMarshalizer = &marshal.JsonMarshalizer{}
+// TestMarshalizer represents the main marshalizer
+var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
+
+// TestVmMarshalizer represents the marshalizer used in vm communication
+var TestVmMarshalizer = &marshal.JsonMarshalizer{}
+
+// TestTxSignMarshalizer represents the marshalizer used in vm communication
+var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressConverter represents a plain address converter
 var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
@@ -367,6 +373,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
+			TestTxSignMarshalizer,
 			TestHasher,
 			TestMultiSig,
 			tpn.MetaDataPool,
@@ -394,6 +401,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
+			TestTxSignMarshalizer,
 			TestHasher,
 			tpn.OwnAccount.KeygenTxSign,
 			tpn.OwnAccount.KeygenBlockSign,
@@ -727,14 +735,15 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:     TestAddressConverter,
-			Hasher:      TestHasher,
-			Marshalizer: TestMarshalizer,
-			PeerState:   tpn.PeerState,
-			BaseState:   tpn.AccntState,
-			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.MetaDataPool.CurrentBlockTxs(),
-			ScQuery:     tpn.SCQueryService,
+			AdrConv:          TestAddressConverter,
+			Hasher:           TestHasher,
+			ProtoMarshalizer: TestMarshalizer,
+			VmMarshalizer:    TestVmMarshalizer,
+			PeerState:        tpn.PeerState,
+			BaseState:        tpn.AccntState,
+			ArgParser:        tpn.ArgsParser,
+			CurrTxs:          tpn.MetaDataPool.CurrentBlockTxs(),
+			ScQuery:          tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
@@ -775,8 +784,9 @@ func (tpn *TestProcessorNode) initNode() {
 
 	tpn.Node, err = node.NewNode(
 		node.WithMessenger(tpn.Messenger),
-		node.WithMarshalizer(TestMarshalizer),
-		node.WithHasher(TestHasher),
+		node.WithProtoMarshalizer(TestMarshalizer),
+		node.WithVmMarshalizer(TestVmMarshalizer),
+		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
@@ -964,7 +974,7 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 
 	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
+		return nil, errors.New(fmt.Sprintf("[GetShardHeader] no hash-nonce hash in HeadersNonces for nonce %d", nonce))
 	}
 
 	headerObject, ok := tpn.ShardDataPool.Headers().Get(headerHash)
@@ -1048,7 +1058,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 
 	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
+		return nil, errors.New(fmt.Sprintf("[GetMetaHeader] no hash-nonce hash for shard %d in HeadersNonces for nonce %d", tpn.ShardCoordinator.SelfId(), nonce))
 	}
 
 	headerObject, ok := tpn.MetaDataPool.MetaBlocks().Get(headerHash)
@@ -1089,7 +1099,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 5
 		},
 	)
 	if err != nil {

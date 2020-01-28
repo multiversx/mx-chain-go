@@ -66,12 +66,12 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		GasPrice: integrationTests.MinTxGasPrice,
 	}
 
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
+	txBuff, _ := integrationTests.TestTxSignMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
+	fmt.Printf("Transaction: %#v\n%#v\n", tx, string(signedTxBuff))
 
 	chanDone := make(chan bool)
 
@@ -99,7 +99,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	)
 
 	//Step 4. request tx
-	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
+	txResolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 

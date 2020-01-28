@@ -2,7 +2,6 @@ package node
 
 import (
 	"encoding/hex"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -24,7 +23,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, big.NewInt(0), recovAccnt.Balance)
+	assert.Equal(t, uint64(0), recovAccnt.Balance.Get().Uint64())
 	assert.Nil(t, recovAccnt.CodeHash)
 	assert.Nil(t, recovAccnt.RootHash)
 }

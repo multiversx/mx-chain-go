@@ -89,16 +89,16 @@ func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.Head
 // DecodeBlockBody method decodes block body from a given byte array
 func (blProcMock BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 	if dta == nil {
-		return nil
+		return block.Body{}
 	}
 
-	var body block.Body
-
-	err := blProcMock.Marshalizer.Unmarshal(&body, dta)
+	bh := block.BodyHelper{}
+	err := blProcMock.Marshalizer.Unmarshal(&bh, dta)
 	if err != nil {
 		return nil
 	}
 
+	body := block.Body(bh.MiniBlocks)
 	return body
 }
 

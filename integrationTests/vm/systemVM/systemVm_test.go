@@ -120,7 +120,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				expectedValue := big.NewInt(0).Sub(initialVal, consumedBalance)
-				assert.Equal(t, expectedValue, sndAcc.Balance)
+				assert.Equal(t, expectedValue, sndAcc.Balance.Get())
 				break
 			}
 		}
@@ -136,7 +136,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				expectedValue := big.NewInt(0).Sub(initialVal, node.EconomicsData.StakeValue())
 				expectedValue = expectedValue.Sub(expectedValue, consumedBalance)
-				assert.Equal(t, expectedValue, sndAcc.Balance)
+				assert.Equal(t, expectedValue, sndAcc.Balance.Get())
 				break
 			}
 		}
@@ -150,7 +150,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.Equal(t, initialVal, sndAcc.Balance)
+				assert.Equal(t, initialVal, sndAcc.Balance.Get())
 				break
 			}
 		}

@@ -240,6 +240,6 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 		header,
 	)
 	assert.Nil(t, err)
-	assert.Equal(t, val1, accnt1.Balance)
-	assert.Equal(t, val2, accnt2.Balance)
+	assert.Equal(t, val1, accnt1.Balance.Get())
+	assert.Equal(t, val2, accnt2.Balance.Get())
 }

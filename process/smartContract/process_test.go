@@ -36,10 +36,10 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value.Get())
+	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), tx.Value.Get()))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
@@ -1633,13 +1633,13 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	acntSrc, _ := createAccounts(tx)
 	stAcc, _ := acntSrc.(*state.Account)
-	stAcc.Balance = big.NewInt(45)
+	stAcc.Balance = data.NewProtoBigInt(45)
 
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -1674,12 +1674,12 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	tx.GasLimit = 10
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
 	modifiedBalance := currBalance - tx.Value.Get().Uint64() - tx.GasLimit*tx.GasLimit
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
@@ -1716,11 +1716,11 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	txHash := []byte("txHash")
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
@@ -1807,7 +1807,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
@@ -1815,7 +1815,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * tx.GasPrice
-	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Uint64())
+	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Get().Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
@@ -1989,15 +1989,15 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	tx.Value = data.NewProtoBigInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
 		fakeAcc, _ := state.NewAccount(mock.NewAddressMock(address), &mock.AccountTrackerStub{})
-		fakeAcc.Balance = big.NewInt(int64(5))
+		fakeAcc.Balance = data.NewProtoBigInt(int64(5))
 		return fakeAcc
 	}
 
-	currentBalance := testAcc.Balance.Uint64()
+	currentBalance := testAcc.Balance.Get().Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
 	err = sc.processSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
-	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
+	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Get().Uint64())
 }
 
 func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
