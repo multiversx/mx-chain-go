@@ -46,7 +46,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, err
 	}
 
-	blockBalancer, err := NewBlockBalancer()
+	blockBalancerInstance, err := NewBlockBalancer()
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
-		blockBalancer:                 blockBalancer,
+		blockBalancer:                 blockBalancerInstance,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)

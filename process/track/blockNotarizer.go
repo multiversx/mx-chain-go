@@ -119,14 +119,23 @@ func (bn *blockNotarizer) DisplayNotarizedHeaders(shardID uint32, message string
 	}
 }
 
+// GetFirstNotarizedHeader returns the first notarized header for a given shard
+func (bn *blockNotarizer) GetFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	bn.mutNotarizedHeaders.RLock()
+	defer bn.mutNotarizedHeaders.RUnlock()
+
+	hdrInfo := bn.firstNotarizedHeaderInfo(shardID)
+	if hdrInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
+	}
+
+	return hdrInfo.Header, hdrInfo.Hash, nil
+}
+
 // GetLastNotarizedHeader gets the last notarized header for a given shard
 func (bn *blockNotarizer) GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
-
-	if bn.notarizedHeaders == nil {
-		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
-	}
 
 	hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
 	if hdrInfo == nil {
@@ -141,16 +150,21 @@ func (bn *blockNotarizer) GetLastNotarizedHeaderNonce(shardID uint32) uint64 {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
 
-	if bn.notarizedHeaders == nil {
-		return 0
-	}
-
 	hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
 	if hdrInfo == nil {
 		return 0
 	}
 
 	return hdrInfo.Header.GetNonce()
+}
+
+func (bn *blockNotarizer) firstNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
+	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+	if notarizedHeadersCount > 0 {
+		return bn.notarizedHeaders[shardID][0]
+	}
+
+	return nil
 }
 
 func (bn *blockNotarizer) lastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
@@ -166,10 +180,6 @@ func (bn *blockNotarizer) lastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
 func (bn *blockNotarizer) GetNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
-
-	if bn.notarizedHeaders == nil {
-		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
-	}
 
 	headersInfo := bn.notarizedHeaders[shardID]
 	if headersInfo == nil {

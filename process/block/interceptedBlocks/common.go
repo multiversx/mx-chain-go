@@ -33,6 +33,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if len(arg.ChainID) == 0 {
 		return process.ErrInvalidChainID
 	}
+	if check.IfNil(arg.ValidityAttester) {
+		return process.ErrNilValidityAttester
+	}
 
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) process.InterceptorProcessor {
@@ -82,14 +83,15 @@ func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T)
 func TestNewSingleDataInterceptor(t *testing.T) {
 	t.Parallel()
 
+	factory := &mock.InterceptedDataFactoryStub{}
 	sdi, err := interceptors.NewSingleDataInterceptor(
-		&mock.InterceptedDataFactoryStub{},
+		factory,
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 	)
 
-	assert.NotNil(t, sdi)
-	assert.Nil(t, err)
+	require.False(t, check.IfNil(sdi))
+	require.Nil(t, err)
 }
 
 //------- ProcessReceivedMessage
