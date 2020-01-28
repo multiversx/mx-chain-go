@@ -41,8 +41,6 @@ var log = logger.GetOrCreate("storage/storageUnit")
 const (
 	LvlDB       DBType = "LvlDB"
 	LvlDbSerial DBType = "LvlDBSerial"
-	BadgerDB    DBType = "BadgerDB"
-	BoltDB      DBType = "BoltDB"
 )
 
 const (

@@ -471,18 +471,6 @@ func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
-func TestCreateDBFromConfWrongFileNameBoltDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.BoltDB, "", 10, 10, 10)
-	assert.NotNil(t, err, "error expected")
-	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
-}
-
-func TestCreateDBFromConfWrongFileNameBadgerDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.BadgerDB, "", 10, 10, 10)
-	assert.NotNil(t, err, "error expected")
-	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
-}
-
 func TestCreateDBFromConfLvlDBOk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
 	persister, err := storageUnit.NewDB(storageUnit.LvlDB, dir, 10, 10, 10)
