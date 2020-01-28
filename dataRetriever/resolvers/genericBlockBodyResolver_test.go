@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -122,7 +123,9 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	mbHash := []byte("aaa")
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(miniBlockList)
+	requestedBuff, merr := marshalizer.Marshal(&batch.Batch{miniBlockList})
+
+	assert.Nil(t, merr)
 
 	wasResolved := false
 	wasSent := false
@@ -180,7 +183,9 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 	mbHash := []byte("aaa")
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := goodMarshalizer.Marshal(miniBlockList)
+	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{miniBlockList})
+
+	assert.Nil(t, merr)
 
 	cache := &mock.CacherStub{}
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {

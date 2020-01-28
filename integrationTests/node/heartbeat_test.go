@@ -210,7 +210,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singlesigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
-	marshalizer := &marshal.JsonMarshalizer{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 
 	mp, _ := heartbeat.NewMessageProcessor(singlesigner, keyGen, marshalizer)
 

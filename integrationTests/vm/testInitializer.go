@@ -32,7 +32,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testMarshalizer = &marshal.JsonMarshalizer{}
+var testMarshalizer = &marshal.GogoProtoMarshalizer{}
 var testHasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
@@ -67,7 +67,7 @@ func CreateMemUnit() storage.Storer {
 }
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 
 	tr, _ := trie.NewTrie(store, marsh, testHasher)
@@ -281,7 +281,7 @@ func TestDeployedContractContents(
 	assert.True(t, ok)
 	assert.NotNil(t, destinationRecovShardAccount)
 	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
-	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance)
+	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance.Get())
 	//test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovAccount.GetCodeHash())
 	//test code
@@ -419,8 +419,8 @@ func TestAccount(
 	senderRecovShardAccount := senderRecovAccount.(*state.Account)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
-	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
-	return senderRecovShardAccount.Balance
+	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance.Get())
+	return senderRecovShardAccount.Balance.Get()
 }
 
 func ComputeExpectedBalance(
@@ -442,7 +442,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	accnt, _ := accnts.GetExistingAccount(address)
 	shardAccnt, _ := accnt.(*state.Account)
 
-	return shardAccnt.Balance
+	return shardAccnt.Balance.Get()
 }
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {

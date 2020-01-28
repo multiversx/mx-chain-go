@@ -1394,7 +1394,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	body := block.Body{}
 	hdr := block.Header{Nonce: 1}
-	buffHdr, _ := marshalizerMock.Marshal(hdr)
+	buffHdr, _ := marshalizerMock.Marshal(&hdr)
 	hdrHash := []byte("hdr_hash1")
 
 	store := &mock.ChainStorerMock{
@@ -2037,9 +2037,10 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	body := block.Body{}
-	message, err := marshalizerMock.Marshal(body)
+	bh := block.BodyHelper{}
+	message, err := marshalizerMock.Marshal(&bh)
 	assert.Nil(t, err)
+	body := block.Body(bh.GetMiniBlocks())
 
 	dcdBlk := mp.DecodeBlockBody(nil)
 	assert.Nil(t, dcdBlk)

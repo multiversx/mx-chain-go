@@ -19,7 +19,7 @@ func createDefaultTxBodyArgument() *interceptedBlocks.ArgInterceptedTxBlockBody 
 	}
 
 	txBlockBody := createMockTxBlockBody()
-	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(txBlockBody)
+	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(&block.BodyHelper{txBlockBody})
 
 	return arg
 }
@@ -85,7 +85,7 @@ func TestInterceptedTxBlockBody_InvalidReceiverShardIdShouldErr(t *testing.T) {
 	wrongShardId := uint32(4)
 	txBody := createMockTxBlockBody()
 	txBody[0].ReceiverShardID = wrongShardId
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -102,7 +102,7 @@ func TestInterceptedTxBlockBody_InvalidSenderShardIdShouldErr(t *testing.T) {
 	wrongShardId := uint32(4)
 	txBody := createMockTxBlockBody()
 	txBody[0].SenderShardID = wrongShardId
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -118,7 +118,7 @@ func TestInterceptedTxBlockBody_ContainsNilHashShouldErr(t *testing.T) {
 
 	txBody := createMockTxBlockBody()
 	txBody[0].TxHashes[1] = nil
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -146,7 +146,8 @@ func TestInterceptedTxBlockBody_Getters(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultTxBodyArgument()
-	inTxBody, _ := interceptedBlocks.NewInterceptedTxBlockBody(arg)
+	inTxBody, err := interceptedBlocks.NewInterceptedTxBlockBody(arg)
+	assert.Nil(t, err)
 
 	hash := testHasher.Compute(string(arg.TxBlockBodyBuff))
 
@@ -160,7 +161,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardNoMiniblocksShouldRetFalse(t *t
 	t.Parallel()
 
 	txBody := make([]*block.MiniBlock, 0)
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -191,7 +192,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockForOtherShardsShouldRe
 			},
 		},
 	}
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -223,7 +224,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithSender
 			},
 		},
 	}
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff
@@ -255,7 +256,7 @@ func TestInterceptedTxBlockBody_IsForCurrentShardMiniblockOneMiniBlockWithReceiv
 			},
 		},
 	}
-	buff, _ := testMarshalizer.Marshal(txBody)
+	buff, _ := testMarshalizer.Marshal(&block.BodyHelper{txBody})
 
 	arg := createDefaultTxBodyArgument()
 	arg.TxBlockBodyBuff = buff

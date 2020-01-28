@@ -39,5 +39,5 @@ func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
 	_, err := entry.Revert()
 
 	assert.Nil(t, err)
-	assert.Equal(t, balance, accnt.Balance)
+	assert.Equal(t, balance, accnt.Balance.Get())
 }

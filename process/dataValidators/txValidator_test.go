@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -18,7 +19,14 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{Nonce: nonce, Balance: balance}, nil
+		return &state.Account{
+			AccountData: state.AccountData{
+				Nonce:    nonce,
+				Balance:  data.NewProtoBigIntFromBigInt(balance),
+				CodeHash: nil,
+				RootHash: nil,
+			},
+		}, nil
 	}
 
 	return accDB

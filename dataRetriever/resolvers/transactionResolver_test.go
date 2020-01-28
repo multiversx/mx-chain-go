@@ -396,7 +396,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 		},
 	)
 
-	buff, _ := marshalizer.Marshal([][]byte{txHash1, txHash2})
+	buff, _ := marshalizer.Marshal(batch.Batch{[][]byte{txHash1, txHash2}})
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
 
 	msg := &mock.P2PMessageMock{DataField: data}

@@ -456,7 +456,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 func PrintShardAccount(accnt *state.Account, tag string) {
 	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Get().Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
@@ -505,8 +505,8 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 // balance and nonce, and printing any encountered error
 func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
 
-	srcVal := acntSrc.Balance
-	destVal := acntDest.Balance
+	srcVal := acntSrc.Balance.Get()
+	destVal := acntDest.Balance.Get()
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
@@ -911,7 +911,7 @@ func CreateAndSendTransaction(
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -947,7 +947,7 @@ func generateTransferTx(
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	txBuff, _ := TestMarshalizer.Marshal(&tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -968,7 +968,7 @@ func generateTx(
 		GasLimit: args.gasLimit,
 		Data:     args.data,
 	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx
@@ -984,7 +984,7 @@ func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.Publi
 	pkBuff, _ := pk.ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance.Get())
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
@@ -992,7 +992,7 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance.Get())
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
@@ -1269,7 +1269,9 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithMarshalizer(TestMarshalizer),
+		node.WithProtoMarshalizer(TestMarshalizer),
+		node.WithVmMarshalizer(TestVmMarshalizer),
+		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),

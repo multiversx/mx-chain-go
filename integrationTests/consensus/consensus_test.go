@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -94,8 +95,15 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 	for _, n := range nodes {
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
+			err := blockChain.SetCurrentBlockHeader(header)
+			if err != nil {
+				return err
+			}
+
+			err = blockChain.SetCurrentBlockBody(body)
+			if err != nil {
+				return err
+			}
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -194,7 +202,7 @@ func TestConsensusBNFullTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
+	_ = logger.SetLogLevel("*:TRACE,*:TRACE")
 	runFullConsensusTest(t, bnConsensusType)
 }
 
@@ -203,6 +211,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE,*:TRACE")
 	runFullConsensusTest(t, blsConsensusType)
 }
 
