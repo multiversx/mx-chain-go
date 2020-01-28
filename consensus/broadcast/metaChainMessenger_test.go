@@ -176,7 +176,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(&block.Body{}, &block.MetaBlock{})
+	err := mcm.BroadcastBlock(block.Body{}, &block.MetaBlock{})
 	assert.Nil(t, err)
 }
 
