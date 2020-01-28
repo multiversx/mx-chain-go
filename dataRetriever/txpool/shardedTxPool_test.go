@@ -31,35 +31,35 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	pool, err := NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Equal(t, dataRetriever.ErrCacheConfigInvalidSizeInBytes, err)
+	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSizeInBytes.Error())
 
 	args = goodArgs
 	args.Config = storageUnit.CacheConfig{SizeInBytes: 40960, Size: 1}
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Equal(t, dataRetriever.ErrCacheConfigInvalidShards, err)
+	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
 
 	args = goodArgs
 	args.Config = storageUnit.CacheConfig{SizeInBytes: 40960, Shards: 1}
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSize)
+	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSize.Error())
 
 	args = goodArgs
 	args.MinGasPrice = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidEconomics)
+	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidEconomics.Error())
 
 	args = goodArgs
 	args.NumberOfShards = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
-	require.Equal(t, err, dataRetriever.ErrCacheConfigInvalidSharding)
+	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
