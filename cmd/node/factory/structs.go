@@ -1599,8 +1599,6 @@ func createInMemoryStoreBlkc(
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
