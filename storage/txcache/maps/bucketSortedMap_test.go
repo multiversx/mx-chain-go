@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -236,17 +235,22 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
-	myMap := NewBucketSortedMap(16, 100)
+	numGoroutines := 42
+	numItemsPerGoroutine := 1000
+	numScoreChunks := 100
+	numItemsInScoreChunkPerGoroutine := numItemsPerGoroutine / numScoreChunks
+	numItemsInScoreChunk := numItemsInScoreChunkPerGoroutine * numGoroutines
+
+	myMap := NewBucketSortedMap(16, uint32(numScoreChunks))
 
 	var waitGroup sync.WaitGroup
+	waitGroup.Add(numGoroutines)
 
-	for i := 0; i < 100; i++ {
-		waitGroup.Add(1)
-
+	for i := 0; i < numGoroutines; i++ {
 		go func(i int) {
-			for j := 0; j < 1000; j++ {
+			for j := 0; j < numItemsPerGoroutine; j++ {
 				key := fmt.Sprintf("%d_%d", i, j)
-				item := newScoredDummyItem(key, uint32(j%100))
+				item := newScoredDummyItem(key, uint32(j%numScoreChunks))
 				myMap.Set(item)
 				myMap.OnScoreChangeByKey(key)
 			}
@@ -257,16 +261,18 @@ func TestBucketSortedMap_AddManyItems(t *testing.T) {
 
 	waitGroup.Wait()
 
-	assert.Equal(t, uint32(100*1000), myMap.CountSorted())
+	require.Equal(t, uint32(numGoroutines*numItemsPerGoroutine), myMap.CountSorted())
 
 	counts := myMap.ScoreChunksCounts()
-	for i := 0; i < 100; i++ {
-		require.Equal(t, uint32(1000), counts[i])
+	for i := 0; i < numScoreChunks; i++ {
+		require.Equal(t, uint32(numItemsInScoreChunk), counts[i])
 	}
 }
 
 func TestBucketSortedMap_ClearConcurrentWithRead(t *testing.T) {
-	myMap := NewBucketSortedMap(4, 4)
+	numChunks := uint32(4)
+	numScoreChunks := uint32(4)
+	myMap := NewBucketSortedMap(numChunks, numScoreChunks)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -285,8 +291,8 @@ func TestBucketSortedMap_ClearConcurrentWithRead(t *testing.T) {
 		for j := 0; j < 1000; j++ {
 			require.Equal(t, uint32(0), myMap.Count())
 			require.Equal(t, uint32(0), myMap.CountSorted())
-			require.Len(t, myMap.ChunksCounts(), 4)
-			require.Len(t, myMap.ScoreChunksCounts(), 4)
+			require.Len(t, myMap.ChunksCounts(), int(numChunks))
+			require.Len(t, myMap.ScoreChunksCounts(), int(numScoreChunks))
 			require.Len(t, myMap.Keys(), 0)
 			require.Len(t, myMap.KeysSorted(), 0)
 			require.Equal(t, false, myMap.Has("foobar"))
