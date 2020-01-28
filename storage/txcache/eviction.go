@@ -14,12 +14,13 @@ func (cache *TxCache) doEviction() {
 	tooManyBytes := cache.areThereTooManyBytes()
 	tooManyTxs := cache.areThereTooManyTxs()
 	tooManySenders := cache.areThereTooManySenders()
-	journal := evictionJournal{}
 
 	isCapacityExceeded := tooManyBytes || tooManyTxs || tooManySenders
 	if !isCapacityExceeded {
 		return
 	}
+
+	journal := evictionJournal{}
 
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
