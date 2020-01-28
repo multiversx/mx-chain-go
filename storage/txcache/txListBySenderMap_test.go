@@ -120,5 +120,5 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 }
 
 func newSendersMapToTest() txListBySenderMap {
-	return newTxListBySenderMap(4, &CacheConfig{})
+	return newTxListBySenderMap(4, CacheConfig{})
 }

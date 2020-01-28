@@ -33,7 +33,7 @@ func NewTxCache(config CacheConfig) *TxCache {
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunksHint, &config),
+		txListBySender:  newTxListBySenderMap(numChunksHint, config),
 		txByHash:        newTxByHashMap(numChunksHint),
 		config:          config,
 		evictionJournal: evictionJournal{},
