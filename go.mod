@@ -7,7 +7,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.24
 	github.com/ElrondNetwork/elrond-vm-common v0.1.6
-	github.com/ElrondNetwork/go-libp2p-pubsub v0.2.5
+	github.com/ElrondNetwork/go-libp2p-pubsub v0.2.7
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -31,6 +31,7 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.2.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.0
 	github.com/libp2p/go-libp2p-kbucket v0.2.3
+	github.com/libp2p/go-libp2p-pubsub v0.2.5
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/pelletier/go-toml v1.2.0

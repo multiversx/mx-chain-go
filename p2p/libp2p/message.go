@@ -12,6 +12,7 @@ import (
 type traverseInfo struct {
 	peer      p2p.PeerID
 	timestamp time.Time
+	tag       string
 }
 
 // Message is a data holder struct
@@ -43,6 +44,7 @@ func NewMessage(message *pubsub.Message) *Message {
 		msg.traverseInfo[i] = &traverseInfo{
 			peer:      p2p.PeerID(id),
 			timestamp: time.Unix(0, *t.Timestamp),
+			tag:       *t.Tag,
 		}
 	}
 
@@ -92,13 +94,14 @@ func (m *Message) Peer() p2p.PeerID {
 }
 
 func (m *Message) TraverseInfoTable() string {
-	hdr := []string{"pid", "timestamp"}
+	hdr := []string{"pid", "timestamp", "tag"}
 	lds := make([]*display.LineData, 0)
 
 	for _, ti := range m.traverseInfo {
 		ld := display.NewLineData(false, []string{
 			ti.peer.Pretty(),
 			ti.timestamp.Format("05.000000"),
+			ti.tag,
 		})
 
 		lds = append(lds, ld)
