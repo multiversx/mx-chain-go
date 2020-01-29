@@ -37,7 +37,7 @@ const broadcastGoRoutines = 1000
 
 const defaultThresholdMinConnectedPeers = 3
 
-const durationBetweenSends = time.Microsecond * 100
+const durationBetweenSends = time.Millisecond * 5
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -114,7 +114,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(lctx, false, outgoingPLB, peerDiscoverer, targetConnCount)
+	p2pNode, err := createMessenger(lctx, true, outgoingPLB, peerDiscoverer, targetConnCount)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
