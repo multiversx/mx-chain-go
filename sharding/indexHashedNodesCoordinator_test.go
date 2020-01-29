@@ -694,22 +694,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	}
 }
 
-func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400RecomputeEveryGroup(b *testing.B) {
-	consensusGroupSize := 63
-	list := make([]sharding.Validator, 0)
-
-	//generate 400 validators
-	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
-	}
-
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
-
-	computeMemoryRequirements(consensusGroupSize, nodesMap, b)
-
-	consensusGroupCache, _ := lrucache.NewCache(10000)
-
+func runBenchmark(consensusGroupCache sharding.Cacher, consensusGroupSize int, nodesMap map[uint32][]sharding.Validator, b *testing.B) {
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
@@ -733,9 +718,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400RecomputeEve
 	}
 }
 
-func computeMemoryRequirements(consensusGroupSize int, nodesMap map[uint32][]sharding.Validator, b *testing.B) {
-	consensusGroupCache, _ := lrucache.NewCache(10000)
-
+func computeMemoryRequirements(consensusGroupCache sharding.Cacher, consensusGroupSize int, nodesMap map[uint32][]sharding.Validator, b *testing.B) {
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
@@ -763,6 +746,24 @@ func computeMemoryRequirements(consensusGroupSize int, nodesMap map[uint32][]sha
 	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
 }
 
+func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400RecomputeEveryGroup(b *testing.B) {
+	consensusGroupSize := 63
+	list := make([]sharding.Validator, 0)
+
+	//generate 400 validators
+	for i := 0; i < 400; i++ {
+		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
+	}
+
+	nodesMap := make(map[uint32][]sharding.Validator)
+	nodesMap[0] = list
+
+	consensusGroupCache, _ := lrucache.NewCache(1)
+	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, nodesMap, b)
+	consensusGroupCache, _ = lrucache.NewCache(1)
+	runBenchmark(consensusGroupCache, consensusGroupSize, nodesMap, b)
+}
+
 func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup400of400RecomputeEveryGroup(b *testing.B) {
 	consensusGroupSize := 400
 	list := make([]sharding.Validator, 0)
@@ -775,41 +776,10 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup400of400RecomputeEv
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 
-	consensusGroupCache, _ := lrucache.NewCache(10000)
-
-	arguments := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Hasher:                  &mock.HasherMock{},
-		NbShards:                1,
-		Nodes:                   nodesMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     consensusGroupCache,
-	}
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-
-	m := runtime.MemStats{}
-	runtime.ReadMemStats(&m)
-
-	missedBlocks := 1000
-	for i := 0; i < missedBlocks; i++ {
-		randomness := strconv.Itoa(i)
-		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(i), 0)
-		assert.Equal(b, consensusGroupSize, len(list2))
-	}
-
-	m2 := runtime.MemStats{}
-	runtime.ReadMemStats(&m2)
-
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		randomness := strconv.Itoa(i)
-		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(i), 0)
-		assert.Equal(b, consensusGroupSize, len(list2))
-	}
+	consensusGroupCache, _ := lrucache.NewCache(1)
+	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, nodesMap, b)
+	consensusGroupCache, _ = lrucache.NewCache(1)
+	runBenchmark(consensusGroupCache, consensusGroupSize, nodesMap, b)
 }
 
 func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400Memoization(b *testing.B) {
@@ -825,49 +795,9 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup63of400Memoization(
 	nodesMap[0] = list
 
 	consensusGroupCache, _ := lrucache.NewCache(10000)
-
-	arguments := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Hasher:                  &mock.HasherMock{},
-		NbShards:                1,
-		Nodes:                   nodesMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     consensusGroupCache,
-	}
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-
-	missedBlocks := 1000
-
-	m := runtime.MemStats{}
-	runtime.ReadMemStats(&m)
-
-	for i := 0; i < missedBlocks; i++ {
-		for j := 0; j <= i; j++ {
-			value := j
-			randomness := strconv.Itoa(value)
-			list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(value), 0)
-
-			assert.Equal(b, consensusGroupSize, len(list2))
-		}
-	}
-
-	m2 := runtime.MemStats{}
-	runtime.ReadMemStats(&m2)
-
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for j := 0; j <= i; j++ {
-			value := j
-			randomness := strconv.Itoa(value)
-			list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(value), 0)
-
-			assert.Equal(b, consensusGroupSize, len(list2))
-		}
-	}
+	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, nodesMap, b)
+	consensusGroupCache, _ = lrucache.NewCache(10000)
+	runBenchmark(consensusGroupCache, consensusGroupSize, nodesMap, b)
 
 }
 
@@ -883,46 +813,10 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup400of400Memoization
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 
-	consensusGroupCache, _ := lrucache.NewCache(10000)
-
-	arguments := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Hasher:                  &mock.HasherMock{},
-		NbShards:                1,
-		Nodes:                   nodesMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     consensusGroupCache,
-	}
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-
-	b.ResetTimer()
-
-	missedBlocks := 1000
-
-	m := runtime.MemStats{}
-	runtime.ReadMemStats(&m)
-
-	fmt.Println(m.HeapAlloc)
-
-	b.ResetTimer()
-
-	for i := 0; i < missedBlocks; i++ {
-		for j := 0; j <= i; j++ {
-			value := j
-			randomness := strconv.Itoa(value)
-			list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), uint64(value), 0)
-
-			assert.Equal(b, consensusGroupSize, len(list2))
-		}
-	}
-
-	m2 := runtime.MemStats{}
-
-	runtime.ReadMemStats(&m2)
-
-	fmt.Println(m2.HeapAlloc)
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	consensusGroupCache, _ := lrucache.NewCache(1000)
+	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, nodesMap, b)
+	consensusGroupCache, _ = lrucache.NewCache(1000)
+	runBenchmark(consensusGroupCache, consensusGroupSize, nodesMap, b)
 }
 
 func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
