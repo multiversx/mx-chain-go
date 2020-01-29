@@ -15,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// TODO: increase code coverage with unit tests
-
 const initialTxHashesSliceLen = 10
 
 type txShardInfo struct {

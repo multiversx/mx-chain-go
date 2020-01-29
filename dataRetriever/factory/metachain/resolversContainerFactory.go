@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const emptyExcludePeersOnTopic = ""
@@ -211,9 +212,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 		return nil, err
 	}
 
-	//TODO change this data unit creation method through a factory or func
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
-	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
+	hdrNonceStore := rcf.createHeaderNonceStore(shardID)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
@@ -231,6 +230,13 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
+}
+
+func (rcf *resolversContainerFactory) createHeaderNonceStore(shardId uint32) storage.Storer {
+	headerDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
+	store := rcf.store.GetStorer(headerDataUnit)
+
+	return store
 }
 
 //------- Meta header resolvers
