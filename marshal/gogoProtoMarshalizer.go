@@ -1,6 +1,8 @@
 package marshal
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -14,8 +16,7 @@ func (x *GogoProtoMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if msg, ok := obj.(data.GogoProtoObj); ok {
 		return msg.Marshal()
 	}
-
-	return nil, ErrMarshallingProto
+	return nil, fmt.Errorf("%T, %w", obj, ErrMarshallingProto)
 }
 
 // Unmarshal does the actual deserialization of an object
@@ -29,8 +30,8 @@ func (x *GogoProtoMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 		}
 		return err
 	}
-	return ErrUnmarshallingProto
 
+	return fmt.Errorf("%T, %w", obj, ErrUnmarshallingProto)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
