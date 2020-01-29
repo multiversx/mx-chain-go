@@ -321,7 +321,7 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 		return process.ErrNilRounder
 	}
 	if check.IfNil(arguments.BlockProcessor) {
-		return process.ErrNilBlockExecutor
+		return process.ErrNilBlockProcessor
 	}
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher

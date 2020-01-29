@@ -1498,7 +1498,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	defer func() {
 		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
 	metaHdr, ok := hdr.(*block.MetaBlock)

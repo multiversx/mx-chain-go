@@ -1514,7 +1514,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	sw.Start("ComputeLongestMetaChainFromLastNotarized")
 	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized()
 	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
-	log.Debug("measurements ComputeLongestMetaChainFromLastNotarized", sw.GetMeasurements()...)
+	log.Debug("measurements", sw.GetMeasurements()...)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1724,7 +1724,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	defer func() {
 		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {

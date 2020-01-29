@@ -122,8 +122,8 @@ var ErrMissingHashForHeaderNonce = errors.New("missing hash for header nonce")
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
-// ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
-var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+// ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
+var ErrNilBlockProcessor = errors.New("nil block processor")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
