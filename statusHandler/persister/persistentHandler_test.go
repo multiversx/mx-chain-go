@@ -2,14 +2,14 @@ package persister
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewPersistentStatusHandler_NilMarshalizerShouldErr(t *testing.T) {
