@@ -350,9 +350,10 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	nodesPerShard := 2
+	shardConsensusGroupSize := 2
 	nbMetaNodes := 400
 	nbShards := 1
-	consensusGroupSize := 63
+	consensusGroupSize := 400
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -389,7 +390,7 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 		nodesPerShard,
 		nbMetaNodes,
 		nbShards,
-		2,
+		shardConsensusGroupSize,
 		consensusGroupSize,
 		seedAddress,
 		cache,
@@ -403,7 +404,7 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes[0:1])
 
-		for _, node := range nodes[0:1] {
+		for _, node := range nodes {
 			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 		}
 	}
@@ -421,16 +422,31 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	roundDifference := 10
 	nonce := uint64(1)
 
-	randomness := generateInitialRandomness(uint32(nbShards))
-	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	firstNodeOnMeta := nodesMap[sharding.MetachainShardId][0]
+	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	// set bitmap for all consensus nodes signing
+	bitmap := make([]byte, consensusGroupSize/8+1)
+	for i := range bitmap {
+		bitmap[i] = 0xFF
+	}
+
+	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
+	header.SetPubKeysBitmap(bitmap)
+
+	firstNodeOnMeta.CommitBlock(body, header)
 
 	round += uint64(roundDifference)
 	nonce++
 	putCounter = 0
-	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
-	callsFromShardZero := 2
-	callsForPreviousBlockComputation := 1
+	cacheMut.Lock()
+	for k := range cacheMap {
+		delete(cacheMap, k)
+	}
+	cacheMut.Unlock()
 
-	assert.Equal(t, roundDifference+callsForPreviousBlockComputation+callsFromShardZero, putCounter)
+	firstNodeOnMeta.ProposeBlock(round, nonce)
+
+	assert.Equal(t, roundDifference, putCounter)
 }
