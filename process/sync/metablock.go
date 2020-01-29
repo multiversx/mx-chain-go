@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -57,6 +56,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		epochHandler:        arguments.EpochHandler,
 		miniBlocksResolver:  arguments.MiniBlocksResolver,
 		uint64Converter:     arguments.Uint64Converter,
+		poolsHolder:         arguments.PoolsHolder,
 	}
 
 	boot := MetaBootstrap{
@@ -65,33 +65,15 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base.blockBootstrapper = &boot
-	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
+	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	//placed in struct fields for performance reasons
 	base.headerStore = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
 	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 
-	base.forkInfo = process.NewForkInfo()
-
-	boot.chRcvHdrNonce = make(chan bool)
-	boot.chRcvHdrHash = make(chan bool)
-	boot.chRcvMiniBlocks = make(chan bool)
-
-	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedHeaderHash(nil)
-	boot.setRequestedMiniBlocks(nil)
-
-	boot.headers.RegisterHandler(boot.processReceivedHeader)
-	arguments.PoolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
-
-	boot.chStopSync = make(chan bool)
-
-	boot.statusHandler = statusHandler.NewNilStatusHandler()
-
-	boot.syncStateListeners = make([]func(bool), 0)
-	boot.requestedHashes = process.RequiredDataPool{}
+	base.init()
 
 	return &boot, nil
 }
@@ -332,4 +314,8 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 
 func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 	return false
+}
+
+func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
+	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
 }

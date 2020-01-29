@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -55,6 +54,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		epochHandler:        arguments.EpochHandler,
 		miniBlocksResolver:  arguments.MiniBlocksResolver,
 		uint64Converter:     arguments.Uint64Converter,
+		poolsHolder:         arguments.PoolsHolder,
 	}
 
 	boot := ShardBootstrap{
@@ -63,33 +63,15 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
-	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
+	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	//placed in struct fields for performance reasons
 	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
 
-	base.forkInfo = process.NewForkInfo()
-
-	boot.chRcvHdrNonce = make(chan bool)
-	boot.chRcvHdrHash = make(chan bool)
-	boot.chRcvMiniBlocks = make(chan bool)
-
-	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedHeaderHash(nil)
-	boot.setRequestedMiniBlocks(nil)
-
-	arguments.PoolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
-	boot.headers.RegisterHandler(boot.processReceivedHeader)
-
-	boot.chStopSync = make(chan bool)
-
-	boot.statusHandler = statusHandler.NewNilStatusHandler()
-
-	boot.syncStateListeners = make([]func(bool), 0)
-	boot.requestedHashes = process.RequiredDataPool{}
+	base.init()
 
 	return &boot, nil
 }
@@ -314,4 +296,8 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 		boot.forkInfo.Nonce != math.MaxUint64 &&
 		boot.forkInfo.Round == process.MinForkRound &&
 		boot.forkInfo.Hash != nil
+}
+
+func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }

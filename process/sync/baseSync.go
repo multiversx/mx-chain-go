@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -101,6 +102,7 @@ type baseBootstrap struct {
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
 	miniBlocksResolver process.MiniBlocksResolver
+	poolsHolder        dataRetriever.PoolsHolder
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -363,14 +365,12 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
-		if !haveHeader {
-			if boot.shardCoordinator.SelfId() == sharding.MetachainShardId {
-				boot.requestHandler.RequestMetaHeaderByNonce(currentNonce)
-			} else {
-				boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), currentNonce)
-			}
-			nbRequestedHdrs++
+		if haveHeader {
+			continue
 		}
+
+		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		nbRequestedHdrs++
 	}
 
 	if nbRequestedHdrs > 0 {
@@ -815,4 +815,26 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (boot *baseBootstrap) init() {
+	boot.forkInfo = process.NewForkInfo()
+
+	boot.chRcvHdrNonce = make(chan bool)
+	boot.chRcvHdrHash = make(chan bool)
+	boot.chRcvMiniBlocks = make(chan bool)
+
+	boot.setRequestedHeaderNonce(nil)
+	boot.setRequestedHeaderHash(nil)
+	boot.setRequestedMiniBlocks(nil)
+
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
+	boot.headers.RegisterHandler(boot.processReceivedHeader)
+
+	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
+
+	boot.syncStateListeners = make([]func(bool), 0)
+	boot.requestedHashes = process.RequiredDataPool{}
 }
