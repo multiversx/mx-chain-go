@@ -2,6 +2,8 @@ package persister
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -20,6 +22,16 @@ func TestNewPersistentStatusHandler_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestNewPersistentStatusHandler_NilConverter(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerStub{}
+	persistentHandler, err := NewPersistentStatusHandler(marshalizer, nil)
+
+	assert.Nil(t, persistentHandler)
+	assert.Equal(t, process.ErrNilUint64Converter, err)
+}
+
 func TestNewPersistentStatusHandler(t *testing.T) {
 	t.Parallel()
 
@@ -27,8 +39,8 @@ func TestNewPersistentStatusHandler(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, err := NewPersistentStatusHandler(marshalizer, uit64Converter)
 
-	assert.NotNil(t, persistentHandler)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(persistentHandler))
 }
 
 func TestPersistentStatusHandler_SetStorageNilStorageShouldErr(t *testing.T) {
@@ -233,4 +245,24 @@ func TestPersistentStatusHandler_DecrementKeyValueZeroShouldReturn(t *testing.T)
 	valueFromMap, ok := persistentHandler.persistentMetrics.Load(key)
 	assert.Equal(t, value, valueFromMap)
 	assert.Equal(t, true, ok)
+}
+
+func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	storer := &mock.StorerStub{}
+	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+			called = true
+			return nil, errors.New("err")
+		},
+	}
+	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
+	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
+	_ = persistentHandler.SetStorage(storer)
+	persistentHandler.startSaveInStorage = true
+
+	persistentHandler.SetUInt64Value(core.MetricNonce, 1)
+	require.True(t, called)
 }

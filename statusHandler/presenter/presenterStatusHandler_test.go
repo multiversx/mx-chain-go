@@ -1,6 +1,7 @@
 package presenter_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ func TestPresenterStatusHandler_NewPresenterStatusHandler(t *testing.T) {
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
-	assert.NotNil(t, presenterStatusHandler)
+	assert.False(t, check.IfNil(presenterStatusHandler))
 }
 
 func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
@@ -128,4 +129,26 @@ func TestPresenterStatusHandler_Increment(t *testing.T) {
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus+1, result)
+}
+
+func TestPresenterStatusHandler_WrongKeyDecrement(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.Decrement("dummy")
+	result := presenterStatusHandler.GetCountConsensus()
+
+	assert.Equal(t, uint64(0), result)
+}
+
+func TestPresenterStatusHandler_Decrement(t *testing.T) {
+	t.Parallel()
+
+	countConsensus := uint64(10)
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.Decrement(core.MetricCountConsensus)
+	result := presenterStatusHandler.GetCountConsensus()
+
+	assert.Equal(t, countConsensus-1, result)
 }

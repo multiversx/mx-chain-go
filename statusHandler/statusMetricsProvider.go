@@ -18,10 +18,7 @@ func NewStatusMetrics() *statusMetrics {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nd *statusMetrics) IsInterfaceNil() bool {
-	if nd == nil {
-		return true
-	}
-	return false
+	return nd == nil
 }
 
 // Increment method increment a metric
