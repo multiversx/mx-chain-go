@@ -111,10 +111,6 @@ var log = logger.GetOrCreate("main")
 // in order to mark the transaction as valid.
 const MaxTxNonceDeltaAllowed = 15000
 
-// ErrCreateForkDetector signals that a fork detector could not be created
-//TODO: Extract all others error messages from this file in some defined errors
-var ErrCreateForkDetector = errors.New("could not create fork detector")
-
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
 
@@ -1747,7 +1743,7 @@ func newForkDetector(
 		return processSync.NewMetaForkDetector(rounder, headerBlackList, blockTracker, genesisTime)
 	}
 
-	return nil, ErrCreateForkDetector
+	return nil, errors.New("could not create fork detector")
 }
 
 func newBlockProcessor(
@@ -2047,25 +2043,25 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:                     state.AccountsAdapter,
-		ForkDetector:                 forkDetector,
-		Hasher:                       core.Hasher,
-		Marshalizer:                  core.Marshalizer,
-		Store:                        data.Store,
-		ShardCoordinator:             shardCoordinator,
-		NodesCoordinator:             nodesCoordinator,
-		SpecialAddressHandler:        specialAddressHandler,
-		Uint64Converter:              core.Uint64ByteSliceConverter,
-		RequestHandler:               requestHandler,
-		Core:                         coreServiceContainer,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		Rounder:                      rounder,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
+		TxCoordinator:         txCoordinator,
+		Rounder:               rounder,
+		EpochStartTrigger:     epochStartTrigger,
+		HeaderValidator:       headerValidator,
+		BootStorer:            bootStorer,
+		BlockTracker:          blockTracker,
+		DataPool:              data.Datapool,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor:       argumentsBaseProcessor,

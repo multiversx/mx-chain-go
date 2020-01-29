@@ -173,16 +173,11 @@ func getSuiteForBalanceSk() crypto.Suite {
 }
 
 func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go project
-	// Ex: crypto.NewSuite(consensusType) crypto.Suite
-	switch consensusType {
-	case "bls":
+	if consensusType == "bls" {
 		return kyber.NewSuitePairingBn256()
-	case "bn":
-		return kyber.NewBlakeSHA256Ed25519()
-	default:
-		return nil
 	}
+
+	return nil
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {
