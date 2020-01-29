@@ -3,6 +3,7 @@ package persister
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -261,7 +262,7 @@ func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 	_ = persistentHandler.SetStorage(storer)
-	persistentHandler.startSaveInStorage = true
+	time.Sleep(2 * time.Second)
 
 	persistentHandler.SetUInt64Value(core.MetricNonce, 1)
 	require.True(t, called)
