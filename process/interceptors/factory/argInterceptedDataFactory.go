@@ -25,4 +25,6 @@ type ArgInterceptedDataFactory struct {
 	FeeHandler        process.FeeHandler
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 	ChainID           []byte
+	ValidityAttester  process.ValidityAttester
+	EpochStartTrigger process.EpochStartTriggerHandler
 }

@@ -5,8 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
-	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -40,10 +38,6 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return leveldb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageUnit.LvlDbSerial:
 		return leveldb.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageUnit.BadgerDB:
-		return badgerdb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize)
-	case storageUnit.BoltDB:
-		return boltdb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
