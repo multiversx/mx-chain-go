@@ -17,7 +17,7 @@ type BucketSortedMap struct {
 // MapChunk is
 type MapChunk struct {
 	items map[string]BucketSortedMapItem
-	sync.RWMutex
+	mutex sync.RWMutex
 }
 
 // NewBucketSortedMap creates a new map.
@@ -101,18 +101,18 @@ func removeFromScoreChunk(item BucketSortedMapItem) {
 // Get retrieves an element from map under given key.
 func (sortedMap *BucketSortedMap) Get(key string) (BucketSortedMapItem, bool) {
 	chunk := sortedMap.getChunk(key)
-	chunk.RLock()
+	chunk.mutex.RLock()
 	val, ok := chunk.items[key]
-	chunk.RUnlock()
+	chunk.mutex.RUnlock()
 	return val, ok
 }
 
 // Has looks up an item under specified key
 func (sortedMap *BucketSortedMap) Has(key string) bool {
 	chunk := sortedMap.getChunk(key)
-	chunk.RLock()
+	chunk.mutex.RLock()
 	_, ok := chunk.items[key]
-	chunk.RUnlock()
+	chunk.mutex.RUnlock()
 	return ok
 }
 
@@ -196,7 +196,7 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	scoreChunks := sortedMap.getScoreChunks()
 
 	for _, chunk := range scoreChunks {
-		chunk.RLock()
+		chunk.mutex.RLock()
 		counter += uint32(len(chunk.items))
 	}
 
@@ -209,7 +209,7 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	}
 
 	for _, chunk := range scoreChunks {
-		chunk.RUnlock()
+		chunk.mutex.RUnlock()
 	}
 
 	return snapshot
@@ -270,16 +270,16 @@ func (sortedMap *BucketSortedMap) getScoreChunks() []*MapChunk {
 }
 
 func (chunk *MapChunk) removeItem(item BucketSortedMapItem) {
-	chunk.Lock()
-	defer chunk.Unlock()
+	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
 
 	key := item.GetKey()
 	delete(chunk.items, key)
 }
 
 func (chunk *MapChunk) removeItemByKey(key string) BucketSortedMapItem {
-	chunk.Lock()
-	defer chunk.Unlock()
+	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
 
 	item := chunk.items[key]
 	delete(chunk.items, key)
@@ -287,23 +287,23 @@ func (chunk *MapChunk) removeItemByKey(key string) BucketSortedMapItem {
 }
 
 func (chunk *MapChunk) setItem(item BucketSortedMapItem) {
-	chunk.Lock()
-	defer chunk.Unlock()
+	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
 
 	key := item.GetKey()
 	chunk.items[key] = item
 }
 
 func (chunk *MapChunk) countItems() uint32 {
-	chunk.RLock()
-	defer chunk.RUnlock()
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
 
 	return uint32(len(chunk.items))
 }
 
 func (chunk *MapChunk) forEachItem(callback SortedMapIterCb) {
-	chunk.RLock()
-	defer chunk.RUnlock()
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
 
 	for key, value := range chunk.items {
 		callback(key, value)
@@ -311,8 +311,8 @@ func (chunk *MapChunk) forEachItem(callback SortedMapIterCb) {
 }
 
 func (chunk *MapChunk) appendKeys(keysAccumulator []string) []string {
-	chunk.RLock()
-	defer chunk.RUnlock()
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
 
 	for key := range chunk.items {
 		keysAccumulator = append(keysAccumulator, key)

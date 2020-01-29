@@ -19,7 +19,7 @@ type ConcurrentMap struct {
 // concurrentMapChunk is a thread safe string to anything map.
 type concurrentMapChunk struct {
 	items map[string]interface{}
-	sync.RWMutex
+	mutex sync.RWMutex
 }
 
 // NewConcurrentMap creates a new concurrent map.
@@ -55,47 +55,47 @@ func (m *ConcurrentMap) initializeChunks() {
 // Set sets the given value under the specified key.
 func (m *ConcurrentMap) Set(key string, value interface{}) {
 	chunk := m.getChunk(key)
-	chunk.Lock()
+	chunk.mutex.Lock()
 	chunk.items[key] = value
-	chunk.Unlock()
+	chunk.mutex.Unlock()
 }
 
 // SetIfAbsent sets the given value under the specified key if no value was associated with it.
 func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 	chunk := m.getChunk(key)
-	chunk.Lock()
+	chunk.mutex.Lock()
 	_, ok := chunk.items[key]
 	if !ok {
 		chunk.items[key] = value
 	}
-	chunk.Unlock()
+	chunk.mutex.Unlock()
 	return !ok
 }
 
 // Get retrieves an element from map under given key.
 func (m *ConcurrentMap) Get(key string) (interface{}, bool) {
 	chunk := m.getChunk(key)
-	chunk.RLock()
+	chunk.mutex.RLock()
 	val, ok := chunk.items[key]
-	chunk.RUnlock()
+	chunk.mutex.RUnlock()
 	return val, ok
 }
 
 // Has looks up an item under specified key.
 func (m *ConcurrentMap) Has(key string) bool {
 	chunk := m.getChunk(key)
-	chunk.RLock()
+	chunk.mutex.RLock()
 	_, ok := chunk.items[key]
-	chunk.RUnlock()
+	chunk.mutex.RUnlock()
 	return ok
 }
 
 // Remove removes an element from the map.
 func (m *ConcurrentMap) Remove(key string) {
 	chunk := m.getChunk(key)
-	chunk.Lock()
+	chunk.mutex.Lock()
 	delete(chunk.items, key)
-	chunk.Unlock()
+	chunk.mutex.Unlock()
 }
 
 func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {
@@ -128,9 +128,9 @@ func (m *ConcurrentMap) Count() int {
 	chunks := m.getChunks()
 
 	for _, chunk := range chunks {
-		chunk.RLock()
+		chunk.mutex.RLock()
 		count += len(chunk.items)
-		chunk.RUnlock()
+		chunk.mutex.RUnlock()
 	}
 	return count
 }
@@ -144,8 +144,8 @@ func (m *ConcurrentMap) Keys() []string {
 	keys := make([]string, 0, count)
 
 	for _, chunk := range chunks {
-		chunk.RLock()
-		defer chunk.RUnlock()
+		chunk.mutex.RLock()
+		defer chunk.mutex.RUnlock()
 
 		for key := range chunk.items {
 			keys = append(keys, key)
@@ -163,11 +163,11 @@ func (m *ConcurrentMap) IterCb(fn IterCb) {
 	chunks := m.getChunks()
 
 	for _, chunk := range chunks {
-		chunk.RLock()
+		chunk.mutex.RLock()
 		for key, value := range chunk.items {
 			fn(key, value)
 		}
-		chunk.RUnlock()
+		chunk.mutex.RUnlock()
 	}
 }
 
