@@ -200,11 +200,13 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 		counter += uint32(len(chunk.items))
 	}
 
-	snapshot := make([]BucketSortedMapItem, 0, counter)
+	snapshot := make([]BucketSortedMapItem, counter)
 
+	i := 0
 	for _, chunk := range scoreChunks {
 		for _, item := range chunk.items {
-			snapshot = append(snapshot, item)
+			snapshot[i] = item
+			i++
 		}
 	}
 
