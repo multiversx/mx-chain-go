@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "bootstrapStorage";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+//MiniBlocksInMeta is used to store all mini blocks hashes for a metablock hash
+message MiniBlocksInMeta {
+	bytes          MetaHash         = 1;
+	repeated bytes MiniBlocksHashes = 2;
+}
+
+//BootstrapHeaderInfo is used to store information about a header
+message BootstrapHeaderInfo {
+	uint32 ShardId = 1;
+	uint64 Nonce   = 2;
+	bytes  Hash    = 3;
+}
+
+// BootstrapData is used to store information that are needed for bootstrap
+message BootstrapData {
+	BootstrapHeaderInfo          LastHeader           = 1 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo LastNotarizedHeaders = 2 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo LastFinals           = 3 [(gogoproto.nullable) = false];
+	repeated MiniBlocksInMeta    ProcessedMiniBlocks  = 4 [(gogoproto.nullable) = false];
+	uint64                       HighestFinalNonce    = 5;
+	int64                        LastRound            = 6;
+}
+
+message RoundNum {
+	int64          Num = 1;
+}
