@@ -1,11 +1,11 @@
 package presenter_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/stretchr/testify/assert"
 )
@@ -131,6 +131,28 @@ func TestPresenterStatusHandler_Increment(t *testing.T) {
 	assert.Equal(t, countConsensus+1, result)
 }
 
+func TestPresenterStatusHandler_WrongTypeDecrement(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricNonce, "value")
+	presenterStatusHandler.Decrement(core.MetricNonce)
+	result := presenterStatusHandler.GetNonce()
+
+	assert.Equal(t, uint64(0), result)
+}
+
+func TestPresenterStatusHandler_DecrementDoNothing(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	presenterStatusHandler.Decrement(core.MetricCountConsensus)
+	result := presenterStatusHandler.GetCountConsensus()
+
+	assert.Equal(t, uint64(0), result)
+}
+
 func TestPresenterStatusHandler_WrongKeyDecrement(t *testing.T) {
 	t.Parallel()
 
@@ -151,4 +173,17 @@ func TestPresenterStatusHandler_Decrement(t *testing.T) {
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus-1, result)
+}
+
+func TestPresenterStatusHandler_AddUint64(t *testing.T) {
+	t.Parallel()
+
+	countConsensus := uint64(10)
+	value := uint64(5)
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.AddUint64(core.MetricCountConsensus, value)
+	result := presenterStatusHandler.GetCountConsensus()
+
+	assert.Equal(t, countConsensus+value, result)
 }

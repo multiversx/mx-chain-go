@@ -95,3 +95,17 @@ func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, value, retMap[key])
 }
+
+func TestStatusMetricsProvider_AddUint64Value(t *testing.T) {
+	t.Parallel()
+
+	ndh := statusHandler.NewStatusMetrics()
+	key := "test-key6"
+	value := uint64(100)
+	ndh.SetUInt64Value(key, value)
+	ndh.AddUint64(key, value)
+
+	retMap, err := ndh.StatusMetricsMap()
+	assert.Nil(t, err)
+	assert.Equal(t, value+value, retMap[key])
+}
