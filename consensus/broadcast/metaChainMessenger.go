@@ -124,8 +124,5 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcm *metaChainMessenger) IsInterfaceNil() bool {
-	if mcm == nil {
-		return true
-	}
-	return false
+	return mcm == nil
 }

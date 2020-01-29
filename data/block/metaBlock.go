@@ -69,27 +69,27 @@ type ShardMiniBlockHeader struct {
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardID               uint32                 `capid:"0"`
-	HeaderHash            []byte                 `capid:"1"`
-	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
-	PrevRandSeed          []byte                 `capid:"3"`
-	PubKeysBitmap         []byte                 `capid:"4"`
-	Signature             []byte                 `capid:"5"`
-	TxCount               uint32                 `capid:"6"`
-	Round                 uint64                 `capid:"7"`
-	PrevHash              []byte                 `capid:"8"`
-	Nonce                 uint64                 `capid:"9"`
+	HeaderHash            []byte
+	ShardMiniBlockHeaders []ShardMiniBlockHeader
+	PrevRandSeed          []byte
+	PubKeysBitmap         []byte
+	Signature             []byte
+	Round                 uint64
+	PrevHash              []byte
+	Nonce                 uint64
 	NumPendingMiniBlocks  uint32
+	ShardID               uint32
+	TxCount               uint32
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash
 type EpochStartShardData struct {
-	ShardId                 uint32                 `capid:"0"`
-	HeaderHash              []byte                 `capid:"1"`
-	RootHash                []byte                 `capid:"2"`
-	FirstPendingMetaBlock   []byte                 `capid:"3"`
-	LastFinishedMetaBlock   []byte                 `capid:"4"`
-	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"5"`
+	ShardId                 uint32
+	HeaderHash              []byte
+	RootHash                []byte
+	FirstPendingMetaBlock   []byte
+	LastFinishedMetaBlock   []byte
+	PendingMiniBlockHeaders []ShardMiniBlockHeader
 }
 
 // EpochStart holds the block information for end-of-epoch
@@ -99,25 +99,25 @@ type EpochStart struct {
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce                  uint64            `capid:"0"`
-	Epoch                  uint32            `capid:"1"`
-	Round                  uint64            `capid:"2"`
-	TimeStamp              uint64            `capid:"3"`
-	ShardInfo              []ShardData       `capid:"4"`
-	PeerInfo               []PeerData        `capid:"5"`
-	Signature              []byte            `capid:"6"`
-	LeaderSignature        []byte            `capid:"7"`
-	PubKeysBitmap          []byte            `capid:"8"`
-	PrevHash               []byte            `capid:"9"`
-	PrevRandSeed           []byte            `capid:"10"`
-	RandSeed               []byte            `capid:"11"`
-	RootHash               []byte            `capid:"12"`
-	ValidatorStatsRootHash []byte            `capid:"13"`
-	TxCount                uint32            `capid:"14"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
-	ReceiptsHash           []byte            `capid:"16"`
-	EpochStart             EpochStart        `capid:"17"`
-	ChainID                []byte            `capid:"18"`
+	Nonce                  uint64
+	Round                  uint64
+	TimeStamp              uint64
+	ShardInfo              []ShardData
+	PeerInfo               []PeerData
+	Signature              []byte
+	LeaderSignature        []byte
+	PubKeysBitmap          []byte
+	PrevHash               []byte
+	PrevRandSeed           []byte
+	RandSeed               []byte
+	RootHash               []byte
+	ValidatorStatsRootHash []byte
+	MiniBlockHeaders       []MiniBlockHeader
+	ReceiptsHash           []byte
+	EpochStart             EpochStart
+	ChainID                []byte
+	Epoch                  uint32
+	TxCount                uint32
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -630,7 +630,7 @@ func (m *MetaBlock) SetTxCount(txCount uint32) {
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue

@@ -75,8 +75,5 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (itdf *interceptedTxDataFactory) IsInterfaceNil() bool {
-	if itdf == nil {
-		return true
-	}
-	return false
+	return itdf == nil
 }

@@ -21,8 +21,5 @@ func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ars *ApiResolverStub) IsInterfaceNil() bool {
-	if ars == nil {
-		return true
-	}
-	return false
+	return ars == nil
 }

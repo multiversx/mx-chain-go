@@ -117,7 +117,6 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 		}
 		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
 	}
-
 }
 
 // DisplayProcessedMiniBlocks will display all miniblocks hashes and meta block hash from the map

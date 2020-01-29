@@ -11,10 +11,7 @@ type testInterfaceNilObj struct {
 }
 
 func (tino *testInterfaceNilObj) IsInterfaceNil() bool {
-	if tino == nil {
-		return true
-	}
-	return false
+	return tino == nil
 }
 
 func TestCheckIfNil_NilInterfaceShouldRetTrue(t *testing.T) {
@@ -36,8 +33,7 @@ func TestCheckIfNil_NilUnderlyingLayerShouldRetTrue(t *testing.T) {
 func TestCheckIfNil_WithInstanceShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	var tino *testInterfaceNilObj
-	tino = &testInterfaceNilObj{}
+	tino := &testInterfaceNilObj{}
 
 	assert.False(t, check.IfNil(tino))
 	assert.False(t, check.IfNilReflect(tino))

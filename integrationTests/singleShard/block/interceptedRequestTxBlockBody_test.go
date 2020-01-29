@@ -79,7 +79,6 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		}
 
 		assert.Equal(t, txBlockBodyStored, miniBlock)
-
 	})
 
 	//Step 4. request tx block body

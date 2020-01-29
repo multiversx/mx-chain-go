@@ -27,10 +27,8 @@ type persisterData struct {
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
-	pruningEnabled        bool
 	lock                  sync.RWMutex
 	shardCoordinator      sharding.Coordinator
-	fullArchive           bool
 	activePersisters      []*persisterData
 	persistersMapByEpoch  map[uint32]*persisterData
 	cacher                storage.Cacher
@@ -41,6 +39,8 @@ type PruningStorer struct {
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	identifier            string
+	fullArchive           bool
+	pruningEnabled        bool
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -96,7 +96,7 @@ func initPruningStorer(
 
 	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), args.StartingEpoch, args.Identifier)
 	if len(shardIdStr) > 0 {
-		filePath = filePath + shardIdStr
+		filePath += shardIdStr
 		args.Identifier += shardIdStr
 	}
 	db, err = args.PersisterFactory.Create(filePath)

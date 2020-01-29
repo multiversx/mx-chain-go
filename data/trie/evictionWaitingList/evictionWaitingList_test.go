@@ -105,7 +105,6 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, hashesMap, val)
 	}
-
 }
 
 func TestEvictionWaitingList_Evict(t *testing.T) {

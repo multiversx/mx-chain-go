@@ -81,8 +81,5 @@ func (l *lruDB) DestroyClosed() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (l *lruDB) IsInterfaceNil() bool {
-	if l == nil {
-		return true
-	}
-	return false
+	return l == nil
 }

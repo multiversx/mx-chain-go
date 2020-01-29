@@ -18,7 +18,8 @@ func NewBlockNotifier() (*blockNotifier, error) {
 	return &bn, nil
 }
 
-func (bn *blockNotifier) callHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+// CallHandlers calls all the registered handlers to notify them about the new received headers
+func (bn *blockNotifier) CallHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	if len(headers) == 0 {
 		return
 	}
@@ -30,7 +31,8 @@ func (bn *blockNotifier) callHandlers(shardID uint32, headers []data.HeaderHandl
 	bn.mutNotarizedHeadersHandlers.RUnlock()
 }
 
-func (bn *blockNotifier) registerHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
+// RegisterHandler registers a handler which wants to be notified when new headers are received
+func (bn *blockNotifier) RegisterHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if handler == nil {
 		log.Warn("attempt to register a nil handler to a tracker object")
 		return
@@ -39,4 +41,9 @@ func (bn *blockNotifier) registerHandler(handler func(shardID uint32, headers []
 	bn.mutNotarizedHeadersHandlers.Lock()
 	bn.notarizedHeadersHandlers = append(bn.notarizedHeadersHandlers, handler)
 	bn.mutNotarizedHeadersHandlers.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bn *blockNotifier) IsInterfaceNil() bool {
+	return bn == nil
 }
