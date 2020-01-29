@@ -1597,8 +1597,6 @@ func createInMemoryStoreBlkc(
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
@@ -1809,7 +1807,6 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			rounder,
 			epochStartTrigger,
-			validatorStatisticsProcessor,
 			bootStorer,
 			processArgs.gasSchedule,
 			processArgs.stateCheckpointModulus,
@@ -1855,7 +1852,6 @@ func newShardBlockProcessor(
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
-	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
 	stateCheckpointModulus uint,
@@ -2067,7 +2063,6 @@ func newShardBlockProcessor(
 		Rounder:                      rounder,
 		EpochStartTrigger:            epochStartTrigger,
 		HeaderValidator:              headerValidator,
-		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
 		BlockTracker:                 blockTracker,
 		DataPool:                     data.Datapool,
