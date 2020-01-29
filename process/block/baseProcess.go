@@ -185,7 +185,6 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
 
@@ -402,7 +401,6 @@ func (bp *baseProcessor) resetMissingHdrs() {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-//TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
@@ -424,7 +422,6 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	return hdrsForCurrentBlock
 }
 
-//TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
 	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
 

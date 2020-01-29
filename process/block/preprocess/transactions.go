@@ -23,8 +23,6 @@ import (
 
 var log = logger.GetOrCreate("process/block/preprocess")
 
-// TODO: increase code coverage with unit tests
-
 type transactions struct {
 	*basePreProcess
 	chRcvAllTxs          chan bool

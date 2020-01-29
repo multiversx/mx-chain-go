@@ -147,5 +147,3 @@ func (a *Account) SetDataTrie(trie data.Trie) {
 func (a *Account) DataTrieTracker() DataTrieTracker {
 	return a.dataTrieTracker
 }
-
-//TODO add Cap'N'Proto converter funcs

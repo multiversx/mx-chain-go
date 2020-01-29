@@ -94,10 +94,10 @@ const (
 	// BlsHashSize specifies the hash size for using bls scheme
 	BlsHashSize = 16
 
-	// BlsConsensusType specifies te signature scheme used in the consensus
+	// BlsConsensusType specifies the signature scheme used in the consensus
 	BlsConsensusType = "bls"
 
-	// BnConsensusType specifies te signature scheme used in the consensus
+	// BnConsensusType specifies the signature scheme used in the consensus
 	BnConsensusType = "bn"
 
 	// MaxTxsToRequest specifies the maximum number of txs to request

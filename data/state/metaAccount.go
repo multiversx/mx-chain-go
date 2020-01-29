@@ -199,5 +199,3 @@ func (ma *MetaAccount) SetDataTrie(trie data.Trie) {
 func (ma *MetaAccount) DataTrieTracker() DataTrieTracker {
 	return ma.dataTrieTracker
 }
-
-//TODO add Cap'N'Proto converter funcs

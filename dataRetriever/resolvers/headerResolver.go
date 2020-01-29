@@ -154,7 +154,7 @@ func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO maybe we can return a slice of headers
+	// get last header that was added in cache with a specific nonce
 	hdr := headers[len(headers)-1]
 	buff, err := hdrRes.marshalizer.Marshal(hdr)
 	if err != nil {

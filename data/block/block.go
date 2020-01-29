@@ -37,9 +37,8 @@ const (
 	InvalidBlock Type = 120
 	// ReceiptBlock identifies a miniblock holding receipts
 	ReceiptBlock Type = 150
-	// TODO: leave rewards with highest value
-
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	// LEAVE REWARDS WITH THE HIGHEST VALUE
 	RewardsBlock Type = 255
 )
 
