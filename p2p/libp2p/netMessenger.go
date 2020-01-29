@@ -114,7 +114,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(lctx, true, outgoingPLB, peerDiscoverer, targetConnCount)
+	p2pNode, err := createMessenger(lctx, false, outgoingPLB, peerDiscoverer, targetConnCount)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err

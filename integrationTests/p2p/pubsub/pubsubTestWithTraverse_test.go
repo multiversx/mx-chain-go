@@ -2,6 +2,7 @@ package peerDisconnecting
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -17,7 +18,13 @@ type printInterceptor struct {
 }
 
 func (pi *printInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	str := fmt.Sprintf("Peer index %d - pid: %s\n%s", pi.idx, pi.pid.Pretty(), message.TraverseInfoTable())
+	str := fmt.Sprintf(
+		"Peer index %d - pid: %s\n%ssig: %s\n",
+		pi.idx,
+		pi.pid.Pretty(),
+		message.TraverseInfoTable(),
+		hex.EncodeToString(message.Signature()),
+	)
 	log := logger.GetOrCreate("p2pmes")
 	log.Info(str)
 
