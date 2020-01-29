@@ -8,11 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	testMarshalizer = &mock.MarshalizerMock{}
+)
+
 func TestNewBootstrapStorer_NilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-	bt, err := bootstrapStorage.NewBootstrapStorer(marshalizer, nil)
+	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, nil)
 
 	assert.Nil(t, bt)
 	assert.Equal(t, bootstrapStorage.ErrNilBootStorer, err)
@@ -32,8 +35,7 @@ func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	storer := &mock.StorerMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	bt, err := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	assert.NotNil(t, bt)
 	assert.Nil(t, err)
@@ -45,8 +47,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 	numRounds := int64(10)
 	round := int64(0)
 	storer := mock.NewStorerMock()
-	marshalizer := &mock.MarshalizerMock{}
-	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+	bt, _ := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{2, 3, []byte("Hash")}
 	dataBoot := bootstrapStorage.BootstrapData{

@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. bootstrapData.proto
 package bootstrapStorage
 
 import (
@@ -17,29 +18,6 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilBootStorer signals that an operation has been attempted to or with a nil storer implementation
 var ErrNilBootStorer = errors.New("nil boot storer")
-
-//MiniBlocksInMeta is used to store all mini blocks hashes for a metablock hash
-type MiniBlocksInMeta struct {
-	MetaHash         []byte
-	MiniBlocksHashes [][]byte
-}
-
-//BootstrapHeaderInfo is used to store information about a header
-type BootstrapHeaderInfo struct {
-	ShardId uint32
-	Nonce   uint64
-	Hash    []byte
-}
-
-// BootstrapData is used to store information that are needed for bootstrap
-type BootstrapData struct {
-	LastHeader           BootstrapHeaderInfo
-	LastNotarizedHeaders []BootstrapHeaderInfo
-	LastFinals           []BootstrapHeaderInfo
-	ProcessedMiniBlocks  []MiniBlocksInMeta
-	HighestFinalNonce    uint64
-	LastRound            int64
-}
 
 type bootstrapStorer struct {
 	store       storage.Storer
@@ -85,7 +63,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 	}
 
 	// save round with a static key
-	roundBytes, err := bs.marshalizer.Marshal(&round)
+	roundBytes, err := bs.marshalizer.Marshal(&RoundNum{Num: round})
 	if err != nil {
 		return err
 	}
@@ -124,13 +102,13 @@ func (bs *bootstrapStorer) GetHighestRound() int64 {
 		return 0
 	}
 
-	var round int64
+	var round RoundNum
 	err = bs.marshalizer.Unmarshal(&round, roundBytes)
 	if err != nil {
 		return 0
 	}
 
-	return round
+	return round.Num
 }
 
 // SaveLastRound will save the last round
@@ -138,7 +116,7 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 	bs.lastRound = round
 
 	// save round with a static key
-	roundBytes, err := bs.marshalizer.Marshal(&round)
+	roundBytes, err := bs.marshalizer.Marshal(&RoundNum{Num: round})
 	if err != nil {
 		return err
 	}
