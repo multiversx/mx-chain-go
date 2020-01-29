@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	defaultCacheSize = 10000
-	keyFormat        = "%s_%v_%v"
+	keyFormat = "%s_%v_%v"
 )
 
 type indexHashedNodesCoordinator struct {
@@ -29,10 +28,6 @@ type indexHashedNodesCoordinator struct {
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
 	err := checkArguments(arguments)
-	if err != nil {
-		return nil, err
-	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +131,9 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
-	value, ok := ihgs.consensusGroupCacher.Get(key)
-	if ok {
-		consensusGroup, ok := value.([]Validator)
-		if ok {
-			return consensusGroup, nil
-		}
-
+	validators := ihgs.searchConsensusForKey(key)
+	if validators != nil {
+		return validators, nil
 	}
 
 	tempList := make([]Validator, 0)
@@ -163,6 +154,18 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	ihgs.consensusGroupCacher.Put(key, tempList)
 
 	return tempList, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+	value, ok := ihgs.consensusGroupCacher.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup
+		}
+
+	}
+	return nil
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key

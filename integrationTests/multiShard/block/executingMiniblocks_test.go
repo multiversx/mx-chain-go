@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -358,17 +359,22 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
+	cacheMut := &sync.Mutex{}
+
 	getCounter := 0
 	putCounter := 0
-
 	cacheMap := make(map[string]interface{})
 	cache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			cacheMut.Lock()
+			defer cacheMut.Unlock()
 			putCounter++
 			cacheMap[string(key)] = value
 			return false
 		},
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
+			cacheMut.Lock()
+			defer cacheMut.Unlock()
 			getCounter++
 			val, ok := cacheMap[string(key)]
 			if ok {
