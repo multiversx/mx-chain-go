@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -173,9 +175,8 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		createMockP2PAntifloodHandler(),
 	)
-
-	assert.NotNil(t, hdrRes)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(hdrRes))
 }
 
 //------- ProcessReceivedMessage
@@ -219,6 +220,74 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
+}
+
+func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
+		createMockP2PAntifloodHandler(),
+	)
+
+	requestedData := []byte("request")
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
+}
+
+func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, err error) {
+				return nil, nil
+			},
+		},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	requestedData := []byte("request_1")
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	assert.Nil(t, err)
+}
+
+func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{
+			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+				called = true
+				return nil
+			},
+		},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, err error) {
+				return nil, nil
+			},
+		},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	requestedData := []byte("request_1")
+	err := hdrRes.RequestDataFromEpoch(requestedData)
+	assert.Nil(t, err)
+	assert.True(t, called)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *testing.T) {
@@ -342,7 +411,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	wasSent := false
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
 			wasGotFromStorage = true
 			return make([]byte, 0), nil
@@ -383,7 +452,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		&mock.HeadersCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -395,6 +464,38 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
+}
+
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorrectEpoch(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	expectedEpoch := uint32(7)
+	hdrRes, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.HeadersCacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				assert.Equal(t, expectedEpoch, epoch)
+				return nil, nil
+			},
+		},
+		marshalizer,
+		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
+		createMockP2PAntifloodHandler(),
+	)
+
+	buff, _ := marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.NonceType,
+			Value: []byte("aaa"),
+			Epoch: expectedEpoch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: buff}
+	_ = hdrRes.ProcessReceivedMessage(msg, nil)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {
@@ -421,9 +522,16 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				return nil, nil, expectedErr
 			},
 		},
-		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
+		},
+		&mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -471,7 +579,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -513,7 +624,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	marshalizer := &mock.MarshalizerMock{}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, hash) {
 			wasResolved = true
 			return make([]byte, 0), nil
@@ -535,7 +646,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		store,
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -574,7 +688,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	marshalizer := &mock.MarshalizerMock{}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.GetFromEpochCalled = func(key []byte, epoch uint32) (i []byte, e error) {
 		if bytes.Equal(key, []byte("aaaa")) {
 			return nil, errExpected
 		}
@@ -594,7 +708,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		store,
 		&mock.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+			SearchFirstCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -642,7 +759,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 		createMockP2PAntifloodHandler(),
 	)
 
-	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested))
+	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested, 0))
 	assert.True(t, wasRequested)
 }
 
@@ -671,6 +788,6 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 		createMockP2PAntifloodHandler(),
 	)
 
-	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested))
+	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasRequested)
 }

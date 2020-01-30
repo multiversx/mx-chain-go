@@ -1,6 +1,7 @@
 package evictionWaitingList
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -21,10 +22,10 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 	if size < 1 {
 		return nil, data.ErrInvalidCacheSize
 	}
-	if db == nil || db.IsInterfaceNil() {
+	if check.IfNil(db) {
 		return nil, data.ErrNilDatabase
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, data.ErrNilMarshalizer
 	}
 

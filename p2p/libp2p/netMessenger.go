@@ -19,7 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-var sendTimeout = time.Microsecond * 100
+const durationBetweenSends = time.Microsecond * 10
 
 const durationBetweenReconnectionAttempts = time.Second * 5
 const durationCheckConnections = time.Second
@@ -57,8 +57,7 @@ type networkMessenger struct {
 	connMonitor         *connectionMonitor
 	peerDiscoverer      p2p.PeerDiscoverer
 	mutTopics           sync.RWMutex
-	topics              map[string]*pubsub.Topic
-	processors          map[string]p2p.MessageProcessor
+	topics              map[string]p2p.MessageProcessor
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutineThrottler
@@ -155,8 +154,7 @@ func createMessenger(
 	netMes := networkMessenger{
 		ctxProvider:    lctx,
 		pb:             pb,
-		topics:         make(map[string]*pubsub.Topic),
-		processors:     make(map[string]p2p.MessageProcessor),
+		topics:         make(map[string]p2p.MessageProcessor),
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
 	}
@@ -181,7 +179,18 @@ func createMessenger(
 
 	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
 		for {
-			netMes.sendMessage()
+			sendableData := plb.CollectOneElementFromChannels()
+
+			if sendableData == nil {
+				continue
+			}
+
+			errPublish := pb.Publish(sendableData.Topic, sendableData.Buff)
+			if errPublish != nil {
+				log.Trace("error sending data", "error", errPublish)
+			}
+
+			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
 
@@ -430,19 +439,14 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return p2p.ErrTopicAlreadyExists
 	}
 
+	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
+	// after calling pubsub.Join
 	netMes.topics[name] = nil
-	topic, err := netMes.pb.Join(name)
+	subscrRequest, err := netMes.pb.Subscribe(name)
 	if err != nil {
 		netMes.mutTopics.Unlock()
 		return err
 	}
-	subscrRequest, err := topic.Subscribe()
-	if err != nil {
-		netMes.mutTopics.Unlock()
-		return err
-	}
-
-	netMes.topics[name] = topic
 	netMes.mutTopics.Unlock()
 
 	if createChannelForTopic {
@@ -471,7 +475,7 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 // HasTopicValidator returns true if the topic has a validator set
 func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	netMes.mutTopics.RLock()
-	validator := netMes.processors[name]
+	validator := netMes.topics[name]
 	netMes.mutTopics.RUnlock()
 
 	return validator != nil
@@ -527,12 +531,10 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-
-	_, found := netMes.topics[topic]
+	validator, found := netMes.topics[topic]
 	if !found {
 		return p2p.ErrNilTopic
 	}
-	validator := netMes.processors[topic]
 	if validator != nil {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -549,7 +551,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return err
 	}
 
-	netMes.processors[topic] = handler
+	netMes.topics[topic] = handler
 	return nil
 }
 
@@ -557,12 +559,12 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
+	validator, found := netMes.topics[topic]
 
-	_, found := netMes.topics[topic]
 	if !found {
 		return p2p.ErrNilTopic
 	}
-	validator := netMes.processors[topic]
+
 	if validator == nil {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
@@ -573,7 +575,6 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	}
 
 	netMes.topics[topic] = nil
-
 	return nil
 }
 
@@ -586,7 +587,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	processor = netMes.processors[message.TopicIDs()[0]]
+	processor = netMes.topics[message.TopicIDs()[0]]
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {

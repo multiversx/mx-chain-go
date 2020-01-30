@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
+	"math"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -70,6 +73,51 @@ func TestCalculateHash_NilObject(t *testing.T) {
 	hash, err := core.CalculateHash(marshalizer, &mock.HasherMock{}, nil)
 	assert.Nil(t, hash)
 	assert.Equal(t, mock.ErrNilObjectToMarshal, err)
+}
+
+func TestGetShardIdString(t *testing.T) {
+	t.Parallel()
+
+	shardIdMeta := uint32(math.MaxUint32)
+	assert.Equal(t, "metachain", core.GetShardIdString(shardIdMeta))
+
+	shardId37 := uint32(37)
+	assert.Equal(t, "37", core.GetShardIdString(shardId37))
+}
+
+func TestEpochStartIdentifier(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(5)
+	res := core.EpochStartIdentifier(epoch)
+	assert.True(t, strings.Contains(res, fmt.Sprintf("%d", epoch)))
+}
+
+func TestIsUnknownEpochIdentifier_InvalidIdentifierShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	identifier := "epoch5"
+	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
+	assert.False(t, res)
+	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
+}
+
+func TestIsUnknownEpochIdentifier_IdentifierNotNumericShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	identifier := "epochStartBlock_xx"
+	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
+	assert.False(t, res)
+	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
+}
+
+func TestIsUnknownEpochIdentifier_OkIdentifierShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	identifier := "epochStartBlock_5"
+	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
+	assert.Nil(t, err)
+	assert.False(t, res)
 }
 
 func TestCalculateHash_Good(t *testing.T) {

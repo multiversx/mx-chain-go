@@ -3,6 +3,7 @@ package kyber_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/stretchr/testify/assert"
 )
@@ -10,7 +11,7 @@ import (
 func TestNewSuitePairingBn256(t *testing.T) {
 	suite := kyber.NewSuitePairingBn256()
 
-	assert.NotNil(t, suite)
+	assert.False(t, check.IfNil(suite))
 }
 
 func TestSuitePairingBn256_RandomStream(t *testing.T) {

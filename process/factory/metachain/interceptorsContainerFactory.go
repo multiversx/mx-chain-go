@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -25,22 +24,16 @@ const numGoRoutines = 2000
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
-	addrConverter          state.AddressConverter
-	singleSigner           crypto.SingleSigner
-	keyGen                 crypto.KeyGenerator
 	maxTxNonceDeltaAllowed int
-	txFeeHandler           process.FeeHandler
-	txInterceptorThrottler process.InterceptorThrottler
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.MetaPoolsHolder
+	dataPool               dataRetriever.PoolsHolder
 	shardCoordinator       sharding.Coordinator
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
 	blackList              process.BlackListHandler
-	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	antifloodHandler       process.P2PAntifloodHandler
@@ -55,7 +48,7 @@ func NewInterceptorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
-	dataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
@@ -68,6 +61,8 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
 	antifloodHandler process.P2PAntifloodHandler,
 ) (*interceptorsContainerFactory, error) {
 
@@ -125,11 +120,17 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(headerSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(epochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
+	}
+	if check.IfNil(validityAttester) {
+		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
@@ -146,6 +147,8 @@ func NewInterceptorsContainerFactory(
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           chainID,
+		ValidityAttester:  validityAttester,
+		EpochStartTrigger: epochStartTrigger,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -550,14 +553,48 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	keys := make([]string, 0)
+	trieInterceptors := make([]process.Interceptor, 0)
 
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+
+		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+	}
+
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return []string{identifierTrieNodes}, []process.Interceptor{interceptor}, nil
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	return keys, trieInterceptors, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {

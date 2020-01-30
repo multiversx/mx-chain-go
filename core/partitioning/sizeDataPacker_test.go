@@ -114,7 +114,7 @@ func TestSliceSplitter_SendDataInChunksWithALargeElementShouldSplit(t *testing.T
 	elem1 := []byte("element1")
 	elem2 := []byte("element2")
 	elemLarge := make([]byte, maxPacketSize)
-	rand.Read(elemLarge)
+	_, _ = rand.Read(elemLarge)
 	elem3 := []byte("element3")
 
 	buffSent, err := sdp.PackDataInChunks([][]byte{elem1, elem2, elemLarge, elem3}, maxPacketSize)
@@ -134,7 +134,7 @@ func TestSliceSplitter_SendDataInChunksWithOnlyOneLargeElementShouldWork(t *test
 	sdp, _ := partitioning.NewSizeDataPacker(marshalizer)
 
 	elemLarge := make([]byte, maxPacketSize)
-	rand.Read(elemLarge)
+	_, _ = rand.Read(elemLarge)
 
 	buffSent, err := sdp.PackDataInChunks([][]byte{elemLarge}, maxPacketSize)
 

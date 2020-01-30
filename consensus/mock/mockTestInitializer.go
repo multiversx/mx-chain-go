@@ -39,7 +39,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 		return &block.Header{}
 	}
 	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
+		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{}

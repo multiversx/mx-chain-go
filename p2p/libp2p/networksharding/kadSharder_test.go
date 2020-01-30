@@ -1,13 +1,13 @@
 package networksharding
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
-	sha256 "github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,12 +37,11 @@ func (tkr *testKadResolver) IsInterfaceNil() bool {
 }
 
 var (
-	fs0   = &testKadResolver{fakeShard0}
-	fs2_0 = &testKadResolver{fakeShardBit0Byte2}
+	fs0  = &testKadResolver{fakeShard0}
+	fs20 = &testKadResolver{fakeShardBit0Byte2}
 )
 
 func TestCutoOffBits(t *testing.T) {
-
 	i := []byte{0xff, 0xff}[:]
 
 	testData := []struct {
@@ -77,13 +76,13 @@ func TestCutoOffBits(t *testing.T) {
 	}
 
 	for _, td := range testData {
-		t.Run(fmt.Sprint(td.l, "_", td.exp), func(t *testing.T) {
-			s, _ := NewKadSharder(td.l, fs0)
+		tdCopy := td
+		t.Run(fmt.Sprint(tdCopy.l, "_", tdCopy.exp), func(t *testing.T) {
+			s, _ := NewKadSharder(tdCopy.l, fs0)
 			k := s.(*kadSharder)
 			r := k.resetDistanceBits(i)
-			assert.Equal(t, big.NewInt(0).SetBytes(r), td.exp, "Should match")
+			assert.Equal(t, big.NewInt(0).SetBytes(r), tdCopy.exp, "Should match")
 		})
-
 	}
 }
 
@@ -93,12 +92,12 @@ func TestKadSharderDistance(t *testing.T) {
 }
 
 func TestKadSharderOrdering2(t *testing.T) {
-	s, _ := NewKadSharder(2, fs2_0)
+	s, _ := NewKadSharder(2, fs20)
 	checkOrdering(s, t)
 }
 
 func TestKadSharderOrdering2_list(t *testing.T) {
-	s, _ := NewKadSharder(4, fs2_0)
+	s, _ := NewKadSharder(4, fs20)
 
 	peerList := make([]peer.ID, testNodesCount)
 	for i := 0; i < testNodesCount; i++ {

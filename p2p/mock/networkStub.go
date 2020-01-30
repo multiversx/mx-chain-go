@@ -24,7 +24,7 @@ func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
 }
 
 func (ns *NetworkStub) LocalPeer() peer.ID {
-	return peer.ID("not a peer")
+	return "not a peer"
 }
 
 func (ns *NetworkStub) DialPeer(ctx context.Context, pid peer.ID) (network.Conn, error) {

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -75,12 +76,12 @@ func checkNewFactoryParams(
 
 // SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return spos.ErrNilAppStatusHandler
 	}
-
 	fct.appStatusHandler = ash
-	return nil
+
+	return fct.worker.SetAppStatusHandler(ash)
 }
 
 // SetIndexer method will update the value of the factory's indexer
@@ -139,6 +140,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
 	subroundStartRound, err := commonSubround.NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
@@ -146,11 +152,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -176,6 +177,11 @@ func (fct *factory) generateBlockSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -217,7 +223,7 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	subroundSignature, err := NewSubroundSignature(
+	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
 	)
@@ -225,13 +231,13 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	err = subroundSignature.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundSignatureObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.consensusCore.Chronology().AddSubround(subroundSignature)
+	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
+	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
 }
@@ -254,20 +260,24 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	subroundEndRound, err := NewSubroundEndRound(
+	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
+		spos.MaxThresholdPercent,
+		getSubroundName,
+		fct.worker.DisplayStatistics,
 	)
 	if err != nil {
 		return err
 	}
 
-	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundEndRoundObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
+	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
+	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil
 }
@@ -280,10 +290,7 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
+	return fct == nil
 }
 
 func debugError(message string, err error) {

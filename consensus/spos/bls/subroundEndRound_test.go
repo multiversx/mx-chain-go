@@ -14,6 +14,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const processingThresholdPercent = 85
+
+const (
+	// SrStartRound defines ID of subround "Start round"
+	SrStartRound = iota
+	// SrBlock defines ID of subround "block"
+	SrBlock
+	// SrCommitmentHash defines ID of subround "commitment hash"
+	SrCommitmentHash
+	// SrBitmap defines ID of subround "bitmap"
+	SrBitmap
+	// SrCommitment defines ID of subround "commitment"
+	SrCommitment
+	// SrSignature defines ID of subround "signature"
+	SrSignature
+	// SrEndRound defines ID of subround "End round"
+	SrEndRound
+)
+
 func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
 	consensusState := initConsensusState()
@@ -34,6 +53,9 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.Su
 	srEndRound, _ := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	return srEndRound
@@ -49,6 +71,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 	srEndRound, err := bls.NewSubroundEndRound(
 		nil,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -79,6 +104,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -109,6 +137,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -140,6 +171,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -170,6 +204,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -200,6 +237,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -230,6 +270,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.Nil(t, srEndRound)
@@ -260,6 +303,9 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		displayStatistics,
 	)
 
 	assert.NotNil(t, srEndRound)
@@ -336,7 +382,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	bpm := mock.InitBlockProcessorMock()
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		err = errors.New("error marshalized data to broadcast")
-		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), err
+		return make(map[uint32][]byte), make(map[string][][]byte), err
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -370,7 +416,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 
 	bpm := mock.InitBlockProcessorMock()
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
+		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -405,7 +451,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 
 	bpm := mock.InitBlockProcessorMock()
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
+		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -562,4 +608,29 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)
+}
+
+// getSubroundName returns the name of each subround from a given subround ID
+func getSubroundName(subroundId int) string {
+	switch subroundId {
+	case SrStartRound:
+		return "(START_ROUND)"
+	case SrBlock:
+		return "(BLOCK)"
+	case SrCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case SrBitmap:
+		return "(BITMAP)"
+	case SrCommitment:
+		return "(COMMITMENT)"
+	case SrSignature:
+		return "(SIGNATURE)"
+	case SrEndRound:
+		return "(END_ROUND)"
+	default:
+		return "Undefined subround"
+	}
+}
+
+func displayStatistics() {
 }

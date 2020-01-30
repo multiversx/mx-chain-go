@@ -10,6 +10,7 @@ import (
 // A new type we need for writing a custom flag parser
 type addrList []maddr.Multiaddr
 
+// String will return the string representation of a multi addr
 func (al *addrList) String() string {
 	strs := make([]string, len(*al))
 	for i, addr := range *al {
@@ -18,6 +19,7 @@ func (al *addrList) String() string {
 	return strings.Join(strs, ",")
 }
 
+// Set will update the value for a addrList
 func (al *addrList) Set(value string) error {
 	addr, err := maddr.NewMultiaddr(value)
 	if err != nil {
@@ -30,6 +32,7 @@ func (al *addrList) Set(value string) error {
 // IPFS bootstrap nodes. Used to find other peers in the network.
 var defaultBootstrapAddrStrings = make([]string, 0)
 
+// StringsToAddrs will convert from string representations to a slice of Multiaddr
 func StringsToAddrs(addrStrings []string) (maddrs []maddr.Multiaddr, err error) {
 	for _, addrString := range addrStrings {
 		addr, err := maddr.NewMultiaddr(addrString)
@@ -41,11 +44,13 @@ func StringsToAddrs(addrStrings []string) (maddrs []maddr.Multiaddr, err error) 
 	return
 }
 
+// Config represents the struct which holds the settings
 type Config struct {
 	BootstrapPeers  addrList
 	ListenAddresses addrList
 }
 
+// ParseFlags will check and parse the given configuration
 func ParseFlags() (Config, error) {
 	config := Config{}
 	flag.Var(&config.BootstrapPeers, "peer", "Adds a peer multiaddress to the bootstrap list")

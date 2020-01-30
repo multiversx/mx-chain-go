@@ -81,7 +81,6 @@ func initDataPoolWithFourTransactions() *mock.PoolsHolderStub {
 							return 0
 						},
 						RemoveCalled: func(key []byte) {
-							return
 						},
 					}
 				},

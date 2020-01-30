@@ -6,58 +6,18 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Save saves the serialized data of an extension node into a stream through Capnp protocol
-func (en *extensionNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	extensionNodeGoToCapn(seg, en)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into an extension node object through Capnp protocol
-func (en *extensionNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootExtensionNodeCapn(capMsg)
-	extensionNodeCapnToGo(z, en)
-	return nil
-}
-
-func extensionNodeGoToCapn(seg *capn.Segment, src *extensionNode) capnp.ExtensionNodeCapn {
-	dest := capnp.AutoNewExtensionNodeCapn(seg)
-
-	dest.SetKey(src.Key)
-	dest.SetEncodedChild(src.EncodedChild)
-
-	return dest
-}
-
-func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *extensionNode {
-	if dest == nil {
-		dest = &extensionNode{}
-	}
-
-	dest.EncodedChild = src.EncodedChild()
-	dest.Key = src.Key()
-
-	return dest
-}
-
 func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*extensionNode, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -250,7 +210,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(pos byte, db data.DBWriteCacher) error {
+func (en *extensionNode) resolveCollapsed(_ byte, db data.DBWriteCacher) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -268,7 +228,7 @@ func (en *extensionNode) isCollapsed() bool {
 	return en.child == nil && len(en.EncodedChild) != 0
 }
 
-func (en *extensionNode) isPosCollapsed(pos int) bool {
+func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 

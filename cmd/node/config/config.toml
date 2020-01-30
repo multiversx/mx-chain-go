@@ -71,17 +71,6 @@
         MaxBatchSize = 1
         MaxOpenFiles = 10
 
-[ShardDataStorage]
-    [ShardDataStorage.Cache]
-        Size = 1000
-        Type = "LRU"
-    [ShardDataStorage.DB]
-        FilePath = "ShardData"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
-        MaxBatchSize = 30
-        MaxOpenFiles = 10
-
 [BootstrapStorage]
     [BootstrapStorage.Cache]
         Size = 1000
@@ -91,17 +80,6 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
-        MaxOpenFiles = 10
-
-[PeerDataStorage]
-    [PeerDataStorage.Cache]
-        Size = 1000
-        Type = "LRU"
-    [PeerDataStorage.DB]
-        FilePath = "PeerData"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
-        MaxBatchSize = 30
         MaxOpenFiles = 10
 
 [MetaBlockStorage]
@@ -308,8 +286,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 1000000
-    RoundsPerEpoch         = 1000000
+    MinRoundsBetweenEpochs = 100000
+    RoundsPerEpoch         = 100000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
