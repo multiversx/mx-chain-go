@@ -48,17 +48,26 @@ func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	ihgs.mutSavedStateKey.Unlock()
 
 	ihgs.currentEpoch = config.CurrentEpoch
+	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 
 	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
 	if err != nil {
 		return err
 	}
 
+	displayNodesConfigInfo(nodesConfig)
+
 	ihgs.mutNodesConfig.Lock()
 	ihgs.nodesConfig = nodesConfig
 	ihgs.mutNodesConfig.Unlock()
 
 	return nil
+}
+
+func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
+	for epoch := range config {
+		log.Debug("restored config for", "epoch", epoch)
+	}
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {

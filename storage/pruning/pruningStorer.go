@@ -1,7 +1,6 @@
 package pruning
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -133,10 +132,17 @@ func initPersistersInEpoch(
 	args *StorerArgs,
 	shardIdStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
-	var db storage.Persister
-	var err error
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
+
+	if !args.PruningEnabled {
+		p, err := createPersisterDataForEpoch(args, 0, shardIdStr)
+		if err != nil {
+			return nil, nil, err
+		}
+		persisters = append(persisters, p)
+		return persisters, persistersMapByEpoch, nil
+	}
 
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
@@ -152,30 +158,8 @@ func initPersistersInEpoch(
 	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
-
-		// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
-		// e.g. determined from directories in persister path or taken from boot storer
-		filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), uint32(epoch), args.Identifier)
-		if len(shardIdStr) > 0 {
-			filePath = filePath + shardIdStr
-			args.Identifier += shardIdStr
-		}
-
-		db, err = args.PersisterFactory.Create(filePath)
+		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIdStr)
 		if err != nil {
-			log.Debug("persister create error", "error", err.Error())
-			return nil, nil, err
-		}
-
-		p := &persisterData{
-			persister: db,
-			path:      filePath,
-			isClosed:  false,
-		}
-
-		err = p.persister.Init()
-		if err != nil {
-			log.Debug("init old persister", "error", err.Error())
 			return nil, nil, err
 		}
 
@@ -243,7 +227,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		}
 		if !found {
 			return nil, fmt.Errorf("key %s not found in %s",
-				base64.StdEncoding.EncodeToString(key), ps.identifier)
+				core.ToHex(key), ps.identifier)
 		}
 	}
 
@@ -283,7 +267,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	if !exists {
 		return nil, fmt.Errorf("key %s not found in %s",
-			base64.StdEncoding.EncodeToString(key), ps.identifier)
+			core.ToHex(key), ps.identifier)
 	}
 
 	if !pd.isClosed {
@@ -321,7 +305,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		"error", err.Error())
 
 	return nil, fmt.Errorf("key %s not found in %s",
-		base64.StdEncoding.EncodeToString(key), ps.identifier)
+		core.ToHex(key), ps.identifier)
 
 }
 
@@ -347,7 +331,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
 		storage.ErrKeyNotFound,
 		ps.identifier,
-		base64.StdEncoding.EncodeToString(key),
+		core.ToHex(key),
 		len(ps.activePersisters),
 	)
 }
@@ -580,4 +564,34 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
+}
+
+func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) (*persisterData, error) {
+	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
+	// e.g. determined from directories in persister path or taken from boot storer
+	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
+	if len(shardIdStr) > 0 {
+		filePath = filePath + shardIdStr
+		args.Identifier += shardIdStr
+	}
+
+	db, err := args.PersisterFactory.Create(filePath)
+	if err != nil {
+		log.Debug("persister create error", "error", err.Error())
+		return nil, err
+	}
+
+	p := &persisterData{
+		persister: db,
+		path:      filePath,
+		isClosed:  false,
+	}
+
+	err = p.persister.Init()
+	if err != nil {
+		log.Debug("init old persister", "error", err.Error())
+		return nil, err
+	}
+
+	return p, nil
 }

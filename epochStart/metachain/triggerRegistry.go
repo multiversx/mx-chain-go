@@ -17,7 +17,6 @@ type TriggerRegistry struct {
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(keyPrefix), key...)
-
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
 	data, err := t.triggerStorage.Get(trigInternalKey)
@@ -59,7 +58,7 @@ func (t *trigger) saveState(key []byte) error {
 	}
 
 	trigInternalKey := append([]byte(keyPrefix), key...)
-	log.Debug("saving start of epoch trigger state")
+	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, data)
 }

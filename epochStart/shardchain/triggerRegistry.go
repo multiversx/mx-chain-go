@@ -11,13 +11,13 @@ type TriggerRegistry struct {
 	EpochStartRound             uint64
 	EpochMetaBlockHash          []byte
 	IsEpochStart                bool
+	NewEpochHeaderReceived      bool
 	EpochFinalityAttestingRound uint64
 }
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(keyPrefix), key...)
-
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
 	data, err := t.triggerStorage.Get(trigInternalKey)
@@ -38,6 +38,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.epochStartRound = state.EpochStartRound
 	t.epochMetaBlockHash = state.EpochMetaBlockHash
 	t.isEpochStart = state.IsEpochStart
+	t.newEpochHdrReceived = state.NewEpochHeaderReceived
 	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
 	t.mutTrigger.Unlock()
 
@@ -53,6 +54,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochStartRound = t.epochStartRound
 	registry.EpochMetaBlockHash = t.epochMetaBlockHash
 	registry.IsEpochStart = t.isEpochStart
+	registry.NewEpochHeaderReceived = t.newEpochHdrReceived
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 
 	data, err := json.Marshal(registry)
@@ -61,7 +63,7 @@ func (t *trigger) saveState(key []byte) error {
 	}
 
 	trigInternalKey := append([]byte(keyPrefix), key...)
-	log.Debug("saving start of epoch trigger state")
+	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, data)
 }

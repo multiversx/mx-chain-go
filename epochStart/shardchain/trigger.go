@@ -245,6 +245,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+			t.saveCurrentState(meta.GetRound())
 
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
@@ -532,6 +533,6 @@ func (t *trigger) saveCurrentState(round uint64) {
 	t.triggerStateKey = []byte(fmt.Sprint(round))
 	err := t.saveState(t.triggerStateKey)
 	if err != nil {
-		log.Debug("error saving trigger state", "error", err)
+		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
 	}
 }

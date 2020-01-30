@@ -277,6 +277,6 @@ func (t *trigger) saveCurrentState(round uint64) {
 	t.triggerStateKey = []byte(fmt.Sprint(round))
 	err := t.saveState(t.triggerStateKey)
 	if err != nil {
-		log.Debug("error saving trigger state", "error", err)
+		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
 	}
 }

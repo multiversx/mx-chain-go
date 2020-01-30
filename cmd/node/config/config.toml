@@ -9,7 +9,7 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = false
+   Enabled = true
 
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
