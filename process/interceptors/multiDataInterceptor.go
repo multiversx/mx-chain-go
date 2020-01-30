@@ -136,8 +136,5 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

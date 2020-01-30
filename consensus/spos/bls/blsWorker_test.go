@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,6 +57,14 @@ func initConsensusState() *spos.ConsensusState {
 	cns.Data = []byte("X")
 	cns.RoundIndex = 0
 	return cns
+}
+
+func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	service, err := bls.NewConsensusService()
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(service))
 }
 
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
@@ -219,5 +228,41 @@ func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 	assert.False(t, ret)
 
 	ret = service.IsMessageWithBlockHeader(bls.MtBlockHeader)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsMessageWithSignature(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithSignature(bls.MtUnknown)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithSignature(bls.MtSignature)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsSubroundSignature(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsSubroundSignature(bls.SrEndRound)
+	assert.False(t, ret)
+
+	ret = service.IsSubroundSignature(bls.SrSignature)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsSubroundStartRound(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsSubroundStartRound(bls.SrSignature)
+	assert.False(t, ret)
+
+	ret = service.IsSubroundStartRound(bls.SrStartRound)
 	assert.True(t, ret)
 }

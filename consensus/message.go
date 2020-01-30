@@ -24,7 +24,6 @@ func NewConsensusMessage(
 	roundIndex int64,
 	chainID []byte,
 ) *Message {
-
 	return &Message{
 		BlockHeaderHash: blHeaderHash,
 		SubRoundData:    subRoundData,

@@ -96,7 +96,7 @@ func initPruningStorer(
 
 	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), args.StartingEpoch, args.Identifier)
 	if len(shardIdStr) > 0 {
-		filePath = filePath + shardIdStr
+		filePath += shardIdStr
 		args.Identifier += shardIdStr
 	}
 	db, err = args.PersisterFactory.Create(filePath)

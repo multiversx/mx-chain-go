@@ -61,6 +61,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
+	nrRoundsToPropagateMultiShard := 5
 	/////////----- wait for epoch end period
 	round, nonce = createAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
 
@@ -127,6 +128,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -230,6 +232,7 @@ func createAndPropagateBlocks(
 	idxProposers []int,
 ) (uint64, uint64) {
 	for i := uint64(0); i <= nbRounds; i++ {
+		integrationTests.UpdateRound(nodes, currentRound)
 		integrationTests.ProposeBlock(nodes, idxProposers, currentRound, currentNonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, currentRound)
 		currentRound = integrationTests.IncrementAndPrintRound(currentRound)
@@ -350,6 +353,9 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksProduced; i++ {
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)

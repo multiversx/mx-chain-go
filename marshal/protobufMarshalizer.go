@@ -8,8 +8,7 @@ import (
 type ProtobufMarshalizer struct {
 }
 
-// Marshal does the actual serialization of an object through capnproto
-// The object to be serialized must implement the data.CapnpHelper interface
+// Marshal does the actual serialization of an object through protobuf
 func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if msg, ok := obj.(proto.Message); ok {
 		enc, err := proto.Marshal(msg)
@@ -21,8 +20,7 @@ func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return nil, ErrMarshallingProto
 }
 
-// Unmarshal does the actual deserialization of an object through capnproto
-// The object to be deserialized must implement the data.CapnpHelper interface
+// Unmarshal does the actual deserialization of an object through protobuf
 func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if msg, ok := obj.(proto.Message); ok {
 		return proto.Unmarshal(buff, msg)
@@ -31,9 +29,6 @@ func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (x *ProtobufMarshalizer) IsInterfaceNil() bool {
-	if x == nil {
-		return true
-	}
-	return false
+func (pm *ProtobufMarshalizer) IsInterfaceNil() bool {
+	return pm == nil
 }

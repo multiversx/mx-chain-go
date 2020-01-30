@@ -40,7 +40,7 @@ type ArgsShardStorageBootstrapper struct {
 // ArgsMetaStorageBootstrapper is structure used to create a new storage bootstrapper for metachain
 type ArgsMetaStorageBootstrapper struct {
 	ArgsBaseStorageBootstrapper
-	PendingMiniBlocks process.PendingMiniBlocksHandler
+	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 }
 
 type storageBootstrapper struct {

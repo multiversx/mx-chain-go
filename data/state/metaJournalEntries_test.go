@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -25,8 +26,8 @@ func TestNewetaJournalEntryRound_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryRound(accnt, 0)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestNewMetaJournalEntryRound_RevertOkValsShouldWork(t *testing.T) {
@@ -58,8 +59,8 @@ func TestNewetaJournalEntryMiniBlocksData_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryMiniBlocksData(accnt, nil)
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestNewMetaJournalEntryMiniBlocksData_RevertOkValsShouldWork(t *testing.T) {
@@ -90,8 +91,8 @@ func TestNewetaJournalEntryTxCount_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryTxCount(accnt, big.NewInt(0))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
@@ -122,8 +123,8 @@ func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
 	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, err := state.NewMetaJournalEntryShardRootHash(accnt, []byte("shardroothash"))
 
-	assert.NotNil(t, entry)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(entry))
 }
 
 func TestNewMetaJournalEntryShardRootHash_RevertOkValsShouldWork(t *testing.T) {

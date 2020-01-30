@@ -2,16 +2,12 @@ package commonSubround
 
 import (
 	"encoding/hex"
-	"fmt"
 	"time"
-
-	"github.com/ElrondNetwork/elrond-go/data"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.GetOrCreate("consensus/spos/commonsubround")
@@ -23,8 +19,7 @@ type SubroundStartRound struct {
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
 
-	appStatusHandler core.AppStatusHandler
-	indexer          indexer.Indexer
+	indexer indexer.Indexer
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -47,7 +42,6 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		getSubroundName:               getSubroundName,
 		executeStoredMessages:         executeStoredMessages,
-		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		indexer:                       indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
@@ -71,16 +65,6 @@ func checkNewSubroundStartRoundParams(
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
-}
-
-// SetAppStatusHandler method set appStatusHandler
-func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
 }
 
 // SetIndexer method set indexer
@@ -117,7 +101,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
@@ -139,9 +123,9 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
-		sr.appStatusHandler.Increment(core.MetricCountLeader)
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "proposed")
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
+		sr.AppStatusHandler().Increment(core.MetricCountLeader)
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "proposed")
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -158,10 +142,10 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if err != nil {
 		log.Debug("not in consensus group",
 			"time [s]", sr.SyncTimer().FormattedCurrentTime())
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "not in consensus group")
 	} else {
-		sr.appStatusHandler.Increment(core.MetricCountConsensus)
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
+		sr.AppStatusHandler().Increment(core.MetricCountConsensus)
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "participant")
 	}
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))

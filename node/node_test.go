@@ -75,7 +75,6 @@ func getMessenger() *mock.MessengerStub {
 			return nil
 		},
 		BroadcastCalled: func(topic string, buff []byte) {
-			return
 		},
 	}
 
@@ -108,7 +107,6 @@ func TestNewNode_NilOptionShouldError(t *testing.T) {
 }
 
 func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
-
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
@@ -122,7 +120,6 @@ func TestStart_NoMessenger(t *testing.T) {
 }
 
 func TestStart_CorrectParams(t *testing.T) {
-
 	messenger := getMessenger()
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -1741,6 +1738,11 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithSyncer(&mock.SyncStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(store),
+		node.WithResolversFinder(&mock.ResolversFinderStub{
+			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+				return &mock.MiniBlocksResolverStub{}, nil
+			},
+		}),
 	)
 
 	err := n.StartConsensus()
@@ -1861,6 +1863,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 				return []byte("nil"), localErr
 			},
 		}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1949,6 +1952,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 				return []byte("keyBytes"), nil
 			},
 		}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -2063,6 +2067,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()

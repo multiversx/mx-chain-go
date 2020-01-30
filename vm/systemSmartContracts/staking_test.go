@@ -16,13 +16,13 @@ import (
 func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 	return &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("tralala1"),
+			CallerAddr:  []byte("cllraddr"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
 		},
-		RecipientAddr: []byte("tralala2"),
+		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
 	}
 }
@@ -183,7 +183,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		StartNonce:    0,
 		Staked:        true,
 		UnStakedNonce: 0,
-		Address:     []byte{100},
+		Address:       []byte{100},
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 
@@ -255,7 +255,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 		StartNonce:    0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		Address:     nil,
+		Address:       nil,
 		StakeValue:    nil,
 	}
 

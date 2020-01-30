@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/glycerine/go-capnproto"
 )
 
 // This file holds the data structures related with the functionality of a shard block
@@ -41,6 +38,7 @@ const (
 	// ReceiptBlock identifies a miniblock holding receipts
 	ReceiptBlock Type = 150
 	// TODO: leave rewards with highest value
+
 	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
 	RewardsBlock Type = 255
 )
@@ -69,26 +67,26 @@ func (bType Type) String() string {
 
 // MiniBlock holds the transactions and the sender/destination shard ids
 type MiniBlock struct {
-	TxHashes        [][]byte `capid:"0"`
-	ReceiverShardID uint32   `capid:"1"`
-	SenderShardID   uint32   `capid:"2"`
-	Type            Type     `capid:"3"`
+	TxHashes        [][]byte
+	ReceiverShardID uint32
+	SenderShardID   uint32
+	Type            Type
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
 // The shard ids are both kept in order to differentiate between cross and single shard transactions
 type MiniBlockHeader struct {
-	Hash            []byte `capid:"0"`
-	SenderShardID   uint32 `capid:"1"`
-	ReceiverShardID uint32 `capid:"2"`
-	TxCount         uint32 `capid:"3"`
-	Type            Type   `capid:"4"`
+	Hash            []byte
+	SenderShardID   uint32
+	ReceiverShardID uint32
+	TxCount         uint32
+	Type            Type
 }
 
 // PeerChange holds a change in one peer to shard assignation
 type PeerChange struct {
-	PubKey      []byte `capid:"0"`
-	ShardIdDest uint32 `capid:"1"`
+	PubKey      []byte
+	ShardIdDest uint32
 }
 
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
@@ -115,268 +113,6 @@ type Header struct {
 	TxCount                uint32
 	ShardId                uint32
 	BlockBodyType          Type
-}
-
-// Save saves the serialized data of a Block Header into a stream through Capnp protocol
-func (h *Header) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	HeaderGoToCapn(seg, h)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a Block Header object through Capnp protocol
-func (h *Header) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootHeaderCapn(capMsg)
-	HeaderCapnToGo(z, h)
-	return nil
-}
-
-// HeaderCapnToGo is a helper function to copy fields from a HeaderCapn object to a Header object
-func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
-	if dest == nil {
-		dest = &Header{}
-	}
-
-	dest.Nonce = src.Nonce()
-	dest.PrevHash = src.PrevHash()
-	dest.PrevRandSeed = src.PrevRandSeed()
-	dest.RandSeed = src.RandSeed()
-	dest.PubKeysBitmap = src.PubKeysBitmap()
-	dest.ShardId = src.ShardId()
-	dest.TimeStamp = src.TimeStamp()
-	dest.Round = src.Round()
-	dest.Epoch = src.Epoch()
-	dest.BlockBodyType = Type(src.BlockBodyType())
-	dest.Signature = src.Signature()
-	dest.LeaderSignature = src.LeaderSignature()
-	dest.EpochStartMetaHash = src.EpochStartMetaHash()
-	dest.ChainID = src.Chainid()
-
-	mbLength := src.MiniBlockHeaders().Len()
-	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
-	for i := 0; i < mbLength; i++ {
-		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
-	}
-
-	peerChangesLen := src.PeerChanges().Len()
-	dest.PeerChanges = make([]PeerChange, peerChangesLen)
-	for i := 0; i < peerChangesLen; i++ {
-		dest.PeerChanges[i] = *PeerChangeCapnToGo(src.PeerChanges().At(i), nil)
-	}
-
-	dest.RootHash = src.RootHash()
-	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
-
-	var n int
-	n = src.MetaHdrHashes().Len()
-	dest.MetaBlockHashes = make([][]byte, n)
-	for i := 0; i < n; i++ {
-		dest.MetaBlockHashes[i] = src.MetaHdrHashes().At(i)
-	}
-
-	dest.TxCount = src.TxCount()
-
-	return dest
-}
-
-// HeaderGoToCapn is a helper function to copy fields from a Block Header object to a HeaderCapn object
-func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
-	dest := capnp.AutoNewHeaderCapn(seg)
-
-	dest.SetNonce(src.Nonce)
-	dest.SetPrevHash(src.PrevHash)
-	dest.SetPrevRandSeed(src.PrevRandSeed)
-	dest.SetRandSeed(src.RandSeed)
-	dest.SetPubKeysBitmap(src.PubKeysBitmap)
-	dest.SetShardId(src.ShardId)
-	dest.SetTimeStamp(src.TimeStamp)
-	dest.SetRound(src.Round)
-	dest.SetEpoch(src.Epoch)
-	dest.SetBlockBodyType(uint8(src.BlockBodyType))
-	dest.SetSignature(src.Signature)
-	dest.SetLeaderSignature(src.LeaderSignature)
-	dest.SetChainid(src.ChainID)
-	dest.SetEpochStartMetaHash(src.EpochStartMetaHash)
-
-	if len(src.MiniBlockHeaders) > 0 {
-		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
-		pList := capn.PointerList(miniBlockList)
-
-		for i, elem := range src.MiniBlockHeaders {
-			_ = pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
-		}
-		dest.SetMiniBlockHeaders(miniBlockList)
-	}
-
-	if len(src.PeerChanges) > 0 {
-		peerChangeList := capnp.NewPeerChangeCapnList(seg, len(src.PeerChanges))
-		plist := capn.PointerList(peerChangeList)
-
-		for i, elem := range src.PeerChanges {
-			_ = plist.Set(i, capn.Object(PeerChangeGoToCapn(seg, &elem)))
-		}
-		dest.SetPeerChanges(peerChangeList)
-	}
-
-	dest.SetRootHash(src.RootHash)
-	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
-
-	mylist1 := seg.NewDataList(len(src.MetaBlockHashes))
-	for i := range src.MetaBlockHashes {
-		mylist1.Set(i, src.MetaBlockHashes[i])
-	}
-	dest.SetMetaHdrHashes(mylist1)
-
-	dest.SetTxCount(src.TxCount)
-
-	return dest
-}
-
-// Save saves the serialized data of a MiniBlock into a stream through Capnp protocol
-func (mb *MiniBlock) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	MiniBlockGoToCapn(seg, mb)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a MiniBlock object through Capnp protocol
-func (mb *MiniBlock) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootMiniBlockCapn(capMsg)
-	MiniBlockCapnToGo(z, mb)
-	return nil
-}
-
-// MiniBlockCapnToGo is a helper function to copy fields from a MiniBlockCapn object to a MiniBlock object
-func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
-	if dest == nil {
-		dest = &MiniBlock{}
-	}
-
-	var n int
-
-	n = src.TxHashes().Len()
-	dest.TxHashes = make([][]byte, n)
-	for i := 0; i < n; i++ {
-		dest.TxHashes[i] = src.TxHashes().At(i)
-	}
-
-	dest.ReceiverShardID = src.ReceiverShardID()
-	dest.SenderShardID = src.SenderShardID()
-	dest.Type = Type(src.Type())
-
-	return dest
-}
-
-// MiniBlockGoToCapn is a helper function to copy fields from a MiniBlock object to a MiniBlockCapn object
-func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
-	dest := capnp.AutoNewMiniBlockCapn(seg)
-
-	mylist1 := seg.NewDataList(len(src.TxHashes))
-	for i := range src.TxHashes {
-		mylist1.Set(i, src.TxHashes[i])
-	}
-	dest.SetTxHashes(mylist1)
-	dest.SetReceiverShardID(src.ReceiverShardID)
-	dest.SetSenderShardID(src.SenderShardID)
-	dest.SetType(uint8(src.Type))
-
-	return dest
-}
-
-// Save saves the serialized data of a PeerChange into a stream through Capnp protocol
-func (s *PeerChange) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	PeerChangeGoToCapn(seg, s)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a PeerChange object through Capnp protocol
-func (s *PeerChange) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootPeerChangeCapn(capMsg)
-	PeerChangeCapnToGo(z, s)
-	return nil
-}
-
-// PeerChangeCapnToGo is a helper function to copy fields from a PeerChangeCapn object to a PeerChange object
-func PeerChangeCapnToGo(src capnp.PeerChangeCapn, dest *PeerChange) *PeerChange {
-	if dest == nil {
-		dest = &PeerChange{}
-	}
-
-	dest.PubKey = src.PubKey()
-	dest.ShardIdDest = src.ShardIdDest()
-
-	return dest
-}
-
-// PeerChangeGoToCapn is a helper function to copy fields from a PeerChange object to a PeerChangeGoToCapn object
-func PeerChangeGoToCapn(seg *capn.Segment, src *PeerChange) capnp.PeerChangeCapn {
-	dest := capnp.AutoNewPeerChangeCapn(seg)
-	dest.SetPubKey(src.PubKey)
-	dest.SetShardIdDest(src.ShardIdDest)
-
-	return dest
-}
-
-// Save saves the serialized data of a StateBlockBody into a stream through Capnp protocol
-func (s *MiniBlockHeader) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	MiniBlockHeaderGoToCapn(seg, s)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a StateBlockBody object through Capnp protocol
-func (s *MiniBlockHeader) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootMiniBlockHeaderCapn(capMsg)
-	MiniBlockHeaderCapnToGo(z, s)
-	return nil
-}
-
-// MiniBlockHeaderCapnToGo is a helper function to copy fields from a MiniBlockHeaderCapn object to a MiniBlockHeader object
-func MiniBlockHeaderCapnToGo(src capnp.MiniBlockHeaderCapn, dest *MiniBlockHeader) *MiniBlockHeader {
-	if dest == nil {
-		dest = &MiniBlockHeader{}
-	}
-	dest.Hash = src.Hash()
-	dest.ReceiverShardID = src.ReceiverShardID()
-	dest.SenderShardID = src.SenderShardID()
-	dest.TxCount = src.TxCount()
-	dest.Type = Type(src.Type())
-
-	return dest
-}
-
-// MiniBlockHeaderGoToCapn is a helper function to copy fields from a MiniBlockHeader object to a MiniBlockHeaderCapn object
-func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.MiniBlockHeaderCapn {
-	dest := capnp.AutoNewMiniBlockHeaderCapn(seg)
-
-	dest.SetHash(src.Hash)
-	dest.SetReceiverShardID(src.ReceiverShardID)
-	dest.SetSenderShardID(src.SenderShardID)
-	dest.SetTxCount(src.TxCount)
-	dest.SetType(uint8(src.Type))
-
-	return dest
 }
 
 // GetShardID returns header shard id
@@ -536,7 +272,7 @@ func (h *Header) SetTxCount(txCount uint32) {
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
 			hashDst[string(val.Hash)] = val.SenderShardID
@@ -547,7 +283,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for _, val := range h.MiniBlockHeaders {
 		hashDst[string(val.Hash)] = val.SenderShardID
 	}

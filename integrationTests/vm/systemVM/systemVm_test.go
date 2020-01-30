@@ -284,6 +284,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 
 func waitOperationToBeDone(t *testing.T, nodes []*integrationTests.TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

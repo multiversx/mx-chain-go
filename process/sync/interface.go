@@ -15,6 +15,7 @@ type blockBootstrapper interface {
 	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	isForkTriggeredByMeta() bool
+	requestHeaderByNonce(nonce uint64)
 }
 
 // syncStarter defines the behavior of component that can start sync-ing blocks

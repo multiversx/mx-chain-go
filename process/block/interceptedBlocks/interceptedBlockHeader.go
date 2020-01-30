@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -20,6 +22,8 @@ type InterceptedHeader struct {
 	hash              []byte
 	isForCurrentShard bool
 	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -35,11 +39,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              hdr,
-		hasher:           arg.Hasher,
-		sigVerifier:      arg.HeaderSigVerifier,
-		shardCoordinator: arg.ShardCoordinator,
-		chainID:          arg.ChainID,
+		hdr:              	hdr,
+		hasher:           	arg.Hasher,
+		sigVerifier:      	arg.HeaderSigVerifier,
+		shardCoordinator: 	arg.ShardCoordinator,
+		chainID:          	arg.ChainID,
+		validityAttester: 	arg.ValidityAttester,
+		epochStartTrigger:	arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -87,9 +93,56 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	return inHdr.hdr.CheckChainID(inHdr.chainID)
 }
 
+func (inHdr *InterceptedHeader) isEpochCorrect() bool {
+	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		return true
+	}
+	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
+		return true
+	}
+	if inHdr.hdr.GetEpoch() >= inHdr.epochStartTrigger.Epoch() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochStartRound() {
+		return true
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
+		return true
+	}
+
+	return false
+}
+
 // integrity checks the integrity of the header block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
+	if !inHdr.isEpochCorrect() {
+		return fmt.Errorf("%w : shard header with old epoch and bad round: "+
+			"shardHeaderHash=%s, "+
+			"shardId=%v, "+
+			"metaEpoch=%v, "+
+			"shardEpoch=%v, "+
+			"shardRound=%v, "+
+			"metaFinalityAttestingRound=%v ",
+			process.ErrEpochDoesNotMatch,
+			core.ToHex(inHdr.hash),
+			inHdr.hdr.ShardId,
+			inHdr.epochStartTrigger.Epoch(),
+			inHdr.hdr.Epoch,
+			inHdr.hdr.Round,
+			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
+	}
+
 	err := checkHeaderHandler(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.validityAttester.CheckBlockAgainstRounder(inHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}

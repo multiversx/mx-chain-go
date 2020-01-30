@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -43,26 +43,19 @@ type notarizedInfo struct {
 	startNonce              uint64
 }
 
-func (ni *notarizedInfo) reset() {
-	ni.lastNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.finalNotarized = make(map[uint32]*HdrInfo, 0)
-	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
-	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
-	ni.startNonce = uint64(0)
-}
-
 type baseBootstrap struct {
 	headers dataRetriever.HeadersPool
 
-	blkc        data.ChainHandler
-	blkExecutor process.BlockProcessor
-	store       dataRetriever.StorageService
+	chainHandler   data.ChainHandler
+	blockProcessor process.BlockProcessor
+	store          dataRetriever.StorageService
 
 	rounder           consensus.Rounder
 	hasher            hashing.Hasher
 	marshalizer       marshal.Marshalizer
 	epochHandler      dataRetriever.EpochHandler
 	forkDetector      process.ForkDetector
+	requestHandler    process.RequestHandler
 	shardCoordinator  sharding.Coordinator
 	accounts          state.AccountsAdapter
 	blockBootstrapper blockBootstrapper
@@ -101,18 +94,16 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore           storage.Storer
-	headerNonceHashStore  storage.Storer
-	hdrRes                dataRetriever.HeaderResolver
-	syncStarter           syncStarter
-	bootStorer            process.BootStorer
-	storageBootstrapper   process.BootstrapperFromStorage
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	headerStore          storage.Storer
+	headerNonceHashStore storage.Storer
+	syncStarter          syncStarter
+	bootStorer           process.BootStorer
+	storageBootstrapper  process.BootstrapperFromStorage
 
-	miniBlocks         storage.Cacher
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
+	miniBlocksResolver process.MiniBlocksResolver
+	poolsHolder        dataRetriever.PoolsHolder
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -233,8 +224,8 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.blkc != nil && boot.blkc.GetCurrentBlockHeader() != nil {
-		nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
+	if boot.chainHandler != nil && boot.chainHandler.GetCurrentBlockHeader() != nil {
+		nonce = boot.chainHandler.GetCurrentBlockHeader().GetNonce() + 1
 	}
 	return nonce
 }
@@ -275,10 +266,10 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if boot.blkc.GetCurrentBlockHeader() == nil {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
+	if boot.chainHandler.GetCurrentBlockHeader() == nil {
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -344,105 +335,70 @@ func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHan
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
-func checkBootstrapNilParameters(
-	blkc data.ChainHandler,
-	rounder consensus.Rounder,
-	blkExecutor process.BlockProcessor,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	forkDetector process.ForkDetector,
-	resolversFinder dataRetriever.ResolversContainer,
-	shardCoordinator sharding.Coordinator,
-
-	accounts state.AccountsAdapter,
-	store dataRetriever.StorageService,
-	blackListHandler process.BlackListHandler,
-	watcher process.NetworkConnectionWatcher,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-) error {
-	if check.IfNil(blkc) {
+func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
+	if check.IfNil(arguments.ChainHandler) {
 		return process.ErrNilBlockChain
 	}
-	if check.IfNil(rounder) {
+	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
-	if check.IfNil(blkExecutor) {
-		return process.ErrNilBlockExecutor
+	if check.IfNil(arguments.BlockProcessor) {
+		return process.ErrNilBlockProcessor
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(forkDetector) {
+	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(resolversFinder) {
-		return process.ErrNilResolverContainer
+	if check.IfNil(arguments.RequestHandler) {
+		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if check.IfNil(accounts) {
+	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(store) {
+	if check.IfNil(arguments.Store) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(blackListHandler) {
+	if check.IfNil(arguments.BlackListHandler) {
 		return process.ErrNilBlackListHandler
 	}
-	if check.IfNil(watcher) {
+	if check.IfNil(arguments.NetworkWatcher) {
 		return process.ErrNilNetworkWatcher
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return dataRetriever.ErrNilRequestedItemsHandler
+	if check.IfNil(arguments.MiniBlocksResolver) {
+		return process.ErrNilMiniBlocksResolver
 	}
-
 	return nil
 }
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	nonce uint64,
-	haveHeaderInPoolWithNonce func(uint64) bool,
-	hdrRes dataRetriever.HeaderResolver) {
-
-	boot.requestedItemsHandler.Sweep()
-
+	haveHeaderInPoolWithNonce func(uint64) bool) {
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
-		key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), currentNonce)
-		if boot.requestedItemsHandler.Has(key) {
+		haveHeader := haveHeaderInPoolWithNonce(nonce)
+		if haveHeader {
 			continue
 		}
 
-		haveHeader := haveHeaderInPoolWithNonce(nonce)
-		if !haveHeader {
-			err := hdrRes.RequestDataFromNonce(currentNonce, boot.epochHandler.Epoch())
-			if err != nil {
-				log.Debug("RequestDataFromNonce", "error", err.Error())
-				continue
-			}
-
-			err = boot.requestedItemsHandler.Add(key)
-			if err != nil {
-				log.Trace("add requested item with error", "error", err.Error())
-			}
-
-			nbRequestedHdrs++
-		}
+		boot.blockBootstrapper.requestHeaderByNonce(currentNonce)
+		nbRequestedHdrs++
 	}
 
 	if nbRequestedHdrs > 0 {
-		log.Debug("requested in advance headers",
+		log.Trace("requested in advance headers",
 			"num headers", nbRequestedHdrs,
 			"from nonce", nonce,
 			"to", maxNonce,
-		)
-		log.Debug("probable highest nonce",
-			"nonce", boot.forkDetector.ProbableHighestNonce(),
+			"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 		)
 	}
 }
@@ -500,7 +456,6 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
 	}
-
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -547,7 +502,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce, boot.hdrRes)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce)
 
 	blockBody, err := boot.blockBootstrapper.getBlockBodyRequestingIfMissing(hdr)
 	if err != nil {
@@ -559,7 +514,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -569,7 +524,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -599,7 +554,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("starting roll back")
 	for {
-		currHeaderHash := boot.blkc.GetCurrentBlockHeaderHash()
+		currHeaderHash := boot.chainHandler.GetCurrentBlockHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -651,7 +606,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {
-			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
+			log.Debug("save last round in storage",
+				"error", err.Error(),
+				"round", prevHeader.GetRound(),
+			)
 		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
@@ -713,12 +671,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blkExecutor.RevertStateToBlock(prevHeader)
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
 	if err != nil {
 		return err
 	}
 
-	err = boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
 		return err
 	}
@@ -746,20 +704,6 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
-func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
-	header, err := boot.getHeaderFromPool(hash)
-	if err != nil {
-		return err
-	}
-
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (boot *baseBootstrap) isForcedFork() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce == math.MaxUint64 &&
@@ -784,19 +728,19 @@ func (boot *baseBootstrap) restoreState(
 		"nonce", currHeader.GetNonce(),
 		"hash", currHeaderHash)
 
-	err := boot.blkc.SetCurrentBlockHeader(currHeader)
+	err := boot.chainHandler.SetCurrentBlockHeader(currHeader)
 	if err != nil {
 		log.Debug("SetCurrentBlockHeader", "error", err.Error())
 	}
 
-	err = boot.blkc.SetCurrentBlockBody(currBlockBody)
+	err = boot.chainHandler.SetCurrentBlockBody(currBlockBody)
 	if err != nil {
 		log.Debug("SetCurrentBlockBody", "error", err.Error())
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
+	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blkExecutor.RevertStateToBlock(currHeader)
+	err = boot.blockProcessor.RevertStateToBlock(currHeader)
 	if err != nil {
 		log.Debug("RevertStateToBlock", "error", err.Error())
 	}
@@ -808,17 +752,17 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	body data.BodyHandler,
 ) error {
 
-	err := boot.blkc.SetCurrentBlockHeader(header)
+	err := boot.chainHandler.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = boot.blkc.SetCurrentBlockBody(body)
+	err = boot.chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
 }
@@ -851,24 +795,10 @@ func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
 // requestMiniBlocksByHashes method requests a block body from network when it is not found in the pool
 func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
-	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes, boot.epochHandler.Epoch())
-	if err != nil {
-		log.Debug("RequestDataFromHashArray", "error", err.Error())
-		return
-	}
-
-	boot.requestedItemsHandler.Sweep()
-
-	for _, hash := range hashes {
-		err = boot.requestedItemsHandler.Add(string(hash))
-		if err != nil {
-			log.Trace("add requested item with error", "error", err.Error())
-		}
-	}
-
-	log.Debug("requested mini blocks from network",
+	log.Debug("requesting mini blocks from network",
 		"num miniblocks", len(hashes),
 	)
+	boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), hashes)
 }
 
 // getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
@@ -905,4 +835,26 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (boot *baseBootstrap) init() {
+	boot.forkInfo = process.NewForkInfo()
+
+	boot.chRcvHdrNonce = make(chan bool)
+	boot.chRcvHdrHash = make(chan bool)
+	boot.chRcvMiniBlocks = make(chan bool)
+
+	boot.setRequestedHeaderNonce(nil)
+	boot.setRequestedHeaderHash(nil)
+	boot.setRequestedMiniBlocks(nil)
+
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
+	boot.headers.RegisterHandler(boot.processReceivedHeader)
+
+	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
+
+	boot.syncStateListeners = make([]func(bool), 0)
+	boot.requestedHashes = process.RequiredDataPool{}
 }

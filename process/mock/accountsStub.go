@@ -172,7 +172,7 @@ func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 
 func (as *AccountsStub) IsPruningEnabled() bool {
 	if as.IsPruningEnabledCalled != nil {
-		as.IsPruningEnabledCalled()
+		return as.IsPruningEnabledCalled()
 	}
 
 	return false

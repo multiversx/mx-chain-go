@@ -11,6 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewLogOutputSubject(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+	assert.NotNil(t, los)
+	assert.False(t, los.IsInterfaceNil())
+}
+
 //------- AddObserver
 
 func TestLogOutputSubject_AddObserverNilWriterShouldError(t *testing.T) {
@@ -201,4 +209,21 @@ func TestLogOutputSubject_RemoveObserverMiddleElementShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(writers))
 	assert.Equal(t, 2, len(formatters))
+}
+
+func TestLogOutputSubject_ClearObservers(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+
+	w := &mock.WriterStub{}
+	_ = los.AddObserver(w, &mock.FormatterStub{})
+
+	obs, _ := los.Observers()
+	assert.Equal(t, 1, len(obs))
+
+	los.ClearObservers()
+
+	obs, _ = los.Observers()
+	assert.Equal(t, 0, len(obs))
 }
