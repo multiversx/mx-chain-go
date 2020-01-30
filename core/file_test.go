@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -124,7 +125,7 @@ func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	t.Parallel()
 
 	fileName := "testFile7"
-	_, err := os.Create(fileName)
+	_, _ = os.Create(fileName)
 
 	data, err := core.LoadSkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
@@ -183,9 +184,6 @@ func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	file, err := os.Create(fileName)
 	assert.Nil(t, err)
 
-	skBytes := make([]byte, 0)
-	skBytes = append(skBytes, 10, 20, 30, 40, 50, 60)
-
 	_, _ = file.WriteString("-----BEGIN PRIVATE KEY for data-----\n")
 	_, _ = file.WriteString("ChQeKDI8\n")
 	_, _ = file.WriteString("-----END PRIVATE KEY for data-----")
@@ -226,4 +224,22 @@ func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
 	}
 
 	assert.Nil(t, err)
+}
+
+func TestCreateFile(t *testing.T) {
+	t.Parallel()
+
+	prefix := "prefix"
+	dirName := "subdir"
+	extension := "extension"
+	file, err := core.CreateFile(prefix, dirName, extension)
+	assert.Nil(t, err)
+	assert.NotNil(t, file)
+
+	assert.True(t, strings.Contains(file.Name(), prefix))
+	assert.True(t, strings.Contains(file.Name(), extension))
+	if _, errF := os.Stat(file.Name()); errF == nil {
+		_ = os.Remove(file.Name())
+		_ = os.Remove(dirName)
+	}
 }

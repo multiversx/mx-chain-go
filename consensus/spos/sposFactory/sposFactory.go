@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -23,7 +22,6 @@ func GetSubroundsFactory(
 	indexer indexer.Indexer,
 	chainID []byte,
 ) (spos.SubroundsFactory, error) {
-
 	switch consensusType {
 	case blsConsensusType:
 		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
@@ -39,23 +37,9 @@ func GetSubroundsFactory(
 		subRoundFactoryBls.SetIndexer(indexer)
 
 		return subRoundFactoryBls, nil
-	case bnConsensusType:
-		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
-		if err != nil {
-			return nil, err
-		}
-
-		subRoundFactoryBn.SetIndexer(indexer)
-
-		return subRoundFactoryBn, nil
+	default:
+		return nil, ErrInvalidConsensusType
 	}
-
-	return nil, ErrInvalidConsensusType
 }
 
 // GetConsensusCoreFactory returns a consensus service depending of the given parameter
@@ -63,11 +47,9 @@ func GetConsensusCoreFactory(consensusType string) (spos.ConsensusService, error
 	switch consensusType {
 	case blsConsensusType:
 		return bls.NewConsensusService()
-	case bnConsensusType:
-		return bn.NewConsensusService()
+	default:
+		return nil, ErrInvalidConsensusType
 	}
-
-	return nil, ErrInvalidConsensusType
 }
 
 // GetBroadcastMessenger returns a consensus service depending of the given parameter

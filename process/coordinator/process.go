@@ -644,8 +644,8 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler, 0)
-	interTxPool := make(map[string]data.TransactionHandler, 0)
+	txPool := make(map[string]data.TransactionHandler)
+	interTxPool := make(map[string]data.TransactionHandler)
 
 	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {

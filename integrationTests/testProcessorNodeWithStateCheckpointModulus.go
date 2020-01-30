@@ -39,7 +39,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -54,12 +54,12 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
@@ -78,8 +78,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
+	tpn.initInterceptors()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)

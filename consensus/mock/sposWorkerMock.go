@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -22,6 +23,7 @@ type SposWorkerMock struct {
 	ExecuteStoredMessagesCalled            func()
 	DisplayStatisticsCalled                func()
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
+	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 }
 
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
@@ -75,10 +77,15 @@ func (sposWorkerMock *SposWorkerMock) ReceivedHeader(headerHandler data.HeaderHa
 	}
 }
 
+func (sposWorkerMock *SposWorkerMock) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if sposWorkerMock.SetAppStatusHandlerCalled != nil {
+		return sposWorkerMock.SetAppStatusHandlerCalled(ash)
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
-	if sposWorkerMock == nil {
-		return true
-	}
-	return false
+	return sposWorkerMock == nil
 }

@@ -4,10 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutSendRequests = time.Second * 2
@@ -82,7 +85,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		100,
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, rrh)
+	assert.False(t, check.IfNil(rrh))
 }
 
 //------- NewShardResolver
@@ -535,10 +538,12 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
+	called := false
 	rrh, _ := NewShardResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
+				called = true
 				return true
 			},
 		},
@@ -548,20 +553,29 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 	)
 
 	rrh.RequestShardHeaderByNonce(0, 0)
+	require.True(t, called)
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
 	t.Parallel()
 
+	localErr := errors.New("err")
+	called := false
 	rrh, _ := NewShardResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localErr
+			},
+		},
 		&mock.RequestedItemsHandlerStub{},
 
 		1,
-		0,
+		core.MetachainShardId,
 	)
 
 	rrh.RequestShardHeaderByNonce(1, 0)
+	require.True(t, called)
 }
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShouldNotPanic(t *testing.T) {
@@ -896,4 +910,180 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
+}
+
+func TestRequestTrieNodes_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	resolverMock := &mock.HashSliceResolverStub{
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+			called = true
+			return nil
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		1,
+		0,
+	)
+
+	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
+	assert.True(t, called)
+}
+
+func TestRequestTrieNodes_NilResolver(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("test error")
+	called := false
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localError
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+
+		1,
+		0,
+	)
+
+	rrh.RequestTrieNodes(core.MetachainShardId, []byte("hash"), "topic")
+	assert.True(t, called)
+}
+
+func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	localError := errors.New("test error")
+	resolverMock := &mock.HashSliceResolverStub{
+		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+			called = true
+			return localError
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		1,
+		0,
+	)
+
+	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
+	assert.True(t, called)
+}
+
+func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	localError := errors.New("test error")
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localError
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		1,
+		0,
+	)
+
+	rrh.RequestStartOfEpochMetaBlock(0)
+	assert.True(t, called)
+}
+
+func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	resolverMock := &mock.HashSliceResolverStub{}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		1,
+		0,
+	)
+
+	rrh.RequestStartOfEpochMetaBlock(0)
+	assert.True(t, called)
+}
+
+func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	localError := errors.New("test error")
+	resolverMock := &mock.HeaderResolverStub{
+		RequestDataFromEpochCalled: func(identifier []byte) error {
+			called = true
+			return localError
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		1,
+		0,
+	)
+
+	rrh.RequestStartOfEpochMetaBlock(0)
+	assert.True(t, called)
+}
+
+func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	localError := errors.New("test error")
+	resolverMock := &mock.HeaderResolverStub{
+		RequestDataFromEpochCalled: func(identifier []byte) error {
+			return nil
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{
+			AddCalled: func(key string) error {
+				called = true
+				return localError
+			},
+		},
+		1,
+		0,
+	)
+
+	rrh.RequestStartOfEpochMetaBlock(0)
+	assert.True(t, called)
 }

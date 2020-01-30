@@ -3,7 +3,6 @@ package metachain
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,12 +25,7 @@ const numGoRoutines = 2000
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
-	addrConverter          state.AddressConverter
-	singleSigner           crypto.SingleSigner
-	keyGen                 crypto.KeyGenerator
 	maxTxNonceDeltaAllowed int
-	txFeeHandler           process.FeeHandler
-	txInterceptorThrottler process.InterceptorThrottler
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
@@ -41,7 +35,6 @@ type interceptorsContainerFactory struct {
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
 	blackList              process.BlackListHandler
-	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 }
@@ -68,6 +61,8 @@ func NewInterceptorsContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	chainID []byte,
 	sizeCheckDelta uint32,
+	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -124,8 +119,14 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(headerSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(epochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
+	}
+	if check.IfNil(validityAttester) {
+		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
@@ -142,6 +143,8 @@ func NewInterceptorsContainerFactory(
 		FeeHandler:        txFeeHandler,
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           chainID,
+		ValidityAttester:  validityAttester,
+		EpochStartTrigger: epochStartTrigger,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -610,8 +613,5 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
-	if icf == nil {
-		return true
-	}
-	return false
+	return icf == nil
 }

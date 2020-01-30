@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,11 +20,13 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	rm := newReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)
@@ -56,7 +59,7 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)
@@ -89,7 +92,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)
@@ -124,7 +127,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)
@@ -159,7 +162,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(shardId, core.MetachainShardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)
@@ -194,7 +197,7 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := createResolverRequester(core.MetachainShardId, shardId)
 	headerNonce := uint64(0)
-	header, hash := createMetaHeader(headerNonce, integrationTests.IntegrationTestsChainID)
+	header, hash := createMetaHeader(headerNonce, integrationTests.ChainID)
 
 	//add header with nonce 0 in pool
 	nResolver.DataPool.Headers().AddHeader(hash, header)

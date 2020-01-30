@@ -147,3 +147,6 @@ var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
 
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("trying to set nil pending miniblocks handler")
+
+// ErrNilRequestHandler signals that a nil request handler has been provided
+var ErrNilRequestHandler = errors.New("trying to set nil request handler")

@@ -32,6 +32,15 @@ func (bp *baseProcessor) CheckBlockValidity(
 	return bp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 }
 
+func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
+	shouldRemoveBlockBody bool,
+	headersPool dataRetriever.HeadersPool,
+	shardId uint32,
+	nonce uint64,
+) {
+	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, headersPool, shardId, nonce)
+}
+
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
@@ -46,6 +55,10 @@ func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.
 
 func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
 	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
+}
+
+func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
+	sp.updateStateStorage(finalHeaders)
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {

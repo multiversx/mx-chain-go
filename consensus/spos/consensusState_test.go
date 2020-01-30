@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -31,11 +31,8 @@ func internalInitConsensusState() *spos.ConsensusState {
 
 	rthr := spos.NewRoundThreshold()
 
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, 3)
-	rthr.SetThreshold(bn.SrBitmap, 3)
-	rthr.SetThreshold(bn.SrCommitment, 3)
-	rthr.SetThreshold(bn.SrSignature, 3)
+	rthr.SetThreshold(bls.SrBlock, 1)
+	rthr.SetThreshold(bls.SrSignature, 3)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()
@@ -220,14 +217,14 @@ func TestConsensusState_IsJobDoneShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	_ = cns.SetJobDone("1", bn.SrBlock, false)
-	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
+	_ = cns.SetJobDone("1", bls.SrBlock, false)
+	assert.False(t, cns.IsJobDone("1", bls.SrBlock))
 
-	_ = cns.SetJobDone("1", bn.SrCommitment, true)
-	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
+	_ = cns.SetJobDone("1", bls.SrSignature, true)
+	assert.False(t, cns.IsJobDone("1", bls.SrBlock))
 
-	_ = cns.SetJobDone("2", bn.SrBlock, true)
-	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
+	_ = cns.SetJobDone("2", bls.SrBlock, true)
+	assert.False(t, cns.IsJobDone("1", bls.SrBlock))
 }
 
 func TestConsensusState_IsJobDoneShouldReturnTrue(t *testing.T) {
@@ -235,9 +232,9 @@ func TestConsensusState_IsJobDoneShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	_ = cns.SetJobDone("1", bn.SrBlock, true)
+	_ = cns.SetJobDone("1", bls.SrBlock, true)
 
-	assert.True(t, cns.IsJobDone("1", bn.SrBlock))
+	assert.True(t, cns.IsJobDone("1", bls.SrBlock))
 }
 
 func TestConsensusState_IsSelfJobDoneShouldReturnFalse(t *testing.T) {
@@ -245,14 +242,14 @@ func TestConsensusState_IsSelfJobDoneShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
-	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
+	assert.False(t, cns.IsSelfJobDone(bls.SrBlock))
 
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrCommitment, true)
-	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrSignature, true)
+	assert.False(t, cns.IsSelfJobDone(bls.SrBlock))
 
-	_ = cns.SetJobDone(cns.SelfPubKey()+"X", bn.SrBlock, true)
-	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
+	_ = cns.SetJobDone(cns.SelfPubKey()+"X", bls.SrBlock, true)
+	assert.False(t, cns.IsSelfJobDone(bls.SrBlock))
 }
 
 func TestConsensusState_IsSelfJobDoneShouldReturnTrue(t *testing.T) {
@@ -260,9 +257,9 @@ func TestConsensusState_IsSelfJobDoneShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, true)
 
-	assert.True(t, cns.IsSelfJobDone(bn.SrBlock))
+	assert.True(t, cns.IsSelfJobDone(bls.SrBlock))
 }
 
 func TestConsensusState_IsCurrentSubroundFinishedShouldReturnFalse(t *testing.T) {
@@ -270,11 +267,11 @@ func TestConsensusState_IsCurrentSubroundFinishedShouldReturnFalse(t *testing.T)
 
 	cns := internalInitConsensusState()
 
-	cns.SetStatus(bn.SrBlock, spos.SsNotFinished)
-	assert.False(t, cns.IsSubroundFinished(bn.SrBlock))
+	cns.SetStatus(bls.SrBlock, spos.SsNotFinished)
+	assert.False(t, cns.IsSubroundFinished(bls.SrBlock))
 
-	cns.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	assert.False(t, cns.IsSubroundFinished(bn.SrBlock))
+	cns.SetStatus(bls.SrSignature, spos.SsFinished)
+	assert.False(t, cns.IsSubroundFinished(bls.SrBlock))
 
 }
 
@@ -283,8 +280,8 @@ func TestConsensusState_IsCurrentSubroundFinishedShouldReturnTrue(t *testing.T) 
 
 	cns := internalInitConsensusState()
 
-	cns.SetStatus(bn.SrBlock, spos.SsFinished)
-	assert.True(t, cns.IsSubroundFinished(bn.SrBlock))
+	cns.SetStatus(bls.SrBlock, spos.SsFinished)
+	assert.True(t, cns.IsSubroundFinished(bls.SrBlock))
 }
 
 func TestConsensusState_IsNodeSelfShouldReturnFalse(t *testing.T) {
@@ -350,7 +347,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenConsensusDataNotSet
 
 	cns.Data = nil
 
-	assert.False(t, cns.CanDoSubroundJob(bn.SrBlock))
+	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *testing.T) {
@@ -359,9 +356,9 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *te
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, true)
 
-	assert.False(t, cns.CanDoSubroundJob(bn.SrBlock))
+	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinished(t *testing.T) {
@@ -370,10 +367,10 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinis
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
-	cns.SetStatus(bn.SrBlock, spos.SsFinished)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
+	cns.SetStatus(bls.SrBlock, spos.SsFinished)
 
-	assert.False(t, cns.CanDoSubroundJob(bn.SrBlock))
+	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
@@ -382,10 +379,10 @@ func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
-	cns.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
+	cns.SetStatus(bls.SrBlock, spos.SsNotFinished)
 
-	assert.True(t, cns.CanDoSubroundJob(bn.SrBlock))
+	assert.True(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedFromItself(t *testing.T) {
@@ -398,7 +395,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 		PubKey:     []byte(cns.SelfPubKey()),
 	}
 
-	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bn.SrBlock))
+	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bls.SrBlock))
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedForOtherRound(t *testing.T) {
@@ -411,7 +408,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 		PubKey:     []byte("1"),
 	}
 
-	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 1, bn.SrBlock))
+	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 1, bls.SrBlock))
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(t *testing.T) {
@@ -424,9 +421,9 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(
 		PubKey:     []byte("1"),
 	}
 
-	_ = cns.SetJobDone("1", bn.SrBlock, true)
+	_ = cns.SetJobDone("1", bls.SrBlock, true)
 
-	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bn.SrBlock))
+	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bls.SrBlock))
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRoundIsFinished(t *testing.T) {
@@ -439,9 +436,9 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRou
 		PubKey:     []byte("1"),
 	}
 
-	cns.SetStatus(bn.SrBlock, spos.SsFinished)
+	cns.SetStatus(bls.SrBlock, spos.SsFinished)
 
-	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bn.SrBlock))
+	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bls.SrBlock))
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) {
@@ -454,7 +451,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) 
 		PubKey:     []byte("1"),
 	}
 
-	assert.True(t, cns.CanProcessReceivedMessage(cnsDta, 0, bn.SrBlock))
+	assert.True(t, cns.CanProcessReceivedMessage(cnsDta, 0, bls.SrBlock))
 }
 
 func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
@@ -466,8 +463,8 @@ func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
 	selfIndexInConsensusGroup, _ := cns.SelfConsensusGroupIndex()
 	bitmapExpected[selfIndexInConsensusGroup/8] |= 1 << (uint16(selfIndexInConsensusGroup) % 8)
 
-	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
-	bitmap := cns.GenerateBitmap(bn.SrBlock)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, true)
+	bitmap := cns.GenerateBitmap(bls.SrBlock)
 
 	assert.Equal(t, bitmapExpected, bitmap)
 }

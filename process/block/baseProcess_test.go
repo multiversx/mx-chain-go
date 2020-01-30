@@ -252,10 +252,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (wr *wrongBody) IsInterfaceNil() bool {
-	if wr == nil {
-		return true
-	}
-	return false
+	return wr == nil
 }
 
 func CreateMockArguments() blproc.ArgShardProcessor {
@@ -375,6 +372,76 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	assert.True(t, bp.VerifyStateRoot(rootHash))
+}
+
+//------- SetAppStatusHandler
+func TestBaseProcessor_SetAppStatusHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	err := bp.SetAppStatusHandler(nil)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
+}
+
+func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	ash := &mock.AppStatusHandlerStub{}
+	err := bp.SetAppStatusHandler(ash)
+	assert.Nil(t, err)
+}
+
+//------- RevertStateToBlock
+func TestBaseProcessor_RevertStateToBlockRecreateTrieFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("err")
+	arguments := CreateMockArguments()
+	arguments.Accounts = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return expectedErr
+		},
+	}
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	hdr := block.Header{Nonce: 37}
+	err := bp.RevertStateToBlock(&hdr)
+	assert.Equal(t, expectedErr, err)
+}
+
+// removeHeadersBehindNonceFromPools
+func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
+	t.Parallel()
+
+	removeFromDataPoolWasCalled := false
+	arguments := CreateMockArguments()
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RemoveBlockDataFromPoolCalled: func(body block.Body) error {
+			removeFromDataPoolWasCalled = true
+			return nil
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	headersPool := &mock.HeadersCacherStub{
+		NoncesCalled: func(shardId uint32) []uint64 {
+			return []uint64{1, 2, 3}
+		},
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+			hdrs := make([]data.HeaderHandler, 0)
+			hdrs = append(hdrs, &block.Header{Nonce: 2})
+			return hdrs, nil, nil
+		},
+	}
+	bp.RemoveHeadersBehindNonceFromPools(true, headersPool, 0, 4)
+
+	assert.True(t, removeFromDataPoolWasCalled)
 }
 
 //------- ComputeNewNoncePrevHash

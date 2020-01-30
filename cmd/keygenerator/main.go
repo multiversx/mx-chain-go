@@ -73,7 +73,6 @@ func backupFileIfExists(filename string) {
 	}
 	//if we reached here the file probably exists, make a timestamped backup
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
-
 }
 
 func generateFiles(ctx *cli.Context) error {

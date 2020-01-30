@@ -109,7 +109,7 @@ func topicRegistration() error {
 		}()
 
 		crtHost := hosts[i]
-		err = pubsubs[i].RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, msg *pubsub.Message) bool {
+		_ = pubsubs[i].RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, msg *pubsub.Message) bool {
 			//do the message validation
 			//example: deserialize msg.Data, do checks on the message, etc.
 

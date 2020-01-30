@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -59,8 +60,8 @@ func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.NotNil(t, tnRes)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(tnRes))
 }
 
 //------- ProcessReceivedMessage

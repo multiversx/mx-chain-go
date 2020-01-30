@@ -992,7 +992,7 @@ func createNodesCoordinator(
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	rater sharding.RaterHandler,
+	_ sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1208,6 +1208,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(coreData.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
+		node.WithRequestHandler(process.RequestHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1234,7 +1235,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}

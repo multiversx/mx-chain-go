@@ -48,8 +48,5 @@ func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *oneShardCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

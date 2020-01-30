@@ -13,7 +13,6 @@ type PeerAccountHandlerMock struct {
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
-	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled      func(nonce uint64) error

@@ -140,7 +140,7 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	rtxh.mutGenRewardTxs.Lock()
 
-	log.Debug("total accumulated fees ", "value", rtxh.accumulatedFees)
+	log.Trace("total accumulated fees", "value", rtxh.accumulatedFees)
 
 	rtxh.feeRewards = rtxh.createRewardFromFees()
 	rtxh.addTransactionsToPool(rtxh.feeRewards)
@@ -189,7 +189,7 @@ func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHa
 func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	rewardTxs []data.TransactionHandler,
 ) map[uint32]*block.MiniBlock {
-	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
+	miniBlocks := make(map[uint32]*block.MiniBlock)
 
 	for _, rTx := range rewardTxs {
 		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())

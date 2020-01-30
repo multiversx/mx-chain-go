@@ -58,7 +58,7 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
-	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler, 0)
+	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler)
 
 	return blockChainHookImpl, nil
 }
@@ -408,7 +408,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 // CleanTempAccounts cleans the map holding the temporary accounts
 func (bh *BlockChainHookImpl) CleanTempAccounts() {
 	bh.mutTempAccounts.Lock()
-	bh.tempAccounts = make(map[string]state.AccountHandler, 0)
+	bh.tempAccounts = make(map[string]state.AccountHandler)
 	bh.mutTempAccounts.Unlock()
 }
 
