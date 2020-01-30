@@ -23,7 +23,7 @@ func (msg *P2PMessageMock) Data() []byte {
 }
 
 func (msg *P2PMessageMock) SeqNo() []byte {
-	return msg.SeqNo()
+	return msg.SeqNoField
 }
 
 func (msg *P2PMessageMock) TopicIDs() []string {
@@ -44,8 +44,5 @@ func (msg *P2PMessageMock) Peer() p2p.PeerID {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (msg *P2PMessageMock) IsInterfaceNil() bool {
-	if msg == nil {
-		return true
-	}
-	return false
+	return msg == nil
 }

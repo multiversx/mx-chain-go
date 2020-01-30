@@ -77,9 +77,6 @@ func (phm *PoolsHolderMock) TrieNodes() storage.Cacher {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (phf *PoolsHolderMock) IsInterfaceNil() bool {
-	if phf == nil {
-		return true
-	}
-	return false
+func (phm *PoolsHolderMock) IsInterfaceNil() bool {
+	return phm == nil
 }

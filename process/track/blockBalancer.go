@@ -16,7 +16,8 @@ func NewBlockBalancer() (*blockBalancer, error) {
 	return &bb, nil
 }
 
-func (bb *blockBalancer) getNumPendingMiniBlocks(shardID uint32) uint32 {
+// GetNumPendingMiniBlocks gets the number of pending miniblocks for a given shard
+func (bb *blockBalancer) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	bb.mutShardNumPendingMiniBlocks.RLock()
 	numPendingMiniBlocks := bb.mapShardNumPendingMiniBlocks[shardID]
 	bb.mutShardNumPendingMiniBlocks.RUnlock()
@@ -24,8 +25,14 @@ func (bb *blockBalancer) getNumPendingMiniBlocks(shardID uint32) uint32 {
 	return numPendingMiniBlocks
 }
 
-func (bb *blockBalancer) setNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+// SetNumPendingMiniBlocks sets the number of pending miniblocks for a given shard
+func (bb *blockBalancer) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
 	bb.mutShardNumPendingMiniBlocks.Lock()
 	bb.mapShardNumPendingMiniBlocks[shardID] = numPendingMiniBlocks
 	bb.mutShardNumPendingMiniBlocks.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bb *blockBalancer) IsInterfaceNil() bool {
+	return bb == nil
 }

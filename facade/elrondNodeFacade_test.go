@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -28,6 +30,7 @@ func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFaca
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	assert.NotNil(t, ef)
+	assert.False(t, ef.IsInterfaceNil())
 }
 
 func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
@@ -193,6 +196,17 @@ func TestElrondFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testi
 	assert.Equal(t, testTx, tx)
 }
 
+func TestElrondNodeFacade_SetAndGetTpsBenchmark(t *testing.T) {
+	node := &mock.NodeMock{}
+
+	ef := createElrondNodeFacadeWithMockResolver(node)
+
+	tpsBench, _ := statistics.NewTPSBenchmark(2, 5)
+	ef.SetTpsBenchmark(tpsBench)
+	assert.Equal(t, tpsBench, ef.TpsBenchmark())
+
+}
+
 func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *testing.T) {
 	testHash := "testHash"
 	testTx := &transaction.Transaction{}
@@ -331,4 +345,102 @@ func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
 	})
 
 	assert.Equal(t, intf, ef.RestApiInterface())
+}
+
+func TestElrondNodeFacade_ValidatorStatisticsApi(t *testing.T) {
+	t.Parallel()
+
+	mapToRet := make(map[string]*state.ValidatorApiResponse)
+	mapToRet["test"] = &state.ValidatorApiResponse{NrLeaderFailure: 5}
+	node := &mock.NodeMock{
+		ValidatorStatisticsApiCalled: func() (map[string]*state.ValidatorApiResponse, error) {
+			return mapToRet, nil
+		},
+	}
+	ef := createElrondNodeFacadeWithMockResolver(node)
+
+	res, err := ef.ValidatorStatisticsApi()
+	assert.Nil(t, err)
+	assert.Equal(t, mapToRet, res)
+}
+
+func TestElrondNodeFacade_SendBulkTransactions(t *testing.T) {
+	t.Parallel()
+
+	expectedNumOfSuccessfulTxs := uint64(1)
+	sendBulkTxsWasCalled := false
+	nodeMock := &mock.NodeMock{
+		SendBulkTransactionsHandler: func(txs []*transaction.Transaction) (uint64, error) {
+			sendBulkTxsWasCalled = true
+			return expectedNumOfSuccessfulTxs, nil
+		},
+	}
+
+	ef := createElrondNodeFacadeWithMockResolver(nodeMock)
+
+	txs := make([]*transaction.Transaction, 0)
+	txs = append(txs, &transaction.Transaction{Nonce: 1})
+
+	res, err := ef.SendBulkTransactions(txs)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNumOfSuccessfulTxs, res)
+	assert.True(t, sendBulkTxsWasCalled)
+}
+
+func TestElrondNodeFacade_StatusMetrics(t *testing.T) {
+	t.Parallel()
+
+	apiResolverMetricsRequested := false
+
+	nodeMock := &mock.NodeMock{}
+	apiResStub := &mock.ApiResolverStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			apiResolverMetricsRequested = true
+			return nil
+		},
+	}
+
+	ef := NewElrondNodeFacade(nodeMock, apiResStub, false)
+
+	_ = ef.StatusMetrics()
+
+	assert.True(t, apiResolverMetricsRequested)
+}
+
+func TestElrondNodeFacade_PprofEnabled(t *testing.T) {
+	t.Parallel()
+
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+
+	facadeConfig := config.FacadeConfig{PprofEnabled: true}
+	ef.SetConfig(&facadeConfig)
+
+	assert.True(t, ef.PprofEnabled())
+}
+
+func TestElrondNodeFacade_RestAPIServerDebugMode(t *testing.T) {
+	t.Parallel()
+
+	nodeMock := &mock.NodeMock{}
+	apiResStub := &mock.ApiResolverStub{}
+	ef := NewElrondNodeFacade(nodeMock, apiResStub, true)
+
+	assert.True(t, ef.RestAPIServerDebugMode())
+}
+
+func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
+	t.Parallel()
+
+	nodeCreateTxWasCalled := false
+	nodeMock := &mock.NodeMock{
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
+			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error) {
+			nodeCreateTxWasCalled = true
+			return nil, nil
+		},
+	}
+	ef := createElrondNodeFacadeWithMockResolver(nodeMock)
+	_, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
+
+	assert.True(t, nodeCreateTxWasCalled)
 }

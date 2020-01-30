@@ -250,9 +250,9 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 	logLine.Message = "websocket test message"
 	logLine.LogLevel = int32(logLevel)
 	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}
-	logLine.Timestamp = time.Now().Unix()
+	logLine.Timestamp = time.Now().UnixNano()
 
-	*count = *count + 1
+	*count++
 
 	return logLine
 }

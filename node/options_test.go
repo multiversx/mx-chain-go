@@ -547,29 +547,55 @@ func TestWithBlockTracker_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithPendingMiniBlocks_NilPendingMiniBlocksHandlerShouldErr(t *testing.T) {
+func TestWithPendingMiniBlocksHandler_NilPendingMiniBlocksHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithPendingMiniBlocks(nil)
+	opt := WithPendingMiniBlocksHandler(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.pendingMiniBlocks)
+	assert.Nil(t, node.pendingMiniBlocksHandler)
 	assert.Equal(t, ErrNilPendingMiniBlocksHandler, err)
 }
 
-func TestWithPendingMiniBlocks_ShouldWork(t *testing.T) {
+func TestWithPendingMiniBlocksHandler_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	pendingMiniBlocks := &mock.PendingMiniBlocksHandlerStub{}
+	pendingMiniBlocksHandler := &mock.PendingMiniBlocksHandlerStub{}
 
-	opt := WithPendingMiniBlocks(pendingMiniBlocks)
+	opt := WithPendingMiniBlocksHandler(pendingMiniBlocksHandler)
 	err := opt(node)
 
-	assert.True(t, node.pendingMiniBlocks == pendingMiniBlocks)
+	assert.True(t, node.pendingMiniBlocksHandler == pendingMiniBlocksHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithRequestHandler_NilRequestHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithRequestHandler(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.requestHandler)
+	assert.Equal(t, ErrNilRequestHandler, err)
+}
+
+func TestWithRequestHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	requestHandler := &mock.RequestHandlerStub{}
+
+	opt := WithRequestHandler(requestHandler)
+	err := opt(node)
+
+	assert.True(t, node.requestHandler == requestHandler)
 	assert.Nil(t, err)
 }
 
@@ -991,4 +1017,68 @@ func TestWithChainID_OkValueShouldWork(t *testing.T) {
 	err := opt(node)
 	assert.Equal(t, node.chainID, chainId)
 	assert.Nil(t, err)
+}
+
+func TestWithBootstrapRoundIndex(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	roundIndex := uint64(0)
+	opt := WithBootstrapRoundIndex(roundIndex)
+
+	err := opt(node)
+	assert.Equal(t, roundIndex, node.bootstrapRoundIndex)
+	assert.Nil(t, err)
+}
+
+func TestWithTxStorageSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	txStorageSize := uint32(100)
+	opt := WithTxStorageSize(txStorageSize)
+
+	err := opt(node)
+	assert.Equal(t, txStorageSize, node.txStorageSize)
+	assert.Nil(t, err)
+}
+
+func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithBlackListHandler(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilBlackListHandler, err)
+}
+
+func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithEpochStartTrigger(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilEpochStartTrigger, err)
+}
+
+func TestWithTxSingleSigner_NilTxSingleSigner(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithTxSingleSigner(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithPubKey_NilPublicKey(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithPubKey(nil)
+
+	err := opt(node)
+	assert.Equal(t, ErrNilPublicKey, err)
 }

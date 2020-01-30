@@ -51,8 +51,5 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 
 // IsInterfaceNil checks whether the underlying object is nil
 func (scf *systemSCFactory) IsInterfaceNil() bool {
-	if scf == nil {
-		return true
-	}
-	return false
+	return scf == nil
 }

@@ -400,6 +400,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
+	assert.False(t, tc.IsInterfaceNil())
 }
 
 func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
@@ -2389,4 +2390,29 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 	assert.Nil(t, err)
 
 	assert.True(t, intermediateTxWereSaved)
+}
+
+func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool.MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		createInterimProcessorContainer(),
+		&mock.GasHandlerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	preProcLen := len(tc.keysTxPreProcs)
+	lastKey := tc.keysTxPreProcs[preProcLen-1]
+
+	assert.Equal(t, block.RewardsBlock, lastKey)
 }

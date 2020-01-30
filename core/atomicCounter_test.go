@@ -38,3 +38,14 @@ func TestIncrementAndDecrement(t *testing.T) {
 
 	assert.Equal(t, int64(5000), counter.Get())
 }
+
+func TestAtomicCounter_SetAndGet(t *testing.T) {
+	t.Parallel()
+
+	var ac core.AtomicCounter
+
+	value := int64(10)
+	ac.Set(value)
+
+	assert.Equal(t, value, ac.Get())
+}

@@ -1,9 +1,10 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"math/big"
 )
 
 type BlockChainHookHandlerMock struct {

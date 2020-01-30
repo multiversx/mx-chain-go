@@ -282,7 +282,7 @@ func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		if !bytes.Equal([]byte("aaaa"), key) {
@@ -317,7 +317,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *te
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		if !bytes.Equal([]byte("aaaa"), key) {
@@ -352,7 +352,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNo
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		wg.Done()
