@@ -184,8 +184,10 @@ func createMessenger(
 				continue
 			}
 
-			err := pb.Publish(sendableData.Topic, sendableData.Buff)
-			log.Trace("error sending data", "error", err)
+			errPublish := pb.Publish(sendableData.Topic, sendableData.Buff)
+			if errPublish != nil {
+				log.Trace("error sending data", "error", errPublish)
+			}
 
 			time.Sleep(durationBetweenSends)
 		}
