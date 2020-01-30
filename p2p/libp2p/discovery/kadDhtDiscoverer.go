@@ -93,9 +93,6 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 			return err
 		}
 
-		//opt.BucketSize = int(kdd.bucketSize)
-		//opt.RoutingTable.RefreshPeriod = kdd.routingTableRefresh
-
 		return nil
 	}
 

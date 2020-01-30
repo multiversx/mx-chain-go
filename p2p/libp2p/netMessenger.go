@@ -184,7 +184,9 @@ func createMessenger(
 				continue
 			}
 
-			_ = pb.Publish(sendableData.Topic, sendableData.Buff)
+			err := pb.Publish(sendableData.Topic, sendableData.Buff)
+			log.Trace("error sending data", "error", err)
+
 			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
@@ -353,6 +355,8 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return p2p.ErrTopicAlreadyExists
 	}
 
+	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
+	// after calling pubsub.Join
 	netMes.topics[name] = nil
 	subscrRequest, err := netMes.pb.Subscribe(name)
 	if err != nil {
@@ -387,7 +391,7 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 // HasTopicValidator returns true if the topic has a validator set
 func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	netMes.mutTopics.RLock()
-	validator, _ := netMes.topics[name]
+	validator := netMes.topics[name]
 	netMes.mutTopics.RUnlock()
 
 	return validator != nil
