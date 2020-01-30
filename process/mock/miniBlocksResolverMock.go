@@ -26,11 +26,17 @@ func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P
 }
 
 func (hrm *MiniBlocksResolverMock) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksCalled(hashes)
+	if hrm.GetMiniBlocksCalled != nil {
+		return hrm.GetMiniBlocksCalled(hashes)
+	}
+	return nil, nil
 }
 
 func (hrm *MiniBlocksResolverMock) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksFromPoolCalled(hashes)
+	if hrm.GetMiniBlocksFromPoolCalled != nil {
+		return hrm.GetMiniBlocksFromPoolCalled(hashes)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

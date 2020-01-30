@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -431,15 +431,16 @@ type DataPacker interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	SetEpoch(epoch uint32)
-	RequestShardHeader(shardId uint32, hash []byte)
+	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
-	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
-	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
+	RequestTransaction(destShardID uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlock(shardId uint32, miniblockHash []byte)
-	RequestTrieNodes(shardId uint32, hash []byte, topic string)
+	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
+	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
+	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	IsInterfaceNil() bool
 }
 
@@ -646,5 +647,12 @@ type EpochStartDataCreator interface {
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// MiniBlocksResolver defines what a mini blocks resolver should do
+type MiniBlocksResolver interface {
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool
 }
