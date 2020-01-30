@@ -620,9 +620,8 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := "-"
 	signature := "-"
-	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
@@ -651,9 +650,8 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := "-"
 	signature := "-"
-	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -684,9 +682,8 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := "-"
 	signature := "-"
-	challenge := "af4e5"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
 	assert.NotNil(t, err)
@@ -717,9 +714,8 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := "-"
 	signature := "617eff4f"
-	challenge := "aff64e"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
@@ -1793,7 +1789,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  11,
 		Data:      "",
 		Signature: []byte("sig0"),
-		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
@@ -1805,7 +1800,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  12,
 		Data:      "",
 		Signature: []byte("sig1"),
-		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
@@ -1817,7 +1811,6 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		GasLimit:  13,
 		Data:      "",
 		Signature: []byte("sig2"),
-		Challenge: nil,
 	})
 
 	wg := sync.WaitGroup{}

@@ -22,5 +22,4 @@ message Transaction {
 	uint64   GasLimit  = 6 [(gogoproto.jsontag) = "gasLimit,omitempty"];
 	string   Data      = 7 [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    Signature = 8 [(gogoproto.jsontag) = "signature,omitempty"];
-	bytes    Challenge = 9 [(gogoproto.jsontag) = "-"];
 }

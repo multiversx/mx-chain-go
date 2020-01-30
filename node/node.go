@@ -721,7 +721,6 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	dataField string,
 	signatureHex string,
-	challenge string,
 ) (*transaction.Transaction, error) {
 
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
@@ -747,11 +746,6 @@ func (n *Node) CreateTransaction(
 		return nil, errors.New("could not fetch signature bytes")
 	}
 
-	challengeBytes, err := hex.DecodeString(challenge)
-	if err != nil {
-		return nil, errors.New("could not fetch challenge bytes")
-	}
-
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
 		return nil, ErrInvalidValue
@@ -766,7 +760,6 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      dataField,
 		Signature: signatureBytes,
-		Challenge: challengeBytes,
 	}, nil
 }
 

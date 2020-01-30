@@ -180,7 +180,6 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 		GasLimit:  integrationTests.MinTxGasLimit,
 		Data:      "",
 		Signature: nil,
-		Challenge: nil,
 	}
 	marshalizedTxBeforeSigning, _ := json.Marshal(tx)
 	signer := singlesig.SchnorrSigner{}
