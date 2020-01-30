@@ -25,12 +25,12 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core              serviceContainer.Core
-	scDataGetter      external.SCQueryService
-	scToProtocol      process.SmartContractToProtocolHandler
-	peerChanges       process.PeerChangesHandler
-	epochStartCreator process.EpochStartDataCreator
-	pendingMiniBlocks process.PendingMiniBlocksHandler
+	core                     serviceContainer.Core
+	scDataGetter             external.SCQueryService
+	scToProtocol             process.SmartContractToProtocolHandler
+	peerChanges              process.PeerChangesHandler
+	epochStartCreator        process.EpochStartDataCreator
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -59,7 +59,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.SCToProtocol) {
 		return nil, process.ErrNilSCToProtocol
 	}
-	if check.IfNil(arguments.PendingMiniBlocks) {
+	if check.IfNil(arguments.PendingMiniBlocksHandler) {
 		return nil, process.ErrNilPendingMiniBlocksHandler
 	}
 
@@ -93,13 +93,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp := metaProcessor{
-		core:              arguments.Core,
-		baseProcessor:     base,
-		headersCounter:    NewHeaderCounter(),
-		scDataGetter:      arguments.SCDataGetter,
-		peerChanges:       arguments.PeerChangesHandler,
-		scToProtocol:      arguments.SCToProtocol,
-		pendingMiniBlocks: arguments.PendingMiniBlocks,
+		core:                     arguments.Core,
+		baseProcessor:            base,
+		headersCounter:           NewHeaderCounter(),
+		scDataGetter:             arguments.SCDataGetter,
+		peerChanges:              arguments.PeerChangesHandler,
+		scToProtocol:             arguments.SCToProtocol,
+		pendingMiniBlocksHandler: arguments.PendingMiniBlocksHandler,
 	}
 
 	mp.epochStartCreator, err = createEpochStartDataCreator(arguments)
@@ -509,7 +509,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
 	}
 
-	err := mp.pendingMiniBlocks.RevertHeader(metaBlock)
+	err := mp.pendingMiniBlocksHandler.RevertHeader(metaBlock)
 	if err != nil {
 		return err
 	}
@@ -955,7 +955,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
+	err = mp.pendingMiniBlocksHandler.AddProcessedHeader(header)
 	if err != nil {
 		return err
 	}
@@ -1479,7 +1479,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
-		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardData.ShardID)
+		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1525,7 +1525,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	defer func() {
 		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
 	metaHdr, ok := hdr.(*block.MetaBlock)
@@ -1762,7 +1762,7 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
-			NumPendingMiniBlocks: mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardID),
+			NumPendingMiniBlocks: mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardID),
 			ShardID:              shardID,
 		}
 	}
