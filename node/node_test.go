@@ -2086,6 +2086,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 	)
 
 	err := n.StartConsensus()

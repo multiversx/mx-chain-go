@@ -38,8 +38,8 @@ func NewMessageProcessor(
 	}, nil
 }
 
-// CreateHeartbeatFromP2pMessage will return a heartbeat if all the checks pass
-func (mp *MessageProcessor) CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error) {
+// CreateHeartbeatFromP2PMessage will return a heartbeat if all the checks pass
+func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error) {
 	if check.IfNil(message) {
 		return nil, ErrNilMessage
 	}

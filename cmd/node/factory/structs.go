@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"time"
@@ -76,8 +77,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/track"
 	processAntiflood "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -597,7 +598,7 @@ func createAntifloodAndBlackListComponents(
 		return nil, nil, err
 	}
 
-	topicFloodPreventer, err := processAntiflood.NewTopicFloodPreventer(mainConfig.Antiflood.TopicAntifoodConfig.DefaultMaxMessagesPerSec)
+	topicFloodPreventer, err := processAntiflood.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -613,7 +614,7 @@ func createAntifloodAndBlackListComponents(
 		"numFloodingRounds", mainConfig.Antiflood.BlackList.NumFloodingRounds,
 	)
 
-	topicFloodPreventer.SetMaxMessagesForTopic("heartbeat", mainConfig.Antiflood.TopicAntifoodConfig.HeartbeatMaxMessagesPerSec)
+	topicFloodPreventer.SetMaxMessagesForTopic("heartbeat", mainConfig.Antiflood.Topic.HeartbeatMaxMessagesPerSec)
 	startResettingFloodPreventers(floodPreventer, topicFloodPreventer)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
@@ -1538,6 +1539,7 @@ func newShardResolverContainerFactory(
 		dataPacker,
 		core.TriesContainer,
 		sizeCheckDelta,
+		network.AntifloodHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2173,25 +2175,25 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:                     state.AccountsAdapter,
-		ForkDetector:                 forkDetector,
-		Hasher:                       core.Hasher,
-		Marshalizer:                  core.Marshalizer,
-		Store:                        data.Store,
-		ShardCoordinator:             shardCoordinator,
-		NodesCoordinator:             nodesCoordinator,
-		SpecialAddressHandler:        specialAddressHandler,
-		Uint64Converter:              core.Uint64ByteSliceConverter,
-		RequestHandler:               requestHandler,
-		Core:                         coreServiceContainer,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		Rounder:                      rounder,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
+		TxCoordinator:         txCoordinator,
+		Rounder:               rounder,
+		EpochStartTrigger:     epochStartTrigger,
+		HeaderValidator:       headerValidator,
+		BootStorer:            bootStorer,
+		BlockTracker:          blockTracker,
+		DataPool:              data.Datapool,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor:       argumentsBaseProcessor,

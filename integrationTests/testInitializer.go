@@ -226,8 +226,8 @@ func ClosePeers(peers []p2p.Messenger) {
 	}
 }
 
-// CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+// CreateTestDataPool creates a test data pool for shard nodes
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}

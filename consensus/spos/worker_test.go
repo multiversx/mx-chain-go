@@ -654,7 +654,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bn.NewConsensusService()
+	bnService, _ := bls.NewConsensusService()
 
 	wrk, err := spos.NewWorker(
 		bnService,
@@ -736,7 +736,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bn.NewConsensusService()
+	bnService, _ := bls.NewConsensusService()
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return expectedErr
@@ -784,7 +784,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bn.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
@@ -816,82 +816,6 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicIDsField: []string{"topic1"}}
 	err := wrk.ProcessReceivedMessage(msg, "peer")
 	assert.Equal(t, expectedErr, err)
-}
-
-func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
-	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{
-		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-			return nil
-		},
-		RevertAccountStateCalled: func() {
-		},
-	}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		return nil
-	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return []byte("signed"), nil
-		},
-		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			return nil
-		},
-	}
-	syncTimerMock := &mock.SyncTimerMock{}
-
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
-	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
-		return process.ErrRandSeedDoesNotMatch
-	}
-
-	bnService, _ := bn.NewConsensusService()
-
-	wrk, _ := spos.NewWorker(
-		bnService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		headerSigVerifier,
-		chainID,
-		createMockP2PAntifloodHandler(),
-	)
-
-	hdr := &block.Header{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
-	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	cnsMsg := consensus.NewConsensusMessage(
-		message,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bn.MtBlockHeader),
-		0,
-		chainID,
-	)
-	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
-	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
 }
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testing.T) {
@@ -1109,7 +1033,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	time.Sleep(delay)
 
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, "")
 
 	minimumExpectedValue := uint64(delay * 100 / roundDuration)
 	assert.True(t,
@@ -1824,6 +1748,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		},
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
+	antiFloodHandler := &mock.P2PAntifloodHandlerStub{}
 
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
@@ -1848,6 +1773,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		syncTimerMock,
 		headerSigVerifier,
 		chainID,
+		antiFloodHandler,
 	)
 
 	hdr := &block.Header{}
@@ -1865,6 +1791,6 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
 }

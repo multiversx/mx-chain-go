@@ -631,8 +631,8 @@ func TestNewInterceptorsContainerFactory_NilAntifloodHandlerShouldErr(t *testing
 		&mock.HeaderSigVerifierStub{},
 		chainID,
 		0,
+		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.P2PAntifloodHandlerStub{},
 		nil,
 	)
 
@@ -666,6 +666,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		0,
 		nil,
 		&mock.EpochStartTriggerStub{},
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, icf)

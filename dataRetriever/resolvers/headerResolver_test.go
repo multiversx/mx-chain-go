@@ -237,7 +237,7 @@ func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *test
 	)
 
 	requestedData := []byte("request")
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), "")
 	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
 }
 
@@ -255,10 +255,12 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	requestedData := []byte("request_1")
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), "")
 	assert.Nil(t, err)
 }
 
@@ -282,6 +284,8 @@ func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	requestedData := []byte("request_1")
@@ -495,7 +499,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 		},
 	)
 	msg := &mock.P2PMessageMock{DataField: buff}
-	_ = hdrRes.ProcessReceivedMessage(msg, nil)
+	_ = hdrRes.ProcessReceivedMessage(msg, "")
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {

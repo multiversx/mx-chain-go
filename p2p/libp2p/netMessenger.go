@@ -219,32 +219,6 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 	return ps, nil
 }
 
-func (netMes *networkMessenger) sendMessage() {
-	sendableData := netMes.outgoingPLB.CollectOneElementFromChannels()
-	if sendableData == nil {
-		return
-	}
-
-	netMes.mutTopics.RLock()
-	topic := netMes.topics[sendableData.Topic]
-	netMes.mutTopics.RUnlock()
-
-	if topic == nil {
-		log.Debug("topic not joined",
-			"topic", sendableData.Topic)
-		return
-	}
-
-	ctx, cancelFunc := context.WithTimeout(context.Background(), sendTimeout)
-	defer cancelFunc()
-
-	err := topic.Publish(ctx, sendableData.Buff)
-	if err != nil {
-		log.Trace("error sending data",
-			"error", err)
-	}
-}
-
 func (netMes *networkMessenger) createConnectionMonitor(targetConnCount int) error {
 	var err error
 

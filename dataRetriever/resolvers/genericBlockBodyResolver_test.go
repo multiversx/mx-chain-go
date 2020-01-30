@@ -126,6 +126,7 @@ func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
 		&mock.MarshalizerMock{
 			Fail: true,
 		},
+		&mock.P2PAntifloodHandlerStub{},
 	)
 	assert.Nil(t, err)
 
@@ -147,6 +148,7 @@ func TestRequestDataFromHashArray(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		&mock.P2PAntifloodHandlerStub{},
 	)
 	assert.Nil(t, err)
 

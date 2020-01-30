@@ -673,6 +673,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		0,
 		nil,
 		&mock.EpochStartTriggerStub{},
+		&mock.P2PAntifloodHandlerStub{},
 	)
 
 	assert.Nil(t, icf)

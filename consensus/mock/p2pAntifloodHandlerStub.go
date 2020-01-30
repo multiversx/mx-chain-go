@@ -14,11 +14,19 @@ func (p2pahs *P2PAntifloodHandlerStub) SetMaxMessagesForTopic(topic string, maxN
 }
 
 func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	return p2pahs.CanProcessMessageCalled(message, fromConnectedPeer)
+	if p2pahs.CanProcessMessageCalled != nil {
+		return p2pahs.CanProcessMessageCalled(message, fromConnectedPeer)
+	}
+
+	return nil
 }
 
 func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
-	return p2pahs.CanProcessMessageOnTopicCalled(peer, topic)
+	if p2pahs.CanProcessMessageOnTopicCalled != nil {
+		return p2pahs.CanProcessMessageOnTopicCalled(peer, topic)
+	}
+
+	return nil
 }
 
 func (p2pahs *P2PAntifloodHandlerStub) IsInterfaceNil() bool {

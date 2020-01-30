@@ -239,5 +239,5 @@ type AntifloodConfig struct {
 	MaxMessagesPerSecond      uint32
 	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
-	TopicAntifoodConfig       TopicAntifloodConfig
+	Topic                     TopicAntifloodConfig
 }

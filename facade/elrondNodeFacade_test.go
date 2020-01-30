@@ -489,7 +489,16 @@ func TestElrondNodeFacade_StatusMetrics(t *testing.T) {
 		},
 	}
 
-	ef := NewElrondNodeFacade(nodeMock, apiResStub, false)
+	ef, _ := NewElrondNodeFacade(
+		nodeMock,
+		apiResStub,
+		true,
+		config.WebServerAntifloodConfig{
+			SimultaneousRequests:         10,
+			SameSourceRequests:           10,
+			SameSourceResetIntervalInSec: 10,
+		},
+	)
 
 	_ = ef.StatusMetrics()
 
@@ -512,7 +521,16 @@ func TestElrondNodeFacade_RestAPIServerDebugMode(t *testing.T) {
 
 	nodeMock := &mock.NodeMock{}
 	apiResStub := &mock.ApiResolverStub{}
-	ef := NewElrondNodeFacade(nodeMock, apiResStub, true)
+	ef, _ := NewElrondNodeFacade(
+		nodeMock,
+		apiResStub,
+		true,
+		config.WebServerAntifloodConfig{
+			SimultaneousRequests:         10,
+			SameSourceRequests:           10,
+			SameSourceResetIntervalInSec: 10,
+		},
+	)
 
 	assert.True(t, ef.RestAPIServerDebugMode())
 }

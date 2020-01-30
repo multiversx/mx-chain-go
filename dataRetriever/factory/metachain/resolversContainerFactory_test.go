@@ -274,7 +274,7 @@ func TestNewResolversContainerFactory_NilAntifloodHandlerShouldErr(t *testing.T)
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
-		&mock.TrieStub{},
+		createTriesHolder(),
 		0,
 		nil,
 	)
