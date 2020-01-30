@@ -22,11 +22,11 @@ var log = logger.GetOrCreate("process/peer")
 type validatorActionType uint8
 
 const (
-	unknownAction validatorActionType = 0
-	leaderSuccess validatorActionType = 1
-	leaderFail validatorActionType = 2
+	unknownAction    validatorActionType = 0
+	leaderSuccess    validatorActionType = 1
+	leaderFail       validatorActionType = 2
 	validatorSuccess validatorActionType = 3
-	validatorFail validatorActionType = 4
+	validatorFail    validatorActionType = 4
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -301,7 +301,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID(), epoch)
+	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID(), epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte,shardId uint32) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -570,7 +570,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		var newRating uint32
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		actionType :=  vs.computeValidatorActionType(isLeader, validatorSigned)
+		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
 		switch actionType {
 		case leaderSuccess:

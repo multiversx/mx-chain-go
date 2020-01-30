@@ -39,13 +39,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              	hdr,
-		hasher:           	arg.Hasher,
-		sigVerifier:      	arg.HeaderSigVerifier,
-		shardCoordinator: 	arg.ShardCoordinator,
-		chainID:          	arg.ChainID,
-		validityAttester: 	arg.ValidityAttester,
-		epochStartTrigger:	arg.EpochStartTrigger,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -94,7 +94,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
-	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if inHdr.shardCoordinator.SelfId() != core.MetachainShardId {
 		return true
 	}
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {

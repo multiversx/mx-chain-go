@@ -300,7 +300,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 func (boot *baseBootstrap) shouldTrySync() bool {
 
-	currHeader := boot.blkc.GetCurrentBlockHeader()
+	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if currHeader == nil {
 		return false
 	}

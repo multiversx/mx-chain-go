@@ -61,7 +61,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 5
 	/////////----- wait for epoch end period
 	round, nonce = createAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
 
@@ -208,6 +207,10 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
+
 		//integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)

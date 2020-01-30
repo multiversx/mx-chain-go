@@ -29,7 +29,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[ShardID] = createGenesisShardHeader(ShardID)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = createGenesisMetaBlock()
 
 	return genesisBlocks
 }
@@ -119,7 +119,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
-	shardCoordinatorMock.CurrentShard = sharding.MetachainShardId
+	shardCoordinatorMock.CurrentShard = core.MetachainShardId
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
@@ -361,7 +361,7 @@ func TestShardComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHead
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 1, 1)
+	sbt.CleanupHeadersBehindNonce(core.MetachainShardId, 1, 1)
 	_, _, headers, _ := sbt.ComputeLongestSelfChain()
 
 	assert.Nil(t, headers)
@@ -429,7 +429,7 @@ func TestMetaComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHeade
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
-	mbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 1, 1)
+	mbt.CleanupHeadersBehindNonce(core.MetachainShardId, 1, 1)
 	_, _, headers, _ := mbt.ComputeLongestSelfChain()
 
 	assert.Nil(t, headers)
@@ -762,7 +762,7 @@ func TestCleanupHeadersBehindNonce_ShouldCleanCrossNotarizedHeaders(t *testing.T
 	sbt.AddCrossNotarizedHeader(metaBlock.GetShardID(), metaBlock, metaBlockHash)
 	sbt.AddTrackedHeader(metaBlock, metaBlockHash)
 
-	sbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 2, 2)
+	sbt.CleanupHeadersBehindNonce(core.MetachainShardId, 2, 2)
 
 	lastSelfNotarizedHeader, _, _ := sbt.GetLastSelfNotarizedHeader(header.GetShardID())
 	lastCrossNotarizedHeader, _, _ := sbt.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
@@ -883,7 +883,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldErrNotarizedHeadersSlice
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	sbt.CleanupHeadersBehindNonce(sharding.MetachainShardId, 0, 1)
+	sbt.CleanupHeadersBehindNonce(core.MetachainShardId, 0, 1)
 	_, _, err := sbt.ComputeLongestMetaChainFromLastNotarized()
 
 	assert.Equal(t, err, process.ErrNotarizedHeadersSliceForShardIsNil)
@@ -894,7 +894,7 @@ func TestComputeLongestMetaChainFromLastNotarized_ShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
+	startHeader := shardArguments.StartHeaders[core.MetachainShardId]
 	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
@@ -1115,7 +1115,7 @@ func TestGetCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	shardID := sharding.MetachainShardId
+	shardID := core.MetachainShardId
 	metaBlock1 := &block.MetaBlock{
 		Nonce: 1,
 	}
@@ -1140,7 +1140,7 @@ func TestGetLastCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	shardID := sharding.MetachainShardId
+	shardID := core.MetachainShardId
 	metaBlock1 := &block.MetaBlock{
 		Nonce: 1,
 	}
@@ -1339,7 +1339,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
+	startHeader := shardArguments.StartHeaders[core.MetachainShardId]
 	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
@@ -1400,7 +1400,7 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 		wg.Done()
 	})
 
-	startHeader := shardArguments.StartHeaders[sharding.MetachainShardId]
+	startHeader := shardArguments.StartHeaders[core.MetachainShardId]
 	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
 
 	hdr1 := &block.MetaBlock{
@@ -1639,12 +1639,12 @@ func TestInitNotarizedHeaders_ShouldWork(t *testing.T) {
 	selfStartHeader := &block.Header{Nonce: 1}
 	metachainStartHeader := &block.MetaBlock{Nonce: 1}
 	startHeaders[shardArguments.ShardCoordinator.SelfId()] = selfStartHeader
-	startHeaders[sharding.MetachainShardId] = metachainStartHeader
+	startHeaders[core.MetachainShardId] = metachainStartHeader
 	err := sbt.InitNotarizedHeaders(startHeaders)
 	lastCrossNotarizedHeaderForSelfShard, _, _ := sbt.GetLastCrossNotarizedHeader(shardArguments.ShardCoordinator.SelfId())
-	lastCrossNotarizedHeaderForMetachain, _, _ := sbt.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeaderForMetachain, _, _ := sbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	lastSelfNotarizedHeaderForSelfShard, _, _ := sbt.GetLastSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId())
-	lastSelfNotarizedHeaderForMetachain, _, _ := sbt.GetLastSelfNotarizedHeader(sharding.MetachainShardId)
+	lastSelfNotarizedHeaderForMetachain, _, _ := sbt.GetLastSelfNotarizedHeader(core.MetachainShardId)
 
 	assert.Nil(t, err)
 	assert.Equal(t, selfStartHeader, lastCrossNotarizedHeaderForSelfShard)
