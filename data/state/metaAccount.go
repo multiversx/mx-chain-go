@@ -28,7 +28,7 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 
 	return &MetaAccount{
 		MetaAccountData: MetaAccountData{
-			TxCount: data.NewProtoBigInt(0),
+			TxCount: big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -64,7 +64,7 @@ func (a *MetaAccount) SetRoundWithJournal(round uint64) error {
 
 // SetTxCountWithJournal sets the total tx count for this shard, saving the old txCount before changing
 func (a *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
-	entry, err := NewMetaJournalEntryTxCount(a, a.TxCount.Get())
+	entry, err := NewMetaJournalEntryTxCount(a, a.TxCount)
 	if err != nil {
 		return err
 	}

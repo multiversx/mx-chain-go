@@ -100,7 +100,7 @@ func (inRTx *InterceptedRewardTransaction) integrity() error {
 		return process.ErrNilValue
 	}
 
-	if inRTx.rTx.Value.Compare(*data.NewProtoBigInt(0)) < 0 {
+	if inRTx.rTx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}
 
@@ -115,7 +115,7 @@ func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
 // TotalValue returns the maximum cost of transaction
 // totalValue = txValue + gasPrice*gasLimit
 func (inRTx *InterceptedRewardTransaction) TotalValue() *big.Int {
-	return big.NewInt(0).Set(inRTx.rTx.GetValue().Get())
+	return big.NewInt(0).Set(inRTx.rTx.GetValue())
 }
 
 // SenderAddress returns the transaction sender address

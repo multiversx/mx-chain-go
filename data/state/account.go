@@ -28,7 +28,7 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 
 	return &Account{
 		AccountData: AccountData{
-			Balance: data.NewProtoBigInt(0),
+			Balance: big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -74,7 +74,7 @@ func (a *Account) GetNonce() uint64 {
 
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
 func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
-	entry, err := NewJournalEntryBalance(a, a.Balance.Get())
+	entry, err := NewJournalEntryBalance(a, a.Balance)
 	if err != nil {
 		return err
 	}

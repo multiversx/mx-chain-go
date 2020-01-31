@@ -31,7 +31,7 @@ func NewPeerAccount(
 
 	return &PeerAccount{
 		PeerAccountData: PeerAccountData{
-			Stake: data.NewProtoBigInt(0),
+			Stake: big.NewInt(0),
 		},
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
@@ -190,7 +190,7 @@ func (a *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
 		return ErrNilStake
 	}
 
-	entry, err := NewPeerJournalEntryStake(a, new(big.Int).Set(a.Stake.Get()))
+	entry, err := NewPeerJournalEntryStake(a, new(big.Int).Set(a.Stake))
 	if err != nil {
 		return err
 	}

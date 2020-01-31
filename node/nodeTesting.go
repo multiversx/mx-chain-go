@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -194,7 +193,7 @@ func (n *Node) generateAndSignSingleTx(
 
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigIntFromBigInt(value),
+		Value:    new(big.Int).Set(value),
 		GasLimit: minTxGasLimit,
 		GasPrice: minTxGasPrice,
 		RcvAddr:  rcvAddrBytes,

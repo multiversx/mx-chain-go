@@ -4,6 +4,7 @@ package smartContractResult
 import (
 	io "io"
 	"io/ioutil"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -15,12 +16,8 @@ func (scr *SmartContractResult) IsInterfaceNil() bool {
 	return scr == nil
 }
 
-// GetValue returns the value of the smart contract result
-func (scr *SmartContractResult) GetValue() *data.ProtoBigInt {
-	return scr.Value
-}
 // SetValue sets the value of the smart contract result
-func (scr *SmartContractResult) SetValue(value *data.ProtoBigInt) {
+func (scr *SmartContractResult) SetValue(value *big.Int) {
 	scr.Value = value
 }
 
@@ -38,6 +35,7 @@ func (scr *SmartContractResult) SetRcvAddr(addr []byte) {
 func (scr *SmartContractResult) SetSndAddr(addr []byte) {
 	scr.SndAddr = addr
 }
+
 // ----- for compatibility only ----
 
 func (scr *SmartContractResult) Save(w io.Writer) error {

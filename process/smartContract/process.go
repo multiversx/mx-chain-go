@@ -214,7 +214,7 @@ func (sc *scProcessor) processIfError(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance.Get(), tx.GetValue().Get()))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		nonce = acntSnd.GetNonce()
 	}
 
-	txValue := big.NewInt(0).Set(tx.GetValue().Get())
+	txValue := big.NewInt(0).Set(tx.GetValue())
 	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
 
 	return nil
@@ -416,7 +416,7 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 		return nil, err
 	}
 
-	vmInput.CallValue = new(big.Int).Set(tx.GetValue().Get())
+	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
 
@@ -448,7 +448,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
-	cost = cost.Add(cost, tx.GetValue().Get())
+	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -459,12 +459,12 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Get().Cmp(cost) < 0 {
+	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
-	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance.Get(), cost))
+	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {
 		return err
 	}
@@ -608,7 +608,7 @@ func (sc *scProcessor) createSmartContractResult(
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
-	result.Value = data.NewProtoBigIntFromBigInt(outAcc.BalanceDelta)
+	result.Value = outAcc.BalanceDelta
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
@@ -659,7 +659,7 @@ func (sc *scProcessor) createSCRForSender(
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
-	scTx.Value = data.NewProtoBigIntFromBigInt(refundErd)
+	scTx.Value = refundErd
 	scTx.RcvAddr = rcvAddress
 	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
@@ -681,7 +681,7 @@ func (sc *scProcessor) createSCRForSender(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	newBalance := big.NewInt(0).Add(stAcc.Balance.Get(), refundErd)
+	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
 	err := stAcc.SetBalanceWithJournal(newBalance)
 	if err != nil {
 		return nil, nil, err
@@ -693,7 +693,7 @@ func (sc *scProcessor) createSCRForSender(
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx data.TransactionHandler) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue().Get())
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
@@ -759,7 +759,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		// update the values according to SC output
 		updatedBalance := big.NewInt(0)
-		updatedBalance = updatedBalance.Add(stAcc.Balance.Get(), outAcc.BalanceDelta)
+		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
 		if updatedBalance.Cmp(big.NewInt(0)) < 0 {
 			return process.ErrOverallBalanceChangeFromSC
 		}
@@ -907,7 +907,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	operation := big.NewInt(0)
-	operation = operation.Add(scr.GetValue().Get(), stAcc.Balance.Get())
+	operation = operation.Add(scr.GetValue(), stAcc.Balance)
 	err := stAcc.SetBalanceWithJournal(operation)
 	if err != nil {
 		return err

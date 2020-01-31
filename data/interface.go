@@ -1,6 +1,8 @@
 package data
 
 import (
+	"math/big"
+
 	gproto "github.com/gogo/protobuf/proto"
 	proto "github.com/golang/protobuf/proto"
 )
@@ -84,7 +86,7 @@ type ChainHandler interface {
 type TransactionHandler interface {
 	IsInterfaceNil() bool
 
-	GetValue() *ProtoBigInt
+	GetValue() *big.Int
 	GetNonce() uint64
 	GetData() string
 	GetRcvAddr() []byte
@@ -92,7 +94,7 @@ type TransactionHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
-	SetValue(*ProtoBigInt)
+	SetValue(*big.Int)
 	SetData(string)
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)

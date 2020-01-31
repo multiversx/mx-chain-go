@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -106,7 +105,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		Staked:        false,
 		BlsPubKey:     nil,
 		UnStakedNonce: 0,
-		StakeValue:    data.NewProtoBigIntFromBigInt(stakeValue),
+		StakeValue:    stakeValue,
 	}
 	data := r.eei.GetStorage(args.CallerAddr)
 
@@ -216,7 +215,7 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	r.eei.SetStorage(args.CallerAddr, nil)
 
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
-	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue.Get(), nil)
+	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
 	if err != nil {
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
@@ -258,7 +257,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	stakedValue := big.NewInt(0).Set(registrationData.StakeValue.Get())
+	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
 	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	registrationData.StakeValue.Set(stakedValue.Sub(stakedValue, slashValue))
 
