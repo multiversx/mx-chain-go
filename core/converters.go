@@ -27,6 +27,7 @@ func ConvertBytes(bytes uint64) string {
 }
 
 // ToB64 encodes the given buff to base64
+// This should be used only for display purposes!
 func ToB64(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
@@ -35,16 +36,12 @@ func ToB64(buff []byte) string {
 }
 
 // ToHex encodes the given buff to hex
+// This should be used only for display purposes!
 func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
 	}
 	return hex.EncodeToString(buff)
-}
-
-// HexStringToByteArray decodes the given hex string to byte array
-func HexStringToByteArray(hexStr string) ([]byte, error) {
-	return hex.DecodeString(hexStr)
 }
 
 // CalculateHash marshalizes the interface and calculates its hash

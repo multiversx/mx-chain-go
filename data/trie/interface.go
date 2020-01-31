@@ -32,7 +32,7 @@ type node interface {
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db data.DBWriteCacher)
 	deepClone() node
-	getDirtyHashes(map[string]struct{}) error
+	getDirtyHashes(data.ModifiedHashes) error
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)

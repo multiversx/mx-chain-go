@@ -6,7 +6,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -556,7 +555,8 @@ func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) 
 		}
 		str2 := fmt.Sprintf("+ %d: ", i)
 		_, _ = fmt.Fprint(writer, str2)
-		child.print(writer, index+len(str)-1+len(str2), db)
+		childIndex := index + len(str) - 1 + len(str2)
+		child.print(writer, childIndex, db)
 	}
 }
 
@@ -599,7 +599,7 @@ func (bn *branchNode) deepClone() node {
 	return clonedNode
 }
 
-func (bn *branchNode) getDirtyHashes(hashes map[string]struct{}) error {
+func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -620,7 +620,7 @@ func (bn *branchNode) getDirtyHashes(hashes map[string]struct{}) error {
 		}
 	}
 
-	hashes[core.ToHex(bn.getHash())] = struct{}{}
+	hashes[hex.EncodeToString(bn.getHash())] = struct{}{}
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -298,15 +297,15 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 func (tr *patriciaMerkleTrie) markForEviction() error {
 	newRoot := tr.root.getHash()
-	newHashes := make(map[string]struct{})
+	newHashes := make(data.ModifiedHashes)
 	err := tr.root.getDirtyHashes(newHashes)
 	if err != nil {
 		return err
 	}
 
-	oldHashes := make(map[string]struct{})
+	oldHashes := make(data.ModifiedHashes)
 	for i := range tr.oldHashes {
-		oldHashes[core.ToHex(tr.oldHashes[i])] = struct{}{}
+		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
 	removeDuplicatedKeys(oldHashes, newHashes)

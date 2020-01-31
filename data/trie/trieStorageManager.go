@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -178,8 +177,9 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 	}
 
 	var hash []byte
+	var present bool
 	for key := range hashes {
-		present, err := tsm.dbEvictionWaitingList.PresentInNewHashes(key)
+		present, err = tsm.dbEvictionWaitingList.PresentInNewHashes(key)
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 			continue
 		}
 
-		hash, err = core.HexStringToByteArray(key)
+		hash, err = hex.DecodeString(key)
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 }
 
 // MarkForEviction adds the given hashes in the eviction waiting list at the provided key
-func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes map[string]struct{}) error {
+func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes data.ModifiedHashes) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 

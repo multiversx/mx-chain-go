@@ -11,7 +11,7 @@ import (
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
 // cacher and db will overwrite the previous values. This structure is not concurrent safe.
 type evictionWaitingList struct {
-	cache       map[string]map[string]struct{}
+	cache       map[string]data.ModifiedHashes
 	cacheSize   uint
 	db          storage.Persister
 	marshalizer marshal.Marshalizer
@@ -30,7 +30,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 	}
 
 	return &evictionWaitingList{
-		cache:       make(map[string]map[string]struct{}),
+		cache:       make(map[string]data.ModifiedHashes),
 		cacheSize:   size,
 		db:          db,
 		marshalizer: marshalizer,
@@ -38,7 +38,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (ewl *evictionWaitingList) Put(rootHash []byte, hashes map[string]struct{}) error {
+func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes) error {
 	if uint(len(ewl.cache)) < ewl.cacheSize {
 		ewl.cache[string(rootHash)] = hashes
 		return nil
@@ -59,7 +59,7 @@ func (ewl *evictionWaitingList) Put(rootHash []byte, hashes map[string]struct{})
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (ewl *evictionWaitingList) Evict(rootHash []byte) (map[string]struct{}, error) {
+func (ewl *evictionWaitingList) Evict(rootHash []byte) (data.ModifiedHashes, error) {
 	hashes, ok := ewl.cache[string(rootHash)]
 
 	if !ok {
@@ -102,12 +102,16 @@ func (ewl *evictionWaitingList) GetSize() uint {
 // PresentInNewHashes searches for the given hash in all of the evictionWaitingList's newHashes
 func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 	for key := range ewl.cache {
+		if len(key) == 0 {
+			return false, ErrInvalidKey
+		}
+
 		lastByte := key[len(key)-1]
 		if data.TriePruningIdentifier(lastByte) == data.OldRoot {
 			continue
 		}
 
-		hashes, _ := ewl.cache[key]
+		hashes := ewl.cache[key]
 		if len(hashes) == 0 {
 			marshalizedHashes, err := ewl.db.Get([]byte(key))
 			if err != nil {

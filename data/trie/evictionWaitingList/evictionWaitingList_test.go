@@ -55,7 +55,7 @@ func TestEvictionWaitingList_Put(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -75,7 +75,7 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -96,7 +96,7 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 		assert.Equal(t, hashesMap, ec.cache[string(roots[i])])
 	}
 	for i := cacheSize; i < uint(len(roots)); i++ {
-		val := make(map[string]struct{}, 0)
+		val := make(data.ModifiedHashes)
 		encVal, err := ec.db.Get(roots[i])
 		assert.Nil(t, err)
 
@@ -112,7 +112,7 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	expectedHashesMap := map[string]struct{}{
+	expectedHashesMap := data.ModifiedHashes{
 		"hash1": {},
 		"hash2": {},
 	}
@@ -133,7 +133,7 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -163,7 +163,7 @@ func TestEvictionWaitingList_PresentInNewHashes(t *testing.T) {
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -187,7 +187,7 @@ func TestEvictionWaitingList_PresentInNewHashesShouldReturnFalse(t *testing.T) {
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -216,7 +216,7 @@ func TestEvictionWaitingList_PresentInNewHashesInDb(t *testing.T) {
 	root2 := []byte{6, 7, 8, 9, 10, 0}
 	root3 := []byte{1, 2, 3, 4, 5, 1}
 
-	hashesMap := map[string]struct{}{
+	hashesMap := data.ModifiedHashes{
 		"hash0": {},
 		"hash1": {},
 	}
@@ -233,4 +233,21 @@ func TestEvictionWaitingList_PresentInNewHashesInDb(t *testing.T) {
 	present, err := ewl.PresentInNewHashes("hash0")
 	assert.True(t, present)
 	assert.Nil(t, err)
+}
+
+func TestEvictionWaitingList_PresentInNewHashesInvalidKey(t *testing.T) {
+	t.Parallel()
+
+	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+
+	hashesMap := data.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
+	}
+
+	_ = ewl.Put([]byte{}, hashesMap)
+
+	present, err := ewl.PresentInNewHashes("hash0")
+	assert.False(t, present)
+	assert.Equal(t, ErrInvalidKey, err)
 }

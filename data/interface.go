@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -18,6 +17,9 @@ const (
 	// NewRoot is appended to the key when newHashes are added to the evictionWaitingList
 	NewRoot TriePruningIdentifier = 1
 )
+
+// ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is commited
+type ModifiedHashes map[string]struct{}
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -148,8 +150,8 @@ type DBWriteCacher interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Put([]byte, map[string]struct{}) error
-	Evict([]byte) (map[string]struct{}, error)
+	Put([]byte, ModifiedHashes) error
+	Evict([]byte) (ModifiedHashes, error)
 	GetSize() uint
 	PresentInNewHashes(hash string) (bool, error)
 	IsInterfaceNil() bool
@@ -169,7 +171,7 @@ type StorageManager interface {
 	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
 	Prune([]byte) error
 	CancelPrune([]byte)
-	MarkForEviction([]byte, map[string]struct{}) error
+	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	Clone() StorageManager
 	IsPruningEnabled() bool

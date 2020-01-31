@@ -60,26 +60,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
+		accounts:              arguments.Accounts,
+		blockSizeThrottler:    blockSizeThrottler,
+		forkDetector:          arguments.ForkDetector,
+		hasher:                arguments.Hasher,
+		marshalizer:           arguments.Marshalizer,
+		store:                 arguments.Store,
+		shardCoordinator:      arguments.ShardCoordinator,
+		nodesCoordinator:      arguments.NodesCoordinator,
+		specialAddressHandler: arguments.SpecialAddressHandler,
+		uint64Converter:       arguments.Uint64Converter,
+		requestHandler:        arguments.RequestHandler,
+		appStatusHandler:      statusHandler.NewNilStatusHandler(),
+		blockChainHook:        arguments.BlockChainHook,
+		txCoordinator:         arguments.TxCoordinator,
+		rounder:               arguments.Rounder,
+		epochStartTrigger:     arguments.EpochStartTrigger,
+		headerValidator:       arguments.HeaderValidator,
+		bootStorer:            arguments.BootStorer,
+		blockTracker:          arguments.BlockTracker,
+		dataPool:              arguments.DataPool,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -901,21 +901,14 @@ func (sp *shardProcessor) commitAll() error {
 }
 
 func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	for i := range finalHeaders {
-		if !sp.accounts.IsPruningEnabled() {
-			break
-		}
+	if !sp.accounts.IsPruningEnabled() {
+		return
+	}
 
+	for i := range finalHeaders {
 		sp.saveState(finalHeaders[i])
 
-		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
-		}
-
-		var prevHeader block.Header
-		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 			continue

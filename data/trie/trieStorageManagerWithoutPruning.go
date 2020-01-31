@@ -43,7 +43,7 @@ func (tsm *trieStorageManagerWithoutPruning) CancelPrune([]byte) {
 }
 
 // MarkForEviction does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) MarkForEviction([]byte, map[string]struct{}) error {
+func (tsm *trieStorageManagerWithoutPruning) MarkForEviction([]byte, data.ModifiedHashes) error {
 	log.Trace("trieStorageManagerWithoutPruning - MarkForEviction:trie storage pruning is disabled")
 	return nil
 }

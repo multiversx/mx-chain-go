@@ -4191,12 +4191,19 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	rootHash := []byte("root-hash")
 	poolMock := mock.NewPoolsHolderMock()
 
-	storer := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+	hdrStore := &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
 			hdr := block.Header{Nonce: 7, RootHash: rootHash}
 			return json.Marshal(hdr)
 		},
 	}
+
+	storer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return hdrStore
+		},
+	}
+
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	arguments := CreateMockArgumentsMultiShard()

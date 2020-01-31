@@ -7,7 +7,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -306,7 +305,7 @@ func (ln *leafNode) deepClone() node {
 	return clonedNode
 }
 
-func (ln *leafNode) getDirtyHashes(hashes map[string]struct{}) error {
+func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -316,7 +315,7 @@ func (ln *leafNode) getDirtyHashes(hashes map[string]struct{}) error {
 		return nil
 	}
 
-	hashes[core.ToHex(ln.getHash())] = struct{}{}
+	hashes[hex.EncodeToString(ln.getHash())] = struct{}{}
 	return nil
 }
 
