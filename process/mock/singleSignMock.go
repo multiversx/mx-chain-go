@@ -4,30 +4,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// SingleSignKeyGenMock -
 type SingleSignKeyGenMock struct {
 	PublicKeyFromByteArrayCalled func(b []byte) (crypto.PublicKey, error)
 	SuiteCalled                  func() crypto.Suite
 }
 
+// SingleSignPublicKey -
 type SingleSignPublicKey struct {
 	SuiteCalled func() crypto.Suite
 	PointCalled func() crypto.Point
 }
 
-//------- SingleSignKeyGenMock
-
+// GeneratePair -
 func (sskgm *SingleSignKeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	panic("implement me")
 }
 
+// PrivateKeyFromByteArray -
 func (sskgm *SingleSignKeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
 	panic("implement me")
 }
 
+// PublicKeyFromByteArray -
 func (sskgm *SingleSignKeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	return sskgm.PublicKeyFromByteArrayCalled(b)
 }
 
+// Suite -
 func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
 	return sskgm.SuiteCalled()
 }
@@ -40,16 +44,17 @@ func (sskgm *SingleSignKeyGenMock) IsInterfaceNil() bool {
 	return false
 }
 
-//------- SingleSignPublicKey
-
+// ToByteArray -
 func (sspk *SingleSignPublicKey) ToByteArray() ([]byte, error) {
 	panic("implement me")
 }
 
+// Suite -
 func (sspk *SingleSignPublicKey) Suite() crypto.Suite {
 	return sspk.SuiteCalled()
 }
 
+// Point -
 func (sspk *SingleSignPublicKey) Point() crypto.Point {
 	return sspk.PointCalled()
 }

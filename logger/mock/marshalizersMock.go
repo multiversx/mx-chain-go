@@ -8,15 +8,16 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// TestingMarshalizers -
 var TestingMarshalizers = map[string]marshal.Marshalizer{
 	"json":  &JsonMarshalizer{},
 	"proto": &ProtobufMarshalizer{},
 }
 
-//-------- Json
-
+// JsonMarshalizer -
 type JsonMarshalizer struct{}
 
+// Marshal -
 func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
 		return nil, errors.New("nil object to serialize from")
@@ -25,6 +26,7 @@ func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
+// Unmarshal -
 func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
 		return errors.New("nil object to serialize to")
@@ -39,14 +41,15 @@ func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	return json.Unmarshal(buff, obj)
 }
 
+// IsInterfaceNil -
 func (j *JsonMarshalizer) IsInterfaceNil() bool {
 	return j == nil
 }
 
-//------- protobuf
-
+// ProtobufMarshalizer -
 type ProtobufMarshalizer struct{}
 
+// Marshal -
 func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if msg, ok := obj.(proto.Message); ok {
 		enc, err := proto.Marshal(msg)
@@ -58,6 +61,7 @@ func (x *ProtobufMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return nil, errors.New("can not serialize the object")
 }
 
+// Unmarshal -
 func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if msg, ok := obj.(proto.Message); ok {
 		return proto.Unmarshal(buff, msg)
@@ -65,25 +69,28 @@ func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	return errors.New("obj does not implement proto.Message")
 }
 
+// IsInterfaceNil -
 func (x *ProtobufMarshalizer) IsInterfaceNil() bool {
 	return x == nil
 }
 
-//------- stub
-
+// MarshalizerStub -
 type MarshalizerStub struct {
 	MarshalCalled   func(obj interface{}) ([]byte, error)
 	UnmarshalCalled func(obj interface{}, buff []byte) error
 }
 
+// Marshal -
 func (ms *MarshalizerStub) Marshal(obj interface{}) ([]byte, error) {
 	return ms.MarshalCalled(obj)
 }
 
+// Unmarshal -
 func (ms *MarshalizerStub) Unmarshal(obj interface{}, buff []byte) error {
 	return ms.UnmarshalCalled(obj, buff)
 }
 
+// IsInterfaceNil -
 func (ms *MarshalizerStub) IsInterfaceNil() bool {
 	return ms == nil
 }

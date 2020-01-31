@@ -26,18 +26,22 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
+// SetNumProcessedObj -
 func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
 
 }
 
+// ApplyProcessedMiniBlocks -
 func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (blProcMock *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 
 }
 
+// CreateNewHeader -
 func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
@@ -70,30 +74,37 @@ func (blProcMock *BlockProcessorMock) CreateBlockBody(initialHdrData data.Header
 	return blProcMock.CreateBlockCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (blProcMock BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return blProcMock.ApplyBodyToHeaderCalled(hdr, body)
 }
 
+// MarshalizedDataToBroadcast -
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
 
+// DecodeBlockBody -
 func (blProcMock BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return blProcMock.DecodeBlockBodyCalled(dta)
 }
 
+// DecodeBlockHeader -
 func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return blProcMock.DecodeBlockHeaderCalled(dta)
 }
 
+// AddLastNotarizedHdr -
 func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 }
 
