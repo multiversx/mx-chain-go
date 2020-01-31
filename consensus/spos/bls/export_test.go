@@ -1,6 +1,8 @@
 package bls
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -96,6 +98,78 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 
 func (fct *factory) Indexer() indexer.Indexer {
 	return fct.indexer
+}
+
+// subroundStartRound
+
+type SubroundStartRound *subroundStartRound
+
+func (sr *subroundStartRound) DoStartRoundJob() bool {
+	return sr.doStartRoundJob()
+}
+
+func (sr *subroundStartRound) DoStartRoundConsensusCheck() bool {
+	return sr.doStartRoundConsensusCheck()
+}
+
+func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int64) error {
+	return sr.generateNextConsensusGroup(roundIndex)
+}
+
+func (sr *subroundStartRound) InitCurrentRound() bool {
+	return sr.initCurrentRound()
+}
+
+// subroundBlock
+
+type SubroundBlock *subroundBlock
+
+func (sr *subroundBlock) BlockChain() data.ChainHandler {
+	return sr.Blockchain()
+}
+
+func (sr *subroundBlock) DoBlockJob() bool {
+	return sr.doBlockJob()
+}
+
+func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
+	return sr.processReceivedBlock(cnsDta)
+}
+
+func (sr *subroundBlock) DoBlockConsensusCheck() bool {
+	return sr.doBlockConsensusCheck()
+}
+
+func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
+	return sr.isBlockReceived(threshold)
+}
+
+func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
+	return sr.createHeader()
+}
+
+func (sr *subroundBlock) CreateBody(hdr data.HeaderHandler) (data.BodyHandler, error) {
+	return sr.createBody(hdr)
+}
+
+func (sr *subroundBlock) SendBlockBody(body data.BodyHandler) bool {
+	return sr.sendBlockBody(body)
+}
+
+func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler) bool {
+	return sr.sendBlockHeader(header)
+}
+
+func (sr *subroundBlock) ComputeSubroundProcessingMetric(startTime time.Time, metric string) {
+	sr.computeSubroundProcessingMetric(startTime, metric)
+}
+
+func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockBody(cnsDta)
+}
+
+func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeader(cnsDta)
 }
 
 // subroundSignature

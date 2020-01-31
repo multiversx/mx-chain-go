@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -17,7 +18,6 @@ import (
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
-	getSubroundName               func(subroundId int) string
 	displayStatistics             func()
 
 	appStatusHandler core.AppStatusHandler
@@ -40,7 +40,6 @@ func NewSubroundEndRound(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
-	getSubroundName func(subroundId int) string,
 	displayStatistics func(),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
@@ -53,7 +52,6 @@ func NewSubroundEndRound(
 	srEndRound := subroundEndRound{
 		baseSubround,
 		processingThresholdPercentage,
-		getSubroundName,
 		displayStatistics,
 		statusHandler.NewNilStatusHandler(),
 		sync.Mutex{},
@@ -80,18 +78,47 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
+// receivedBlockHeaderFinalInfo method is called when a block header final info is received
+func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+	if sr.IsSelfLeaderInCurrentRound() {
+		return false
+	}
+
+	node := string(cnsDta.PubKey)
+
+	if !sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		return false
+	}
+
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+		return false
+	}
+
+	return sr.doEndRoundJobByParticipant(cnsDta)
+}
+
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
+	if sr.IsSelfLeaderInCurrentRound() {
+		return
+	}
+
 	sr.AddReceivedHeader(headerHandler)
 
-	if !sr.IsSelfLeaderInCurrentRound() {
-		sr.doEndRoundJobByParticipant()
-	}
+	sr.doEndRoundJobByParticipant(nil)
 }
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	if !sr.IsSelfLeaderInCurrentRound() {
-		return sr.doEndRoundJobByParticipant()
+		return sr.doEndRoundJobByParticipant(nil)
 	}
 
 	return sr.doEndRoundJobByLeader()
@@ -101,14 +128,14 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		debugError("checkSignaturesValidity", err)
+		log.Debug("doEndRoundJob.checkSignaturesValidity", "error", err.Error())
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
-		debugError("multisigner.AggregateSigs", err)
+		log.Debug("doEndRoundJob.AggregateSigs", "error", err.Error())
 		return false
 	}
 
@@ -130,7 +157,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		debugError("CommitBlock", err)
+		log.Debug("doEndRoundJob.CommitBlock", "error", err)
 		return false
 	}
 
@@ -138,21 +165,39 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// broadcast section
 
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		nil,
+		[]byte(sr.SelfPubKey()),
+		nil,
+		int(MtBlockHeaderFinalInfo),
+		sr.Rounder().Index(),
+		sr.ChainID(),
+		bitmap,
+		sig,
+		leaderSignature,
+	)
+
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if err != nil {
+		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
+		return false
+	}
+
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
-		debugError("BroadcastBlock", err)
+		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
 	}
 
 	sr.displayStatistics()
 
 	log.Debug("step 3: BlockBody and Header has been committed and broadcast",
-		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
-		debugError("broadcastMiniBlocksAndTransactions", err)
+		log.Debug("doEndRoundJob.broadcastMiniBlocksAndTransactions", "error", err.Error())
 	}
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
@@ -163,7 +208,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
+func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
@@ -179,8 +224,9 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
-	isConsensusHeaderReceived, header := sr.isConsensusHeaderReceived()
-	if !isConsensusHeaderReceived {
+
+	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(cnsDta)
+	if !haveHeader {
 		return false
 	}
 
@@ -201,7 +247,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		debugError("CommitBlock", err)
+		log.Debug("doEndRoundJobByParticipant.CommitBlock", "error", err.Error())
 		return false
 	}
 
@@ -210,12 +256,33 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {
 	sr.displayStatistics()
 
 	log.Debug("step 3: BlockBody and Header has been committed",
-		"type", "spos/bls",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
-	msg := fmt.Sprintf("Added received block with nonce  %d  in blockchain", header.GetNonce())
+	headerTypeMsg := "received"
+	if cnsDta != nil {
+		headerTypeMsg = "assembled"
+	}
+
+	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", headerTypeMsg, header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "-"))
 	return true
+}
+
+func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
+	if cnsDta == nil {
+		return sr.isConsensusHeaderReceived()
+	}
+
+	if check.IfNil(sr.Header) {
+		return false, nil
+	}
+
+	header := sr.Header.Clone()
+	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
+	header.SetSignature(cnsDta.AggregateSignature)
+	header.SetLeaderSignature(cnsDta.LeaderSignature)
+
+	return true, header
 }
 
 func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {
@@ -349,7 +416,7 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 		log.Debug("canceled round, time is out",
 			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
-			"subround", sr.getSubroundName(sr.Current()))
+			"subround", sr.Name())
 
 		sr.RoundCanceled = true
 

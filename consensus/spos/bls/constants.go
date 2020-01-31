@@ -27,6 +27,9 @@ const (
 	MtBlockHeader
 	// MtSignature defines ID of a message that has a Signature inside
 	MtSignature
+	// MtBlockHeaderFinalInfo defines ID of a message that has a block header final info inside
+	// (aggregate signature, bitmap and seal leader signature for the proposed and accepted header)
+	MtBlockHeaderFinalInfo
 )
 
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
@@ -66,6 +69,9 @@ const (
 	// BlockSignatureStringValue represents the string to be used to identify a block's signature
 	BlockSignatureStringValue = "(SIGNATURE)"
 
+	// BlockHeaderFinalInfoStringValue represents the string to be used to identify a block's header final info
+	BlockHeaderFinalInfoStringValue = "(FINAL_INFO)"
+
 	// BlockUnknownStringValue represents the string to be used to identify an unknown block
 	BlockUnknownStringValue = "(UNKNOWN)"
 
@@ -81,6 +87,8 @@ func getStringValue(msgType consensus.MessageType) string {
 		return BlockHeaderStringValue
 	case MtSignature:
 		return BlockSignatureStringValue
+	case MtBlockHeaderFinalInfo:
+		return BlockHeaderFinalInfoStringValue
 	case MtUnknown:
 		return BlockUnknownStringValue
 	default:

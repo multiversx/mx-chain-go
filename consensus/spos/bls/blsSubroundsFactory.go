@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -145,11 +144,10 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound, err := commonSubround.NewSubroundStartRound(
+	subroundStartRound, err := NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
-		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
 	)
 	if err != nil {
@@ -186,20 +184,19 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	subroundBlock, err := commonSubround.NewSubroundBlock(
+	subroundBlock, err := NewSubroundBlock(
 		subround,
 		fct.worker.Extend,
 		int(MtBlockBody),
 		int(MtBlockHeader),
 		processingThresholdPercent,
-		getSubroundName,
 	)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.ReceivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.ReceivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil
@@ -264,7 +261,6 @@ func (fct *factory) generateEndRoundSubround() error {
 		subround,
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
-		getSubroundName,
 		fct.worker.DisplayStatistics,
 	)
 	if err != nil {
@@ -276,6 +272,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
+	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
 	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
@@ -291,8 +288,4 @@ func (fct *factory) initConsensusThreshold() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
 	return fct == nil
-}
-
-func debugError(message string, err error) {
-	log.Debug(message, "type", "spos/bls", "error", err.Error())
 }

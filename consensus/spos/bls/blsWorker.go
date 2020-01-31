@@ -22,6 +22,7 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 	receivedMessages[MtBlockBody] = make([]*consensus.Message, 0)
 	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
+	receivedMessages[MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
 
 	return receivedMessages
 }
@@ -60,7 +61,7 @@ func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType
 
-	for i := MtBlockBody; i <= MtSignature; i++ {
+	for i := MtBlockBody; i <= MtBlockHeaderFinalInfo; i++ {
 		v = append(v, i)
 	}
 
@@ -76,6 +77,8 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtSignature:
 		return consensusState.Status(SrBlock) == spos.SsFinished
+	case MtBlockHeaderFinalInfo:
+		return consensusState.Status(SrSignature) == spos.SsFinished
 	}
 
 	return false

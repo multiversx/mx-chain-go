@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -10,8 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
-
-const roundTimeDuration = 100 * time.Millisecond
 
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
@@ -71,11 +68,13 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	receivedMessages[bls.MtBlockBody] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtSignature] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
 
 	assert.Equal(t, len(receivedMessages), len(messages))
 	assert.NotNil(t, messages[bls.MtBlockBody])
 	assert.NotNil(t, messages[bls.MtBlockHeader])
 	assert.NotNil(t, messages[bls.MtSignature])
+	assert.NotNil(t, messages[bls.MtBlockHeaderFinalInfo])
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
@@ -87,7 +86,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	messagesRange := blsService.GetMessageRange()
 	assert.NotNil(t, messagesRange)
 
-	for i := bls.MtBlockBody; i <= bls.MtSignature; i++ {
+	for i := bls.MtBlockBody; i <= bls.MtBlockHeaderFinalInfo; i++ {
 		v = append(v, i)
 	}
 	assert.NotNil(t, v)
@@ -169,6 +168,30 @@ func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWo
 	assert.False(t, canProceed)
 }
 
+func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrSignature, spos.SsFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
+	assert.True(t, canProceed)
+}
+
+func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalInfoShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrSignature, spos.SsNotFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
+	assert.False(t, canProceed)
+}
+
 func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
 	t.Parallel()
 
@@ -207,6 +230,8 @@ func TestWorker_GetStringValue(t *testing.T) {
 	assert.Equal(t, bls.BlockHeaderStringValue, r)
 	r = service.GetStringValue(bls.MtSignature)
 	assert.Equal(t, bls.BlockSignatureStringValue, r)
+	r = service.GetStringValue(bls.MtBlockHeaderFinalInfo)
+	assert.Equal(t, bls.BlockHeaderFinalInfoStringValue, r)
 	r = service.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, bls.BlockUnknownStringValue, r)
 	r = service.GetStringValue(-1)

@@ -3,6 +3,7 @@ package bls_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -14,12 +15,77 @@ import (
 
 var chainID = []byte("chain ID")
 
+const roundTimeDuration = 100 * time.Millisecond
+
+const processingThresholdPercent = 85
+
+const (
+	// SrStartRound defines ID of subround "Start round"
+	SrStartRound = iota
+	// SrBlock defines ID of subround "block"
+	SrBlock
+	// SrCommitmentHash defines ID of subround "commitment hash"
+	SrCommitmentHash
+	// SrBitmap defines ID of subround "bitmap"
+	SrBitmap
+	// SrCommitment defines ID of subround "commitment"
+	SrCommitment
+	// SrSignature defines ID of subround "signature"
+	SrSignature
+	// SrEndRound defines ID of subround "End round"
+	SrEndRound
+)
+
+const (
+	// MtBlockBody defines ID of a message that has a block body inside
+	MtBlockBody = iota + 1
+	// MtBlockHeader defines ID of a message that has a block header inside
+	MtBlockHeader
+)
+
+// getSubroundName returns the name of each subround from a given subround ID
+func getSubroundName(subroundId int) string {
+	switch subroundId {
+	case SrStartRound:
+		return "(START_ROUND)"
+	case SrBlock:
+		return "(BLOCK)"
+	case SrCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case SrBitmap:
+		return "(BITMAP)"
+	case SrCommitment:
+		return "(COMMITMENT)"
+	case SrSignature:
+		return "(SIGNATURE)"
+	case SrEndRound:
+		return "(END_ROUND)"
+	default:
+		return "Undefined subround"
+	}
+}
+
+func displayStatistics() {
+}
+
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
+}
+
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex: 0,
+		TimeStampCalled: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
+	}
 }
 
 func initWorker() spos.WorkerHandler {
@@ -65,6 +131,9 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 
 	r = bls.GetStringValue(bls.MtSignature)
 	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bls.GetStringValue(bls.MtBlockHeaderFinalInfo)
+	assert.Equal(t, "(FINAL_INFO)", r)
 
 	r = bls.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
