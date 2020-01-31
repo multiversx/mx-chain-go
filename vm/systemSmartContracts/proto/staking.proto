@@ -11,5 +11,5 @@ message StakingData {
 	bool     Staked        = 2 [(gogoproto.jsontag) = "Staked"];
 	uint64   UnStakedNonce = 3 [(gogoproto.jsontag) = "UnStakedNonce"];
 	bytes    BlsPubKey     = 4 [(gogoproto.jsontag) = "BlsPubKey"];
-	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"];
+	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }

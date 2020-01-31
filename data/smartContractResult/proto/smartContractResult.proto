@@ -10,7 +10,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 // Transaction holds all the data needed for a value transfer or SC call
 message SmartContractResult  {
 	uint64   Nonce     = 1 [(gogoproto.jsontag) = "nonce"];
-	bytes    Value     = 2 [(gogoproto.jsontag) = "value", (gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"];
+	bytes    Value     = 2 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes    RcvAddr   = 3 [(gogoproto.jsontag) = "receiver"];
 	bytes    SndAddr   = 4 [(gogoproto.jsontag) = "sender"];
 	bytes    Code      = 5 [(gogoproto.jsontag) = "code,omitempty"];

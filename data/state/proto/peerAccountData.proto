@@ -31,7 +31,7 @@ message PeerAccountData {
 	bytes BLSPublicKey       = 1;
 	bytes SchnorrPublicKey   = 2;
 	bytes Address            = 3;
-	bytes Stake  = 4 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+	bytes Stake  = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
 	TimePeriod  JailTime     = 5 [(gogoproto.nullable) = false];
 	repeated TimePeriod PastJailTimes = 6 [(gogoproto.nullable) = false];
 	uint32 CurrentShardId    = 7;
