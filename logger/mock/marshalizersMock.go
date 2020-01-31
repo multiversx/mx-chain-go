@@ -14,6 +14,8 @@ var TestingMarshalizers = map[string]marshal.Marshalizer{
 	"proto": &ProtobufMarshalizer{},
 }
 
+//-------- Json
+
 // JsonMarshalizer -
 type JsonMarshalizer struct{}
 
@@ -45,6 +47,8 @@ func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 func (j *JsonMarshalizer) IsInterfaceNil() bool {
 	return j == nil
 }
+
+//------- protobuf
 
 // ProtobufMarshalizer -
 type ProtobufMarshalizer struct{}

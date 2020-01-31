@@ -16,6 +16,8 @@ type SingleSignPublicKey struct {
 	PointCalled func() crypto.Point
 }
 
+//------- SingleSignKeyGenMock
+
 // GeneratePair -
 func (sskgm *SingleSignKeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	panic("implement me")
@@ -38,11 +40,10 @@ func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sskgm *SingleSignKeyGenMock) IsInterfaceNil() bool {
-	if sskgm == nil {
-		return true
-	}
-	return false
+	return sskgm == nil
 }
+
+//------- SingleSignPublicKey
 
 // ToByteArray -
 func (sspk *SingleSignPublicKey) ToByteArray() ([]byte, error) {
@@ -61,8 +62,5 @@ func (sspk *SingleSignPublicKey) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sspk *SingleSignPublicKey) IsInterfaceNil() bool {
-	if sspk == nil {
-		return true
-	}
-	return false
+	return sspk == nil
 }

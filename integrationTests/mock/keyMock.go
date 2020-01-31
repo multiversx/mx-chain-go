@@ -16,6 +16,8 @@ type PrivateKeyMock struct {
 type KeyGenMock struct {
 }
 
+//------- PublicKeyMock
+
 // ToByteArray -
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("pubKey"), nil
@@ -33,11 +35,10 @@ func (sspk *PublicKeyMock) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sspk *PublicKeyMock) IsInterfaceNil() bool {
-	if sspk == nil {
-		return true
-	}
-	return false
+	return sspk == nil
 }
+
+//------- PrivateKeyMock
 
 // ToByteArray -
 func (sk *PrivateKeyMock) ToByteArray() ([]byte, error) {
@@ -61,11 +62,10 @@ func (sk *PrivateKeyMock) Scalar() crypto.Scalar {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sk *PrivateKeyMock) IsInterfaceNil() bool {
-	if sk == nil {
-		return true
-	}
-	return false
+	return sk == nil
 }
+
+//------KeyGenMock
 
 // GeneratePair -
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
@@ -89,8 +89,5 @@ func (keyGen *KeyGenMock) Suite() crypto.Suite {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (keyGen *KeyGenMock) IsInterfaceNil() bool {
-	if keyGen == nil {
-		return true
-	}
-	return false
+	return keyGen == nil
 }
