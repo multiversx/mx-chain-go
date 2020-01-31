@@ -20,7 +20,7 @@ message MiniBlockData {
 message MetaAccountData {
 	uint64           Round         = 1;
 	uint64           Nonce         = 2;
-	bytes            TxCount       = 3 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"];
+	bytes            TxCount       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes            CodeHash      = 4;
 	bytes            RootHash      = 5;
 	repeated MiniBlockData MiniBlocks    = 6;

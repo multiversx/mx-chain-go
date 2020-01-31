@@ -29,7 +29,7 @@ message PeerData {
 	bytes      PublicKey   = 2 ;
 	PeerAction Action      = 3 ;
 	uint64     TimeStamp   = 4 ;
-	bytes  ValueChange = 5 [(gogoproto.customtype) = "github.com/ElrondNetwork/elrond-go/data.ProtoBigInt"]; 
+	bytes  ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"]; 
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header
