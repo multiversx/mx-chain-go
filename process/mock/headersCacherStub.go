@@ -2,6 +2,7 @@ package mock
 
 import (
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 

@@ -1,5 +1,6 @@
 package rating
 
+// NilRatingReader represents a nil implementation for the RatingReader interface
 type nilRatingReader struct {
 	startRating uint32
 }

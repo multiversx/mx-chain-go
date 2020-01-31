@@ -17,6 +17,8 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		HdrBuff:           []byte("test buffer"),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		ValidityAttester:  &mock.ValidityAttesterStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	return arg
@@ -130,6 +132,17 @@ func TestCheckBlockHeaderArgument_EmptChainIDShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.ValidityAttester = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {

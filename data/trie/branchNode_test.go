@@ -1199,15 +1199,6 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 	}
 }
 
-func BenchmarkMarshallNodeCapnp(b *testing.B) {
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
-	marsh := &marshal.CapnpMarshalizer{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = marsh.Marshal(bn)
-	}
-}
-
 func BenchmarkMarshallNodeJson(b *testing.B) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
 	marsh := marshal.JsonMarshalizer{}

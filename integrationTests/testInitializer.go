@@ -1473,6 +1473,7 @@ func ProposeAndSyncOneBlock(
 	nonce uint64,
 ) (uint64, uint64) {
 
+	UpdateRound(nodes, round)
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
@@ -1495,7 +1496,7 @@ func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapin
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
 func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
-	keysMap := make(map[uint32][]string, 0)
+	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))

@@ -29,7 +29,7 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
 	}
 
-	list := []sharding.Validator{}
+	var list []sharding.Validator
 
 	return list, nil
 }

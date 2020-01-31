@@ -91,7 +91,8 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	}
 	if val == nil {
 		//append a journal entry as the code needs to be inserted in the trie
-		entry, err := NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
+		var entry *BaseJournalEntryCreation
+		entry, err = NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -114,7 +115,7 @@ func (adb *AccountsDB) ClosePersister() error {
 
 	trees := adb.dataTries.GetAll()
 	for _, trie := range trees {
-		err := trie.ClosePersister()
+		err = trie.ClosePersister()
 		if err != nil {
 			log.Error("cannot close accounts trie persister", err)
 			closedSuccessfully = false

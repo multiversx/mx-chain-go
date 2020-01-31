@@ -2,6 +2,7 @@ package spos
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -149,4 +150,8 @@ func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 
 func (rcns *RoundConsensus) EligibleList() map[string]struct{} {
 	return rcns.eligibleNodes
+}
+
+func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
+	return wrk.appStatusHandler
 }

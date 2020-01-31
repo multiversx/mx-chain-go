@@ -84,6 +84,9 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		_, headers, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 
 		for shardId, consensusGroup := range consensusNodes {
@@ -180,6 +183,9 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 			}
 		}
 
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
@@ -255,6 +261,9 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 
 		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++

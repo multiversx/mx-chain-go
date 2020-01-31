@@ -45,7 +45,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 		InitialNodes:      initialNodes,
 	}
 
@@ -84,7 +84,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	return tpn
 }
 
-// CreateNodesWithNodesCoordinatorFactory returns a map with nodes per shard each using a real nodes coordinator
+// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
 func CreateNodesWithNodesCoordinator(
 	nodesPerShard int,
 	nbMetaNodes int,

@@ -32,8 +32,8 @@ func defaultSubround(
 
 	return spos.NewSubround(
 		-1,
-		int(SrStartRound),
-		int(SrBlock),
+		SrStartRound,
+		SrBlock,
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -335,7 +335,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	assert.False(t, r)
 }
 
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConsensusGroup(t *testing.T) {
+func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsensusGroup(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -348,7 +348,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
-	assert.False(t, r)
+	assert.True(t, r)
 }
 
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *testing.T) {

@@ -16,29 +16,11 @@ var ErrGetBalance = errors.New("get balance error")
 // ErrEmptyAddress signals an empty address was provided
 var ErrEmptyAddress = errors.New("address was empty")
 
-// ErrNodeAlreadyRunning signals the node is already running
-var ErrNodeAlreadyRunning = errors.New("node already running")
-
-// ErrNodeAlreadyStopped signals the node is already stopped
-var ErrNodeAlreadyStopped = errors.New("node already stopped")
-
-// ErrCouldNotStopNode signals the node is already stopped
-var ErrCouldNotStopNode = errors.New("could not stop node")
-
-// ErrBadInitOfNode signals the node is could not be started correctly
-var ErrBadInitOfNode = errors.New("bad init of node")
-
-// ErrCouldNotParsePubKey signals that a given public key could not be parsed
-var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
-
 // ErrValidation signals an error in validation
 var ErrValidation = errors.New("validation error")
 
 // ErrTxGenerationFailed signals an error generating a transaction
 var ErrTxGenerationFailed = errors.New("transaction generation failed")
-
-// ErrMultipleTxGenerationFailed signals an error generating multiple transactions
-var ErrMultipleTxGenerationFailed = errors.New("multiple transaction generation failed")
 
 // ErrInvalidSignatureHex signals a wrong hex value was provided for the signature
 var ErrInvalidSignatureHex = errors.New("invalid signature, could not decode hex value")

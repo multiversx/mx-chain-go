@@ -19,7 +19,6 @@ func TestMemStatisticsUsagePercent(t *testing.T) {
 	totalMem := mem.TotalMemory()
 	fmt.Printf("Total memory: %s\n", core.ConvertBytes(totalMem))
 
-	assert.True(t, memUsagePercentValue >= 0)
 	assert.True(t, memUsagePercentValue <= 100)
 	assert.True(t, totalMem > 0)
 }

@@ -13,7 +13,7 @@ type indexHashedNodesCoordinatorWithRater struct {
 	ChanceComputer
 }
 
-// NewIndexHashedNodesCoordinator creates a new index hashed group selector
+// NewIndexHashedNodesCoordinatorWithRater creates a new index hashed group selector
 func NewIndexHashedNodesCoordinatorWithRater(
 	indexNodesCoordinator *indexHashedNodesCoordinator,
 	rater RatingReader,
@@ -121,18 +121,18 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 	zeroChanceValidators := make([]Validator, 0)
 	totalValidatorsSelected := 0
 
-	for _, validator := range validators {
-		pk := validator.PubKey()
+	for _, validatorInShard := range validators {
+		pk := validatorInShard.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
 		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
 		if chances > 0 {
 			totalValidatorsSelected += 1
 		} else {
-			zeroChanceValidators = append(zeroChanceValidators, validator)
+			zeroChanceValidators = append(zeroChanceValidators, validatorInShard)
 		}
 		for i := uint32(0); i < chances; i++ {
-			validatorList = append(validatorList, validator)
+			validatorList = append(validatorList, validatorInShard)
 		}
 	}
 

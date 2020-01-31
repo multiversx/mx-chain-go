@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -154,16 +156,16 @@ func (t *trigger) Update(round uint64) {
 		return
 	}
 
-	if round <= t.currentRound {
-		return
-	}
-
 	t.currentRound = round
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.epoch += 1
 		t.isEpochStart = true
+		t.prevEpochStartRound = t.currEpochStartRound
 		t.currEpochStartRound = t.currentRound
+
+		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
+		log.Debug(display.Headline(msg, "", "#"))
 	}
 }
 
@@ -209,7 +211,7 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert() {
+func (t *trigger) Revert(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -219,7 +221,15 @@ func (t *trigger) Revert() {
 		log.Debug("Revert remove from metaHdrStorage", "error", err.Error())
 	}
 
-	t.isEpochStart = true
+	t.currEpochStartRound = t.prevEpochStartRound
+	t.epoch--
+	t.isEpochStart = false
+	t.currentRound = round
+	if t.currentRound > 0 {
+		t.currentRound--
+	}
+
+	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
 }
 
 // Epoch return the current epoch
@@ -244,9 +254,10 @@ func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 	t.epochStartMetaHash = metaHdrHash
 }
 
-// SetLastEpochStartRound sets the round when the current epoch started
+// SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
+	t.currEpochStartRound = round
 	t.currentRound = round
 	t.mutTrigger.Unlock()
 }

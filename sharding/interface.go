@@ -106,7 +106,7 @@ type ChanceComputer interface {
 
 //RatingReaderSetter provides the capabilities to set a RatingReader
 type RatingReaderSetter interface {
-	//GetRating gets the rating for the public key
+	//SetRatingReader sets the rating
 	SetRatingReader(RatingReader)
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool

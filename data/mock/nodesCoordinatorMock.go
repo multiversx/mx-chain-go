@@ -16,6 +16,7 @@ type NodesCoordinatorMock struct {
 	MetaConsensusSize                   uint32
 	ShardId                             uint32
 	NbShards                            uint32
+	GetOwnPublicKeyCalled               func() []byte
 	GetSelectedPublicKeysCalled         func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
@@ -200,7 +201,11 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte, epo
 }
 
 func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
-	panic("implement me")
+	if ncm.GetOwnPublicKeyCalled != nil {
+		return ncm.GetOwnPublicKeyCalled()
+	}
+
+	return []byte("key")
 }
 
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {

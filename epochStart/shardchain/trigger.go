@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -38,16 +40,12 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epoch                       uint32
+	epochMetaBlockHash          []byte
 	currentRoundIndex           int64
 	epochStartRound             uint64
-	epochMetaBlockHash          []byte
-	isEpochStart                bool
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
-
-	newEpochHdrReceived bool
 
 	mutTrigger        sync.RWMutex
 	mapHashHdr        map[string]*block.MetaBlock
@@ -65,6 +63,11 @@ type trigger struct {
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.EpochStartNotifier
+
+	epoch uint32
+
+	newEpochHdrReceived bool
+	isEpochStart        bool
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -235,6 +238,9 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+
+			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
+			log.Debug(display.Headline(msg, "", "#"))
 
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
@@ -464,6 +470,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
+	t.epoch = shardHdr.Epoch
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
@@ -476,7 +483,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert() {
+func (t *trigger) Revert(_ uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 

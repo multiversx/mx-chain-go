@@ -16,6 +16,7 @@ func TestNewIntermediateTransactionHandlersContainer_ShouldWork(t *testing.T) {
 	c := containers.NewIntermediateTransactionHandlersContainer()
 
 	assert.NotNil(t, c)
+	assert.False(t, c.IsInterfaceNil())
 }
 
 //------- Add

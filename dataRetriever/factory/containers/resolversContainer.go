@@ -88,8 +88,5 @@ func (rc *resolversContainer) Len() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rc *resolversContainer) IsInterfaceNil() bool {
-	if rc == nil {
-		return true
-	}
-	return false
+	return rc == nil
 }

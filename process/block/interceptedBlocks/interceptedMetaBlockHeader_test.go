@@ -20,6 +20,8 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),
+		ValidityAttester:  &mock.ValidityAttesterStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -133,6 +135,40 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_CheckAgainstRounderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedMetaHeader_CheckAgainstFinalHeaderAttesterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
 }
 
 //------- getters

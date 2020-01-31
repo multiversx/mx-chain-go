@@ -83,7 +83,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.interceptedData(dataBuff)
+		var interceptedData process.InterceptedData
+		interceptedData, err = mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
@@ -135,8 +136,5 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
-	if mdi == nil {
-		return true
-	}
-	return false
+	return mdi == nil
 }

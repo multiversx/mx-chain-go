@@ -99,7 +99,7 @@ func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
 	}
 }
 
-//SetRatingReader sets the Reader that can read ratings
+// IsInterfaceNil returns true if there is no value under the interface
 func (bsr *BlockSigningRater) IsInterfaceNil() bool {
 	return bsr == nil
 }
