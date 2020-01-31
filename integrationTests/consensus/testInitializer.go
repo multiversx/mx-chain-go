@@ -455,6 +455,7 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithChainID(consensusChainID),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	if err != nil {

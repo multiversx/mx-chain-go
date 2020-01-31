@@ -503,13 +503,24 @@ func WithBlockTracker(blockTracker process.BlockTracker) Option {
 	}
 }
 
-// WithPendingMiniBlocks sets up the pending miniblocks for the Node
-func WithPendingMiniBlocks(pendingMiniBlocks process.PendingMiniBlocksHandler) Option {
+// WithPendingMiniBlocksHandler sets up the pending miniblocks handler for the Node
+func WithPendingMiniBlocksHandler(pendingMiniBlocksHandler process.PendingMiniBlocksHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(pendingMiniBlocks) {
+		if check.IfNil(pendingMiniBlocksHandler) {
 			return ErrNilPendingMiniBlocksHandler
 		}
-		n.pendingMiniBlocks = pendingMiniBlocks
+		n.pendingMiniBlocksHandler = pendingMiniBlocksHandler
+		return nil
+	}
+}
+
+// WithRequestHandler sets up the request handler for the Node
+func WithRequestHandler(requestHandler process.RequestHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(requestHandler) {
+			return ErrNilRequestHandler
+		}
+		n.requestHandler = requestHandler
 		return nil
 	}
 }
