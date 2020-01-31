@@ -269,6 +269,7 @@ func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
 	t.currEpochStartRound = round
 	t.currentRound = round
+	t.saveCurrentState(round)
 	t.mutTrigger.Unlock()
 }
 
