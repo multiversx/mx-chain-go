@@ -43,28 +43,6 @@ const (
 	MtBlockHeader
 )
 
-// getSubroundName returns the name of each subround from a given subround ID
-func getSubroundName(subroundId int) string {
-	switch subroundId {
-	case SrStartRound:
-		return "(START_ROUND)"
-	case SrBlock:
-		return "(BLOCK)"
-	case SrCommitmentHash:
-		return "(COMMITMENT_HASH)"
-	case SrBitmap:
-		return "(BITMAP)"
-	case SrCommitment:
-		return "(COMMITMENT)"
-	case SrSignature:
-		return "(SIGNATURE)"
-	case SrEndRound:
-		return "(END_ROUND)"
-	default:
-		return "Undefined subround"
-	}
-}
-
 func displayStatistics() {
 }
 
