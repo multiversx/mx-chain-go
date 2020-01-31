@@ -572,7 +572,6 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr stri
 	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shardIdStr) > 0 {
 		filePath += shardIdStr
-		args.Identifier += shardIdStr
 	}
 
 	db, err := args.PersisterFactory.Create(filePath)

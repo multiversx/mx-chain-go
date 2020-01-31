@@ -6,19 +6,18 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
-
-	"github.com/ElrondNetwork/elrond-go/core/check"
-
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // TODO: move this to config parameters
 const nodeCoordinatorStoredEpochs = 2
 
+// TODO: add a parameter for shardId  when acting as observer
 type epochNodesConfig struct {
 	nbShards     uint32
 	shardId      uint32
