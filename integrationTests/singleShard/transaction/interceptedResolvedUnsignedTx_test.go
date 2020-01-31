@@ -2,11 +2,11 @@ package transaction
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -49,7 +49,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	//Step 1. Generate an unsigned transaction
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   0,
-		Value:   data.NewProtoBigInt(0),
+		Value:   big.NewInt(0),
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",

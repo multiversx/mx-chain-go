@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,7 @@ func TestAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 	addrTr := &mock.AccountTrackerStub{}
 	acnt, _ := state.NewAccount(addr, addrTr)
 	acnt.Nonce = 0
-	acnt.Balance = data.NewProtoBigInt(56)
+	acnt.Balance = big.NewInt(56)
 	acnt.CodeHash = nil
 	acnt.RootHash = nil
 
@@ -198,7 +197,7 @@ func TestAccount_SetBalanceWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, balance, acc.Balance.Get())
+	assert.Equal(t, balance, acc.Balance)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }

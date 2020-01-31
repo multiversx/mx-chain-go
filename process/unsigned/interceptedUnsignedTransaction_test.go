@@ -3,11 +3,11 @@ package unsigned_test
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -173,7 +173,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
@@ -192,7 +192,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testi
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
@@ -210,7 +210,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilSenderAddressShouldErr(t
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: nil,
@@ -228,7 +228,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilRecvAddressShouldErr(t *
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: nil,
 		SndAddr: senderAddress,
@@ -264,7 +264,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilNegativeValueShouldErr(t
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(-2),
+		Value:   big.NewInt(-2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
@@ -282,7 +282,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityInvalidSenderShouldErr(t *t
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: []byte(""),
@@ -300,7 +300,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
-		Value:   data.NewProtoBigInt(2),
+		Value:   big.NewInt(2),
 		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
@@ -319,7 +319,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(45)
-	value := data.NewProtoBigInt(2)
+	value := big.NewInt(2)
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   nonce,
 		Value:   value,
@@ -340,7 +340,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
-	assert.Equal(t, value.Get(), txi.TotalValue())
+	assert.Equal(t, value, txi.TotalValue())
 	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
 }
 

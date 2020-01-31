@@ -2,6 +2,7 @@ package rewardTransaction_test
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -123,7 +124,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}
@@ -154,7 +155,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}
@@ -182,7 +183,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}
@@ -208,7 +209,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotAddIntermediateTxsShoul
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}
@@ -235,7 +236,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}
@@ -274,7 +275,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("rcvr"),
 		ShardID: 0,
 	}

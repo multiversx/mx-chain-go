@@ -445,7 +445,7 @@ func verifyRewardsForShards(
 
 			expectedBalance.Add(expectedBalance, totalFees)
 			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressContainer().Bytes(), expectedBalance))
-			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance.Get())
+			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}
 }

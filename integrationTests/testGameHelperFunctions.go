@@ -226,9 +226,9 @@ func CheckPlayerBalanceTheSameWithBlockchain(
 	fmt.Println("Checking sender has initial-topUp val...")
 	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(player.Address.Bytes()))
 	assert.NotNil(t, accnt)
-	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Get().Uint64())
+	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	if !ok {
-		fmt.Printf("Expected player balance %d Actual player balance %d\n", player.Balance.Uint64(), accnt.(*state.Account).Balance.Get().Uint64())
+		fmt.Printf("Expected player balance %d Actual player balance %d\n", player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	}
 }
 
@@ -250,9 +250,9 @@ func CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
-	ok := assert.Equal(t, expectedSC.Uint64(), accnt.(*state.Account).Balance.Get().Uint64())
+	ok := assert.Equal(t, expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	if !ok {
-		fmt.Printf("Expected smart contract val %d Actual smart contract val %d\n", expectedSC.Uint64(), accnt.(*state.Account).Balance.Get().Uint64())
+		fmt.Printf("Expected smart contract val %d Actual smart contract val %d\n", expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	}
 
 	return expectedSC
@@ -331,7 +331,7 @@ func CheckSenderBalanceOkAfterTopUpAndWithdraw(
 	expectedSender.Add(expectedSender, withdraw)
 	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance.Get())
+	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
 // CheckSenderBalanceOkAfterTopUp checks if sender balance is ok after top-up
@@ -346,7 +346,7 @@ func CheckSenderBalanceOkAfterTopUp(
 	expectedVal.Sub(expectedVal, topUpVal)
 	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance.Get())
+	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
 // CheckScTopUp checks if sc received the top-up value
@@ -360,7 +360,7 @@ func CheckScTopUp(
 	accnt, err := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
 	assert.Nil(t, err)
 	assert.NotNil(t, accnt)
-	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance.Get())
+	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 }
 
 // CheckScBalanceOf checks the balance of a SC

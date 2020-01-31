@@ -304,7 +304,7 @@ func TestPeerAccount_SetStakeWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, stake.Uint64(), acc.Stake.Get().Uint64())
+	assert.Equal(t, stake.Uint64(), acc.Stake.Uint64())
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }

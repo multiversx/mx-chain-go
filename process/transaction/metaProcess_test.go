@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -165,7 +166,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	err := execTx.ProcessTransaction(&tx)
 	assert.NotNil(t, err)
@@ -179,7 +180,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -219,7 +220,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -261,7 +262,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
@@ -271,7 +272,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 
-	acntSrc.Balance = data.NewProtoBigInt(46)
+	acntSrc.Balance = big.NewInt(46)
 	acntDst.SetCode([]byte{65})
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -323,11 +324,11 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = data.NewProtoBigInt(45)
+	acntSrc.Balance = big.NewInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
@@ -382,7 +383,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.RcvAddr) {
@@ -394,7 +395,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = data.NewProtoBigInt(45)
+	acntSrc.Balance = big.NewInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -22,7 +21,7 @@ func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 		return &state.Account{
 			AccountData: state.AccountData{
 				Nonce:    nonce,
-				Balance:  data.NewProtoBigIntFromBigInt(balance),
+				Balance:  new(big.Int).Set(balance),
 				CodeHash: nil,
 				RootHash: nil,
 			},

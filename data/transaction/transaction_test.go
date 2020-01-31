@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +13,7 @@ import (
 func TestTransaction_SaveLoad(t *testing.T) {
 	tx := transaction.Transaction{
 		Nonce:     uint64(1),
-		Value:     data.NewProtoBigInt(1),
+		Value:     big.NewInt(1),
 		RcvAddr:   []byte("receiver_address"),
 		SndAddr:   []byte("sender_address"),
 		GasPrice:  uint64(10000),
@@ -62,7 +61,7 @@ func TestTransaction_GetSndAddr(t *testing.T) {
 func TestTransaction_GetValue(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(10)
+	value := big.NewInt(10)
 	tx := &transaction.Transaction{Value: value}
 
 	assert.Equal(t, value, tx.Value)
@@ -101,7 +100,7 @@ func TestTransaction_SetSndAddr(t *testing.T) {
 func TestTransaction_SetValue(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(10)
+	value := big.NewInt(10)
 	tx := &transaction.Transaction{}
 	tx.SetValue(value)
 
@@ -114,7 +113,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 	value := big.NewInt(445566)
 	tx := &transaction.Transaction{
 		Nonce:     112233,
-		Value:     data.NewProtoBigIntFromBigInt(value),
+		Value:     new(big.Int).Set(value),
 		RcvAddr:   []byte("receiver"),
 		SndAddr:   []byte("sender"),
 		GasPrice:  1234,

@@ -44,7 +44,7 @@ func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 		return &state.Account{
 			AccountData: state.AccountData{
 				Nonce:   1,
-				Balance: data.NewProtoBigIntFromBigInt(balance),
+				Balance: new(big.Int).Set(balance),
 			},
 		}, nil
 	}
@@ -553,7 +553,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 			return &state.Account{
 				AccountData: state.AccountData{
 					Nonce:   nonce,
-					Balance: data.NewProtoBigInt(0),
+					Balance: big.NewInt(0),
 				},
 			}, nil
 		},
@@ -720,7 +720,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
-	assert.Equal(t, value, tx.Value.Get())
+	assert.Equal(t, value, tx.Value)
 	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
 }
 
@@ -791,7 +791,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 
 	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
 		Nonce:     nonce,
-		Value:     data.NewProtoBigIntFromBigInt(value),
+		Value:     new(big.Int).Set(value),
 		SndAddr:   senderBuff.Bytes(),
 		RcvAddr:   receiverBuff.Bytes(),
 		Data:      txData,
@@ -1600,7 +1600,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, uint64(0), recovAccnt.Balance.Get().Uint64())
+	assert.Equal(t, uint64(0), recovAccnt.Balance.Uint64())
 	assert.Nil(t, recovAccnt.CodeHash)
 	assert.Nil(t, recovAccnt.RootHash)
 }
@@ -1632,7 +1632,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	accnt := &state.Account{
 		AccountData: state.AccountData{
-			Balance:  data.NewProtoBigInt(1),
+			Balance:  big.NewInt(1),
 			Nonce:    2,
 			RootHash: []byte("root hash"),
 			CodeHash: []byte("code hash"),
@@ -1782,7 +1782,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	var txsToSend []*transaction.Transaction
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     10,
-		Value:     data.NewProtoBigInt(15),
+		Value:     big.NewInt(15),
 		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
@@ -1793,7 +1793,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     11,
-		Value:     data.NewProtoBigInt(25),
+		Value:     big.NewInt(25),
 		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
@@ -1804,7 +1804,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     12,
-		Value:     data.NewProtoBigInt(35),
+		Value:     big.NewInt(35),
 		RcvAddr:   []byte("receiverShard0"),
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,

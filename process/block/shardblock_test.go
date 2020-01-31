@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -3156,7 +3157,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	body := make(block.Body, 0)
 	tx := &transaction.Transaction{
 		Nonce: 1,
-		Value: data.NewProtoBigInt(0),
+		Value: big.NewInt(0),
 	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 

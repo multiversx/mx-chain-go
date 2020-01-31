@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -58,7 +57,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	txDataCost := uint64(len(txData))
 	tx := transaction.Transaction{
 		Nonce:    0,
-		Value:    data.NewProtoBigInt(0),
+		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
 		Data:     txData,
@@ -142,7 +141,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	//Step 1. Generate a reward Transaction
 	tx := rewardTx.RewardTx{
-		Value:   data.NewProtoBigInt(0),
+		Value:   big.NewInt(0),
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		Round:   0,
 		Epoch:   0,

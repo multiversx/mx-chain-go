@@ -132,7 +132,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	assert.Nil(t, err)
 	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
-	assert.Equal(t, accountRecovered.Balance.Get(), balance)
+	assert.Equal(t, accountRecovered.Balance, balance)
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
@@ -146,7 +146,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	assert.Nil(t, err)
 	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
-	assert.Equal(t, accountRecovered.Balance.Get().Uint64(), uint64(0))
+	assert.Equal(t, accountRecovered.Balance.Uint64(), uint64(0))
 }
 
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
@@ -245,12 +245,12 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	//checking state1
 	newState1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	assert.Equal(t, newState1.(*state.Account).Balance.Get(), balance1)
+	assert.Equal(t, newState1.(*state.Account).Balance, balance1)
 
 	//checking state2
 	newState2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	assert.Equal(t, newState2.(*state.Account).Balance.Get(), balance2)
+	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
@@ -326,12 +326,12 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//checking state1
 	newState1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	assert.Equal(t, newState1.(*state.Account).Balance.Get(), balance1)
+	assert.Equal(t, newState1.(*state.Account).Balance, balance1)
 
 	//checking state2
 	newState2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	assert.Equal(t, newState2.(*state.Account).Balance.Get(), balance2)
+	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
@@ -1029,7 +1029,7 @@ func createAndExecTxs(
 
 		tx := &transaction2.Transaction{
 			Nonce:   1,
-			Value:   data.NewProtoBigInt(int64(txVal)),
+			Value:   big.NewInt(int64(txVal)),
 			SndAddr: addr[sender].Bytes(),
 			RcvAddr: addr[receiver].Bytes(),
 		}

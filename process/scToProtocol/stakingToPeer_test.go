@@ -265,7 +265,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 			PeerAccountData: state.PeerAccountData{
 				Address:      []byte("addr"),
 				BLSPublicKey: []byte("BlsAddr"),
-				Stake:        data.NewProtoBigInt(100),
+				Stake:        big.NewInt(100),
 			},
 		}, nil
 	}
@@ -310,13 +310,13 @@ func TestStakingToPeer_UpdateProtocolCannotSetBLSPublicKeyShouldErr(t *testing.T
 	peerState := &mock.AccountsStub{}
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte("key")
 		return peerAccount, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigInt(100),
+		StakeValue: big.NewInt(100),
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -369,13 +369,13 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 				return testError
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(0)
+		peerAccount.Stake = big.NewInt(0)
 		peerAccount.BLSPublicKey = []byte(blsPublicKey)
 		return peerAccount, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigInt(100),
+		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -429,14 +429,14 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 				return testError
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(blsPublicKey)
 		peerAccount.Nonce = 1
 		return peerAccount, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigInt(100),
+		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -490,14 +490,14 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 				return nil
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(blsPublicKey)
 		peerAccount.Nonce = 1
 		return peerAccount, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigInt(100),
+		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -551,14 +551,14 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 				return testError
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(blsPublicKey)
 		peerAccount.UnStakedNonce = 1
 		return peerAccount, nil
 	}
 
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigInt(100),
+		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -611,7 +611,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 				return nil
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte("")
 		peerAccount.UnStakedNonce = 1
 		return peerAccount, nil
@@ -619,7 +619,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigIntFromBigInt(stakeValue),
+		StakeValue: new(big.Int).Set(stakeValue),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -645,7 +645,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 
 	peersData := stakingToPeer.PeerChanges()
 	assert.Equal(t, 1, len(peersData))
-	assert.Equal(t, stakeValue, peersData[0].ValueChange.Get())
+	assert.Equal(t, stakeValue, peersData[0].ValueChange)
 
 	err = stakingToPeer.VerifyPeerChanges(peersData)
 	assert.Nil(t, err)
@@ -679,7 +679,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 				return nil
 			},
 		})
-		peerAccount.Stake = data.NewProtoBigInt(100)
+		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte("")
 		peerAccount.UnStakedNonce = 1
 		return peerAccount, nil
@@ -687,7 +687,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	stakingData := systemSmartContracts.StakingData{
-		StakeValue: data.NewProtoBigIntFromBigInt(stakeValue),
+		StakeValue: new(big.Int).Set(stakeValue),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
 	marshalizer := &mock.MarshalizerMock{}

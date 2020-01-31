@@ -456,7 +456,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 func PrintShardAccount(accnt *state.Account, tag string) {
 	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Get().Uint64())
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
@@ -505,8 +505,8 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 // balance and nonce, and printing any encountered error
 func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
 
-	srcVal := acntSrc.Balance.Get()
-	destVal := acntDest.Balance.Get()
+	srcVal := acntSrc.Balance
+	destVal := acntDest.Balance
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
@@ -903,7 +903,7 @@ func CreateAndSendTransaction(
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
-		Value:    data.NewProtoBigIntFromBigInt(txValue),
+		Value:    new(big.Int).Set(txValue),
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
 		Data:     txData,
@@ -940,7 +940,7 @@ func generateTransferTx(
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigIntFromBigInt(valToTransfer),
+		Value:    new(big.Int).Set(valToTransfer),
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
 		Data:     "",
@@ -961,7 +961,7 @@ func generateTx(
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    args.nonce,
-		Value:    data.NewProtoBigIntFromBigInt(args.value),
+		Value:    new(big.Int).Set(args.value),
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
@@ -984,7 +984,7 @@ func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.Publi
 	pkBuff, _ := pk.ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance.Get())
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
@@ -992,7 +992,7 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.(*state.Account).Balance.Get())
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body

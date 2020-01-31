@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/data"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -54,7 +53,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    txData,
-				Value:   data.NewProtoBigIntFromBigInt(value),
+				Value:   new(big.Int).Set(value),
 			}, nil
 		},
 	}
@@ -92,7 +91,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    txData,
-				Value:   data.NewProtoBigIntFromBigInt(value),
+				Value:   new(big.Int).Set(value),
 			}, nil
 		},
 	}

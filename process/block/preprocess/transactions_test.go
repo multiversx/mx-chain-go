@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -120,7 +121,7 @@ func initDataPool() *mock.PoolsHolderStub {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &rewardTx.RewardTx{Value: data.NewProtoBigInt(100)}, true
+								return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
 							}
 							return nil, false
 						},
@@ -136,7 +137,7 @@ func initDataPool() *mock.PoolsHolderStub {
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &rewardTx.RewardTx{Value: data.NewProtoBigInt(100)}, true
+						return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
 					}
 					return nil, false
 				},
