@@ -935,12 +935,14 @@ func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) 
 
 func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	if finalHeader.IsStartOfEpochBlock() {
+		log.Trace("trie snapshot", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SnapshotState(finalHeader.GetRootHash())
 		return
 	}
 
 	// TODO generate checkpoint on a trigger
 	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		log.Trace("trie checkpoint", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
 	}
 }

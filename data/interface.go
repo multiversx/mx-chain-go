@@ -18,7 +18,7 @@ const (
 	NewRoot TriePruningIdentifier = 1
 )
 
-// ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is commited
+// ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
 type ModifiedHashes map[string]struct{}
 
 // HeaderHandler defines getters and setters for header data holder
