@@ -71,10 +71,9 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		return errors.New(fmt.Sprintf("cannot convert account handler in a state.Account %s", hexSenderAddr))
 	}
 
-	accountBalance := account.Balance.Get()
 	txTotalValue := interceptedTx.TotalValue()
-	if accountBalance.Cmp(txTotalValue) < 0 {
-		return errors.New(fmt.Sprintf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance))
+	if account.Balance.Cmp(txTotalValue) < 0 {
+		return errors.New(fmt.Sprintf("insufficient balance. Needed %d, account has %d", txTotalValue, account.Balance))
 	}
 
 	return nil

@@ -353,7 +353,7 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 		return big.NewInt(0), nil
 	}
 
-	return account.Balance.Get(), nil
+	return account.Balance, nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -565,7 +565,7 @@ func (n *Node) SendTransaction(
 
 	tx := transaction.Transaction{
 		Nonce:     nonce,
-		Value:     data.NewProtoBigIntFromBigInt(valAsBigInt),
+		Value:     new(big.Int).Set(valAsBigInt),
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
@@ -753,7 +753,7 @@ func (n *Node) CreateTransaction(
 
 	return &transaction.Transaction{
 		Nonce:     nonce,
-		Value:     data.NewProtoBigIntFromBigInt(valAsBigInt),
+		Value:     new(big.Int).Set(valAsBigInt),
 		RcvAddr:   receiverAddress.Bytes(),
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
@@ -797,7 +797,7 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 			return &state.Account{
 				AccountData: state.AccountData{
 					Nonce:    0,
-					Balance:  data.NewProtoBigInt(0),
+					Balance:  big.NewInt(0),
 					RootHash: nil,
 					CodeHash: nil,
 				},

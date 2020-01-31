@@ -4,6 +4,7 @@ package rewardTx
 import (
 	io "io"
 	"io/ioutil"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -16,15 +17,7 @@ func (tx *RewardTx) IsInterfaceNil() bool {
 }
 
 // SetValue sets the value of the transaction
-func (tx *RewardTx) GetValue() *data.ProtoBigInt {
-	if tx == nil {
-		return nil
-	}
-	return tx.Value
-}
-
-// SetValue sets the value of the transaction
-func (tx *RewardTx) SetValue(value *data.ProtoBigInt) {
+func (tx *RewardTx) SetValue(value *big.Int) {
 	tx.Value = value
 }
 

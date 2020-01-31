@@ -2,11 +2,11 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math/big"
 	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -203,7 +203,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
-		ValueChange: data.NewProtoBigIntFromBigInt(account.Stake.Get()),
+		ValueChange: account.Stake,
 	}
 
 	peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, actualPeerChange)
@@ -226,8 +226,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if stakingData.StakeValue.Get().Cmp(account.Stake.Get()) != 0 {
-		err := account.SetStakeWithJournal(stakingData.StakeValue.Get())
+	if stakingData.StakeValue.Cmp(account.Stake) != 0 {
+		err := account.SetStakeWithJournal(stakingData.StakeValue)
 		if err != nil {
 			return err
 		}
@@ -268,13 +268,13 @@ func (stp *stakingToPeer) createPeerChangeData(
 		PublicKey:   account.BLSPublicKey,
 		Action:      0,
 		TimeStamp:   nonce,
-		ValueChange: data.NewProtoBigInt(0),
+		ValueChange: big.NewInt(0),
 	}
 
 	if len(account.BLSPublicKey) == 0 {
 		actualPeerChange.Action = block.PeerRegistration
 		actualPeerChange.TimeStamp = stakingData.StartNonce
-		actualPeerChange.ValueChange.Set(stakingData.StakeValue.Get())
+		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
 
 		peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, &actualPeerChange)
 		if err != nil {
@@ -286,9 +286,9 @@ func (stp *stakingToPeer) createPeerChangeData(
 		return nil
 	}
 
-	if account.Stake.Get().Cmp(stakingData.StakeValue.Get()) != 0 {
-		actualPeerChange.ValueChange.Get().Sub(account.Stake.Get(), stakingData.StakeValue.Get())
-		if account.Stake.Get().Cmp(stakingData.StakeValue.Get()) < 0 {
+	if account.Stake.Cmp(stakingData.StakeValue) != 0 {
+		actualPeerChange.ValueChange.Sub(account.Stake, stakingData.StakeValue)
+		if account.Stake.Cmp(stakingData.StakeValue) < 0 {
 			actualPeerChange.Action = block.PeerSlashed
 		} else {
 			actualPeerChange.Action = block.PeerReStake

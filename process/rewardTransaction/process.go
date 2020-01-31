@@ -100,7 +100,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	}
 
 	operation := big.NewInt(0)
-	operation = operation.Add(rTx.GetValue().Get(), rewardAcc.Balance.Get())
+	operation = operation.Add(rTx.GetValue(), rewardAcc.Balance)
 	err = rewardAcc.SetBalanceWithJournal(operation)
 
 	return err

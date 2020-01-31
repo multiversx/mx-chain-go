@@ -23,6 +23,11 @@ func (c *BigIntCaster) MarshalTo(a *big.Int, buf []byte) (int, error) {
 	if len(buf) <= len(bytes) {
 		return 0, ErrInvalidValue
 	}
+	if a == nil {
+		buf[0] = 0
+		buf[1] = 0
+		return 2, nil
+	}
 	copy(buf[1:], bytes)
 	if a.Sign() < 0 {
 		buf[0] = 1

@@ -128,7 +128,7 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if inUTx.uTx.Value == nil {
 		return process.ErrNilValue
 	}
-	if inUTx.uTx.Value.Get().Sign() < 0 {
+	if inUTx.uTx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
 	if len(inUTx.uTx.TxHash) == 0 {
@@ -170,7 +170,7 @@ func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandl
 
 // TotalValue returns the value of the unsigned transaction
 func (inUTx *InterceptedUnsignedTransaction) TotalValue() *big.Int {
-	return new(big.Int).Set(inUTx.uTx.GetValue().Get())
+	return new(big.Int).Set(inUTx.uTx.GetValue())
 }
 
 // Hash gets the hash of this transaction
