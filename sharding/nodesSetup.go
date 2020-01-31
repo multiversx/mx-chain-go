@@ -209,7 +209,7 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 
 // InitialNodesPubKeys - gets initial nodes public keys
 func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
-	allNodesPubKeys := make(map[uint32][]string, 0)
+	allNodesPubKeys := make(map[uint32][]string)
 	for shardId, nodesInfo := range ns.eligible {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {

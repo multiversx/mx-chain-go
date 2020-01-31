@@ -1,6 +1,8 @@
 package commonSubround
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -59,4 +61,8 @@ func (sr *SubroundBlock) SendBlockBody(body data.BodyHandler) bool {
 
 func (sr *SubroundBlock) SendBlockHeader(header data.HeaderHandler) bool {
 	return sr.sendBlockHeader(header)
+}
+
+func (sr *SubroundBlock) ComputeSubroundProcessingMetric(startTime time.Time, metric string) {
+	sr.computeSubroundProcessingMetric(startTime, metric)
 }

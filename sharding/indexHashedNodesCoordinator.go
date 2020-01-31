@@ -553,7 +553,7 @@ func (ihgs *indexHashedNodesCoordinator) checkIndex(
 
 		if ihgs.validatorIsInList(v, selectedList) {
 			proposedIndex++
-			proposedIndex = proposedIndex % len(eligibleList)
+			proposedIndex %= len(eligibleList)
 			continue
 		}
 

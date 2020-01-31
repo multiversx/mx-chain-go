@@ -11,8 +11,5 @@ func (idfs *InterceptedDataFactoryStub) Create(buff []byte) (process.Intercepted
 }
 
 func (idfs *InterceptedDataFactoryStub) IsInterfaceNil() bool {
-	if idfs == nil {
-		return true
-	}
-	return false
+	return idfs == nil
 }

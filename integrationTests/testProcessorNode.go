@@ -110,8 +110,8 @@ var TimeSpanForBadHeaders = time.Second * 30
 // roundDuration defines the duration of the round
 const roundDuration = 5 * time.Second
 
-// IntegrationTestsChainID is the chain ID identifier used in integration tests, processing nodes
-var IntegrationTestsChainID = []byte("integration tests chain ID")
+// ChainID is the chain ID identifier used in integration tests, processing nodes
+var ChainID = []byte("integration tests chain ID")
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -232,7 +232,7 @@ func NewTestProcessorNode(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -265,7 +265,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -301,12 +301,12 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
-	tpn.initInterceptors()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
@@ -325,8 +325,8 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.EconomicsData.EconomicsData,
 		rootHash,
 	)
-	tpn.initHeaderValidator()
 	tpn.initBlockTracker()
+	tpn.initInterceptors()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -414,6 +414,21 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime: tpn.Rounder.TimeStamp(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+			Storage:            tpn.Storage,
+			Marshalizer:        TestMarshalizer,
+		}
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
@@ -435,6 +450,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.BlockTracker,
+			tpn.EpochStartTrigger,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -442,6 +459,23 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			fmt.Println(err.Error())
 		}
 	} else {
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    tpn.HeaderValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.DataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		}
+		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
 		interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 			tpn.AccntState,
 			tpn.ShardCoordinator,
@@ -463,6 +497,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.HeaderSigVerifier,
 			tpn.ChainID,
 			sizeCheckDelta,
+			tpn.BlockTracker,
+			tpn.EpochStartTrigger,
 		)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -824,7 +860,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		HeaderValidator:              tpn.HeaderValidator,
-		Rounder:                      &mock.RounderMock{},
+		Rounder:                      tpn.Rounder,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -873,15 +909,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:   argumentsBase,
-			SCDataGetter:       tpn.SCQueryService,
-			SCToProtocol:       scToProtocol,
-			PeerChangesHandler: scToProtocol,
-			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+			ArgBaseProcessor:         argumentsBase,
+			SCDataGetter:             tpn.SCQueryService,
+			SCToProtocol:             scToProtocol,
+			PeerChangesHandler:       scToProtocol,
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
-
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:        TestMarshalizer,
@@ -1242,7 +1277,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 4
+			return time.Second * 2
 		},
 	)
 	if err != nil {

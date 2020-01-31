@@ -51,7 +51,6 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	cache.headersCounter.increment(headerShardId)
 
 	return true
-
 }
 
 //tryToDoEviction will check if pool is full and if it is will do eviction
@@ -105,6 +104,14 @@ func (cache *headersCache) removeHeaderByNonceAndShardId(headerNonce uint64, sha
 	}
 	headersHashes := headers.getHashes()
 
+	for _, hash := range headersHashes {
+		log.Trace("removeHeaderByNonceAndShardId",
+			"shard", shardId,
+			"nonce", headerNonce,
+			"hash", hash,
+		)
+	}
+
 	//remove items from nonce map
 	shard.removeListOfHeaders(headerNonce)
 	//remove elements from hashes map
@@ -124,6 +131,12 @@ func (cache *headersCache) removeHeaderByHash(hash []byte) {
 	if !ok {
 		return
 	}
+
+	log.Trace("removeHeaderByHash",
+		"shard", info.headerShardId,
+		"nonce", info.headerNonce,
+		"hash", hash,
+	)
 
 	cache.removeHeaderFromNonceMap(info, hash)
 	cache.headersByHash.deleteElement(hash)

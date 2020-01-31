@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -165,6 +166,9 @@ func (t *trigger) Update(round uint64) {
 		t.prevEpochStartRound = t.currEpochStartRound
 		t.currEpochStartRound = t.currentRound
 		t.saveCurrentState(round)
+
+		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
+		log.Debug(display.Headline(msg, "", "#"))
 	}
 }
 
@@ -223,11 +227,11 @@ func (t *trigger) Revert(round uint64) {
 	}
 
 	t.currEpochStartRound = t.prevEpochStartRound
-	t.epoch = t.epoch - 1
+	t.epoch--
 	t.isEpochStart = false
 	t.currentRound = round
 	if t.currentRound > 0 {
-		t.currentRound = t.currentRound - 1
+		t.currentRound--
 	}
 
 	log.Debug("epoch trigger revert called", "epoch", t.epoch, "epochStartRound", t.currEpochStartRound)
@@ -263,6 +267,7 @@ func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 // SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
+	t.currEpochStartRound = round
 	t.currentRound = round
 	t.mutTrigger.Unlock()
 }

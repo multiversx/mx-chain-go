@@ -51,7 +51,6 @@ func checkOrdering(s Sharder, t *testing.T) {
 }
 
 func TestSetterGetter(t *testing.T) {
-
 	_, isNoSharder := Get().(*noSharder)
 	assert.True(t, isNoSharder, "Init should have * NoSharder type")
 

@@ -500,10 +500,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				break
 			}
 
-			if maxTxSpaceRemained <= 0 {
-				break
-			}
-
 			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
 			if mbSpaceRemained <= 0 {
 				break
@@ -783,34 +779,6 @@ func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, err
 	return mrsScrs, nil
 }
 
-// getTxs gets all the available transactions from the pool
-func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-	if txShardStore == nil {
-		return nil, nil, process.ErrNilCacher
-	}
-
-	keys := txShardStore.Keys()
-	txsSlice := make([]*transaction.Transaction, 0, len(keys))
-	txHashes := make([][]byte, 0, len(keys))
-
-	for _, key := range keys {
-		val, _ := txShardStore.Peek(key)
-		if val == nil {
-			continue
-		}
-
-		tx, ok := val.(*transaction.Transaction)
-		if !ok {
-			continue
-		}
-
-		txHashes = append(txHashes, key)
-		txsSlice = append(txsSlice, tx)
-	}
-
-	return transaction.TrimSlicePtr(txsSlice), sliceUtil.TrimSliceSliceByte(txHashes), nil
-}
-
 // GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
 func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	txPool := make(map[string]data.TransactionHandler, len(txs.txsForCurrBlock.txHashAndInfo))
@@ -826,8 +794,5 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txs *transactions) IsInterfaceNil() bool {
-	if txs == nil {
-		return true
-	}
-	return false
+	return txs == nil
 }

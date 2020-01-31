@@ -99,6 +99,17 @@ func TestNewHeaderSigVerifier_NilSingleSigShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilSingleSigner, err)
 }
 
+func TestNewHeaderSigVerifier_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, err)
+	require.NotNil(t, hdrSigVerifier)
+	require.False(t, hdrSigVerifier.IsInterfaceNil())
+}
+
 func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T) {
 	t.Parallel()
 

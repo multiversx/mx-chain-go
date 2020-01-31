@@ -28,9 +28,14 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 	GetAllLeavesCalled       func() (map[string][]byte, error)
 	IsPruningEnabledCalled   func() bool
+	ClosePersisterCalled     func() error
 }
 
 func (ts *TrieStub) ClosePersister() error {
+	if ts.ClosePersisterCalled != nil {
+		return ts.ClosePersisterCalled()
+	}
+
 	return nil
 }
 

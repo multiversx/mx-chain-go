@@ -571,7 +571,7 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr stri
 	// e.g. determined from directories in persister path or taken from boot storer
 	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shardIdStr) > 0 {
-		filePath = filePath + shardIdStr
+		filePath += shardIdStr
 		args.Identifier += shardIdStr
 	}
 

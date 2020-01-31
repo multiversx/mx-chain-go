@@ -43,7 +43,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Messenger:         messenger,
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           IntegrationTestsChainID,
+		ChainID:           ChainID,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]

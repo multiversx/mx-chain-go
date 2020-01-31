@@ -183,10 +183,7 @@ func (sp *specialAddresses) IsCurrentNodeInConsensus() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *specialAddresses) IsInterfaceNil() bool {
-	if sp == nil {
-		return true
-	}
-	return false
+	return sp == nil
 }
 
 func foundKey(key []byte, keys []string) bool {
