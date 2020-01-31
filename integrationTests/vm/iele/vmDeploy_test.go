@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -28,7 +27,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    data.NewProtoBigInt(0),
+		Value:    big.NewInt(0),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
 		Data:     string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine),

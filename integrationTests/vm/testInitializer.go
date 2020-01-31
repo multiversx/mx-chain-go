@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -281,7 +280,7 @@ func TestDeployedContractContents(
 	assert.True(t, ok)
 	assert.NotNil(t, destinationRecovShardAccount)
 	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
-	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance.Get())
+	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance)
 	//test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovAccount.GetCodeHash())
 	//test code
@@ -374,7 +373,7 @@ func CreateTx(
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    data.NewProtoBigIntFromBigInt(value),
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
 		Data:     txData,
@@ -397,7 +396,7 @@ func CreateDeployTx(
 
 	return &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    data.NewProtoBigIntFromBigInt(value),
+		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  CreateEmptyAddress().Bytes(),
 		Data:     scCodeAndVMType,
@@ -419,8 +418,8 @@ func TestAccount(
 	senderRecovShardAccount := senderRecovAccount.(*state.Account)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
-	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance.Get())
-	return senderRecovShardAccount.Balance.Get()
+	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
+	return senderRecovShardAccount.Balance
 }
 
 func ComputeExpectedBalance(
@@ -442,7 +441,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	accnt, _ := accnts.GetExistingAccount(address)
 	shardAccnt, _ := accnt.(*state.Account)
 
-	return shardAccnt.Balance.Get()
+	return shardAccnt.Balance
 }
 
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
@@ -461,7 +460,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigIntFromBigInt(value),
+		Value:    new(big.Int).Set(value),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
@@ -479,7 +478,7 @@ func CreateTransferTx(
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigInt(0),
+		Value:    big.NewInt(0),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
@@ -497,7 +496,7 @@ func CreateTransferTokenTx(
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigInt(0),
+		Value:    big.NewInt(0),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,

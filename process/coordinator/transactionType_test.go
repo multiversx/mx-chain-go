@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -87,10 +86,10 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), tx.Value.Get()))
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), totalFee))
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
@@ -129,7 +128,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	tx = nil
 	_, err = tth.ComputeTransactionType(tx)
@@ -152,7 +151,7 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = nil
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	_, err = tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
@@ -176,7 +175,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	txType, err := tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
@@ -192,7 +191,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
 	acntDst.SetCode([]byte("code"))
@@ -223,7 +222,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
 

@@ -2,9 +2,9 @@ package smartContractResult_test
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +12,7 @@ import (
 func TestSmartContractResult_SaveLoad(t *testing.T) {
 	smrS := smartContractResult.SmartContractResult{
 		Nonce:   uint64(1),
-		Value:   data.NewProtoBigInt(1),
+		Value:   big.NewInt(1),
 		RcvAddr: []byte("receiver_address"),
 		SndAddr: []byte("sender_address"),
 		Data:    "scr_data",
@@ -59,7 +59,7 @@ func TestSmartContractResult_GetSndAddr(t *testing.T) {
 func TestSmartContractResult_GetValue(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(10)
+	value := big.NewInt(10)
 	scr := &smartContractResult.SmartContractResult{Value: value}
 
 	assert.Equal(t, value, scr.Value)
@@ -98,7 +98,7 @@ func TestSmartContractResult_SetSndAddr(t *testing.T) {
 func TestSmartContractResult_SetValue(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(10)
+	value := big.NewInt(10)
 	scr := &smartContractResult.SmartContractResult{}
 	scr.SetValue(value)
 

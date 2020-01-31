@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -93,7 +92,7 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
 		ShardID: 0,
 	}
@@ -118,7 +117,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
 		ShardID: shardId,
 	}
@@ -155,7 +154,7 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
 		ShardID: 0,
 	}
@@ -179,7 +178,7 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigInt(100),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
 		ShardID: 0,
 	}
@@ -204,7 +203,7 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   data.NewProtoBigIntFromBigInt(value),
+		Value:   new(big.Int).Set(value),
 		RcvAddr: nil,
 		ShardID: 0,
 	}
@@ -225,7 +224,7 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
@@ -250,7 +249,7 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
@@ -299,7 +298,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(-100)
+	value := big.NewInt(-100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
@@ -324,7 +323,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
-	value := data.NewProtoBigInt(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,

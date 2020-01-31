@@ -126,7 +126,7 @@ func TestPeerJournalEntryStake_RevertOkValsShouldWork(t *testing.T) {
 	_, err := entry.Revert()
 
 	assert.Nil(t, err)
-	assert.Equal(t, stake.Uint64(), accnt.Stake.Get().Uint64())
+	assert.Equal(t, stake.Uint64(), accnt.Stake.Uint64())
 }
 
 func TestPeerJournalEntryJailTime_NilAccountShouldErr(t *testing.T) {

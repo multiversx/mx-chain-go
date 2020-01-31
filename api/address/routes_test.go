@@ -15,7 +15,6 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -215,7 +214,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 			return &state.Account{
 				AccountData: state.AccountData{
 					Nonce:   1,
-					Balance: data.NewProtoBigInt(100),
+					Balance: big.NewInt(100),
 				},
 			}, nil
 		},

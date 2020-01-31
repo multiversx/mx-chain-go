@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -173,7 +172,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 	senderBytes, _ := sender.GeneratePublic().ToByteArray()
 	tx := &transaction.Transaction{
 		Nonce:     1,
-		Value:     data.NewProtoBigInt(10),
+		Value:     big.NewInt(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
 		GasPrice:  integrationTests.MinTxGasPrice,

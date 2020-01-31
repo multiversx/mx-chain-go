@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -140,7 +141,7 @@ func generateAndSendBulkSmartContractResults(
 			TxHash:  []byte("tx hash"),
 			SndAddr: sender,
 			RcvAddr: dest,
-			Value:   data.NewProtoBigInt(0),
+			Value:   big.NewInt(0),
 		}
 		buff := make([]byte, 8)
 		binary.BigEndian.PutUint64(buff, nonce)

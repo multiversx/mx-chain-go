@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
@@ -68,7 +67,7 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 		RcvAddr:   ts.rcvAddr,
 		SndAddr:   ts.sndAddr,
 		Signature: ts.sig,
-		Value:     data.NewProtoBigInt(1),
+		Value:     big.NewInt(1),
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	txHash := TestHasher.Compute(string(txBuff))

@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -31,7 +30,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigInt(1),
+		Value:    big.NewInt(1),
 		GasLimit: 2,
 		GasPrice: 1,
 		SndAddr:  address.Bytes(),
@@ -48,7 +47,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance.Get())
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
@@ -68,7 +67,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
-		Value:    data.NewProtoBigInt(1),
+		Value:    big.NewInt(1),
 		SndAddr:  address.Bytes(),
 		RcvAddr:  address.Bytes(),
 		GasLimit: 2,
@@ -83,7 +82,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce, accountAfterExec.(*state.Account).Nonce)
-	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance.Get())
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
@@ -128,7 +127,7 @@ func testExecTransactionsMoreTxWithRevert(
 	for i := 0; i < txToGenerate; i++ {
 		tx := &transaction.Transaction{
 			Nonce:    initialNonce + uint64(i),
-			Value:    data.NewProtoBigInt(int64(value)),
+			Value:    big.NewInt(int64(value)),
 			GasPrice: gasPrice,
 			GasLimit: gasLimit,
 			SndAddr:  sender.Bytes(),
@@ -147,10 +146,10 @@ func testExecTransactionsMoreTxWithRevert(
 	newAccount, _ := accnts.GetAccountWithJournal(receiver)
 	account, _ := accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance.Get(), big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
+	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
 	assert.Equal(t, account.(*state.Account).Nonce, uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.(*state.Account).Balance.Get().Int64(), int64(txToGenerate))
+	assert.Equal(t, newAccount.(*state.Account).Balance.Int64(), int64(txToGenerate))
 	assert.Equal(t, newAccount.(*state.Account).Nonce, uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
@@ -168,7 +167,7 @@ func testExecTransactionsMoreTxWithRevert(
 	receiver2, _ := accnts.GetExistingAccount(receiver)
 	account, _ = accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance.Get().Int64(), initialBalance)
+	assert.Equal(t, account.(*state.Account).Balance.Int64(), initialBalance)
 	assert.Equal(t, account.(*state.Account).Nonce, initialNonce)
 
 	assert.Nil(t, receiver2)

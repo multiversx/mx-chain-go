@@ -523,9 +523,9 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	execTx := *createTxProcessor()
 
-	acnt1.Balance = data.NewProtoBigInt(67)
+	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: data.NewProtoBigInt(68)}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -538,9 +538,9 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	execTx := *createTxProcessor()
 
-	acnt1.Balance = data.NewProtoBigInt(67)
+	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: data.NewProtoBigInt(67)}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1)
 	assert.Nil(t, err)
 }
 
@@ -616,13 +616,13 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 
 	execTx := *createTxProcessor()
 
-	acntSrc.Balance = data.NewProtoBigInt(64)
-	acntDst.Balance = data.NewProtoBigInt(31)
+	acntSrc.Balance = big.NewInt(64)
+	acntDst.Balance = big.NewInt(31)
 	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(14))
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(50), acntSrc.Balance.Get().Uint64())
-	assert.Equal(t, uint64(45), acntDst.Balance.Get().Uint64())
+	assert.Equal(t, uint64(50), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(45), acntDst.Balance.Uint64())
 	assert.Equal(t, 2, journalizeCalled)
 	assert.Equal(t, 2, saveAccountCalled)
 }
@@ -650,12 +650,12 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 
 	execTx := *createTxProcessor()
 
-	acntSrc.Balance = data.NewProtoBigInt(64)
+	acntSrc.Balance = big.NewInt(64)
 
 	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(1))
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(64), acntSrc.Balance.Get().Uint64())
-	assert.Equal(t, uint64(64), acntDst.Balance.Get().Uint64())
+	assert.Equal(t, uint64(64), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(64), acntDst.Balance.Uint64())
 	assert.Equal(t, 2, journalizeCalled)
 	assert.Equal(t, 2, saveAccountCalled)
 }
@@ -747,7 +747,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	err := execTx.ProcessTransaction(&tx)
 	assert.NotNil(t, err)
@@ -761,7 +761,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -807,7 +807,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -861,7 +861,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -909,7 +909,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -965,7 +965,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -1019,7 +1019,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(61)
+	tx.Value = big.NewInt(61)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -1027,8 +1027,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
-	acntSrc.Balance = data.NewProtoBigInt(90)
-	acntDst.Balance = data.NewProtoBigInt(10)
+	acntSrc.Balance = big.NewInt(90)
+	acntDst.Balance = big.NewInt(10)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
@@ -1047,8 +1047,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
-	assert.Equal(t, uint64(29), acntSrc.Balance.Get().Uint64())
-	assert.Equal(t, uint64(71), acntDst.Balance.Get().Uint64())
+	assert.Equal(t, uint64(29), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(71), acntDst.Balance.Uint64())
 	assert.Equal(t, 4, journalizeCalled)
 	assert.Equal(t, 4, saveAccountCalled)
 }
@@ -1070,7 +1070,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = data.NewProtoBigInt(61)
+	tx.Value = big.NewInt(61)
 	tx.GasPrice = 2
 	tx.GasLimit = 2
 
@@ -1080,8 +1080,8 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
-	acntSrc.Balance = data.NewProtoBigInt(90)
-	acntDst.Balance = data.NewProtoBigInt(10)
+	acntSrc.Balance = big.NewInt(90)
+	acntDst.Balance = big.NewInt(10)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
@@ -1110,8 +1110,8 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
-	assert.Equal(t, uint64(13), acntSrc.Balance.Get().Uint64())
-	assert.Equal(t, uint64(71), acntDst.Balance.Get().Uint64())
+	assert.Equal(t, uint64(13), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(71), acntDst.Balance.Uint64())
 	assert.Equal(t, 4, journalizeCalled)
 	assert.Equal(t, 4, saveAccountCalled)
 }
@@ -1137,7 +1137,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
@@ -1147,7 +1147,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 
-	acntSrc.Balance = data.NewProtoBigInt(46)
+	acntSrc.Balance = big.NewInt(46)
 	acntDst.SetCode([]byte{65})
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -1203,11 +1203,11 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = data.NewProtoBigInt(45)
+	acntSrc.Balance = big.NewInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
@@ -1266,7 +1266,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.RcvAddr) {
@@ -1278,7 +1278,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
-	acntSrc.Balance = data.NewProtoBigInt(45)
+	acntSrc.Balance = big.NewInt(45)
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})

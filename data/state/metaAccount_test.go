@@ -191,7 +191,7 @@ func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, txCount, acc.TxCount.Get())
+	assert.Equal(t, txCount, acc.TxCount)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }

@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -211,7 +210,7 @@ func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	accnt := &state.Account{
 		AccountData: state.AccountData{
 			Nonce:   1,
-			Balance: data.NewProtoBigInt(2),
+			Balance: big.NewInt(2),
 		},
 	}
 
@@ -226,7 +225,7 @@ func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	balance, err := bh.GetBalance(make([]byte, 0))
 
 	assert.Nil(t, err)
-	assert.Equal(t, accnt.Balance.Get(), balance)
+	assert.Equal(t, accnt.Balance, balance)
 }
 
 //------- GetNonce
@@ -256,7 +255,7 @@ func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	accnt := &state.Account{
 		AccountData: state.AccountData{
 			Nonce:   1,
-			Balance: data.NewProtoBigInt(2),
+			Balance: big.NewInt(2),
 		},
 	}
 

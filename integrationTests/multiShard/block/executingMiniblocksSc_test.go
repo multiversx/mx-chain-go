@@ -486,7 +486,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	expectedBalance := big.NewInt(0).Set(initialVal)
 	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
 	expectedBalance.Sub(expectedBalance, txCost)
-	assert.Equal(t, expectedBalance, ownerAccnt.Balance.Get())
+	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
 
 	printContainingTxs(nodeShard0, nodeShard0.BlockChain.GetCurrentBlockHeader().(*block.Header))
 
@@ -495,7 +495,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	leaderAccnt := accnt.(*state.Account)
 	expectedBalance = big.NewInt(0).Set(txCost)
 	expectedBalance.Div(expectedBalance, big.NewInt(2))
-	assert.Equal(t, expectedBalance, leaderAccnt.Balance.Get())
+	assert.Equal(t, expectedBalance, leaderAccnt.Balance)
 }
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {

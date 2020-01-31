@@ -2,10 +2,10 @@ package marshal_test
 
 import (
 	"fmt"
+	"math/big"
 	"math/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -249,8 +249,8 @@ func (h *Header) GenerateDummyArray() []interface{} {
 func (tx *Transaction) GenerateDummyArray() []interface{} {
 	transactions := make([]interface{}, 0, 1000)
 
-	val := data.NewProtoBigInt(0)
-	_ = val.Get().GobDecode([]byte(RandomStr(32)))
+	val := big.NewInt(0)
+	_ = val.GobDecode([]byte(RandomStr(32)))
 
 	for i := 0; i < 1000; i++ {
 		transactions = append(transactions, &Transaction{

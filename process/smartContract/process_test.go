@@ -36,10 +36,10 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), tx.Value.Get()))
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, tx.Value))
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance.Set(acntSrc.Balance.Get().Add(acntSrc.Balance.Get(), totalFee))
+	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
@@ -351,7 +351,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
 	called := false
@@ -393,7 +393,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
 	tmpError := errors.New("error")
@@ -445,7 +445,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
 	err = sc.DeploySmartContract(tx, acntSrc)
@@ -484,7 +484,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -528,7 +528,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
@@ -563,7 +563,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
@@ -606,7 +606,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
@@ -649,7 +649,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST0000000")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
@@ -700,7 +700,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST0000000")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 	acntSrc, acntDst := createAccounts(tx)
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -740,7 +740,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
 	argParser.GetFunctionCalled = func() (s string, e error) {
@@ -779,7 +779,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMCallInput(tx)
 	assert.NotNil(t, vmInput)
@@ -814,7 +814,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
 	argParser.GetCodeCalled = func() (code []byte, e error) {
@@ -859,7 +859,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data@0000"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	vmArg := []byte("00")
 	argParser.GetArgumentsCalled = func() ([][]byte, error) {
@@ -900,7 +900,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data@0000"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
 	assert.Nil(t, vmInput)
@@ -936,7 +936,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
 	argParser.GetArgumentsCalled = func() (ints [][]byte, e error) {
@@ -979,7 +979,7 @@ func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasLimit = 100
 
 	vmInput, err := sc.CreateVMInput(tx)
@@ -1015,7 +1015,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMInput(tx)
 	assert.NotNil(t, vmInput)
@@ -1028,7 +1028,7 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = "data"
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -1119,7 +1119,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	tx := &transaction.Transaction{Value: data.NewProtoBigInt(0)}
+	tx := &transaction.Transaction{Value: big.NewInt(0)}
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
@@ -1166,7 +1166,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		return acntSnd, nil
 	}
 
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 	_, _, err = sc.processVMOutput(vmOutput, tx, acntSnd)
 	assert.Nil(t, err)
 }
@@ -1553,7 +1553,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
@@ -1588,7 +1588,7 @@ func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
@@ -1627,19 +1627,19 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 
 	acntSrc, _ := createAccounts(tx)
 	stAcc, _ := acntSrc.(*state.Account)
-	stAcc.Balance = data.NewProtoBigInt(45)
+	stAcc.Balance = big.NewInt(45)
 
-	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -1669,17 +1669,17 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
-	modifiedBalance := currBalance - tx.Value.Get().Uint64() - tx.GasLimit*tx.GasLimit
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
+	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
@@ -1709,18 +1709,18 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
 	txHash := []byte("txHash")
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Get().Uint64())
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
@@ -1750,7 +1750,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
@@ -1802,12 +1802,12 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(*state.Account).Balance.Get().Uint64()
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
@@ -1815,7 +1815,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * tx.GasPrice
-	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Get().Uint64())
+	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
@@ -1910,7 +1910,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 	_, _, err = sc.ProcessVMOutput(vmOutput, tx, acntSrc)
 	assert.Nil(t, err)
 }
@@ -1940,7 +1940,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	tx := &transaction.Transaction{Value: data.NewProtoBigInt(0)}
+	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
 	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
@@ -1974,30 +1974,30 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	tx.Value = data.NewProtoBigInt(int64(5))
+	tx.Value = big.NewInt(int64(5))
 	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
 	outacc1.Nonce = outacc1.Nonce + 1
-	tx.Value = data.NewProtoBigInt(0)
+	tx.Value = big.NewInt(0)
 	err = sc.processSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
 
 	outacc1.Nonce = outacc1.Nonce + 1
 	outacc1.BalanceDelta = big.NewInt(int64(10))
-	tx.Value = data.NewProtoBigInt(int64(10))
+	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
 		fakeAcc, _ := state.NewAccount(mock.NewAddressMock(address), &mock.AccountTrackerStub{})
-		fakeAcc.Balance = data.NewProtoBigInt(int64(5))
+		fakeAcc.Balance = big.NewInt(int64(5))
 		return fakeAcc
 	}
 
-	currentBalance := testAcc.Balance.Get().Uint64()
+	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
 	err = sc.processSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
-	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Get().Uint64())
+	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
 
 func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
@@ -2024,7 +2024,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	tx := &transaction.Transaction{Value: data.NewProtoBigInt(0)}
+	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
 	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
@@ -2082,7 +2082,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
-	tx.Value = data.NewProtoBigInt(45)
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
@@ -2295,7 +2295,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
 		Code:    []byte("code"),
-		Value:   data.NewProtoBigInt(15),
+		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
@@ -2357,7 +2357,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
 		Data:    result,
-		Value:   data.NewProtoBigInt(15),
+		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
@@ -2406,7 +2406,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
 		Data:    "code@06",
-		Value:   data.NewProtoBigInt(15),
+		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
@@ -2471,7 +2471,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
 		Data:    "code@06",
-		Value:   data.NewProtoBigInt(15),
+		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)

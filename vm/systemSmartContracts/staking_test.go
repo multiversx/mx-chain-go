@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -185,7 +184,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		Staked:        true,
 		UnStakedNonce: 0,
 		BlsPubKey:     []byte{100},
-		StakeValue:    data.NewProtoBigIntFromBigInt(stakeValue),
+		StakeValue:    new(big.Int).Set(stakeValue),
 	}
 
 	blockChainHook := &mock.BlockChainHookStub{}
@@ -370,7 +369,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 		Staked:        true,
 		UnStakedNonce: unstakedNonce,
 		BlsPubKey:     nil,
-		StakeValue:    data.NewProtoBigInt(100),
+		StakeValue:    big.NewInt(100),
 	}
 	blsPubKey := big.NewInt(100)
 	stakeValue := big.NewInt(100)
@@ -403,7 +402,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 		Staked:        false,
 		UnStakedNonce: unstakedNonce,
 		BlsPubKey:     nil,
-		StakeValue:    data.NewProtoBigInt(100),
+		StakeValue:    big.NewInt(100),
 	}
 
 	stakeValue := big.NewInt(100)
@@ -495,7 +494,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
-			registrationDataMarshalized, _ := json.Marshal(&StakingData{StakeValue: data.NewProtoBigInt(100)})
+			registrationDataMarshalized, _ := json.Marshal(&StakingData{StakeValue: big.NewInt(100)})
 			return registrationDataMarshalized
 		}
 	}
@@ -520,7 +519,7 @@ func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
 		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
-			registrationDataMarshalized, _ := json.Marshal(&StakingData{StakeValue: data.NewProtoBigInt(100), Staked: true})
+			registrationDataMarshalized, _ := json.Marshal(&StakingData{StakeValue: big.NewInt(100), Staked: true})
 			return registrationDataMarshalized
 		}
 	}
@@ -560,7 +559,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 		Staked:        true,
 		UnStakedNonce: 0,
 		BlsPubKey:     nil,
-		StakeValue:    data.NewProtoBigIntFromBigInt(valueStakedByTheCaller),
+		StakeValue:    new(big.Int).Set(valueStakedByTheCaller),
 	}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
@@ -584,7 +583,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 		Staked:        false,
 		UnStakedNonce: unStakeNonce,
 		BlsPubKey:     nil,
-		StakeValue:    data.NewProtoBigIntFromBigInt(valueStakedByTheCaller),
+		StakeValue:    new(big.Int).Set(valueStakedByTheCaller),
 	}
 	assert.Equal(t, expectedRegistrationData, registrationData)
 
@@ -640,7 +639,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 		Staked:        true,
 		UnStakedNonce: 0,
 		BlsPubKey:     nil,
-		StakeValue:    data.NewProtoBigIntFromBigInt(stakeValue),
+		StakeValue:    new(big.Int).Set(stakeValue),
 	}
 
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
@@ -662,7 +661,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedStake := big.NewInt(0).Sub(stakeValue, slashValue)
-	assert.Equal(t, expectedStake, registrationData.StakeValue.Get())
+	assert.Equal(t, expectedStake, registrationData.StakeValue)
 
 	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
 	retCode = stakingSmartContract.Execute(arguments)
@@ -673,5 +672,5 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedStake = big.NewInt(0).Sub(expectedStake, slashValue)
-	assert.Equal(t, expectedStake, registrationData.StakeValue.Get())
+	assert.Equal(t, expectedStake, registrationData.StakeValue)
 }
