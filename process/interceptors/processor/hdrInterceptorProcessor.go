@@ -71,8 +71,5 @@ func (hip *HdrInterceptorProcessor) SignalEndOfProcessing(data []process.Interce
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hip *HdrInterceptorProcessor) IsInterfaceNil() bool {
-	if hip == nil {
-		return true
-	}
-	return false
+	return hip == nil
 }

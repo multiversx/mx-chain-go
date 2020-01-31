@@ -302,11 +302,11 @@ func (messenger *Messenger) synchronousBroadcast(topic string, data []byte) erro
 	}
 
 	seqNo := atomic.AddUint64(&messenger.seqNo, 1)
-	message := newMessage(topic, data, messenger.ID(), seqNo)
+	messageObject := newMessage(topic, data, messenger.ID(), seqNo)
 
 	peers := messenger.network.Peers()
 	for _, peer := range peers {
-		peer.receiveMessage(message)
+		peer.receiveMessage(messageObject)
 	}
 
 	return nil
@@ -314,12 +314,12 @@ func (messenger *Messenger) synchronousBroadcast(topic string, data []byte) erro
 
 func (messenger *Messenger) processFromQueue() {
 	for {
-		message := <-messenger.processQueue
-		if check.IfNil(message) {
+		messageObject := <-messenger.processQueue
+		if check.IfNil(messageObject) {
 			continue
 		}
 
-		topic := message.TopicIDs()[0]
+		topic := messageObject.TopicIDs()[0]
 		if topic == "" {
 			continue
 		}
@@ -340,7 +340,7 @@ func (messenger *Messenger) processFromQueue() {
 		}
 		messenger.topicsMutex.Unlock()
 
-		_ = validator.ProcessReceivedMessage(message, messenger.p2pID)
+		_ = validator.ProcessReceivedMessage(messageObject, messenger.p2pID)
 	}
 }
 
@@ -348,14 +348,14 @@ func (messenger *Messenger) processFromQueue() {
 func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
 	if messenger.IsConnectedToNetwork() {
 		seqNo := atomic.AddUint64(&messenger.seqNo, 1)
-		message := newMessage(topic, buff, messenger.ID(), seqNo)
+		messageObject := newMessage(topic, buff, messenger.ID(), seqNo)
 
 		receivingPeer, peerFound := messenger.network.Peers()[peerID]
 		if !peerFound {
 			return ErrReceivingPeerNotConnected
 		}
 
-		receivingPeer.receiveMessage(message)
+		receivingPeer.receiveMessage(messageObject)
 
 		return nil
 	}

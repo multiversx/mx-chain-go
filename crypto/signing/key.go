@@ -35,12 +35,12 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	}
 
 	return &privateKey{
-		suite: kg.suite,
-		sk:    private,
-	}, &publicKey{
-		suite: kg.suite,
-		pk:    public,
-	}
+			suite: kg.suite,
+			sk:    private,
+		}, &publicKey{
+			suite: kg.suite,
+			pk:    public,
+		}
 }
 
 // PrivateKeyFromByteArray generates a private key given a byte array
@@ -82,10 +82,7 @@ func (kg *keyGenerator) Suite() crypto.Suite {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (kg *keyGenerator) IsInterfaceNil() bool {
-	if kg == nil {
-		return true
-	}
-	return false
+	return kg == nil
 }
 
 func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point, err error) {
@@ -127,10 +124,7 @@ func (spk *privateKey) Scalar() crypto.Scalar {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (spk *privateKey) IsInterfaceNil() bool {
-	if spk == nil {
-		return true
-	}
-	return false
+	return spk == nil
 }
 
 // ToByteArray returns the byte array representation of the public key
@@ -150,8 +144,5 @@ func (pk *publicKey) Point() crypto.Point {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pk *publicKey) IsInterfaceNil() bool {
-	if pk == nil {
-		return true
-	}
-	return false
+	return pk == nil
 }

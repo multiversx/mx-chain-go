@@ -90,7 +90,6 @@ func main() {
 		bytesPretty(float64(bytesReceived1)), bytesPerSecPretty(bytesReceived1, durTest),
 		bytesPretty(float64(bytesReceived2)), bytesPerSecPretty(bytesReceived2, durTest),
 		bytesPretty(float64(bytesReceived3)), bytesPerSecPretty(bytesReceived3, durTest))
-
 }
 
 func bytesPretty(bytes float64) string {

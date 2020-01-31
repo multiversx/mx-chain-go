@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"math/big"
-	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -38,16 +37,6 @@ func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
 	return valStr
 }
 
-func (psh *PresenterStatusHandler) getFloatFromStringMetric(metric string) float64 {
-	stringValue := psh.getFromCacheAsString(metric)
-	floatMetric, err := strconv.ParseFloat(stringValue, 64)
-	if err != nil {
-		return 0.0
-	}
-
-	return floatMetric
-}
-
 func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big.Int {
 	stringValue := psh.getFromCacheAsString(metric)
 	bigIntValue, ok := big.NewInt(0).SetString(stringValue, 10)
@@ -68,7 +57,7 @@ func (psh *PresenterStatusHandler) getBigFloatFromStringMetric(metric string) *b
 	return bigFloatValue
 }
 
-func areEqualsWithZero(parameters ...uint64) bool {
+func areEqualWithZero(parameters ...uint64) bool {
 	for _, param := range parameters {
 		if param == 0 {
 			return true
@@ -81,8 +70,8 @@ func areEqualsWithZero(parameters ...uint64) bool {
 func (psh *PresenterStatusHandler) computeChanceToBeInConsensus() float64 {
 	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
 	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
-	areEqualsWithZero := areEqualsWithZero(consensusGroupSize, numValidators)
-	if areEqualsWithZero {
+	isChanceZero := areEqualWithZero(consensusGroupSize, numValidators)
+	if isChanceZero {
 		return 0
 	}
 
@@ -94,8 +83,8 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 	rounds := psh.GetCurrentRound()
 	roundDuration := psh.GetRoundTime()
 	secondsInAnHour := uint64(3600)
-	areEqualsWithZero := areEqualsWithZero(totalBlocks, rounds, roundDuration)
-	if areEqualsWithZero {
+	isRoundsPerHourZero := areEqualWithZero(totalBlocks, rounds, roundDuration)
+	if isRoundsPerHourZero {
 		return 0
 	}
 

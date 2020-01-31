@@ -34,8 +34,5 @@ func (coordinator *CoordinatorStub) CommunicationIdentifier(destShardID uint32) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (coordinator *CoordinatorStub) IsInterfaceNil() bool {
-	if coordinator == nil {
-		return true
-	}
-	return false
+	return coordinator == nil
 }

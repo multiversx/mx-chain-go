@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -59,6 +60,8 @@ func TestTpsBenchmark_NewTPSBenchmark(t *testing.T) {
 
 	assert.Equal(t, gotNrOfShards, nrOfShards)
 	assert.Equal(t, tpsBenchmark.RoundTime(), roundDuration)
+	assert.False(t, check.IfNil(tpsBenchmark))
+	assert.False(t, tpsBenchmark.ShardStatistics()[0].IsInterfaceNil())
 }
 
 func TestTpsBenchmark_BlockNumber(t *testing.T) {
@@ -312,6 +315,51 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 	assert.Equal(t, big.NewInt(int64(txCount)), tpsBenchmark.AverageBlockTxCount())
 	assert.Equal(t, big.NewInt(int64(txCount)), tpsBenchmark.TotalProcessedTxCount())
 	assert.Equal(t, shardData.TxCount, tpsBenchmark.ShardStatistic(shardId).LastBlockTxCount())
+}
+
+func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
+	t.Parallel()
+
+	nrOfShards := uint32(2)
+	roundDuration := uint64(1)
+	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
+	round := uint64(1)
+	blockNumber := round
+	txCount := uint32(10)
+
+	shardDataShard0 := block.ShardData{
+		ShardID:               0,
+		HeaderHash:            []byte{1},
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		TxCount:               txCount,
+	}
+	shardDataShard1 := block.ShardData{
+		ShardID:               1,
+		HeaderHash:            []byte{1},
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		TxCount:               txCount,
+	}
+	metaBlock := &block.MetaBlock{
+		Nonce:     blockNumber,
+		Round:     round,
+		TxCount:   txCount,
+		ShardInfo: []block.ShardData{shardDataShard0, shardDataShard1},
+	}
+
+	tpsBenchmark.Update(metaBlock)
+
+	shardStatistics := tpsBenchmark.ShardStatistics()
+	assert.NotNil(t, shardStatistics)
+
+	for shardId, shardStats := range shardStatistics {
+		assert.Equal(t, 1, shardStats.AverageTPS().Cmp(big.NewInt(0)))
+		assert.True(t, shardStats.LiveTPS() > 0)
+		assert.Equal(t, round, shardStats.CurrentBlockNonce())
+		assert.Equal(t, shardId, shardStats.ShardID())
+		assert.Equal(t, float64(txCount), shardStats.PeakTPS())
+		assert.Equal(t, txCount, shardStats.LastBlockTxCount())
+		assert.Equal(t, big.NewInt(int64(txCount)), shardStats.TotalProcessedTxCount())
+	}
 }
 
 func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {

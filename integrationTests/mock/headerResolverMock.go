@@ -6,32 +6,32 @@ import (
 )
 
 type HeaderResolverMock struct {
-	RequestDataFromHashCalled    func(hash []byte) error
+	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RequestDataFromNonceCalled   func(nonce uint64) error
+	RequestDataFromNonceCalled   func(nonce uint64, epoch uint32) error
 	RequestDataFromEpochCalled   func(identifier []byte) error
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
-func (hrs *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
-	if hrs.RequestDataFromEpochCalled != nil {
-		return hrs.RequestDataFromEpochCalled(identifier)
+func (hrm *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
+	if hrm.RequestDataFromEpochCalled != nil {
+		return hrm.RequestDataFromEpochCalled(identifier)
 	}
 	return nil
 }
 
-func (hrs *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
-	if hrs.SetEpochHandlerCalled != nil {
-		return hrs.SetEpochHandlerCalled(epochHandler)
+func (hrm *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+	if hrm.SetEpochHandlerCalled != nil {
+		return hrm.SetEpochHandlerCalled(epochHandler)
 	}
 	return nil
 }
 
-func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte) error {
+func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hrm.RequestDataFromHashCalled == nil {
 		return nil
 	}
-	return hrm.RequestDataFromHashCalled(hash)
+	return hrm.RequestDataFromHashCalled(hash, epoch)
 }
 
 func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
@@ -41,11 +41,11 @@ func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 
-func (hrm *HeaderResolverMock) RequestDataFromNonce(nonce uint64) error {
+func (hrm *HeaderResolverMock) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	if hrm.RequestDataFromNonceCalled == nil {
 		return nil
 	}
-	return hrm.RequestDataFromNonceCalled(nonce)
+	return hrm.RequestDataFromNonceCalled(nonce, epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

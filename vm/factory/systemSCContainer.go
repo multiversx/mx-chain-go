@@ -92,8 +92,5 @@ func (vmc *systemSCContainer) Keys() [][]byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmc *systemSCContainer) IsInterfaceNil() bool {
-	if vmc == nil {
-		return true
-	}
-	return false
+	return vmc == nil
 }

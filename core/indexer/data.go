@@ -33,16 +33,16 @@ type Transaction struct {
 type Block struct {
 	Nonce         uint64        `json:"nonce"`
 	Round         uint64        `json:"round"`
-	ShardID       uint32        `json:"shardId"`
 	Hash          string        `json:"hash"`
 	Proposer      uint64        `json:"proposer"`
 	Validators    []uint64      `json:"validators"`
 	PubKeyBitmap  string        `json:"pubKeyBitmap"`
 	Size          int64         `json:"size"`
 	Timestamp     time.Duration `json:"timestamp"`
-	TxCount       uint32        `json:"txCount"`
 	StateRootHash string        `json:"stateRootHash"`
 	PrevHash      string        `json:"prevHash"`
+	ShardID       uint32        `json:"shardId"`
+	TxCount       uint32        `json:"txCount"`
 }
 
 //ValidatorsPublicKeys is a structure containing fields for validators public keys
@@ -64,15 +64,15 @@ type RoundInfo struct {
 type TPS struct {
 	LiveTPS               float64  `json:"liveTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
-	NrOfShards            uint32   `json:"nrOfShards"`
-	NrOfNodes             uint32   `json:"nrOfNodes"`
 	BlockNumber           uint64   `json:"blockNumber"`
 	RoundNumber           uint64   `json:"roundNumber"`
 	RoundTime             uint64   `json:"roundTime"`
 	AverageBlockTxCount   *big.Int `json:"averageBlockTxCount"`
-	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
-	ShardID               uint32   `json:"shardID"`
 	AverageTPS            *big.Int `json:"averageTPS"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
+	NrOfShards            uint32   `json:"nrOfShards"`
+	NrOfNodes             uint32   `json:"nrOfNodes"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
+	ShardID               uint32   `json:"shardID"`
 }

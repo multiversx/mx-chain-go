@@ -5,8 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
-	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -30,20 +28,16 @@ func NewPersisterFactory(config config.DBConfig) *PersisterFactory {
 }
 
 // Create will return a new instance of a DB with a given path
-func (df *PersisterFactory) Create(path string) (storage.Persister, error) {
-	if len(path) < 0 {
+func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
+	if len(path) == 0 {
 		return nil, errors.New("invalid file path")
 	}
 
-	switch storageUnit.DBType(df.dbType) {
+	switch storageUnit.DBType(pf.dbType) {
 	case storageUnit.LvlDB:
-		return leveldb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
+		return leveldb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageUnit.LvlDbSerial:
-		return leveldb.NewSerialDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
-	case storageUnit.BadgerDB:
-		return badgerdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
-	case storageUnit.BoltDB:
-		return boltdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
+		return leveldb.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}

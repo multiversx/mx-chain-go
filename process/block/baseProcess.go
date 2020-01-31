@@ -69,6 +69,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler      process.RequestBlockBodyHandler
 	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
+	dataPool                     dataRetriever.PoolsHolder
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -100,44 +101,6 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	}
 
 	bp.appStatusHandler = ash
-	return nil
-}
-
-// RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState() {
-	err := bp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-
-	err = bp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
-	}
-}
-
-// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := bp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
-		)
-
-		return err
-	}
-
-	err = bp.validatorStatisticsProcessor.RevertPeerState(header)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", header.GetNonce(),
-			"validators root hash", header.GetValidatorStatsRootHash(),
-		)
-
-		return err
-	}
-
 	return nil
 }
 
@@ -779,31 +742,20 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 func (bp *baseProcessor) prepareDataForBootStorer(
 	headerInfo bootstrapStorage.BootstrapHeaderInfo,
 	round uint64,
-	selfNotarizedHeaders []data.HeaderHandler,
-	selfNotarizedHeadersHashes [][]byte,
+	lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
+	pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo,
 	highestFinalBlockNonce uint64,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
-
 	//TODO add end of epoch stuff
 
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
-
-	for i := range selfNotarizedHeaders {
-		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: selfNotarizedHeaders[i].GetShardID(),
-			Nonce:   selfNotarizedHeaders[i].GetNonce(),
-			Hash:    selfNotarizedHeadersHashes[i],
-		}
-
-		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
-	}
 
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                headerInfo,
 		LastCrossNotarizedHeaders: lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:  lastSelfNotarizedHeaders,
+		PendingMiniBlocks:         pendingMiniBlocks,
 		HighestFinalBlockNonce:    highestFinalBlockNonce,
 		ProcessedMiniBlocks:       processedMiniBlocks,
 	}
@@ -853,20 +805,6 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 	}
 
 	return headerInfo
-}
-
-func (bp *baseProcessor) commitAll() error {
-	_, err := bp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = bp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func deleteSelfReceiptsMiniBlocks(body block.Body) block.Body {

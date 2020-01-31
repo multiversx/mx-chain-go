@@ -2,12 +2,10 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 // BelNevMock is used to mock belare neven multisignature scheme
 type BelNevMock struct {
-	msg         []byte
 	aggSig      []byte
 	aggCom      []byte
 	commSecret  []byte
@@ -15,9 +13,7 @@ type BelNevMock struct {
 	commitments [][]byte
 	sigs        [][]byte
 	pubkeys     []string
-	privKey     crypto.PrivateKey
 	selfId      uint16
-	hasher      hashing.Hasher
 
 	VerifyMock               func(msg []byte, bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)

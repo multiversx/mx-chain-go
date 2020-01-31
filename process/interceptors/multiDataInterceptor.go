@@ -88,7 +88,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.interceptedData(dataBuff)
+		var interceptedData process.InterceptedData
+		interceptedData, err = mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()

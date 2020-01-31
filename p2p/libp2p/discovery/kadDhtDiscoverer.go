@@ -19,6 +19,9 @@ const (
 	kadDhtName       = "kad-dht discovery"
 )
 
+var peerDiscoveryTimeout = 10 * time.Second
+var noOfQueries = 1
+
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
 // ArgKadDht represents the kad-dht config argument DTO
@@ -38,9 +41,9 @@ type KadDhtDiscoverer struct {
 	peersRefreshInterval time.Duration
 	randezVous           string
 	initialPeersList     []string
-	bucketSize           uint32
 	routingTableRefresh  time.Duration
 	initConns            bool // Initiate new connections
+	bucketSize           uint32
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -91,9 +94,6 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 			return err
 		}
 
-		opt.BucketSize = int(kdd.bucketSize)
-		opt.RoutingTable.RefreshPeriod = kdd.routingTableRefresh
-
 		return nil
 	}
 
@@ -118,6 +118,12 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		kdd.initialPeersList,
 	)
 
+	cfg := dht.BootstrapConfig{
+		Period:  kdd.peersRefreshInterval,
+		Queries: noOfQueries,
+		Timeout: peerDiscoveryTimeout,
+	}
+
 	ctx := kdd.contextProvider.Context()
 
 	go func() {
@@ -128,7 +134,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 			i := 1
 			for {
 				if kdd.initConns {
-					err := kdd.kadDHT.Bootstrap(ctx)
+					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
 					if err == kbucket.ErrLookupFailure {
 						kdd.ReconnectToNetwork()
 					}
@@ -179,7 +185,7 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 			if err != nil {
 				//could not connect, wait and try next one
 				startIndex++
-				startIndex = startIndex % len(initialPeersList)
+				startIndex %= len(initialPeersList)
 
 				time.Sleep(intervalBetweenAttempts)
 

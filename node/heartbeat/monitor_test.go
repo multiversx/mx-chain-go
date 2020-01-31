@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -170,8 +171,9 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 		createMockP2PAntifloodHandler(),
 	)
 
-	assert.NotNil(t, mon)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(mon))
+
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
 }

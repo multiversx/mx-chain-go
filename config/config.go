@@ -2,8 +2,8 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Size   uint32 `json:"size"`
 	Type   string `json:"type"`
+	Size   uint32 `json:"size"`
 	Shards uint32 `json:"shards"`
 }
 
@@ -91,10 +91,8 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
 
-	ShardDataStorage StorageConfig
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
-	PeerDataStorage  StorageConfig
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
@@ -241,5 +239,5 @@ type AntifloodConfig struct {
 	MaxMessagesPerSecond      uint32
 	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
-	TopicAntifoodConfig       TopicAntifloodConfig
+	Topic                     TopicAntifloodConfig
 }

@@ -226,8 +226,8 @@ func ClosePeers(peers []p2p.Messenger) {
 	}
 }
 
-// CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+// CreateTestDataPool creates a test data pool for shard nodes
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
 	}
@@ -248,7 +248,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
-	dPool, _ := dataPool.NewShardedDataPool(
+	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardsTxPool,
@@ -256,33 +256,6 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 		txBlockBody,
 		peerChangeBlockBody,
 		trieNodes,
-		currTxs,
-	)
-
-	return dPool
-}
-
-// CreateTestMetaDataPool creates a test data pool for meta nodes
-func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
-	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	headers, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewMetaDataPool(
-		txBlockBody,
-		trieNodes,
-		headers,
-		txPool,
-		uTxPool,
 		currTxs,
 	)
 
@@ -453,7 +426,7 @@ func CreateGenesisBlocks(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
@@ -474,7 +447,7 @@ func CreateGenesisBlocks(
 		marshalizer,
 		hasher,
 		uint64Converter,
-		metaDataPool,
+		dataPool,
 		economics,
 		rootHash,
 	)
@@ -493,7 +466,7 @@ func CreateGenesisMetaBlock(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 	rootHash []byte,
 ) data.HeaderHandler {
@@ -508,7 +481,7 @@ func CreateGenesisMetaBlock(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64Converter,
-		MetaDatapool:             metaDataPool,
+		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 	}
@@ -520,7 +493,8 @@ func CreateGenesisMetaBlock(
 		)
 
 		newStore := CreateMetaStore(newShardCoordinator)
-		newMetaDataPool := CreateTestMetaDataPool()
+
+		newDataPool := CreateTestDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
@@ -530,7 +504,7 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.MetaDatapool = newMetaDataPool
+		argsMetaGenesis.DataPool = newDataPool
 	}
 
 	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
@@ -1376,7 +1350,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	neededTxs := make([][]byte, 0)
 
 	for i := 0; i < len(generatedTxHashes); i++ {
-		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
+		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
@@ -1389,7 +1363,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
-		_ = txResolver.RequestDataFromHash(neededTxs[i])
+		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
 	}
 }
 
@@ -1397,7 +1371,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(&mock.ShardedDataStub{
+	return CreateTestDataPool(&mock.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			assert.Fail(t, "same-shard requesters should not be queried")
 			return nil, false
@@ -1444,7 +1418,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes, txsSndAddr
+	return CreateTestDataPool(txPool), txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1529,7 +1503,7 @@ func ProposeAndSyncBlocks(
 			proposerNode := nodes[idProposer]
 			numTxsInPool = GetNumTxsWithDst(
 				proposerNode.ShardCoordinator.SelfId(),
-				proposerNode.ShardDataPool,
+				proposerNode.DataPool,
 				proposerNode.ShardCoordinator.NumberOfShards(),
 			)
 
@@ -1567,6 +1541,7 @@ func ProposeAndSyncOneBlock(
 	nonce uint64,
 ) (uint64, uint64) {
 
+	UpdateRound(nodes, round)
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
@@ -1589,7 +1564,7 @@ func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapin
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
 func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
-	keysMap := make(map[uint32][]string, 0)
+	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))
@@ -1770,25 +1745,17 @@ func EmptyDataPools(nodes []*TestProcessorNode, shardId uint32) {
 }
 
 func emptyNodeDataPool(node *TestProcessorNode) {
-	if node.ShardDataPool != nil {
-		emptyShardDataPool(node.ShardDataPool)
-	}
-	if node.MetaDataPool != nil {
-		emptyMetaDataPool(node.MetaDataPool)
+	if node.DataPool != nil {
+		emptyDataPool(node.DataPool)
 	}
 }
 
-func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
+func emptyDataPool(sdp dataRetriever.PoolsHolder) {
 	sdp.Headers().Clear()
 	sdp.UnsignedTransactions().Clear()
 	sdp.Transactions().Clear()
 	sdp.MiniBlocks().Clear()
 	sdp.PeerChangesBlocks().Clear()
-}
-
-func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
-	holder.Headers().Clear()
-	holder.MiniBlocks().Clear()
 }
 
 // UpdateRound updates the round for every node

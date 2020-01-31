@@ -45,6 +45,11 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		return nil, err
 	}
 
+	blockBalancerInstance, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                        arguments.Hasher,
 		headerValidator:               arguments.HeaderValidator,
@@ -57,6 +62,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancerInstance,
 	}
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
@@ -68,56 +74,64 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		baseBlockTrack: bbt,
 	}
 
-	blockProcessor, err := NewBlockProcessor(
-		arguments.HeaderValidator,
-		arguments.RequestHandler,
-		arguments.ShardCoordinator,
-		&mbt,
-		crossNotarizer,
-		crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier,
-	)
+	argBlockProcessor := ArgBlockProcessor{
+		HeaderValidator:               arguments.HeaderValidator,
+		RequestHandler:                arguments.RequestHandler,
+		ShardCoordinator:              arguments.ShardCoordinator,
+		BlockTracker:                  &mbt,
+		CrossNotarizer:                crossNotarizer,
+		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+	}
+
+	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	mbt.blockProcessor = blockProcessor
+	mbt.blockProcessor = blockProcessorObject
 
-	mbt.headers = make(map[uint32]map[uint64][]*headerInfo)
+	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 
 	return &mbt, nil
 }
 
-func (mbt *metaBlockTrack) getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo {
-	selfMetaBlocksInfo := make([]*headerInfo, 0)
+// GetSelfHeaders gets a slice of self headers from a given header
+func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
+	selfMetaBlocksInfo := make([]*HeaderInfo, 0)
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Debug("getSelfHeaders", "error", process.ErrWrongTypeAssertion)
+		log.Debug("GetSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfMetaBlocksInfo
 	}
 
 	for _, metaBlockHash := range header.MetaBlockHashes {
 		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.headersPool, mbt.marshalizer, mbt.store)
 		if err != nil {
-			log.Trace("getSelfHeaders.GetMetaHeader", "error", err.Error())
+			log.Trace("GetSelfHeaders.GetMetaHeader", "error", err.Error())
 			continue
 		}
 
-		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &headerInfo{hash: metaBlockHash, header: metaBlock})
+		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &HeaderInfo{Hash: metaBlockHash, Header: metaBlock})
 	}
 
 	return selfMetaBlocksInfo
 }
 
-func (mbt *metaBlockTrack) computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := mbt.selfNotarizer.getLastNotarizedHeader(mbt.shardCoordinator.SelfId())
+// ComputeLongestSelfChain computes the longest chain from self shard
+func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := mbt.selfNotarizer.GetLastNotarizedHeader(mbt.shardCoordinator.SelfId())
 	if err != nil {
-		log.Warn("computeLongestSelfChain.getLastNotarizedHeader", "error", err.Error())
+		log.Warn("ComputeLongestSelfChain.GetLastNotarizedHeader", "error", err.Error())
 		return nil, nil, nil, nil
 	}
 
 	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
+}
+
+// ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of headers
+func (mbt *metaBlockTrack) ComputeNumPendingMiniBlocks(_ []data.HeaderHandler) {
 }

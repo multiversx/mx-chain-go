@@ -5,29 +5,41 @@ import (
 )
 
 type blockNotarizerHandler interface {
-	addNotarizedHeader(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
-	cleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64)
-	displayNotarizedHeaders(shardID uint32, message string)
-	getLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
-	getLastNotarizedHeaderNonce(shardID uint32) uint64
-	getNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	initNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error
-	removeLastNotarizedHeader()
-	restoreNotarizedHeadersToGenesis()
+	AddNotarizedHeader(shardID uint32, notarizedHeader data.HeaderHandler, notarizedHeaderHash []byte)
+	CleanupNotarizedHeadersBehindNonce(shardID uint32, nonce uint64)
+	DisplayNotarizedHeaders(shardID uint32, message string)
+	GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetFirstNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetLastNotarizedHeaderNonce(shardID uint32) uint64
+	GetNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	InitNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error
+	RemoveLastNotarizedHeader()
+	RestoreNotarizedHeadersToGenesis()
+	IsInterfaceNil() bool
 }
 
 type blockNotifierHandler interface {
-	callHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	registerHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	CallHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	RegisterHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	IsInterfaceNil() bool
 }
 
 type blockProcessorHandler interface {
-	computeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	processReceivedHeader(header data.HeaderHandler)
+	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	ProcessReceivedHeader(header data.HeaderHandler)
+	IsInterfaceNil() bool
 }
 
 type blockTrackerHandler interface {
-	getSelfHeaders(headerHandler data.HeaderHandler) []*headerInfo
-	computeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
-	sortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo
+	ComputeNumPendingMiniBlocks(headers []data.HeaderHandler)
+	ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
+	SortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	IsInterfaceNil() bool
+}
+
+type blockBalancerHandler interface {
+	GetNumPendingMiniBlocks(shardID uint32) uint32
+	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	IsInterfaceNil() bool
 }

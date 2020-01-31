@@ -9,7 +9,7 @@ type TrieNodesResolverStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
-func (tnrs *TrieNodesResolverStub) RequestDataFromHash(hash []byte) error {
+func (tnrs *TrieNodesResolverStub) RequestDataFromHash(hash []byte, _ uint32) error {
 	if tnrs.RequestDataFromHashCalled != nil {
 		return tnrs.RequestDataFromHashCalled(hash)
 	}

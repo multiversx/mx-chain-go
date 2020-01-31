@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
@@ -103,16 +104,17 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 func TestNewMultiDataInterceptor(t *testing.T) {
 	t.Parallel()
 
+	factory := &mock.InterceptedDataFactoryStub{}
 	mdi, err := interceptors.NewMultiDataInterceptor(
 		&mock.MarshalizerMock{},
-		&mock.InterceptedDataFactoryStub{},
+		factory,
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
 	)
 
-	assert.False(t, check.IfNil(mdi))
-	assert.Nil(t, err)
+	require.False(t, check.IfNil(mdi))
+	require.Nil(t, err)
 }
 
 //------- ProcessReceivedMessage

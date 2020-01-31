@@ -239,7 +239,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithUnmarshaliableData
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
-		DataField:      ([]byte("hello")),
+		DataField:      []byte("hello"),
 		SeqNoField:     nil,
 		TopicIDsField:  nil,
 		SignatureField: nil,

@@ -6,13 +6,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 	s := &mock.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
+	assert.False(t, b.IsInterfaceNil())
+
 	b.AddStorer(1, s)
 	err := b.Has(2, []byte("whatever"))
 	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
@@ -178,4 +182,33 @@ func TestBlockChain_GetStorer(t *testing.T) {
 	assert.True(t, stateBlockUnit == b.GetStorer(2))
 	assert.True(t, peerBlockUnit == b.GetStorer(3))
 	assert.True(t, headerUnit == b.GetStorer(4))
+}
+
+func TestCloseAll_Error(t *testing.T) {
+	t.Parallel()
+
+	closeErr := errors.New("error")
+	s := &mock.StorerStub{
+		CloseCalled: func() error {
+			return closeErr
+		},
+	}
+
+	b := dataRetriever.NewChainStorer()
+	b.AddStorer(1, s)
+
+	err := b.CloseAll()
+	require.Equal(t, storage.ErrClosingPersisters, err)
+}
+
+func TestCloseAll_Ok(t *testing.T) {
+	t.Parallel()
+
+	s := &mock.StorerStub{}
+
+	b := dataRetriever.NewChainStorer()
+	b.AddStorer(1, s)
+
+	err := b.CloseAll()
+	require.Nil(t, err)
 }

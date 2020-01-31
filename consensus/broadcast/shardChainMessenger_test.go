@@ -119,6 +119,7 @@ func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 
 	assert.NotNil(t, scm)
 	assert.Equal(t, nil, err)
+	assert.False(t, scm.IsInterfaceNil())
 }
 
 func TestShardChainMessenger_BroadcastBlockShouldErrNilBody(t *testing.T) {
@@ -202,8 +203,7 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool, 100)
+	channelCalled := make(chan bool, 100)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
@@ -245,8 +245,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
+	channelCalled := make(chan bool)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
@@ -294,8 +293,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
+	channelCalled := make(chan bool)
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
@@ -320,6 +318,60 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	txs = append(txs, []byte(""))
 	transactions[factory.TransactionTopic] = txs
 	err := scm.BroadcastTransactions(transactions)
+
+	wasCalled := false
+	select {
+	case <-channelCalled:
+		wasCalled = true
+	case <-time.After(time.Millisecond * 100):
+	}
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
+	marshalizerMock := &mock.MarshalizerMock{}
+	messengerMock := &mock.MessengerStub{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	scm, _ := broadcast.NewShardChainMessenger(
+		marshalizerMock,
+		messengerMock,
+		privateKeyMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	err := scm.BroadcastHeader(nil)
+	assert.Equal(t, spos.ErrNilHeader, err)
+}
+
+func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
+	channelCalled := make(chan bool)
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	messengerMock := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			channelCalled <- true
+		},
+	}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	scm, _ := broadcast.NewShardChainMessenger(
+		marshalizerMock,
+		messengerMock,
+		privateKeyMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	hdr := block.MetaBlock{Nonce: 10}
+	err := scm.BroadcastHeader(&hdr)
 
 	wasCalled := false
 	select {

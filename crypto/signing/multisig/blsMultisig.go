@@ -332,10 +332,7 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bms *blsMultiSigner) IsInterfaceNil() bool {
-	if bms == nil {
-		return true
-	}
-	return false
+	return bms == nil
 }
 
 func aggregatePublicKeys(
@@ -378,9 +375,7 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 		return nil, err
 	}
 
-	pkPoint, err := pk.Mul(kScalar)
-
-	return pkPoint, nil
+	return pk.Mul(kScalar)
 }
 
 // scalarMulSig returns the result of multiplying a scalar given as a bytes array, with a BLS single signature

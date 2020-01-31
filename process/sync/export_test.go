@@ -171,7 +171,7 @@ func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.Hea
 }
 
 func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*HdrInfo {
-	return make(map[uint32]*HdrInfo, 0)
+	return make(map[uint32]*HdrInfo)
 }
 
 func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, shardId uint32, nonce uint64, hash []byte) {

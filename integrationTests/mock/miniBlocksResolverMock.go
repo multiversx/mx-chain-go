@@ -6,19 +6,19 @@ import (
 )
 
 type MiniBlocksResolverMock struct {
-	RequestDataFromHashCalled      func(hash []byte) error
-	RequestDataFromHashArrayCalled func(hashes [][]byte) error
+	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
+	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	GetMiniBlocksCalled            func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPoolCalled    func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
-func (hrm *MiniBlocksResolverMock) RequestDataFromHash(hash []byte) error {
-	return hrm.RequestDataFromHashCalled(hash)
+func (hrm *MiniBlocksResolverMock) RequestDataFromHash(hash []byte, epoch uint32) error {
+	return hrm.RequestDataFromHashCalled(hash, epoch)
 }
 
-func (hrm *MiniBlocksResolverMock) RequestDataFromHashArray(hashes [][]byte) error {
-	return hrm.RequestDataFromHashArrayCalled(hashes)
+func (hrm *MiniBlocksResolverMock) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
+	return hrm.RequestDataFromHashArrayCalled(hashes, epoch)
 }
 
 func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
@@ -35,8 +35,5 @@ func (hrm *MiniBlocksResolverMock) GetMiniBlocksFromPool(hashes [][]byte) (block
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hrm *MiniBlocksResolverMock) IsInterfaceNil() bool {
-	if hrm == nil {
-		return true
-	}
-	return false
+	return hrm == nil
 }

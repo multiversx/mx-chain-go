@@ -18,7 +18,7 @@ type preProcessorsContainerFactory struct {
 	store               dataRetriever.StorageService
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
-	dataPool            dataRetriever.MetaPoolsHolder
+	dataPool            dataRetriever.PoolsHolder
 	txProcessor         process.TransactionProcessor
 	scResultProcessor   process.SmartContractResultProcessor
 	accounts            state.AccountsAdapter
@@ -26,6 +26,7 @@ type preProcessorsContainerFactory struct {
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
 	gasHandler          process.GasHandler
+	blockTracker        preprocess.BlockTracker
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -34,7 +35,7 @@ func NewPreProcessorsContainerFactory(
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	dataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
@@ -42,6 +43,7 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
+	blockTracker preprocess.BlockTracker,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -80,6 +82,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
@@ -94,6 +99,7 @@ func NewPreProcessorsContainerFactory(
 		miniBlocksCompacter: miniBlocksCompacter,
 		scResultProcessor:   scResultProcessor,
 		gasHandler:          gasHandler,
+		blockTracker:        blockTracker,
 	}, nil
 }
 
@@ -137,6 +143,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
+		ppcm.blockTracker,
 		block.TxBlock,
 	)
 
@@ -162,8 +169,5 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
-	if ppcm == nil {
-		return true
-	}
-	return false
+	return ppcm == nil
 }

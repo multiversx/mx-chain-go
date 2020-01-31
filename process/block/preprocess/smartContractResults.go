@@ -218,14 +218,14 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 			txHash := miniBlock.TxHashes[j]
 			scr.scrForBlock.mutTxsForBlock.RLock()
-			txInfo := scr.scrForBlock.txHashAndInfo[string(txHash)]
+			txInfoFromMap := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
-			if txInfo == nil || txInfo.tx == nil {
+			if txInfoFromMap == nil || txInfoFromMap.tx == nil {
 				log.Debug("missing transaction in ProcessBlockTransactions ", "type", block.SmartContractResultBlock, "txHash", txHash)
 				return process.ErrMissingTransaction
 			}
 
-			currScr, ok := txInfo.tx.(*smartContractResult.SmartContractResult)
+			currScr, ok := txInfoFromMap.tx.(*smartContractResult.SmartContractResult)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -311,9 +311,9 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 }
 
 func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
 	for _, txHash := range mbTxHashes.txHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
 	}
 }
 
@@ -355,9 +355,9 @@ func (scr *smartContractResults) processSmartContractResult(
 	}
 
 	//TODO: These lines could be deleted as in this point these values are already set (this action only overwrites them)
-	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
+	txShardInfoToSet := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	scr.scrForBlock.mutTxsForBlock.Lock()
-	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo}
+	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfoToSet}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -413,7 +413,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 	}
 
 	// verify if all smartContractResult exists
-	smartContractResults := make([]*smartContractResult.SmartContractResult, 0, len(mb.TxHashes))
+	scResSlice := make([]*smartContractResult.SmartContractResult, 0, len(mb.TxHashes))
 	txHashes := make([][]byte, 0, len(mb.TxHashes))
 	for _, txHash := range mb.TxHashes {
 		if !haveTime() {
@@ -431,10 +431,10 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 		}
 
 		txHashes = append(txHashes, txHash)
-		smartContractResults = append(smartContractResults, tx)
+		scResSlice = append(scResSlice, tx)
 	}
 
-	return smartContractResult.TrimSlicePtr(smartContractResults), sliceUtil.TrimSliceSliceByte(txHashes), nil
+	return smartContractResult.TrimSlicePtr(scResSlice), sliceUtil.TrimSliceSliceByte(txHashes), nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
@@ -506,11 +506,11 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		}
 	}
 
-	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfo}
+		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfoToSet}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
@@ -531,8 +531,8 @@ func (scr *smartContractResults) CreateMarshalizedData(txHashes [][]byte) ([][]b
 func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	scr.scrForBlock.mutTxsForBlock.RLock()
 	scrPool := make(map[string]data.TransactionHandler, len(scr.scrForBlock.txHashAndInfo))
-	for txHash, txInfo := range scr.scrForBlock.txHashAndInfo {
-		scrPool[txHash] = txInfo.tx
+	for txHash, txInfoFromMap := range scr.scrForBlock.txHashAndInfo {
+		scrPool[txHash] = txInfoFromMap.tx
 	}
 	scr.scrForBlock.mutTxsForBlock.RUnlock()
 
@@ -541,8 +541,5 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
-	if scr == nil {
-		return true
-	}
-	return false
+	return scr == nil
 }

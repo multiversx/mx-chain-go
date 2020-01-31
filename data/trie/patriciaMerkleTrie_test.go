@@ -68,7 +68,7 @@ func initTrie() data.Trie {
 	tr := emptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
 
 	return tr
 }
@@ -606,7 +606,7 @@ func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
 	assert.Equal(t, 3, len(leaves))
 	assert.Equal(t, []byte("reindeer"), leaves[string([]byte("doe"))])
 	assert.Equal(t, []byte("puppy"), leaves[string([]byte("dog"))])
-	assert.Equal(t, []byte("cat"), leaves[string([]byte("dogglesworth"))])
+	assert.Equal(t, []byte("cat"), leaves[string([]byte("ddog"))])
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

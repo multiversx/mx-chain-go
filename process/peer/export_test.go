@@ -24,20 +24,8 @@ func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.S
 	return vs.getMatchingPrevShardData(currentShardData, shardInfo)
 }
 
-func (vs *validatorStatistics) LoadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
-	return vs.loadPreviousShardHeaders(currentHeader, previousHeader)
-}
-
-func (vs *validatorStatistics) LoadPreviousShardHeadersMeta(currentHeader, _ *block.MetaBlock) error {
-	return vs.loadPreviousShardHeadersMeta(currentHeader)
-}
-
 func (vs *validatorStatistics) PrevShardInfo() map[string]block.ShardData {
 	vs.mutPrevShardInfo.RLock()
 	defer vs.mutPrevShardInfo.RUnlock()
 	return vs.prevShardInfo
-}
-
-func (vs *validatorStatistics) BuildShardDataKey(sh block.ShardData) string {
-	return vs.buildShardDataKey(sh)
 }
