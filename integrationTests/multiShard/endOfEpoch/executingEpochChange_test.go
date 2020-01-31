@@ -296,6 +296,9 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
+		for _, nodes := range nodesMap {
+			integrationTests.UpdateRound(nodes, round)
+		}
 		//integrationTests.GenerateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
