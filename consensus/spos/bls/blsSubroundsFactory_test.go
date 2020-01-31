@@ -32,8 +32,6 @@ const (
 	SrCommitment
 	// SrSignature defines ID of subround "signature"
 	SrSignature
-	// SrEndRound defines ID of subround "End round"
-	SrEndRound
 )
 
 const (
