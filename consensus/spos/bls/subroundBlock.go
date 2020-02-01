@@ -195,7 +195,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(body data.BodyHandler, header da
 		return false
 	}
 
-	log.Debug("step 1: block body and header has been sent",
+	log.Debug("step 1: block body and header have been sent",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", header.GetNonce(),
 		"hash", headerHash)
@@ -344,7 +344,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		return false
 	}
 
-	log.Debug("step 1: block body and header has been received",
+	log.Debug("step 1: block body and header have been received",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
