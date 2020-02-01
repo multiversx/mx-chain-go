@@ -5,27 +5,29 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/stretchr/testify/require"
 )
 
 type dummyItem struct {
-	key   string
-	score uint32
-	chunk *MapChunk
+	key                   string
+	score                 atomic.Uint32
+	chunk                 *MapChunk
+	scoreChangeInProgress atomic.Flag
 }
 
 func newDummyItem(key string) *dummyItem {
 	return &dummyItem{
-		key:   key,
-		score: 0,
+		key: key,
 	}
 }
 
 func newScoredDummyItem(key string, score uint32) *dummyItem {
-	return &dummyItem{
-		key:   key,
-		score: score,
+	item := &dummyItem{
+		key: key,
 	}
+	item.score.Set(score)
+	return item
 }
 
 func (item *dummyItem) GetKey() string {
@@ -33,7 +35,7 @@ func (item *dummyItem) GetKey() string {
 }
 
 func (item *dummyItem) ComputeScore() uint32 {
-	return item.score
+	return item.score.Get()
 }
 
 func (item *dummyItem) GetScoreChunk() *MapChunk {
@@ -42,6 +44,10 @@ func (item *dummyItem) GetScoreChunk() *MapChunk {
 
 func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
 	item.chunk = chunk
+}
+
+func (item *dummyItem) GetScoreChangeInProgressFlag() *atomic.Flag {
+	return &item.scoreChangeInProgress
 }
 
 func TestNewBucketSortedMap(t *testing.T) {
@@ -128,7 +134,7 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	require.Equal(t, uint32(3), counts[3])
 }
 
-func TestBucketSortedMap_ItemMovesNotifyScoreChange(t *testing.T) {
+func TestBucketSortedMap_ItemMovesOnNotifyScoreChange(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	a := newScoredDummyItem("a", 1)
@@ -142,13 +148,38 @@ func TestBucketSortedMap_ItemMovesNotifyScoreChange(t *testing.T) {
 	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 
-	a.score = 2
-	b.score = 43
+	a.score.Set(2)
+	b.score.Set(43)
 	myMap.NotifyScoreChangeByKey("a")
 	myMap.NotifyScoreChangeByKey("b")
 
 	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
+}
+
+func TestBucketSortedMap_ItemDoesNotMoveOnIfMovementAlreadyInProgress(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	a := newScoredDummyItem("a", 1)
+	b := newScoredDummyItem("b", 42)
+	myMap.Set(a)
+	myMap.Set(b)
+
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+
+	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
+
+	b.GetScoreChangeInProgressFlag().Set()
+
+	a.score.Set(2)
+	b.score.Set(43)
+	myMap.NotifyScoreChangeByKey("a")
+	myMap.NotifyScoreChangeByKey("b")
+
+	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 }
 
 func TestBucketSortedMap_Has(t *testing.T) {
@@ -336,4 +367,43 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestBucketSortedMap_NoForgottenItemsOnConcurrentScoreChanges(t *testing.T) {
+	// This test helped us to find a memory leak occuring on concurrent score changes (concurrent movements across buckets)
+
+	for i := 0; i < 1000; i++ {
+		myMap := NewBucketSortedMap(16, 16)
+		a := newScoredDummyItem("a", 0)
+		myMap.Set(a)
+		myMap.NotifyScoreChangeByKey("a")
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			a.score.Set(1)
+			myMap.NotifyScoreChangeByKey("a")
+			wg.Done()
+		}()
+
+		go func() {
+			a.score.Set(2)
+			myMap.NotifyScoreChangeByKey("a")
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		fmt.Println("Should be one item in map")
+		fmt.Println("Buckets", myMap.ScoreChunksCounts())
+
+		myMap.Remove("a")
+
+		fmt.Println("Should be no item in map")
+		fmt.Println("Buckets", myMap.ScoreChunksCounts())
+
+		require.Equal(t, uint32(0), myMap.CountSorted())
+		require.Equal(t, uint32(0), myMap.Count())
+	}
 }

@@ -57,6 +57,8 @@ func (cache *TxCache) monitorSelectionEnd(selection []data.TransactionHandler, s
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
 	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
+
+	go cache.diagnose()
 }
 
 func (cache *TxCache) displaySendersHistogram() {
@@ -89,4 +91,40 @@ type evictionJournal struct {
 func (journal *evictionJournal) display() {
 	log.Trace("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
 	log.Trace("Eviction.pass2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
+}
+
+func (cache *TxCache) diagnose() {
+	sw := core.NewStopWatch()
+	sw.Start("diagnose")
+
+	sizeInBytes := cache.NumBytes()
+	numTxsEstimate := int(cache.CountTx())
+	numTxsInChunks := cache.txByHash.backingMap.Count()
+	txsKeys := cache.txByHash.backingMap.Keys()
+	numSendersEstimate := uint32(cache.CountSenders())
+	numSendersInChunks := cache.txListBySender.backingMap.Count()
+	numSendersInScoreChunks := cache.txListBySender.backingMap.CountSorted()
+	sendersKeys := cache.txListBySender.backingMap.Keys()
+	sendersKeysSorted := cache.txListBySender.backingMap.KeysSorted()
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+
+	sw.Stop("diagnose")
+	duration := sw.GetMeasurement("diagnose")
+
+	fine := true
+	fine = fine && (numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks)
+	fine = fine && (len(sendersKeys) == len(sendersKeysSorted) && len(sendersKeys) == len(sendersSnapshot))
+	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
+	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
+
+	logFunc := log.Trace
+	if !fine {
+		logFunc = log.Warn
+	}
+
+	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
+	logFunc("Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
+	logFunc("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
+	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
+	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 }
