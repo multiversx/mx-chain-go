@@ -2012,6 +2012,43 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body := block.Body{}
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+
+	marshalizedBody, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{marshalizedBody, marshalizedHeader}
+	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	assert.Nil(t, err)
+
+	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
+	assert.Nil(t, dcdBlk)
+	assert.Nil(t, dcdHdr)
+
+	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
 func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 

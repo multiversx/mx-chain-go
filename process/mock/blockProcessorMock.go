@@ -18,6 +18,7 @@ type BlockProcessorMock struct {
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
@@ -26,15 +27,12 @@ type BlockProcessorMock struct {
 }
 
 func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
-
 }
 
 func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
-
 }
 
 func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
-
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -73,6 +71,10 @@ func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHand
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
 }
 
+func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	return bpm.DecodeBlockBodyAndHeaderCalled(dta)
+}
+
 func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return bpm.DecodeBlockBodyCalled(dta)
 }
@@ -94,6 +96,7 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 	if bpm.RevertStateToBlockCalled != nil {
 		return bpm.RevertStateToBlockCalled(header)
 	}
+
 	return nil
 }
 

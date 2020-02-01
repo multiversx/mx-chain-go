@@ -99,7 +99,10 @@ func initFactory() bls.Factory {
 func TestFactory_GetMessageTypeName(t *testing.T) {
 	t.Parallel()
 
-	r := bls.GetStringValue(bls.MtBlockBody)
+	r := bls.GetStringValue(bls.MtBlockBodyAndHeader)
+	assert.Equal(t, "(BLOCK_BODY_AND_HEADER)", r)
+
+	r = bls.GetStringValue(bls.MtBlockBody)
 	assert.Equal(t, "(BLOCK_BODY)", r)
 
 	r = bls.GetStringValue(bls.MtBlockHeader)

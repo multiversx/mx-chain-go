@@ -21,6 +21,8 @@ const (
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
 	MtUnknown consensus.MessageType = iota
+	// MtBlockBodyAndHeader defines ID of a message that has a block body and a block header inside
+	MtBlockBodyAndHeader
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside
@@ -60,6 +62,9 @@ const srEndStartTime = 0.85
 const srEndEndTime = 0.95
 
 const (
+	// BlockBodyAndHeaderStringValue represents the string to be used to identify a block body and a block header
+	BlockBodyAndHeaderStringValue = "(BLOCK_BODY_AND_HEADER)"
+
 	// BlockBodyStringValue represents the string to be used to identify a block body
 	BlockBodyStringValue = "(BLOCK_BODY)"
 
@@ -81,6 +86,8 @@ const (
 
 func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
+	case MtBlockBodyAndHeader:
+		return BlockBodyAndHeaderStringValue
 	case MtBlockBody:
 		return BlockBodyStringValue
 	case MtBlockHeader:

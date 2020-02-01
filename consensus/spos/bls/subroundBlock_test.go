@@ -36,8 +36,6 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, err
 	srBlock, err := bls.NewSubroundBlock(
 		sr,
 		extend,
-		MtBlockBody,
-		MtBlockHeader,
 		processingThresholdPercent,
 	)
 
@@ -48,8 +46,6 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.Subroun
 	srBlock, _ := bls.NewSubroundBlock(
 		sr,
 		extend,
-		MtBlockBody,
-		MtBlockHeader,
 		processingThresholdPercent,
 	)
 
@@ -118,8 +114,6 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	srBlock, err := bls.NewSubroundBlock(
 		nil,
 		extend,
-		MtBlockBody,
-		MtBlockHeader,
 		processingThresholdPercent,
 	)
 	assert.Nil(t, srBlock)
@@ -336,11 +330,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 	)
-	sr.BlockBody = make(block.Body, 0)
+	sr.Body = make(block.Body, 0)
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
-	sr.BlockBody = nil
+	sr.Body = nil
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
@@ -449,7 +443,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -473,7 +467,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
@@ -503,7 +497,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	assert.True(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -868,7 +862,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	receivedValue := uint64(0)
 	_ = sr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {

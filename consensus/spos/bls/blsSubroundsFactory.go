@@ -187,14 +187,13 @@ func (fct *factory) generateBlockSubround() error {
 	subroundBlock, err := NewSubroundBlock(
 		subround,
 		fct.worker.Extend,
-		int(MtBlockBody),
-		int(MtBlockHeader),
 		processingThresholdPercent,
 	)
 	if err != nil {
 		return err
 	}
 
+	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlock.receivedBlockBodyAndHeader)
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
 	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlock)

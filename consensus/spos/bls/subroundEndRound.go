@@ -151,7 +151,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.Header.SetLeaderSignature(leaderSignature)
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -185,14 +185,14 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// broadcast block body and header
-	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
+	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
 	}
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: BlockBody and Header has been committed and broadcast",
+	log.Debug("step 3: Body and Header have been committed and broadcast",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	err = sr.broadcastMiniBlocksAndTransactions()
@@ -241,7 +241,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.BlockBody)
+	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -255,7 +255,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: BlockBody and Header has been committed",
+	log.Debug("step 3: Body and Header have been committed",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	headerTypeMsg := "received"
@@ -338,7 +338,7 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}

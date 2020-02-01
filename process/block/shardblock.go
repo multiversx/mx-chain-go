@@ -60,26 +60,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
+		accounts:              arguments.Accounts,
+		blockSizeThrottler:    blockSizeThrottler,
+		forkDetector:          arguments.ForkDetector,
+		hasher:                arguments.Hasher,
+		marshalizer:           arguments.Marshalizer,
+		store:                 arguments.Store,
+		shardCoordinator:      arguments.ShardCoordinator,
+		nodesCoordinator:      arguments.NodesCoordinator,
+		specialAddressHandler: arguments.SpecialAddressHandler,
+		uint64Converter:       arguments.Uint64Converter,
+		requestHandler:        arguments.RequestHandler,
+		appStatusHandler:      statusHandler.NewNilStatusHandler(),
+		blockChainHook:        arguments.BlockChainHook,
+		txCoordinator:         arguments.TxCoordinator,
+		rounder:               arguments.Rounder,
+		epochStartTrigger:     arguments.EpochStartTrigger,
+		headerValidator:       arguments.HeaderValidator,
+		bootStorer:            arguments.BootStorer,
+		blockTracker:          arguments.BlockTracker,
+		dataPool:              arguments.DataPool,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -1835,6 +1835,41 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (sp *shardProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+
+	err := sp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	var body block.Body
+
+	err = sp.marshalizer.Unmarshal(&body, marshalizedBodyAndHeader.Body)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: marshalizedBodyAndHeader.Body",
+			"error", err.Error())
+		return nil, nil
+	}
+
+	var header block.Header
+
+	err = sp.marshalizer.Unmarshal(&header, marshalizedBodyAndHeader.Header)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: marshalizedBodyAndHeader.Header",
+			"error", err.Error())
+		return nil, nil
+	}
+
+	return body, &header
+}
+
 // DecodeBlockBody method decodes block body from a given byte array
 func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	if dta == nil {
@@ -1845,7 +1880,7 @@ func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 	err := sp.marshalizer.Unmarshal(&body, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
 		return nil
 	}
 
@@ -1862,7 +1897,7 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	err := sp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
 		return nil
 	}
 

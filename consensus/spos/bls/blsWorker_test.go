@@ -65,12 +65,14 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	messages := bnService.InitReceivedMessages()
 
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
+	receivedMessages[bls.MtBlockBodyAndHeader] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtBlockBody] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtSignature] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
 
 	assert.Equal(t, len(receivedMessages), len(messages))
+	assert.NotNil(t, messages[bls.MtBlockBodyAndHeader])
 	assert.NotNil(t, messages[bls.MtBlockBody])
 	assert.NotNil(t, messages[bls.MtBlockHeader])
 	assert.NotNil(t, messages[bls.MtSignature])
@@ -86,7 +88,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	messagesRange := blsService.GetMessageRange()
 	assert.NotNil(t, messagesRange)
 
-	for i := bls.MtBlockBody; i <= bls.MtBlockHeaderFinalInfo; i++ {
+	for i := bls.MtBlockBodyAndHeader; i <= bls.MtBlockHeaderFinalInfo; i++ {
 		v = append(v, i)
 	}
 	assert.NotNil(t, v)
@@ -94,6 +96,30 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	for i, val := range messagesRange {
 		assert.Equal(t, v[i], val)
 	}
+}
+
+func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
+	assert.True(t, canProceed)
+}
+
+func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
+	assert.False(t, canProceed)
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *testing.T) {
@@ -224,7 +250,9 @@ func TestWorker_GetStringValue(t *testing.T) {
 
 	service, _ := bls.NewConsensusService()
 
-	r := service.GetStringValue(bls.MtBlockBody)
+	r := service.GetStringValue(bls.MtBlockBodyAndHeader)
+	assert.Equal(t, bls.BlockBodyAndHeaderStringValue, r)
+	r = service.GetStringValue(bls.MtBlockBody)
 	assert.Equal(t, bls.BlockBodyStringValue, r)
 	r = service.GetStringValue(bls.MtBlockHeader)
 	assert.Equal(t, bls.BlockHeaderStringValue, r)
@@ -236,6 +264,21 @@ func TestWorker_GetStringValue(t *testing.T) {
 	assert.Equal(t, bls.BlockUnknownStringValue, r)
 	r = service.GetStringValue(-1)
 	assert.Equal(t, bls.BlockDefaultStringValue, r)
+}
+
+func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithBlockBodyAndHeader(bls.MtBlockBody)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithBlockBodyAndHeader(bls.MtBlockHeader)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithBlockBodyAndHeader(bls.MtBlockBodyAndHeader)
+	assert.True(t, ret)
 }
 
 func TestWorker_IsMessageWithBlockHeader(t *testing.T) {

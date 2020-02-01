@@ -14,8 +14,6 @@ import (
 type subroundBlock struct {
 	*spos.Subround
 
-	mtBlockBody                   int
-	mtBlockHeader                 int
 	processingThresholdPercentage int
 }
 
@@ -23,8 +21,6 @@ type subroundBlock struct {
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
-	mtBlockBody int,
-	mtBlockHeader int,
 	processingThresholdPercentage int,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
@@ -34,8 +30,6 @@ func NewSubroundBlock(
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
-		mtBlockBody:                   mtBlockBody,
-		mtBlockHeader:                 mtBlockHeader,
 		processingThresholdPercentage: processingThresholdPercentage,
 	}
 
@@ -83,25 +77,26 @@ func (sr *subroundBlock) doBlockJob() bool {
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreatedProposedBlock)
 
-	hdr, err := sr.createHeader()
+	header, err := sr.createHeader()
 	if err != nil {
 		log.Debug("doBlockJob.createHeader", "error", err.Error())
 		return false
 	}
 
-	body, err := sr.createBody(hdr)
+	body, err := sr.createBody(header)
 	if err != nil {
 		log.Debug("doBlockJob.createBody", "error", err.Error())
 		return false
 	}
 
-	body, err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
+	body, err = sr.BlockProcessor().ApplyBodyToHeader(header, body)
 	if err != nil {
 		log.Debug("doBlockJob.ApplyBodyToHeader", "error", err.Error())
 		return false
 	}
 
-	if !sr.sendBlockBody(body) || !sr.sendBlockHeader(hdr) {
+	sentWithSuccess := sr.sendBlock(body, header)
+	if !sentWithSuccess {
 		return false
 	}
 
@@ -111,6 +106,24 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
+	return true
+}
+
+func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
+	if sr.canBeSentTogether(body, header) {
+		return sr.sendBlockBodyAndHeader(body, header)
+	}
+
+	if !sr.sendBlockBody(body) || !sr.sendBlockHeader(header) {
+		return false
+	}
+
+	return true
+}
+
+func (sr *subroundBlock) canBeSentTogether(body data.BodyHandler, header data.HeaderHandler) bool {
+	//TODO: Here should be checked if the size of the marshalized block body and header together, exeeds the limit size
+	//which could be sent on the consensus topic
 	return true
 }
 
@@ -132,9 +145,71 @@ func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 	return blockBody, nil
 }
 
-// sendBlockBody method job the proposed block body in the subround Block
-func (sr *subroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
-	blkStr, err := sr.Marshalizer().Marshal(blockBody)
+// sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
+func (sr *subroundBlock) sendBlockBodyAndHeader(body data.BodyHandler, header data.HeaderHandler) bool {
+	marshalizedBody, err := sr.Marshalizer().Marshal(body)
+	if err != nil {
+		log.Debug("sendBlockBodyAndHeader.Marshal: body", "error", err.Error())
+		return false
+	}
+
+	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
+	if err != nil {
+		log.Debug("sendBlockBodyAndHeader.Marshal: header", "error", err.Error())
+		return false
+	}
+
+	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	subRoundData, err := sr.Marshalizer().Marshal(&marshalizedBodyAndHeader)
+	if err != nil {
+		log.Debug("sendBlockBodyAndHeader.Marshal: marshalizedBodyAndHeader", "error", err.Error())
+		return false
+	}
+
+	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Debug("sendBlockBodyAndHeader.CalculateHash", "error", err.Error())
+		return false
+	}
+
+	cnsMsg := consensus.NewConsensusMessage(
+		headerHash,
+		subRoundData,
+		[]byte(sr.SelfPubKey()),
+		nil,
+		int(MtBlockBodyAndHeader),
+		sr.Rounder().Index(),
+		sr.ChainID(),
+		nil,
+		nil,
+		nil,
+	)
+
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if err != nil {
+		log.Debug("sendBlockBodyAndHeader.BroadcastConsensusMessage", "error", err.Error())
+		return false
+	}
+
+	log.Debug("step 1: block body and header has been sent",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"nonce", header.GetNonce(),
+		"hash", headerHash)
+
+	sr.Data = headerHash
+	sr.Body = body
+	sr.Header = header
+
+	return true
+}
+
+// sendBlockBody method sends the proposed block body in the subround Block
+func (sr *subroundBlock) sendBlockBody(body data.BodyHandler) bool {
+	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlockBody.Marshal", "error", err.Error())
 		return false
@@ -142,10 +217,10 @@ func (sr *subroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
-		blkStr,
+		marshalizedBody,
 		[]byte(sr.SelfPubKey()),
 		nil,
-		sr.mtBlockBody,
+		int(MtBlockBody),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 		nil,
@@ -162,27 +237,27 @@ func (sr *subroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 	log.Debug("step 1: block body has been sent",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
-	sr.BlockBody = blockBody
+	sr.Body = body
 
 	return true
 }
 
-// sendBlockHeader method job the proposed block header in the subround Block
-func (sr *subroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
-	hdrStr, err := sr.Marshalizer().Marshal(hdr)
+// sendBlockHeader method sends the proposed block header in the subround Block
+func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler) bool {
+	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
 	if err != nil {
 		log.Debug("sendBlockHeader.Marshal", "error", err.Error())
 		return false
 	}
 
-	hdrHash := sr.Hasher().Compute(string(hdrStr))
+	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	cnsMsg := consensus.NewConsensusMessage(
-		hdrHash,
-		hdrStr,
+		headerHash,
+		marshalizedHeader,
 		[]byte(sr.SelfPubKey()),
 		nil,
-		sr.mtBlockHeader,
+		int(MtBlockHeader),
 		sr.Rounder().Index(),
 		sr.ChainID(),
 		nil,
@@ -198,11 +273,11 @@ func (sr *subroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 
 	log.Debug("step 1: block header has been sent",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
-		"nonce", hdr.GetNonce(),
-		"hash", hdrHash)
+		"nonce", header.GetNonce(),
+		"hash", headerHash)
 
-	sr.Data = hdrHash
-	sr.Header = hdr
+	sr.Data = headerHash
+	sr.Header = header
 
 	return true
 }
@@ -238,6 +313,46 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
+// receivedBlockBodyAndHeader method is called when a block body and a block header is received
+func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
+	node := string(cnsDta.PubKey)
+
+	if sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if sr.IsBlockBodyAlreadyReceived() {
+		return false
+	}
+
+	if sr.IsHeaderAlreadyReceived() {
+		return false
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		return false
+	}
+
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+		return false
+	}
+
+	sr.Data = cnsDta.BlockHeaderHash
+	sr.Body, sr.Header = sr.BlockProcessor().DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
+
+	if check.IfNil(sr.Body) || check.IfNil(sr.Header) {
+		return false
+	}
+
+	log.Debug("step 1: block body and header has been received",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"nonce", sr.Header.GetNonce(),
+		"hash", cnsDta.BlockHeaderHash)
+	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+
+	return blockProcessedWithSuccess
+}
+
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
@@ -254,9 +369,9 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.BlockBody = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
+	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
 
-	if sr.BlockBody == nil {
+	if check.IfNil(sr.Body) {
 		return false
 	}
 
@@ -293,7 +408,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
 
-	if sr.Header == nil {
+	if check.IfNil(sr.Header) {
 		return false
 	}
 
@@ -307,7 +422,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 }
 
 func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if check.IfNil(sr.BlockBody) {
+	if check.IfNil(sr.Body) {
 		return false
 	}
 	if check.IfNil(sr.Header) {
@@ -334,7 +449,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Blockchain(),
 		sr.Header,
-		sr.BlockBody,
+		sr.Body,
 		remainingTimeInCurrentRound,
 	)
 

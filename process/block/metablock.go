@@ -1688,6 +1688,41 @@ func getTxCount(shardInfo []block.ShardData) uint32 {
 	return txs
 }
 
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (mp *metaProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+
+	err := mp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	var body block.Body
+
+	err = mp.marshalizer.Unmarshal(&body, marshalizedBodyAndHeader.Body)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: marshalizedBodyAndHeader.Body",
+			"error", err.Error())
+		return nil, nil
+	}
+
+	var metaBlock block.MetaBlock
+
+	err = mp.marshalizer.Unmarshal(&metaBlock, marshalizedBodyAndHeader.Header)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: marshalizedBodyAndHeader.Header",
+			"error", err.Error())
+		return nil, nil
+	}
+
+	return body, &metaBlock
+}
+
 // DecodeBlockBody method decodes block body from a given byte array
 func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	if dta == nil {
@@ -1698,7 +1733,7 @@ func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 	err := mp.marshalizer.Unmarshal(&body, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
 		return nil
 	}
 
@@ -1711,15 +1746,15 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	var header block.MetaBlock
+	var metaBlock block.MetaBlock
 
-	err := mp.marshalizer.Unmarshal(&header, dta)
+	err := mp.marshalizer.Unmarshal(&metaBlock, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
 		return nil
 	}
 
-	return &header
+	return &metaBlock
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
