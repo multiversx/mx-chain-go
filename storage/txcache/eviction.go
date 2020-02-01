@@ -77,14 +77,14 @@ func (cache *TxCache) shouldContinueEvictingSenders() bool {
 }
 
 // evictHighNonceTransactions removes transactions from the cache
-// For senders with many transactions (> "ALotOfTransactionsForASender"), evict "NumTxsToEvictForASenderWithALot" transactions
+// For senders with many transactions (> "LargeNumOfTxsForASender"), evict "NumTxsToEvictFromASender" transactions
 // Also makes sure that there's no sender with 0 transactions
 func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	txsToEvict := make([][]byte, 0)
 	sendersToEvict := make([]string, 0)
 
-	threshold := cache.config.ALotOfTransactionsForASender
-	numTxsToEvict := cache.config.NumTxsToEvictForASenderWithALot
+	threshold := cache.config.LargeNumOfTxsForASender
+	numTxsToEvict := cache.config.NumTxsToEvictFromASender
 
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(threshold) {

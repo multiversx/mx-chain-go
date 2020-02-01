@@ -9,11 +9,11 @@ import (
 
 func TestEviction_EvictHighNonceTransactions(t *testing.T) {
 	config := CacheConfig{
-		NumChunksHint:                   16,
-		CountThreshold:                  400,
-		ALotOfTransactionsForASender:    50,
-		NumTxsToEvictForASenderWithALot: 25,
-		MinGasPriceMicroErd:             100,
+		NumChunksHint:            16,
+		CountThreshold:           400,
+		LargeNumOfTxsForASender:  50,
+		NumTxsToEvictFromASender: 25,
+		MinGasPriceMicroErd:      100,
 	}
 
 	cache := NewTxCache(config)
@@ -42,11 +42,11 @@ func TestEviction_EvictHighNonceTransactions(t *testing.T) {
 
 func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
 	config := CacheConfig{
-		NumChunksHint:                   1,
-		CountThreshold:                  0,
-		ALotOfTransactionsForASender:    0,
-		NumTxsToEvictForASenderWithALot: 1,
-		MinGasPriceMicroErd:             100,
+		NumChunksHint:            1,
+		CountThreshold:           0,
+		LargeNumOfTxsForASender:  0,
+		NumTxsToEvictFromASender: 1,
+		MinGasPriceMicroErd:      100,
 	}
 
 	cache := NewTxCache(config)
@@ -243,18 +243,20 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 // This seems to be the worst case in terms of eviction complexity
 // Eviction is triggered often and little eviction (only 10 senders) is done
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(t *testing.T) {
+	t.Skip()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	config := CacheConfig{
-		NumChunksHint:                   16,
-		EvictionEnabled:                 true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      10,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
+		NumChunksHint:              16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          1000000000,
+		CountThreshold:             240000,
+		NumSendersToEvictInOneStep: 10,
+		LargeNumOfTxsForASender:    1000,
+		NumTxsToEvictFromASender:   250,
 	}
 
 	cache := NewTxCache(config)
@@ -263,18 +265,20 @@ func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEv
 }
 
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(t *testing.T) {
+	t.Skip()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	config := CacheConfig{
-		NumChunksHint:                   16,
-		EvictionEnabled:                 true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      100,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
+		NumChunksHint:              16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          1000000000,
+		CountThreshold:             240000,
+		NumSendersToEvictInOneStep: 100,
+		LargeNumOfTxsForASender:    1000,
+		NumTxsToEvictFromASender:   250,
 	}
 
 	cache := NewTxCache(config)
@@ -283,14 +287,20 @@ func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEv
 }
 
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(t *testing.T) {
+	t.Skip()
+
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	config := CacheConfig{
-		NumChunksHint:                   16,
-		EvictionEnabled:                 true,
-		NumBytesThreshold:               1000000000,
-		CountThreshold:                  240000,
-		NumSendersToEvictInOneStep:      1000,
-		ALotOfTransactionsForASender:    1000,
-		NumTxsToEvictForASenderWithALot: 250,
+		NumChunksHint:              16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          1000000000,
+		CountThreshold:             240000,
+		NumSendersToEvictInOneStep: 1000,
+		LargeNumOfTxsForASender:    1000,
+		NumTxsToEvictFromASender:   250,
 	}
 
 	cache := NewTxCache(config)

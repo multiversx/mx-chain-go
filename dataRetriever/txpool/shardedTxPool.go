@@ -39,14 +39,14 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	const oneTrilion = 1000000 * 1000000
 
 	cacheConfigPrototype := txcache.CacheConfig{
-		NumChunksHint:                   args.Config.Shards,
-		EvictionEnabled:                 true,
-		NumBytesThreshold:               args.Config.SizeInBytes / args.NumberOfShards,
-		CountThreshold:                  args.Config.Size / args.NumberOfShards,
-		NumSendersToEvictInOneStep:      dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		ALotOfTransactionsForASender:    dataRetriever.TxPoolALotOfTransactionsForASender,
-		NumTxsToEvictForASenderWithALot: dataRetriever.TxPoolNumTxsToEvictForASenderWithALot,
-		MinGasPriceMicroErd:             uint32(args.MinGasPrice / oneTrilion),
+		NumChunksHint:              args.Config.Shards,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          args.Config.SizeInBytes / args.NumberOfShards,
+		CountThreshold:             args.Config.Size / args.NumberOfShards,
+		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
+		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
+		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
+		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
 	shardedTxPoolObject := &shardedTxPool{
