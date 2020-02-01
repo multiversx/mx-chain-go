@@ -102,6 +102,12 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		return false
 	}
 
+	log.Debug("step 3: block header final info has been received",
+		"PubKeysBitmap", cnsDta.PubKeysBitmap,
+		"AggregateSignature", cnsDta.AggregateSignature,
+		"LeaderSignature", cnsDta.LeaderSignature,
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
