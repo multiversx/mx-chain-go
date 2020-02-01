@@ -125,7 +125,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	log.Debug("step 0: preparing the round",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"leader", core.GetTrimmedPk(hex.EncodeToString([]byte(leader))),
 		"messsage", msg)
 
@@ -135,8 +134,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("not in consensus group",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime())
+		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "not in consensus group")
 	} else {
 		sr.AppStatusHandler().Increment(core.MetricCountConsensus)
@@ -156,7 +154,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
 			"subround", sr.Name())
 

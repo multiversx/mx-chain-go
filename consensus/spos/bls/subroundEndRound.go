@@ -105,8 +105,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", cnsDta.PubKeysBitmap,
 		"AggregateSignature", cnsDta.AggregateSignature,
-		"LeaderSignature", cnsDta.LeaderSignature,
-		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+		"LeaderSignature", cnsDta.LeaderSignature)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
@@ -190,6 +189,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	log.Debug("step 3: block header final info has been sent",
+		"PubKeysBitmap", bitmap,
+		"AggregateSignature", sig,
+		"LeaderSignature", leaderSignature)
+
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
 	if err != nil {
@@ -198,8 +202,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed and broadcast",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+	log.Debug("step 3: Body and Header have been committed and broadcast")
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
@@ -261,8 +264,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+	log.Debug("step 3: Body and Header have been committed")
 
 	headerTypeMsg := "received"
 	if cnsDta != nil {
@@ -420,7 +422,6 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
 			"subround", sr.Name())
 

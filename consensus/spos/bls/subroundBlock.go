@@ -196,7 +196,6 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(body data.BodyHandler, header da
 	}
 
 	log.Debug("step 1: block body and header have been sent",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", header.GetNonce(),
 		"hash", headerHash)
 
@@ -234,8 +233,7 @@ func (sr *subroundBlock) sendBlockBody(body data.BodyHandler) bool {
 		return false
 	}
 
-	log.Debug("step 1: block body has been sent",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+	log.Debug("step 1: block body has been sent")
 
 	sr.Body = body
 
@@ -272,7 +270,6 @@ func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler) bool {
 	}
 
 	log.Debug("step 1: block header has been sent",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", header.GetNonce(),
 		"hash", headerHash)
 
@@ -345,7 +342,6 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	}
 
 	log.Debug("step 1: block body and header have been received",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
@@ -375,8 +371,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	log.Debug("step 1: block body has been received",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+	log.Debug("step 1: block body has been received")
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
@@ -413,7 +408,6 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	log.Debug("step 1: block header has been received",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
@@ -508,7 +502,6 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 	threshold := sr.Threshold(sr.Current())
 	if sr.isBlockReceived(threshold) {
 		log.Debug("step 1: subround has been finished",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 		return true
