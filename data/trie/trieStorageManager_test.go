@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -8,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -436,4 +439,38 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	val, err := trieStorage.snapshots[lastSnapshot].Get(tr.root.getHash())
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
+}
+
+func TestCheckpointWithErrWillNotGeneratePruningDeadlock(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash1, false)
+
+	trieStorage.snapshotsBuffer.add([]byte("rootHash"), false)
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash2, false)
+
+	tr.CancelPrune(rootHash1, data.NewRoot)
+	_ = tr.Prune(rootHash2, data.NewRoot)
+	_ = tr.Prune(rootHash1, data.OldRoot)
+
+	trieStorage.snapshot(tr.marshalizer, tr.hasher)
+
+	trieStorage.snapshots = make([]storage.Persister, 0)
+	newTr, err := tr.Recreate(rootHash1)
+	assert.Nil(t, newTr)
+	assert.True(t, errors.Is(err, ErrHashNotFound))
+
+	newTr, err = tr.Recreate(rootHash2)
+	assert.Nil(t, newTr)
+	assert.True(t, errors.Is(err, ErrHashNotFound))
 }

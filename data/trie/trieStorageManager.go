@@ -176,6 +176,8 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 		return err
 	}
 
+	log.Trace("trie removeFromDb", "rootHash", rootHash)
+
 	var hash []byte
 	var present bool
 	for key := range hashes {
@@ -192,7 +194,6 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 			return err
 		}
 
-		log.Trace("trie removeFromDb", "hash", key)
 		err = tsm.db.Remove(hash)
 		if err != nil {
 			return err
@@ -278,7 +279,7 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
 
 			log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
-			break
+			continue
 		}
 		db := tsm.getSnapshotDb(snapshot.newDb)
 
@@ -289,7 +290,7 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 			isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
 
 			log.Error("trie storage manager: commit", "error", err.Error())
-			break
+			continue
 		}
 
 		isSnapshotsBufferEmpty, keys = tsm.isSnapshotsBufferEmpty()
@@ -314,6 +315,7 @@ func (tsm *trieStorageManager) isSnapshotsBufferEmpty() (bool, [][]byte) {
 }
 
 func (tsm *trieStorageManager) removeKeysFromDb(keys [][]byte) {
+	log.Trace("removeKeysFromDb")
 	for i := range keys {
 		tsm.storageOperationMutex.Lock()
 		err := tsm.removeFromDb(keys[i])
