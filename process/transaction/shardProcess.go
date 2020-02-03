@@ -24,7 +24,6 @@ type txProcessor struct {
 	marshalizer      marshal.Marshalizer
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
-	shardCoordinator sharding.Coordinator
 	receiptForwarder process.IntermediateTransactionHandler
 	badTxForwarder   process.IntermediateTransactionHandler
 }
@@ -189,6 +188,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 	if err != nil {
 		return err
 	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return process.ErrFailedTransaction
 }

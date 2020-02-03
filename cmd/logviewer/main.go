@@ -26,10 +26,10 @@ const (
 )
 
 type config struct {
+	workingDir       string
 	address          string
 	logLevelPatterns string
 	logFile          bool
-	workingDir       string
 	useWss           bool
 }
 
@@ -197,12 +197,12 @@ func getLowestLogLevel(logLevels []logger.LogLevel) logger.LogLevel {
 
 func prepareLogFile() error {
 	logDirectory := filepath.Join(argsConfig.workingDir, defaultLogPath)
-	fileForLogs, err := core.CreateFile("logviewer", logDirectory, "log")
+	logsFile, err := core.CreateFile("logviewer", logDirectory, "log")
 	if err != nil {
 		return err
 	}
 
-	return logger.AddLogObserver(fileForLogs, &logger.PlainFormatter{})
+	return logger.AddLogObserver(logsFile, &logger.PlainFormatter{})
 }
 
 func openWebSocket(address string, logLevelPatterns string) (*websocket.Conn, error) {
@@ -278,7 +278,7 @@ func outputMessage(message []byte) {
 		Message:   logLine.Message,
 		LogLevel:  logger.LogLevel(logLine.LogLevel),
 		Args:      make([]interface{}, len(logLine.Args)),
-		Timestamp: time.Unix(logLine.Timestamp, 0),
+		Timestamp: time.Unix(0, logLine.Timestamp),
 	}
 	for i, str := range logLine.Args {
 		recoveredLogLine.Args[i] = str

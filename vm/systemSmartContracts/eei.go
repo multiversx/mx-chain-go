@@ -44,7 +44,7 @@ func (host *vmContext) SelfDestruct(beneficiary []byte) {
 func (host *vmContext) GetStorage(key []byte) []byte {
 	strAdr := string(host.scAddress)
 	if _, ok := host.storageUpdate[strAdr]; ok {
-		if value, ok := host.storageUpdate[strAdr][string(key)]; ok {
+		if value, isInMap := host.storageUpdate[strAdr][string(key)]; isInMap {
 			return value
 		}
 	}
@@ -62,7 +62,7 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 	strAdr := string(host.scAddress)
 
 	if _, ok := host.storageUpdate[strAdr]; !ok {
-		host.storageUpdate[strAdr] = make(map[string][]byte, 0)
+		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
 
 	length := len(value)
@@ -143,9 +143,9 @@ func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
 
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
-	host.storageUpdate = make(map[string]map[string][]byte, 0)
+	host.storageUpdate = make(map[string]map[string][]byte)
 	host.selfDestruct = make(map[string][]byte)
-	host.outputAccounts = make(map[string]*vmcommon.OutputAccount, 0)
+	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([]byte, 0)
 }
 
@@ -153,7 +153,7 @@ func (host *vmContext) CleanCache() {
 func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput := &vmcommon.VMOutput{}
 	// save storage updates
-	outAccs := make(map[string]*vmcommon.OutputAccount, 0)
+	outAccs := make(map[string]*vmcommon.OutputAccount)
 	for addr, updates := range host.storageUpdate {
 		if _, ok := outAccs[addr]; !ok {
 			outAccs[addr] = &vmcommon.OutputAccount{

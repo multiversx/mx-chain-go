@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestHeaderAndMiniBlocksAreRoutedCorrectly tests what happens if a shard node broadcasts a header and a
@@ -121,7 +122,8 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	metaHdrFromMetachain := &block.MetaBlock{
-		Nonce:         110,
+		Nonce:         1,
+		Round:         1,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
 		PeerInfo:      make([]block.PeerData, 0),
@@ -132,12 +134,13 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		RandSeed:      []byte("rand seed"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
-		ChainID:       integrationTests.IntegrationTestsChainID,
+		ChainID:       integrationTests.ChainID,
 	}
 	metaHdrHashFromMetachain, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromMetachain)
 
 	metaHdrFromShard := &block.MetaBlock{
-		Nonce:         220,
+		Nonce:         1,
+		Round:         2,
 		Epoch:         0,
 		ShardInfo:     make([]block.ShardData, 0),
 		PeerInfo:      make([]block.PeerData, 0),
@@ -148,25 +151,25 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 		RandSeed:      []byte("rand seed"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
-		ChainID:       integrationTests.IntegrationTestsChainID,
+		ChainID:       integrationTests.ChainID,
 	}
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-			n.ShardDataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
+			n.DataPool.Headers().AddHeader(metaHdrFromShardHash, metaHdrFromShard)
 		}
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.MetaDataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
-	node1Shard0.ShardDataPool.Headers().Clear()
-	node1Shard0.ShardDataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
+	node4Meta.DataPool.Headers().AddHeader(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node1Shard0.DataPool.Headers().Clear()
+	node1Shard0.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {
 		chanReceived <- struct{}{}
 	})
 
 	retrievedHeader := requestAndRetrieveMetaHeader(node1Shard0, metaHdrHashFromMetachain, chanReceived)
-	assert.NotNil(t, retrievedHeader)
+	require.NotNil(t, retrievedHeader)
 	assert.Equal(t, metaHdrFromMetachain.Nonce, retrievedHeader.Nonce)
 
 	retrievedHeader = requestAndRetrieveMetaHeader(node1Shard0, metaHdrFromShardHash, chanReceived)
@@ -188,7 +191,7 @@ func requestAndRetrieveMetaHeader(
 		return nil
 	}
 
-	retrievedObject, _ := node.ShardDataPool.Headers().GetHeaderByHash(hash)
+	retrievedObject, _ := node.DataPool.Headers().GetHeaderByHash(hash)
 
 	return retrievedObject.(*block.MetaBlock)
 }

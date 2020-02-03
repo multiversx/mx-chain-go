@@ -22,7 +22,7 @@ type resolversContainerFactory struct {
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.MetaPoolsHolder
+	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
@@ -35,7 +35,7 @@ func NewResolversContainerFactory(
 	messenger dataRetriever.TopicMessageHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.MetaPoolsHolder,
+	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
 	triesContainer state.TriesHolder,
@@ -447,10 +447,7 @@ func (rcf *resolversContainerFactory) createOneResolverSender(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
-	if rcf == nil {
-		return true
-	}
-	return false
+	return rcf == nil
 }
 
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {

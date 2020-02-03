@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -46,8 +47,8 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 	return tmhs
 }
 
-func createDataPools() dataRetriever.MetaPoolsHolder {
-	pools := &mock.MetaPoolsHolderStub{
+func createDataPools() dataRetriever.PoolsHolder {
+	pools := &mock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -268,8 +269,8 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		0,
 	)
 
-	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(rcf))
 }
 
 //------- Create

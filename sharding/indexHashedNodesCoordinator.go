@@ -9,6 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
+const (
+	keyFormat = "%s_%v_%v"
+)
+
 type indexHashedNodesCoordinator struct {
 	doExpandEligibleList    func(uint32) []Validator
 	nbShards                uint32
@@ -18,6 +22,7 @@ type indexHashedNodesCoordinator struct {
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
+	consensusGroupCacher    Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -35,6 +40,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
+		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -62,6 +68,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.SelfPublicKey == nil {
 		return ErrNilPubKey
+	}
+	if arguments.ConsensusGroupCache == nil {
+		return ErrNilCacher
 	}
 
 	return nil
@@ -121,6 +130,12 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return nil, ErrNilRandomness
 	}
 
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	validators := ihgs.searchConsensusForKey(key)
+	if validators != nil {
+		return validators, nil
+	}
+
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
@@ -136,7 +151,21 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
 
+	ihgs.consensusGroupCacher.Put(key, tempList)
+
 	return tempList, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+	value, ok := ihgs.consensusGroupCacher.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup
+		}
+
+	}
+	return nil
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key
@@ -299,7 +328,7 @@ func (ihgs *indexHashedNodesCoordinator) checkIndex(
 
 		if ihgs.validatorIsInList(v, selectedList) {
 			proposedIndex++
-			proposedIndex = proposedIndex % len(eligibleList)
+			proposedIndex %= len(eligibleList)
 			continue
 		}
 

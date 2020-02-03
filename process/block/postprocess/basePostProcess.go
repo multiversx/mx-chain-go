@@ -78,12 +78,12 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
-		txInfo := bpp.interResultsForBlock[string(txHash)]
-		if txInfo == nil || txInfo.tx == nil {
+		txInfoObject := bpp.interResultsForBlock[string(txHash)]
+		if txInfoObject == nil || txInfoObject.tx == nil {
 			continue
 		}
 
-		txMrs, err := bpp.marshalizer.Marshal(txInfo.tx)
+		txMrs, err := bpp.marshalizer.Marshal(txInfoObject.tx)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
@@ -98,14 +98,14 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 	bpp.mutInterResultsForBlock.Lock()
 
 	scrPool := make(map[string]data.TransactionHandler)
-	for txHash, txInfo := range bpp.interResultsForBlock {
-		if txInfo.receiverShardID != bpp.shardCoordinator.SelfId() {
+	for txHash, txInfoInterResult := range bpp.interResultsForBlock {
+		if txInfoInterResult.receiverShardID != bpp.shardCoordinator.SelfId() {
 			continue
 		}
-		if txInfo.senderShardID != bpp.shardCoordinator.SelfId() {
+		if txInfoInterResult.senderShardID != bpp.shardCoordinator.SelfId() {
 			continue
 		}
-		scrPool[txHash] = txInfo.tx
+		scrPool[txHash] = txInfoInterResult.tx
 	}
 	bpp.mutInterResultsForBlock.Unlock()
 
@@ -135,6 +135,7 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	return nil
 }
 
+// GetCreatedInShardMiniBlock returns a clone of the intra shard mini block
 func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()

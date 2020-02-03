@@ -90,8 +90,16 @@ type RatingReader interface {
 
 //RatingReaderSetter provides the capabilities to set a RatingReader
 type RatingReaderSetter interface {
-	//GetRating gets the rating for the public key
+	//SetRatingReader sets the rating
 	SetRatingReader(RatingReader)
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
+}
+
+//Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
+type Cacher interface {
+	// Put adds a value to the cache.  Returns true if an eviction occurred.
+	Put(key []byte, value interface{}) (evicted bool)
+	// Get looks up a key's value from the cache.
+	Get(key []byte) (value interface{}, ok bool)
 }

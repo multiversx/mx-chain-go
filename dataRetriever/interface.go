@@ -23,24 +23,20 @@ const (
 	BlockHeaderUnit UnitType = 3
 	// MetaBlockUnit is the metachain blocks storage unit identifier
 	MetaBlockUnit UnitType = 4
-	// MetaShardDataUnit is the metachain shard data unit identifier
-	MetaShardDataUnit UnitType = 5
-	// MetaPeerDataUnit is the metachain peer data unit identifier
-	MetaPeerDataUnit UnitType = 6
 	// UnsignedTransactionUnit is the unsigned transaction unit identifier
-	UnsignedTransactionUnit UnitType = 7
+	UnsignedTransactionUnit UnitType = 5
 	// RewardTransactionUnit is the reward transaction unit identifier
-	RewardTransactionUnit UnitType = 8
+	RewardTransactionUnit UnitType = 6
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 9
+	MetaHdrNonceHashDataUnit UnitType = 7
 	// HeartbeatUnit is the heartbeat storage unit identifier
-	HeartbeatUnit UnitType = 10
+	HeartbeatUnit UnitType = 8
 	// MiniBlockHeaderUnit is the miniblock header data unit identifier
-	MiniBlockHeaderUnit UnitType = 11
+	MiniBlockHeaderUnit UnitType = 9
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 12
+	BootstrapUnit UnitType = 10
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 13
+	StatusMetricsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -238,17 +234,6 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
-	CurrentBlockTxs() TransactionCacher
-	IsInterfaceNil() bool
-}
-
-// MetaPoolsHolder defines getter for data pools for metachain
-type MetaPoolsHolder interface {
-	MiniBlocks() storage.Cacher
-	Headers() HeadersPool
-	TrieNodes() storage.Cacher
-	Transactions() ShardedDataCacherNotifier
-	UnsignedTransactions() ShardedDataCacherNotifier
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

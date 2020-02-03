@@ -74,7 +74,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 	cache.AddTx([]byte("hash-3"), createTx("alice", 3))
 
 	require.Equal(t, int64(3), cache.CountTx())
-	require.Equal(t, int(3), cache.Len())
+	require.Equal(t, 3, cache.Len())
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
@@ -340,7 +340,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
 			txHash := createFakeTxHash(sender, txNonce)
 			tx := createTx(string(sender), uint64(txNonce))
-			cache.AddTx([]byte(txHash), tx)
+			cache.AddTx(txHash, tx)
 		}
 	}
 }

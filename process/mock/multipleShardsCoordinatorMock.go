@@ -7,13 +7,13 @@ import (
 )
 
 type multipleShardsCoordinatorMock struct {
-	noShards        uint32
 	ComputeIdCalled func(address state.AddressContainer) uint32
+	noShards        uint32
 	CurrentShard    uint32
 }
 
 func NewMultipleShardsCoordinatorMock() *multipleShardsCoordinatorMock {
-	return &multipleShardsCoordinatorMock{noShards: 1}
+	return &multipleShardsCoordinatorMock{noShards: 2}
 }
 
 func NewMultiShardsCoordinatorMock(nrShard uint32) *multipleShardsCoordinatorMock {

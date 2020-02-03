@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -78,9 +80,12 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if sr.IsCurrentSubroundFinished(sr.Current()) {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
+
+	metricStatTime := time.Now()
+	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricCreatedProposedBlock)
 
 	hdr, err := sr.createHeader()
 	if err != nil {
@@ -100,8 +105,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if !sr.sendBlockBody(body) ||
-		!sr.sendBlockHeader(hdr) {
+	if !sr.sendBlockBody(body) || !sr.sendBlockHeader(hdr) {
 		return false
 	}
 
@@ -115,8 +119,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 }
 
 func (sr *SubroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler, error) {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
@@ -302,10 +305,10 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
+	if check.IfNil(sr.BlockBody) {
 		return false
 	}
-	if sr.Header == nil || sr.Header.IsInterfaceNil() {
+	if check.IfNil(sr.Header) {
 		return false
 	}
 
@@ -317,12 +320,14 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	node := string(cnsDta.PubKey)
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.Rounder().RemainingTime(startTime, maxTime)
 	}
+
+	metricStatTime := time.Now()
+	defer sr.computeSubroundProcessingMetric(metricStatTime, core.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Blockchain(),
@@ -362,13 +367,24 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	return true
 }
 
+func (sr *SubroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {
+	subRoundDuration := sr.EndTime() - sr.StartTime()
+	if subRoundDuration == 0 {
+		//can not do division by 0
+		return
+	}
+
+	percent := uint64(time.Since(startTime)) * 100 / uint64(subRoundDuration)
+	sr.AppStatusHandler().SetUInt64Value(metric, percent)
+}
+
 // doBlockConsensusCheck method checks if the consensus in the subround Block is achieved
 func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 

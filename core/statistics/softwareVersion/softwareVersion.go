@@ -54,24 +54,21 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*Softwar
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 	go func() {
-		svc.readLatestStableVersion()
 		for {
-			select {
-			case <-time.After(svc.checkRandInterval):
-				svc.readLatestStableVersion()
-			}
+			svc.readLatestStableVersion()
+			time.Sleep(svc.checkRandInterval)
 		}
 	}()
 }
 
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
-	tagVersion, err := readJSONFromUrl()
+	tagVersionFromUrl, err := readJSONFromUrl()
 	if err != nil {
 		log.Debug("cannot read json with latest stable tag", err)
 		return
 	}
-	if tagVersion != "" {
-		svc.mostRecentSoftwareVersion = tagVersion
+	if tagVersionFromUrl != "" {
+		svc.mostRecentSoftwareVersion = tagVersionFromUrl
 	}
 
 	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
@@ -84,7 +81,7 @@ func readJSONFromUrl() (string, error) {
 	}
 
 	defer func() {
-		err := resp.Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
 			log.Debug(err.Error())
 		}
