@@ -85,7 +85,11 @@ func trimValue(value []byte, tailLength int) ([]byte, error) {
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
-	identifier := append(key, tdaw.identifier...)
+	var identifier []byte
+	if len(value) != 0 {
+		identifier = append(key, tdaw.identifier...)
+	}
+
 	tdaw.dirtyData[string(key)] = append(value, identifier...)
 }
 
@@ -101,8 +105,5 @@ func (tdaw *TrackableDataTrie) DataTrie() data.Trie {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tdaw *TrackableDataTrie) IsInterfaceNil() bool {
-	if tdaw == nil {
-		return true
-	}
-	return false
+	return tdaw == nil
 }

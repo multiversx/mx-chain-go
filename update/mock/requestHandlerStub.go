@@ -13,6 +13,18 @@ type RequestHandlerStub struct {
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
 }
 
+func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+	panic("implement me")
+}
+
+func (rhs *RequestHandlerStub) RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte) {
+	panic("implement me")
+}
+
+func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
+	panic("implement me")
+}
+
 func (rhs *RequestHandlerStub) RequestShardHeader(shardId uint32, hash []byte) {
 	if rhs.RequestShardHeaderCalled == nil {
 		return
@@ -67,13 +79,6 @@ func (rhs *RequestHandlerStub) RequestMiniBlock(shardId uint32, miniblockHash []
 		return
 	}
 	rhs.RequestMiniBlockHandlerCalled(shardId, miniblockHash)
-}
-
-func (rhs *RequestHandlerStub) RequestTrieNodes(shardId uint32, miniblockHash []byte) {
-	if rhs.RequestTrieNodesCalled == nil {
-		return
-	}
-	rhs.RequestTrieNodesCalled(shardId, miniblockHash)
 }
 
 func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(epoch uint32) {

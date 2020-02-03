@@ -17,6 +17,10 @@ type ChainStorerMock struct {
 	DestroyCalled   func() error
 }
 
+func (bc *ChainStorerMock) CloseAll() error {
+	return nil
+}
+
 // AddStorer will add a new storer to the chain map
 func (bc *ChainStorerMock) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
 	if bc.AddStorerCalled != nil {

@@ -63,9 +63,9 @@ func TestIterator_GetMarshalizedNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEqual(t, 0, len(encNode))
 
-	extensionNodeIdentifier := uint8(0)
+	branchNodeIdentifier := uint8(2)
 	lastByte := len(encNode) - 1
-	assert.Equal(t, extensionNodeIdentifier, encNode[lastByte])
+	assert.Equal(t, branchNodeIdentifier, encNode[lastByte])
 }
 
 func TestIterator_GetHash(t *testing.T) {

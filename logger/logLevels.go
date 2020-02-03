@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -58,5 +57,5 @@ func GetLogLevel(logLevelAsString string) (LogLevel, error) {
 		}
 	}
 
-	return LogTrace, errors.New(fmt.Sprintf("unknown log level provided '%s'", logLevelAsString))
+	return LogTrace, fmt.Errorf("unknown log level provided '%s'", logLevelAsString)
 }

@@ -215,6 +215,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 	}
 
 	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -258,7 +259,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
-		DataField:      ([]byte("hello")),
+		DataField:      []byte("hello"),
 		SeqNoField:     nil,
 		TopicIDsField:  nil,
 		SignatureField: nil,
@@ -266,7 +267,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 		PeerField:      "",
 	}
 
-	expectedErr := errors.New("Marshal didn't work")
+	expectedErr := errors.New("marshal didn't work")
 
 	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -322,6 +323,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 	}
 
 	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,

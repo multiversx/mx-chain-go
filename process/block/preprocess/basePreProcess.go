@@ -80,14 +80,14 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
-		txInfo := forBlock.txHashAndInfo[string(txHash)]
+		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
 		forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfo == nil || txInfo.tx == nil {
+		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
 			continue
 		}
 
-		txMrs, err := bpp.marshalizer.Marshal(txInfo.tx)
+		txMrs, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
@@ -108,15 +108,15 @@ func (bpp *basePreProcess) saveTxsToStorage(
 		txHash := txHashes[i]
 
 		forBlock.mutTxsForBlock.RLock()
-		txInfo := forBlock.txHashAndInfo[string(txHash)]
+		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
 		forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfo == nil || txInfo.tx == nil {
+		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
 			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
-		buff, err := bpp.marshalizer.Marshal(txInfo.tx)
+		buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 			continue
 		}
 
-		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
@@ -203,7 +203,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				continue
 			}
 
-			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
+			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
 		}
 
 		if len(txHashes) > 0 {
@@ -216,7 +216,29 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		txHashes = txHashes[:0]
 	}
 	forBlock.mutTxsForBlock.Unlock()
+
+	bpp.displayMissingTransactions(missingTxsForShard, currType)
+
 	return missingTxsForShard
+}
+
+func (bpp *basePreProcess) displayMissingTransactions(
+	missingTxsFromShard map[uint32][]*txsHashesInfo,
+	currType block.Type,
+) {
+
+	for shard, txHashInfoSlice := range missingTxsFromShard {
+		for _, txHashInfo := range txHashInfoSlice {
+			for _, hash := range txHashInfo.txHashes {
+				log.Trace("missing txs",
+					"block type", currType.String(),
+					"sender shard id", shard,
+					"receiver shard id", txHashInfo.receiverShardID,
+					"hash", hash,
+				)
+			}
+		}
+	}
 }
 
 func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {

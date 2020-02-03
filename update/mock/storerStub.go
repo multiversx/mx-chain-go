@@ -11,6 +11,14 @@ type StorerStub struct {
 	DestroyUnitCalled  func() error
 }
 
+func (ss *StorerStub) SearchFirst(_ []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func (ss *StorerStub) Close() error {
+	return nil
+}
+
 func (ss *StorerStub) Put(key, data []byte) error {
 	return ss.PutCalled(key, data)
 }

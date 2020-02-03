@@ -79,12 +79,14 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg *config.DBConfig) ([]storage.Persis
 			continue
 		}
 
-		snapshotName, err := strconv.Atoi(f.Name())
+		var snapshotName int
+		snapshotName, err = strconv.Atoi(f.Name())
 		if err != nil {
 			return snapshots, snapshotId, err
 		}
 
-		db, err := storageUnit.NewDB(
+		var db storage.Persister
+		db, err = storageUnit.NewDB(
 			storageUnit.DBType(snapshotDbCfg.Type),
 			path.Join(snapshotDbCfg.FilePath, f.Name()),
 			snapshotDbCfg.BatchDelaySeconds,
@@ -256,6 +258,7 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 		snapshot := tsm.snapshotsBuffer.getFirst()
 		tr, err := newSnapshotTrie(tsm.db, msh, hsh, snapshot.rootHash)
 		if err != nil {
+			tsm.storageOperationMutex.Unlock()
 			log.Error("trie storage manager: newSnapshotTrie", "error", err.Error())
 			return
 		}

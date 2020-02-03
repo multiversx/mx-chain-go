@@ -273,10 +273,7 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mbc *miniBlocksCompaction) IsInterfaceNil() bool {
-	if mbc == nil {
-		return true
-	}
-	return false
+	return mbc == nil
 }
 
 func (mbc *miniBlocksCompaction) computeMerge(

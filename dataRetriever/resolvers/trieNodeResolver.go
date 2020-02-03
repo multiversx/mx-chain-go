@@ -55,12 +55,14 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		serializedNodes, err := tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
+		var serializedNodes [][]byte
+		serializedNodes, err = tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
 		if err != nil {
 			return err
 		}
 
-		buff, err := tnRes.marshalizer.Marshal(serializedNodes)
+		var buff []byte
+		buff, err = tnRes.marshalizer.Marshal(serializedNodes)
 		if err != nil {
 			return err
 		}
@@ -72,7 +74,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 }
 
 // RequestDataFromHash requests trie nodes from other peers having input a trie node hash
-func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
+func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
@@ -81,8 +83,5 @@ func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
-	if tnRes == nil {
-		return true
-	}
-	return false
+	return tnRes == nil
 }

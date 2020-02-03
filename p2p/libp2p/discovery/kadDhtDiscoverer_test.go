@@ -25,16 +25,53 @@ func createDummyHost() libp2p2.ConnectableHost {
 	return libp2p2.NewConnectableHost(h)
 }
 
+func TestNewKadDhtPeerDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *testing.T) {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second - time.Microsecond,
+		RandezVous:           "randez vous",
+		InitialPeersList:     []string{"peer1", "peer2"},
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+
+	kdd, err := discovery.NewKadDhtPeerDiscoverer(arg)
+
+	assert.Nil(t, kdd)
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewKadDhtPeerDiscoverer_InvalidRoutingTableRefreshIntervalShouldErr(t *testing.T) {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "randez vous",
+		InitialPeersList:     []string{"peer1", "peer2"},
+		BucketSize:           100,
+		RoutingTableRefresh:  time.Second - time.Microsecond,
+	}
+
+	kdd, err := discovery.NewKadDhtPeerDiscoverer(arg)
+
+	assert.Nil(t, kdd)
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
 func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
-	initialPeersList := []string{"peer1", "peer2"}
-	interval := 4 * time.Second
-	randezVous := "randez vous"
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: 4 * time.Second,
+		RandezVous:           "randez vous",
+		InitialPeersList:     []string{"peer1", "peer2"},
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, randezVous, initialPeersList)
+	kdd, err := discovery.NewKadDhtPeerDiscoverer(arg)
 
-	assert.Equal(t, interval, kdd.RefreshInterval())
-	assert.Equal(t, randezVous, kdd.RandezVous())
-	assert.Equal(t, initialPeersList, kdd.InitialPeersList())
+	assert.Nil(t, err)
+	assert.Equal(t, arg.PeersRefreshInterval, kdd.PeersRefreshInterval())
+	assert.Equal(t, arg.RandezVous, kdd.RandezVous())
+	assert.Equal(t, arg.InitialPeersList, kdd.InitialPeersList())
+	assert.Equal(t, arg.RoutingTableRefresh, kdd.RoutingTableRefresh())
+	assert.Equal(t, arg.BucketSize, kdd.BucketSize())
 
 	assert.False(t, kdd.IsDiscoveryPaused())
 	kdd.Pause()
@@ -46,21 +83,34 @@ func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
 //------- Bootstrap
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *testing.T) {
-	interval := time.Second
-
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	err := kdd.Bootstrap()
 
 	assert.Equal(t, p2p.ErrNilContextProvider, err)
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
-	interval := time.Microsecond * 50
+	interval := time.Second
 
 	h := createDummyHost()
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
 
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: interval,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	defer func() {
 		_ = h.Close()
 	}()
@@ -71,19 +121,24 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	if !testing.Short() {
-		time.Sleep(interval * 2)
+		time.Sleep(interval * 1)
 		kdd.Pause()
-		time.Sleep(interval * 20)
+		time.Sleep(interval * 2)
 	}
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
-	interval := time.Second
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 
 	h := createDummyHost()
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
-
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	defer func() {
 		_ = h.Close()
@@ -99,9 +154,15 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 //------- connectToOnePeerFromInitialPeersList
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
-	interval := time.Second
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	_ = kdd.ApplyContext(lctx)
 
@@ -111,9 +172,15 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldR
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShouldRetWithChanFull(t *testing.T) {
-	interval := time.Second
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	_ = kdd.ApplyContext(lctx)
 
@@ -123,12 +190,15 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShoul
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnect(t *testing.T) {
-	interval := time.Second
-
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 	peerID := "peer"
-
 	wasConnectCalled := int32(0)
-
 	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID == address {
@@ -138,8 +208,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 			return nil
 		},
 	}
-
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
 	_ = kdd.ApplyContext(lctx)
 
@@ -154,14 +223,17 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnectContinously(t *testing.T) {
-	interval := time.Second
-
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 	peerID := "peer"
 	wasConnectCalled := int32(0)
-
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
-
 	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID != address {
@@ -177,8 +249,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 			return nil
 		},
 	}
-
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
 	_ = kdd.ApplyContext(lctx)
 
@@ -193,16 +264,18 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlternate(t *testing.T) {
-	interval := time.Second
-
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
 	peerID1 := "peer1"
 	peerID2 := "peer2"
-
 	wasConnectCalled := int32(0)
-
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
-
 	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			connCalled := atomic.LoadInt32(&wasConnectCalled)
@@ -213,7 +286,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 				return nil
 			}
 
-			connCalled = connCalled % 2
+			connCalled %= 2
 			if connCalled == 0 {
 				if peerID1 != address {
 					assert.Fail(t, "should have tried to connect to "+peerID1)
@@ -230,7 +303,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 		},
 	}
 
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), uhs)
 	_ = kdd.ApplyContext(lctx)
 
@@ -246,8 +319,14 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 //------- ApplyContext
 
 func TestKadDhtPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
-	interval := time.Second
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	err := kdd.ApplyContext(nil)
 
@@ -255,8 +334,14 @@ func TestKadDhtPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
 }
 
 func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
-	interval := time.Second
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	err := kdd.ApplyContext(&mock.ContextProviderMock{})
 
@@ -265,8 +350,14 @@ func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 
 func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	interval := time.Second
-	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: time.Second,
+		RandezVous:           "",
+		InitialPeersList:     nil,
+		BucketSize:           100,
+		RoutingTableRefresh:  5 * time.Second,
+	}
+	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
 
 	err := kdd.ApplyContext(ctx)
 

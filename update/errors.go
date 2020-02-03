@@ -58,3 +58,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
+
+// ErrWrongTypeAssertion signals wrong type assertion
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

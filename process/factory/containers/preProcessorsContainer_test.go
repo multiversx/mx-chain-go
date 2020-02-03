@@ -16,6 +16,7 @@ func TestNewPreProcessorsContainer_ShouldWork(t *testing.T) {
 	c := containers.NewPreProcessorsContainer()
 
 	assert.NotNil(t, c)
+	assert.False(t, c.IsInterfaceNil())
 }
 
 //------- Add
