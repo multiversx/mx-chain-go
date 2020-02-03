@@ -640,6 +640,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		0,
 		nil,
 		&mock.EpochStartTriggerStub{},
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)
@@ -672,6 +673,7 @@ func TestNewInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *test
 		0,
 		&mock.ValidityAttesterStub{},
 		nil,
+		&mock.WhiteListHandlerMock{},
 	)
 
 	assert.Nil(t, icf)

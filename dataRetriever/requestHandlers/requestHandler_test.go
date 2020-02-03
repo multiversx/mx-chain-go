@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -322,13 +321,14 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return mbResolver, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -502,8 +502,15 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T) {
 	t.Parallel()
 
+	localErr := errors.New("err")
+	called := false
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localErr
+			},
+		},
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerMock{},
 		1,
@@ -859,13 +866,14 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return resolverMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -879,7 +887,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 
 	localError := errors.New("test error")
 	called := false
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				called = true
@@ -887,7 +895,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -908,13 +916,14 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return resolverMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -928,7 +937,7 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 
 	called := false
 	localError := errors.New("test error")
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				called = true
@@ -936,6 +945,7 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -950,7 +960,7 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 	called := false
 	resolverMock := &mock.HashSliceResolverStub{}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				called = true
@@ -958,6 +968,7 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -978,13 +989,14 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				return resolverMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)
@@ -1004,7 +1016,7 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 		},
 	}
 
-	rrh, _ := NewShardResolverRequestHandler(
+	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				return resolverMock, nil
@@ -1016,6 +1028,7 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 				return localError
 			},
 		},
+		&mock.WhiteListHandlerMock{},
 		1,
 		0,
 	)

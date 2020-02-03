@@ -273,11 +273,12 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	tpn.initDataPools()
+
 	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
 		tpn.DataPool = dPool
-	} else {
-		tpn.initDataPools()
 	}
+
 	tpn.initTestNode()
 
 	return tpn
