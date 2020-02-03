@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -39,24 +41,19 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epoch                       uint32
+	epochMetaBlockHash          []byte
 	currentRoundIndex           int64
 	epochStartRound             uint64
-	epochMetaBlockHash          []byte
-	isEpochStart                bool
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
-
-	newEpochHdrReceived bool
 
 	mutTrigger        sync.RWMutex
 	mapHashHdr        map[string]*block.MetaBlock
 	mapNonceHashes    map[uint64][]string
 	mapEpochStartHdrs map[string]*block.MetaBlock
 
-	metaHdrPool         storage.Cacher
-	metaHdrNonces       dataRetriever.Uint64SyncMapCacher
+	headersPool         dataRetriever.HeadersPool
 	metaHdrStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
 	uint64Converter     typeConverters.Uint64ByteSliceConverter
@@ -67,6 +64,11 @@ type trigger struct {
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.StartOfEpochNotifier
+
+	epoch uint32
+
+	newEpochHdrReceived bool
+	isEpochStart        bool
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -92,11 +94,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.RequestHandler) {
 		return nil, epochStart.ErrNilRequestHandler
 	}
-	if check.IfNil(args.DataPool.MetaBlocks()) {
+	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
-	}
-	if check.IfNil(args.DataPool.HeadersNonces()) {
-		return nil, epochStart.ErrNilHeaderNoncesPool
 	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
@@ -128,8 +127,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapHashHdr:                  make(map[string]*block.MetaBlock),
 		mapNonceHashes:              make(map[uint64][]string),
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
-		metaHdrPool:                 args.DataPool.MetaBlocks(),
-		metaHdrNonces:               args.DataPool.HeadersNonces(),
+		headersPool:                 args.DataPool.Headers(),
 		metaHdrStorage:              metaHdrStorage,
 		metaNonceHdrStorage:         metaHdrNoncesStorage,
 		uint64Converter:             args.Uint64Converter,
@@ -240,6 +238,9 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
 
+			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
+			log.Debug(display.Headline(msg, "", "#"))
+
 			metaBuff, err := t.marshalizer.Marshal(meta)
 			if err != nil {
 				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
@@ -340,7 +341,7 @@ func (t *trigger) getHeaderWithNonceAndHashFromMaps(nonce uint64, neededHash []b
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) *block.MetaBlock {
-	peekedData, _ := t.metaHdrPool.Peek(neededHash)
+	peekedData, _ := t.headersPool.GetHeaderByHash(neededHash)
 	neededHdr, ok := peekedData.(*block.MetaBlock)
 	if ok {
 		t.mapHashHdr[string(neededHash)] = neededHdr
@@ -403,19 +404,26 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
-	shIdMap, ok := t.metaHdrNonces.Get(nonce)
-	if ok {
-		hdrHash, ok := shIdMap.Load(sharding.MetachainShardId)
-		if ok {
-			dataHdr, _ := t.metaHdrPool.Peek(hdrHash)
-			hdrWithNonce, ok := dataHdr.(*block.MetaBlock)
-			if ok && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
-				t.mapHashHdr[string(hdrHash)] = hdrWithNonce
-				t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hdrHash))
-				return hdrWithNonce
-			}
-		}
+	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	if err != nil {
+		return nil
 	}
+
+	for i, header := range headers {
+		if !bytes.Equal(header.GetPrevHash(), prevHash) {
+			continue
+		}
+
+		hdrWithNonce, ok := header.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		t.mapHashHdr[string(hashes[i])] = hdrWithNonce
+		t.mapNonceHashes[hdrWithNonce.Nonce] = append(t.mapNonceHashes[hdrWithNonce.Nonce], string(hashes[i]))
+		return hdrWithNonce
+	}
+
 	return nil
 }
 
@@ -461,6 +469,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		return
 	}
 
+	t.epoch = shardHdr.Epoch
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
@@ -473,7 +482,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 }
 
 // Revert sets the start of epoch back to true
-func (t *trigger) Revert() {
+func (t *trigger) Revert(_ uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -497,7 +506,7 @@ func (t *trigger) Update(_ uint64) {
 func (t *trigger) SetFinalityAttestingRound(_ uint64) {
 }
 
-// SetLastEpochStartRound sets the round when the current epoch started
+// SetCurrentEpochStartRound sets the round when the current epoch started
 func (t *trigger) SetCurrentEpochStartRound(_ uint64) {
 }
 

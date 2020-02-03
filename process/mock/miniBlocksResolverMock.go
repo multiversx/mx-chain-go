@@ -6,19 +6,19 @@ import (
 )
 
 type MiniBlocksResolverMock struct {
-	RequestDataFromHashCalled      func(hash []byte) error
-	RequestDataFromHashArrayCalled func(hashes [][]byte) error
+	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
+	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	GetMiniBlocksCalled            func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPoolCalled    func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
-func (hrm *MiniBlocksResolverMock) RequestDataFromHash(hash []byte) error {
-	return hrm.RequestDataFromHashCalled(hash)
+func (hrm *MiniBlocksResolverMock) RequestDataFromHash(hash []byte, epoch uint32) error {
+	return hrm.RequestDataFromHashCalled(hash, epoch)
 }
 
-func (hrm *MiniBlocksResolverMock) RequestDataFromHashArray(hashes [][]byte) error {
-	return hrm.RequestDataFromHashArrayCalled(hashes)
+func (hrm *MiniBlocksResolverMock) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
+	return hrm.RequestDataFromHashArrayCalled(hashes, epoch)
 }
 
 func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
@@ -26,11 +26,17 @@ func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P
 }
 
 func (hrm *MiniBlocksResolverMock) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksCalled(hashes)
+	if hrm.GetMiniBlocksCalled != nil {
+		return hrm.GetMiniBlocksCalled(hashes)
+	}
+	return nil, nil
 }
 
 func (hrm *MiniBlocksResolverMock) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksFromPoolCalled(hashes)
+	if hrm.GetMiniBlocksFromPoolCalled != nil {
+		return hrm.GetMiniBlocksFromPoolCalled(hashes)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

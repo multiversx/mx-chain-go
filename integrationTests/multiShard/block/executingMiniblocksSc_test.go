@@ -91,6 +91,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	)
 	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
@@ -99,6 +100,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
@@ -115,6 +117,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
@@ -368,6 +371,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposersWithoutShard1, round, nonce)
 
 		hdr, body, isBodyEmpty := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round, nonce)

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -59,7 +60,6 @@ type Option func(*Node) error
 //  required services as requested
 type Node struct {
 	marshalizer              marshal.Marshalizer
-	sizeCheckDelta           uint32
 	ctx                      context.Context
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
@@ -96,7 +96,6 @@ type Node struct {
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
-	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
@@ -105,7 +104,6 @@ type Node struct {
 	consensusType  string
 
 	isRunning                bool
-	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
@@ -115,7 +113,14 @@ type Node struct {
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	headerSigVerifier     spos.RandSeedVerifier
 
-	chainID []byte
+	chainID                  []byte
+	blockTracker             process.BlockTracker
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
+
+	txStorageSize  uint32
+	sizeCheckDelta uint32
+
+	requestHandler process.RequestHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -276,6 +281,7 @@ func (n *Node) StartConsensus() error {
 	if n.sizeCheckDelta > 0 {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.marshalizer, n.sizeCheckDelta)
 	}
+
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blkc,
@@ -297,7 +303,9 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	err = n.createConsensusTopic(worker, n.shardCoordinator)
+	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
+
+	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
 	}
@@ -411,7 +419,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -422,32 +430,55 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
 	if err != nil {
 		return nil, err
 	}
 
-	bootstrap, err := sync.NewShardBootstrap(
-		n.dataPool,
-		n.store,
-		n.blkc,
-		rounder,
-		n.blockProcessor,
-		n.rounder.TimeDuration(),
-		n.hasher,
-		n.marshalizer,
-		n.forkDetector,
-		n.resolversFinder,
-		n.shardCoordinator,
-		accountsWrapper,
-		n.blackListHandler,
-		n.messenger,
-		n.bootStorer,
-		shardStorageBootstrapper,
-		n.requestedItemsHandler,
-	)
+	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		PoolsHolder:         n.dataPool,
+		Store:               n.store,
+		ChainHandler:        n.blkc,
+		Rounder:             rounder,
+		BlockProcessor:      n.blockProcessor,
+		WaitTime:            n.rounder.TimeDuration(),
+		Hasher:              n.hasher,
+		Marshalizer:         n.marshalizer,
+		ForkDetector:        n.forkDetector,
+		RequestHandler:      n.requestHandler,
+		ShardCoordinator:    n.shardCoordinator,
+		Accounts:            accountsWrapper,
+		BlackListHandler:    n.blackListHandler,
+		NetworkWatcher:      n.messenger,
+		BootStorer:          n.bootStorer,
+		StorageBootstrapper: shardStorageBootstrapper,
+		EpochHandler:        n.epochStartTrigger,
+		MiniBlocksResolver:  miniBlocksResolver,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+	}
+
+	argsShardBootstrapper := sync.ArgShardBootstrapper{
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+	}
+
+	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +487,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+	//TODO: Analyze if should be created accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
+	//to be used instead n.accounts as a parameter for sync.ArgBaseBootstrapper, exactly as it is done in method
+	//createShardBootstrapper
+
+	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
@@ -467,34 +502,57 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		Uint64Converter:     n.uint64ByteSliceConverter,
 		BootstrapRoundIndex: n.bootstrapRoundIndex,
 		ShardCoordinator:    n.shardCoordinator,
+		BlockTracker:        n.blockTracker,
 	}
 
-	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+		PendingMiniBlocksHandler:    n.pendingMiniBlocksHandler,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(argsMetaStorageBootstrapper)
 	if err != nil {
 		return nil, err
 	}
 
-	bootstrap, err := sync.NewMetaBootstrap(
-		n.metaDataPool,
-		n.store,
-		n.blkc,
-		rounder,
-		n.blockProcessor,
-		n.rounder.TimeDuration(),
-		n.hasher,
-		n.marshalizer,
-		n.forkDetector,
-		n.resolversFinder,
-		n.shardCoordinator,
-		n.accounts,
-		n.blackListHandler,
-		n.messenger,
-		n.bootStorer,
-		metaStorageBootstrapper,
-		n.requestedItemsHandler,
-		n.epochStartTrigger,
-	)
+	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
 
+	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		PoolsHolder:         n.dataPool,
+		Store:               n.store,
+		ChainHandler:        n.blkc,
+		Rounder:             rounder,
+		BlockProcessor:      n.blockProcessor,
+		WaitTime:            n.rounder.TimeDuration(),
+		Hasher:              n.hasher,
+		Marshalizer:         n.marshalizer,
+		ForkDetector:        n.forkDetector,
+		RequestHandler:      n.requestHandler,
+		ShardCoordinator:    n.shardCoordinator,
+		Accounts:            n.accounts,
+		BlackListHandler:    n.blackListHandler,
+		NetworkWatcher:      n.messenger,
+		BootStorer:          n.bootStorer,
+		StorageBootstrapper: metaStorageBootstrapper,
+		EpochHandler:        n.epochStartTrigger,
+		MiniBlocksResolver:  miniBlocksResolver,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+	}
+
+	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   n.epochStartTrigger,
+	}
+
+	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +563,6 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 // createConsensusState method creates a consensusState object
 func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()
-
 	if err != nil {
 		return nil, err
 	}
@@ -531,15 +588,15 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
+	if check.IfNil(n.shardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if messageProcessor == nil || messageProcessor.IsInterfaceNil() {
+	if check.IfNil(messageProcessor) {
 		return ErrNilMessenger
 	}
 
-	n.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	n.consensusTopic = core.ConsensusTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}
@@ -628,9 +685,9 @@ func (n *Node) SendTransaction(
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	transactionsByShards := make(map[uint32][][]byte, 0)
+	transactionsByShards := make(map[uint32][][]byte)
 
-	if txs == nil || len(txs) == 0 {
+	if len(txs) == 0 { // no need for nil check, len() for nil returns 0
 		return 0, ErrNoTxToProcess
 	}
 
@@ -655,12 +712,12 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	numOfSentTxs := uint64(0)
-	for shardId, txs := range transactionsByShards {
-		err := n.sendBulkTransactionsFromShard(txs, shardId)
+	for shardId, txsForShard := range transactionsByShards {
+		err := n.sendBulkTransactionsFromShard(txsForShard, shardId)
 		if err != nil {
 			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
 		} else {
-			numOfSentTxs += uint64(len(txs))
+			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
 
@@ -780,7 +837,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(data),
+		Data:      data,
 		Signature: signatureBytes,
 	}, nil
 }
@@ -850,7 +907,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	if !n.messenger.HasTopic(HeartbeatTopic) {
-		err := n.messenger.CreateTopic(HeartbeatTopic, true)
+		err = n.messenger.CreateTopic(HeartbeatTopic, true)
 		if err != nil {
 			return err
 		}

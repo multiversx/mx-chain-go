@@ -7,8 +7,8 @@ import (
 )
 
 type multipleShardsCoordinatorMock struct {
-	noShards        uint32
 	ComputeIdCalled func(address state.AddressContainer) uint32
+	noShards        uint32
 	CurrentShard    uint32
 }
 
@@ -57,8 +57,5 @@ func (scm *multipleShardsCoordinatorMock) CommunicationIdentifier(destShardID ui
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *multipleShardsCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }
