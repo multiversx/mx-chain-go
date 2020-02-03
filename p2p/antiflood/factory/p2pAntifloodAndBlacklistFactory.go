@@ -22,12 +22,6 @@ import (
 var durationSweepP2PBlacklist = time.Second * 5
 var log = logger.GetOrCreate("p2p/antiflood/factory")
 
-// P2PAntiFloodAndBlackListFactory handles the creation
-type P2PAntiFloodAndBlackListFactory struct {
-	config        config.Config
-	statusHandler core.AppStatusHandler
-}
-
 // NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
 func NewP2PAntiFloodAndBlackList(
 	config config.Config,
@@ -121,6 +115,7 @@ func initP2PAntiFloodAndBlackList(
 	if err != nil {
 		return nil, nil, err
 	}
+
 	startResettingFloodPreventers(floodPreventer, topicFloodPreventer)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 

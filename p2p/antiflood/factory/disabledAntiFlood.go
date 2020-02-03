@@ -8,20 +8,20 @@ type disabledAntiFlood struct {
 }
 
 // ResetForTopic won't do anything
-func (n *disabledAntiFlood) ResetForTopic(topic string) {
+func (n *disabledAntiFlood) ResetForTopic(_ string) {
 }
 
 // SetMaxMessagesForTopic won't do anything
-func (n *disabledAntiFlood) SetMaxMessagesForTopic(topic string, maxNum uint32) {
+func (n *disabledAntiFlood) SetMaxMessagesForTopic(_ string, _ uint32) {
 }
 
 // CanProcessMessage will always return nil
-func (n *disabledAntiFlood) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (n *disabledAntiFlood) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID) error {
 	return nil
 }
 
 // CanProcessMessageOnTopic will always return nil
-func (n *disabledAntiFlood) CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error {
+func (n *disabledAntiFlood) CanProcessMessageOnTopic(_ p2p.PeerID, _ string) error {
 	return nil
 }
 

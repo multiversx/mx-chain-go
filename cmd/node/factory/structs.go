@@ -56,7 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	factory2 "github.com/ElrondNetwork/elrond-go/p2p/antiflood/factory"
+	factoryAntiflood "github.com/ElrondNetwork/elrond-go/p2p/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
@@ -521,7 +521,10 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, mainConfig *config.Co
 		return nil, err
 	}
 
-	antifloodHandler, p2pPeerBlackList, err := factory2.NewP2PAntiFloodAndBlackList(*mainConfig, core.StatusHandler)
+	antifloodHandler, p2pPeerBlackList, errNewAntiflood := factoryAntiflood.NewP2PAntiFloodAndBlackList(*mainConfig, core.StatusHandler)
+	if errNewAntiflood != nil {
+		return nil, errNewAntiflood
+	}
 
 	err = netMessenger.ApplyOptions(
 		libp2p.WithPeerBlackList(p2pPeerBlackList),
