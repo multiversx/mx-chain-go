@@ -86,6 +86,30 @@ func (ic *interceptorsContainer) Len() int {
 	return ic.objects.Len()
 }
 
+// Iterate will call the provided handler for each and every key-value pair
+func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
+	if handler == nil {
+		return
+	}
+
+	for keyVal := range ic.objects.Iter() {
+		key, ok := keyVal.Key.(string)
+		if !ok {
+			continue
+		}
+
+		val, ok := keyVal.Value.(process.Interceptor)
+		if !ok {
+			continue
+		}
+
+		shouldContinue := handler(key, val)
+		if !shouldContinue {
+			return
+		}
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ic *interceptorsContainer) IsInterfaceNil() bool {
 	return ic == nil

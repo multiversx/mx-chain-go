@@ -64,3 +64,36 @@ var ErrNilWhiteListHandler = errors.New("nil white list handler")
 
 // ErrWrongTypeAssertion signals wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
+var ErrNilHasher = errors.New("nil Hasher")
+
+// ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
+
+// ErrNilHeaderValidator signals that nil header validator has been provided
+var ErrNilHeaderValidator = errors.New("nil header validator")
+
+// ErrNilUint64Converter signals that uint64converter is nil
+var ErrNilUint64Converter = errors.New("unit64converter is nil")
+
+// ErrNilDataPoolHolder signals that the data pool holder is nil
+var ErrNilDataPoolHolder = errors.New("nil data pool holder")
+
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
+
+// ErrNilMessenger signals that a nil Messenger object was provided
+var ErrNilMessenger = errors.New("nil Messenger")
+
+// ErrNilInterceptorsContainer signals that a nil interceptors container has been provided
+var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
+
+// ErrNilTrieDataGetter signals that a nil trie data getter has been provided
+var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
+
+// ErrNilResolverContainer signals that a nil resolver container was provided
+var ErrNilResolverContainer = errors.New("nil resolver container")

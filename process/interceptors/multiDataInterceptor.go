@@ -53,6 +53,7 @@ func NewMultiDataInterceptor(
 	return multiDataIntercept, nil
 }
 
+// SetIsDataForCurrentShardVerifier sets a different implementation for the data verifier
 func (mdi *MultiDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) {
 	if check.IfNil(verifier) {
 		return

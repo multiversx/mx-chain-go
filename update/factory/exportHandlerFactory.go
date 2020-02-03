@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -26,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
+// ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
@@ -41,6 +41,8 @@ type ArgsExporter struct {
 	ExportTriesStorageConfig config.StorageConfig
 	ExportTriesCacheConfig   config.CacheConfig
 	ExportStateStorageConfig config.StorageConfig
+	WhiteListHandler         process.InterceptedDataWhiteList
+	InterceptorsContainer    process.InterceptorsContainer
 }
 
 type exportHandlerFactory struct {
@@ -58,38 +60,47 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig config.StorageConfig
 	exportTriesCacheConfig   config.CacheConfig
 	exportStateStorageConfig config.StorageConfig
+	whiteListHandler         process.InterceptedDataWhiteList
+	interceptorsContainer    process.InterceptorsContainer
 }
 
+// NewExportHandlerFactory creates an exporter factory
 func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, sharding.ErrNilShardCoordinator
+		return nil, update.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, sharding.ErrNilHasher
+		return nil, update.ErrNilHasher
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, data.ErrNilMarshalizer
+		return nil, update.ErrNilMarshalizer
 	}
 	if check.IfNil(args.HeaderValidator) {
-		return nil, process.ErrNilHeaderValidator
+		return nil, update.ErrNilHeaderValidator
 	}
 	if check.IfNil(args.Uint64Converter) {
-		return nil, process.ErrNilUint64Converter
+		return nil, update.ErrNilUint64Converter
 	}
 	if check.IfNil(args.DataPool) {
-		return nil, dataRetriever.ErrNilDataPoolHolder
+		return nil, update.ErrNilDataPoolHolder
 	}
 	if check.IfNil(args.StorageService) {
 		return nil, update.ErrNilStorage
 	}
 	if check.IfNil(args.RequestHandler) {
-		return nil, process.ErrNilRequestHandler
+		return nil, update.ErrNilRequestHandler
 	}
 	if check.IfNil(args.Messenger) {
-		return nil, process.ErrNilMessenger
+		return nil, update.ErrNilMessenger
 	}
 	if check.IfNil(args.ActiveTries) {
 		return nil, update.ErrNilActiveTries
+	}
+	if check.IfNil(args.WhiteListHandler) {
+		return nil, update.ErrNilWhiteListHandler
+	}
+	if check.IfNil(args.InterceptorsContainer) {
+		return nil, update.ErrNilInterceptorsContainer
 	}
 
 	e := &exportHandlerFactory{
@@ -107,11 +118,14 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
 		exportTriesCacheConfig:   args.ExportTriesCacheConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
+		interceptorsContainer:    args.InterceptorsContainer,
+		whiteListHandler:         args.WhiteListHandler,
 	}
 
 	return e, nil
 }
 
+// Create makes a new export handler
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
 		Marshalizer:        e.marshalizer,
@@ -257,6 +271,8 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
+	e.setWhiteListHandlerToInterceptors()
+
 	return exportHandler, nil
 }
 
@@ -275,6 +291,14 @@ func createFinalExportStorage(storageConfig config.StorageConfig, folder string)
 	return accountsTrieStorage, nil
 }
 
+func (e *exportHandlerFactory) setWhiteListHandlerToInterceptors() {
+	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+		interceptor.SetIsDataForCurrentShardVerifier(e.whiteListHandler)
+		return true
+	})
+}
+
+// IsInterfaceNil returns true if underlying object is nil
 func (e *exportHandlerFactory) IsInterfaceNil() bool {
 	return e == nil
 }

@@ -239,9 +239,6 @@ var ErrInvalidContainerKey = errors.New("element does not exist in container")
 // ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
 var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
 
-// ErrNilResolverContainer signals that a nil resolver container was provided
-var ErrNilResolverContainer = errors.New("nil resolver container")
-
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
@@ -581,15 +578,6 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
-
-// ErrMissingPrevShardData signals that a required shard data information is missing
-var ErrMissingPrevShardData = errors.New("shard data is missing")
-
-// ErrNilMediator signals that a mediator implementation is needed, but it is nil
-var ErrNilMediator = errors.New("nil mediator")
-
-// ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
-var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")

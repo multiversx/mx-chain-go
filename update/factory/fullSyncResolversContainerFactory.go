@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
@@ -34,16 +35,16 @@ type ArgsNewResolversContainerFactory struct {
 // NewResolversContainerFactory creates a new container filled with topic resolvers
 func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resolversContainerFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, dataRetriever.ErrNilShardCoordinator
+		return nil, update.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.Messenger) {
-		return nil, dataRetriever.ErrNilMessenger
+		return nil, update.ErrNilMessenger
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, update.ErrNilMarshalizer
 	}
 	if check.IfNil(args.DataTrieContainer) {
-		return nil, dataRetriever.ErrNilTrieDataGetter
+		return nil, update.ErrNilTrieDataGetter
 	}
 
 	return &resolversContainerFactory{
