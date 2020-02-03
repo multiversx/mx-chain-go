@@ -535,12 +535,13 @@ func (sc *scProcessor) processVMOutput(
 
 	sortVMOutputInsideData(vmOutput)
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
+	outputAccounts := getSortedOutputAccounts(vmOutput)
+	err = sc.processSCOutputAccounts(outputAccounts, tx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	scrTxs, err := sc.createSCRTransactions(vmOutput.OutputAccounts, tx, txHash)
+	scrTxs, err := sc.createSCRTransactions(outputAccounts, tx, txHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -581,6 +582,36 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
+func getSortedOutputAccounts(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
+	outputAccounts := make([]*vmcommon.OutputAccount, len(vmOutput.OutputAccounts))
+	i := 0
+	for _, account := range vmOutput.OutputAccounts {
+		outputAccounts[i] = account
+		i++
+	}
+
+	sort.Slice(outputAccounts, func(i, j int) bool {
+		return bytes.Compare(outputAccounts[i].Address, outputAccounts[j].Address) < 0
+	})
+
+	return outputAccounts
+}
+
+func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
+	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
+	i := 0
+	for _, update := range account.StorageUpdates {
+		storageUpdates[i] = update
+		i++
+	}
+
+	sort.Slice(storageUpdates, func(i, j int) bool {
+		return bytes.Compare(storageUpdates[i].Offset, storageUpdates[j].Offset) < 0
+	})
+
+	return storageUpdates
+}
+
 func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) {
 	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
 		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
@@ -588,14 +619,6 @@ func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) {
 	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
 		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
 	})
-	sort.Slice(vmOutput.OutputAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.OutputAccounts[i].Address, vmOutput.OutputAccounts[j].Address) < 0
-	})
-	for _, outAcc := range vmOutput.OutputAccounts {
-		sort.Slice(outAcc.StorageUpdates, func(i, j int) bool {
-			return bytes.Compare(outAcc.StorageUpdates[i].Offset, outAcc.StorageUpdates[j].Offset) < 0
-		})
-	}
 }
 
 func (sc *scProcessor) createSCRsWhenError(
@@ -650,12 +673,15 @@ func (sc *scProcessor) createSmartContractResult(
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
+	// TODO create a map to store the sorted storageUpdates per account
+	storageUpdates := getSortedStorageUpdates(outAcc)
+
 	result.Value = outAcc.BalanceDelta
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRecvAddress()
 	result.Code = outAcc.Code
-	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)...)
+	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.TxHash = txHash
@@ -752,14 +778,15 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			continue
 		}
 
-		for j := 0; j < len(outAcc.StorageUpdates); j++ {
-			storeUpdate := outAcc.StorageUpdates[j]
+		// TODO create a map to store the sorted storageUpdates per account
+		storageUpdates := getSortedStorageUpdates(outAcc)
+		for _, storeUpdate := range storageUpdates {
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		if len(outAcc.StorageUpdates) > 0 {
+		if len(storageUpdates) > 0 {
 			//SC with data variables
 			err = sc.accounts.SaveDataTrie(acc)
 			if err != nil {

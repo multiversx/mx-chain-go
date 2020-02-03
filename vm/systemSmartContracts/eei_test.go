@@ -89,7 +89,6 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, 0, len(vmOutput.ReturnData))
 	assert.Equal(t, 0, len(vmOutput.OutputAccounts))
-	assert.Equal(t, 0, len(vmOutput.Logs))
 	assert.Equal(t, 0, len(vmOutput.DeletedAccounts))
 	assert.Equal(t, 0, len(vmOutput.TouchedAccounts))
 	assert.Equal(t, uint64(0), vmOutput.GasRefund.Uint64())
@@ -115,6 +114,8 @@ func TestVmContext_SetStorage(t *testing.T) {
 	t.Parallel()
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook())
+	addr := "smartcontract"
+	vmContext.SetSCAddress([]byte(addr))
 
 	key := []byte("key")
 	data := []byte("data")
@@ -124,7 +125,9 @@ func TestVmContext_SetStorage(t *testing.T) {
 	assert.True(t, bytes.Equal(data, res))
 
 	vmOutput := vmContext.CreateVMOutput()
-	assert.True(t, bytes.Equal(vmOutput.OutputAccounts[0].StorageUpdates[0].Data, data))
+	assert.Equal(t, 1, len(vmOutput.OutputAccounts))
+
+	assert.True(t, bytes.Equal(vmOutput.OutputAccounts[addr].StorageUpdates[string(key)].Data, data))
 }
 
 func TestVmContext_Transfer(t *testing.T) {
