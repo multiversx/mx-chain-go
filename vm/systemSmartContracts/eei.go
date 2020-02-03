@@ -81,7 +81,7 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 	strAdr := string(host.scAddress)
 
 	if _, ok := host.storageUpdate[strAdr]; !ok {
-		host.storageUpdate[strAdr] = make(map[string][]byte, 0)
+		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
 
 	length := len(value)
@@ -278,7 +278,7 @@ func (host *vmContext) softCleanCache() {
 func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput := &vmcommon.VMOutput{}
 	// save storage updates
-	outAccs := make(map[string]*vmcommon.OutputAccount, 0)
+	outAccs := make(map[string]*vmcommon.OutputAccount)
 	for addr, updates := range host.storageUpdate {
 		if _, ok := outAccs[addr]; !ok {
 			outAccs[addr] = &vmcommon.OutputAccount{Address: []byte(addr)}

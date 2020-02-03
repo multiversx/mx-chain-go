@@ -153,8 +153,5 @@ func (bst *blockSizeThrottle) getCloserBelowMaxItemsUsedWithSucceed(currentMaxIt
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bst *blockSizeThrottle) IsInterfaceNil() bool {
-	if bst == nil {
-		return true
-	}
-	return false
+	return bst == nil
 }

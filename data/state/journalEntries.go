@@ -2,6 +2,8 @@ package state
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 //------- JournalEntryBalance
@@ -33,10 +35,7 @@ func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
-	if jeb == nil {
-		return true
-	}
-	return false
+	return jeb == nil
 }
 
 //------- JournalEntryDataTrieUpdates
@@ -50,8 +49,8 @@ type JournalEntryDataTrieUpdates struct {
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
 func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account AccountHandler) (*JournalEntryDataTrieUpdates, error) {
-	if account == nil || account.IsInterfaceNil() {
-		return nil, ErrNilUpdater
+	if check.IfNil(account) {
+		return nil, ErrNilAccountHandler
 	}
 	if len(trieUpdates) == 0 {
 		return nil, ErrNilOrEmptyDataTrieUpdates

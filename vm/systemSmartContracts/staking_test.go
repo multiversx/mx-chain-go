@@ -22,7 +22,7 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			GasPrice:    0,
 			GasProvided: 0,
 		},
-		RecipientAddr: []byte("tralala2"),
+		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
 	}
 }

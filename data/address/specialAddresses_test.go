@@ -3,6 +3,7 @@ package address
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -110,8 +111,8 @@ func TestNewSpecialAddressHolderOK(t *testing.T) {
 	args := initDefaultArgs()
 	addr, err := createSpecialAddressFromArgs(args)
 
-	assert.NotNil(t, addr)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(addr))
 }
 
 func TestSpecialAddresses_ClearMetaConsensusDataOK(t *testing.T) {
@@ -233,6 +234,12 @@ func TestSpecialAddresses_ElrondCommunityAddress(t *testing.T) {
 	communityAddr := addr.ElrondCommunityAddress()
 
 	assert.Equal(t, []byte("community"), communityAddr)
+
+	newCommunityAddress := []byte("new address")
+	addr.SetElrondCommunityAddress(newCommunityAddress)
+	communityAddr = addr.ElrondCommunityAddress()
+
+	assert.Equal(t, newCommunityAddress, communityAddr)
 }
 
 func TestSpecialAddresses_LeaderAddressNoSetShardConsensusData(t *testing.T) {
@@ -274,13 +281,6 @@ func TestSpecialAddresses_Epoch(t *testing.T) {
 	assert.Equal(t, uint32(2), epoch)
 }
 
-func TestSpecialAddresses_SetElrondCommunityAddress(t *testing.T) {
-	addr := createDefaultSpecialAddress()
-	communityAddress := addr.ElrondCommunityAddress()
-
-	assert.Equal(t, []byte("community"), communityAddress)
-}
-
 func TestSpecialAddresses_ShardIdForAddress(t *testing.T) {
 	args := initDefaultArgs()
 	args.ShardCoordinator = &mock.MultipleShardsCoordinatorMock{
@@ -295,6 +295,62 @@ func TestSpecialAddresses_ShardIdForAddress(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(3), shardId)
+}
+
+func TestSpecialAddresses_IsCurrentNodeInConsensusShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	key := "key1"
+	args := &Args{
+		ElrondCommunityAddress: []byte("community"),
+		BurnAddress:            []byte("burn"),
+		AddrConv:               &mock.AddressConverterMock{},
+		ShardCoordinator:       mock.NewMultiShardsCoordinatorMock(1),
+		NodesCoordiator: &mock.NodesCoordinatorMock{
+			GetOwnPublicKeyCalled: func() []byte {
+				return []byte(key)
+			},
+			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+				return []string{}, nil
+			},
+			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+				return []string{"another-key", "yet-another-key"}, nil
+			},
+		},
+	}
+	addr, _ := createSpecialAddressFromArgs(args)
+
+	_ = addr.SetShardConsensusData([]byte("rndmns"), 0, 0, 0)
+	res := addr.IsCurrentNodeInConsensus()
+	assert.False(t, res)
+}
+
+func TestSpecialAddresses_IsCurrentNodeInConsensusShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	key := "key1"
+	args := &Args{
+		ElrondCommunityAddress: []byte("community"),
+		BurnAddress:            []byte("burn"),
+		AddrConv:               &mock.AddressConverterMock{},
+		ShardCoordinator:       mock.NewMultiShardsCoordinatorMock(1),
+		NodesCoordiator: &mock.NodesCoordinatorMock{
+			GetOwnPublicKeyCalled: func() []byte {
+				return []byte(key)
+			},
+			GetValidatorsRewardsAddressesCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+				return []string{}, nil
+			},
+			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+				return []string{key, "another-key"}, nil
+			},
+		},
+	}
+	addr, _ := createSpecialAddressFromArgs(args)
+
+	_ = addr.SetShardConsensusData([]byte("rndmns"), 0, 0, 0)
+	res := addr.IsCurrentNodeInConsensus()
+	assert.True(t, res)
 }
 
 func TestSpecialAddresses_IsInterfaceNil(t *testing.T) {

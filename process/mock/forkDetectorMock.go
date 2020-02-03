@@ -36,7 +36,10 @@ func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
 }
 
 func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return fdm.GetHighestFinalBlockNonceCalled()
+	if fdm.GetHighestFinalBlockNonceCalled != nil {
+		return fdm.GetHighestFinalBlockNonceCalled()
+	}
+	return 0
 }
 
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {

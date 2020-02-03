@@ -265,7 +265,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	defer bfd.mutHeaders.Unlock()
 
 	hdrInfos := bfd.headers[hdrInfo.nonce]
-	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
+	isHdrInfosNilOrEmpty := len(hdrInfos) == 0 // no need for nil check, len() for nil returns 0
 	if isHdrInfosNilOrEmpty {
 		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
 		return true

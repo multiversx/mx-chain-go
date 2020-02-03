@@ -19,6 +19,8 @@ func (rdt RequestDataType) String() string {
 		return "hash array type"
 	case NonceType:
 		return "nonce type"
+	case EpochType:
+		return "epoch type"
 	default:
 		return fmt.Sprintf("unknown type %d", rdt)
 	}
@@ -38,8 +40,8 @@ const (
 // RequestData holds the requested data
 // This struct will be serialized and sent to the other peers
 type RequestData struct {
-	Type  RequestDataType
 	Value []byte
+	Type  RequestDataType
 	Epoch uint32
 }
 

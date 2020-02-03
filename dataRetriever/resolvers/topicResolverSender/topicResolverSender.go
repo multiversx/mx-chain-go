@@ -142,8 +142,5 @@ func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) (
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (trs *topicResolverSender) IsInterfaceNil() bool {
-	if trs == nil {
-		return true
-	}
-	return false
+	return trs == nil
 }
