@@ -77,7 +77,6 @@ func (pool *headersPool) callAddedDataHandlers(headerHandler data.HeaderHandler,
 func (pool *headersPool) RemoveHeaderByHash(headerHash []byte) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
-	log.Debug("RemoveHeaderByHash", "headerHash", headerHash)
 	pool.cache.removeHeaderByHash(headerHash)
 }
 
@@ -85,7 +84,6 @@ func (pool *headersPool) RemoveHeaderByHash(headerHash []byte) {
 func (pool *headersPool) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) {
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
-	log.Debug("RemoveHeaderByNonceAndShardId", "hdrNonce", hdrNonce, "shardID", shardId)
 	_ = pool.cache.removeHeaderByNonceAndShardId(hdrNonce, shardId)
 }
 

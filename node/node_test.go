@@ -1738,6 +1738,11 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithSyncer(&mock.SyncStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(store),
+		node.WithResolversFinder(&mock.ResolversFinderStub{
+			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+				return &mock.MiniBlocksResolverStub{}, nil
+			},
+		}),
 	)
 
 	err := n.StartConsensus()
@@ -1858,6 +1863,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 				return []byte("nil"), localErr
 			},
 		}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1946,6 +1952,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 				return []byte("keyBytes"), nil
 			},
 		}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -2059,6 +2066,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithMultiSigner(&mock.MultisignMock{}),
 		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	err := n.StartConsensus()
