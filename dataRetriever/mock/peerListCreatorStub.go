@@ -12,8 +12,5 @@ func (p PeerListCreatorStub) PeerList() []p2p.PeerID {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *PeerListCreatorStub) IsInterfaceNil() bool {
-	if p == nil {
-		return true
-	}
-	return false
+	return p == nil
 }

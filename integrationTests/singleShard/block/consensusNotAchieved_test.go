@@ -76,6 +76,9 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	nonce++
 
 	bitMapNotEnough := []byte{1}
+	for _, nodes := range nodesMap {
+		integrationTests.UpdateRound(nodes, round)
+	}
 	body, hdr, _ := proposeBlock(nodesMap[0][0], round, nonce, bitMapNotEnough)
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)
@@ -89,6 +92,9 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	for _, nodes := range nodesMap {
+		integrationTests.UpdateRound(nodes, round)
+	}
 	bitMapTooBig := []byte{1, 0, 1, 0, 1} // only one byte was needed, so this block should not pass
 	body, hdr, _ = proposeBlock(nodesMap[0][0], round, nonce, bitMapTooBig)
 	assert.NotNil(t, body)
@@ -103,6 +109,9 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	for _, nodes := range nodesMap {
+		integrationTests.UpdateRound(nodes, round)
+	}
 	bitMapEnough := []byte{11} // 11 = 0b0000 1011 so 3 signatures
 	body, hdr, _ = proposeBlock(nodesMap[0][0], round, nonce, bitMapEnough)
 	assert.NotNil(t, body)

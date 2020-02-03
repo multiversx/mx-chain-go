@@ -111,6 +111,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
+	ClosePersister() error
 	IsInterfaceNil() bool
 }
 
@@ -126,4 +127,5 @@ type TriesHolder interface {
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()
+	IsInterfaceNil() bool
 }

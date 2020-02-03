@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.GetOrCreate("consensus/spos/commonsubround")
@@ -20,8 +19,7 @@ type SubroundStartRound struct {
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
 
-	appStatusHandler core.AppStatusHandler
-	indexer          indexer.Indexer
+	indexer indexer.Indexer
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -40,12 +38,11 @@ func NewSubroundStartRound(
 	}
 
 	srStartRound := SubroundStartRound{
-		baseSubround,
-		processingThresholdPercentage,
-		getSubroundName,
-		executeStoredMessages,
-		statusHandler.NewNilStatusHandler(),
-		indexer.NewNilIndexer(),
+		Subround:                      baseSubround,
+		processingThresholdPercentage: processingThresholdPercentage,
+		getSubroundName:               getSubroundName,
+		executeStoredMessages:         executeStoredMessages,
+		indexer:                       indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -69,16 +66,6 @@ func checkNewSubroundStartRoundParams(
 	return err
 }
 
-// SetAppStatusHandler method set appStatusHandler
-func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
-}
-
 // SetIndexer method set indexer
 func (sr *SubroundStartRound) SetIndexer(indexer indexer.Indexer) {
 	sr.indexer = indexer
@@ -98,7 +85,7 @@ func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 		return false
 	}
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
 
@@ -113,7 +100,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
@@ -135,9 +122,9 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
-		sr.appStatusHandler.Increment(core.MetricCountLeader)
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "proposed")
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
+		sr.AppStatusHandler().Increment(core.MetricCountLeader)
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "proposed")
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -152,20 +139,13 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("canceled round, not in the consensus group",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
-			"round", sr.Rounder().Index(),
-			"subround", sr.getSubroundName(sr.Current()))
-
-		sr.RoundCanceled = true
-
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
-
-		return false
+		log.Debug("not in consensus group",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "not in consensus group")
+	} else {
+		sr.AppStatusHandler().Increment(core.MetricCountConsensus)
+		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "participant")
 	}
-
-	sr.appStatusHandler.Increment(core.MetricCountConsensus)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
@@ -176,8 +156,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
+	startTime := sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",

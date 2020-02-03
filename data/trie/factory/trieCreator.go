@@ -52,9 +52,9 @@ func NewTrieFactory(
 
 	log.Trace("trie pruning status", "enabled", args.PruningEnabled)
 	if !args.PruningEnabled {
-		trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
-		if err != nil {
-			return nil, err
+		trieStorage, errNewTrie := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
+		if errNewTrie != nil {
+			return nil, errNewTrie
 		}
 
 		return &trieCreator{

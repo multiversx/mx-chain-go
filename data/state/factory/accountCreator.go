@@ -14,7 +14,7 @@ func NewAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (c *AccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+func (ac *AccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	account, err := state.NewAccount(address, tracker)
 	if err != nil {
 		return nil, err
@@ -24,9 +24,6 @@ func (c *AccountCreator) CreateAccount(address state.AddressContainer, tracker s
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (c *AccountCreator) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+func (ac *AccountCreator) IsInterfaceNil() bool {
+	return ac == nil
 }

@@ -61,13 +61,13 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	transactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	n.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
+	n.DataPool.Transactions().RegisterHandler(func(key []byte) {
 		mut.Lock()
 		defer mut.Unlock()
 
 		txHashes = append(txHashes, key)
 
-		dataStore := n.ShardDataPool.Transactions().ShardDataStore(
+		dataStore := n.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
 		)
 		val, _ := dataStore.Get(key)
@@ -107,7 +107,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		noOfTx,
 		txHashes,
 		transactions,
-		n.ShardDataPool.Transactions(),
+		n.DataPool.Transactions(),
 		n.ShardCoordinator,
 	)
 }

@@ -74,7 +74,7 @@ func (ls *logSender) StartSendingBlocking() {
 		_ = ls.writer.Close()
 		_ = logger.RemoveLogObserver(ls.writer)
 		_ = logger.SetLogLevel(ls.lastLogPattern)
-		ls.log.Info("reverted log pattern", "pattern", string(ls.lastLogPattern))
+		ls.log.Info("reverted log pattern", "pattern", ls.lastLogPattern)
 	}()
 
 	err := ls.waitForPatternMessage()

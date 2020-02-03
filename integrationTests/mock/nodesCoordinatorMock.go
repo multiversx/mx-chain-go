@@ -28,7 +28,7 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId)
 	}
 
-	list := []sharding.Validator{}
+	var list []sharding.Validator
 
 	return list, nil
 }

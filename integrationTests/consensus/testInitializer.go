@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -20,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -29,19 +27,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -65,21 +64,13 @@ func init() {
 }
 
 type testNode struct {
-	node             *node.Node
-	mesenger         p2p.Messenger
-	shardId          uint32
-	accntState       state.AccountsAdapter
-	blkc             data.ChainHandler
-	blkProcessor     *mock.BlockProcessorMock
-	sk               crypto.PrivateKey
-	pk               crypto.PublicKey
-	dPool            dataRetriever.PoolsHolder
-	dMetaPool        dataRetriever.MetaPoolsHolder
-	headersRecv      int32
-	mutHeaders       sync.Mutex
-	headersHashes    [][]byte
-	headers          []data.HeaderHandler
-	metachainHdrRecv int32
+	node         *node.Node
+	mesenger     p2p.Messenger
+	blkc         data.ChainHandler
+	blkProcessor *mock.BlockProcessorMock
+	sk           crypto.PrivateKey
+	pk           crypto.PublicKey
+	shardId      uint32
 }
 
 type keyPair struct {
@@ -110,7 +101,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 }
 
 func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string {
-	keysMap := make(map[uint32][]string, 0)
+	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))
@@ -133,7 +124,7 @@ func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
+		integrationTests.CreateKadPeerDiscoverer(time.Second, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -214,7 +205,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
-	dPool, _ := dataPool.NewShardedDataPool(
+	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardsTxPool,
@@ -394,7 +385,12 @@ func createConsensusOnlyNode(
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
-	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second), 0)
+	forkDetector, _ := syncFork.NewShardForkDetector(
+		rounder,
+		timecache.NewTimeCache(time.Second),
+		&mock.BlockTrackerStub{},
+		0,
+	)
 
 	hdrResolver := &mock.HeaderResolverMock{}
 	mbResolver := &mock.MiniBlocksResolverMock{}
@@ -458,6 +454,7 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithChainID(consensusChainID),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
 	if err != nil {
@@ -487,7 +484,7 @@ func createNodes(
 	}
 
 	for i := 0; i < nodesPerShard; i++ {
-		testNode := &testNode{
+		testNodeObject := &testNode{
 			shardId: uint32(0),
 		}
 
@@ -507,7 +504,7 @@ func createNodes(
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,
 			nodesCoordinator,
-			testNode.shardId,
+			testNodeObject.shardId,
 			uint32(i),
 			serviceID,
 			uint32(consensusSize),
@@ -518,14 +515,14 @@ func createNodes(
 			consensusType,
 		)
 
-		testNode.node = n
-		testNode.node = n
-		testNode.sk = kp.sk
-		testNode.mesenger = mes
-		testNode.pk = kp.pk
-		testNode.blkProcessor = blkProcessor
-		testNode.blkc = blkc
-		nodesList[i] = testNode
+		testNodeObject.node = n
+		testNodeObject.node = n
+		testNodeObject.sk = kp.sk
+		testNodeObject.mesenger = mes
+		testNodeObject.pk = kp.pk
+		testNodeObject.blkProcessor = blkProcessor
+		testNodeObject.blkc = blkc
+		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList
 

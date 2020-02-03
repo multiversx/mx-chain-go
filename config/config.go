@@ -2,8 +2,8 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Size   uint32 `json:"size"`
 	Type   string `json:"type"`
+	Size   uint32 `json:"size"`
 	Shards uint32 `json:"shards"`
 }
 
@@ -91,10 +91,8 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
 
-	ShardDataStorage StorageConfig
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
-	PeerDataStorage  StorageConfig
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
@@ -109,13 +107,13 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
-	EpochStartConfig EpochStartConfig
-	Logger           LoggerConfig
-	Address          AddressConfig
-	BLSPublicKey     AddressConfig
-	Hasher           TypeConfig
-	MultisigHasher   TypeConfig
-	Marshalizer      MarshalizerConfig
+	EpochStartConfig            EpochStartConfig
+	Logger                      LoggerConfig
+	Address                     AddressConfig
+	BLSPublicKey                AddressConfig
+	Hasher                      TypeConfig
+	MultisigHasher              TypeConfig
+	Marshalizer                 MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
@@ -145,10 +143,12 @@ type StoragePruningConfig struct {
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	RandezVous           string
-	InitialPeerList      []string
+	Enabled                          bool
+	RefreshIntervalInSec             uint32
+	RandezVous                       string
+	InitialPeerList                  []string
+	BucketSize                       uint32
+	RoutingTableRefreshIntervalInSec uint32
 }
 
 // P2PConfig will hold all the P2P settings

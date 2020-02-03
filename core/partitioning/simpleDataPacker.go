@@ -67,8 +67,5 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdp *SimpleDataPacker) IsInterfaceNil() bool {
-	if sdp == nil {
-		return true
-	}
-	return false
+	return sdp == nil
 }
