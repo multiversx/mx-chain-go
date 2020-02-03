@@ -1081,14 +1081,17 @@ func createElasticIndexer(
 		return nil, err
 	}
 
-	dbIndexer, err = indexer.NewElasticIndexer(
-		url,
-		serversConfig.ElasticSearch.Username,
-		serversConfig.ElasticSearch.Password,
-		coordinator,
-		marshalizer,
-		hasher,
-		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
+	arguments := indexer.ElasticIndexerArgs{
+		Url:              url,
+		UserName:         serversConfig.ElasticSearch.Username,
+		Password:         serversConfig.ElasticSearch.Password,
+		ShardCoordinator: coordinator,
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+	}
+
+	dbIndexer, err = indexer.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
 	}

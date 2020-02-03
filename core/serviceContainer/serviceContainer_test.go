@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	elasticIndexer "github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestServiceContainer_NewServiceContainerEmpty(t *testing.T) {
 }
 
 func TestServiceContainer_NewServiceContainerWithIndexer(t *testing.T) {
-	indexer := &mock.IndexerMock{}
+	indexer := elasticIndexer.NewNilIndexer()
 	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(indexer))
 
 	assert.Nil(t, err)
@@ -26,7 +27,7 @@ func TestServiceContainer_NewServiceContainerWithIndexer(t *testing.T) {
 }
 
 func TestServiceContainer_NewServiceContainerWithNilIndexer(t *testing.T) {
-	indexer := &mock.IndexerMock{}
+	indexer := elasticIndexer.NewNilIndexer()
 	indexer = nil
 
 	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(indexer))
