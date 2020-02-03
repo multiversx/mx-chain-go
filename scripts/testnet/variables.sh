@@ -79,7 +79,7 @@ export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzok
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
   USETMUX=1
-  LOGLEVEL="*:DEBUG"
+  LOGLEVEL="*:DEBUG,trie:TRACE"
 fi
 
 if [ "$TESTNETMODE" == "ui" ]; then

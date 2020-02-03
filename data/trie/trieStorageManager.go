@@ -300,7 +300,6 @@ func (tsm *trieStorageManager) snapshot(msh marshal.Marshalizer, hsh hashing.Has
 
 func (tsm *trieStorageManager) isSnapshotsBufferEmpty() (bool, [][]byte) {
 	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
 	var keys [][]byte
 
 	tsm.snapshotsBuffer.removeFirst()
@@ -309,6 +308,7 @@ func (tsm *trieStorageManager) isSnapshotsBufferEmpty() (bool, [][]byte) {
 		keys = tsm.pruningBuffer
 		tsm.pruningBuffer = make([][]byte, 0)
 	}
+	tsm.storageOperationMutex.Unlock()
 
 	return isSnapshotsBufferEmpty, keys
 }
