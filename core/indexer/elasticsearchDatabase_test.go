@@ -109,8 +109,6 @@ func newTestBlockBody() dataBlock.Body {
 }
 
 func TestNewElasticSearchDatabase_IndexesError(t *testing.T) {
-	t.Parallel()
-
 	indexes := []string{txIndex, blockIndex, tpsIndex, validatorsIndex, roundIndex}
 
 	for _, index := range indexes {
@@ -130,8 +128,6 @@ func TestNewElasticSearchDatabase_IndexesError(t *testing.T) {
 }
 
 func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
-	t.Parallel()
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
@@ -155,8 +151,6 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 }
 
 func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
-	t.Parallel()
-
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
 	arguments := createMockElasticsearchDatabaseArgs()
@@ -180,8 +174,6 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
-	t.Parallel()
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
@@ -205,8 +197,6 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
-	t.Parallel()
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
@@ -228,8 +218,6 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
-	t.Parallel()
-
 	shardId := uint32(0)
 	valPubKeys := []string{"key1", "key2"}
 	arguments := createMockElasticsearchDatabaseArgs()
@@ -239,16 +227,16 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 			return nil
 		},
 	}
+
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	elasticDatabase.saveShardValidatorsPubKeys(shardId, valPubKeys)
 }
 
 func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
-	t.Parallel()
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+
 	tpsBenchmark := &mock.TpsBenchmarkMock{}
 	metaBlock := &dataBlock.MetaBlock{
 		TxCount: 2, Nonce: 1,
@@ -272,8 +260,6 @@ func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
 }
 
 func TestElasticsearch_saveShardStatistics(t *testing.T) {
-	t.Parallel()
-
 	tpsBenchmark := &mock.TpsBenchmarkMock{}
 	metaBlock := &dataBlock.MetaBlock{
 		TxCount: 2, Nonce: 1,
@@ -288,13 +274,12 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 			return nil
 		},
 	}
+
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	elasticDatabase.saveShardStatistics(tpsBenchmark)
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
-	t.Parallel()
-
 	roundInfo := RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
@@ -311,8 +296,6 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
-	t.Parallel()
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})

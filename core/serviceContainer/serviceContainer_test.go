@@ -27,10 +27,7 @@ func TestServiceContainer_NewServiceContainerWithIndexer(t *testing.T) {
 }
 
 func TestServiceContainer_NewServiceContainerWithNilIndexer(t *testing.T) {
-	indexer := elasticIndexer.NewNilIndexer()
-	indexer = nil
-
-	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(indexer))
+	sc, err := serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(nil))
 
 	assert.Nil(t, err)
 	assert.NotNil(t, sc)
