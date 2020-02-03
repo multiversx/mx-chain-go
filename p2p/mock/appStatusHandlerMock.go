@@ -66,7 +66,9 @@ func (ashm *AppStatusHandlerMock) Decrement(key string) {
 		return
 	}
 
-	ashm.data[key] = vUint64 - 1
+	if ashm.data[key] != 0 {
+		ashm.data[key] = vUint64 - 1
+	}
 }
 
 // SetInt64Value -
