@@ -17,13 +17,13 @@ func NewStatusMetrics() *statusMetrics {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (nd *statusMetrics) IsInterfaceNil() bool {
-	return nd == nil
+func (sm *statusMetrics) IsInterfaceNil() bool {
+	return sm == nil
 }
 
 // Increment method increment a metric
-func (nd *statusMetrics) Increment(key string) {
-	keyValueI, ok := nd.nodeMetrics.Load(key)
+func (sm *statusMetrics) Increment(key string) {
+	keyValueI, ok := sm.nodeMetrics.Load(key)
 	if !ok {
 		return
 	}
@@ -34,12 +34,12 @@ func (nd *statusMetrics) Increment(key string) {
 	}
 
 	keyValue++
-	nd.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics.Store(key, keyValue)
 }
 
 // AddUint64 method increase a metric with a specific value
-func (nd *statusMetrics) AddUint64(key string, val uint64) {
-	keyValueI, ok := nd.nodeMetrics.Load(key)
+func (sm *statusMetrics) AddUint64(key string, val uint64) {
+	keyValueI, ok := sm.nodeMetrics.Load(key)
 	if !ok {
 		return
 	}
@@ -50,12 +50,12 @@ func (nd *statusMetrics) AddUint64(key string, val uint64) {
 	}
 
 	keyValue += val
-	nd.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics.Store(key, keyValue)
 }
 
 // Decrement method - decrement a metric
-func (nd *statusMetrics) Decrement(key string) {
-	keyValueI, ok := nd.nodeMetrics.Load(key)
+func (sm *statusMetrics) Decrement(key string) {
+	keyValueI, ok := sm.nodeMetrics.Load(key)
 	if !ok {
 		return
 	}
@@ -69,32 +69,32 @@ func (nd *statusMetrics) Decrement(key string) {
 	}
 
 	keyValue--
-	nd.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics.Store(key, keyValue)
 }
 
 // SetInt64Value method - sets an int64 value for a key
-func (nd *statusMetrics) SetInt64Value(key string, value int64) {
-	nd.nodeMetrics.Store(key, value)
+func (sm *statusMetrics) SetInt64Value(key string, value int64) {
+	sm.nodeMetrics.Store(key, value)
 }
 
 // SetUInt64Value method - sets an uint64 value for a key
-func (nd *statusMetrics) SetUInt64Value(key string, value uint64) {
-	nd.nodeMetrics.Store(key, value)
+func (sm *statusMetrics) SetUInt64Value(key string, value uint64) {
+	sm.nodeMetrics.Store(key, value)
 }
 
 // SetStringValue method - sets a string value for a key
-func (nd *statusMetrics) SetStringValue(key string, value string) {
-	nd.nodeMetrics.Store(key, value)
+func (sm *statusMetrics) SetStringValue(key string, value string) {
+	sm.nodeMetrics.Store(key, value)
 }
 
 // Close method - won't do anything
-func (nd *statusMetrics) Close() {
+func (sm *statusMetrics) Close() {
 }
 
 // StatusMetricsMap will return all metrics in a map
-func (nd *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
+func (sm *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
 	statusMetricsMap := make(map[string]interface{})
-	nd.nodeMetrics.Range(func(key, value interface{}) bool {
+	sm.nodeMetrics.Range(func(key, value interface{}) bool {
 		statusMetricsMap[key.(string)] = value
 		return true
 	})

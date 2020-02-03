@@ -31,6 +31,10 @@ func (stp *stableTagProvider) FetchTagVersion() (string, error) {
 
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
 	respBytes := buf.Bytes()
 
 	var tag tagVersion

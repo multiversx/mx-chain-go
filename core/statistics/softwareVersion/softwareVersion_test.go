@@ -100,7 +100,7 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldErrWhenFetchFails
 	}
 
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	case <-setStringChan:
 		assert.Fail(t, "this should have not been called")
 	}
