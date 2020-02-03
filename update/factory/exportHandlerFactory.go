@@ -33,7 +33,7 @@ type ArgsExporter struct {
 	Uint64Converter          typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
 	StorageService           dataRetriever.StorageService
-	RequestHandler           update.RequestHandler
+	RequestHandler           process.RequestHandler
 	ShardCoordinator         sharding.Coordinator
 	Messenger                p2p.Messenger
 	ActiveTries              state.TriesHolder
@@ -50,7 +50,7 @@ type exportHandlerFactory struct {
 	uint64Converter          typeConverters.Uint64ByteSliceConverter
 	dataPool                 dataRetriever.PoolsHolder
 	storageService           dataRetriever.StorageService
-	requestHandler           update.RequestHandler
+	requestHandler           process.RequestHandler
 	shardCoordinator         sharding.Coordinator
 	messenger                p2p.Messenger
 	activeTries              state.TriesHolder
@@ -124,7 +124,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
 		Epoch:              0,
 		Validity:           process.MetaBlockValidity,
-		Finality:           process.MetaBlockFinality,
+		Finality:           process.BlockFinality,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -180,7 +180,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
 		Storage:        e.storageService.GetStorer(dataRetriever.MetaBlockUnit),
-		Cache:          e.dataPool.MetaBlocks(),
+		Cache:          e.dataPool.Headers(),
 		Marshalizer:    e.marshalizer,
 		EpochHandler:   epochHandler,
 		RequestHandler: e.requestHandler,

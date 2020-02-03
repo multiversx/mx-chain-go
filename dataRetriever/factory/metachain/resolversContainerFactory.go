@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryTries "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -22,7 +22,7 @@ type resolversContainerFactory struct {
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.MetaPoolsHolder
+	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
@@ -35,7 +35,7 @@ func NewResolversContainerFactory(
 	messenger dataRetriever.TopicMessageHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	dataPools dataRetriever.MetaPoolsHolder,
+	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
 	triesContainer state.TriesHolder,
@@ -216,8 +216,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.ShardHeaders(),
-		rcf.dataPools.HeadersNonces(),
+		rcf.dataPools.Headers(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -269,8 +268,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.MetaBlocks(),
-		rcf.dataPools.HeadersNonces(),
+		rcf.dataPools.Headers(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -449,10 +447,7 @@ func (rcf *resolversContainerFactory) createOneResolverSender(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
-	if rcf == nil {
-		return true
-	}
-	return false
+	return rcf == nil
 }
 
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
@@ -461,8 +456,28 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.UserAccountTrie)
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+
+		identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice = append(resolverSlice, resolver)
+		keys = append(keys, identifierTrieNodes)
+	}
+
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -470,8 +485,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice = append(resolverSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, factoryTries.PeerAccountTrie)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return nil, nil, err
 	}

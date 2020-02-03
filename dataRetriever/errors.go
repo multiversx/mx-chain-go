@@ -10,26 +10,11 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
 var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
 
-// ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
-var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
-
-// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
-var ErrNilHasher = errors.New("nil Hasher")
-
-// ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
-
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
-var ErrNilBlockChain = errors.New("nil block chain")
-
-// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilTxBlockBody = errors.New("nil block body")
-
-// ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
-var ErrNilBlockHeader = errors.New("nil block header")
+// ErrTxNotFoundInBlockPool signals the value is nil
+var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
 
 // ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
 var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
@@ -54,9 +39,6 @@ var ErrNilRewardTransactionPool = errors.New("nil reward transaction data pool")
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
-
-// ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
-var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
@@ -134,20 +116,8 @@ var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid,
 // ErrCacheConfigInvalidShards signals that the cache parameter "shards" is invalid
 var ErrCacheConfigInvalidShards = errors.New("cache parameter [shards] is not valid, it must be a positive number")
 
-// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
-
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
-
-// ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
-var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
-
-// ErrNilShardHeaderPool signals that a nil meta block data pool was provided
-var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
-
-// ErrNilMetaBlockNoncesPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockNoncesPool = errors.New("nil meta block nonces data pool")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")

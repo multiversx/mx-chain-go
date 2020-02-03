@@ -22,10 +22,14 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
-func (ts *TrieStub) TakeSnapshot(rootHash []byte) {
+func (ts *TrieStub) ClosePersister() error {
+	return nil
 }
 
-func (ts *TrieStub) SetCheckpoint(rootHash []byte) {
+func (ts *TrieStub) TakeSnapshot(_ []byte) {
+}
+
+func (ts *TrieStub) SetCheckpoint(_ []byte) {
 }
 
 func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {

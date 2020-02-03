@@ -16,6 +16,7 @@ type ArgBaseTracker struct {
 	Hasher           hashing.Hasher
 	HeaderValidator  process.HeaderConstructionValidator
 	Marshalizer      marshal.Marshalizer
+	RequestHandler   process.RequestHandler
 	Rounder          consensus.Rounder
 	ShardCoordinator sharding.Coordinator
 	Store            dataRetriever.StorageService
@@ -33,5 +34,5 @@ type ArgShardTracker struct {
 // new instances of meta block tracker
 type ArgMetaTracker struct {
 	ArgBaseTracker
-	PoolsHolder dataRetriever.MetaPoolsHolder
+	PoolsHolder dataRetriever.PoolsHolder
 }

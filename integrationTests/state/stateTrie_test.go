@@ -932,7 +932,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 
-	fmt.Printf("Done in %v\n", time.Now().Sub(st))
+	fmt.Printf("Done in %v\n", time.Since(st))
 
 	integrationTests.PrintShardAccount(acntSrc.(*state.Account), "Source")
 	integrationTests.PrintShardAccount(acntDest.(*state.Account), "Destination")
@@ -1064,7 +1064,7 @@ func createAndExecTxs(
 
 		startTime := time.Now()
 		err := txProcessor.ProcessTransaction(tx)
-		duration := time.Now().Sub(startTime)
+		duration := time.Since(startTime)
 		totalTime += int64(duration)
 		assert.Nil(b, err)
 	}
@@ -1517,7 +1517,7 @@ func collectSnapshotAndCheckpointHashes(
 			continue
 		}
 
-		checkpointRound := currentBlockHeader.GetRound()%uint64(stateCheckpointModulus) == 0
+		checkpointRound := currentBlockHeader.GetRound()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue

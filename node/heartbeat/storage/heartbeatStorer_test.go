@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -42,8 +43,8 @@ func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
-	assert.NotNil(t, hs)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(hs))
 }
 
 func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {

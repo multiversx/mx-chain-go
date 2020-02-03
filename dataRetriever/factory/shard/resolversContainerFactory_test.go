@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errExpected = errors.New("expected error")
@@ -53,19 +54,13 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return &mock.Uint64SyncMapCacherStub{}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.MetaBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
@@ -88,8 +83,8 @@ func createStore() dataRetriever.StorageService {
 
 func createTriesHolder() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(factory2.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(factory2.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
 	return triesHolder
 }
 
@@ -278,11 +273,12 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 		&mock.DataPackerStub{},
 		createTriesHolder(),
-		0,
+		1,
 	)
 
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
+	require.False(t, rcf.IsInterfaceNil())
 }
 
 //------- Create

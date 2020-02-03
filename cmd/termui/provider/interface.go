@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 )
 
+// PresenterHandler defines what a component which will handle the presentation of data in the termui should do
 type PresenterHandler interface {
 	Increment(key string)
 	AddUint64(key string, val uint64)

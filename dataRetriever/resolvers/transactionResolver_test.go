@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -105,7 +106,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
+	assert.False(t, check.IfNil(txRes))
 }
 
 //------- ProcessReceivedMessage
@@ -273,7 +274,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
 	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
 			return txReturnedAsBuffer, nil
@@ -320,7 +321,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 	errExpected := errors.New("expected error")
 
 	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
 		}
@@ -343,7 +344,6 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 	err := txRes.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errExpected, err)
-
 }
 
 func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCallSliceSplitter(t *testing.T) {
@@ -428,12 +428,11 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.DataPackerStub{},
 	)
 
-	assert.Nil(t, txRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, txRes.RequestDataFromHash(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: buffRequested,
 	}, requested)
-
 }
 
 //------- RequestDataFromHashArray
@@ -462,10 +461,9 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 
 	buff, _ := marshalizer.Marshal(buffRequested)
 
-	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested))
+	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested, 0))
 	assert.Equal(t, &dataRetriever.RequestData{
 		Type:  dataRetriever.HashArrayType,
 		Value: buff,
 	}, requested)
-
 }

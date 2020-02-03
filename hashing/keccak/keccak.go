@@ -35,8 +35,5 @@ func (Keccak) Size() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (k Keccak) IsInterfaceNil() bool {
-	if &k == nil {
-		return true
-	}
 	return false
 }

@@ -61,3 +61,6 @@ var ErrWrongTypeInContainer = errors.New("wrong type of object inside container"
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrWrongTypeAssertion signals wrong type assertion
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

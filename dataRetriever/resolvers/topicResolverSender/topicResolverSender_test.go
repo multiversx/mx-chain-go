@@ -92,6 +92,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 
 	assert.NotNil(t, trs)
 	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), trs.TargetShardID())
 }
 
 //------- SendOnRequestTopic

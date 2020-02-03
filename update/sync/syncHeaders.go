@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -19,7 +20,7 @@ type headersToSync struct {
 	metaBlockToSync  *block.MetaBlock
 	chReceivedAll    chan bool
 	metaBlockStorage update.HistoryStorer
-	metaBlockPool    storage.Cacher
+	metaBlockPool    dataRetriever.HeadersPool
 	epochHandler     update.EpochStartVerifier
 	marshalizer      marshal.Marshalizer
 	stopSyncing      bool
@@ -30,7 +31,7 @@ type headersToSync struct {
 // ArgsNewHeadersSyncHandler defines the arguments needed for the new header syncer
 type ArgsNewHeadersSyncHandler struct {
 	Storage        storage.Storer
-	Cache          storage.Cacher
+	Cache          dataRetriever.HeadersPool
 	Marshalizer    marshal.Marshalizer
 	EpochHandler   update.EpochStartVerifier
 	RequestHandler process.RequestHandler
@@ -63,6 +64,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		epochHandler:     args.EpochHandler,
 		stopSyncing:      true,
 		requestHandler:   args.RequestHandler,
+		marshalizer:      args.Marshalizer,
 	}
 
 	headers.metaBlockPool.RegisterHandler(headers.receivedMetaBlock)
@@ -70,49 +72,49 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 	return headers, nil
 }
 
-func (h *headersToSync) receivedMetaBlock(hash []byte) {
+func (h *headersToSync) receivedMetaBlock(headerHandler data.HeaderHandler, hash []byte) {
 	h.mutMeta.Lock()
 	if h.stopSyncing {
 		h.mutMeta.Unlock()
 		return
 	}
 
-	val, ok := h.metaBlockPool.Peek(hash)
+	meta, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		return
-	}
-
-	meta, ok := val.(*block.MetaBlock)
-	if !ok {
+		h.mutMeta.Unlock()
 		return
 	}
 
 	isWrongEpoch := meta.Epoch > h.epochToSync || meta.Epoch < h.epochToSync-1
 	if isWrongEpoch {
+		h.mutMeta.Unlock()
 		return
 	}
 
 	h.epochHandler.ReceivedHeader(meta)
-	if h.epochHandler.IsEpochStart() {
-		epochStartId := core.EpochStartIdentifier(h.epochHandler.Epoch())
-		metaData, err := h.metaBlockStorage.Get([]byte(epochStartId))
-		if err != nil {
-			return
-		}
-
-		meta := &block.MetaBlock{}
-		err = h.marshalizer.Unmarshal(meta, metaData)
-		if err != nil {
-			return
-		}
-
-		h.mutMeta.Lock()
-		h.metaBlockToSync = meta
-		h.stopSyncing = true
+	if !h.epochHandler.IsEpochStart() {
 		h.mutMeta.Unlock()
-
-		h.chReceivedAll <- true
+		return
 	}
+
+	epochStartMetaHash := h.epochHandler.EpochStartMetaHdrHash()
+	metaData, err := h.metaBlockPool.GetHeaderByHash(epochStartMetaHash)
+	if err != nil {
+		h.mutMeta.Unlock()
+		return
+	}
+
+	metaBlock, ok := metaData.(*block.MetaBlock)
+	if !ok {
+		h.mutMeta.Unlock()
+		return
+	}
+
+	h.metaBlockToSync = metaBlock
+	h.stopSyncing = true
+	h.mutMeta.Unlock()
+
+	h.chReceivedAll <- true
 }
 
 // SyncEpochStartMetaHeader syncs and validates an epoch start metaheader
@@ -123,6 +125,11 @@ func (h *headersToSync) SyncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 	epochStartData, err := GetDataFromStorage([]byte(epochStartId), h.metaBlockStorage, epoch)
 	if err != nil {
 		_ = process.EmptyChannel(h.chReceivedAll)
+
+		h.mutMeta.Lock()
+		h.stopSyncing = false
+		h.mutMeta.Unlock()
+
 		h.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 
 		err = WaitFor(h.chReceivedAll, waitTime)

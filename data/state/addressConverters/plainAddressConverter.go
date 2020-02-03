@@ -153,8 +153,5 @@ func (pac *PlainAddressConverter) CreateAddressFromBech32(bech32Address string) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pac *PlainAddressConverter) IsInterfaceNil() bool {
-	if pac == nil {
-		return true
-	}
-	return false
+	return pac == nil
 }

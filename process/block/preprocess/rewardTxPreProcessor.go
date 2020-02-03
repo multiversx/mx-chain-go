@@ -115,10 +115,10 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 		log.Debug("requested missing reward txs",
 			"num reward txs", requestedRewardTxs)
 		err := rtp.waitForRewardTxHashes(haveTime())
-		rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
+		rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 		missingRewardTxs := rtp.rewardTxsForBlock.missingTxs
 		rtp.rewardTxsForBlock.missingTxs = 0
-		rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
+		rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 		log.Debug("received reward txs",
 			"num reward txs", requestedRewardTxs-missingRewardTxs)
 		if err != nil {
@@ -573,8 +573,5 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
-	if rtp == nil {
-		return true
-	}
-	return false
+	return rtp == nil
 }

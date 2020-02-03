@@ -6,10 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(10 * time.Millisecond)
+const roundTimeDuration = 10 * time.Millisecond
 
 func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
 	t.Parallel()
@@ -31,8 +32,8 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 
 	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 
-	assert.NotNil(t, rnd)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(rnd))
 }
 
 func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
@@ -53,7 +54,6 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	assert.Equal(t, oldIndex, newIndex)
 	assert.Equal(t, oldTimeStamp, newTimeStamp)
-
 }
 
 func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {

@@ -27,7 +27,7 @@ type interceptorsContainerFactory struct {
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.MetaPoolsHolder
+	dataPool               dataRetriever.PoolsHolder
 	shardCoordinator       sharding.Coordinator
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
@@ -46,7 +46,7 @@ func NewInterceptorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
-	dataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
