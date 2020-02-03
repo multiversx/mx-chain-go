@@ -30,7 +30,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 			},
 		},
 	}
-	args := createMockHeadersSuncHandlerArgs()
+	args := createMockHeadersSyncHandlerArgs()
 	args.Storage = &mock.StorerStub{
 		GetCalled: func(key []byte) (bytes []byte, err error) {
 			if retErr {

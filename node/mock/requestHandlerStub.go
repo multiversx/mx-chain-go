@@ -13,7 +13,10 @@ type RequestHandlerStub struct {
 	RequestTrieNodesCalled          func(destShardID uint32, hash []byte, topic string)
 }
 
-func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(_ uint32) {
+}
+
+func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 }
 
 func (rhs *RequestHandlerStub) RequestShardHeader(shardID uint32, hash []byte) {

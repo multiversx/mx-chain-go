@@ -13,14 +13,6 @@ type StorerStub struct {
 	DestroyUnitCalled  func() error
 }
 
-func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	return ss.GetFromEpochCalled(key, epoch)
-}
-
-func (ss *StorerStub) HasInEpoch(key []byte, epoch uint32) error {
-	return ss.HasInEpochCalled(key, epoch)
-}
-
 func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 	return ss.SearchFirstCalled(key)
 }

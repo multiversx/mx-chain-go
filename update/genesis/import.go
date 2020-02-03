@@ -77,7 +77,7 @@ func (si *stateImport) importMetaBlock() error {
 
 	metaBlock, ok := object.(*block.MetaBlock)
 	if !ok {
-		return core.ErrWrongTypeAssertion
+		return update.ErrWrongTypeAssertion
 	}
 
 	si.importedMetaBlock = metaBlock
@@ -96,7 +96,7 @@ func (si *stateImport) importTransactions() error {
 
 		tx, ok := object.(data.TransactionHandler)
 		if !ok {
-			err = fmt.Errorf("%w wanted a transaction handler", core.ErrWrongTypeAssertion)
+			err = fmt.Errorf("%w wanted a transaction handler", update.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -155,7 +155,7 @@ func (si *stateImport) importMiniBlocks() error {
 
 		miniBlock, ok := object.(*block.MiniBlock)
 		if !ok {
-			err = fmt.Errorf("%w wanted a miniblock", core.ErrWrongTypeAssertion)
+			err = fmt.Errorf("%w wanted a miniblock", update.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -202,7 +202,7 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 	}
 
 	if keyType != RootHash {
-		return fmt.Errorf("%w wanted a roothash", core.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
 	oldRootHash := value

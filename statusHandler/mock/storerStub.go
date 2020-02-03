@@ -28,14 +28,6 @@ func (ss *StorerStub) Close() error {
 	return nil
 }
 
-func (ss *StorerStub) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
-	return ss.Get(key)
-}
-
-func (ss *StorerStub) HasInEpoch(key []byte, _ uint32) error {
-	return ss.Has(key)
-}
-
 func (ss *StorerStub) Put(key, data []byte) error {
 	return ss.PutCalled(key, data)
 }

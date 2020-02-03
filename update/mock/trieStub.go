@@ -25,8 +25,12 @@ type TrieStub struct {
 	GetAllLeavesCalled       func() (map[string][]byte, error)
 }
 
+func (ts *TrieStub) ClosePersister() error {
+	return nil
+}
+
 func (ts *TrieStub) IsPruningEnabled() bool {
-	panic("implement me")
+	return false
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
