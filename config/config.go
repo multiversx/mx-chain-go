@@ -232,6 +232,7 @@ type TopicAntifloodConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
+	Enabled                   bool
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
 	PeerMaxMessagesPerSecond  uint32

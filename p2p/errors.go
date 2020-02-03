@@ -102,3 +102,6 @@ var ErrPeerBlacklisted = errors.New("peer is blacklisted")
 
 // ErrNilConfigVariable signals that a nil config variable has been provided
 var ErrNilConfigVariable = errors.New("nil config variable")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil status handler")

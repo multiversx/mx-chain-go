@@ -231,6 +231,7 @@
     Type = "LRU"
 
 [Antiflood]
+    Enabled = false
     PeerMaxMessagesPerSecond = 75
     PeerMaxTotalSizePerSecond = 2097152
     MaxMessagesPerSecond = 400
