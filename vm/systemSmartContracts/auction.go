@@ -371,11 +371,6 @@ func (s *stakingAuctionSC) activateStakingFor(
 	fixedStakeValue *big.Int,
 	rewardAddress []byte,
 ) {
-	vmOutput, err := s.executeOnStakingSC([]byte("setStakeValue@" + hex.EncodeToString(fixedStakeValue.Bytes())))
-	if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
-		return
-	}
-
 	blsKeys := registrationData.BlsPubKeys
 	numStaked := uint64(0)
 	for i := uint64(0); numStaked < numQualified && i < uint64(len(blsKeys)); i++ {

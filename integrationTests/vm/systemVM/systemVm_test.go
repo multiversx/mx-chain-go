@@ -26,7 +26,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG;process/smartcontract:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()

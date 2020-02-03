@@ -1,9 +1,7 @@
 package systemSmartContracts
 
 import (
-	"bytes"
 	"math/big"
-	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -224,6 +222,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 
 	currContext := host.copyToNewContext()
 	defer func() {
+		host.output = make([][]byte, 0)
 		host.copyFromContext(currContext)
 	}()
 
@@ -328,8 +327,6 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)
 	}
 
-	sortVMOutputInsideData(vmOutput)
-
 	return vmOutput
 }
 
@@ -371,24 +368,4 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 // IsInterfaceNil returns if the underlying implementation is nil
 func (host *vmContext) IsInterfaceNil() bool {
 	return host == nil
-}
-
-func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) {
-	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
-	})
-
-	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
-	})
-
-	sort.Slice(vmOutput.OutputAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.OutputAccounts[i].Address, vmOutput.OutputAccounts[j].Address) < 0
-	})
-
-	for _, outAcc := range vmOutput.OutputAccounts {
-		sort.Slice(outAcc.StorageUpdates, func(i, j int) bool {
-			return bytes.Compare(outAcc.StorageUpdates[i].Offset, outAcc.StorageUpdates[j].Offset) < 0
-		})
-	}
 }

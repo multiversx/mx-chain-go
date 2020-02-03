@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -108,6 +109,12 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
+
+	epoch := r.eei.BlockChainHook().CurrentEpoch()
+	epochData := fmt.Sprintf("epoch_%d", epoch)
+
+	r.eei.SetStorage([]byte(epochData), r.minStakeValue.Bytes())
+
 	return vmcommon.Ok
 }
 
@@ -123,14 +130,14 @@ func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInpu
 	}
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
-	epochData := big.NewInt(0).SetUint64(uint64(epoch)).Bytes()
+	epochData := fmt.Sprintf("epoch_%d", epoch)
 
 	inputStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
 	if inputStakeValue.Cmp(r.minStakeValue) < 0 {
 		inputStakeValue.Set(r.minStakeValue)
 	}
 
-	r.eei.SetStorage(epochData, inputStakeValue.Bytes())
+	r.eei.SetStorage([]byte(epochData), inputStakeValue.Bytes())
 
 	return vmcommon.Ok
 }
@@ -139,9 +146,9 @@ func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
 	stakeValue := big.NewInt(0)
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
-	epochData := big.NewInt(0).SetUint64(uint64(epoch)).Bytes()
+	epochData := fmt.Sprintf("epoch_%d", epoch)
 
-	stakeValueBytes := r.eei.GetStorage(epochData)
+	stakeValueBytes := r.eei.GetStorage([]byte(epochData))
 	stakeValue.SetBytes(stakeValueBytes)
 
 	if stakeValue.Cmp(r.minStakeValue) < 0 {
