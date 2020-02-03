@@ -110,21 +110,36 @@ func (sr *subroundBlock) doBlockJob() bool {
 }
 
 func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
-	if sr.canBeSentTogether(body, header) {
-		return sr.sendBlockBodyAndHeader(body, header)
+	marshalizedBody, err := sr.Marshalizer().Marshal(body)
+	if err != nil {
+		log.Debug("sendBlock.Marshal: body", "error", err.Error())
+		return false
 	}
 
-	if !sr.sendBlockBody(body) || !sr.sendBlockHeader(header) {
+	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
+	if err != nil {
+		log.Debug("sendBlock.Marshal: header", "error", err.Error())
+		return false
+	}
+
+	if sr.canBeSentTogether(marshalizedBody, marshalizedHeader) {
+		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+	}
+
+	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
 		return false
 	}
 
 	return true
 }
 
-func (sr *subroundBlock) canBeSentTogether(body data.BodyHandler, header data.HeaderHandler) bool {
-	//TODO: Here should be checked if the size of the marshalized block body and header together, exeeds the limit size
-	//which could be sent on the consensus topic
-	return true
+func (sr *subroundBlock) canBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
+	bodyAndHeaderSize := len(marshalizedBody) + len(marshalizedHeader)
+	log.Debug("consensus block message",
+		"body size", len(marshalizedBody),
+		"header size", len(marshalizedHeader),
+		"body and header size", bodyAndHeaderSize)
+	return bodyAndHeaderSize <= core.MegabyteSize
 }
 
 func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler, error) {
@@ -146,18 +161,12 @@ func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 }
 
 // sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
-func (sr *subroundBlock) sendBlockBodyAndHeader(body data.BodyHandler, header data.HeaderHandler) bool {
-	marshalizedBody, err := sr.Marshalizer().Marshal(body)
-	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.Marshal: body", "error", err.Error())
-		return false
-	}
-
-	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
-	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.Marshal: header", "error", err.Error())
-		return false
-	}
+func (sr *subroundBlock) sendBlockBodyAndHeader(
+	body data.BodyHandler,
+	header data.HeaderHandler,
+	marshalizedBody []byte,
+	marshalizedHeader []byte,
+) bool {
 
 	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
 		Body:   marshalizedBody,
@@ -207,13 +216,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(body data.BodyHandler, header da
 }
 
 // sendBlockBody method sends the proposed block body in the subround Block
-func (sr *subroundBlock) sendBlockBody(body data.BodyHandler) bool {
-	marshalizedBody, err := sr.Marshalizer().Marshal(body)
-	if err != nil {
-		log.Debug("sendBlockBody.Marshal", "error", err.Error())
-		return false
-	}
-
+func (sr *subroundBlock) sendBlockBody(body data.BodyHandler, marshalizedBody []byte) bool {
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		marshalizedBody,
@@ -227,7 +230,7 @@ func (sr *subroundBlock) sendBlockBody(body data.BodyHandler) bool {
 		nil,
 	)
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("sendBlockBody.BroadcastConsensusMessage", "error", err.Error())
 		return false
@@ -241,13 +244,7 @@ func (sr *subroundBlock) sendBlockBody(body data.BodyHandler) bool {
 }
 
 // sendBlockHeader method sends the proposed block header in the subround Block
-func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler) bool {
-	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
-	if err != nil {
-		log.Debug("sendBlockHeader.Marshal", "error", err.Error())
-		return false
-	}
-
+func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	cnsMsg := consensus.NewConsensusMessage(
@@ -263,7 +260,7 @@ func (sr *subroundBlock) sendBlockHeader(header data.HeaderHandler) bool {
 		nil,
 	)
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("sendBlockHeader.BroadcastConsensusMessage", "error", err.Error())
 		return false

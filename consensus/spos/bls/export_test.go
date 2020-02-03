@@ -152,12 +152,12 @@ func (sr *subroundBlock) CreateBody(hdr data.HeaderHandler) (data.BodyHandler, e
 	return sr.createBody(hdr)
 }
 
-func (sr *subroundBlock) SendBlockBody(body data.BodyHandler) bool {
-	return sr.sendBlockBody(body)
+func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []byte) bool {
+	return sr.sendBlockBody(body, marshalizedBody)
 }
 
-func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler) bool {
-	return sr.sendBlockHeader(header)
+func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
+	return sr.sendBlockHeader(header, marshalizedHeader)
 }
 
 func (sr *subroundBlock) ComputeSubroundProcessingMetric(startTime time.Time, metric string) {

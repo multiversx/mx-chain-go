@@ -609,15 +609,11 @@ func (bp *baseProcessor) cleanupPools(
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		if bp.shardCoordinator.SelfId() == shardID {
-			continue
+	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
-
-		bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
-	}
-
-	if bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
+	} else {
 		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
@@ -708,11 +704,15 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
-	}
+	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
+		}
+	} else {
+		bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+	}
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
