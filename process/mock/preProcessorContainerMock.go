@@ -5,11 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// PreProcessorContainerMock -
 type PreProcessorContainerMock struct {
 	GetCalled  func(key block.Type) (process.PreProcessor, error)
 	KeysCalled func() []block.Type
 }
 
+// Get -
 func (ppcm *PreProcessorContainerMock) Get(key block.Type) (process.PreProcessor, error) {
 	if ppcm.GetCalled == nil {
 		return &PreProcessorMock{}, nil
@@ -17,26 +19,32 @@ func (ppcm *PreProcessorContainerMock) Get(key block.Type) (process.PreProcessor
 	return ppcm.GetCalled(key)
 }
 
+// Add -
 func (ppcm *PreProcessorContainerMock) Add(key block.Type, val process.PreProcessor) error {
 	panic("implement me")
 }
 
+// AddMultiple -
 func (ppcm *PreProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.PreProcessor) error {
 	panic("implement me")
 }
 
+// Replace -
 func (ppcm *PreProcessorContainerMock) Replace(key block.Type, val process.PreProcessor) error {
 	panic("implement me")
 }
 
+// Remove -
 func (ppcm *PreProcessorContainerMock) Remove(key block.Type) {
 	panic("implement me")
 }
 
+// Len -
 func (ppcm *PreProcessorContainerMock) Len() int {
 	panic("implement me")
 }
 
+// Keys -
 func (ppcm *PreProcessorContainerMock) Keys() []block.Type {
 	if ppcm.KeysCalled == nil {
 		return nil

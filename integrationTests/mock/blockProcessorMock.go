@@ -30,6 +30,7 @@ type BlockProcessorMock struct {
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 	if bpm.RestoreLastNotarizedHrdsToGenesisCalled != nil {
 		bpm.RestoreLastNotarizedHrdsToGenesisCalled()
@@ -41,6 +42,7 @@ func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
+// ApplyProcessedMiniBlocks -
 func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 }
 
@@ -54,18 +56,22 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 	bpm.RevertAccountStateCalled()
 }
 
+// CreateNewHeader -
 func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
 }
 
+// CreateBlockBody -
 func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return bpm.ApplyBodyToHeaderCalled(header, body)
 }
@@ -79,9 +85,11 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 	return nil
 }
 
+// SetNumProcessedObj -
 func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
 }
 
+// MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
 }
@@ -145,10 +153,12 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 	return &header
 }
 
+// AddLastNotarizedHdr -
 func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	if bpm.SetConsensusDataCalled != nil {
 		bpm.SetConsensusDataCalled(randomness, round, epoch, shardId)

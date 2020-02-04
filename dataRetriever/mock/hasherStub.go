@@ -1,22 +1,28 @@
 package mock
 
+// HasherStub -
 type HasherStub struct {
 	ComputeCalled   func(s string) []byte
 	EmptyHashCalled func() []byte
 }
 
+// Compute -
 func (hash HasherStub) Compute(s string) []byte {
 	if hash.ComputeCalled != nil {
 		return hash.ComputeCalled(s)
 	}
 	return nil
 }
+
+// EmptyHash -
 func (hash HasherStub) EmptyHash() []byte {
 	if hash.EmptyHashCalled != nil {
 		hash.EmptyHashCalled()
 	}
 	return nil
 }
+
+// Size -
 func (HasherStub) Size() int {
 	return 0
 }

@@ -27,9 +27,11 @@ type BlockProcessorStub struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 }
 
+// SetNumProcessedObj -
 func (bps *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
 }
 
@@ -66,43 +68,52 @@ func (bps *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler
 	return bps.CreateBlockBodyCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bps.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (bps *BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return bps.ApplyBodyToHeaderCalled(header, body)
 }
 
+// MarshalizedDataToBroadcast -
 func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bps.MarshalizedDataToBroadcastCalled(header, body)
 }
 
+// DecodeBlockBodyAndHeader -
 func (bps *BlockProcessorStub) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
 	return bps.DecodeBlockBodyAndHeaderCalled(dta)
 }
 
+// DecodeBlockBody -
 func (bps *BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return bps.DecodeBlockBodyCalled(dta)
 }
 
+// DecodeBlockHeader -
 func (bps *BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return bps.DecodeBlockHeaderCalled(dta)
 }
 
+// AddLastNotarizedHdr -
 func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bps.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (bps *BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
 }
 
 // CreateNewHeader creates a new header
-func (bps BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 
+// ApplyProcessedMiniBlocks -
 func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 }
 

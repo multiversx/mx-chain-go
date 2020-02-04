@@ -27,15 +27,19 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
+// SetNumProcessedObj -
 func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
 }
 
+// ApplyProcessedMiniBlocks -
 func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 }
 
+// CreateNewHeader -
 func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return bpm.CreateNewHeaderCalled()
 }
@@ -69,34 +73,42 @@ func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler
 	return bpm.CreateBlockCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bpm.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (bpm *BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return bpm.ApplyBodyToHeaderCalled(hdr, body)
 }
 
+// MarshalizedDataToBroadcast -
 func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return bpm.MarshalizedDataToBroadcastCalled(header, body)
 }
 
+// DecodeBlockBodyAndHeader -
 func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
 	return bpm.DecodeBlockBodyAndHeaderCalled(dta)
 }
 
+// DecodeBlockBody -
 func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return bpm.DecodeBlockBodyCalled(dta)
 }
 
+// DecodeBlockHeader -
 func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return bpm.DecodeBlockHeaderCalled(dta)
 }
 
+// AddLastNotarizedHdr -
 func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 }
 
