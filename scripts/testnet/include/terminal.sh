@@ -89,7 +89,7 @@ runCommandInTerminal() {
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
     fi
   else
-    executeCommandInTerminalEmulator $command_to_run $keepopen
+    executeCommandInTerminalEmulator "$command_to_run" $keepopen
   fi
 }
 
