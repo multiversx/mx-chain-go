@@ -186,7 +186,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		return nil, process.ErrMissingBody
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{miniBlocks}, nil
 }
 
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
@@ -445,7 +445,7 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 		return nil, err
 	}
 
-	blockBody := block.Body(miniBlockSlice)
+	blockBody := &block.Body{miniBlockSlice}
 
 	return blockBody, nil
 }

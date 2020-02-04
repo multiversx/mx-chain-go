@@ -214,7 +214,7 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 }
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
-func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
+func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body *block.Body) error {
 	err := rtxh.verifyCreatedRewardsTxs()
 	return err
 }

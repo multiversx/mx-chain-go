@@ -128,8 +128,8 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 }
 
 // RemoveTxBlockFromPools removes reward transactions and miniblocks from associated pools
-func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil {
+func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	if body.MiniBlocks == nil {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -138,7 +138,7 @@ func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body block.Body, miniBlo
 
 // RestoreTxBlockIntoPools restores the reward transactions and miniblocks to associated pools
 func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
-	body block.Body,
+	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
 	if miniBlockPool == nil {
@@ -146,8 +146,8 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 	}
 
 	rewardTxsRestored := 0
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -189,7 +189,7 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
-	body block.Body,
+	body *block.Body,
 	haveTime func() bool,
 ) error {
 
@@ -201,8 +201,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocksSlice)
 
 	// basic validation already done in interceptors
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -266,9 +266,9 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 }
 
 // SaveTxBlockToStorage saves the reward transactions from body into storage
-func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body block.Body) error {
-	for i := 0; i < len(body); i++ {
-		miniBlock := (body)[i]
+func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body *block.Body) error {
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
@@ -308,7 +308,7 @@ func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
 }
 
 // RequestBlockTransactions request for reward transactions if missing from a block.Body
-func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
+func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body *block.Body) int {
 	requestedRewardTxs := 0
 	missingRewardTxsForShards := rtp.computeMissingAndExistingRewardTxsForShards(body)
 
@@ -339,9 +339,9 @@ func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbT
 
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
-func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
+func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	rewardTxs := block.Body{}
-	for _, mb := range body {
+	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.RewardsBlock {
 			continue
 		}
@@ -349,11 +349,11 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 			continue
 		}
 
-		rewardTxs = append(rewardTxs, mb)
+		rewardTxs.MiniBlocks = append(rewardTxs.MiniBlocks, mb)
 	}
 
 	missingTxsForShards := rtp.computeExistingAndMissing(
-		rewardTxs,
+		&rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
 		block.RewardsBlock,

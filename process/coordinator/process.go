@@ -113,17 +113,17 @@ func NewTransactionCoordinator(
 }
 
 // separateBodyByType creates a map of bodies according to type
-func (tc *transactionCoordinator) separateBodyByType(body block.Body) map[block.Type]block.Body {
-	separatedBodies := make(map[block.Type]block.Body)
+func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
+	separatedBodies := make(map[block.Type]*block.Body)
 
-	for i := 0; i < len(body); i++ {
-		mb := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
 
 		if _, ok := separatedBodies[mb.Type]; !ok {
-			separatedBodies[mb.Type] = block.Body{}
+			separatedBodies[mb.Type] = &block.Body{}
 		}
 
-		separatedBodies[mb.Type] = append(separatedBodies[mb.Type], mb)
+		separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
 	}
 
 	return separatedBodies
@@ -137,7 +137,7 @@ func (tc *transactionCoordinator) initRequestedTxs() {
 }
 
 // RequestBlockTransactions verifies missing transaction and requests them
-func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
+func (tc *transactionCoordinator) RequestBlockTransactions(body *block.Body) {
 	separatedBodies := tc.separateBodyByType(body)
 
 	tc.initRequestedTxs()
@@ -146,7 +146,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
+		go func(blockType block.Type, blockBody *block.Body) {
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
@@ -203,7 +203,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 }
 
 // SaveBlockDataToStorage saves the data from block body into storage units
-func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error {
+func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -213,7 +213,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	wg.Add(len(separatedBodies) + len(tc.keysInterimProcs))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
+		go func(blockType block.Type, blockBody *block.Body) {
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
@@ -260,7 +260,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 }
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
-func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, error) {
+func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) (int, error) {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -271,7 +271,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
+		go func(blockType block.Type, blockBody *block.Body) {
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
@@ -302,7 +302,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 }
 
 // RemoveBlockDataFromPool deletes block data from pools
-func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error {
+func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) error {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -312,7 +312,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
+		go func(blockType block.Type, blockBody *block.Body) {
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil || preproc.IsInterfaceNil() {
 				wg.Done()
@@ -338,7 +338,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
-	body block.Body,
+	body *block.Body,
 	timeRemaining func() time.Duration,
 ) error {
 
@@ -569,12 +569,12 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 }
 
 // CreateMarshalizedData creates marshalized data for broadcasting
-func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
+func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
 	mrsTxs := make(map[string][][]byte)
 	bodies := make(map[uint32]block.MiniBlockSlice)
 
-	for i := 0; i < len(body); i++ {
-		miniblock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniblock := body.MiniBlocks[i]
 		receiverShardId := miniblock.ReceiverShardID
 		if receiverShardId == tc.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
 			continue
@@ -708,7 +708,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
-func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
+func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body *block.Body) error {
 	tc.mutInterimProcessors.RLock()
 	defer tc.mutInterimProcessors.RUnlock()
 	errMutex := sync.Mutex{}

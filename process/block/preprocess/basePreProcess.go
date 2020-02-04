@@ -44,7 +44,7 @@ type basePreProcess struct {
 	gasHandler       process.GasHandler
 }
 
-func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
+func (bpp *basePreProcess) removeDataFromPools(body *block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
@@ -52,8 +52,8 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 		return process.ErrNilTransactionPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		currentMiniBlock := body.MiniBlocks[i]
 		if currentMiniBlock.Type != mbType {
 			continue
 		}
@@ -161,7 +161,7 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 }
 
 func (bpp *basePreProcess) computeExistingAndMissing(
-	body block.Body,
+	body *block.Body,
 	forBlock *txsForBlock,
 	chRcvAllTxs chan bool,
 	currType block.Type,
@@ -171,8 +171,8 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
 
 	forBlock.mutTxsForBlock.Lock()
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != currType {
 			continue
 		}

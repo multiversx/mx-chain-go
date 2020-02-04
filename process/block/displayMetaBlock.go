@@ -50,7 +50,7 @@ func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) 
 
 func (hc *headersCounter) displayLogInfo(
 	header *block.MetaBlock,
-	body block.Body,
+	body *block.Body,
 	headerHash []byte,
 	numHeadersFromPool int,
 ) {
@@ -133,11 +133,11 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	return lines
 }
 
-func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
+func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
 	currentBlockTxs := 0
 
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
 			miniBlock.Type.String(),

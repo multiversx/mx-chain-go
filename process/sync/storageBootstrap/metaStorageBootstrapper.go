@@ -74,7 +74,7 @@ func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, 
 }
 
 func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return block.Body{}, nil
+	return &block.Body{}, nil
 }
 
 func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {

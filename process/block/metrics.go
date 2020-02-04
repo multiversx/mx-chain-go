@@ -41,17 +41,17 @@ func getMetricsFromMetaHeader(
 }
 
 func getMetricsFromBlockBody(
-	body block.Body,
+	body *block.Body,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 ) {
-	mbLen := len(body)
+	mbLen := len(body.MiniBlocks)
 	miniblocksSize := uint64(0)
 	totalTxCount := 0
 	for i := 0; i < mbLen; i++ {
-		totalTxCount += len(body[i].TxHashes)
+		totalTxCount += len(body.MiniBlocks[i].TxHashes)
 
-		marshalizedBlock, err := marshalizer.Marshal(body[i])
+		marshalizedBlock, err := marshalizer.Marshal(body.MiniBlocks[i])
 		if err == nil {
 			miniblocksSize += uint64(len(marshalizedBlock))
 		}

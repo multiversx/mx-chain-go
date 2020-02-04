@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -105,24 +105,24 @@ type InterceptorThrottler interface {
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
-	RequestBlockTransactions(body block.Body)
+	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
-	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, error)
-	RemoveBlockDataFromPool(body block.Body) error
+	SaveBlockDataToStorage(body *block.Body) error
+	RestoreBlockDataFromStorage(body *block.Body) (int, error)
+	RemoveBlockDataFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
 
-	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
+	CreateMarshalizedData(body *block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
-	VerifyCreatedBlockTransactions(body block.Body) error
+	VerifyCreatedBlockTransactions(body *block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -137,7 +137,7 @@ type SmartContractProcessor interface {
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	VerifyInterMiniBlocks(body block.Body) error
+	VerifyInterMiniBlocks(body *block.Body) error
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
@@ -185,12 +185,12 @@ type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
-	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxBlockToStorage(body block.Body) error
+	RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
-	RequestBlockTransactions(body block.Body) int
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	RequestBlockTransactions(body *block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
@@ -455,7 +455,7 @@ type EconomicsAddressesHandler interface {
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
 type SmartContractToProtocolHandler interface {
-	UpdateProtocol(body block.Body, nonce uint64) error
+	UpdateProtocol(body *block.Body, nonce uint64) error
 	IsInterfaceNil() bool
 }
 

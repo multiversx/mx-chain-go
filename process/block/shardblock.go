@@ -153,7 +153,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -249,7 +249,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromMiniBlocks(body)
+	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromMiniBlocks(body.MiniBlocks)
 	if err != nil {
 		return err
 	}
@@ -469,7 +469,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrNilTxBlockBody
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -651,7 +651,7 @@ func (sp *shardProcessor) CommitBlock(
 	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
 	headersPool.Remove(headerHash)
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -662,8 +662,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	for i := 0; i < len(body); i++ {
-		buff, err = sp.marshalizer.Marshal(body[i])
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		buff, err = sp.marshalizer.Marshal(body.MiniBlocks[i])
 		if err != nil {
 			return err
 		}
@@ -1527,9 +1527,9 @@ func (sp *shardProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.Body, error) {
+) (*block.Body, error) {
 
-	miniBlocks := make(block.Body, 0)
+	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	if sp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1607,7 +1607,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	log.Debug("creating mini blocks has been finished",
 		"num miniblocks", len(miniBlocks),
 	)
-	return miniBlocks, nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
@@ -1632,7 +1632,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		return nil
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -1648,7 +1648,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
 	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
@@ -1683,7 +1683,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -1692,7 +1692,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	bodies, mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	for shardId, subsetBlockBody := range bodies {
-		bh := block.BodyHelper{MiniBlocks: subsetBlockBody}
+		bh := block.Body{MiniBlocks: subsetBlockBody}
 		buff, err := sp.marshalizer.Marshal(&bh)
 		if err != nil {
 			log.Debug("marshalizer.Marshal", "error", process.ErrMarshalWithoutSuccess.Error())
@@ -1710,15 +1710,14 @@ func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	bh := block.BodyHelper{}
-	err := sp.marshalizer.Unmarshal(&bh, dta)
+	b := block.Body{}
+	err := sp.marshalizer.Unmarshal(&b, dta)
 	if err != nil {
 		log.Debug("marshalizer.Unmarshal", "error", err.Error())
 		return nil
 	}
 
-	body := block.Body(bh.MiniBlocks)
-	return body
+	return &b
 }
 
 // DecodeBlockHeader method decodes block header from a given byte array
@@ -1885,5 +1884,5 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }

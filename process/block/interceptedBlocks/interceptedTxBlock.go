@@ -10,7 +10,7 @@ import (
 
 // InterceptedTxBlockBody is a wrapper over a slice of miniblocks which contains transactions.
 type InterceptedTxBlockBody struct {
-	txBlockBody       block.Body
+	txBlockBody       *block.Body
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
@@ -41,14 +41,14 @@ func NewInterceptedTxBlockBody(arg *ArgInterceptedTxBlockBody) (*InterceptedTxBl
 	return inTxBody, nil
 }
 
-func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) (block.Body, error) {
-	txBlockBody := block.BodyHelper{}
+func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) (*block.Body, error) {
+	txBlockBody := block.Body{}
 	err := marshalizer.Unmarshal(&txBlockBody, txBlockBodyBuff)
 	if err != nil {
 		return nil, err
 	}
 
-	return txBlockBody.MiniBlocks, nil
+	return &txBlockBody, nil
 }
 
 func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {
@@ -57,9 +57,9 @@ func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {
 	inTxBody.processIsForCurrentShard(inTxBody.txBlockBody)
 }
 
-func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody block.Body) {
+func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody *block.Body) {
 	inTxBody.isForCurrentShard = false
-	for _, miniblock := range inTxBody.txBlockBody {
+	for _, miniblock := range inTxBody.txBlockBody.MiniBlocks {
 		inTxBody.isForCurrentShard = inTxBody.isMiniblockForCurrentShard(miniblock)
 		if inTxBody.isForCurrentShard {
 			return
@@ -80,7 +80,7 @@ func (inTxBody *InterceptedTxBlockBody) Hash() []byte {
 }
 
 // TxBlockBody returns the block body held by this wrapper
-func (inTxBody *InterceptedTxBlockBody) TxBlockBody() block.Body {
+func (inTxBody *InterceptedTxBlockBody) TxBlockBody() *block.Body {
 	return inTxBody.txBlockBody
 }
 
@@ -96,7 +96,7 @@ func (inTxBody *InterceptedTxBlockBody) IsForCurrentShard() bool {
 
 // integrity checks the integrity of the tx block body
 func (inTxBody *InterceptedTxBlockBody) integrity() error {
-	for _, miniBlock := range inTxBody.txBlockBody {
+	for _, miniBlock := range inTxBody.txBlockBody.MiniBlocks {
 		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
 			miniBlock.ReceiverShardID != sharding.MetachainShardId {
 			return process.ErrInvalidShardId

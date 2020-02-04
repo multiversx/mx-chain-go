@@ -216,7 +216,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		log.Debug("indexer", "error", ErrBodyTypeAssertion.Error())
 		return
@@ -224,7 +224,7 @@ func (ei *elasticIndexer) SaveBlock(
 
 	go ei.saveHeader(headerhandler, signersIndexes)
 
-	if len(body) == 0 {
+	if len(body.MiniBlocks) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
 		return
 	}
@@ -412,7 +412,7 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 }
 
 func (ei *elasticIndexer) saveTransactions(
-	body block.Body,
+	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
@@ -435,7 +435,7 @@ func (ei *elasticIndexer) saveTransactions(
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elasticsearch bulk API
 func (ei *elasticIndexer) buildTransactionBulks(
-	body block.Body,
+	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 ) [][]*Transaction {
@@ -444,7 +444,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 	blockMarshal, _ := ei.marshalizer.Marshal(header)
 	blockHash := ei.hasher.Compute(string(blockMarshal))
 
-	for _, mb := range body {
+	for _, mb := range body.MiniBlocks {
 		mbMarshal, err := ei.marshalizer.Marshal(mb)
 		if err != nil {
 			log.Debug("indexer: marshal", "error", "could not marshal miniblock")

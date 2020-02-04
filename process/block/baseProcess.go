@@ -747,25 +747,25 @@ func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
 	return maxMbSpaceRemained
 }
 
-func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.MiniBlockHeader, error) {
+func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
 
-	for i := 0; i < len(body); i++ {
-		txCount := len(body[i].TxHashes)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		txCount := len(body.MiniBlocks[i].TxHashes)
 		totalTxCount += txCount
 
-		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body[i])
+		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body.MiniBlocks[i])
 		if err != nil {
 			return 0, nil, err
 		}
 
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            miniBlockHash,
-			SenderShardID:   body[i].SenderShardID,
-			ReceiverShardID: body[i].ReceiverShardID,
+			SenderShardID:   body.MiniBlocks[i].SenderShardID,
+			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
-			Type:            body[i].Type,
+			Type:            body.MiniBlocks[i].Type,
 		}
 	}
 
@@ -773,18 +773,18 @@ func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.M
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body block.Body) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body *block.Body) error {
 	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
 	}
 
-	if len(miniBlockHeaders) != len(body) {
+	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
 	}
 
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 
 		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
@@ -959,7 +959,7 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 		return err
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
