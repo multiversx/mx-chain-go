@@ -22,11 +22,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 6
+	numMetachainNodes := 1
 
-	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE,process/scToProtocol:TRACE")
+	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE,process/scToProtocol:TRACE,process/block:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -55,7 +55,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
-
 	verifyInitialBalance(t, nodes, initialVal)
 
 	round := uint64(0)
@@ -72,7 +71,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.AuctionSCAddress, txData)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
@@ -95,7 +94,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
@@ -112,7 +111,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
@@ -239,6 +238,11 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, in
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				expectedValue := big.NewInt(0).Sub(initialVal, consumedBalance)
 				assert.Equal(t, expectedValue, sndAcc.Balance)
+
+				if expectedValue.Cmp(sndAcc.Balance) != 0 {
+					fmt.Printf("account with missmatched value %s\n", hex.EncodeToString(node.OwnAccount.Address.Bytes()))
+				}
+
 				break
 			}
 		}
