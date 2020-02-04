@@ -8,10 +8,12 @@ import (
 type nonceHashConverterMock struct {
 }
 
+// NewNonceHashConverterMock -
 func NewNonceHashConverterMock() *nonceHashConverterMock {
 	return &nonceHashConverterMock{}
 }
 
+// ToByteSlice -
 func (*nonceHashConverterMock) ToByteSlice(value uint64) []byte {
 	buff := make([]byte, 8)
 
@@ -20,6 +22,7 @@ func (*nonceHashConverterMock) ToByteSlice(value uint64) []byte {
 	return buff
 }
 
+// ToUint64 -
 func (*nonceHashConverterMock) ToUint64(buff []byte) (uint64, error) {
 	if buff == nil {
 		return 0, errors.New("failure, nil slice")

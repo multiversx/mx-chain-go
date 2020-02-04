@@ -5,7 +5,10 @@ import (
 	"errors"
 )
 
+// ErrMockMarshalizer -
 var ErrMockMarshalizer = errors.New("MarshalizerMock generic error")
+
+// ErrNilObjectToMarshal -
 var ErrNilObjectToMarshal = errors.New("nil object to serialize from")
 
 // MarshalizerMock that will be used for testing

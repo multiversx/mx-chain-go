@@ -1,11 +1,13 @@
 package mock
 
+// BlackListHandlerStub -
 type BlackListHandlerStub struct {
 	AddCalled   func(key string) error
 	HasCalled   func(key string) bool
 	SweepCalled func()
 }
 
+// Add -
 func (blhs *BlackListHandlerStub) Add(key string) error {
 	if blhs.AddCalled == nil {
 		return nil
@@ -14,6 +16,7 @@ func (blhs *BlackListHandlerStub) Add(key string) error {
 	return blhs.AddCalled(key)
 }
 
+// Has -
 func (blhs *BlackListHandlerStub) Has(key string) bool {
 	if blhs.HasCalled == nil {
 		return false
@@ -22,6 +25,7 @@ func (blhs *BlackListHandlerStub) Has(key string) bool {
 	return blhs.HasCalled(key)
 }
 
+// Sweep -
 func (blhs *BlackListHandlerStub) Sweep() {
 	if blhs.SweepCalled == nil {
 		return
@@ -30,6 +34,7 @@ func (blhs *BlackListHandlerStub) Sweep() {
 	blhs.SweepCalled()
 }
 
+// IsInterfaceNil -
 func (blhs *BlackListHandlerStub) IsInterfaceNil() bool {
 	return blhs == nil
 }

@@ -5,6 +5,7 @@ type topicMessageHandlerStub struct {
 	*MessageHandlerStub
 }
 
+// NewTopicMessageHandlerStub -
 func NewTopicMessageHandlerStub() *topicMessageHandlerStub {
 	return &topicMessageHandlerStub{
 		TopicHandlerStub:   &TopicHandlerStub{},
