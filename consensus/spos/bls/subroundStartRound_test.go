@@ -1,4 +1,4 @@
-package commonSubround_test
+package bls_test
 
 import (
 	"errors"
@@ -7,21 +7,31 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.SubroundStartRound, error) {
-	startRound, err := commonSubround.NewSubroundStartRound(
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
+	startRound, err := bls.NewSubroundStartRound(
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		executeStoredMessages,
 	)
 
 	return startRound, err
+}
+
+func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.SubroundStartRound {
+	startRound, _ := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		processingThresholdPercent,
+		executeStoredMessages,
+	)
+
+	return startRound
 }
 
 func defaultSubround(
@@ -45,22 +55,21 @@ func defaultSubround(
 	)
 }
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *commonSubround.SubroundStartRound {
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bls.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubround(consensusState, ch, container)
-	srStartRound, _ := commonSubround.NewSubroundStartRound(
+	srStartRound, _ := bls.NewSubroundStartRound(
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		executeStoredMessages,
 	)
 
 	return srStartRound
 }
 
-func initSubroundStartRound() *commonSubround.SubroundStartRound {
+func initSubroundStartRound() bls.SubroundStartRound {
 	container := mock.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
@@ -68,11 +77,10 @@ func initSubroundStartRound() *commonSubround.SubroundStartRound {
 func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srStartRound, err := commonSubround.NewSubroundStartRound(
+	srStartRound, err := bls.NewSubroundStartRound(
 		nil,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		executeStoredMessages,
 	)
 
@@ -218,7 +226,7 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.DoStartRoundJob()
 	assert.True(t, r)
@@ -344,7 +352,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsen
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
