@@ -181,6 +181,10 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 	}
 
 	if bytes.Equal(n.Key, ln.Key) {
+		if bytes.Equal(ln.Value, n.Value) {
+			return false, ln, [][]byte{}, nil
+		}
+
 		ln.Value = n.Value
 		ln.dirty = true
 		ln.hash = nil
@@ -224,8 +228,7 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 }
 
 func (ln *leafNode) delete(key []byte, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
-	keyMatchLen := prefixLen(key, ln.Key)
-	if keyMatchLen == len(key) {
+	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
 			oldHash = append(oldHash, ln.hash)
