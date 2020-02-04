@@ -5,5 +5,5 @@ import (
 )
 
 type blockProcessor interface {
-	decodeBlockHeader(dta []byte) data.HeaderHandler
+	createNewHeader() data.HeaderHandler
 }

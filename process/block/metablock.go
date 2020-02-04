@@ -1689,25 +1689,8 @@ func getTxCount(shardInfo []block.ShardData) uint32 {
 	return txs
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
-func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var metaBlock block.MetaBlock
-
-	err := mp.marshalizer.Unmarshal(&metaBlock, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return &metaBlock
-}
-
-func (mp *metaProcessor) decodeBlockHeader(dta []byte) data.HeaderHandler {
-	return mp.DecodeBlockHeader(dta)
+func (mp *metaProcessor) createNewHeader() data.HeaderHandler {
+	return &block.MetaBlock{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

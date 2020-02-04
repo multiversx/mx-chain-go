@@ -1836,25 +1836,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
-func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var header block.Header
-
-	err := sp.marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return &header
-}
-
-func (sp *shardProcessor) decodeBlockHeader(dta []byte) data.HeaderHandler {
-	return sp.DecodeBlockHeader(dta)
+func (sp *shardProcessor) createNewHeader() data.HeaderHandler {
+	return &block.Header{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
