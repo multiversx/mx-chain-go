@@ -23,10 +23,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
-	_ = logger.SetLogLevel("*:DEBUG;process/smartcontract:TRACE")
+	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE,process/scToProtocol:TRACE")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -72,7 +72,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.AuctionSCAddress, txData)
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
@@ -95,7 +95,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
@@ -112,7 +112,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	consumedBalance.Add(consumedBalance, consumed)
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
@@ -124,11 +124,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
-	shardConsensusGroupSize := 2
-	metaConsensusGroupSize := 3
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	shardConsensusGroupSize := 1
+	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()

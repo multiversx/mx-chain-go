@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
@@ -128,6 +131,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	stp.peerChanges = make(map[string]block.PeerData)
 	stp.mutPeerChanges.Unlock()
 
+	log.Trace("staking to protocol called")
+
 	affectedStates, err := stp.getAllModifiedStates(body)
 	if err != nil {
 		return err
@@ -140,6 +145,8 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		if err != nil {
 			return err
 		}
+
+		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
@@ -158,6 +165,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		}
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
+			log.Warn("peer is unregistering - should it happen ?", "blsKey", blsPubKey)
 			err = stp.peerUnregistered(peerAcc, nonce)
 			if err != nil {
 				return err
