@@ -6,7 +6,15 @@ startSeednode() {
   setTerminalLayout "even-horizontal"
 
   setWorkdirForNextCommands "$TESTNETDIR/seednode"
-  runCommandInTerminal "nice -n $NODE_NICENESS ./seednode -port $PORT_SEEDNODE" $1 v
+  
+  if [ -n "$NODE_NICENESS" ]
+  then
+    seednodeCommand="nice -n $NODE_NICENESS ./seednode"
+  else
+    seednodeCommand="./seednode"
+  fi
+
+  runCommandInTerminal "$seednodeCommand" $1 v
 }
 
 stopSeednode() {
@@ -118,11 +126,16 @@ assembleCommand_startObserverNode() {
   let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
-  local nodeCommand="nice -n $NODE_NICENESS ./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -destination-shard-as-observer $SHARD \
         -working-directory $WORKING_DIR"
+
+  if [ -n "$NODE_NICENESS" ]
+  then
+    nodeCommand="nice -n $NODE_NICENESS $nodeCommand"
+  fi
 
   if [ $NODETERMUI -eq 0 ]
   then
@@ -142,11 +155,16 @@ assembleCommand_startValidatorNode() {
   let "KEY_INDEX=$VALIDATOR_INDEX"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
-  local nodeCommand="nice -n $NODE_NICENESS ./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT \
         -working-directory $WORKING_DIR"
+
+  if [ -n "$NODE_NICENESS" ]
+  then
+    nodeCommand="nice -n $NODE_NICENESS $nodeCommand"
+  fi
 
   if [ $NODETERMUI -eq 0 ]
   then
