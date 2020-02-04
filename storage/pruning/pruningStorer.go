@@ -98,9 +98,14 @@ func initPruningStorer(
 		return nil, err
 	}
 
+	identifier := args.Identifier
+	if len(shardIdStr) > 0 {
+		identifier += shardIdStr
+	}
+
 	pdb := &PruningStorer{
 		pruningEnabled:        args.PruningEnabled,
-		identifier:            args.Identifier,
+		identifier:            identifier,
 		fullArchive:           args.FullArchive,
 		activePersisters:      persisters,
 		persisterFactory:      args.PersisterFactory,

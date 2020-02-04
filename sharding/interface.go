@@ -29,6 +29,8 @@ type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
+	ShardIdForEpoch(epoch uint32) (uint32, error)
+	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	IsInterfaceNil() bool
 }
 

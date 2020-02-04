@@ -494,6 +494,63 @@ func (ihgs *indexHashedNodesCoordinator) GetSavedStateKey() []byte {
 	return key
 }
 
+// ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
+// otherwise error
+func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, error) {
+	ihgs.mutNodesConfig.RLock()
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return 0, ErrEpochNodesConfigDesNotExist
+	}
+
+	return nodesConfig.shardId, nil
+}
+
+// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
+func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
+	epoch uint32,
+) (map[string]struct{}, error) {
+	publicKeysPrevEpoch := make(map[uint32][][]byte)
+	var err error
+
+	if epoch > 0 {
+		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
+	shardEligible := make(map[string]struct{}, estimatedMapSize)
+
+	prevEpochShardId, err := ihgs.ShardIdForEpoch(epoch - 1)
+	if err == nil {
+		for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
+			shardEligible[string(pubKey)] = struct{}{}
+		}
+	} else {
+		log.Debug("error getting shardId for epoch", "epoch", epoch-1, "error", err)
+	}
+
+	epochShardId, err := ihgs.ShardIdForEpoch(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pubKey := range publicKeysNewEpoch[epochShardId] {
+		shardEligible[string(pubKey)] = struct{}{}
+	}
+
+	return shardEligible, nil
+}
+
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(validators []Validator, mut *sync.RWMutex) []Validator {
 	//TODO implement an expand eligible list variant
 	return validators

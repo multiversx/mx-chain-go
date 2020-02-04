@@ -81,7 +81,8 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilTriggerStorage
 	}
 
-	return &trigger{
+	trigger := &trigger{
+		triggerStateKey:             []byte("initial_value"),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
 		currEpochStartRound:         args.EpochStartRound,
@@ -93,7 +94,14 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartNotifier:          args.EpochStartNotifier,
 		triggerStorage:              triggerStorage,
 		marshalizer:                 args.Marshalizer,
-	}, nil
+	}
+
+	err := trigger.saveState(trigger.triggerStateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return trigger, nil
 }
 
 // IsEpochStart return true if conditions are fulfilled for start of epoch

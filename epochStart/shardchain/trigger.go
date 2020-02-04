@@ -121,6 +121,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	}
 
 	newTrigger := &trigger{
+		triggerStateKey:             []byte("initial_value"),
 		epoch:                       args.Epoch,
 		currentRoundIndex:           0,
 		epochStartRound:             0,
@@ -145,6 +146,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
 	}
+
+	err := newTrigger.saveState(newTrigger.triggerStateKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return newTrigger, nil
 }
 

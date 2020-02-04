@@ -1587,7 +1587,7 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 		}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 
 	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
 
@@ -1611,7 +1611,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithGenesisTime(time.Now().Local()),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, chronology.ErrNilSyncTimer, err)
 }
 
@@ -1635,7 +1635,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
 }
 
@@ -1669,7 +1669,7 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 		node.WithResolversFinder(rf),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, localErr, err)
 }
 
@@ -1709,7 +1709,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithDataStore(store),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1745,7 +1745,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -1776,7 +1776,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(store),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, sharding.ErrShardIdOutOfRange, err)
 }
 
@@ -1866,7 +1866,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, localErr, err)
 }
 
@@ -1953,9 +1953,10 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			},
 		}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
 
@@ -2070,7 +2071,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 	)
 
-	err := n.StartConsensus()
+	err := n.StartConsensus(0)
 	assert.Nil(t, err)
 }
 

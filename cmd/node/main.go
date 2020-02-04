@@ -299,9 +299,6 @@ var dbIndexer indexer.Indexer
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
 
-// TODO: this will be calculated from storage or fetched from network
-var currentEpoch = uint32(0)
-
 // appVersion should be populated at build time using ldflags
 // Usage examples:
 // linux/mac:
@@ -866,7 +863,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("bootstrapping node...")
-	err = ef.StartNode()
+	err = ef.StartNode(currentEpoch)
 	if err != nil {
 		log.Error("starting node failed", err.Error())
 		return err

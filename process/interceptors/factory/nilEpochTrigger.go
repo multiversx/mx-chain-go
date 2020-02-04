@@ -49,6 +49,6 @@ func (n *nilEpochTrigger) GetSavedStateKey() []byte {
 	return nil
 }
 
-func (n *nilEpochTrigger) LoadState(key []byte) error {
+func (n *nilEpochTrigger) LoadState(_ []byte) error {
 	return nil
 }

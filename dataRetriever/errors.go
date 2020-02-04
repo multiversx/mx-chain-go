@@ -107,9 +107,6 @@ var ErrNilPeerChangeBlockDataPool = errors.New("nil peer change block data pool"
 // ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
 var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 
-// ErrNilCacher signals that a nil cache has been provided
-var ErrNilCacher = errors.New("nil cacher")
-
 // ErrCacheConfigInvalidSize signals that the cache parameter "size" is invalid
 var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid, it must be a positive number")
 

@@ -8,10 +8,6 @@ type ValidatorMock struct {
 	AddressCalled func() []byte
 }
 
-func NewValidatorMock(pubKey []byte, address []byte) *ValidatorMock {
-	return &ValidatorMock{pubKey: pubKey, address: address}
-}
-
 func (vm *ValidatorMock) PubKey() []byte {
 	if vm.PubKeyCalled != nil {
 		return vm.PubKeyCalled()

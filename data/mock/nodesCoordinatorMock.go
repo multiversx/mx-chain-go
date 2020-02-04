@@ -213,6 +213,19 @@ func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 	return []byte("key")
 }
 
+// ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
+// otherwise error
+func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
+	panic("not implemented")
+}
+
+// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
+func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
+	_ uint32,
+) (map[string]struct{}, error) {
+	panic("not implemented")
+}
+
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	if ncm == nil {
 		return true
