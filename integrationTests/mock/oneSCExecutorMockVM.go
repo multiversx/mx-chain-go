@@ -266,7 +266,7 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		Nonce:          destNonce,
 		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
-		StorageUpdates: make(map[string]*vmcommon.StorageUpdate, 0),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{
@@ -290,7 +290,7 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
 		Address:        input.RecipientAddr,
-		StorageUpdates: make(map[string]*vmcommon.StorageUpdate, 0),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{
