@@ -1943,7 +1943,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1975,13 +1975,13 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(int64(5))
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
 	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
-	err = sc.processSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outacc1.Nonce++
@@ -1995,7 +1995,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
-	err = sc.processSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
@@ -2026,7 +2026,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -2040,7 +2040,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 }
 
