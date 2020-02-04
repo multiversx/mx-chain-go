@@ -50,7 +50,7 @@ func (f *Facade) IsNodeRunning() bool {
 }
 
 // StartNode is the mock implementation of a handler's StartNode method
-func (f *Facade) StartNode() error {
+func (f *Facade) StartNode(_ uint32) error {
 	if f.ShouldErrorStart {
 		return errors.New("error")
 	}

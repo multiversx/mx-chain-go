@@ -105,7 +105,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
-		err := n.node.StartConsensus()
+		err := n.node.StartConsensus(0)
 		if err != nil {
 			return err
 		}

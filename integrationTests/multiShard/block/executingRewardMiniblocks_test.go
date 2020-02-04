@@ -294,18 +294,6 @@ func getBlockProposersIndexes(
 	return indexProposer
 }
 
-func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
-	randomness := make(map[uint32][]byte)
-
-	for i := uint32(0); i < nbShards; i++ {
-		randomness[i] = []byte("root hash")
-	}
-
-	randomness[core.MetachainShardId] = []byte("root hash")
-
-	return randomness
-}
-
 func getTransactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
 	if shardId == core.MetachainShardId {
 		return 0

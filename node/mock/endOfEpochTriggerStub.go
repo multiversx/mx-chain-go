@@ -29,7 +29,7 @@ func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
 	return []byte("key")
 }
 
-func (e *EpochStartTriggerStub) LoadState(key []byte) error {
+func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
 	return nil
 }
 

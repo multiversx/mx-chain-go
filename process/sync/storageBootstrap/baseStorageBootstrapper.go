@@ -274,13 +274,13 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		return data.ErrNilNodesCoordinator
 	}
 
-	err = st.nodesCoordinator.LoadState(bootInfos[len(bootInfos)-1].NodesCoordinatorConfigKey)
+	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)
 	if err != nil {
 		log.Debug("cannot load nodes coordinator state", "error", err.Error())
 		return err
 	}
 
-	err = st.epochStartTrigger.LoadState(bootInfos[len(bootInfos)-1].EpochStartTriggerConfigKey)
+	err = st.epochStartTrigger.LoadState(bootInfos[0].EpochStartTriggerConfigKey)
 	if err != nil {
 		log.Debug("cannot load epoch start trigger state", "error", err.Error())
 		return err
