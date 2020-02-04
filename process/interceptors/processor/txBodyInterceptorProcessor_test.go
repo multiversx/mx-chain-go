@@ -25,14 +25,14 @@ func createMockTxBodyArgument() *processor.ArgTxBodyInterceptorProcessor {
 	}
 }
 
-func createInteceptedTxBlockBody(txBlockBody block.Body) *interceptedBlocks.InterceptedTxBlockBody {
+func createInteceptedTxBlockBody(txBlockBody *block.Body) *interceptedBlocks.InterceptedTxBlockBody {
 	arg := &interceptedBlocks.ArgInterceptedTxBlockBody{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,
 	}
 
-	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(&block.BodyHelper{txBlockBody})
+	arg.TxBlockBodyBuff, _ = testMarshalizer.Marshal(txBlockBody)
 	inTxBody, _ := interceptedBlocks.NewInterceptedTxBlockBody(arg)
 
 	return inTxBody
@@ -132,7 +132,7 @@ func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
 		return
 	}
 	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
-	inTxBlkBdy := createInteceptedTxBlockBody(make([]*block.MiniBlock, 0))
+	inTxBlkBdy := createInteceptedTxBlockBody(&block.Body{})
 
 	err := tbip.Save(inTxBlkBdy)
 
@@ -142,18 +142,20 @@ func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
 func TestTxBodyInterceptorProcessor_SaveMiniblocksNotForCurrentShardShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	txBlockBody := []*block.MiniBlock{
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: 1,
-			SenderShardID:   2,
-			Type:            0,
-		},
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: 3,
-			SenderShardID:   4,
-			Type:            0,
+	txBlockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: 1,
+				SenderShardID:   2,
+				Type:            0,
+			},
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: 3,
+				SenderShardID:   4,
+				Type:            0,
+			},
 		},
 	}
 
@@ -175,18 +177,20 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing
 	t.Parallel()
 
 	currentShard := uint32(0)
-	txBlockBody := []*block.MiniBlock{
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: 1,
-			SenderShardID:   2,
-			Type:            0,
-		},
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: 3,
-			SenderShardID:   currentShard,
-			Type:            0,
+	txBlockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: 1,
+				SenderShardID:   2,
+				Type:            0,
+			},
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: 3,
+				SenderShardID:   currentShard,
+				Type:            0,
+			},
 		},
 	}
 
@@ -216,18 +220,20 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testi
 	t.Parallel()
 
 	currentShard := uint32(0)
-	txBlockBody := []*block.MiniBlock{
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: 1,
-			SenderShardID:   2,
-			Type:            0,
-		},
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: currentShard,
-			SenderShardID:   3,
-			Type:            0,
+	txBlockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: 1,
+				SenderShardID:   2,
+				Type:            0,
+			},
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: currentShard,
+				SenderShardID:   3,
+				Type:            0,
+			},
 		},
 	}
 
@@ -257,18 +263,20 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t 
 	t.Parallel()
 
 	currentShard := uint32(0)
-	txBlockBody := []*block.MiniBlock{
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: currentShard,
-			SenderShardID:   currentShard,
-			Type:            0,
-		},
-		{
-			TxHashes:        make([][]byte, 0),
-			ReceiverShardID: currentShard,
-			SenderShardID:   currentShard,
-			Type:            0,
+	txBlockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: currentShard,
+				SenderShardID:   currentShard,
+				Type:            0,
+			},
+			{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: currentShard,
+				SenderShardID:   currentShard,
+				Type:            0,
+			},
 		},
 	}
 

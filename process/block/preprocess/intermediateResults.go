@@ -115,6 +115,10 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
 
+	if body == nil {
+		return nil
+	}
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
 		if mb.Type != irp.blockType {

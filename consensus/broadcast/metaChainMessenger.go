@@ -94,8 +94,8 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 		return err
 	}
 
-	bh := blockBody.(*block.Body)
-	msgBlockBody, err := mcm.marshalizer.Marshal(bh)
+	b := blockBody.(*block.Body)
+	msgBlockBody, err := mcm.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}

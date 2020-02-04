@@ -317,7 +317,7 @@ func createConsensusOnlyNode(
 		RevertAccountStateCalled: func() {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
-			return dataBlock.Body{}, nil
+			return &dataBlock.Body{}, nil
 		},
 		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil

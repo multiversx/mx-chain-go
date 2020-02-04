@@ -115,15 +115,16 @@ func NewTransactionCoordinator(
 // separateBodyByType creates a map of bodies according to type
 func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
 	separatedBodies := make(map[block.Type]*block.Body)
+	if !check.IfNil(body) {
+		for i := 0; i < len(body.MiniBlocks); i++ {
+			mb := body.MiniBlocks[i]
 
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		mb := body.MiniBlocks[i]
+			if _, ok := separatedBodies[mb.Type]; !ok {
+				separatedBodies[mb.Type] = &block.Body{}
+			}
 
-		if _, ok := separatedBodies[mb.Type]; !ok {
-			separatedBodies[mb.Type] = &block.Body{}
+			separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
 		}
-
-		separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
 	}
 
 	return separatedBodies
@@ -572,6 +573,10 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
 	mrsTxs := make(map[string][][]byte)
 	bodies := make(map[uint32]block.MiniBlockSlice)
+
+	if body == nil {
+		return bodies, mrsTxs
+	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniblock := body.MiniBlocks[i]

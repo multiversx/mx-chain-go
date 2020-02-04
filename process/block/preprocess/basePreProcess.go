@@ -52,6 +52,9 @@ func (bpp *basePreProcess) removeDataFromPools(body *block.Body, miniBlockPool s
 		return process.ErrNilTransactionPool
 	}
 
+	if body == nil {
+		return process.ErrNilTxBlockBody
+	}
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		currentMiniBlock := body.MiniBlocks[i]
 		if currentMiniBlock.Type != mbType {

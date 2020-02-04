@@ -52,13 +52,13 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 	t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
 		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")},
 	}
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 	transactionCounter := NewTransactionCounter()
 	lines := transactionCounter.displayTxBlockBody(
 		shardLines,

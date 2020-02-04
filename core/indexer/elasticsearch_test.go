@@ -66,16 +66,18 @@ func newTestMetaBlock() *block.MetaBlock {
 	}
 }
 
-func newTestBlockBody() block.Body {
-	return block.Body{
-		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2, 0},
-		{[][]byte{[]byte("tx3")}, 4, 1, 0},
+func newTestBlockBody() *block.Body {
+	return &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2, 0},
+			{[][]byte{[]byte("tx3")}, 4, 1, 0},
+		},
 	}
 }
 
-func newTestBlockBodyWithSc(scKey string) block.Body {
+func newTestBlockBodyWithSc(scKey string) *block.Body {
 	mainBody := newTestBlockBody()
-	mainBody = append(mainBody, &block.MiniBlock{
+	mainBody.MiniBlocks = append(mainBody.MiniBlocks, &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte(scKey)},
 		ReceiverShardID: 3,
 		SenderShardID:   1,

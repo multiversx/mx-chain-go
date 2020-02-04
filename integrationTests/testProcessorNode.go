@@ -929,13 +929,13 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	shardBlockBody, ok := blockBody.(dataBlock.Body)
+	shardBlockBody, ok := blockBody.(*dataBlock.Body)
 	txHashes := make([][]byte, 0)
 	if !ok {
 		return blockBody, blockHeader, txHashes
 	}
 
-	for _, mb := range shardBlockBody {
+	for _, mb := range shardBlockBody.MiniBlocks {
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)
@@ -991,13 +991,13 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 }
 
 // GetBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (*dataBlock.Body, error) {
 	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	body := dataBlock.Body{}
+	body := &dataBlock.Body{}
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
@@ -1011,20 +1011,20 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
 
-		body = append(body, mb)
+		body.MiniBlocks = append(body.MiniBlocks, mb)
 	}
 
 	return body, nil
 }
 
 // GetMetaBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (*dataBlock.Body, error) {
 	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
-	body := dataBlock.Body{}
+	body := &dataBlock.Body{}
 	for _, miniBlockHeader := range header.MiniBlockHeaders {
 		miniBlockHash := miniBlockHeader.Hash
 
@@ -1038,7 +1038,7 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dat
 			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
 		}
 
-		body = append(body, mb)
+		body.MiniBlocks = append(body.MiniBlocks, mb)
 	}
 
 	return body, nil

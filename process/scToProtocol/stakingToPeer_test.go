@@ -34,13 +34,15 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	}
 }
 
-func createBlockBody() block.Body {
-	return block.Body{
-		{
-			TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
-			ReceiverShardID: 0,
-			SenderShardID:   sharding.MetachainShardId,
-			Type:            block.SmartContractResultBlock,
+func createBlockBody() *block.Body {
+	return &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+				ReceiverShardID: 0,
+				SenderShardID:   sharding.MetachainShardId,
+				Type:            block.SmartContractResultBlock,
+			},
 		},
 	}
 }

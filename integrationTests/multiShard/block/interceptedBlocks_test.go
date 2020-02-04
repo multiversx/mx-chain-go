@@ -65,13 +65,13 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			shards := []uint32{senderShard}
 			shards = append(shards, recvShards...)
 
-			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), shards...)
+			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(*block.Body), shards...)
 			assert.True(t, n.MiniBlocksPresent(expectedMiniblocks))
 		}
 
 		if isRecvShard && !isSenderShard {
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterHdrRecv))
-			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), n.ShardCoordinator.SelfId())
+			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(*block.Body), n.ShardCoordinator.SelfId())
 			assert.True(t, n.MiniBlocksPresent(expectedMiniblocks))
 		}
 

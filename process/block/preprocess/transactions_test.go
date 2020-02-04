@@ -496,12 +496,12 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
-	body = append(body, &mBlk)
+	body.MiniBlocks = append(body.MiniBlocks, &mBlk)
 	txsRequested := txs.RequestBlockTransactions(body)
 	assert.Equal(t, 2, txsRequested)
 }
@@ -703,7 +703,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
 	)
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -712,7 +712,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		SenderShardID:   0,
 		TxHashes:        txHashes,
 	}
-	body = append(body, &miniblock)
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
 	assert.Nil(t, err)
 }
