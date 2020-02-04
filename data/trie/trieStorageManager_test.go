@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -8,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -432,4 +435,38 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	val, err := trieStorage.snapshots[lastSnapshot].Get(tr.root.getHash())
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
+}
+
+func TestRemoveFromPruningBufferWhenCancelingPrune(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash1, false)
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash2, false)
+
+	_ = tr.Prune(rootHash2, data.NewRoot)
+	rootHash2NewRoot := append(rootHash2, byte(data.NewRoot))
+
+	present := false
+	for i := range trieStorage.pruningBuffer {
+		if bytes.Equal(trieStorage.pruningBuffer[i], rootHash2NewRoot) {
+			present = true
+		}
+	}
+	require.True(t, present)
+
+	tr.CancelPrune(rootHash2, data.NewRoot)
+
+	for i := range trieStorage.pruningBuffer {
+		assert.NotEqual(t, trieStorage.pruningBuffer[i], rootHash2NewRoot)
+	}
 }
