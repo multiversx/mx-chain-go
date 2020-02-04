@@ -11,6 +11,7 @@ type StorerStub struct {
 	RemoveCalled       func(key []byte) error
 	ClearCacheCalled   func()
 	DestroyUnitCalled  func() error
+	CloseCalled        func() error
 }
 
 // GetFromEpoch -
@@ -30,6 +31,9 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 
 // Close -
 func (ss *StorerStub) Close() error {
+	if ss.CloseCalled != nil {
+		return ss.CloseCalled()
+	}
 	return nil
 }
 
