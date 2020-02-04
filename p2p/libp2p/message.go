@@ -18,7 +18,7 @@ type Message struct {
 }
 
 // NewMessage returns a new instance of a Message object
-func NewMessage(message *pubsub.Message) *Message {
+func NewMessage(message *pubsub.Message) (*Message, error) {
 	msg := &Message{
 		from:      message.From,
 		data:      message.Data,
@@ -31,11 +31,12 @@ func NewMessage(message *pubsub.Message) *Message {
 	id, err := peer.IDFromBytes(msg.from)
 	if err != nil {
 		log.Trace("creating new p2p message", "error", err.Error())
+		return nil, err
 	} else {
 		msg.peer = p2p.PeerID(id)
 	}
 
-	return msg
+	return msg, nil
 }
 
 // From returns the message originator's peer ID
@@ -75,8 +76,5 @@ func (m *Message) Peer() p2p.PeerID {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *Message) IsInterfaceNil() bool {
-	if m == nil {
-		return true
-	}
-	return false
+	return m == nil
 }
