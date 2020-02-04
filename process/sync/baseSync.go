@@ -274,9 +274,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
 
-	shouldTrySync := boot.shouldTrySync()
+	boot.trySyncTrigger()
 
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork && !shouldTrySync
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -298,21 +298,23 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	return !isNodeSynchronized
 }
 
-func (boot *baseBootstrap) shouldTrySync() bool {
-
+func (boot *baseBootstrap) trySyncTrigger() {
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if currHeader == nil {
-		return false
+		return
 	}
 
 	roundDiff := uint64(boot.rounder.Index()) - currHeader.GetRound()
 	if roundDiff < tryRequestHeaderDelta {
-		return false
+		return
 	}
 
 	shouldTrySync := roundDiff%tryRequestHeaderDelta == 0 && !process.IsInProperRound(boot.rounder.Index())
 
-	return shouldTrySync
+	if shouldTrySync {
+		nonce := boot.getNonceForNextBlock()
+		boot.requestHeaderByNonce(nonce)
+	}
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
@@ -860,4 +862,13 @@ func (boot *baseBootstrap) init() {
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+}
+
+func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
