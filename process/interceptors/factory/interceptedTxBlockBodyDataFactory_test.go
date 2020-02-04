@@ -73,7 +73,7 @@ func TestInterceptedTxBlockBodyDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	assert.Nil(t, err)
 
 	marshalizer := &mock.MarshalizerMock{}
-	emptyBlockBody := &block.BodyHelper{block.Body{}}
+	emptyBlockBody := &block.Body{}
 	emptyBlockBodyBuff, _ := marshalizer.Marshal(emptyBlockBody)
 	interceptedData, err := imh.Create(emptyBlockBodyBuff)
 

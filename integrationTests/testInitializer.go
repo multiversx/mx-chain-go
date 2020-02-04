@@ -996,10 +996,10 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
-func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
+func GetMiniBlocksHashesFromShardIds(body *dataBlock.Body, shardIds ...uint32) [][]byte {
 	hashes := make([][]byte, 0)
 
-	for _, miniblock := range body {
+	for _, miniblock := range body.MiniBlocks {
 		for _, shardId := range shardIds {
 			if miniblock.ReceiverShardID == shardId {
 				buff, _ := TestMarshalizer.Marshal(miniblock)

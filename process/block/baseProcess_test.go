@@ -394,7 +394,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	arguments.Hasher = &mock.HasherMock{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
-	body := block.Body{}
+	body := &block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.Round = 1

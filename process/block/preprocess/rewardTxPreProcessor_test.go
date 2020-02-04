@@ -420,8 +420,8 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 
 	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocks)
 
-	var blockBody block.Body
-	blockBody = append(blockBody, &mb1, &mb2)
+	blockBody := &block.Body{}
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 	err := rtp.SaveTxBlockToStorage(blockBody)
 
 	assert.Nil(t, err)
@@ -464,8 +464,8 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 
 	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocks)
 
-	var blockBody block.Body
-	blockBody = append(blockBody, &mb1, &mb2)
+	blockBody := &block.Body{}
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
 	_ = rtp.SaveTxBlockToStorage(blockBody)
 
@@ -540,8 +540,8 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocks)
 
-	var blockBody block.Body
-	blockBody = append(blockBody, &mb1, &mb2)
+	blockBody := &block.Body{}
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
 	err := rtp.ProcessBlockTransactions(blockBody, haveTimeTrue)
 	assert.Nil(t, err)
@@ -637,8 +637,8 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		Type:            block.RewardsBlock,
 	}
 
-	var blockBody block.Body
-	blockBody = append(blockBody, &mb1)
+	blockBody := &block.Body{}
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := mock.NewCacherMock()
 
 	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
