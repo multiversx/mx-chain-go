@@ -26,10 +26,7 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (asf *AppStatusFacade) IsInterfaceNil() bool {
-	if asf == nil {
-		return true
-	}
-	return false
+	return asf == nil
 }
 
 // Increment method - will increment the value for a key for every handler

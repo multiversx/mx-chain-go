@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// MultipleShardsCoordinatorMock -
 type MultipleShardsCoordinatorMock struct {
 	NoShards        uint32
 	ComputeIdCalled func(address state.AddressContainer) uint32
@@ -12,14 +13,17 @@ type MultipleShardsCoordinatorMock struct {
 	CurrentShard    uint32
 }
 
+// NewMultiShardsCoordinatorMock -
 func NewMultiShardsCoordinatorMock(nrShard uint32) *MultipleShardsCoordinatorMock {
 	return &MultipleShardsCoordinatorMock{NoShards: nrShard}
 }
 
+// NumberOfShards -
 func (scm *MultipleShardsCoordinatorMock) NumberOfShards() uint32 {
 	return scm.NoShards
 }
 
+// ComputeId -
 func (scm *MultipleShardsCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
 	if scm.ComputeIdCalled == nil {
 		return scm.SelfId()
@@ -27,6 +31,7 @@ func (scm *MultipleShardsCoordinatorMock) ComputeId(address state.AddressContain
 	return scm.ComputeIdCalled(address)
 }
 
+// SelfId -
 func (scm *MultipleShardsCoordinatorMock) SelfId() uint32 {
 	if scm.SelfIDCalled != nil {
 		return scm.SelfIDCalled()
@@ -35,14 +40,17 @@ func (scm *MultipleShardsCoordinatorMock) SelfId() uint32 {
 	return scm.CurrentShard
 }
 
+// SetSelfId -
 func (scm *MultipleShardsCoordinatorMock) SetSelfId(shardId uint32) error {
 	return nil
 }
 
+// SameShard -
 func (scm *MultipleShardsCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	return true
 }
 
+// SetNoShards -
 func (scm *MultipleShardsCoordinatorMock) SetNoShards(noShards uint32) {
 	scm.NoShards = noShards
 }
