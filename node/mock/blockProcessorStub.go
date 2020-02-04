@@ -26,10 +26,12 @@ type BlockProcessorStub struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (blProcMock *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 
 }
 
+// SetNumProcessedObj -
 func (blProcMock *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
 
 }
@@ -67,30 +69,37 @@ func (blProcMock *BlockProcessorStub) CreateBlockBody(initialHdrData data.Header
 	return blProcMock.CreateBlockBodyCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (blProcMock BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
 
+// MarshalizedDataToBroadcast -
 func (blProcMock BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
 
+// DecodeBlockBody -
 func (blProcMock BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return blProcMock.DecodeBlockBodyCalled(dta)
 }
 
+// DecodeBlockHeader -
 func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return blProcMock.DecodeBlockHeaderCalled(dta)
 }
 
+// AddLastNotarizedHdr -
 func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
 }
@@ -100,6 +109,7 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
+// ApplyProcessedMiniBlocks -
 func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }

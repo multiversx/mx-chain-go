@@ -1,9 +1,11 @@
 package mock
 
+// MessengerStub -
 type MessengerStub struct {
 	BroadcastCalled func(topic string, buff []byte)
 }
 
+// Broadcast -
 func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	ms.BroadcastCalled(topic, buff)
 }

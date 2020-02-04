@@ -1,8 +1,10 @@
 package mock
 
+// HasherMock127 -
 type HasherMock127 struct {
 }
 
+// Compute -
 func (HasherMock127) Compute(s string) []byte {
 	buff := make([]byte, 0)
 
@@ -14,10 +16,12 @@ func (HasherMock127) Compute(s string) []byte {
 	return buff
 }
 
+// EmptyHash -
 func (HasherMock127) EmptyHash() []byte {
 	return nil
 }
 
+// Size -
 func (HasherMock127) Size() int {
 	return 64
 }

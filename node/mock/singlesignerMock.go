@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// SinglesignMock -
 type SinglesignMock struct {
 }
 
@@ -33,6 +34,7 @@ func (s *SinglesignMock) IsInterfaceNil() bool {
 	return false
 }
 
+// SinglesignFailMock -
 type SinglesignFailMock struct {
 }
 
@@ -54,6 +56,7 @@ func (s *SinglesignFailMock) IsInterfaceNil() bool {
 	return false
 }
 
+// SinglesignStub -
 type SinglesignStub struct {
 	SignCalled   func(private crypto.PrivateKey, msg []byte) ([]byte, error)
 	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
