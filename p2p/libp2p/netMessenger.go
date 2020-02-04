@@ -464,6 +464,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, pubsubMessage *pubsub.Message) bool {
 		message, err := NewMessage(pubsubMessage)
 		if err != nil {
+			log.Trace("p2p validator - new message", "error", err.Error(), "topics", pubsubMessage.TopicIDs)
 			return false
 		}
 		err = handler.ProcessReceivedMessage(message, broadcastHandler)
