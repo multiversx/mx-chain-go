@@ -23,6 +23,7 @@ type PersistentStatusHandler struct {
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	startSaveInStorage       bool
+	mutex                    sync.RWMutex
 }
 
 // NewPersistentStatusHandler will return an instance of the persistent status handler
@@ -42,12 +43,15 @@ func NewPersistentStatusHandler(
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
 	psh.persistentMetrics = &sync.Map{}
+	psh.mutex = sync.RWMutex{}
 	psh.initMap()
 
 	go func() {
 		time.Sleep(time.Second)
 
+		psh.mutex.Lock()
 		psh.startSaveInStorage = true
+		psh.mutex.Unlock()
 	}()
 
 	return psh, nil
@@ -131,6 +135,8 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 		return
 	}
 
+	psh.mutex.RLock()
+	defer psh.mutex.RUnlock()
 	if !psh.startSaveInStorage {
 		return
 	}
