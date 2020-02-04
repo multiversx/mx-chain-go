@@ -66,6 +66,6 @@ message Header  {
 	uint32                   TxCount                = 18;
 }
 
-message BodyHelper {
+message Body {
 	repeated MiniBlock MiniBlocks = 1;
 }
