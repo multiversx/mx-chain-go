@@ -94,7 +94,8 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = miniBlockPool
-	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
+	//TODO remove this and receivedMiniBlock function after tests
+	//tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
