@@ -5,5 +5,5 @@ import (
 )
 
 type blockProcessor interface {
-	createNewHeader() data.HeaderHandler
+	CreateNewHeader() data.HeaderHandler
 }

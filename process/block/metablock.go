@@ -1689,10 +1689,6 @@ func getTxCount(shardInfo []block.ShardData) uint32 {
 	return txs
 }
 
-func (mp *metaProcessor) createNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *metaProcessor) IsInterfaceNil() bool {
 	return mp == nil

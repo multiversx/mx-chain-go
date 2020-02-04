@@ -1836,10 +1836,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (sp *shardProcessor) createNewHeader() data.HeaderHandler {
-	return &block.Header{}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
 	return sp == nil

@@ -869,7 +869,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header := bp.blockProcessor.createNewHeader()
+	header := bp.blockProcessor.CreateNewHeader()
 
 	err := bp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {
