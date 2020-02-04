@@ -124,10 +124,7 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 }
 
 // RemoveTxBlockFromPools removes smartContractResults and miniblocks from associated pools
-func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil || body.IsInterfaceNil() {
-		return process.ErrNilTxBlockBody
-	}
+func (scr *smartContractResults) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 
 	err := scr.removeDataFromPools(body, miniBlockPool, scr.scrPool, block.SmartContractResultBlock)
 
@@ -136,7 +133,7 @@ func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlo
 
 // RestoreTxBlockIntoPools restores the smartContractResults and miniblocks to associated pools
 func (scr *smartContractResults) RestoreTxBlockIntoPools(
-	body block.Body,
+	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
@@ -144,8 +141,8 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	}
 
 	scrRestored := 0
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
@@ -187,13 +184,13 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
-	body block.Body,
+	body *block.Body,
 	haveTime func() bool,
 ) error {
 
 	// basic validation already done in interceptors
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
@@ -238,9 +235,9 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 }
 
 // SaveTxBlockToStorage saves smartContractResults from body into storage
-func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
-	for i := 0; i < len(body); i++ {
-		miniBlock := (body)[i]
+func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
@@ -281,7 +278,7 @@ func (scr *smartContractResults) CreateBlockStarted() {
 }
 
 // RequestBlockTransactions request for smartContractResults if missing from a block.Body
-func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
+func (scr *smartContractResults) RequestBlockTransactions(body *block.Body) int {
 	requestedSCResults := 0
 	missingSCResultsForShards := scr.computeMissingAndExistingSCResultsForShards(body)
 
@@ -311,9 +308,9 @@ func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint3
 }
 
 // computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
-func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body block.Body) map[uint32][]*txsHashesInfo {
+func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	scrTxs := block.Body{}
-	for _, mb := range body {
+	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.SmartContractResultBlock {
 			continue
 		}
@@ -321,11 +318,11 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 			continue
 		}
 
-		scrTxs = append(scrTxs, mb)
+		scrTxs.MiniBlocks = append(scrTxs.MiniBlocks, mb)
 	}
 
 	missingTxsForShard := scr.computeExistingAndMissing(
-		scrTxs,
+		&scrTxs,
 		&scr.scrForBlock,
 		scr.chRcvAllScrs,
 		block.SmartContractResultBlock,

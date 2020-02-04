@@ -96,8 +96,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 		return err
 	}
 
-	bh := block.BodyHelper{MiniBlocks: blockBody.(block.Body)}
-	msgBlockBody, err := scm.marshalizer.Marshal(&bh)
+	b := blockBody.(*block.Body)
+	msgBlockBody, err := scm.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}

@@ -155,7 +155,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -468,7 +468,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrWrongTypeAssertion
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -549,9 +549,9 @@ func (mp *metaProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.Body, error) {
+) (*block.Body, error) {
 
-	miniBlocks := make(block.Body, 0)
+	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	if mp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -600,7 +600,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		"miniblocks created", len(miniBlocks),
 	)
 
-	return miniBlocks, nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 // full verification through metachain header
@@ -822,7 +822,7 @@ func (mp *metaProcessor) CommitBlock(
 	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
 	metaBlocksPool.Remove(headerHash)
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -833,8 +833,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	for i := 0; i < len(body); i++ {
-		buff, err = mp.marshalizer.Marshal(body[i])
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		buff, err = mp.marshalizer.Marshal(body.MiniBlocks[i])
 		if err != nil {
 			return err
 		}
@@ -1460,7 +1460,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return nil
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -1508,7 +1508,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -1517,7 +1517,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
 
 	for shardId, subsetBlockBody := range bodies {
-		buff, err := mp.marshalizer.Marshal(&block.BodyHelper{MiniBlocks: subsetBlockBody})
+		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
 		if err != nil {
 			log.Debug(process.ErrMarshalWithoutSuccess.Error())
 			continue
@@ -1636,15 +1636,14 @@ func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	bh := &block.BodyHelper{}
-	err := mp.marshalizer.Unmarshal(bh, dta)
+	b := &block.Body{}
+	err := mp.marshalizer.Unmarshal(b, dta)
 	if err != nil {
 		log.Debug("marshalizer.Unmarshal", "error", err.Error())
 		return nil
 	}
 
-	body := block.Body(bh.MiniBlocks)
-	return body
+	return b
 }
 
 // DecodeBlockHeader method decodes block header from a given byte array
@@ -1712,5 +1711,5 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }

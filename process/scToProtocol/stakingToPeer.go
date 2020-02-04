@@ -129,7 +129,7 @@ func (stp *stakingToPeer) getPeerAccount(key []byte) (*state.PeerAccount, error)
 }
 
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
-func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
+func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	stp.mutPeerChanges.Lock()
 	stp.peerChanges = make(map[string]block.PeerData)
 	stp.mutPeerChanges.Unlock()
@@ -313,10 +313,10 @@ func (stp *stakingToPeer) createPeerChangeData(
 	return nil
 }
 
-func (stp *stakingToPeer) getAllModifiedStates(body block.Body) (map[string]struct{}, error) {
+func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) (map[string]struct{}, error) {
 	affectedStates := make(map[string]struct{})
 
-	for _, miniBlock := range body {
+	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}

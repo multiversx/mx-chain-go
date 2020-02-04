@@ -9,7 +9,7 @@ import (
 
 // IndexerMock is a mock implementation fot the Indexer interface
 type IndexerMock struct {
-	SaveBlockCalled func(body block.Body, header *block.Header)
+	SaveBlockCalled func(body *block.Body, header *block.Header)
 }
 
 func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64) {

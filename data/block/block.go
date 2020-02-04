@@ -8,9 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// Body should be used when referring to the full list of mini blocks that forms a block body
-type Body []*MiniBlock
-
 // MiniBlockSlice should be used when referring to subset of mini blocks that is not
 //  necessarily representing a full block body
 type MiniBlockSlice []*MiniBlock
@@ -107,13 +104,13 @@ func (h *Header) Clone() data.HeaderHandler {
 }
 
 // IntegrityAndValidity checks if data is valid
-func (b Body) IntegrityAndValidity() error {
-	if b == nil || b.IsInterfaceNil() {
+func (b *Body) IntegrityAndValidity() error {
+	if b.IsInterfaceNil() {
 		return data.ErrNilBlockBody
 	}
 
-	for i := 0; i < len(b); i++ {
-		if len(b[i].TxHashes) == 0 {
+	for i := 0; i < len(b.MiniBlocks); i++ {
+		if len(b.MiniBlocks[i].TxHashes) == 0 {
 			return data.ErrMiniBlockEmpty
 		}
 	}
@@ -122,11 +119,8 @@ func (b Body) IntegrityAndValidity() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (b Body) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+func (b *Body) IsInterfaceNil() bool {
+	return b == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

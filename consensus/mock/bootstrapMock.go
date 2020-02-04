@@ -21,8 +21,7 @@ func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint
 		return boot.CreateAndCommitEmptyBlockCalled(shardForCurrentNode)
 	}
 
-	bb := make(block.Body, 0)
-	return bb, &block.Header{}, nil
+	return &block.Body{}, &block.Header{}, nil
 }
 
 func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSyncing bool)) {

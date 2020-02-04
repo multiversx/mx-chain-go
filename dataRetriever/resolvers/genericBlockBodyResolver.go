@@ -87,7 +87,7 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 	if len(miniBlocks) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
-	bh := &block.BodyHelper{MiniBlocks: miniBlocks}
+	bh := &block.Body{MiniBlocks: miniBlocks}
 	buff, err := gbbRes.marshalizer.Marshal(bh)
 	if err != nil {
 		return nil, err

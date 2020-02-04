@@ -8,7 +8,7 @@ import (
 type IntermediateTransactionHandlerMock struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocksCalled           func() map[uint32]*block.MiniBlock
-	VerifyInterMiniBlocksCalled              func(body block.Body) error
+	VerifyInterMiniBlocksCalled              func(body *block.Body) error
 	SaveCurrentIntermediateTxToStorageCalled func() error
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
@@ -36,7 +36,7 @@ func (ith *IntermediateTransactionHandlerMock) CreateAllInterMiniBlocks() map[ui
 	return ith.CreateAllInterMiniBlocksCalled()
 }
 
-func (ith *IntermediateTransactionHandlerMock) VerifyInterMiniBlocks(body block.Body) error {
+func (ith *IntermediateTransactionHandlerMock) VerifyInterMiniBlocks(body *block.Body) error {
 	if ith.VerifyInterMiniBlocksCalled == nil {
 		return nil
 	}

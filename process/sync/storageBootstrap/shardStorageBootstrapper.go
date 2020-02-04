@@ -82,7 +82,7 @@ func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandl
 		return nil, process.ErrMissingBody
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (ssb *shardStorageBootstrapper) applyNotarizedBlocks(
