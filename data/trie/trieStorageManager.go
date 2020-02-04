@@ -176,6 +176,7 @@ func (tsm *trieStorageManager) removeHashFromPruningBuffer(rootHash []byte) {
 	for i := range tsm.pruningBuffer {
 		if bytes.Equal(tsm.pruningBuffer[i], rootHash) {
 			tsm.pruningBuffer = append(tsm.pruningBuffer[:i], tsm.pruningBuffer[i+1:]...)
+			break
 		}
 	}
 }
