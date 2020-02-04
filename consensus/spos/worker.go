@@ -308,6 +308,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if err != nil {
 		return err
 	}
+
 	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
 		return fmt.Errorf("%w : received: %s, wanted: %s",
 			ErrInvalidChainID,
