@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// PoolsHolderStub -
 type PoolsHolderStub struct {
 	HeadersCalled              func() dataRetriever.HeadersPool
 	PeerChangesBlocksCalled    func() storage.Cacher
@@ -17,38 +18,47 @@ type PoolsHolderStub struct {
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 }
 
+// CurrentBlockTxs -
 func (phs *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return phs.CurrBlockTxsCalled()
 }
 
+// Headers -
 func (phs *PoolsHolderStub) Headers() dataRetriever.HeadersPool {
 	return phs.HeadersCalled()
 }
 
+// PeerChangesBlocks -
 func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 	return phs.PeerChangesBlocksCalled()
 }
 
+// Transactions -
 func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.TransactionsCalled()
 }
 
+// MiniBlocks -
 func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
 	return phs.MiniBlocksCalled()
 }
 
+// MetaBlocks -
 func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 	return phs.MetaBlocksCalled()
 }
 
+// UnsignedTransactions -
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.UnsignedTransactionsCalled()
 }
 
+// RewardTransactions -
 func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.RewardTransactionsCalled()
 }
 
+// TrieNodes -
 func (phs *PoolsHolderStub) TrieNodes() storage.Cacher {
 	return phs.TrieNodesCalled()
 }

@@ -37,10 +37,12 @@ func (privKey *PrivateKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("privateKeyMock"), nil
 }
 
+// Suite -
 func (privKey *PrivateKeyMock) Suite() crypto.Suite {
 	return privKey.SuiteMock()
 }
 
+// Scalar -
 func (privKey *PrivateKeyMock) Scalar() crypto.Scalar {
 	return privKey.ScalarMock()
 }
@@ -58,10 +60,12 @@ func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("publicKeyMock"), nil
 }
 
+// Suite -
 func (pubKey *PublicKeyMock) Suite() crypto.Suite {
 	return pubKey.SuiteMock()
 }
 
+// Point -
 func (pubKey *PublicKeyMock) Point() crypto.Point {
 	return pubKey.PointMock()
 }
@@ -89,6 +93,7 @@ func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, er
 	return keyGen.PublicKeyFromByteArrayMock(b)
 }
 
+// Suite -
 func (keyGen *KeyGenMock) Suite() crypto.Suite {
 	return keyGen.SuiteMock()
 }
