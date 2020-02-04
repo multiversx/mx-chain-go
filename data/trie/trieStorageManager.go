@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -168,6 +169,16 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
 
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
+	tsm.removeHashFromPruningBuffer(rootHash)
+}
+
+func (tsm *trieStorageManager) removeHashFromPruningBuffer(rootHash []byte) {
+	for i := range tsm.pruningBuffer {
+		if bytes.Equal(tsm.pruningBuffer[i], rootHash) {
+			tsm.pruningBuffer = append(tsm.pruningBuffer[:i], tsm.pruningBuffer[i+1:]...)
+			break
+		}
+	}
 }
 
 func (tsm *trieStorageManager) removeFromDb(hash []byte) error {
