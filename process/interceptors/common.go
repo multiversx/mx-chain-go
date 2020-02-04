@@ -1,6 +1,9 @@
 package interceptors
 
 import (
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -27,12 +30,23 @@ func processInterceptedData(
 	processor process.InterceptorProcessor,
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
+	msg p2p.MessageP2P,
 ) {
 	err := processor.Validate(data)
 	if err != nil {
+		seqNo := msg.SeqNo()
+		var strSeq string
+		if len(seqNo) >= 8 {
+			strSeq = fmt.Sprintf("%d", binary.BigEndian.Uint64(seqNo))
+		} else {
+			strSeq = hex.EncodeToString(seqNo)
+		}
+
 		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
 			"type", data.Type(),
+			"pid", msg.Peer().Pretty(),
+			"seq no", strSeq,
 			"error", err.Error(),
 		)
 		wgProcess.Done()

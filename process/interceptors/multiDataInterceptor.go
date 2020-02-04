@@ -101,7 +101,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess)
+		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
 	}
 
 	var buffToSend []byte

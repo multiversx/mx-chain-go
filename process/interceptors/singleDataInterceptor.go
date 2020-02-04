@@ -74,7 +74,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	go processInterceptedData(sdi.processor, interceptedData, wgProcess)
+	go processInterceptedData(sdi.processor, interceptedData, wgProcess, message)
 
 	return nil
 }
