@@ -25,12 +25,12 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core              serviceContainer.Core
-	scDataGetter      external.SCQueryService
-	scToProtocol      process.SmartContractToProtocolHandler
-	peerChanges       process.PeerChangesHandler
-	epochStartCreator process.EpochStartDataCreator
-	pendingMiniBlocks process.PendingMiniBlocksHandler
+	core                     serviceContainer.Core
+	scDataGetter             external.SCQueryService
+	scToProtocol             process.SmartContractToProtocolHandler
+	peerChanges              process.PeerChangesHandler
+	epochStartCreator        process.EpochStartDataCreator
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -59,7 +59,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.SCToProtocol) {
 		return nil, process.ErrNilSCToProtocol
 	}
-	if check.IfNil(arguments.PendingMiniBlocks) {
+	if check.IfNil(arguments.PendingMiniBlocksHandler) {
 		return nil, process.ErrNilPendingMiniBlocksHandler
 	}
 
@@ -93,13 +93,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp := metaProcessor{
-		core:              arguments.Core,
-		baseProcessor:     base,
-		headersCounter:    NewHeaderCounter(),
-		scDataGetter:      arguments.SCDataGetter,
-		peerChanges:       arguments.PeerChangesHandler,
-		scToProtocol:      arguments.SCToProtocol,
-		pendingMiniBlocks: arguments.PendingMiniBlocks,
+		core:                     arguments.Core,
+		baseProcessor:            base,
+		headersCounter:           NewHeaderCounter(),
+		scDataGetter:             arguments.SCDataGetter,
+		peerChanges:              arguments.PeerChangesHandler,
+		scToProtocol:             arguments.SCToProtocol,
+		pendingMiniBlocksHandler: arguments.PendingMiniBlocksHandler,
 	}
 
 	mp.epochStartCreator, err = createEpochStartDataCreator(arguments)
@@ -312,22 +312,9 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
 		return err
-	}
-
-	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
-		log.Debug("validator stats root hash mismatch",
-			"computed", validatorStatsRH,
-			"received", header.GetValidatorStatsRootHash(),
-		)
-		return fmt.Errorf("%w, metachain, computed: %s, received: %s, meta header nonce: %d",
-			process.ErrValidatorStatsRootHashDoesNotMatch,
-			display.DisplayByteSlice(validatorStatsRH),
-			display.DisplayByteSlice(header.GetValidatorStatsRootHash()),
-			header.Nonce,
-		)
 	}
 
 	return nil
@@ -522,7 +509,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
 	}
 
-	err := mp.pendingMiniBlocks.RevertHeader(metaBlock)
+	err := mp.pendingMiniBlocksHandler.RevertHeader(metaBlock)
 	if err != nil {
 		return err
 	}
@@ -968,7 +955,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
+	err = mp.pendingMiniBlocksHandler.AddProcessedHeader(header)
 	if err != nil {
 		return err
 	}
@@ -1062,6 +1049,20 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
+func (mp *metaProcessor) commitAll() error {
+	_, err := mp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = mp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (mp *metaProcessor) getLastSelfNotarizedHeaderForShard(_ uint32) (data.HeaderHandler, []byte) {
 	//TODO: Implement mechanism to extract last meta header notarized by the given shard if this info will be needed later
 	return nil, nil
@@ -1093,6 +1094,31 @@ func (mp *metaProcessor) RevertAccountState() {
 	if err != nil {
 		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
 	}
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"hash", header.GetRootHash(),
+		)
+
+		return err
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", header.GetValidatorStatsRootHash(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
@@ -1335,18 +1361,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.epochStartTrigger.Epoch() &&
-		shardHeader.Round > mp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		mp.epochStartTrigger.EpochStartRound() < mp.epochStartTrigger.EpochFinalityAttestingRound()
-	if isShardHeaderWithOldEpochAndBadRound {
-		log.Debug("shard header with old epoch and bad round",
-			"shardEpoch", shardHeader.Epoch,
-			"metaEpoch", mp.epochStartTrigger.Epoch(),
-			"shardRound", shardHeader.Round,
-			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
-	}
-
-	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) || isShardHeaderWithOldEpochAndBadRound {
+	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) {
 		shardHeadersPool.RemoveHeaderByHash(shardHeaderHash)
 
 		return
@@ -1463,7 +1478,8 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.PrevHash = shardHdr.PrevHash
 		shardData.Nonce = shardHdr.Nonce
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
-		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardData.ShardID)
+		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
+		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1509,7 +1525,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	defer func() {
 		sw.Stop("ApplyBodyToHeader")
 
-		log.Debug("measurements ApplyBodyToHeader", sw.GetMeasurements()...)
+		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
 	metaHdr, ok := hdr.(*block.MetaBlock)
@@ -1593,6 +1609,28 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
 	return body, nil
+}
+
+func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
+		log.Debug("validator stats root hash mismatch",
+			"computed", validatorStatsRH,
+			"received", header.GetValidatorStatsRootHash(),
+		)
+		return fmt.Errorf("%s, metachain, computed: %s, received: %s, meta header nonce: %d",
+			process.ErrValidatorStatsRootHashDoesNotMatch,
+			display.DisplayByteSlice(validatorStatsRH),
+			display.DisplayByteSlice(header.GetValidatorStatsRootHash()),
+			header.Nonce,
+		)
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
@@ -1724,7 +1762,7 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		pendingMiniBlocks[shardID] = bootstrapStorage.PendingMiniBlockInfo{
-			NumPendingMiniBlocks: mp.pendingMiniBlocks.GetNumPendingMiniBlocks(shardID),
+			NumPendingMiniBlocks: mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardID),
 			ShardID:              shardID,
 		}
 	}

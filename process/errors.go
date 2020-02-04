@@ -122,8 +122,8 @@ var ErrMissingHashForHeaderNonce = errors.New("missing hash for header nonce")
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
-// ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
-var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+// ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
+var ErrNilBlockProcessor = errors.New("nil block processor")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -277,6 +277,15 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
+
+// ErrHigherRoundInBlock signals that a block with higher round than permitted has been provided
+var ErrHigherRoundInBlock = errors.New("higher round in block")
+
+// ErrLowerNonceInBlock signals that a block with lower nonce than permitted has been provided
+var ErrLowerNonceInBlock = errors.New("lower nonce in block")
+
+// ErrHigherNonceInBlock signals that a block with higher nonce than permitted has been provided
+var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
 var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
@@ -621,5 +630,11 @@ var ErrNotEpochStartBlock = errors.New("not epoch start block")
 // ErrGettingShardDataFromEpochStartData signals that could not get shard data from previous epoch start block
 var ErrGettingShardDataFromEpochStartData = errors.New("could not find shard data from previous epoch start metablock")
 
-// ErrNotEnoughDataToCalculatePendingMiniBlocks signals that there is not enough data to calculate pending miniblocks
-var ErrNotEnoughDataToCalculatePendingMiniBlocks = errors.New("not enough data to calculate pending miniblocks")
+// ErrNilValidityAttester signals that a nil validity attester has been provided
+var ErrNilValidityAttester = errors.New("nil validity attester")
+
+// ErrNilHeaderHandler signals that a nil header handler has been provided
+var ErrNilHeaderHandler = errors.New("nil header handler")
+
+// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
+var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")

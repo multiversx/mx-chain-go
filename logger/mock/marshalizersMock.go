@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 
@@ -10,41 +9,8 @@ import (
 )
 
 var TestingMarshalizers = map[string]marshal.Marshalizer{
-	"capnp": &CapnpMarshalizer{},
 	"json":  &JsonMarshalizer{},
 	"proto": &ProtobufMarshalizer{},
-}
-
-//-------- capnp
-
-type CapnpMarshalizer struct{}
-
-func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
-	out := bytes.NewBuffer(nil)
-
-	o := obj.(marshal.CapnpHelper)
-	// set the members to capnp struct
-	err := o.Save(out)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Bytes(), nil
-}
-
-func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
-	out := bytes.NewBuffer(buff)
-
-	o := obj.(marshal.CapnpHelper)
-	// set the members to capnp struct
-	err := o.Load(out)
-
-	return err
-}
-
-func (x *CapnpMarshalizer) IsInterfaceNil() bool {
-	return x == nil
 }
 
 //-------- Json

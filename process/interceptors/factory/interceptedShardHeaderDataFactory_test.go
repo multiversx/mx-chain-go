@@ -3,6 +3,7 @@ package factory
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -15,7 +16,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilArgumentsShouldErr(t *testing.T
 
 	imh, err := NewInterceptedShardHeaderDataFactory(nil)
 
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
@@ -26,7 +27,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 	arg.Marshalizer = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -37,7 +38,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *t
 	arg.HeaderSigVerifier = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 }
 
@@ -48,7 +49,7 @@ func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	arg.Hasher = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
@@ -59,8 +60,30 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.Nil(t, imh)
+	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewInterceptedShardHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.ChainID = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.ValidityAttester = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
@@ -69,7 +92,7 @@ func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	arg := createMockArgument()
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.NotNil(t, imh)
+	assert.False(t, check.IfNil(imh))
 	assert.Nil(t, err)
 	assert.False(t, imh.IsInterfaceNil())
 

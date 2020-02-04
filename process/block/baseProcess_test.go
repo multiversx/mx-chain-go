@@ -414,55 +414,6 @@ func TestBaseProcessor_RevertStateToBlockRecreateTrieFailsShouldErr(t *testing.T
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestBaseProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("err")
-	arguments := CreateMockArguments()
-	arguments.Accounts = &mock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return nil
-		},
-	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
-			return expectedErr
-		},
-	}
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	hdr := block.Header{Nonce: 37}
-	err := bp.RevertStateToBlock(&hdr)
-	assert.Equal(t, expectedErr, err)
-}
-
-func TestBaseProcessor_RevertStateToBlockShouldWork(t *testing.T) {
-	t.Parallel()
-
-	recreateTrieWasCalled := false
-	revertePeerStateWasCalled := false
-	arguments := CreateMockArguments()
-	arguments.Accounts = &mock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			recreateTrieWasCalled = true
-			return nil
-		},
-	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
-			revertePeerStateWasCalled = true
-			return nil
-		},
-	}
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	hdr := block.Header{Nonce: 37}
-	err := bp.RevertStateToBlock(&hdr)
-	assert.Nil(t, err)
-	assert.True(t, revertePeerStateWasCalled)
-	assert.True(t, recreateTrieWasCalled)
-}
-
 // removeHeadersBehindNonceFromPools
 func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	t.Parallel()

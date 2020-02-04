@@ -1,6 +1,7 @@
 package track_test
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -278,7 +279,7 @@ func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenNoHeadersForSelfShard(t *
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	metaBlock := &block.MetaBlock{
-		ShardInfo: []block.ShardData{block.ShardData{ShardID: 1}},
+		ShardInfo: []block.ShardData{{ShardID: 1}},
 	}
 	headerInfo := sbt.GetSelfHeaders(metaBlock)
 
@@ -291,7 +292,7 @@ func TestShardGetSelfHeaders_ShouldReturnEmptySliceWhenErrGetShardHeader(t *test
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	metaBlock := &block.MetaBlock{
-		ShardInfo: []block.ShardData{block.ShardData{ShardID: 0}},
+		ShardInfo: []block.ShardData{{ShardID: 0}},
 	}
 	headerInfo := sbt.GetSelfHeaders(metaBlock)
 
@@ -313,7 +314,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	metaBlock := &block.MetaBlock{
-		ShardInfo: []block.ShardData{block.ShardData{ShardID: 0}},
+		ShardInfo: []block.ShardData{{ShardID: 0}},
 	}
 	headerInfo := sbt.GetSelfHeaders(metaBlock)
 
@@ -518,7 +519,7 @@ func TestComputePendingMiniBlockHeaders_ShouldWork(t *testing.T) {
 
 	sbt.ComputeNumPendingMiniBlocks([]data.HeaderHandler{&block.MetaBlock{
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				ShardID:              0,
 				NumPendingMiniBlocks: 2,
 			},
@@ -1345,7 +1346,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Round: 1,
 		Nonce: 1,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				NumPendingMiniBlocks: 99,
 			},
 		},
@@ -1358,7 +1359,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Round: 2,
 		Nonce: 2,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				NumPendingMiniBlocks: 100,
 			},
 		},
@@ -1690,4 +1691,229 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	headers, _ := sbt.ComputeLongestChain(shardArguments.ShardCoordinator.SelfId(), startHeader)
 
 	assert.Equal(t, longestChain+chains-1, uint64(len(headers)))
+}
+
+//------- CheckBlockAgainstRounder
+
+func TestBaseBlockTrack_CheckBlockAgainstRounderNilHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bbt := track.NewBaseBlockTrack()
+	err := bbt.CheckBlockAgainstRounder(nil)
+
+	assert.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstRounderHigherRoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bbt := track.NewBaseBlockTrack()
+	currentRound := int64(50)
+	bbt.SetRounder(
+		&mock.RounderMock{
+			RoundIndex: currentRound,
+		},
+	)
+
+	hdr := &block.Header{
+		Round: uint64(currentRound + 2),
+	}
+	err := bbt.CheckBlockAgainstRounder(hdr)
+
+	assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstRounderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bbt := track.NewBaseBlockTrack()
+	currentRound := int64(50)
+	bbt.SetRounder(
+		&mock.RounderMock{
+			RoundIndex: currentRound,
+		},
+	)
+
+	hdr := &block.Header{
+		Round: uint64(currentRound + 1),
+	}
+	err := bbt.CheckBlockAgainstRounder(hdr)
+
+	assert.Nil(t, err)
+}
+
+//------- CheckBlockAgainstFinal
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalNilHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bbt := track.NewBaseBlockTrack()
+	err := bbt.CheckBlockAgainstFinal(nil)
+
+	assert.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalCurrentShardGetFinalFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	expectedErr := errors.New("expected err")
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				return nil, nil, expectedErr
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.True(t, errors.Is(err, expectedErr))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	expectedErr := errors.New("expected err")
+	bbt.SetCrossNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				return nil, nil, expectedErr
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard + 1,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.True(t, errors.Is(err, expectedErr))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalLowerRoundInBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	finalRound := uint64(667)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				hdr := &block.Header{
+					ShardId: crtShard,
+					Round:   finalRound,
+				}
+
+				return hdr, make([]byte, 0), nil
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard,
+		Round:   finalRound - 1,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.True(t, errors.Is(err, process.ErrLowerRoundInBlock))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalLowerNonceInBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	finalRound := uint64(667)
+	finalNonce := uint64(334)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				hdr := &block.Header{
+					ShardId: crtShard,
+					Round:   finalRound,
+					Nonce:   finalNonce,
+				}
+
+				return hdr, make([]byte, 0), nil
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard,
+		Round:   finalRound,
+		Nonce:   finalNonce - 1,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.True(t, errors.Is(err, process.ErrLowerNonceInBlock))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalHigherNonceInBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	finalRound := uint64(667)
+	finalNonce := uint64(334)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				hdr := &block.Header{
+					ShardId: crtShard,
+					Round:   finalRound,
+					Nonce:   finalNonce,
+				}
+
+				return hdr, make([]byte, 0), nil
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard,
+		Round:   finalRound + 1,
+		Nonce:   finalNonce + 2,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.True(t, errors.Is(err, process.ErrHigherNonceInBlock))
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
+	t.Parallel()
+
+	crtShard := uint32(0)
+	finalRound := uint64(667)
+	finalNonce := uint64(334)
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
+	bbt.SetSelfNotarizer(
+		&mock.BlockNotarizerHandlerMock{
+			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+				hdr := &block.Header{
+					ShardId: crtShard,
+					Round:   finalRound,
+					Nonce:   finalNonce,
+				}
+
+				return hdr, make([]byte, 0), nil
+			},
+		},
+	)
+	hdr := &block.Header{
+		ShardId: crtShard,
+		Round:   finalRound + 2,
+		Nonce:   finalNonce + 2,
+	}
+	err := bbt.CheckBlockAgainstFinal(hdr)
+
+	assert.Nil(t, err)
 }

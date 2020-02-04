@@ -1,74 +1,15 @@
 package receipt
 
 import (
-	"io"
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/data/receipt/capnp"
-	capn "github.com/glycerine/go-capnproto"
 )
 
 // Receipt holds all the data needed for a transaction receipt
 type Receipt struct {
-	Value   *big.Int `capid:"0" json:"value"`
-	SndAddr []byte   `capid:"1" json:"sender"`
-	Data    []byte   `capid:"2" json:"data,omitempty"`
-	TxHash  []byte   `capid:"3" json:"txHash"`
-}
-
-// Save saves the serialized data of a Receipt into a stream through Capnp protocol
-func (rpt *Receipt) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	ReceiptGoToCapn(seg, rpt)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a Receipt object through Capnp protocol
-func (rpt *Receipt) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-
-	z := capnp.ReadRootReceiptCapn(capMsg)
-	ReceiptCapnToGo(z, rpt)
-	return nil
-}
-
-// ReceiptCapnToGo is a helper function to copy fields from a ReceiptCapn object to a Receipt object
-func ReceiptCapnToGo(src capnp.ReceiptCapn, dest *Receipt) *Receipt {
-	if dest == nil {
-		dest = &Receipt{}
-	}
-
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
-	}
-
-	err := dest.Value.GobDecode(src.Value())
-	if err != nil {
-		return nil
-	}
-
-	dest.SndAddr = src.SndAddr()
-	dest.Data = src.Data()
-	dest.TxHash = src.TxHash()
-
-	return dest
-}
-
-// ReceiptGoToCapn is a helper function to copy fields from a Receipt object to a ReceiptCapn object
-func ReceiptGoToCapn(seg *capn.Segment, src *Receipt) capnp.ReceiptCapn {
-	dest := capnp.AutoNewReceiptCapn(seg)
-
-	value, _ := src.Value.GobEncode()
-	dest.SetValue(value)
-	dest.SetSndAddr(src.SndAddr)
-	dest.SetData(src.Data)
-	dest.SetTxHash(src.TxHash)
-
-	return dest
+	Value   *big.Int `json:"value"`
+	SndAddr []byte   `json:"sender"`
+	Data    []byte   `json:"data,omitempty"`
+	TxHash  []byte   `json:"txHash"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil

@@ -53,7 +53,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	hdr1, hdr2 := generateTwoHeaders(integrationTests.IntegrationTestsChainID)
+	hdr1, hdr2 := generateTwoHeaders(integrationTests.ChainID)
 	hdrBuff1, _ := marshalizer.Marshal(hdr1)
 	hdrHash1 := hasher.Compute(string(hdrBuff1))
 	hdrBuff2, _ := marshalizer.Marshal(hdr2)
