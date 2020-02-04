@@ -32,14 +32,17 @@ type Facade struct {
 	ValidatorStatisticsHandler  func() (map[string]*state.ValidatorApiResponse, error)
 }
 
+// RestApiInterface -
 func (f *Facade) RestApiInterface() string {
 	return "localhost:8080"
 }
 
+// RestAPIServerDebugMode -
 func (f *Facade) RestAPIServerDebugMode() bool {
 	return false
 }
 
+// PprofEnabled -
 func (f *Facade) PprofEnabled() bool {
 	return false
 }

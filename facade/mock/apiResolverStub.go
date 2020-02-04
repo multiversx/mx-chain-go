@@ -6,15 +6,18 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// ApiResolverStub -
 type ApiResolverStub struct {
 	ExecuteSCQueryHandler func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler  func() external.StatusMetricsHandler
 }
 
+// ExecuteSCQuery -
 func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return ars.ExecuteSCQueryHandler(query)
 }
 
+// StatusMetrics -
 func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
 	return ars.StatusMetricsHandler()
 }

@@ -2,10 +2,12 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 
+// SmartContractResultsProcessorMock -
 type SmartContractResultsProcessorMock struct {
 	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) error
 }
 
+// ProcessSmartContractResult -
 func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
 	if scrp.ProcessSmartContractResultCalled == nil {
 		return nil

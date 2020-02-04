@@ -29,6 +29,7 @@ type BlockProcessorMock struct {
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 }
 
+// RestoreLastNotarizedHrdsToGenesis -
 func (blProcMock *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 	if blProcMock.RestoreLastNotarizedHrdsToGenesisCalled != nil {
 		blProcMock.RestoreLastNotarizedHrdsToGenesisCalled()
@@ -40,6 +41,7 @@ func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler,
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
+// ApplyProcessedMiniBlocks -
 func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
@@ -54,18 +56,22 @@ func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
 }
 
+// CreateNewHeader -
 func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
+// CreateBlockBody -
 func (blProcMock *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(initialHdrData, haveTime)
 }
 
+// RestoreBlockIntoPools -
 func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
+// ApplyBodyToHeader -
 func (blProcMock BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
@@ -78,10 +84,12 @@ func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandl
 	return nil
 }
 
+// SetNumProcessedObj -
 func (blProcMock *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
 
 }
 
+// MarshalizedDataToBroadcast -
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
@@ -118,10 +126,12 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 	return &header
 }
 
+// AddLastNotarizedHdr -
 func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// SetConsensusData -
 func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	if blProcMock.SetConsensusDataCalled != nil {
 		blProcMock.SetConsensusDataCalled(randomness, round, epoch, shardId)

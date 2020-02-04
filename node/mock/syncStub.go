@@ -4,20 +4,25 @@ import (
 	"time"
 )
 
+// SyncStub -
 type SyncStub struct {
 }
 
+// StartSync -
 func (ss *SyncStub) StartSync() {
 }
 
+// ClockOffset -
 func (ss *SyncStub) ClockOffset() time.Duration {
 	return time.Second
 }
 
+// FormattedCurrentTime -
 func (ss *SyncStub) FormattedCurrentTime() string {
 	return ""
 }
 
+// CurrentTime -
 func (ss *SyncStub) CurrentTime() time.Time {
 	return time.Now()
 }

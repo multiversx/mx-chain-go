@@ -2,6 +2,7 @@ package mock
 
 import "time"
 
+// TxPoolsCleanerMock -
 type TxPoolsCleanerMock struct {
 	CleanCalled         func(duration time.Duration) (bool, error)
 	NumRemovedTxsCalled func() uint64

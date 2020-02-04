@@ -5,10 +5,12 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// SCQueryServiceStub -
 type SCQueryServiceStub struct {
 	ExecuteQueryCalled func(*process.SCQuery) (*vmcommon.VMOutput, error)
 }
 
+// ExecuteQuery -
 func (serviceStub *SCQueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return serviceStub.ExecuteQueryCalled(query)
 }
