@@ -135,7 +135,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 
 func (sr *subroundBlock) canBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
 	bodyAndHeaderSize := len(marshalizedBody) + len(marshalizedHeader)
-	log.Debug("consensus block message",
+	log.Trace("consensus block message",
 		"body size", len(marshalizedBody),
 		"header size", len(marshalizedHeader),
 		"body and header size", bodyAndHeaderSize)

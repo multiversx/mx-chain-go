@@ -74,6 +74,7 @@ type baseProcessor struct {
 	hdrsForCurrBlock hdrForBlock
 
 	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
 }
 
 func checkForNils(
@@ -843,4 +844,40 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	return noncesToFinal
+}
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var body block.Body
+
+	err := bp.marshalizer.Unmarshal(&body, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return body
+}
+
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	body := bp.DecodeBlockBody(marshalizedBodyAndHeader.Body)
+	header := bp.blockProcessor.decodeBlockHeader(marshalizedBodyAndHeader.Header)
+
+	return body, header
 }

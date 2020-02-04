@@ -170,29 +170,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// broadcast section
 
-	cnsMsg := consensus.NewConsensusMessage(
-		sr.GetData(),
-		nil,
-		[]byte(sr.SelfPubKey()),
-		nil,
-		int(MtBlockHeaderFinalInfo),
-		sr.Rounder().Index(),
-		sr.ChainID(),
-		bitmap,
-		sig,
-		leaderSignature,
-	)
-
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
-	if err != nil {
-		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
-		return false
-	}
-
-	log.Debug("step 3: block header final info has been sent",
-		"PubKeysBitmap", bitmap,
-		"AggregateSignature", sig,
-		"LeaderSignature", leaderSignature)
+	// create and broadcast header final info
+	sr.createAndBroadcastHeaderFinalInfo()
 
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
@@ -215,6 +194,32 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		nil,
+		[]byte(sr.SelfPubKey()),
+		nil,
+		int(MtBlockHeaderFinalInfo),
+		sr.Rounder().Index(),
+		sr.ChainID(),
+		sr.Header.GetPubKeysBitmap(),
+		sr.Header.GetSignature(),
+		sr.Header.GetLeaderSignature(),
+	)
+
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if err != nil {
+		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
+		return
+	}
+
+	log.Debug("step 3: block header final info has been sent",
+		"PubKeysBitmap", sr.Header.GetPubKeysBitmap(),
+		"AggregateSignature", sr.Header.GetSignature(),
+		"LeaderSignature", sr.Header.GetLeaderSignature())
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {

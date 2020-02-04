@@ -36,7 +36,7 @@ const (
 
 const (
 	// MtBlockBody defines ID of a message that has a block body inside
-	MtBlockBody = iota + 1
+	MtBlockBody = iota
 	// MtBlockHeader defines ID of a message that has a block header inside
 	MtBlockHeader
 )
