@@ -3,6 +3,7 @@ package bls_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -312,6 +313,24 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestSubroundEndRound_SetAppStatusHandlerNilAshShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	err := sr.SetAppStatusHandler(nil)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestSubroundEndRound_SetAppStatusHandlerOkAshShouldWork(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	err := sr.SetAppStatusHandler(&mock.AppStatusHandlerStub{})
+	assert.Nil(t, err)
+}
+
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
@@ -608,6 +627,152 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_RoundCanceledShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+	sr.RoundCanceled = true
+
+	res := sr.DoEndRoundJobByParticipant()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusDataNotSetShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+	sr.Data = nil
+
+	res := sr.DoEndRoundJobByParticipant()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_PreviousSubroundNotFinishedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+	sr.SetStatus(2, spos.SsNotFinished)
+	res := sr.DoEndRoundJobByParticipant()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_CurrentSubroundFinishedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	// set previous as finished
+	sr.SetStatus(2, spos.SsFinished)
+
+	// set current as finished
+	sr.SetStatus(3, spos.SsFinished)
+
+	res := sr.DoEndRoundJobByParticipant()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusHeaderNotReceivedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	// set previous as finished
+	sr.SetStatus(2, spos.SsFinished)
+
+	// set current as not finished
+	sr.SetStatus(3, spos.SsNotFinished)
+
+	res := sr.DoEndRoundJobByParticipant()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_DoEndRoundJobByParticipant_ShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{Nonce: 37}
+	sr := *initSubroundEndRound()
+	sr.Header = hdr
+	sr.AddReceivedHeader(hdr)
+
+	// set previous as finished
+	sr.SetStatus(2, spos.SsFinished)
+
+	// set current as not finished
+	sr.SetStatus(3, spos.SsNotFinished)
+
+	res := sr.DoEndRoundJobByParticipant()
+	assert.True(t, res)
+}
+
+func TestSubroundEndRound_IsConsensusHeaderReceived_NoReceivedHeadersShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{Nonce: 37}
+	sr := *initSubroundEndRound()
+	sr.Header = hdr
+
+	res, retHdr := sr.IsConsensusHeaderReceived()
+	assert.False(t, res)
+	assert.Nil(t, retHdr)
+}
+
+func TestSubroundEndRound_IsConsensusHeaderReceived_HeaderNotReceivedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{Nonce: 37}
+	hdrToSearchFor := &block.Header{Nonce: 38}
+	sr := *initSubroundEndRound()
+	sr.AddReceivedHeader(hdr)
+	sr.Header = hdrToSearchFor
+
+	res, retHdr := sr.IsConsensusHeaderReceived()
+	assert.False(t, res)
+	assert.Nil(t, retHdr)
+}
+
+func TestSubroundEndRound_IsConsensusHeaderReceivedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{Nonce: 37}
+	sr := *initSubroundEndRound()
+	sr.Header = hdr
+	sr.AddReceivedHeader(hdr)
+
+	res, retHdr := sr.IsConsensusHeaderReceived()
+	assert.True(t, res)
+	assert.Equal(t, hdr, retHdr)
+}
+
+func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	res := sr.IsOutOfTime()
+	assert.False(t, res)
+}
+
+func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	// update rounder's mock so it will calculate for real the duration
+	container := mock.InitConsensusCore()
+	rounder := mock.RounderMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+		currentTime := time.Now()
+		elapsedTime := currentTime.Sub(startTime)
+		remainingTime := maxTime - elapsedTime
+
+		return remainingTime
+	}}
+	container.SetRounder(&rounder)
+	sr := *initSubroundEndRoundWithContainer(container)
+
+	sr.RoundTimeStamp = time.Now().AddDate(0, 0, -1)
+
+	res := sr.IsOutOfTime()
+	assert.True(t, res)
 }
 
 // getSubroundName returns the name of each subround from a given subround ID

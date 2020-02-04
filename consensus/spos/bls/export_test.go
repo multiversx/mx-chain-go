@@ -134,6 +134,18 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
+func (sr *subroundEndRound) DoEndRoundJobByParticipant() bool {
+	return sr.doEndRoundJobByParticipant()
+}
+
+func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
+	return sr.isConsensusHeaderReceived()
+}
+
+func (sr *subroundEndRound) IsOutOfTime() bool {
+	return sr.isOutOfTime()
+}
+
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
