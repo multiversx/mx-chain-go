@@ -124,9 +124,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE,process/scToProtocol:TRACE")
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
@@ -174,11 +176,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nonce++
 
 	///////////------- send stake tx and check sender's balance
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	var txData string
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
-		txData = "stake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.StakingSCAddress, txData)
+		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
+		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.AuctionSCAddress, txData)
 	}
 
 	time.Sleep(time.Second)
@@ -197,7 +200,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData)
 	}
 	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -213,8 +216,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	////////----- send unBound
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
-		txData = "unBound" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+		txData = "unBond" + "@" + pubKey
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData)
 	}
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
