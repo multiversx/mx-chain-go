@@ -2,10 +2,12 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
+// HeaderValidatorStub -
 type HeaderValidatorStub struct {
 	IsHeaderConstructionValidCalled func(currHdr, prevHdr data.HeaderHandler) error
 }
 
+// IsHeaderConstructionValid -
 func (hvs *HeaderValidatorStub) IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
 	if hvs.IsHeaderConstructionValidCalled != nil {
 		return hvs.IsHeaderConstructionValidCalled(currHdr, prevHdr)
