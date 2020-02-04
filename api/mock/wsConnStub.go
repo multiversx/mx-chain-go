@@ -2,6 +2,7 @@ package mock
 
 import "sync"
 
+// WsConnStub -
 type WsConnStub struct {
 	mutHandlers        sync.Mutex
 	closeCalled        func() error
@@ -9,6 +10,7 @@ type WsConnStub struct {
 	writeMessageCalled func(messageType int, data []byte) error
 }
 
+// Close -
 func (wcs *WsConnStub) Close() error {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()
@@ -16,6 +18,7 @@ func (wcs *WsConnStub) Close() error {
 	return wcs.closeCalled()
 }
 
+// ReadMessage -
 func (wcs *WsConnStub) ReadMessage() (messageType int, p []byte, err error) {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()
@@ -23,6 +26,7 @@ func (wcs *WsConnStub) ReadMessage() (messageType int, p []byte, err error) {
 	return wcs.readMessageCalled()
 }
 
+// WriteMessage -
 func (wcs *WsConnStub) WriteMessage(messageType int, data []byte) error {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()
@@ -30,6 +34,7 @@ func (wcs *WsConnStub) WriteMessage(messageType int, data []byte) error {
 	return wcs.writeMessageCalled(messageType, data)
 }
 
+// SetReadMessageHandler -
 func (wcs *WsConnStub) SetReadMessageHandler(f func() (messageType int, p []byte, err error)) {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()
@@ -37,6 +42,7 @@ func (wcs *WsConnStub) SetReadMessageHandler(f func() (messageType int, p []byte
 	wcs.readMessageCalled = f
 }
 
+// SetWriteMessageHandler -
 func (wcs *WsConnStub) SetWriteMessageHandler(f func(messageType int, data []byte) error) {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()
@@ -44,6 +50,7 @@ func (wcs *WsConnStub) SetWriteMessageHandler(f func(messageType int, data []byt
 	wcs.writeMessageCalled = f
 }
 
+// SetCloseHandler -
 func (wcs *WsConnStub) SetCloseHandler(f func() error) {
 	wcs.mutHandlers.Lock()
 	defer wcs.mutHandlers.Unlock()

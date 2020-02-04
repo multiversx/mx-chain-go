@@ -107,6 +107,7 @@ func (s *TpsBenchmarkMock) Update(mb data.HeaderHandler) {
 	}
 }
 
+// UpdateWithShardStats -
 func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
 	s.blockNumber = mb.Nonce
 	s.roundNumber = mb.Round

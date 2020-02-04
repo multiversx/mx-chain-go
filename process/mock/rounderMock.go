@@ -5,24 +5,29 @@ import (
 	"time"
 )
 
+// RounderMock -
 type RounderMock struct {
 	RoundIndex        int64
 	RoundTimeStamp    time.Time
 	RoundTimeDuration time.Duration
 }
 
+// Index -
 func (rndm *RounderMock) Index() int64 {
 	return rndm.RoundIndex
 }
 
+// TimeDuration -
 func (rndm *RounderMock) TimeDuration() time.Duration {
 	return rndm.RoundTimeDuration
 }
 
+// TimeStamp -
 func (rndm *RounderMock) TimeStamp() time.Time {
 	return rndm.RoundTimeStamp
 }
 
+// UpdateRound -
 func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
@@ -34,6 +39,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	}
 }
 
+// RemainingTime -
 func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	return rndm.RoundTimeDuration
 }
