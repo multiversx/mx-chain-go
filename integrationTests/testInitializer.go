@@ -647,7 +647,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 			continue
 		}
 
-    fmt.Printf("\n >>> Shard %d, Node %d proposing block, round %d. <<<\n", n.ShardCoordinator.SelfId(), idx, round)
+		fmt.Printf("\n >>> Shard %d, Node %d proposing block, round %d. <<<\n", n.ShardCoordinator.SelfId(), idx, round)
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
@@ -672,7 +672,7 @@ func SyncBlock(
 			continue
 		}
 
-    fmt.Printf("\n >>> Shard %d, Node %d synchronizing block, round %d. <<<\n", n.ShardCoordinator.SelfId(), idx, round)
+		fmt.Printf("\n >>> Shard %d, Node %d synchronizing block, round %d. <<<\n", n.ShardCoordinator.SelfId(), idx, round)
 		err := n.SyncNode(round)
 		if err != nil {
 			assert.Fail(t, err.Error())

@@ -60,8 +60,8 @@ func TestSCCallingInIntraShard(t *testing.T) {
 	}()
 
 	initialVal := big.NewInt(10000000000000)
-  initialVal.Mul(initialVal, initialVal)
-  fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -82,6 +82,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -96,6 +97,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -153,8 +155,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}()
 
 	initialVal := big.NewInt(10000000000000)
-  initialVal.Mul(initialVal, initialVal)
-  fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -175,6 +177,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
