@@ -1,9 +1,8 @@
 module github.com/ElrondNetwork/elrond-go
 
-go 1.13
+go 1.12
 
 require (
-	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.4
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.25
