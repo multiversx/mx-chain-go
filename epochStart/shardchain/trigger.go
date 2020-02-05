@@ -181,7 +181,36 @@ func (t *trigger) ForceEpochStart(_ uint64) error {
 	return nil
 }
 
-// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled
+// RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
+func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler) {
+	if interceptedHeader.IsStartOfEpochBlock() {
+		return
+	}
+	if interceptedHeader.GetEpoch() <= t.Epoch() {
+		return
+	}
+	_, ok := interceptedHeader.(*block.MetaBlock)
+	if !ok {
+		return
+	}
+
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	found := false
+	for _, header := range t.mapEpochStartHdrs {
+		if header.GetEpoch() >= interceptedHeader.GetEpoch() {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.requestHandler.RequestStartOfEpochMetaBlock(interceptedHeader.GetEpoch())
+	}
+}
+
+// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled only called with validated metablocks
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()

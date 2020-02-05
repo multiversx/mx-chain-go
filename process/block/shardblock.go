@@ -258,6 +258,14 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		sp.epochStartTrigger.SetProcessed(header)
+		if err != nil {
+			return err
+		}
+	}
+
 	defer func() {
 		if err != nil {
 			sp.RevertAccountState()
@@ -624,6 +632,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		"nonce", initialHdrData.GetNonce(),
 	)
 
+	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 	err := sp.specialAddressHandler.SetShardConsensusData(
 		initialHdrData.GetPrevRandSeed(),
 		initialHdrData.GetRound(),
@@ -638,8 +647,6 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
-
-	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }
@@ -677,6 +684,12 @@ func (sp *shardProcessor) CommitBlock(
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+	sp.epochStartTrigger.SetProcessed(header)
+	if err != nil {
 		return err
 	}
 
@@ -758,11 +771,6 @@ func (sp *shardProcessor) CommitBlock(
 	err = sp.commitAll()
 	if err != nil {
 		return err
-	}
-
-	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
-		sp.epochStartTrigger.SetProcessed(header)
 	}
 
 	log.Info("shard block has been committed successfully",
@@ -943,7 +951,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 	nonce := currentHeader.GetNonce()
 	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod
 
-	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() != sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
+	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
 		shouldRevertChain = true
 		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
 			currentHeader.GetNonce()-1,
