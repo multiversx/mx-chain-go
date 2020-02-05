@@ -183,3 +183,9 @@ type TrieFactory interface {
 	Create(config.StorageConfig, bool) (Trie, error)
 	IsInterfaceNil() bool
 }
+
+// MarshalizedBodyAndHeader holds marshalized body and header
+type MarshalizedBodyAndHeader struct {
+	Body   []byte
+	Header []byte
+}
