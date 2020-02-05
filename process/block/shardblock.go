@@ -269,6 +269,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	for _, hdr := range processedMetaHdrs {
+		log.Debug("processedMetaHdrs",
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+			"randseed", hdr.GetRandSeed())
+	}
+
 	err = sp.setMetaConsensusData(processedMetaHdrs)
 	if err != nil {
 		return err
@@ -1667,6 +1674,13 @@ func (sp *shardProcessor) createMiniBlocks(
 	processedMetaHdrs, errNotCritical := sp.getOrderedProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks)
 	if errNotCritical != nil {
 		log.Debug("getOrderedProcessedMetaBlocksFromMiniBlocks", "error", errNotCritical.Error())
+	}
+
+	for _, hdr := range processedMetaHdrs {
+		log.Debug("processedMetaHdrs",
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+			"randseed", hdr.GetRandSeed())
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)

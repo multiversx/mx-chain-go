@@ -157,6 +157,30 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 
+	for _, tx := range rtxh.protocolRewards {
+		log.Debug("CreateAllInterMiniBlocks.protocolRewards",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress())
+	}
+
+	for _, tx := range rtxh.protocolRewardsMeta {
+		log.Debug("CreateAllInterMiniBlocks.protocolRewardsMeta",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress())
+	}
+
+	for _, tx := range rtxh.feeRewards {
+		log.Debug("CreateAllInterMiniBlocks.feeRewards",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress())
+	}
+
 	rtxh.mutGenRewardTxs.Unlock()
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
@@ -442,6 +466,39 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	}
 
 	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
+		for hash, tx := range rtxh.rewardTxsForBlock {
+			log.Debug("verifyCreatedRewardsTxs.rewardTxsForBlock",
+				"hash", hash,
+				"shard", tx.ShardId,
+				"round", tx.Round,
+				"rcvAddr", tx.RcvAddr,
+				"value", tx.Value)
+		}
+
+		for _, tx := range rtxh.protocolRewards {
+			log.Debug("verifyCreatedRewardsTxs.protocolRewards",
+				"nonce", tx.GetNonce(),
+				"value", tx.GetValue(),
+				"sndAddress", tx.GetSndAddress(),
+				"rcvAddress", tx.GetRecvAddress())
+		}
+
+		for _, tx := range rtxh.protocolRewardsMeta {
+			log.Debug("verifyCreatedRewardsTxs.protocolRewardsMeta",
+				"nonce", tx.GetNonce(),
+				"value", tx.GetValue(),
+				"sndAddress", tx.GetSndAddress(),
+				"rcvAddress", tx.GetRecvAddress())
+		}
+
+		for _, tx := range rtxh.feeRewards {
+			log.Debug("verifyCreatedRewardsTxs.feeRewards",
+				"nonce", tx.GetNonce(),
+				"value", tx.GetValue(),
+				"sndAddress", tx.GetSndAddress(),
+				"rcvAddress", tx.GetRecvAddress())
+		}
+
 		return process.ErrRewardTxsMismatchCreatedReceived
 	}
 

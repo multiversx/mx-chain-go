@@ -94,7 +94,9 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = miniBlockPool
-	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
+	//TODO: This registration should be activated when we can determine if the received miniblock is for a header
+	//which has been already committed or for one which is out of range related to the node's interest:
+	//tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
