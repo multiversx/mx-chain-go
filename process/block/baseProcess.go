@@ -214,10 +214,9 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
 	maxRound uint64,
-	cacherMaxSize int,
 ) error {
 
-	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
 
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
 	if err != nil {
@@ -225,6 +224,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
+	lastNotarizedHdrRound := prevHdr.GetRound()
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -233,13 +233,14 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			continue
 		}
 
-		if i > 0 {
-			prevHdr = sortedHdrs[i-1]
+		hdrTooOld := currHdr.GetRound() <= lastNotarizedHdrRound
+		if hdrTooOld {
+			continue
 		}
 
-		hdrTooNew := currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound
+		hdrTooNew := currHdr.GetRound() > maxRound
 		if hdrTooNew {
-			continue
+			break
 		}
 
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
@@ -247,6 +248,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 				missingNonces = append(missingNonces, j)
 			}
 		}
+
+		prevHdr = currHdr
 	}
 
 	requested := 0
@@ -534,16 +537,20 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 	return nil
 }
 
-func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacherMaxSize int) bool {
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler) bool {
+	if check.IfNil(header) {
+		return false
+	}
+
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(header.GetShardID())
 	if err != nil {
-		log.Debug("isHeaderOutOfRange",
+		log.Debug("isHeaderOutOfRange.GetLastCrossNotarizedHeader",
 			"shard", header.GetShardID(),
 			"error", err.Error())
 		return false
 	}
 
-	allowedSize := uint64(float64(cacherMaxSize) * process.MaxOccupancyPercentageAllowed)
+	allowedSize := uint64(float64(bp.dataPool.Headers().MaxSize()) * process.MaxOccupancyPercentageAllowed)
 	isHeaderOutOfRange := header.GetNonce() > lastCrossNotarizedHeader.GetNonce()+allowedSize
 
 	return isHeaderOutOfRange
