@@ -1517,7 +1517,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
 
 	for shardId, subsetBlockBody := range bodies {
-		buff, err := mp.marshalizer.Marshal(&block.BodyHelper{subsetBlockBody})
+		buff, err := mp.marshalizer.Marshal(&block.BodyHelper{MiniBlocks: subsetBlockBody})
 		if err != nil {
 			log.Debug(process.ErrMarshalWithoutSuccess.Error())
 			continue

@@ -60,7 +60,7 @@ func (sdp *SizeDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byte,
 
 				elements = make([][]byte, 0)
 				elements = append(elements, element)
-				marshaledElements, err = sdp.marshalizer.Marshal(batch.Batch{elements})
+				marshaledElements, err = sdp.marshalizer.Marshal(batch.Batch{Data: elements})
 				if err != nil {
 					return nil, err
 				}
@@ -80,7 +80,7 @@ func (sdp *SizeDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byte,
 	}
 
 	if len(elements) > 0 {
-		marshaledElements, err := sdp.marshalizer.Marshal(batch.Batch{elements})
+		marshaledElements, err := sdp.marshalizer.Marshal(batch.Batch{Data: elements})
 		if err != nil {
 			return nil, err
 		}
