@@ -94,10 +94,6 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = miniBlockPool
-	//TODO: This registration should be activated when we can determine if the received miniblock is for a header
-	//which has been already committed or for one which is out of range related to the node's interest:
-	//tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
-
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
@@ -679,27 +675,6 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
-}
-
-// receivedMiniBlock is a callback function when a new miniblock was received
-// it will further ask for missing transactions
-func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
-	val, ok := tc.miniBlockPool.Peek(miniBlockHash)
-	if !ok {
-		return
-	}
-
-	miniBlock, ok := val.(*block.MiniBlock)
-	if !ok {
-		return
-	}
-
-	preproc := tc.getPreProcessor(miniBlock.Type)
-	if preproc == nil || preproc.IsInterfaceNil() {
-		return
-	}
-
-	_ = preproc.RequestTransactionsForMiniBlock(miniBlock)
 }
 
 // processMiniBlockComplete - all transactions must be processed together, otherwise error
