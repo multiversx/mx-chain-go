@@ -60,26 +60,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
+		accounts:              arguments.Accounts,
+		blockSizeThrottler:    blockSizeThrottler,
+		forkDetector:          arguments.ForkDetector,
+		hasher:                arguments.Hasher,
+		marshalizer:           arguments.Marshalizer,
+		store:                 arguments.Store,
+		shardCoordinator:      arguments.ShardCoordinator,
+		nodesCoordinator:      arguments.NodesCoordinator,
+		specialAddressHandler: arguments.SpecialAddressHandler,
+		uint64Converter:       arguments.Uint64Converter,
+		requestHandler:        arguments.RequestHandler,
+		appStatusHandler:      statusHandler.NewNilStatusHandler(),
+		blockChainHook:        arguments.BlockChainHook,
+		txCoordinator:         arguments.TxCoordinator,
+		rounder:               arguments.Rounder,
+		epochStartTrigger:     arguments.EpochStartTrigger,
+		headerValidator:       arguments.HeaderValidator,
+		bootStorer:            arguments.BootStorer,
+		blockTracker:          arguments.BlockTracker,
+		dataPool:              arguments.DataPool,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -465,26 +465,9 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round, sp.dataPool.Headers().MaxSize())
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round)
 	if err != nil {
 		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
-	}
-
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
-	if err != nil {
-		log.Debug("checkAndRequestIfMetaHeadersMissing",
-			"shard", sharding.MetachainShardId,
-			"error", err.Error())
-		return
-	}
-
-	for i := 0; i < len(orderedMetaBlocks); i++ {
-		isMetaBlockOutOfRange := orderedMetaBlocks[i].GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-		if isMetaBlockOutOfRange {
-			break
-		}
-
-		sp.txCoordinator.RequestMiniBlocks(orderedMetaBlocks[i])
 	}
 }
 
@@ -1378,16 +1361,15 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool.MaxSize()) {
+	if sp.isHeaderOutOfRange(metaBlock) {
 		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
-
 		return
 	}
 
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
 	if err != nil {
-		log.Debug("receivedMetaBlock",
-			"shard", sharding.MetachainShardId,
+		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
+			"shard", metaBlock.GetShardID(),
 			"error", err.Error())
 		return
 	}
@@ -1404,12 +1386,12 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.chRcvEpochStart <- true
 	}
 
-	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isMetaBlockOutOfRange {
+	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockOutOfRequestRange {
 		return
 	}
 
-	sp.txCoordinator.RequestMiniBlocks(metaBlock)
+	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
