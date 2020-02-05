@@ -3,6 +3,8 @@ package bls
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"sync"
 	"time"
 
@@ -155,12 +157,39 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		debugError("broadcastMiniBlocksAndTransactions", err)
 	}
 
+	//err = sr.broadcastTrie()
+	//if err != nil {
+	//	debugError("broadcastTrie", err)
+	//}
+
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) broadcastTrie() error {
+	if !sr.Header.IsStartOfEpochBlock() {
+		return nil
+	}
+	log.Debug("broadcastTrie")
+	tp, ok := sr.BlockProcessor().(process.TrieProcessor)
+
+	if ok {
+		marshalizedTrie, err := tp.MarshalizedTrieToBroadcast(sr.Header.GetValidatorStatsRootHash())
+		if err != nil {
+			return err
+		}
+
+		tb, ok := sr.BroadcastMessenger().(consensus.TrieBroadcaster)
+		if ok {
+			return tb.BroadcastTrie(marshalizedTrie)
+		}
+	}
+
+	return nil
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant() bool {

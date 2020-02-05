@@ -258,8 +258,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
 	}
-	round := header.GetRound()
-	log.Trace("hello", round)
 
 	rootHash, _ := vs.peerAdapter.RootHash()
 	log.Trace("Starting from validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
@@ -345,6 +343,11 @@ func (vs *validatorStatistics) Commit() ([]byte, error) {
 // RootHash returns the root hash of the validator statistics trie
 func (vs *validatorStatistics) RootHash() ([]byte, error) {
 	return vs.peerAdapter.RootHash()
+}
+
+// RootHash returns the root hash of the validator statistics trie
+func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error) {
+	return vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(

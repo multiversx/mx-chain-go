@@ -948,6 +948,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	msh, mstx, err := mp.MarshalizedDataToBroadcast(&block.MetaBlock{}, block.Body{})
+
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)

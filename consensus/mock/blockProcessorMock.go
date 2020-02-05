@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
-// BlockProcessorMock mocks the implementation for a blockProcessor
+// BlockProcessorMock mocks the implementation for a blockProcessorbyte
 type BlockProcessorMock struct {
 	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error

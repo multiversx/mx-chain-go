@@ -103,6 +103,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
+	GetValidatorInfoFromRootHash(rootHash []byte) ([]ValidatorInfo, error)
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
@@ -128,4 +129,13 @@ type TriesHolder interface {
 	GetAll() []data.Trie
 	Reset()
 	IsInterfaceNil() bool
+}
+
+type ValidatorInfo interface {
+	PublicKey() []byte
+	ShardId() uint32
+	List() string
+	Index() uint32
+	TempRating() uint32
+	Rating() uint32
 }

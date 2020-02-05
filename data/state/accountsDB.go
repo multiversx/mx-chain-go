@@ -470,6 +470,44 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	return nil
 }
 
+// RecreateTrie is used to reload the trie based on an existing rootHash
+func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) ([]ValidatorInfo, error) {
+	newTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+	if newTrie == nil {
+		return nil, ErrNilTrie
+	}
+
+	peerAccounts, err := newTrie.GetAllLeaves()
+	if err != nil {
+		return nil, err
+	}
+
+	validators := make([]ValidatorInfo, len(peerAccounts))
+	i := uint32(0)
+
+	for _, pa := range peerAccounts {
+		deserializedPa := &PeerAccount{}
+		err := adb.marshalizer.Unmarshal(deserializedPa, pa)
+		if err != nil {
+			return nil, err
+		}
+		validators[i] = NewValidatorInfoData(
+			deserializedPa.BLSPublicKey,
+			deserializedPa.CurrentShardId,
+			"list",
+			i,
+			deserializedPa.TempRating,
+			deserializedPa.Rating,
+		)
+		i++
+	}
+
+	return validators, nil
+}
+
 // Journalize adds a new object to entries list. Concurrent safe.
 func (adb *AccountsDB) Journalize(entry JournalEntry) {
 	if entry == nil || entry.IsInterfaceNil() {

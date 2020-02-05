@@ -591,6 +591,11 @@ func (mp *metaProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
+		body, err2 := mp.generateValidatorMiniBlock()
+		if err2 != nil {
+			return body, err2
+		}
+
 		return miniBlocks, nil
 	}
 
@@ -642,6 +647,24 @@ func (mp *metaProcessor) createMiniBlocks(
 	)
 
 	return miniBlocks, nil
+}
+
+func (mp *metaProcessor) generateValidatorMiniBlock() (block.Body, error) {
+	validatorStatsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	validatorInfoDataList, err := mp.validatorStatisticsProcessor.GetValidatorInfosForHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace(fmt.Sprintf("%#v", validatorInfoDataList))
+
+	//mp.createValidatorMiniBlocks(validatorInfoDataList)
+
+	return nil, nil
 }
 
 // full verification through metachain header
@@ -1660,7 +1683,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -1687,6 +1710,39 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	return mrsData, mrsTxs, nil
 }
+
+//
+//// MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
+//func (mp *metaProcessor) MarshalizedTrieToBroadcast(validatorStatsRootHash []byte) ([]byte, error) {
+//
+//
+//	trie, err := mp.validatorStatisticsProcessor.GetValidatorInfosForHash(validatorStatsRootHash)
+//
+//	leaves, _ := trie.GetAllLeaves()
+//	nrLeaves := len(leaves)
+//
+//	log.Debug("MarshalizedTrieToBroadcast trie", "nrLeaves", nrLeaves)
+//
+//	for key, value := range leaves{
+//		log.Debug("leave", "key", core.ToHex([]byte(key)), "len", len(value))
+//	}
+//
+//	var serializedNodes [][]byte
+//	serializedNodes, err = trie.GetSerializedNodes(validatorStatsRootHash, 1000000)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	var buff []byte
+//	buff, err = mp.marshalizer.Marshal(serializedNodes)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	log.Debug("MarshalizedTrieToBroadcast trie", "triesize", len(buff))
+//
+//	return buff, nil
+//}
 
 func getTxCount(shardInfo []block.ShardData) uint32 {
 	txs := uint32(0)
@@ -1780,3 +1836,40 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 
 	return pendingMiniBlocks
 }
+
+//func (mp *metaProcessor) createValidatorMiniBlocks(list []state.ValidatorInfo) ([]*block.MiniBlock, error) {
+//	sort.Slice(list, func(i, j int) bool {
+//		return list[i].ShardId() > list[j].ShardId()
+//	})
+//
+//	for shardId, validator := range list {
+//		miniBlock := &block.MiniBlock{}
+//		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
+//		miniBlock.ReceiverShardID = shardId
+//		miniBlock.TxHashes = make([][]byte, len(validators))
+//		miniBlock.Type = block.PeerBlock
+//
+//		for _, validator := range validators{
+//			account, _ := mp.validatorStatisticsProcessor.GetPeerAccount(validator)
+//			tempRating := account.GetTempRating()
+//			err := account.SetRatingWithJournal(tempRating)
+//			if err != nil{
+//				return nil, err
+//			}
+//
+//			miniBlock.TxHashes
+//
+//		}
+//	}
+//
+//
+//}
+//
+//func (mp *metaProcessor) createTrieSnapshot(hash []byte) ([]state.ValidatorInfo, error) {
+//	validatorInfos, err :=
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return prevTrie, nil
+//}

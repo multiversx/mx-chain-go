@@ -11,6 +11,7 @@ type ValidatorStatisticsProcessorMock struct {
 	IsInterfaceNilCalled            func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
 	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
+	GetTrieFromRootHashCalled       func(rootHash []byte) ([]state.ValidatorInfo, error)
 	CommitCalled                    func() ([]byte, error)
 	RootHashCalled                  func() ([]byte, error)
 }
@@ -53,6 +54,14 @@ func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
 func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
+	}
+
+	return nil, nil
+}
+
+func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error) {
+	if vsp.GetTrieFromRootHashCalled != nil {
+		return vsp.GetTrieFromRootHashCalled(rootHash)
 	}
 
 	return nil, nil

@@ -2,7 +2,6 @@ package mock
 
 import (
 	"errors"
-
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -26,6 +25,7 @@ type AccountsStub struct {
 	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
 	IsPruningEnabledCalled      func() bool
+	GetTrieFromRootHashCalled   func(rootHash []byte) ([]state.ValidatorInfo, error)
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -176,6 +176,10 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	}
 
 	return false
+}
+
+func (as *AccountsStub) GetValidatorInfoFromRootHash(rootHash []byte) ([]state.ValidatorInfo, error) {
+	return as.GetTrieFromRootHashCalled(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

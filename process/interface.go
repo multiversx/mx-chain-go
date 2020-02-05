@@ -226,15 +226,28 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// TrieBroadCaster is the main interface for block execution engine
+type TrieProcessor interface {
+	MarshalizedTrieToBroadcast([]byte) ([]byte, error)
+}
+
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
+	GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+}
+
+type ValidatorInfo struct {
+	PublicKey []byte
+	ShardId   uint32
+	List      string
+	Index     uint32
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
