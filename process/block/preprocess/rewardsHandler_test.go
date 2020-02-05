@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -490,56 +489,6 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 
 		assert.True(t, found)
 	}
-}
-
-func TestRewardsHandler_CreateMarshalizedDataShouldReturnNil(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-	th, _ := NewRewardTxHandler(
-		&mock.SpecialAddressHandlerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AddressConverterMock{},
-		&mock.ChainStorerMock{},
-		tdp.RewardTransactions(),
-		RewandsHandlerMock(),
-	)
-
-	txs := []data.TransactionHandler{
-		&rewardTx.RewardTx{
-			Round:   0,
-			Epoch:   0,
-			Value:   big.NewInt(1),
-			RcvAddr: []byte("rcvr1"),
-			ShardId: 0,
-		},
-		&rewardTx.RewardTx{
-			Round:   0,
-			Epoch:   0,
-			Value:   big.NewInt(1),
-			RcvAddr: []byte("rcvr2"),
-			ShardId: 0,
-		},
-	}
-
-	err := th.AddIntermediateTransactions(txs)
-	assert.Nil(t, err)
-
-	var expectedMarshalizedTxs [][]byte
-	marshTx1, _ := th.marshalizer.Marshal(txs[0])
-	marshTx2, _ := th.marshalizer.Marshal(txs[1])
-	expectedMarshalizedTxs = append(expectedMarshalizedTxs, marshTx1, marshTx2)
-
-	var txsHashes [][]byte
-	tx1Hash, _ := core.CalculateHash(th.marshalizer, th.hasher, txs[0])
-	tx2Hash, _ := core.CalculateHash(th.marshalizer, th.hasher, txs[1])
-	txsHashes = append(txsHashes, tx1Hash, tx2Hash)
-
-	res, err := th.CreateMarshalizedData(txsHashes)
-	assert.Nil(t, err)
-	assert.Nil(t, res)
 }
 
 func TestRewardsHandler_CreateBlockStartedShouldCreateProtocolReward(t *testing.T) {
