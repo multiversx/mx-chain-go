@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"bytes"
 	"math/big"
 	"reflect"
 	"testing"
@@ -493,7 +492,7 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 	}
 }
 
-func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
+func TestRewardsHandler_CreateMarshalizedDataShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -540,9 +539,7 @@ func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
 
 	res, err := th.CreateMarshalizedData(txsHashes)
 	assert.Nil(t, err)
-	assert.Equal(t, len(txs), len(res))
-	assert.True(t, bytes.Equal(expectedMarshalizedTxs[0], res[0]))
-	assert.True(t, bytes.Equal(expectedMarshalizedTxs[1], res[1]))
+	assert.Nil(t, res)
 }
 
 func TestRewardsHandler_CreateBlockStartedShouldCreateProtocolReward(t *testing.T) {

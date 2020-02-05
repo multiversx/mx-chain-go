@@ -607,13 +607,6 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			appended = true
 
 			var currMrsTxs [][]byte
-			//TODO(iulian) remove this
-			log.Trace("transactionCoordinator.CreateMarshalizedData",
-				"miniblock type", miniblock.Type.String(),
-				"mb sender shard ID", miniblock.SenderShardID,
-				"mb recv shard ID", miniblock.ReceiverShardID,
-				"num tx hashes", len(miniblock.TxHashes))
-
 			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
