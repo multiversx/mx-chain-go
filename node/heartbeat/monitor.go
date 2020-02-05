@@ -11,11 +11,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	types "github.com/gogo/protobuf/types"
-
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	types "github.com/gogo/protobuf/types"
 )
 
 var log = logger.GetOrCreate("node/heartbeat")
