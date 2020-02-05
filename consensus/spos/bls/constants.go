@@ -21,12 +21,17 @@ const (
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
 	MtUnknown consensus.MessageType = iota
+	// MtBlockBodyAndHeader defines ID of a message that has a block body and a block header inside
+	MtBlockBodyAndHeader
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside
 	MtBlockHeader
 	// MtSignature defines ID of a message that has a Signature inside
 	MtSignature
+	// MtBlockHeaderFinalInfo defines ID of a message that has a block header final info inside
+	// (aggregate signature, bitmap and seal leader signature for the proposed and accepted header)
+	MtBlockHeaderFinalInfo
 )
 
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
@@ -57,6 +62,9 @@ const srEndStartTime = 0.85
 const srEndEndTime = 0.95
 
 const (
+	// BlockBodyAndHeaderStringValue represents the string to be used to identify a block body and a block header
+	BlockBodyAndHeaderStringValue = "(BLOCK_BODY_AND_HEADER)"
+
 	// BlockBodyStringValue represents the string to be used to identify a block body
 	BlockBodyStringValue = "(BLOCK_BODY)"
 
@@ -65,6 +73,9 @@ const (
 
 	// BlockSignatureStringValue represents the string to be used to identify a block's signature
 	BlockSignatureStringValue = "(SIGNATURE)"
+
+	// BlockHeaderFinalInfoStringValue represents the string to be used to identify a block's header final info
+	BlockHeaderFinalInfoStringValue = "(FINAL_INFO)"
 
 	// BlockUnknownStringValue represents the string to be used to identify an unknown block
 	BlockUnknownStringValue = "(UNKNOWN)"
@@ -75,12 +86,16 @@ const (
 
 func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
+	case MtBlockBodyAndHeader:
+		return BlockBodyAndHeaderStringValue
 	case MtBlockBody:
 		return BlockBodyStringValue
 	case MtBlockHeader:
 		return BlockHeaderStringValue
 	case MtSignature:
 		return BlockSignatureStringValue
+	case MtBlockHeaderFinalInfo:
+		return BlockHeaderFinalInfoStringValue
 	case MtUnknown:
 		return BlockUnknownStringValue
 	default:
