@@ -84,7 +84,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 	request := VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInvalidJSONRequest
 	}
 
 	command, err := createSCQuery(&request)
