@@ -233,43 +233,27 @@ func createTries(
 	trieContainer := state.NewDataTriesHolder()
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		Cfg:                    args.config.AccountsTrieStorage,
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
 		SnapshotDbCfg:          args.config.TrieSnapshotDB,
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		PathManager:            args.pathManager,
 		ShardId:                args.shardId,
-		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	merkleTrie, err := trieFactory.Create()
+	merkleTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTrieConfig.PruningEnabled)
 	if err != nil {
 		return nil, err
 	}
 
 	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
 
-	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
-		Cfg:                    args.config.PeerAccountsTrieStorage,
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            args.pathManager,
-		ShardId:                args.shardId,
-		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
-	}
-	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
+	//TODO add pruning on peer accounts trie
+	peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, false)
 	if err != nil {
 		return nil, err
 	}
