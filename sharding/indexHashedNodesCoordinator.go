@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+)
+
+const (
+	keyFormat = "%s_%v_%v"
 )
 
 type indexHashedNodesCoordinator struct {
@@ -19,6 +22,7 @@ type indexHashedNodesCoordinator struct {
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
+	consensusGroupCacher    Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -36,6 +40,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
+		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -63,6 +68,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.SelfPublicKey == nil {
 		return ErrNilPubKey
+	}
+	if arguments.ConsensusGroupCache == nil {
+		return ErrNilCacher
 	}
 
 	return nil
@@ -122,12 +130,19 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return nil, ErrNilRandomness
 	}
 
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	validators := ihgs.searchConsensusForKey(key)
+	if validators != nil {
+		return validators, nil
+	}
+
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
+
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -136,7 +151,21 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
 
+	ihgs.consensusGroupCacher.Put(key, tempList)
+
 	return tempList, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+	value, ok := ihgs.consensusGroupCacher.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup
+		}
+
+	}
+	return nil
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key
@@ -279,12 +308,10 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenL
 
 	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
 
-	computedLargeIndex := big.NewInt(0)
-	computedLargeIndex.SetBytes(indexHash)
-	lenExpandedEligibleList := big.NewInt(int64(lenList))
+	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
+	lenExpandedEligibleList := uint64(lenList)
 
-	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
-	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, lenExpandedEligibleList).Int64()
+	computedListIndex := computedLargeIndex % lenExpandedEligibleList
 
 	return int(computedListIndex)
 }
@@ -301,7 +328,7 @@ func (ihgs *indexHashedNodesCoordinator) checkIndex(
 
 		if ihgs.validatorIsInList(v, selectedList) {
 			proposedIndex++
-			proposedIndex = proposedIndex % len(eligibleList)
+			proposedIndex %= len(eligibleList)
 			continue
 		}
 

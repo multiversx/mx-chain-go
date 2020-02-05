@@ -20,12 +20,12 @@ func (its *InterceptorThrottlerStub) EndProcessing() {
 	atomic.AddInt32(&its.endProcessingCount, 1)
 }
 
-func (it *InterceptorThrottlerStub) StartProcessingCount() int32 {
-	return atomic.LoadInt32(&it.startProcessingCount)
+func (its *InterceptorThrottlerStub) StartProcessingCount() int32 {
+	return atomic.LoadInt32(&its.startProcessingCount)
 }
 
-func (it *InterceptorThrottlerStub) EndProcessingCount() int32 {
-	return atomic.LoadInt32(&it.endProcessingCount)
+func (its *InterceptorThrottlerStub) EndProcessingCount() int32 {
+	return atomic.LoadInt32(&its.endProcessingCount)
 }
 
 func (its *InterceptorThrottlerStub) IsInterfaceNil() bool {

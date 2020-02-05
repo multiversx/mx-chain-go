@@ -189,6 +189,10 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 }
 
 func TestAgarioContractJoinGameReward(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -305,10 +309,10 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 	for i := 0; i < noOfUsers; i++ {
 		existingUserBalance := vm.GetAccountsBalance(usersAddresses[i], accnts)
-		computedBalance := big.NewInt(0).Set(afterJoinUsersBalances[i])
+		computedBalance = big.NewInt(0).Set(afterJoinUsersBalances[i])
 		computedBalance.Add(computedBalance, prize)
 
-		assert.Equal(t, computedBalance, existingUserBalance)
+		assert.Equal(t, computedBalance.Uint64(), existingUserBalance.Uint64())
 	}
 
 	transferredBack := big.NewInt(0).Set(prize)
@@ -318,7 +322,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	computedBalance.Sub(computedBalance, transferredBack)
 	balanceOfSC, _ = blockchainHook.GetBalance(scAddressBytes)
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
-	assert.Equal(t, computedBalance, balanceOfSC)
+	assert.Equal(t, computedBalance.Uint64(), balanceOfSC.Uint64())
 }
 
 func BenchmarkAgarioJoinGame(b *testing.B) {

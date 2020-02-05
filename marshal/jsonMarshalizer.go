@@ -10,18 +10,18 @@ type JsonMarshalizer struct {
 }
 
 // Marshal tries to serialize obj parameter
-func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (jm JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
-		return nil, errors.New("NIL object to serilize from!")
+		return nil, errors.New("nil object to serialize from")
 	}
 
 	return json.Marshal(obj)
 }
 
 // Unmarshal tries to deserialize input buffer values into input object
-func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (jm JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
-		return errors.New("nil object to serilize to")
+		return errors.New("nil object to serialize to")
 	}
 	if buff == nil {
 		return errors.New("nil byte buffer to deserialize from")
@@ -34,9 +34,6 @@ func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (j *JsonMarshalizer) IsInterfaceNil() bool {
-	if j == nil {
-		return true
-	}
-	return false
+func (jm *JsonMarshalizer) IsInterfaceNil() bool {
+	return jm == nil
 }

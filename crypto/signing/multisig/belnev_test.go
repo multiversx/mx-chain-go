@@ -3,6 +3,7 @@ package multisig_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -130,7 +131,7 @@ func createSigShares(
 
 		// set the <i> commitment for all signers
 		for j := uint16(0); j < nbSigs; j++ {
-			multiSigners[j].StoreCommitment(i, comm)
+			_ = multiSigners[j].StoreCommitment(i, comm)
 		}
 	}
 
@@ -288,7 +289,7 @@ func TestNewBelNevMultisig_OK(t *testing.T) {
 	multiSig, err := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, multiSig)
+	assert.False(t, check.IfNil(multiSig))
 }
 
 func TestBelNevSigner_CreateNilPubKeysShouldErr(t *testing.T) {
@@ -346,7 +347,7 @@ func TestBelNevSigner_CreateOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, comm := multiSig.CreateCommitment()
-	multiSig.StoreCommitment(0, comm)
+	_ = multiSig.StoreCommitment(0, comm)
 
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 	mSig, _ := multiSigCreated.(multiSignerBN)
@@ -1174,10 +1175,10 @@ func TestBelNevSigner_VerifyBitmapMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := []byte("message")
-	multiSigner, aggSig, bitmap := createAggregatedSig(msg)
+	multiSigner, aggSig, _ := createAggregatedSig(msg)
 	_ = multiSigner.SetAggregatedSig(aggSig)
 	// set a smaller bitmap
-	bitmap = make([]byte, 1)
+	bitmap := make([]byte, 1)
 
 	err := multiSigner.Verify(msg, bitmap)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)

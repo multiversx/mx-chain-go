@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -68,13 +67,13 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	unsignedTransactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	n.ShardDataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+	n.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
 		mut.Lock()
 		defer mut.Unlock()
 
 		unsignedtxHashes = append(unsignedtxHashes, key)
 
-		dataStore := n.ShardDataPool.UnsignedTransactions().ShardDataStore(
+		dataStore := n.DataPool.UnsignedTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
 		)
 		val, _ := dataStore.Get(key)
@@ -110,7 +109,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		noOfUnsignedTx,
 		unsignedtxHashes,
 		unsignedTransactions,
-		n.ShardDataPool.UnsignedTransactions(),
+		n.DataPool.UnsignedTransactions(),
 		n.ShardCoordinator,
 	)
 }
@@ -145,7 +144,7 @@ func generateAndSendBulkSmartContractResults(
 		}
 		buff := make([]byte, 8)
 		binary.BigEndian.PutUint64(buff, nonce)
-		uTx.Data = hex.EncodeToString(buff)
+		uTx.Data = buff
 
 		uTxBytes, _ := marshalizer.Marshal(uTx)
 		unsigedTxs = append(unsigedTxs, uTxBytes)
@@ -161,7 +160,7 @@ func generateAndSendBulkSmartContractResults(
 
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
-			messenger.BroadcastOnChannelBlocking(
+			_ = messenger.BroadcastOnChannelBlocking(
 				identifier,
 				identifier,
 				bufferToSend,

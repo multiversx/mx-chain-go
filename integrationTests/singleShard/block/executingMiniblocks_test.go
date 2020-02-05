@@ -1,11 +1,19 @@
 package block
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -71,6 +79,182 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	time.Sleep(stepDelay)
 
 	checkCurrentBlockHeight(t, nodes, nonce-1)
+}
+
+// TestShardShouldProposeBlockContainingInvalidTransactions tests the following scenario:
+// 1. generate 3 move balance transactions: one that can be executed, one that can not be executed but the account has
+//    the balance for the fee and one that is completely invalid (no balance left for it)
+// 2. proposer will have those 3 transactions in its pools and will propose a block
+// 3. another node will be able to sync the proposed block (and request - receive) the 2 transactions that
+//    will end up in the block (one valid and one invalid)
+// 4. the unexecutable transaction will be removed from the proposer's pool
+func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(1)
+	numOfNodes := 2
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	for i := 0; i < numOfNodes; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	}
+
+	idxProposer := 0
+	proposer := nodes[idxProposer]
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	nonce := uint64(1)
+	round = integrationTests.IncrementAndPrintRound(round)
+
+	transferValue := uint64(1000000)
+	mintAllNodes(nodes, transferValue)
+
+	txs, hashes := generateTransferTxs(transferValue, proposer.OwnAccount.SkTxSign, nodes[1].OwnAccount.PkTxSign)
+	addTxsInDataPool(proposer, txs, hashes)
+
+	_, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
+
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
+
+	testStateOnNodes(t, nodes, idxProposer, hashes)
+}
+
+func mintAllNodes(nodes []*integrationTests.TestProcessorNode, transferValue uint64) {
+	balanceFirstTransaction := transferValue + integrationTests.MinTxGasLimit*integrationTests.MinTxGasPrice
+	balanceSecondTransaction := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
+	totalBalance := balanceFirstTransaction + balanceSecondTransaction
+
+	integrationTests.MintAllNodes(nodes, big.NewInt(0).SetUint64(totalBalance))
+}
+
+func generateTransferTxs(
+	transferValue uint64,
+	sk crypto.PrivateKey,
+	pkReceiver crypto.PublicKey,
+) ([]data.TransactionHandler, [][]byte) {
+
+	numTxs := 3
+	txs := make([]data.TransactionHandler, numTxs)
+	hashes := make([][]byte, numTxs)
+	for i := 0; i < numTxs; i++ {
+		txs[i] = integrationTests.GenerateTransferTx(
+			uint64(i),
+			sk,
+			pkReceiver,
+			big.NewInt(0).SetUint64(transferValue),
+			integrationTests.MinTxGasPrice,
+			integrationTests.MinTxGasLimit,
+		)
+
+		hashes[i], _ = core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, txs[i])
+	}
+
+	return txs, hashes
+}
+
+func addTxsInDataPool(proposer *integrationTests.TestProcessorNode, txs []data.TransactionHandler, hashes [][]byte) {
+	shardId := proposer.ShardCoordinator.SelfId()
+	cacherIdentifier := process.ShardCacherIdentifier(shardId, shardId)
+	txCache := proposer.DataPool.Transactions()
+
+	for i := 0; i < len(txs); i++ {
+		txCache.AddData(hashes[i], txs[i], cacherIdentifier)
+	}
+}
+
+func testStateOnNodes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, hashes [][]byte) {
+	proposer := nodes[idxProposer]
+
+	expectedHeaderNonce := uint64(1)
+	txValidIdx := 0
+	txInvalidIdx := 1
+	txDeletedIdx := 2
+
+	testSameBlockHeight(t, nodes, idxProposer, expectedHeaderNonce)
+	testTxIsInMiniblock(t, proposer, hashes[txValidIdx], block.TxBlock)
+	testTxIsInMiniblock(t, proposer, hashes[txInvalidIdx], block.InvalidBlock)
+	testTxIsInNotInBody(t, proposer, hashes[txDeletedIdx])
+	testTxHashNotPresentInPool(t, proposer, hashes[txDeletedIdx])
+}
+
+func testSameBlockHeight(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, expectedHeight uint64) {
+	proposer := nodes[idxProposer]
+
+	for _, n := range nodes {
+		assert.NotNil(t, n.BlockChain.GetCurrentBlockHeader())
+		assert.Equal(t, expectedHeight, n.BlockChain.GetCurrentBlockHeader().GetNonce())
+		assert.Equal(t, proposer.BlockChain.GetCurrentBlockHeaderHash(), n.BlockChain.GetCurrentBlockHeaderHash())
+	}
+}
+
+func testTxHashNotPresentInPool(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte) {
+	txCache := proposer.DataPool.Transactions()
+	_, ok := txCache.SearchFirstData(hash)
+	assert.False(t, ok)
+}
+
+func testTxIsInMiniblock(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte, bt block.Type) {
+	hdrHandler := proposer.BlockChain.GetCurrentBlockHeader()
+	hdr := hdrHandler.(*block.Header)
+
+	for _, mbh := range hdr.MiniBlockHeaders {
+		if mbh.Type != bt {
+			continue
+		}
+
+		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash)
+		assert.Nil(t, err)
+
+		miniblock := &block.MiniBlock{}
+		_ = integrationTests.TestMarshalizer.Unmarshal(miniblock, mbBuff)
+
+		for _, txHash := range miniblock.TxHashes {
+			if bytes.Equal(hash, txHash) {
+				return
+			}
+		}
+	}
+
+	assert.Fail(t, fmt.Sprintf("hash %s not found in miniblock type %s", display.DisplayByteSlice(hash), bt.String()))
+}
+
+func testTxIsInNotInBody(t *testing.T, proposer *integrationTests.TestProcessorNode, hash []byte) {
+	hdrHandler := proposer.BlockChain.GetCurrentBlockHeader()
+	hdr := hdrHandler.(*block.Header)
+
+	for _, mbh := range hdr.MiniBlockHeaders {
+		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash)
+		assert.Nil(t, err)
+
+		miniblock := &block.MiniBlock{}
+		_ = integrationTests.TestMarshalizer.Unmarshal(miniblock, mbBuff)
+
+		for _, txHash := range miniblock.TxHashes {
+			if bytes.Equal(hash, txHash) {
+				assert.Fail(t, fmt.Sprintf("hash %s should not have been not found in miniblock type %s",
+					display.DisplayByteSlice(hash), miniblock.Type.String()))
+			}
+		}
+	}
 }
 
 func proposeAndCommitBlock(node *integrationTests.TestProcessorNode, round uint64, nonce uint64) error {

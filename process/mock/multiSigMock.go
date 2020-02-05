@@ -4,22 +4,17 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 // BelNevMock is used to mock belare neven multisignature scheme
 type BelNevMock struct {
 	msg         []byte
 	aggSig      []byte
-	aggCom      []byte
-	commSecret  []byte
 	commHash    []byte
 	commitments [][]byte
 	sigs        [][]byte
 	pubkeys     []string
-	privKey     crypto.PrivateKey
 	selfId      uint16
-	hasher      hashing.Hasher
 
 	VerifyMock               func(msg []byte, bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
@@ -31,6 +26,7 @@ type BelNevMock struct {
 	StoreCommitmentMock      func(index uint16, value []byte) error
 	StoreCommitmentHashMock  func(uint16, []byte) error
 	CommitmentMock           func(uint16) ([]byte, error)
+	CreateMock               func(pubKeys []string, index uint16) (crypto.MultiSigner, error)
 }
 
 func NewMultiSigner() *BelNevMock {
@@ -44,6 +40,9 @@ func NewMultiSigner() *BelNevMock {
 
 // Create resets the multiSigner and initializes corresponding fields with the given params
 func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+	if bnm.CreateMock != nil {
+		return bnm.CreateMock(pubKeys, index)
+	}
 	multiSig := NewMultiSigner()
 
 	multiSig.selfId = index

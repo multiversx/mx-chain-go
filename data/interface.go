@@ -2,6 +2,19 @@ package data
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+)
+
+// TriePruningIdentifier is the type for trie pruning identifiers
+type TriePruningIdentifier byte
+
+const (
+	// OldRoot is appended to the key when oldHashes are added to the evictionWaitingList
+	OldRoot TriePruningIdentifier = 0
+	// NewRoot is appended to the key when newHashes are added to the evictionWaitingList
+	NewRoot TriePruningIdentifier = 1
 )
 
 // HeaderHandler defines getters and setters for header data holder
@@ -84,14 +97,14 @@ type TransactionHandler interface {
 
 	GetValue() *big.Int
 	GetNonce() uint64
-	GetData() string
+	GetData() []byte
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
-	SetData(string)
+	SetData([]byte)
 	SetRecvAddress([]byte)
 	SetSndAddress([]byte)
 }
@@ -108,13 +121,60 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
+	Prune(rootHash []byte, identifier TriePruningIdentifier) error
+	TakeSnapshot(rootHash []byte)
+	SetCheckpoint(rootHash []byte)
+	ResetOldHashes() [][]byte
+	AppendToOldHashes([][]byte)
+	Database() DBWriteCacher
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
+	IsPruningEnabled() bool
 	IsInterfaceNil() bool
+	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
 type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
+	Remove(key []byte) error
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// DBRemoveCacher is used to cache keys that will be deleted from the database
+type DBRemoveCacher interface {
+	Put([]byte, [][]byte) error
+	Evict([]byte) ([][]byte, error)
+	GetSize() uint
+	IsInterfaceNil() bool
+}
+
+// TrieSyncer synchronizes the trie, asking on the network for the missing nodes
+type TrieSyncer interface {
+	StartSyncing(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StorageManager manages all trie storage operations
+type StorageManager interface {
+	Database() DBWriteCacher
+	SetDatabase(cacher DBWriteCacher)
+	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
+	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
+	Prune([]byte) error
+	CancelPrune([]byte)
+	MarkForEviction([]byte, [][]byte) error
+	GetDbThatContainsHash([]byte) DBWriteCacher
+	Clone() StorageManager
+	IsPruningEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// TrieFactory creates new tries
+type TrieFactory interface {
+	Create() (Trie, error)
 	IsInterfaceNil() bool
 }

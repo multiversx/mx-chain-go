@@ -269,7 +269,6 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
-	assert.True(t, sr.RoundCanceled)
 
 	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
 	sr.RoundCanceled = false
@@ -355,18 +354,18 @@ func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, 0, n)
 
-	ok, n = sr.SignaturesCollected(2)
+	ok, _ = sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
 	_ = sr.SetJobDone("B", bls.SrSignature, true)
 	isJobDone, _ := sr.JobDone("B", bls.SrSignature)
 	assert.True(t, isJobDone)
 
-	ok, n = sr.SignaturesCollected(2)
+	ok, _ = sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
 	_ = sr.SetJobDone("C", bls.SrSignature, true)
-	ok, n = sr.SignaturesCollected(2)
+	ok, _ = sr.SignaturesCollected(2)
 	assert.True(t, ok)
 }
 

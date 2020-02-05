@@ -1,51 +1,16 @@
 package mock
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/golang/protobuf/proto"
 )
 
 var TestingMarshalizers = map[string]marshal.Marshalizer{
-	"capnp": &CapnpMarshalizer{},
 	"json":  &JsonMarshalizer{},
 	"proto": &ProtobufMarshalizer{},
-}
-
-//-------- capnp
-
-type CapnpMarshalizer struct{}
-
-func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
-	out := bytes.NewBuffer(nil)
-
-	o := obj.(data.CapnpHelper)
-	// set the members to capnp struct
-	err := o.Save(out)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Bytes(), nil
-}
-
-func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
-	out := bytes.NewBuffer(buff)
-
-	o := obj.(data.CapnpHelper)
-	// set the members to capnp struct
-	err := o.Load(out)
-
-	return err
-}
-
-func (x *CapnpMarshalizer) IsInterfaceNil() bool {
-	return x == nil
 }
 
 //-------- Json
@@ -54,7 +19,7 @@ type JsonMarshalizer struct{}
 
 func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
-		return nil, errors.New("NIL object to serilize from!")
+		return nil, errors.New("nil object to serialize from")
 	}
 
 	return json.Marshal(obj)
@@ -62,7 +27,7 @@ func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 
 func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
-		return errors.New("nil object to serilize to")
+		return errors.New("nil object to serialize to")
 	}
 	if buff == nil {
 		return errors.New("nil byte buffer to deserialize from")

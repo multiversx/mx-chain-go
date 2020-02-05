@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"time"
@@ -19,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
-	factorySoftawareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
+	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -34,13 +33,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -73,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -126,7 +129,7 @@ type Network struct {
 type Core struct {
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	Trie                     data.Trie
+	TriesContainer           state.TriesHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
@@ -143,10 +146,9 @@ type State struct {
 
 // Data struct holds the data components of the Elrond protocol
 type Data struct {
-	Blkc         data.ChainHandler
-	Store        dataRetriever.StorageService
-	Datapool     dataRetriever.PoolsHolder
-	MetaDatapool dataRetriever.MetaPoolsHolder
+	Blkc     data.ChainHandler
+	Store    dataRetriever.StorageService
+	Datapool dataRetriever.PoolsHolder
 }
 
 // Crypto struct holds the crypto components of the Elrond protocol
@@ -164,16 +166,19 @@ type Crypto struct {
 
 // Process struct holds the process components of the Elrond protocol
 type Process struct {
-	InterceptorsContainer process.InterceptorsContainer
-	ResolversFinder       dataRetriever.ResolversFinder
-	Rounder               consensus.Rounder
-	EpochStartTrigger     epochStart.TriggerHandler
-	ForkDetector          process.ForkDetector
-	BlockProcessor        process.BlockProcessor
-	BlackListHandler      process.BlackListHandler
-	BootStorer            process.BootStorer
-	HeaderSigVerifier     HeaderSigVerifierHandler
-	ValidatorsStatistics  process.ValidatorStatisticsProcessor
+	InterceptorsContainer    process.InterceptorsContainer
+	ResolversFinder          dataRetriever.ResolversFinder
+	Rounder                  consensus.Rounder
+	EpochStartTrigger        epochStart.TriggerHandler
+	ForkDetector             process.ForkDetector
+	BlockProcessor           process.BlockProcessor
+	BlackListHandler         process.BlackListHandler
+	BootStorer               process.BootStorer
+	HeaderSigVerifier        HeaderSigVerifierHandler
+	ValidatorsStatistics     process.ValidatorStatisticsProcessor
+	BlockTracker             process.BlockTracker
+	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
+	RequestHandler           process.RequestHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -205,20 +210,76 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	merkleTrie, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.pathManager, args.shardId)
-	if err != nil {
-		return nil, errors.New("error creating trie: " + err.Error())
-	}
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+
+	trieContainer, err := createTries(args, marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Core{
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		Trie:                     merkleTrie,
+		TriesContainer:           trieContainer,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
 		ChainID:                  args.chainID,
 	}, nil
+}
+
+func createTries(
+	args *coreComponentsFactoryArgs,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (state.TriesHolder, error) {
+
+	trieContainer := state.NewDataTriesHolder()
+
+	trieFactoryArgs := factory.TrieFactoryArgs{
+		Cfg:                    args.config.AccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	merkleTrie, err := trieFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
+
+	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
+		Cfg:                    args.config.PeerAccountsTrieStorage,
+		EvictionWaitingListCfg: args.config.EvictionWaitingList,
+		SnapshotDbCfg:          args.config.TrieSnapshotDB,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		PathManager:            args.pathManager,
+		ShardId:                args.shardId,
+		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
+	}
+	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
+
+	return trieContainer, nil
 }
 
 type stateComponentsFactoryArgs struct {
@@ -269,7 +330,8 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(args.core.Trie, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	merkleTrie := args.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
+	accountsAdapter, err := state.NewAccountsDB(merkleTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
@@ -279,29 +341,13 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	var shardId string
-	if args.shardCoordinator.SelfId() > args.shardCoordinator.NumberOfShards() {
-		shardId = "metachain"
-	} else {
-		shardId = fmt.Sprintf("%d", args.shardCoordinator.SelfId())
-	}
-	peerAccountsTrie, err := getTrie(
-		args.config.PeerAccountsTrieStorage,
-		args.core.Marshalizer,
-		args.core.Hasher,
-		args.pathManager,
-		shardId,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	accountFactory, err = factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
 	if err != nil {
 		return nil, errors.New("could not create peer account factory: " + err.Error())
 	}
 
-	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
+	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +392,6 @@ func NewDataComponentsFactoryArgs(
 // DataComponentsFactory creates the data components
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
-	var metaDatapool dataRetriever.MetaPoolsHolder
 	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
@@ -363,27 +408,15 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
-		datapool, err = createShardDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
-		if err != nil {
-			return nil, errors.New("could not create shard data pools: " + err.Error())
-		}
-	}
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
-		if err != nil {
-			return nil, errors.New("could not create shard data pools: " + err.Error())
-		}
-	}
-	if datapool == nil && metaDatapool == nil {
+	datapool, err = createDataPoolFromConfig(args.config)
+	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
 
 	return &Data{
-		Blkc:         blkc,
-		Store:        store,
-		Datapool:     datapool,
-		MetaDatapool: metaDatapool,
+		Blkc:     blkc,
+		Store:    store,
+		Datapool: datapool,
 	}, nil
 }
 
@@ -501,26 +534,27 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents        *coreComponentsFactoryArgs
-	genesisConfig         *sharding.Genesis
-	economicsData         *economics.EconomicsData
-	nodesConfig           *sharding.NodesSetup
-	gasSchedule           map[string]map[string]uint64
-	syncer                ntp.SyncTimer
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	data                  *Data
-	core                  *Core
-	crypto                *Crypto
-	state                 *State
-	network               *Network
-	coreServiceContainer  serviceContainer.Core
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	epochStartNotifier    EpochStartNotifier
-	epochStart            *config.EpochStartConfig
-	startEpochNum         uint32
-	rater                 sharding.RaterHandler
-	sizeCheckDelta        uint32
+	coreComponents         *coreComponentsFactoryArgs
+	genesisConfig          *sharding.Genesis
+	economicsData          *economics.EconomicsData
+	nodesConfig            *sharding.NodesSetup
+	gasSchedule            map[string]map[string]uint64
+	syncer                 ntp.SyncTimer
+	shardCoordinator       sharding.Coordinator
+	nodesCoordinator       sharding.NodesCoordinator
+	data                   *Data
+	core                   *Core
+	crypto                 *Crypto
+	state                  *State
+	network                *Network
+	coreServiceContainer   serviceContainer.Core
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	epochStartNotifier     EpochStartNotifier
+	epochStart             *config.EpochStartConfig
+	rater                  sharding.RaterHandler
+	startEpochNum          uint32
+	sizeCheckDelta         uint32
+	stateCheckpointModulus uint
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -545,28 +579,30 @@ func NewProcessComponentsFactoryArgs(
 	startEpochNum uint32,
 	rater sharding.RaterHandler,
 	sizeCheckDelta uint32,
+	stateCheckpointModulus uint,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:        coreComponents,
-		genesisConfig:         genesisConfig,
-		economicsData:         economicsData,
-		nodesConfig:           nodesConfig,
-		gasSchedule:           gasSchedule,
-		syncer:                syncer,
-		shardCoordinator:      shardCoordinator,
-		nodesCoordinator:      nodesCoordinator,
-		data:                  data,
-		core:                  core,
-		crypto:                crypto,
-		state:                 state,
-		network:               network,
-		coreServiceContainer:  coreServiceContainer,
-		requestedItemsHandler: requestedItemsHandler,
-		epochStartNotifier:    epochStartNotifier,
-		epochStart:            epochStart,
-		startEpochNum:         startEpochNum,
-		rater:                 rater,
-		sizeCheckDelta:        sizeCheckDelta,
+		coreComponents:         coreComponents,
+		genesisConfig:          genesisConfig,
+		economicsData:          economicsData,
+		nodesConfig:            nodesConfig,
+		gasSchedule:            gasSchedule,
+		syncer:                 syncer,
+		shardCoordinator:       shardCoordinator,
+		nodesCoordinator:       nodesCoordinator,
+		data:                   data,
+		core:                   core,
+		crypto:                 crypto,
+		state:                  state,
+		network:                network,
+		coreServiceContainer:   coreServiceContainer,
+		requestedItemsHandler:  requestedItemsHandler,
+		epochStartNotifier:     epochStartNotifier,
+		epochStart:             epochStart,
+		startEpochNum:          startEpochNum,
+		rater:                  rater,
+		sizeCheckDelta:         sizeCheckDelta,
+		stateCheckpointModulus: stateCheckpointModulus,
 	}
 }
 
@@ -594,23 +630,13 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
+	resolversContainerFactory, err := newResolverContainerFactory(
 		args.shardCoordinator,
-		args.nodesCoordinator,
-		args.data, args.core,
-		args.crypto,
-		args.state,
+		args.data,
+		args.core,
 		args.network,
-		args.economicsData,
-		headerSigVerifier,
 		args.sizeCheckDelta,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO refactor all these factory calls
-	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -635,12 +661,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
-	if err != nil {
-		return nil, err
-	}
+	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, args.nodesConfig.StartTime)
+	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -681,31 +704,103 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      args.core.Hasher,
+		Marshalizer: args.core.Marshalizer,
+	}
+	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	if err != nil {
+		return nil, err
+	}
+
+	blockTracker, err := newBlockTracker(
+		args,
+		headerValidator,
+		requestHandler,
+		rounder,
+		genesisBlocks,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
+		args.shardCoordinator,
+		args.nodesCoordinator,
+		args.data,
+		args.core,
+		args.crypto,
+		args.state,
+		args.network,
+		args.economicsData,
+		headerSigVerifier,
+		args.sizeCheckDelta,
+		blockTracker,
+		epochStartTrigger,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO refactor all these factory calls
+	interceptorsContainer, err := interceptorContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		pendingMiniBlocksHandler, err = newPendingMiniBlocks(
+			args.data.Store,
+			args.core.Marshalizer,
+			args.data.Datapool,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	forkDetector, err := newForkDetector(
+		rounder,
+		args.shardCoordinator,
+		blackListHandler,
+		blockTracker,
+		args.nodesConfig.StartTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
 		forkDetector,
-		genesisBlocks,
 		rounder,
 		epochStartTrigger,
 		bootStorer,
 		validatorStatisticsProcessor,
+		headerValidator,
+		blockTracker,
+		pendingMiniBlocksHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Process{
-		InterceptorsContainer: interceptorsContainer,
-		ResolversFinder:       resolversFinder,
-		Rounder:               rounder,
-		ForkDetector:          forkDetector,
-		BlockProcessor:        blockProcessor,
-		EpochStartTrigger:     epochStartTrigger,
-		BlackListHandler:      blackListHandler,
-		BootStorer:            bootStorer,
-		HeaderSigVerifier:     headerSigVerifier,
-		ValidatorsStatistics:  validatorStatisticsProcessor,
+		InterceptorsContainer:    interceptorsContainer,
+		ResolversFinder:          resolversFinder,
+		Rounder:                  rounder,
+		ForkDetector:             forkDetector,
+		BlockProcessor:           blockProcessor,
+		EpochStartTrigger:        epochStartTrigger,
+		BlackListHandler:         blackListHandler,
+		BootStorer:               bootStorer,
+		HeaderSigVerifier:        headerSigVerifier,
+		ValidatorsStatistics:     validatorStatisticsProcessor,
+		BlockTracker:             blockTracker,
+		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
+		RequestHandler:           requestHandler,
 	}, nil
 }
 
@@ -807,7 +902,7 @@ func newEpochStartTrigger(
 			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
 			Validity:           process.MetaBlockValidity,
-			Finality:           process.MetaBlockFinality,
+			Finality:           process.BlockFinality,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -865,7 +960,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 		p[i] = srr.seed[srr.index]
 
 		srr.index++
-		srr.index = srr.index % len(srr.seed)
+		srr.index %= len(srr.seed)
 	}
 
 	return len(p), nil
@@ -874,7 +969,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
 func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftawareVersion.NewSoftwareVersionFactory(statusHandler)
+	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -907,28 +1002,6 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(
-	cfg config.StorageConfig,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) (data.Trie, error) {
-
-	dbConfig := storageFactory.GetDBFromConfig(cfg.DB)
-	dbConfig.FilePath = pathManager.PathForStatic(shardId, cfg.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(cfg.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(cfg.Bloom),
-	)
-	if err != nil {
-		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
-	}
-
-	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher)
-}
-
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
@@ -943,7 +1016,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(badBlockCache)
+		var blockChain *blockchain.BlockChain
+		blockChain, err = blockchain.NewBlockChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -956,7 +1030,8 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(badBlockCache)
+		var blockChain *blockchain.MetaChain
+		blockChain, err = blockchain.NewMetaChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -997,14 +1072,13 @@ func createDataStoreFromConfig(
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataPoolFromConfig(
+func createDataPoolFromConfig(
 	config *config.Config,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
-	log.Debug("creatingShardDataPool from config")
+	log.Debug("creatingDataPool from config")
 
-	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -1022,33 +1096,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig)
 	if err != nil {
-		log.Error("error creating hdrpool")
+		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating metaBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating hdrNoncesCacher")
-		return nil, err
-	}
-	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		log.Error("error creating hdrNonces")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
@@ -1062,84 +1116,26 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	currBlockTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
 	}
 
-	return dataPool.NewShardedDataPool(
+	return dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardTxPool,
 		hdrPool,
-		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		metaBlockBody,
-		currBlockTxs,
-	)
-}
-
-func createMetaDataPoolFromConfig(
-	config *config.Config,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := storageFactory.GetCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating metaBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
-	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating txBlockBody")
-		return nil, err
-	}
-
-	cacherCfg = storageFactory.GetCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating shardHeaders")
-		return nil, err
-	}
-
-	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
-		return nil, err
-	}
-	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		log.Error("error creating shard headers nonces pool")
-		return nil, err
-	}
-
-	txPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.TxDataPool))
-	if err != nil {
-		log.Error("error creating txpool")
-		return nil, err
-	}
-
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
-	if err != nil {
-		log.Error("error creating smart contract result pool")
-		return nil, err
-	}
-
-	currBlockTxs, err := dataPool.NewCurrentBlockPool()
-	if err != nil {
-		return nil, err
-	}
-
-	return dataPool.NewMetaDataPool(
-		metaBlockBody,
-		txBlockBody,
-		shardHeaders,
-		headersNonces,
-		txPool,
-		uTxPool,
+		trieNodes,
 		currBlockTxs,
 	)
 }
@@ -1202,7 +1198,7 @@ func createNetMessenger(
 		return nil, errors.New("cannot start node on port < 0")
 	}
 
-	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
+	pDiscoveryFactory := factoryP2P.NewPeerDiscovererFactory(*p2pConfig)
 	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
 
 	if err != nil {
@@ -1231,7 +1227,7 @@ func createNetMessenger(
 	return nm, nil
 }
 
-func newInterceptorAndResolverContainerFactory(
+func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
@@ -1242,10 +1238,12 @@ func newInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
+	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
+) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardInterceptorAndResolverContainerFactory(
+		return newShardInterceptorContainerFactory(
 			shardCoordinator,
 			nodesCoordinator,
 			data,
@@ -1255,28 +1253,62 @@ func newInterceptorAndResolverContainerFactory(
 			network,
 			economics,
 			headerSigVerifier,
+			sizeCheckDelta,
+			validityAttester,
+			epochStartTrigger,
+		)
+	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return newMetaInterceptorContainerFactory(
+			shardCoordinator,
+			nodesCoordinator,
+			data,
+			core,
+			crypto,
+			network,
+			state,
+			economics,
+			headerSigVerifier,
+			sizeCheckDelta,
+			validityAttester,
+			epochStartTrigger,
+		)
+	}
+
+	return nil, nil, errors.New("could not create interceptor container factory")
+}
+
+func newResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	network *Network,
+	sizeCheckDelta uint32,
+) (dataRetriever.ResolversContainerFactory, error) {
+
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return newShardResolverContainerFactory(
+			shardCoordinator,
+			data,
+			core,
+			network,
 			sizeCheckDelta,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return newMetaInterceptorAndResolverContainerFactory(
+		return newMetaResolverContainerFactory(
 			shardCoordinator,
-			nodesCoordinator,
 			data,
 			core,
-			crypto,
 			network,
-			state,
-			economics,
-			headerSigVerifier,
 			sizeCheckDelta,
 		)
 	}
 
-	return nil, nil, nil, errors.New("could not create interceptor and resolver container factory")
+	return nil, errors.New("could not create interceptor and resolver container factory")
 }
 
-func newShardInterceptorAndResolverContainerFactory(
+func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
@@ -1287,7 +1319,10 @@ func newShardInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
+	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
+) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1310,34 +1345,17 @@ func newShardInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		validityAttester,
+		epochStartTrigger,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
-		shardCoordinator,
-		network.NetMessenger,
-		data.Store,
-		core.Marshalizer,
-		data.Datapool,
-		core.Uint64ByteSliceConverter,
-		dataPacker,
-		sizeCheckDelta,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
+	return interceptorContainerFactory, headerBlackList, nil
 }
 
-func newMetaInterceptorAndResolverContainerFactory(
+func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
@@ -1348,7 +1366,9 @@ func newMetaInterceptorAndResolverContainerFactory(
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
+	validityAttester process.ValidityAttester,
+	epochStartTrigger process.EpochStartTriggerHandler,
+) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -1358,7 +1378,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		core.Marshalizer,
 		core.Hasher,
 		crypto.MultiSigner,
-		data.MetaDatapool,
+		data.Datapool,
 		state.AccountsAdapter,
 		state.AddressConverter,
 		crypto.TxSingleSigner,
@@ -1371,14 +1391,57 @@ func newMetaInterceptorAndResolverContainerFactory(
 		headerSigVerifier,
 		core.ChainID,
 		sizeCheckDelta,
+		validityAttester,
+		epochStartTrigger,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
+
+	return interceptorContainerFactory, headerBlackList, nil
+}
+
+func newShardResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	network *Network,
+	sizeCheckDelta uint32,
+) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
+	}
+
+	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		data.Datapool,
+		core.Uint64ByteSliceConverter,
+		dataPacker,
+		core.TriesContainer,
+		sizeCheckDelta,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
+}
+
+func newMetaResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	network *Network,
+	sizeCheckDelta uint32,
+) (dataRetriever.ResolversContainerFactory, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
+	if err != nil {
+		return nil, err
 	}
 
 	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -1386,15 +1449,16 @@ func newMetaInterceptorAndResolverContainerFactory(
 		network.NetMessenger,
 		data.Store,
 		core.Marshalizer,
-		data.MetaDatapool,
+		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.TriesContainer,
 		sizeCheckDelta,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
+	return resolversContainerFactory, nil
 }
 
 func generateGenesisHeadersAndApplyInitialBalances(
@@ -1432,7 +1496,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			continue
 		}
 
-		newShardCoordinator, account, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var accountsAdapter state.AccountsAdapter
+		newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			shardId,
@@ -1441,8 +1507,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		genesisBlock, err := createGenesisBlockAndApplyInitialBalances(
-			account,
+		var genesisBlock data.HeaderHandler
+		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
+			accountsAdapter,
 			newShardCoordinator,
 			stateComponents.AddressConverter,
 			genesisConfig,
@@ -1457,7 +1524,8 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+		var genesisBlockForCurrentShard data.HeaderHandler
+		genesisBlockForCurrentShard, err = createGenesisBlockAndApplyInitialBalances(
 			stateComponents.AccountsAdapter,
 			shardCoordinator,
 			stateComponents.AddressConverter,
@@ -1483,13 +1551,15 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Marshalizer:              coreComponents.Marshalizer,
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
-		MetaDatapool:             dataComponents.MetaDatapool,
+		DataPool:                 dataComponents.Datapool,
 		Economics:                economics,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
+		var newShardCoordinator sharding.Coordinator
+		var newAccounts state.AccountsAdapter
+		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			sharding.MetachainShardId,
@@ -1498,13 +1568,15 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		newStore, newBlkc, newMetaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		newStore, newBlkc, errPoolCreation := createInMemoryStoreBlkc(newShardCoordinator)
+		if errPoolCreation != nil {
+			return nil, errPoolCreation
+		}
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.MetaDatapool = newMetaDataPool
 	}
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
@@ -1524,25 +1596,18 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	return genesisBlocks, nil
 }
 
-func createInMemoryStoreBlkcAndMetaDataPool(
+func createInMemoryStoreBlkc(
 	shardCoordinator sharding.Coordinator,
-) (dataRetriever.StorageService, data.ChainHandler, dataRetriever.MetaPoolsHolder, error) {
+) (dataRetriever.StorageService, data.ChainHandler, error) {
 
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	blkc, err := blockchain.NewMetaChain(cache)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	metaDataPool, err := createMemMetaDataPool()
-	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
@@ -1554,7 +1619,7 @@ func createInMemoryStoreBlkcAndMetaDataPool(
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, createMemUnit())
 
-	return store, blkc, metaDataPool, nil
+	return store, blkc, nil
 }
 
 func createGenesisBlockAndApplyInitialBalances(
@@ -1609,17 +1674,88 @@ func createInMemoryShardCoordinatorAndAccount(
 	return newShardCoordinator, accounts, nil
 }
 
+func newBlockTracker(
+	processArgs *processComponentsFactoryArgs,
+	headerValidator process.HeaderConstructionValidator,
+	requestHandler process.RequestHandler,
+	rounder consensus.Rounder,
+	genesisBlocks map[uint32]data.HeaderHandler,
+) (process.BlockTracker, error) {
+
+	argBaseTracker := track.ArgBaseTracker{
+		Hasher:           processArgs.core.Hasher,
+		HeaderValidator:  headerValidator,
+		Marshalizer:      processArgs.core.Marshalizer,
+		RequestHandler:   requestHandler,
+		Rounder:          rounder,
+		ShardCoordinator: processArgs.shardCoordinator,
+		Store:            processArgs.data.Store,
+		StartHeaders:     genesisBlocks,
+	}
+
+	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    processArgs.data.Datapool,
+		}
+
+		return track.NewShardBlockTrack(arguments)
+	}
+
+	if processArgs.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		arguments := track.ArgMetaTracker{
+			ArgBaseTracker: argBaseTracker,
+			PoolsHolder:    processArgs.data.Datapool,
+		}
+
+		return track.NewMetaBlockTrack(arguments)
+	}
+
+	return nil, errors.New("could not create block tracker")
+}
+
+func newPendingMiniBlocks(
+	store dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	dataPool dataRetriever.PoolsHolder,
+) (process.PendingMiniBlocksHandler, error) {
+
+	miniBlockHeaderStore := store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
+	if check.IfNil(miniBlockHeaderStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
+	}
+
+	metaBlocksStore := store.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaBlocksStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
+	}
+
+	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
+		Marshalizer:      marshalizer,
+		Storage:          miniBlockHeaderStore,
+		MetaBlockPool:    dataPool.Headers(),
+		MetaBlockStorage: metaBlocksStore,
+	}
+	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return pendingMiniBlocks, nil
+}
+
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	headerBlackList process.BlackListHandler,
+	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (process.ForkDetector, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return processSync.NewShardForkDetector(rounder, headerBlackList, genesisTime)
+		return processSync.NewShardForkDetector(rounder, headerBlackList, blockTracker, genesisTime)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return processSync.NewMetaForkDetector(rounder, headerBlackList, genesisTime)
+		return processSync.NewMetaForkDetector(rounder, headerBlackList, blockTracker, genesisTime)
 	}
 
 	return nil, ErrCreateForkDetector
@@ -1629,11 +1765,13 @@ func newBlockProcessor(
 	processArgs *processComponentsFactoryArgs,
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
-	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	headerValidator process.HeaderConstructionValidator,
+	blockTracker process.BlockTracker,
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1676,18 +1814,18 @@ func newBlockProcessor(
 			processArgs.core,
 			processArgs.state,
 			forkDetector,
-			genesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			rounder,
 			epochStartTrigger,
-			validatorStatisticsProcessor,
 			bootStorer,
 			processArgs.gasSchedule,
+			processArgs.stateCheckpointModulus,
+			headerValidator,
+			blockTracker,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-
 		return newMetaBlockProcessor(
 			requestHandler,
 			processArgs.shardCoordinator,
@@ -1697,18 +1835,20 @@ func newBlockProcessor(
 			processArgs.core,
 			processArgs.state,
 			forkDetector,
-			genesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			rounder,
 			epochStartTrigger,
 			bootStorer,
+			headerValidator,
+			blockTracker,
+			pendingMiniBlocksHandler,
 			processArgs.crypto.MessageSignVerifier,
 		)
 	}
 
-	return nil, errors.New("could not create block processor and tracker")
+	return nil, errors.New("could not create block processor")
 }
 
 func newShardBlockProcessor(
@@ -1720,14 +1860,15 @@ func newShardBlockProcessor(
 	core *Core,
 	state *State,
 	forkDetector process.ForkDetector,
-	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
-	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
+	stateCheckpointModulus uint,
+	headerValidator process.HeaderConstructionValidator,
+	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {
@@ -1880,6 +2021,7 @@ func newShardBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -1910,16 +2052,8 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		data.Datapool,
 		state.AddressConverter,
+		economics,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      core.Hasher,
-		Marshalizer: core.Marshalizer,
-	}
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -1934,7 +2068,6 @@ func newShardBlockProcessor(
 		NodesCoordinator:             nodesCoordinator,
 		SpecialAddressHandler:        specialAddressHandler,
 		Uint64Converter:              core.Uint64ByteSliceConverter,
-		StartHeaders:                 genesisBlocks,
 		RequestHandler:               requestHandler,
 		Core:                         coreServiceContainer,
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
@@ -1942,13 +2075,14 @@ func newShardBlockProcessor(
 		Rounder:                      rounder,
 		EpochStartTrigger:            epochStartTrigger,
 		HeaderValidator:              headerValidator,
-		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
+		BlockTracker:                 blockTracker,
+		DataPool:                     data.Datapool,
 	}
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-		DataPool:         data.Datapool,
-		TxsPoolsCleaner:  txPoolsCleaner,
+		ArgBaseProcessor:       argumentsBaseProcessor,
+		TxsPoolsCleaner:        txPoolsCleaner,
+		StateCheckpointModulus: stateCheckpointModulus,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
@@ -1973,13 +2107,15 @@ func newMetaBlockProcessor(
 	core *Core,
 	state *State,
 	forkDetector process.ForkDetector,
-	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
+	headerValidator process.HeaderConstructionValidator,
+	blockTracker process.BlockTracker,
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	messageSignVerifier vm.MessageSignVerifier,
 ) (process.BlockProcessor, error) {
 
@@ -2013,7 +2149,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		state.AddressConverter,
 		data.Store,
-		data.MetaDatapool,
+		data.Datapool,
 	)
 	if err != nil {
 		return nil, err
@@ -2064,6 +2200,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scProcessor,
 		txTypeHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
@@ -2079,7 +2216,7 @@ func newMetaBlockProcessor(
 		data.Store,
 		core.Marshalizer,
 		core.Hasher,
-		data.MetaDatapool,
+		data.Datapool,
 		state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -2087,6 +2224,7 @@ func newMetaBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
+		blockTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -2102,7 +2240,7 @@ func newMetaBlockProcessor(
 		core.Marshalizer,
 		shardCoordinator,
 		state.AccountsAdapter,
-		data.MetaDatapool.MiniBlocks(),
+		data.Datapool.MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -2124,40 +2262,10 @@ func newMetaBlockProcessor(
 		PeerState:   state.PeerAccounts,
 		BaseState:   state.AccountsAdapter,
 		ArgParser:   argsParser,
-		CurrTxs:     data.MetaDatapool.CurrentBlockTxs(),
+		CurrTxs:     data.Datapool.CurrentBlockTxs(),
 		ScQuery:     scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlockHeaderStore := data.Store.GetStorer(dataRetriever.MiniBlockHeaderUnit)
-	if check.IfNil(miniBlockHeaderStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
-	}
-
-	metaBlocksStore := data.Store.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaBlocksStore) {
-		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
-	}
-
-	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
-		Marshalizer:      core.Marshalizer,
-		Storage:          miniBlockHeaderStore,
-		MetaBlockPool:    data.MetaDatapool.MetaBlocks(),
-		MetaBlockStorage: metaBlocksStore,
-	}
-	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      core.Hasher,
-		Marshalizer: core.Marshalizer,
-	}
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -2172,7 +2280,6 @@ func newMetaBlockProcessor(
 		NodesCoordinator:             nodesCoordinator,
 		SpecialAddressHandler:        specialAddressHandler,
 		Uint64Converter:              core.Uint64ByteSliceConverter,
-		StartHeaders:                 genesisBlocks,
 		RequestHandler:               requestHandler,
 		Core:                         coreServiceContainer,
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
@@ -2182,14 +2289,15 @@ func newMetaBlockProcessor(
 		Rounder:                      rounder,
 		HeaderValidator:              headerValidator,
 		BootStorer:                   bootStorer,
+		BlockTracker:                 blockTracker,
+		DataPool:                     data.Datapool,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor:   argumentsBaseProcessor,
-		DataPool:           data.MetaDatapool,
-		SCDataGetter:       scDataGetter,
-		SCToProtocol:       smartContractToProtocol,
-		PeerChangesHandler: smartContractToProtocol,
-		PendingMiniBlocks:  pendingMiniBlocks,
+		ArgBaseProcessor:         argumentsBaseProcessor,
+		SCDataGetter:             scDataGetter,
+		SCToProtocol:             smartContractToProtocol,
+		PeerChangesHandler:       smartContractToProtocol,
+		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
@@ -2212,7 +2320,7 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool = processComponents.data.MetaDatapool
+	var peerDataPool peer.DataPool = processComponents.data.Datapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
 	}
@@ -2243,8 +2351,12 @@ func generateInMemoryAccountsAdapter(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (state.AccountsAdapter, error) {
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+	if err != nil {
+		return nil, err
+	}
 
-	tr, err := trie.NewTrie(createMemUnit(), marshalizer, hasher)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -2264,79 +2376,13 @@ func createMemUnit() storage.Storer {
 		return nil
 	}
 
-	persist, err := memorydb.New()
-	if err != nil {
-		log.Error("error creating persister for mem unit " + err.Error())
-		return nil
-	}
-
-	unit, err := storageUnit.NewStorageUnit(cache, persist)
+	unit, err := storageUnit.NewStorageUnit(cache, memorydb.New())
 	if err != nil {
 		log.Error("error creating unit " + err.Error())
 		return nil
 	}
 
 	return unit
-}
-
-func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
-	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	metaBlocks, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	shardHeadersNonces, err := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	if err != nil {
-		return nil, err
-	}
-
-	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	if err != nil {
-		return nil, err
-	}
-
-	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	if err != nil {
-		return nil, err
-	}
-
-	currTxs, err := dataPool.NewCurrentBlockPool()
-	if err != nil {
-		return nil, err
-	}
-
-	dPool, err := dataPool.NewMetaDataPool(
-		metaBlocks,
-		txBlockBody,
-		shardHeaders,
-		shardHeadersNonces,
-		txPool,
-		uTxPool,
-		currTxs,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return dPool, nil
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key

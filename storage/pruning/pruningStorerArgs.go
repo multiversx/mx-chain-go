@@ -10,14 +10,15 @@ import (
 type StorerArgs struct {
 	Identifier            string
 	ShardCoordinator      sharding.Coordinator
-	StartingEpoch         uint32
-	FullArchive           bool
 	CacheConf             storageUnit.CacheConfig
 	PathManager           storage.PathManagerHandler
 	DbPath                string
 	PersisterFactory      DbFactoryHandler
 	BloomFilterConf       storageUnit.BloomConfig
+	Notifier              EpochStartNotifier
 	NumOfEpochsToKeep     uint32
 	NumOfActivePersisters uint32
-	Notifier              EpochStartNotifier
+	StartingEpoch         uint32
+	PruningEnabled        bool
+	FullArchive           bool
 }

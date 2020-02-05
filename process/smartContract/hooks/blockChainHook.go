@@ -13,10 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
@@ -55,7 +58,7 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
-	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler, 0)
+	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler)
 
 	return blockChainHookImpl, nil
 }
@@ -149,7 +152,9 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	return account.DataTrieTracker().RetrieveValue(index)
+	value, err := account.DataTrieTracker().RetrieveValue(index)
+	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
+	return value, err
 }
 
 // IsCodeEmpty returns if the code is empty
@@ -403,7 +408,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 // CleanTempAccounts cleans the map holding the temporary accounts
 func (bh *BlockChainHookImpl) CleanTempAccounts() {
 	bh.mutTempAccounts.Lock()
-	bh.tempAccounts = make(map[string]state.AccountHandler, 0)
+	bh.tempAccounts = make(map[string]state.AccountHandler)
 	bh.mutTempAccounts.Unlock()
 }
 

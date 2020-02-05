@@ -33,6 +33,9 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 					PutCalled: func(key, data []byte) error {
 						return nil
 					},
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
 				}
 			},
 		},
@@ -202,4 +205,54 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 
 	isEpochStart := epochStartTrigger.IsEpochStart()
 	assert.True(t, isEpochStart)
+}
+
+func TestTrigger_UpdateRevertUpdateAtEndOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	round := uint64(0)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Epoch = epoch
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+
+	epochStartTrigger.Update(round)
+	round++
+	epochStartTrigger.Update(round)
+	round++
+	epochStartTrigger.Update(round)
+	round++
+	epochStartTrigger.Update(round)
+
+	ret := epochStartTrigger.IsEpochStart()
+	assert.True(t, ret)
+
+	epc := epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
+		Round:      round,
+		Epoch:      epoch + 1,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+
+	epochStartTrigger.Revert(round)
+	assert.Equal(t, epoch, epochStartTrigger.Epoch())
+	assert.False(t, epochStartTrigger.IsEpochStart())
+	assert.Equal(t, epochStartTrigger.currEpochStartRound, uint64(0))
+
+	epochStartTrigger.Update(round)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.True(t, ret)
+
+	epc = epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
+		Round:      round,
+		Epoch:      epoch + 1,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
 }

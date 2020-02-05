@@ -1,78 +1,53 @@
 package trie
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	capn "github.com/glycerine/go-capnproto"
 )
 
-// Save saves the serialized data of a branch node into a stream through Capnp protocol
-func (bn *branchNode) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	branchNodeGoToCapn(seg, bn)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a branch node object through Capnp protocol
-func (bn *branchNode) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
+func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
 	}
-	z := capnp.ReadRootBranchNodeCapn(capMsg)
-	branchNodeCapnToGo(z, bn)
-	return nil
-}
-
-func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn {
-	dest := capnp.AutoNewBranchNodeCapn(seg)
-
-	children := seg.NewDataList(len(src.EncodedChildren))
-	for i := range src.EncodedChildren {
-		children.Set(i, src.EncodedChildren[i])
-	}
-	dest.SetEncodedChildren(children)
-
-	return dest
-}
-
-func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
-	if dest == nil {
-		dest = newBranchNode()
+	if check.IfNil(hasher) {
+		return nil, ErrNilHasher
 	}
 
-	for i := 0; i < nrOfChildren; i++ {
-		child := src.EncodedChildren().At(i)
-		if bytes.Equal(child, []byte{}) {
-			dest.EncodedChildren[i] = nil
-		} else {
-			dest.EncodedChildren[i] = child
-		}
-
-	}
-	return dest
-}
-
-func newBranchNode() *branchNode {
 	var children [nrOfChildren]node
-	EncChildren := make([][]byte, nrOfChildren)
+	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
 		CollapsedBn: protobuf.CollapsedBn{
-			EncodedChildren: EncChildren,
+			EncodedChildren: encChildren,
 		},
 		children: children,
-		hash:     nil,
-		dirty:    true,
+		baseNode: &baseNode{
+			dirty:  true,
+			marsh:  marshalizer,
+			hasher: hasher,
+		},
+	}, nil
+}
+
+func emptyDirtyBranchNode() *branchNode {
+	var children [nrOfChildren]node
+	encChildren := make([][]byte, nrOfChildren)
+
+	return &branchNode{
+		CollapsedBn: protobuf.CollapsedBn{
+			EncodedChildren: encChildren,
+		},
+		children: children,
+		baseNode: &baseNode{
+			dirty: true,
+		},
 	}
 }
 
@@ -80,11 +55,31 @@ func (bn *branchNode) getHash() []byte {
 	return bn.hash
 }
 
+func (bn *branchNode) setGivenHash(hash []byte) {
+	bn.hash = hash
+}
+
 func (bn *branchNode) isDirty() bool {
 	return bn.dirty
 }
 
-func (bn *branchNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func (bn *branchNode) getMarshalizer() marshal.Marshalizer {
+	return bn.marsh
+}
+
+func (bn *branchNode) setMarshalizer(marshalizer marshal.Marshalizer) {
+	bn.marsh = marshalizer
+}
+
+func (bn *branchNode) getHasher() hashing.Hasher {
+	return bn.hasher
+}
+
+func (bn *branchNode) setHasher(hasher hashing.Hasher) {
+	bn.hasher = hasher
+}
+
+func (bn *branchNode) getCollapsed() (node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -95,12 +90,13 @@ func (bn *branchNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashi
 	collapsed := bn.clone()
 	for i := range bn.children {
 		if bn.children[i] != nil {
-			ok, err := hasValidHash(bn.children[i])
+			var ok bool
+			ok, err = hasValidHash(bn.children[i])
 			if err != nil {
 				return nil, err
 			}
 			if !ok {
-				err := bn.children[i].setHash(marshalizer, hasher)
+				err = bn.children[i].setHash()
 				if err != nil {
 					return nil, err
 				}
@@ -112,7 +108,7 @@ func (bn *branchNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashi
 	return collapsed, nil
 }
 
-func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (bn *branchNode) setHash() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -121,14 +117,15 @@ func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Ha
 		return nil
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			return err
 		}
 		bn.hash = hash
 		return nil
 	}
-	hash, err := hashChildrenAndNode(bn, marshalizer, hasher)
+	hash, err := hashChildrenAndNode(bn)
 	if err != nil {
 		return err
 	}
@@ -136,7 +133,7 @@ func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Ha
 	return nil
 }
 
-func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (bn *branchNode) setRootHash() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -145,7 +142,8 @@ func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashin
 		return nil
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			return err
 		}
@@ -159,17 +157,17 @@ func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashin
 	for i := 0; i < nrOfChildren; i++ {
 		if bn.children[i] != nil {
 			wg.Add(1)
-			go bn.children[i].setHashConcurrent(marshalizer, hasher, &wg, errc)
+			go bn.children[i].setHashConcurrent(&wg, errc)
 		}
 	}
 	wg.Wait()
 	if len(errc) != 0 {
-		for err := range errc {
+		for err = range errc {
 			return err
 		}
 	}
 
-	hashed, err := bn.hashNode(marshalizer, hasher)
+	hashed, err := bn.hashNode()
 	if err != nil {
 		return err
 	}
@@ -178,7 +176,7 @@ func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashin
 	return nil
 }
 
-func (bn *branchNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
+func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 	defer wg.Done()
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -189,7 +187,8 @@ func (bn *branchNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher 
 		return
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			c <- err
 			return
@@ -197,23 +196,22 @@ func (bn *branchNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher 
 		bn.hash = hash
 		return
 	}
-	hash, err := hashChildrenAndNode(bn, marshalizer, hasher)
+	hash, err := hashChildrenAndNode(bn)
 	if err != nil {
 		c <- err
 		return
 	}
 	bn.hash = hash
-	return
 }
 
-func (bn *branchNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (bn *branchNode) hashChildren() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 	for i := 0; i < nrOfChildren; i++ {
 		if bn.children[i] != nil {
-			err := bn.children[i].setHash(marshalizer, hasher)
+			err = bn.children[i].setHash()
 			if err != nil {
 				return err
 			}
@@ -222,47 +220,61 @@ func (bn *branchNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashi
 	return nil
 }
 
-func (bn *branchNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+func (bn *branchNode) hashNode() ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
 	for i := range bn.EncodedChildren {
 		if bn.children[i] != nil {
-			encChild, err := encodeNodeAndGetHash(bn.children[i], marshalizer, hasher)
+			var encChild []byte
+			encChild, err = encodeNodeAndGetHash(bn.children[i])
 			if err != nil {
 				return nil, err
 			}
 			bn.EncodedChildren[i] = encChild
 		}
 	}
-	return encodeNodeAndGetHash(bn, marshalizer, hasher)
+	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
-	if !bn.dirty {
+
+	shouldNotCommit := !bn.dirty && !force
+	if shouldNotCommit {
 		return nil
 	}
+
 	for i := range bn.children {
-		if bn.children[i] != nil {
-			err := bn.children[i].commit(level, db, marshalizer, hasher)
+		if force {
+			err = resolveIfCollapsed(bn, byte(i), originDb)
 			if err != nil {
 				return err
 			}
 		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].commit(force, level, originDb, targetDb)
+		if err != nil {
+			return err
+		}
 	}
 	bn.dirty = false
-	err = encodeNodeAndCommitToDB(bn, db, marshalizer, hasher)
+	err = encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
 	if level == maxTrieLevelAfterCommit {
-		collapsed, err := bn.getCollapsed(marshalizer, hasher)
+		var collapsed node
+		collapsed, err = bn.getCollapsed()
 		if err != nil {
 			return err
 		}
@@ -273,12 +285,12 @@ func (bn *branchNode) commit(level byte, db data.DBWriteCacher, marshalizer mars
 	return nil
 }
 
-func (bn *branchNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
-	marshaledNode, err := marshalizer.Marshal(bn)
+	marshaledNode, err := bn.marsh.Marshal(bn)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +298,7 @@ func (bn *branchNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, e
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (bn *branchNode) resolveCollapsed(pos byte, db data.DBWriteCacher) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -295,10 +307,12 @@ func (bn *branchNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marshali
 		return ErrChildPosOutOfRange
 	}
 	if len(bn.EncodedChildren[pos]) != 0 {
-		child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, marshalizer)
+		var child node
+		child, err = getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
 		if err != nil {
 			return err
 		}
+		child.setGivenHash(bn.EncodedChildren[pos])
 		bn.children[pos] = child
 	}
 	return nil
@@ -317,7 +331,7 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
+func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -330,7 +344,7 @@ func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer mars
 		return nil, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
 		return nil, err
 	}
@@ -338,10 +352,10 @@ func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer mars
 		return nil, nil
 	}
 
-	return bn.children[childPos].tryGet(key, db, marshalizer)
+	return bn.children[childPos].tryGet(key, db)
 }
 
-func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
@@ -354,7 +368,7 @@ func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher, marshalizer mar
 		return nil, nil, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -365,63 +379,93 @@ func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher, marshalizer mar
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, err
+		return false, nil, emptyHashes, err
 	}
 	if len(n.Key) == 0 {
-		return false, nil, ErrValueTooShort
+		return false, nil, emptyHashes, ErrValueTooShort
 	}
 	childPos := n.Key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, ErrChildPosOutOfRange
+		return false, nil, emptyHashes, ErrChildPosOutOfRange
 	}
 	n.Key = n.Key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return false, nil, err
+		return false, nil, emptyHashes, err
 	}
 
 	if bn.children[childPos] != nil {
-		dirty, newNode, err := bn.children[childPos].insert(n, db, marshalizer)
+		var dirty bool
+		var newNode node
+		var oldHashes [][]byte
+
+		dirty, newNode, oldHashes, err = bn.children[childPos].insert(n, db)
 		if !dirty || err != nil {
-			return false, bn, err
+			return false, bn, emptyHashes, err
 		}
+
+		if !bn.dirty {
+			oldHashes = append(oldHashes, bn.hash)
+		}
+
 		bn.children[childPos] = newNode
 		bn.dirty = dirty
 		if dirty {
 			bn.hash = nil
 		}
-		return true, bn, nil
+		return true, bn, oldHashes, nil
 	}
-	bn.children[childPos] = newLeafNode(n.Key, n.Value)
+
+	newLn, err := newLeafNode(n.Key, n.Value, bn.marsh, bn.hasher)
+	if err != nil {
+		return false, nil, emptyHashes, err
+	}
+	bn.children[childPos] = newLn
+
+	oldHash := make([][]byte, 0)
+	if !bn.dirty {
+		oldHash = append(oldHash, bn.hash)
+	}
+
 	bn.dirty = true
 	bn.hash = nil
-	return true, bn, nil
+	return true, bn, oldHash, nil
 }
 
-func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, err
+		return false, nil, emptyHashes, err
 	}
 	if len(key) == 0 {
-		return false, nil, ErrValueTooShort
+		return false, nil, emptyHashes, ErrValueTooShort
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, ErrChildPosOutOfRange
+		return false, nil, emptyHashes, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return false, nil, err
+		return false, nil, emptyHashes, err
 	}
 
-	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
+	if bn.children[childPos] == nil {
+		return false, bn, emptyHashes, nil
+	}
+
+	dirty, newNode, oldHashes, err := bn.children[childPos].delete(key, db)
 	if !dirty || err != nil {
-		return false, nil, err
+		return false, bn, emptyHashes, err
+	}
+
+	if !bn.dirty {
+		oldHashes = append(oldHashes, bn.hash)
 	}
 
 	bn.hash = nil
@@ -430,26 +474,34 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 		bn.EncodedChildren[childPos] = nil
 	}
 
-	nrOfChildren, pos := getChildPosition(bn)
+	numChildren, pos := getChildPosition(bn)
 
-	if nrOfChildren == 1 {
-		err = resolveIfCollapsed(bn, byte(pos), db, marshalizer)
+	if numChildren == 1 {
+		err = resolveIfCollapsed(bn, byte(pos), db)
 		if err != nil {
-			return false, nil, err
+			return false, nil, emptyHashes, err
 		}
 
-		newNode := bn.children[pos].reduceNode(pos)
+		newNode, err = bn.children[pos].reduceNode(pos)
+		if err != nil {
+			return false, nil, emptyHashes, err
+		}
 
-		return true, newNode, nil
+		return true, newNode, oldHashes, nil
 	}
 
 	bn.dirty = dirty
 
-	return true, bn, nil
+	return true, bn, oldHashes, nil
 }
 
-func (bn *branchNode) reduceNode(pos int) node {
-	return newExtensionNode([]byte{byte(pos)}, bn)
+func (bn *branchNode) reduceNode(pos int) (node, error) {
+	newEn, err := newExtensionNode([]byte{byte(pos)}, bn, bn.marsh, bn.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return newEn, nil
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
@@ -506,7 +558,7 @@ func (bn *branchNode) deepClone() node {
 		return nil
 	}
 
-	clonedNode := &branchNode{}
+	clonedNode := &branchNode{baseNode: &baseNode{}}
 
 	if bn.hash != nil {
 		clonedNode.hash = make([]byte, len(bn.hash))
@@ -534,8 +586,104 @@ func (bn *branchNode) deepClone() node {
 	}
 
 	clonedNode.dirty = bn.dirty
+	clonedNode.marsh = bn.marsh
+	clonedNode.hasher = bn.hasher
 
 	return clonedNode
+}
+
+func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make([][]byte, 0)
+
+	if !bn.isDirty() {
+		return dirtyHashes, nil
+	}
+
+	for i := range bn.children {
+		if bn.children[i] == nil {
+			continue
+		}
+
+		var hashes [][]byte
+		hashes, err = bn.children[i].getDirtyHashes()
+		if err != nil {
+			return nil, err
+		}
+
+		dirtyHashes = append(dirtyHashes, hashes...)
+	}
+
+	dirtyHashes = append(dirtyHashes, bn.getHash())
+	return dirtyHashes, nil
+}
+
+func (bn *branchNode) getChildren(db data.DBWriteCacher) ([]node, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	nextNodes := make([]node, 0)
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return nil, err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		nextNodes = append(nextNodes, bn.children[i])
+	}
+
+	return nextNodes, nil
+}
+
+func (bn *branchNode) isValid() bool {
+	nrChildren := 0
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) != 0 || bn.children[i] != nil {
+			nrChildren++
+		}
+	}
+
+	return nrChildren >= 2
+}
+
+func (bn *branchNode) setDirty(dirty bool) {
+	bn.dirty = dirty
+}
+
+func (bn *branchNode) loadChildren(syncer *trieSyncer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
+			continue
+		}
+
+		var child node
+		child, err = syncer.getNode(bn.EncodedChildren[i])
+		if err != nil {
+			return err
+		}
+
+		bn.children[i] = child
+	}
+
+	syncer.interceptedNodes.Remove(bn.hash)
+
+	return nil
 }
 
 func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
@@ -545,7 +693,7 @@ func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db, marshalizer)
+		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
 			return err
 		}

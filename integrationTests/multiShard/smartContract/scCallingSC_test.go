@@ -91,6 +91,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -118,16 +119,26 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
+
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
+
+	for _, nds := range nodesMap {
+		nodes = append(nodes, nds...)
+	}
 
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
@@ -161,6 +172,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
+	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -175,6 +187,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -222,7 +235,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
@@ -234,7 +247,7 @@ func putDeploySCToDataPool(
 			continue
 		}
 		strCache := process.ShardCacherIdentifier(shId, shId)
-		node.ShardDataPool.Transactions().AddData(txHash, tx, strCache)
+		node.DataPool.Transactions().AddData(txHash, tx, strCache)
 	}
 
 	return scAddressBytes

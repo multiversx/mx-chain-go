@@ -97,7 +97,6 @@ func (s *SystemEIStub) SelfDestruct(beneficiary []byte) {
 	if s.SelfDestructCalled != nil {
 		s.SelfDestructCalled(beneficiary)
 	}
-	return
 }
 
 func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
@@ -112,7 +111,6 @@ func (s *SystemEIStub) CleanCache() {
 	if s.CleanCacheCalled != nil {
 		s.CleanCacheCalled()
 	}
-	return
 }
 
 func (s *SystemEIStub) IsInterfaceNil() bool {

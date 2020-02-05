@@ -47,10 +47,6 @@ func (sd *ShardedDataStub) MergeShardStores(sourceCacheId, destCacheId string) {
 	sd.MergeShardStoresCalled(sourceCacheId, destCacheId)
 }
 
-func (sd *ShardedDataStub) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
-	sd.MoveDataCalled(sourceCacheId, destCacheId, key)
-}
-
 func (sd *ShardedDataStub) Clear() {
 	sd.ClearCalled()
 }
@@ -69,8 +65,5 @@ func (sd *ShardedDataStub) CreateShardStore(cacheId string) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *ShardedDataStub) IsInterfaceNil() bool {
-	if sd == nil {
-		return true
-	}
-	return false
+	return sd == nil
 }

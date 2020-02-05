@@ -16,29 +16,43 @@ type EvictionConfig struct {
 
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction() {
+func (cache *TxCache) doEviction() evictionJournal {
 	if !cache.areThereTooManyTxs() {
-		return
+		return evictionJournal{}
 	}
 
 	cache.evictionMutex.Lock()
+	defer cache.evictionMutex.Unlock()
+
+	journal := evictionJournal{}
 
 	if cache.areThereTooManySenders() {
 		countTxs, countSenders := cache.evictOldestSenders()
-		log.Trace("DoEviction, 1st pass:", "countTxs", countTxs, "countSenders", countSenders)
+		journal.passOneNumTxs = countTxs
+		journal.passOneNumSenders = countSenders
+		journal.evictionPerformed = true
 	}
 
 	if cache.areThereTooManyTxs() {
 		countTxs, countSenders := cache.evictHighNonceTransactions()
-		log.Trace("DoEviction, 2nd pass:", "countTxs", countTxs, "countSenders", countSenders)
+		journal.passTwoNumTxs = countTxs
+		journal.passTwoNumSenders = countSenders
+		journal.evictionPerformed = true
 	}
 
 	if cache.areThereTooManyTxs() && !cache.areThereJustAFewSenders() {
 		steps, countTxs, countSenders := cache.evictSendersWhileTooManyTxs()
-		log.Trace("DoEviction, 3rd pass:", "steps", steps, "countTxs", countTxs, "countSenders", countSenders)
+		journal.passThreeNumTxs = countTxs
+		journal.passThreeNumSenders = countSenders
+		journal.passThreeNumSteps = steps
+		journal.evictionPerformed = true
 	}
 
-	cache.evictionMutex.Unlock()
+	if journal.evictionPerformed {
+		journal.display()
+	}
+
+	return journal
 }
 
 func (cache *TxCache) areThereTooManySenders() bool {

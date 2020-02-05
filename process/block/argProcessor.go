@@ -3,7 +3,6 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -26,7 +25,6 @@ type ArgBaseProcessor struct {
 	NodesCoordinator             sharding.NodesCoordinator
 	SpecialAddressHandler        process.SpecialAddressHandler
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
-	StartHeaders                 map[uint32]data.HeaderHandler
 	RequestHandler               process.RequestHandler
 	Core                         serviceContainer.Core
 	BlockChainHook               process.BlockChainHookHandler
@@ -36,23 +34,24 @@ type ArgBaseProcessor struct {
 	HeaderValidator              process.HeaderConstructionValidator
 	Rounder                      consensus.Rounder
 	BootStorer                   process.BootStorer
+	BlockTracker                 process.BlockTracker
+	DataPool                     dataRetriever.PoolsHolder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
 	ArgBaseProcessor
-	DataPool        dataRetriever.PoolsHolder
-	TxsPoolsCleaner process.PoolsCleaner
+	TxsPoolsCleaner        process.PoolsCleaner
+	StateCheckpointModulus uint
 }
 
 // ArgMetaProcessor holds all dependencies required by the process data factory in order to create
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool           dataRetriever.MetaPoolsHolder
-	PendingMiniBlocks  process.PendingMiniBlocksHandler
-	SCDataGetter       external.SCQueryService
-	PeerChangesHandler process.PeerChangesHandler
-	SCToProtocol       process.SmartContractToProtocolHandler
+	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
+	SCDataGetter             external.SCQueryService
+	PeerChangesHandler       process.PeerChangesHandler
+	SCToProtocol             process.SmartContractToProtocolHandler
 }

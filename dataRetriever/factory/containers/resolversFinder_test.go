@@ -59,6 +59,7 @@ func TestNewResolversFinder_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, rf)
 	assert.Nil(t, err)
+	assert.False(t, rf.IsInterfaceNil())
 }
 
 func TestResolversFinder_IntraShardResolver(t *testing.T) {
@@ -74,6 +75,20 @@ func TestResolversFinder_IntraShardResolver(t *testing.T) {
 	)
 
 	resolver, _ := rf.IntraShardResolver(baseTopic)
+	assert.NotNil(t, resolver)
+}
+
+func TestResolversFinder_MetaChainResolver(t *testing.T) {
+	currentShardID := uint32(4)
+	identifierPrefix := "_"
+	baseTopic := "baseTopic"
+
+	rf, _ := NewResolversFinder(
+		createMockContainer(baseTopic),
+		createMockCoordinator(identifierPrefix, currentShardID),
+	)
+
+	resolver, _ := rf.MetaChainResolver(baseTopic)
 	assert.NotNil(t, resolver)
 }
 

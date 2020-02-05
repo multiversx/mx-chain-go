@@ -51,8 +51,5 @@ func (itbbdf *interceptedTxBlockBodyDataFactory) Create(buff []byte) (process.In
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (itbbdf *interceptedTxBlockBodyDataFactory) IsInterfaceNil() bool {
-	if itbbdf == nil {
-		return true
-	}
-	return false
+	return itbbdf == nil
 }
