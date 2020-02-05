@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -33,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -49,6 +48,7 @@ import (
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -499,6 +499,7 @@ func createNodes(
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
 		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
@@ -510,6 +511,7 @@ func createNodes(
 			EligibleNodes:           eligibleMap,
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

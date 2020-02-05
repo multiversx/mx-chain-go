@@ -4,6 +4,9 @@ import (
 	"errors"
 )
 
+// ErrMissingMetachainNodes signals that metachain nodes were not configured
+var ErrMissingMetachainNodes = errors.New("no metachain nodes configured")
+
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
@@ -99,3 +102,6 @@ var ErrValidatorNotFound = errors.New("validator not found")
 
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
+
+// ErrNilCacher signals that the cacher is nil
+var ErrNilCacher = errors.New("nil cacher")

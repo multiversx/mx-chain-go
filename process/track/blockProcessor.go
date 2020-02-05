@@ -245,12 +245,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		highestNonceInLongestChain = longestChainHeaders[nbLongestChainHeaders-1].GetNonce()
 	}
 
-	if highestNonceReceived <= highestNonceInLongestChain+bp.blockFinality {
-		return
-	}
-
-	shouldRequestHeaders := nbLongestChainHeaders == 0 ||
-		(nbLongestChainHeaders > 0 && highestNonceReceived%process.NonceModulusTrigger == 0)
+	shouldRequestHeaders := highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && nbLongestChainHeaders == 0
 	if !shouldRequestHeaders {
 		return
 	}

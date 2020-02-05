@@ -8,6 +8,7 @@ import (
 
 var errNotImplemented = errors.New("not implemented")
 
+// HeaderResolverStub -
 type HeaderResolverStub struct {
 	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
@@ -16,6 +17,7 @@ type HeaderResolverStub struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// RequestDataFromEpoch -
 func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	if hrs.RequestDataFromEpochCalled != nil {
 		return hrs.RequestDataFromEpochCalled(identifier)
@@ -23,6 +25,7 @@ func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	return nil
 }
 
+// SetEpochHandler -
 func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if hrs.SetEpochHandlerCalled != nil {
 		return hrs.SetEpochHandlerCalled(epochHandler)
@@ -30,6 +33,7 @@ func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 	return nil
 }
 
+// RequestDataFromHash -
 func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hrs.RequestDataFromHashCalled != nil {
 		return hrs.RequestDataFromHashCalled(hash, epoch)
@@ -38,6 +42,7 @@ func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) er
 	return errNotImplemented
 }
 
+// ProcessReceivedMessage -
 func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
@@ -46,6 +51,7 @@ func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return errNotImplemented
 }
 
+// RequestDataFromNonce -
 func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	if hrs.RequestDataFromNonceCalled != nil {
 		return hrs.RequestDataFromNonceCalled(nonce, epoch)

@@ -42,6 +42,7 @@ type OneSCExecutorMockVM struct {
 	GasForOperation uint64
 }
 
+// NewOneSCExecutorMockVM -
 func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashing.Hasher) (*OneSCExecutorMockVM, error) {
 	if blockchainHook == nil || hasher == nil {
 		return nil, errNilValue
@@ -55,14 +56,17 @@ func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashi
 	return vm, nil
 }
 
+// G0Create -
 func (vm *OneSCExecutorMockVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
+// G0Call -
 func (vm *OneSCExecutorMockVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
+// RunSmartContractCreate -
 func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
 		return nil, errNilValue
@@ -123,6 +127,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	}, nil
 }
 
+// RunSmartContractCall -
 func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
 		return nil, errNilValue

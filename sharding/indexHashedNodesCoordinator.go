@@ -12,6 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
+const (
+	keyFormat = "%s_%v_%v"
+)
+
 // TODO: move this to config parameters
 const nodeCoordinatorStoredEpochs = 2
 
@@ -40,6 +44,7 @@ type indexHashedNodesCoordinator struct {
 	currentEpoch            uint32
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	consensusGroupCacher    Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -68,6 +73,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		currentEpoch:            arguments.Epoch,
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -101,6 +107,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.Shuffler == nil {
 		return ErrNilShuffler
 	}
+	if arguments.ConsensusGroupCache == nil {
+		return ErrNilCacher
+	}
 
 	return nil
 }
@@ -131,6 +140,10 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesList, ok := eligible[core.MetachainShardId]
 	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
+	}
+
+	if _, ok := eligible[core.MetachainShardId]; !ok || len(eligible[core.MetachainShardId]) == 0 {
+		return ErrMissingMetachainNodes
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
@@ -202,6 +215,16 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, ErrInvalidShardId
 	}
 
+	if ihgs == nil {
+		return nil, ErrNilRandomness
+	}
+
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	validators := ihgs.searchConsensusForKey(key)
+	if validators != nil {
+		return validators, nil
+	}
+
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
@@ -216,7 +239,21 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		tempList = append(tempList, expandedList[checkedIndex])
 	}
 
+	ihgs.consensusGroupCacher.Put(key, tempList)
+
 	return tempList, nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+	value, ok := ihgs.consensusGroupCacher.Get(key)
+	if ok {
+		consensusGroup, ok := value.([]Validator)
+		if ok {
+			return consensusGroup
+		}
+
+	}
+	return nil
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key
