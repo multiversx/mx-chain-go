@@ -551,6 +551,9 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 
 // CreateMarshalizedData marshalizes reward transaction hashes and and saves them into a new structure
 func (rtp *rewardTxPreprocessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+	//TODO(iulian) remove this
+	log.Trace("rewardTxPreprocessor.CreateMarshalizedData",
+		"num tx hashes", len(txHashes))
 	marshaledRewardTxs, err := rtp.createMarshalizedData(txHashes, &rtp.rewardTxsForBlock)
 	if err != nil {
 		return nil, err

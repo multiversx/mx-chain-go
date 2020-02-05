@@ -94,9 +94,6 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = miniBlockPool
-	//TODO remove this and receivedMiniBlock function after tests
-	//tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
-
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
@@ -610,6 +607,13 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			appended = true
 
 			var currMrsTxs [][]byte
+			//TODO(iulian) remove this
+			log.Trace("transactionCoordinator.CreateMarshalizedData",
+				"miniblock type", miniblock.Type.String(),
+				"mb sender shard ID", miniblock.SenderShardID,
+				"mb recv shard ID", miniblock.ReceiverShardID,
+				"num tx hashes", len(miniblock.TxHashes))
+
 			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
 				log.Trace("CreateMarshalizedData", "error", err.Error())
@@ -678,27 +682,6 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
-}
-
-// receivedMiniBlock is a callback function when a new miniblock was received
-// it will further ask for missing transactions
-func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
-	val, ok := tc.miniBlockPool.Peek(miniBlockHash)
-	if !ok {
-		return
-	}
-
-	miniBlock, ok := val.(*block.MiniBlock)
-	if !ok {
-		return
-	}
-
-	preproc := tc.getPreProcessor(miniBlock.Type)
-	if preproc == nil || preproc.IsInterfaceNil() {
-		return
-	}
-
-	_ = preproc.RequestTransactionsForMiniBlock(miniBlock)
 }
 
 // processMiniBlockComplete - all transactions must be processed together, otherwise error
