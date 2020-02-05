@@ -28,7 +28,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:INFO")
 
 	numOfShards := 1
 	nodesPerShard := 4
@@ -82,21 +82,32 @@ func TestSCCallingInIntraShard(t *testing.T) {
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
+	// Run two rounds, so the two SmartContracts get deployed.
 	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	integrationTests.UpdateRound(nodes, round)
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(time.Second)
+
+	// Create transactions that invoke "doSomething" from the second SC, which
+	// will execute an "asyncCall" to a method in the first SC which counts how
+	// many times it has been called. There will be as many transactions as there
+	// are nodes.
 	for _, node := range nodes {
 		txData := "doSomething"
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
 
-	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	nrRoundsToExecute := 3
+	for i := 0; i < nrRoundsToExecute; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -104,14 +115,8 @@ func TestSCCallingInIntraShard(t *testing.T) {
 		nonce++
 	}
 
-	// verify how many times was shard 0 and shard 1 called
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	// verify how many times was the first SC called
 	for index, node := range nodes {
-		if node.ShardCoordinator.SelfId() != shId {
-			continue
-		}
-
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
 		assert.NotNil(t, numCalled)
 		if numCalled != nil {
