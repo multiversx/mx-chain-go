@@ -157,29 +157,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 
-	for _, tx := range rtxh.protocolRewards {
-		log.Debug("CreateAllInterMiniBlocks.protocolRewards",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress())
-	}
-
-	for _, tx := range rtxh.protocolRewardsMeta {
-		log.Debug("CreateAllInterMiniBlocks.protocolRewardsMeta",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress())
-	}
-
-	for _, tx := range rtxh.feeRewards {
-		log.Debug("CreateAllInterMiniBlocks.feeRewards",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress())
-	}
+	rtxh.displayCalculatedRewardsTxs()
 
 	rtxh.mutGenRewardTxs.Unlock()
 
@@ -338,6 +316,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
+	currTx.Type = rewardTx.LeaderTx
 
 	return currTx
 }
@@ -350,6 +329,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
+	currTx.Type = rewardTx.BurnTx
 
 	return currTx
 }
@@ -362,6 +342,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
+	currTx.Type = rewardTx.CommunityTx
 
 	return currTx
 }
@@ -405,6 +386,7 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
 		rTx.Epoch = consensusRewardData.Epoch
 		rTx.Round = consensusRewardData.Round
+		rTx.Type = rewardTx.ProtocolRewardsTx
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}
@@ -440,6 +422,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 			rTx.ShardId = rtxh.shardCoordinator.SelfId()
 			rTx.Epoch = metaConsensusSet.Epoch
 			rTx.Round = metaConsensusSet.Round
+			rTx.Type = rewardTx.ProtocolRewardsForMetaTx
 
 			consensusRewardTxs = append(consensusRewardTxs, rTx)
 		}
@@ -460,63 +443,41 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
+	var err error
+	defer func() {
+		if err != nil {
+			rtxh.displayCalculatedRewardsTxs()
+		}
+	}()
+
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
 		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue())
 	}
 
 	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
-		for hash, tx := range rtxh.rewardTxsForBlock {
-			log.Debug("verifyCreatedRewardsTxs.rewardTxsForBlock",
-				"hash", hash,
-				"shard", tx.ShardId,
-				"round", tx.Round,
-				"rcvAddr", tx.RcvAddr,
-				"value", tx.Value)
-		}
-
-		for _, tx := range rtxh.protocolRewards {
-			log.Debug("verifyCreatedRewardsTxs.protocolRewards",
-				"nonce", tx.GetNonce(),
-				"value", tx.GetValue(),
-				"sndAddress", tx.GetSndAddress(),
-				"rcvAddress", tx.GetRecvAddress())
-		}
-
-		for _, tx := range rtxh.protocolRewardsMeta {
-			log.Debug("verifyCreatedRewardsTxs.protocolRewardsMeta",
-				"nonce", tx.GetNonce(),
-				"value", tx.GetValue(),
-				"sndAddress", tx.GetSndAddress(),
-				"rcvAddress", tx.GetRecvAddress())
-		}
-
-		for _, tx := range rtxh.feeRewards {
-			log.Debug("verifyCreatedRewardsTxs.feeRewards",
-				"nonce", tx.GetNonce(),
-				"value", tx.GetValue(),
-				"sndAddress", tx.GetSndAddress(),
-				"rcvAddress", tx.GetRecvAddress())
-		}
-
-		return process.ErrRewardTxsMismatchCreatedReceived
+		err = process.ErrRewardTxsMismatchCreatedReceived
+		return err
 	}
 
 	totalCalculatedFees := big.NewInt(0)
-	for _, value := range calculatedRewardTxs {
-		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
+	var rewardTxHash []byte
+	for _, calculatedRewardTx := range calculatedRewardTxs {
+		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, calculatedRewardTx.GetValue())
 
-		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, value)
+		rewardTxHash, err = core.CalculateHash(rtxh.marshalizer, rtxh.hasher, calculatedRewardTx)
 		if err != nil {
 			return err
 		}
 
 		txFromBlock, ok := rtxh.rewardTxsForBlock[string(rewardTxHash)]
 		if !ok {
-			return process.ErrRewardTxNotFound
+			err = process.ErrRewardTxNotFound
+			return err
 		}
-		if txFromBlock.GetValue().Cmp(value.GetValue()) != 0 {
-			return process.ErrRewardTxsDoNotMatch
+		if txFromBlock.GetValue().Cmp(calculatedRewardTx.GetValue()) != 0 {
+			err = process.ErrRewardTxsDoNotMatch
+			return err
 		}
 	}
 
@@ -551,4 +512,45 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtxh *rewardsHandler) IsInterfaceNil() bool {
 	return rtxh == nil
+}
+
+func (rtxh *rewardsHandler) displayCalculatedRewardsTxs() {
+	for _, tx := range rtxh.rewardTxsForBlock {
+		log.Trace("rewardTxsForBlock",
+			"shard", tx.ShardId,
+			"epoch", tx.Epoch,
+			"round", tx.Round,
+			"rcvAddr", tx.RcvAddr,
+			"value", tx.Value)
+	}
+
+	for _, tx := range rtxh.protocolRewards {
+		log.Trace("protocolRewards",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress(),
+			"gasLimit", tx.GetGasLimit(),
+			"gasPrice", tx.GetGasPrice())
+	}
+
+	for _, tx := range rtxh.protocolRewardsMeta {
+		log.Trace("protocolRewardsMeta",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress(),
+			"gasLimit", tx.GetGasLimit(),
+			"gasPrice", tx.GetGasPrice())
+	}
+
+	for _, tx := range rtxh.feeRewards {
+		log.Debug("feeRewards",
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sndAddress", tx.GetSndAddress(),
+			"rcvAddress", tx.GetRecvAddress(),
+			"gasLimit", tx.GetGasLimit(),
+			"gasPrice", tx.GetGasPrice())
+	}
 }

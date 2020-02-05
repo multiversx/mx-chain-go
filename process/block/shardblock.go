@@ -270,10 +270,10 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	for _, hdr := range processedMetaHdrs {
-		log.Debug("processedMetaHdrs",
+		log.Trace("processedMetaHdrs",
+			"epoch", hdr.GetEpoch(),
 			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce(),
-			"randseed", hdr.GetRandSeed())
+			"nonce", hdr.GetNonce())
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)
@@ -1677,10 +1677,10 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	for _, hdr := range processedMetaHdrs {
-		log.Debug("processedMetaHdrs",
+		log.Trace("processedMetaHdrs",
+			"epoch", hdr.GetEpoch(),
 			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce(),
-			"randseed", hdr.GetRandSeed())
+			"nonce", hdr.GetNonce())
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)

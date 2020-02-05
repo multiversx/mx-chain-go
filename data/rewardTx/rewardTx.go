@@ -4,6 +4,19 @@ import (
 	"math/big"
 )
 
+const (
+	// LeaderTx identifies a leader reward tx type
+	LeaderTx = 1
+	// BurnTx identifies a burn reward tx type
+	BurnTx = 2
+	// CommunityTx identifies a community reward tx type
+	CommunityTx = 3
+	// ProtocolRewardsTx identifies a protocol reward tx type
+	ProtocolRewardsTx = 4
+	// ProtocolRewardsForMetaTx identifies a protocol reward for meta tx type
+	ProtocolRewardsForMetaTx = 5
+)
+
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
 	Round   uint64   `json:"round"`
@@ -11,6 +24,7 @@ type RewardTx struct {
 	RcvAddr []byte   `json:"receiver"`
 	ShardId uint32   `json:"shardId"`
 	Epoch   uint32   `json:"epoch"`
+	Type    uint8    `json:"type"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil
