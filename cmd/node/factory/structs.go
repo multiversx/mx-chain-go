@@ -97,9 +97,6 @@ const (
 	// BlsConsensusType specifies te signature scheme used in the consensus
 	BlsConsensusType = "bls"
 
-	// BnConsensusType specifies te signature scheme used in the consensus
-	BnConsensusType = "bn"
-
 	// MaxTxsToRequest specifies the maximum number of txs to request
 	MaxTxsToRequest = 100
 )
@@ -1119,11 +1116,9 @@ func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
 	case BlsConsensusType:
 		return &singlesig.BlsSingleSigner{}, nil
-	case BnConsensusType:
-		return &singlesig.SchnorrSigner{}, nil
+	default:
+		return nil, errors.New("no consensus type provided in config file")
 	}
-
-	return nil, errors.New("no consensus type provided in config file")
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
@@ -1156,11 +1151,9 @@ func createMultiSigner(
 	case BlsConsensusType:
 		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
 		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
-	case BnConsensusType:
-		return multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGen, uint16(0))
+	default:
+		return nil, errors.New("no consensus type provided in config file")
 	}
-
-	return nil, errors.New("no consensus type provided in config file")
 }
 
 func createNetMessenger(
@@ -2033,25 +2026,25 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:                     state.AccountsAdapter,
-		ForkDetector:                 forkDetector,
-		Hasher:                       core.Hasher,
-		Marshalizer:                  core.Marshalizer,
-		Store:                        data.Store,
-		ShardCoordinator:             shardCoordinator,
-		NodesCoordinator:             nodesCoordinator,
-		SpecialAddressHandler:        specialAddressHandler,
-		Uint64Converter:              core.Uint64ByteSliceConverter,
-		RequestHandler:               requestHandler,
-		Core:                         coreServiceContainer,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		Rounder:                      rounder,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
+		TxCoordinator:         txCoordinator,
+		Rounder:               rounder,
+		EpochStartTrigger:     epochStartTrigger,
+		HeaderValidator:       headerValidator,
+		BootStorer:            bootStorer,
+		BlockTracker:          blockTracker,
+		DataPool:              data.Datapool,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor:       argumentsBaseProcessor,
