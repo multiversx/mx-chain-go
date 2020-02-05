@@ -1692,7 +1692,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	bodies, mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	for shardId, subsetBlockBody := range bodies {
-		bh := block.BodyHelper{subsetBlockBody}
+		bh := block.BodyHelper{MiniBlocks: subsetBlockBody}
 		buff, err := sp.marshalizer.Marshal(&bh)
 		if err != nil {
 			log.Debug("marshalizer.Marshal", "error", process.ErrMarshalWithoutSuccess.Error())

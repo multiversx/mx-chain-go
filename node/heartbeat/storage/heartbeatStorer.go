@@ -139,7 +139,7 @@ func (hs *HeartbeatDbStorer) LoadKeys() ([][]byte, error) {
 
 // SaveKeys will update the keys for all connected peers
 func (hs *HeartbeatDbStorer) SaveKeys(peersSlice [][]byte) error {
-	marshalizedFullPeersSlice, errMarsh := hs.marshalizer.Marshal(&batch.Batch{peersSlice})
+	marshalizedFullPeersSlice, errMarsh := hs.marshalizer.Marshal(&batch.Batch{Data: peersSlice})
 	if errMarsh != nil {
 		return errMarsh
 	}
