@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -531,14 +532,19 @@ func (bn *branchNode) isEmptyOrNil() error {
 	return ErrEmptyNode
 }
 
-func (bn *branchNode) print(writer io.Writer, index int) {
+func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) {
 	if bn == nil {
 		return
 	}
 
-	str := fmt.Sprintf("B:")
+	str := fmt.Sprintf("B: %v - %v", hex.EncodeToString(bn.hash), bn.dirty)
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
+		err := resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			log.Debug("print trie err", "error", bn.EncodedChildren[i])
+		}
+
 		if bn.children[i] == nil {
 			continue
 		}
@@ -549,7 +555,8 @@ func (bn *branchNode) print(writer io.Writer, index int) {
 		}
 		str2 := fmt.Sprintf("+ %d: ", i)
 		_, _ = fmt.Fprint(writer, str2)
-		child.print(writer, index+len(str)-1+len(str2))
+		childIndex := index + len(str) - 1 + len(str2)
+		child.print(writer, childIndex, db)
 	}
 }
 
@@ -592,16 +599,14 @@ func (bn *branchNode) deepClone() node {
 	return clonedNode
 }
 
-func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
+func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	dirtyHashes := make([][]byte, 0)
-
 	if !bn.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
 	for i := range bn.children {
@@ -609,17 +614,14 @@ func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
 			continue
 		}
 
-		var hashes [][]byte
-		hashes, err = bn.children[i].getDirtyHashes()
+		err = bn.children[i].getDirtyHashes(hashes)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		dirtyHashes = append(dirtyHashes, hashes...)
 	}
 
-	dirtyHashes = append(dirtyHashes, bn.getHash())
-	return dirtyHashes, nil
+	hashes[hex.EncodeToString(bn.getHash())] = struct{}{}
+	return nil
 }
 
 func (bn *branchNode) getChildren(db data.DBWriteCacher) ([]node, error) {
