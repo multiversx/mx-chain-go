@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// RounderStub -
 type RounderStub struct {
 	RoundIndex int64
 
@@ -14,6 +15,7 @@ type RounderStub struct {
 	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
+// Index -
 func (rndm *RounderStub) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
@@ -22,6 +24,7 @@ func (rndm *RounderStub) Index() int64 {
 	return rndm.RoundIndex
 }
 
+// TimeDuration -
 func (rndm *RounderStub) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {
 		return rndm.TimeDurationCalled()
@@ -30,6 +33,7 @@ func (rndm *RounderStub) TimeDuration() time.Duration {
 	return 4000 * time.Millisecond
 }
 
+// TimeStamp -
 func (rndm *RounderStub) TimeStamp() time.Time {
 	if rndm.TimeStampCalled != nil {
 		return rndm.TimeStampCalled()
@@ -38,6 +42,7 @@ func (rndm *RounderStub) TimeStamp() time.Time {
 	return time.Unix(0, 0)
 }
 
+// UpdateRound -
 func (rndm *RounderStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	if rndm.UpdateRoundCalled != nil {
 		rndm.UpdateRoundCalled(genesisRoundTimeStamp, timeStamp)
@@ -47,6 +52,7 @@ func (rndm *RounderStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	rndm.RoundIndex++
 }
 
+// RemainingTime -
 func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	if rndm.RemainingTimeCalled != nil {
 		return rndm.RemainingTimeCalled(startTime, maxTime)

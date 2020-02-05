@@ -645,3 +645,58 @@ func getLeafNodeContents(lf *leafNode) string {
 
 	return str
 }
+
+func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash := tr.root.getHash()
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.False(t, tr.root.isDirty())
+	assert.Equal(t, rootHash, tr.root.getHash())
+	assert.Equal(t, [][]byte{}, tr.oldHashes)
+}
+
+func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
+	t.Parallel()
+
+	tr, _, _ := newEmptyTrie()
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("log"), []byte("wood"))
+	_ = tr.Commit()
+	rootHash := tr.root.getHash()
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.False(t, tr.root.isDirty())
+	assert.Equal(t, rootHash, tr.root.getHash())
+	assert.Equal(t, [][]byte{}, tr.oldHashes)
+}
+
+func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
+	t.Parallel()
+
+	tr, _, _ := newEmptyTrie()
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Commit()
+	rootHash := tr.root.getHash()
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	assert.False(t, tr.root.isDirty())
+	assert.Equal(t, rootHash, tr.root.getHash())
+	assert.Equal(t, [][]byte{}, tr.oldHashes)
+}
+
+func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash := tr.root.getHash()
+
+	_ = tr.Update([]byte("ddoe"), []byte{})
+	assert.False(t, tr.root.isDirty())
+	assert.Equal(t, rootHash, tr.root.getHash())
+	assert.Equal(t, [][]byte{}, tr.oldHashes)
+}

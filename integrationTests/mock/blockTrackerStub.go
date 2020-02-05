@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// BlockTrackerStub -
 type BlockTrackerStub struct {
 	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
 	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
@@ -29,24 +30,28 @@ type BlockTrackerStub struct {
 	RestoreToGenesisCalled                            func()
 }
 
+// AddTrackedHeader -
 func (bts *BlockTrackerStub) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
 	if bts.AddTrackedHeaderCalled != nil {
 		bts.AddTrackedHeaderCalled(header, hash)
 	}
 }
 
+// AddCrossNotarizedHeader -
 func (bts *BlockTrackerStub) AddCrossNotarizedHeader(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte) {
 	if bts.AddCrossNotarizedHeaderCalled != nil {
 		bts.AddCrossNotarizedHeaderCalled(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
 	}
 }
 
+// AddSelfNotarizedHeader -
 func (bts *BlockTrackerStub) AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte) {
 	if bts.AddSelfNotarizedHeaderCalled != nil {
 		bts.AddSelfNotarizedHeaderCalled(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 }
 
+// CheckBlockAgainstRounder -
 func (bts *BlockTrackerStub) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
 	if bts.CheckBlockAgainstRounderCalled != nil {
 		return bts.CheckBlockAgainstRounderCalled(headerHandler)
@@ -55,6 +60,7 @@ func (bts *BlockTrackerStub) CheckBlockAgainstRounder(headerHandler data.HeaderH
 	return nil
 }
 
+// CheckBlockAgainstFinal -
 func (bts *BlockTrackerStub) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
 	if bts.CheckBlockAgainstFinalCalled != nil {
 		return bts.CheckBlockAgainstFinalCalled(headerHandler)
@@ -63,12 +69,14 @@ func (bts *BlockTrackerStub) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
+// CleanupHeadersBehindNonce -
 func (bts *BlockTrackerStub) CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64) {
 	if bts.CleanupHeadersBehindNonceCalled != nil {
 		bts.CleanupHeadersBehindNonceCalled(shardID, selfNotarizedNonce, crossNotarizedNonce)
 	}
 }
 
+// ComputeLongestChain -
 func (bts *BlockTrackerStub) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	if bts.ComputeLongestChainCalled != nil {
 		return bts.ComputeLongestChainCalled(shardID, header)
@@ -76,6 +84,7 @@ func (bts *BlockTrackerStub) ComputeLongestChain(shardID uint32, header data.Hea
 	return nil, nil
 }
 
+// ComputeLongestMetaChainFromLastNotarized -
 func (bts *BlockTrackerStub) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
 	if bts.ComputeLongestMetaChainFromLastNotarizedCalled != nil {
 		return bts.ComputeLongestMetaChainFromLastNotarizedCalled()
@@ -84,6 +93,7 @@ func (bts *BlockTrackerStub) ComputeLongestMetaChainFromLastNotarized() ([]data.
 	return nil, nil, nil
 }
 
+// ComputeLongestShardsChainsFromLastNotarized -
 func (bts *BlockTrackerStub) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	if bts.ComputeLongestShardsChainsFromLastNotarizedCalled != nil {
 		return bts.ComputeLongestShardsChainsFromLastNotarizedCalled()
@@ -92,12 +102,14 @@ func (bts *BlockTrackerStub) ComputeLongestShardsChainsFromLastNotarized() ([]da
 	return nil, nil, nil, nil
 }
 
+// DisplayTrackedHeaders -
 func (bts *BlockTrackerStub) DisplayTrackedHeaders() {
 	if bts.DisplayTrackedHeadersCalled != nil {
 		bts.DisplayTrackedHeadersCalled()
 	}
 }
 
+// GetCrossNotarizedHeader -
 func (bts *BlockTrackerStub) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	if bts.GetCrossNotarizedHeaderCalled != nil {
 		return bts.GetCrossNotarizedHeaderCalled(shardID, offset)
@@ -106,6 +118,7 @@ func (bts *BlockTrackerStub) GetCrossNotarizedHeader(shardID uint32, offset uint
 	return nil, nil, nil
 }
 
+// GetFinalHeader -
 func (bts *BlockTrackerStub) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if bts.GetFinalHeaderCalled != nil {
 		return bts.GetFinalHeaderCalled(shardID)
@@ -114,6 +127,7 @@ func (bts *BlockTrackerStub) GetFinalHeader(shardID uint32) (data.HeaderHandler,
 	return nil, nil, nil
 }
 
+// GetLastCrossNotarizedHeader -
 func (bts *BlockTrackerStub) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if bts.GetLastCrossNotarizedHeaderCalled != nil {
 		return bts.GetLastCrossNotarizedHeaderCalled(shardID)
@@ -122,6 +136,7 @@ func (bts *BlockTrackerStub) GetLastCrossNotarizedHeader(shardID uint32) (data.H
 	return nil, nil, nil
 }
 
+// GetLastCrossNotarizedHeadersForAllShards -
 func (bts *BlockTrackerStub) GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error) {
 	if bts.GetLastCrossNotarizedHeadersForAllShardsCalled != nil {
 		return bts.GetLastCrossNotarizedHeadersForAllShardsCalled()
@@ -130,6 +145,7 @@ func (bts *BlockTrackerStub) GetLastCrossNotarizedHeadersForAllShards() (map[uin
 	return nil, nil
 }
 
+// GetTrackedHeaders -
 func (bts *BlockTrackerStub) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	if bts.GetTrackedHeadersCalled != nil {
 		return bts.GetTrackedHeadersCalled(shardID)
@@ -138,6 +154,7 @@ func (bts *BlockTrackerStub) GetTrackedHeaders(shardID uint32) ([]data.HeaderHan
 	return nil, nil
 }
 
+// GetTrackedHeadersForAllShards -
 func (bts *BlockTrackerStub) GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler {
 	if bts.GetTrackedHeadersForAllShardsCalled != nil {
 		return bts.GetTrackedHeadersForAllShardsCalled()
@@ -146,6 +163,7 @@ func (bts *BlockTrackerStub) GetTrackedHeadersForAllShards() map[uint32][]data.H
 	return nil
 }
 
+// GetTrackedHeadersWithNonce -
 func (bts *BlockTrackerStub) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	if bts.GetTrackedHeadersWithNonceCalled != nil {
 		return bts.GetTrackedHeadersWithNonceCalled(shardID, nonce)
@@ -154,6 +172,7 @@ func (bts *BlockTrackerStub) GetTrackedHeadersWithNonce(shardID uint32, nonce ui
 	return nil, nil
 }
 
+// IsShardStuck -
 func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 	if bts.IsShardStuckCalled != nil {
 		return bts.IsShardStuckCalled(shardId)
@@ -162,30 +181,35 @@ func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
+// RegisterCrossNotarizedHeadersHandler -
 func (bts *BlockTrackerStub) RegisterCrossNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterCrossNotarizedHeadersHandlerCalled != nil {
 		bts.RegisterCrossNotarizedHeadersHandlerCalled(handler)
 	}
 }
 
+// RegisterSelfNotarizedHeadersHandler -
 func (bts *BlockTrackerStub) RegisterSelfNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterSelfNotarizedHeadersHandlerCalled != nil {
 		bts.RegisterSelfNotarizedHeadersHandlerCalled(handler)
 	}
 }
 
+// RemoveLastNotarizedHeaders -
 func (bts *BlockTrackerStub) RemoveLastNotarizedHeaders() {
 	if bts.RemoveLastNotarizedHeadersCalled != nil {
 		bts.RemoveLastNotarizedHeadersCalled()
 	}
 }
 
+// RestoreToGenesis -
 func (bts *BlockTrackerStub) RestoreToGenesis() {
 	if bts.RestoreToGenesisCalled != nil {
 		bts.RestoreToGenesisCalled()
 	}
 }
 
+// IsInterfaceNil -
 func (bts *BlockTrackerStub) IsInterfaceNil() bool {
 	return bts == nil
 }

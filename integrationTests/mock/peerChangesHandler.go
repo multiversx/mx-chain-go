@@ -2,11 +2,13 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data/block"
 
+// PeerChangesHandler -
 type PeerChangesHandler struct {
 	PeerChangesCalled       func() []block.PeerData
 	VerifyPeerChangesCalled func(peerChanges []block.PeerData) error
 }
 
+// PeerChanges -
 func (p *PeerChangesHandler) PeerChanges() []block.PeerData {
 	if p.PeerChangesCalled != nil {
 		return p.PeerChangesCalled()
@@ -14,6 +16,7 @@ func (p *PeerChangesHandler) PeerChanges() []block.PeerData {
 	return nil
 }
 
+// VerifyPeerChanges -
 func (p *PeerChangesHandler) VerifyPeerChanges(peerChanges []block.PeerData) error {
 	if p.VerifyPeerChangesCalled != nil {
 		return p.VerifyPeerChangesCalled(peerChanges)
@@ -21,6 +24,7 @@ func (p *PeerChangesHandler) VerifyPeerChanges(peerChanges []block.PeerData) err
 	return nil
 }
 
+// IsInterfaceNil -
 func (p *PeerChangesHandler) IsInterfaceNil() bool {
 	if p == nil {
 		return true

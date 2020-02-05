@@ -299,7 +299,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node,
 		n.Key = n.Key[keyMatchLen:]
 		dirty, newNode, oldHashes, err = en.child.insert(n, db)
 		if !dirty || err != nil {
-			return false, nil, emptyHashes, err
+			return false, en, emptyHashes, err
 		}
 
 		if !en.dirty {
