@@ -340,3 +340,7 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 func (e *epochStartData) LastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
 	return e.lastFinalizedFirstPendingListHeadersForShard(shardHdr)
 }
+
+func (sp *shardProcessor) CheckEpochCorrectnessCrossChain(blockChain data.ChainHandler) error {
+	return sp.checkEpochCorrectnessCrossChain(blockChain)
+}
