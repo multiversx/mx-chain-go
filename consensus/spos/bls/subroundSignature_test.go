@@ -291,6 +291,9 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		int(bls.MtSignature),
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 
 	sr.Data = nil
@@ -417,6 +420,9 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		int(bls.MtSignature),
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 
 	assert.False(t, sr.ReceivedSignature(cnsMsg))

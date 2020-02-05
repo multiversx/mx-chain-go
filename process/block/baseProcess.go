@@ -74,6 +74,7 @@ type baseProcessor struct {
 	hdrsForCurrBlock hdrForBlock
 
 	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
 }
 
 func checkForNils(
@@ -616,15 +617,11 @@ func (bp *baseProcessor) cleanupPools(
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		if bp.shardCoordinator.SelfId() == shardID {
-			continue
+	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
-
-		bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
-	}
-
-	if bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
+	} else {
 		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
@@ -715,11 +712,15 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
-	}
+	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
+		}
+	} else {
+		bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+	}
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
@@ -850,4 +851,57 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	return noncesToFinal
+}
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var body block.Body
+
+	err := bp.marshalizer.Unmarshal(&body, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return body
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	header := bp.blockProcessor.CreateNewHeader()
+
+	err := bp.marshalizer.Unmarshal(&header, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
+		return nil
+	}
+
+	return header
+}
+
+// DecodeBlockBodyAndHeader method decodes block body and header from a given byte array
+func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler) {
+	if dta == nil {
+		return nil, nil
+	}
+
+	var marshalizedBodyAndHeader data.MarshalizedBodyAndHeader
+	err := bp.marshalizer.Unmarshal(&marshalizedBodyAndHeader, dta)
+	if err != nil {
+		log.Debug("DecodeBlockBodyAndHeader.Unmarshal: dta", "error", err.Error())
+		return nil, nil
+	}
+
+	body := bp.DecodeBlockBody(marshalizedBodyAndHeader.Body)
+	header := bp.DecodeBlockHeader(marshalizedBodyAndHeader.Header)
+
+	return body, header
 }
