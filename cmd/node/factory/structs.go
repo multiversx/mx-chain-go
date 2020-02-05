@@ -506,27 +506,28 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents         *coreComponentsFactoryArgs
-	genesisConfig          *sharding.Genesis
-	economicsData          *economics.EconomicsData
-	nodesConfig            *sharding.NodesSetup
-	gasSchedule            map[string]map[string]uint64
-	syncer                 ntp.SyncTimer
-	shardCoordinator       sharding.Coordinator
-	nodesCoordinator       sharding.NodesCoordinator
-	data                   *Data
-	core                   *Core
-	crypto                 *Crypto
-	state                  *State
-	network                *Network
-	coreServiceContainer   serviceContainer.Core
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	epochStartNotifier     EpochStartNotifier
-	epochStart             *config.EpochStartConfig
-	rater                  sharding.RaterHandler
-	startEpochNum          uint32
-	sizeCheckDelta         uint32
-	stateCheckpointModulus uint
+	coreComponents                            *coreComponentsFactoryArgs
+	genesisConfig                             *sharding.Genesis
+	economicsData                             *economics.EconomicsData
+	nodesConfig                               *sharding.NodesSetup
+	gasSchedule                               map[string]map[string]uint64
+	syncer                                    ntp.SyncTimer
+	shardCoordinator                          sharding.Coordinator
+	nodesCoordinator                          sharding.NodesCoordinator
+	data                                      *Data
+	core                                      *Core
+	crypto                                    *Crypto
+	state                                     *State
+	network                                   *Network
+	coreServiceContainer                      serviceContainer.Core
+	requestedItemsHandler                     dataRetriever.RequestedItemsHandler
+	epochStartNotifier                        EpochStartNotifier
+	epochStart                                *config.EpochStartConfig
+	rater                                     sharding.RaterHandler
+	startEpochNum                             uint32
+	sizeCheckDelta                            uint32
+	stateCheckpointModulus                    uint
+	maxComputableRoundsForValidatorStatistics uint64
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -552,6 +553,7 @@ func NewProcessComponentsFactoryArgs(
 	rater sharding.RaterHandler,
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
+	maxComputableRoundsForValidatorStatistics uint64,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:         coreComponents,
@@ -575,6 +577,7 @@ func NewProcessComponentsFactoryArgs(
 		rater:                  rater,
 		sizeCheckDelta:         sizeCheckDelta,
 		stateCheckpointModulus: stateCheckpointModulus,
+		maxComputableRoundsForValidatorStatistics: maxComputableRoundsForValidatorStatistics,
 	}
 }
 
@@ -2292,16 +2295,17 @@ func newValidatorStatisticsProcessor(
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
-		PeerAdapter:      processComponents.state.PeerAccounts,
-		AdrConv:          processComponents.state.BLSAddressConverter,
-		NodesCoordinator: processComponents.nodesCoordinator,
-		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool:         peerDataPool,
-		StorageService:   storageService,
-		Marshalizer:      processComponents.core.Marshalizer,
-		StakeValue:       processComponents.economicsData.StakeValue(),
-		Rater:            processComponents.rater,
+		InitialNodes:        initialNodes,
+		PeerAdapter:         processComponents.state.PeerAccounts,
+		AdrConv:             processComponents.state.BLSAddressConverter,
+		NodesCoordinator:    processComponents.nodesCoordinator,
+		ShardCoordinator:    processComponents.shardCoordinator,
+		DataPool:            peerDataPool,
+		StorageService:      storageService,
+		Marshalizer:         processComponents.core.Marshalizer,
+		StakeValue:          processComponents.economicsData.StakeValue(),
+		Rater:               processComponents.rater,
+		MaxComputableRounds: processComponents.maxComputableRoundsForValidatorStatistics,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

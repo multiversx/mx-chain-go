@@ -108,7 +108,7 @@ func (pahm *PeerAccountHandlerMock) GetNonce() uint64 {
 }
 
 // IncreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal(uint32) error {
 	if pahm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
 		return pahm.IncreaseLeaderSuccessRateWithJournalCalled()
 	}
@@ -116,7 +116,7 @@ func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error
 }
 
 // DecreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal(uint32) error {
 	if pahm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
 		return pahm.DecreaseLeaderSuccessRateWithJournalCalled()
 	}
@@ -124,7 +124,7 @@ func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error
 }
 
 // IncreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal(uint32) error {
 	if pahm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
 		return pahm.IncreaseValidatorSuccessRateWithJournalCalled()
 	}
@@ -132,7 +132,7 @@ func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() er
 }
 
 // DecreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal(uint32) error {
 	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
 		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
 	}

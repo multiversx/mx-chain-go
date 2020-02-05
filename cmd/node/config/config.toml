@@ -7,6 +7,9 @@
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 
+   # MaxComputableRoundsForValidatorStatistics represents the
+   MaxComputableRoundsForValidatorStatistics = 100
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = false

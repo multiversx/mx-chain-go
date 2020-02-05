@@ -174,8 +174,9 @@ type HeartbeatConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	DestinationShardAsObserver string
-	StatusPollingIntervalSec   int
+	DestinationShardAsObserver                string
+	StatusPollingIntervalSec                  int
+	MaxComputableRoundsForValidatorStatistics uint64
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer
