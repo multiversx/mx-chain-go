@@ -44,7 +44,6 @@ type indexHashedNodesCoordinator struct {
 	currentEpoch            uint32
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
-	selfPubKey              []byte
 	consensusGroupCacher    Cacher
 }
 
@@ -74,7 +73,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		currentEpoch:            arguments.Epoch,
 		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
-		selfPubKey:              arguments.SelfPublicKey,
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
 	}
 
@@ -142,6 +140,10 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	nodesList, ok := eligible[core.MetachainShardId]
 	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
+	}
+
+	if _, ok := eligible[core.MetachainShardId]; !ok || len(eligible[core.MetachainShardId]) == 0 {
+		return ErrMissingMetachainNodes
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {

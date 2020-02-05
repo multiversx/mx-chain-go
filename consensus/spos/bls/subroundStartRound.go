@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -244,18 +244,18 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
-func (sr *SubroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
+func (sr *subroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHeader.GetEpoch()))
 }
 
 // EpochStartAction is called upon a start of epoch event.
-func (sr *SubroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
+func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
 	sr.changeEpoch(hdr)
 }
 
-func (sr *SubroundStartRound) changeEpoch(header data.HeaderHandler) {
+func (sr *subroundStartRound) changeEpoch(header data.HeaderHandler) {
 	publicKeysPrevEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch() - 1)
 	if err != nil {
 		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch()-1, err.Error()))

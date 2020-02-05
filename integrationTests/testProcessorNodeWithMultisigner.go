@@ -91,8 +91,7 @@ func CreateNodesWithNodesCoordinator(
 	metaConsensusGroupSize int,
 	seedAddress string,
 ) map[uint32][]*TestProcessorNode {
-	cache, _ := lrucache.NewCache(10000)
-	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress, cache)
+	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress)
 }
 
 // CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
@@ -103,7 +102,6 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	seedAddress string,
-	cache sharding.Cacher,
 ) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
@@ -118,6 +116,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
+		cache, _ := lrucache.NewCache(10000)
 
 		for i := range validatorList {
 			nodesList[i] = createNode(
@@ -132,10 +131,12 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cp,
+				cache,
 			)
 		}
 
 		for i := range waitingMap[shardId] {
+			cache, _ := lrucache.NewCache(10000)
 			nodesListWaiting[i] = createNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -148,6 +149,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 				i,
 				seedAddress,
 				cpWaiting,
+				cache,
 			)
 		}
 
@@ -169,6 +171,7 @@ func createNode(
 	keyIndex int,
 	seedAddress string,
 	cp *CryptoParams,
+	cache sharding.Cacher,
 ) *TestProcessorNode {
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
@@ -187,7 +190,7 @@ func createNode(
 		EligibleNodes:           validatorsMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           pubKeyBytes,
-	ConsensusGroupCache:     cache,}
+		ConsensusGroupCache:     cache}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 	if err != nil {

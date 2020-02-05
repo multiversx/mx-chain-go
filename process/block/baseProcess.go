@@ -714,7 +714,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 
 	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
 		}
@@ -876,7 +876,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header := bp.blockProcessor.CreateNewHeader()
+	header := bp.blockProcessor.CreateNewHeader(0)
 
 	err := bp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {

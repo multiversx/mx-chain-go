@@ -239,6 +239,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
+	eligibleMap[core.MetachainShardId] = list
 	nodeShuffler := NewXorValidatorsShuffler(1, 1, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
@@ -271,6 +272,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
+	eligibleMap[core.MetachainShardId] = list
 	nodeShuffler := NewXorValidatorsShuffler(1, 1, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
