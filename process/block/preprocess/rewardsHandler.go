@@ -244,11 +244,6 @@ func (rtxh *rewardsHandler) CreateBlockStarted() {
 	rtxh.cleanCachedData()
 }
 
-// CreateMarshalizedData creates the marshalized data for broadcasting purposes
-func (rtxh *rewardsHandler) CreateMarshalizedData(_ [][]byte) ([][]byte, error) {
-	return nil, nil
-}
-
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 	if cost == nil {

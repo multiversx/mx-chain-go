@@ -2,9 +2,7 @@ package p2p
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"io"
 
 	"github.com/mr-tron/base58/base58"
@@ -219,10 +217,5 @@ func MessageOriginatorPid(msg MessageP2P) string {
 // MessageOriginatorSeq will output the sequence number if it can be converted to an uint64, otherwise it will
 // display it as byte array
 func MessageOriginatorSeq(msg MessageP2P) string {
-	seqNo := msg.SeqNo()
-	if len(seqNo) >= 8 {
-		return fmt.Sprintf("%d", binary.BigEndian.Uint64(seqNo))
-	}
-
-	return hex.EncodeToString(seqNo)
+	return hex.EncodeToString(msg.SeqNo())
 }

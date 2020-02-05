@@ -602,42 +602,59 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc != nil && !preproc.IsInterfaceNil() {
+		if !check.IfNil(preproc) {
 			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			appended = true
 
-			var currMrsTxs [][]byte
-			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
-			if err != nil {
-				log.Trace("CreateMarshalizedData", "error", err.Error())
-				continue
-			}
-
-			if len(currMrsTxs) > 0 {
-				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
+			if ok {
+				//preproc supports marshalizing items
+				tc.appendMarshalizedItems(
+					dataMarshalizer,
+					miniblock.TxHashes,
+					mrsTxs,
+					broadcastTopic,
+				)
 			}
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc != nil && !interimProc.IsInterfaceNil() {
+		if !check.IfNil(interimProc) {
 			if !appended {
 				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			}
 
-			var currMrsInterTxs [][]byte
-			currMrsInterTxs, err = interimProc.CreateMarshalizedData(miniblock.TxHashes)
-			if err != nil {
-				log.Trace("CreateMarshalizedData", "error", err.Error())
-				continue
-			}
-
-			if len(currMrsInterTxs) > 0 {
-				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
+			if ok {
+				//interimProc supports marshalizing items
+				tc.appendMarshalizedItems(
+					dataMarshalizer,
+					miniblock.TxHashes,
+					mrsTxs,
+					broadcastTopic,
+				)
 			}
 		}
 	}
 
 	return bodies, mrsTxs
+}
+
+func (tc *transactionCoordinator) appendMarshalizedItems(
+	dataMarshalizer process.DataMarshalizer,
+	txHashes [][]byte,
+	mrsTxs map[string][][]byte,
+	broadcastTopic string,
+) {
+	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
+	if err != nil {
+		log.Trace("CreateMarshalizedData", "error", err.Error())
+		return
+	}
+
+	if len(currMrsTxs) > 0 {
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+	}
 }
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
