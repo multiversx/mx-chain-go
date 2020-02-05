@@ -4366,12 +4366,14 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1(t
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	prevHash := []byte("prevHash")
+	currHeader := &block.Header{
+		Nonce:    10,
+		Epoch:    epochStartTrigger.Epoch() - 1,
+		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
+		PrevHash: prevHash}
+
 	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-		return &block.Header{
-			Nonce:    10,
-			Epoch:    epochStartTrigger.Epoch() - 1,
-			Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
-			PrevHash: prevHash}
+		return currHeader
 	}}
 	prevHeader := &block.Header{
 		Nonce: 8,
@@ -4384,7 +4386,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1(t
 
 	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
-	assert.Equal(t, nonceCalled, prevHeader.Nonce)
+	assert.Equal(t, nonceCalled, currHeader.Nonce)
 }
 
 func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Blocks(t *testing.T) {
@@ -4440,5 +4442,5 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 
 	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
-	assert.Equal(t, nonceCalled, prevPrevHeader.Nonce)
+	assert.Equal(t, nonceCalled, prevHeader.Nonce)
 }

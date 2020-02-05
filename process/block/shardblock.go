@@ -962,8 +962,8 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 			return err
 		}
 
-		currentHeader = prevHeader
 		nonce = currentHeader.GetNonce()
+		currentHeader = prevHeader
 	}
 
 	if shouldRevertChain {
