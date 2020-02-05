@@ -16,7 +16,7 @@ type indexHashedNodesCoordinatorWithRater struct {
 // NewIndexHashedNodesCoordinatorWithRater creates a new index hashed group selector
 func NewIndexHashedNodesCoordinatorWithRater(
 	indexNodesCoordinator *indexHashedNodesCoordinator,
-	rater RatingReader,
+	rater RatingReaderWithChanceComputer,
 ) (*indexHashedNodesCoordinatorWithRater, error) {
 	if check.IfNil(indexNodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
@@ -25,15 +25,10 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		return nil, ErrNilRater
 	}
 
-	chanceComputer, ok := rater.(ChanceComputer)
-	if !ok {
-		return nil, ErrNilChanceComputer
-	}
-
 	ihncr := &indexHashedNodesCoordinatorWithRater{
 		indexHashedNodesCoordinator: indexNodesCoordinator,
 		RatingReader:                rater,
-		ChanceComputer:              chanceComputer,
+		ChanceComputer:              rater,
 	}
 
 	ihncr.nodesPerShardSetter = ihncr

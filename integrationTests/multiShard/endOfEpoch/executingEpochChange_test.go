@@ -2,8 +2,6 @@ package epochStart
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"math/big"
 	"testing"
 	"time"
@@ -12,8 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/stretchr/testify/assert"
 )
 

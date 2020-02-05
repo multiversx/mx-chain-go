@@ -104,6 +104,12 @@ type ChanceComputer interface {
 	IsInterfaceNil() bool
 }
 
+//RatingReaderWithChanceComputer provides chance computation capabilities with Rater
+type RatingReaderWithChanceComputer interface {
+	RatingReader
+	GetChance(uint32) uint32
+}
+
 //RatingReaderSetter provides the capabilities to set a RatingReader
 type RatingReaderSetter interface {
 	//SetRatingReader sets the rating

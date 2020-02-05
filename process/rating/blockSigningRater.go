@@ -1,12 +1,13 @@
 package rating
 
 import (
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"sort"
 )
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
