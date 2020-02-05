@@ -2047,7 +2047,18 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	testAccounts, _ := state.NewAccount(
+		state.NewAddress([]byte("address")),
+		&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+				return nil
+			}},
+	)
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+			return testAccounts, nil
+		},
+	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
@@ -2072,9 +2083,9 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	outaddress := []byte("newsmartcontract")
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
-	outacc1.Code = []byte("contract-code")
-	outacc1.Nonce = 5
+	outacc1.Nonce = 0
 	outacc1.Balance = big.NewInt(int64(5))
+	outacc1.BalanceDelta = big.NewInt(int64(15))
 	outputAccounts = append(outputAccounts, outacc1, outacc1, outacc1)
 
 	tx := &transaction.Transaction{}
