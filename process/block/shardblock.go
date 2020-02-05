@@ -95,6 +95,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
+	sp.blockProcessor = &sp
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -1815,40 +1816,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
-}
-
-// DecodeBlockBody method decodes block body from a given byte array
-func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var body block.Body
-
-	err := sp.marshalizer.Unmarshal(&body, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return body
-}
-
-// DecodeBlockHeader method decodes block header from a given byte array
-func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var header block.Header
-
-	err := sp.marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return &header
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
