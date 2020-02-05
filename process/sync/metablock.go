@@ -182,7 +182,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 		return nil, process.ErrMissingBody
 	}
 
-	return &block.Body{miniBlocks}, nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
@@ -386,7 +386,7 @@ func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.He
 		return nil, err
 	}
 
-	blockBody := &block.Body{miniBlockSlice}
+	blockBody := &block.Body{MiniBlocks: miniBlockSlice}
 
 	return blockBody, nil
 }

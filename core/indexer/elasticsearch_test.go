@@ -69,8 +69,18 @@ func newTestMetaBlock() *block.MetaBlock {
 func newTestBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2, 0},
-			{[][]byte{[]byte("tx3")}, 4, 1, 0},
+			&block.MiniBlock{
+				TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+				ReceiverShardID: 2,
+				SenderShardID:   2,
+				Type:            0,
+			},
+			&block.MiniBlock{
+				TxHashes:        [][]byte{[]byte("tx3")},
+				ReceiverShardID: 4,
+				SenderShardID:   1,
+				Type:            0,
+			},
 		},
 	}
 }
