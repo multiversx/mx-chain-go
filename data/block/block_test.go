@@ -348,8 +348,7 @@ func TestHeader_SetTxCount(t *testing.T) {
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
-	body := &block.Body{}
-	body = nil
+	var body *block.Body = nil
 	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
