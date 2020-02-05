@@ -24,7 +24,8 @@ export NODE="$NODEDIR/node"     # Leave unchanged
 export SEEDNODEDIR="$ELRONDDIR/cmd/seednode"
 export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
-# Niceness value of the Seednode, Observer Nodes and Validator Nodes.
+# Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
+# blank to not adjust niceness.
 export NODE_NICENESS=10
 
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and

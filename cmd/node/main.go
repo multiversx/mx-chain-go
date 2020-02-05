@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
@@ -1030,6 +1031,11 @@ func createNodesCoordinator(
 		nodesConfig.Adaptivity,
 	)
 
+	consensusGroupCache, err := lrucache.NewCache(25000)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1041,6 +1047,7 @@ func createNodesCoordinator(
 		EligibleNodes:           eligibleValidators,
 		WaitingNodes:            waitingValidators,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     consensusGroupCache,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

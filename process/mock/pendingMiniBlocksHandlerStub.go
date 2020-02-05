@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
+// PendingMiniBlocksHandlerStub -
 type PendingMiniBlocksHandlerStub struct {
 	PendingMiniBlockHeadersCalled func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
@@ -13,6 +14,7 @@ type PendingMiniBlocksHandlerStub struct {
 	SetNumPendingMiniBlocksCalled func(shardID uint32, numPendingMiniBlocks uint32)
 }
 
+// PendingMiniBlockHeaders -
 func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
 	if p.PendingMiniBlockHeadersCalled != nil {
 		return p.PendingMiniBlockHeadersCalled(lastNotarizedHeaders)
@@ -20,6 +22,7 @@ func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders(lastNotarizedHead
 	return nil, nil
 }
 
+// AddProcessedHeader -
 func (p *PendingMiniBlocksHandlerStub) AddProcessedHeader(handler data.HeaderHandler) error {
 	if p.AddProcessedHeaderCalled != nil {
 		return p.AddProcessedHeaderCalled(handler)
@@ -27,6 +30,7 @@ func (p *PendingMiniBlocksHandlerStub) AddProcessedHeader(handler data.HeaderHan
 	return nil
 }
 
+// RevertHeader -
 func (p *PendingMiniBlocksHandlerStub) RevertHeader(handler data.HeaderHandler) error {
 	if p.RevertHeaderCalled != nil {
 		return p.RevertHeaderCalled(handler)
@@ -34,6 +38,7 @@ func (p *PendingMiniBlocksHandlerStub) RevertHeader(handler data.HeaderHandler) 
 	return nil
 }
 
+// GetNumPendingMiniBlocks -
 func (p *PendingMiniBlocksHandlerStub) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	if p.GetNumPendingMiniBlocksCalled != nil {
 		return p.GetNumPendingMiniBlocksCalled(shardID)
@@ -41,12 +46,14 @@ func (p *PendingMiniBlocksHandlerStub) GetNumPendingMiniBlocks(shardID uint32) u
 	return 0
 }
 
+// SetNumPendingMiniBlocks -
 func (p *PendingMiniBlocksHandlerStub) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
 	if p.SetNumPendingMiniBlocksCalled != nil {
 		p.SetNumPendingMiniBlocksCalled(shardID, numPendingMiniBlocks)
 	}
 }
 
+// IsInterfaceNil -
 func (p *PendingMiniBlocksHandlerStub) IsInterfaceNil() bool {
 	return p == nil
 }

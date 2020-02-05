@@ -1,5 +1,6 @@
 package mock
 
+// HasherStub -
 type HasherStub struct {
 	ComputeCalled   func(s string) []byte
 	EmptyHashCalled func() []byte
