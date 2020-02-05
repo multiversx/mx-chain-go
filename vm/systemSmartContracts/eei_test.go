@@ -117,7 +117,7 @@ func TestVmContext_SetStorage(t *testing.T) {
 	addr := "smartcontract"
 	vmContext.SetSCAddress([]byte(addr))
 
-	addr := "smartcontract"
+	addr = "smartcontract"
 	vmContext.SetSCAddress([]byte(addr))
 
 	key := []byte("key")
