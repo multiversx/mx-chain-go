@@ -56,16 +56,6 @@ func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashi
 	return vm, nil
 }
 
-// G0Create -
-func (vm *OneSCExecutorMockVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
-	return big.NewInt(0), nil
-}
-
-// G0Call -
-func (vm *OneSCExecutorMockVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
-	return big.NewInt(0), nil
-}
-
 // RunSmartContractCreate -
 func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
@@ -99,9 +89,9 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		BalanceDelta: input.CallValue,
 		Address:      newSCAddr,
 		StorageUpdates: makeStorageUpdatesMap(&vmcommon.StorageUpdate{
-				//only one variable: a
-				Offset: variableA,
-				Data:   initialValue,
+			//only one variable: a
+			Offset: variableA,
+			Data:   initialValue,
 		}),
 	}
 
@@ -181,9 +171,9 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		BalanceDelta: input.CallValue,
 		Address:      input.RecipientAddr,
 		StorageUpdates: makeStorageUpdatesMap(&vmcommon.StorageUpdate{
-				//only one variable: a
-				Offset: variableA,
-				Data:   newValue.Bytes(),
+			//only one variable: a
+			Offset: variableA,
+			Data:   newValue.Bytes(),
 		}),
 	}
 
@@ -273,7 +263,7 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		Nonce:          destNonce,
 		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
-		StorageUpdates: makeStorageUpdatesMap(),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{
@@ -296,7 +286,7 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
 		Address:        input.RecipientAddr,
-		StorageUpdates: makeStorageUpdatesMap(),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{

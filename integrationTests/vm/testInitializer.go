@@ -516,7 +516,7 @@ func CreateTransferTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000000,
-		Data:     []byte("transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
+		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes())),
 	}
 }
 

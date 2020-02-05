@@ -97,7 +97,7 @@ func (host *vmContext) Transfer(
 	destination []byte,
 	sender []byte,
 	value *big.Int,
-	input []byte,
+	_ []byte,
 ) error {
 
 	senderAcc, ok := host.outputAccounts[string(sender)]
@@ -157,7 +157,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	for addr, updates := range host.storageUpdate {
 		if _, ok := outAccs[addr]; !ok {
 			outAccs[addr] = &vmcommon.OutputAccount{
-				Address: []byte(addr),
+				Address:        []byte(addr),
 				StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 			}
 		}
@@ -199,6 +199,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		vmOutput.DeletedAccounts = append(vmOutput.DeletedAccounts, []byte(addr))
 	}
 
+	// save to the output finally
 	vmOutput.OutputAccounts = outAccs
 
 	vmOutput.GasRemaining = 0
