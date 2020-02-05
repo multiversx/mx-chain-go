@@ -232,6 +232,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	_ = logger.SetLogLevel("*:DEBUG,sharding:TRACE,process/peer:TRACE")
 
