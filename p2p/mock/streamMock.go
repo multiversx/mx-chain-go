@@ -18,6 +18,7 @@ type streamMock struct {
 	canRead      bool
 }
 
+// NewStreamMock -
 func NewStreamMock() *streamMock {
 	return &streamMock{
 		mutData:      sync.Mutex{},
@@ -27,6 +28,7 @@ func NewStreamMock() *streamMock {
 	}
 }
 
+// Read -
 func (sm *streamMock) Read(p []byte) (n int, err error) {
 	//just a mock implementation of blocking read
 	for {
@@ -49,6 +51,7 @@ func (sm *streamMock) Read(p []byte) (n int, err error) {
 	}
 }
 
+// Write -
 func (sm *streamMock) Write(p []byte) (int, error) {
 	sm.mutData.Lock()
 	n, err := sm.buffStream.Write(p)
@@ -60,6 +63,7 @@ func (sm *streamMock) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Close -
 func (sm *streamMock) Close() error {
 	sm.mutData.Lock()
 	defer sm.mutData.Unlock()
@@ -68,6 +72,7 @@ func (sm *streamMock) Close() error {
 	return nil
 }
 
+// Reset -
 func (sm *streamMock) Reset() error {
 	sm.mutData.Lock()
 	defer sm.mutData.Unlock()
@@ -77,32 +82,39 @@ func (sm *streamMock) Reset() error {
 	return nil
 }
 
+// SetDeadline -
 func (sm *streamMock) SetDeadline(time.Time) error {
 	panic("implement me")
 }
 
+// SetReadDeadline -
 func (sm *streamMock) SetReadDeadline(time.Time) error {
 	panic("implement me")
 }
 
+// SetWriteDeadline -
 func (sm *streamMock) SetWriteDeadline(time.Time) error {
 	panic("implement me")
 }
 
+// Protocol -
 func (sm *streamMock) Protocol() protocol.ID {
 	return sm.pid
 }
 
+// SetProtocol -
 func (sm *streamMock) SetProtocol(pid protocol.ID) {
 	sm.pid = pid
 }
 
+// Stat -
 func (sm *streamMock) Stat() network.Stat {
 	return network.Stat{
 		Direction: network.DirOutbound,
 	}
 }
 
+// Conn -
 func (sm *streamMock) Conn() network.Conn {
 	panic("implement me")
 }

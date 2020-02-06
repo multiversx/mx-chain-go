@@ -538,7 +538,10 @@ func TestNode_getDirtyHashes(t *testing.T) {
 
 	tr := initTrie()
 
-	hashes, err := tr.root.getDirtyHashes()
+	_ = tr.root.setRootHash()
+	hashes := make(map[string]struct{})
+	err := tr.root.getDirtyHashes(hashes)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, hashes)
 	assert.Equal(t, 6, len(hashes))
@@ -617,4 +620,32 @@ func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
 	assert.Equal(t, []byte("reindeer"), leafs[string([]byte("doe"))])
 	assert.Equal(t, []byte("puppy"), leafs[string([]byte("dog"))])
 	assert.Equal(t, []byte("cat"), leafs[string([]byte("ddog"))])
+}
+
+func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {
+	map1 := map[string]struct{}{
+		"hash1": {},
+		"hash2": {},
+		"hash3": {},
+		"hash4": {},
+	}
+
+	map2 := map[string]struct{}{
+		"hash1": {},
+		"hash4": {},
+		"hash5": {},
+		"hash6": {},
+	}
+
+	removeDuplicatedKeys(map1, map2)
+
+	_, ok := map1["hash1"]
+	assert.False(t, ok)
+	_, ok = map1["hash4"]
+	assert.False(t, ok)
+
+	_, ok = map2["hash1"]
+	assert.False(t, ok)
+	_, ok = map2["hash4"]
+	assert.False(t, ok)
 }

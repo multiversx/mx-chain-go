@@ -1,0 +1,17 @@
+int64finish
+int64getArgument
+signalExit
+bigIntGetBytes
+writeLog
+getNumArguments
+getCaller
+bigIntNew
+bigIntGetUnsignedArgument
+bigIntStorageStore
+bigIntStorageLoad
+bigIntFinish
+getArgument
+bigIntCmp
+bigIntSub
+bigIntAdd
+signalError

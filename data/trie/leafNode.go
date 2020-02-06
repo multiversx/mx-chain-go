@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -181,6 +182,10 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 	}
 
 	if bytes.Equal(n.Key, ln.Key) {
+		if bytes.Equal(ln.Value, n.Value) {
+			return false, ln, [][]byte{}, nil
+		}
+
 		ln.Value = n.Value
 		ln.dirty = true
 		ln.hash = nil
@@ -224,8 +229,7 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 }
 
 func (ln *leafNode) delete(key []byte, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
-	keyMatchLen := prefixLen(key, ln.Key)
-	if keyMatchLen == len(key) {
+	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
 			oldHash = append(oldHash, ln.hash)
@@ -257,7 +261,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ data.DBWriteCacher) {
 	if ln == nil {
 		return
 	}
@@ -272,7 +276,7 @@ func (ln *leafNode) print(writer io.Writer, _ int) {
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L:(%s - %s)\n", key, val)
+	_, _ = fmt.Fprintf(writer, "L:(%v) - %v\n", hex.EncodeToString(ln.hash), ln.dirty)
 }
 
 func (ln *leafNode) deepClone() node {
@@ -304,20 +308,18 @@ func (ln *leafNode) deepClone() node {
 	return clonedNode
 }
 
-func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
+func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	dirtyHashes := make([][]byte, 0)
 
 	if !ln.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
-	dirtyHashes = append(dirtyHashes, ln.getHash())
-	return dirtyHashes, nil
+	hashes[hex.EncodeToString(ln.getHash())] = struct{}{}
+	return nil
 }
 
 func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {
