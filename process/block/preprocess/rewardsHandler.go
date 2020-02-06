@@ -133,17 +133,6 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 		rtxh.rewardTxsForBlock[string(rewardTxHash)] = addedRewardTx
 	}
 
-	for _, tx := range rtxh.rewardTxsForBlock {
-		log.Trace("rewardTxsForBlock",
-			"shard", tx.ShardId,
-			"epoch", tx.Epoch,
-			"round", tx.Round,
-			"rcvAddr", tx.RcvAddr,
-			"value", tx.Value,
-			"cnsIndex", tx.CnsIndex,
-			"type", tx.Type)
-	}
-
 	return nil
 }
 
@@ -452,6 +441,17 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 	rtxh.mutGenRewardTxs.RUnlock()
+
+	for _, tx := range rtxh.rewardTxsForBlock {
+		log.Trace("rewardTxsForBlock",
+			"shard", tx.ShardId,
+			"epoch", tx.Epoch,
+			"round", tx.Round,
+			"rcvAddr", tx.RcvAddr,
+			"value", tx.Value,
+			"cnsIndex", tx.CnsIndex,
+			"type", tx.Type)
+	}
 
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
