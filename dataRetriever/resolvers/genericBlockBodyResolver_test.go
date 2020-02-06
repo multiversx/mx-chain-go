@@ -123,7 +123,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	mbHash := []byte("aaa")
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, merr := marshalizer.Marshal(&batch.Batch{miniBlockList})
+	requestedBuff, merr := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	assert.Nil(t, merr)
 
@@ -183,7 +183,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 	mbHash := []byte("aaa")
 	miniBlockList := make([][]byte, 0)
 	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{miniBlockList})
+	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	assert.Nil(t, merr)
 

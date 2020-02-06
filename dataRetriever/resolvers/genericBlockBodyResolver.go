@@ -131,7 +131,7 @@ func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
 func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte) error {
-	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{hashes})
+	hash, err := gbbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 
 	if err != nil {
 		return err

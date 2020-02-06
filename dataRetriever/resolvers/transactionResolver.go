@@ -91,7 +91,7 @@ func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	buffToSend, err := txRes.marshalizer.Marshal(&batch.Batch{[][]byte{tx}})
+	buffToSend, err := txRes.marshalizer.Marshal(&batch.Batch{Data: [][]byte{tx}})
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
 func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
-	buffHashes, err := txRes.marshalizer.Marshal(&batch.Batch{hashes})
+	buffHashes, err := txRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
 	if err != nil {
 		return err
 	}

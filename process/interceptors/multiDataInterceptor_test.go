@@ -172,7 +172,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 		atomic.AddInt32(&broadcastNum, 1)
 	}
 
-	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -239,7 +239,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		atomic.AddInt32(&broadcastNum, 1)
 	}
 
-	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -284,7 +284,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -327,7 +327,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
@@ -370,7 +370,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		throttler,
 	)
 
-	dataField, _ := marshalizer.Marshal(&batch.Batch{buffData})
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}

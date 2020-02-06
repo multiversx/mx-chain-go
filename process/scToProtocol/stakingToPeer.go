@@ -378,7 +378,7 @@ func (stp *stakingToPeer) batchPeerData(pc []block.PeerData) (*batch.Batch, erro
 			return nil, err
 		}
 	}
-	return &batch.Batch{mrsPc}, nil
+	return &batch.Batch{Data: mrsPc}, nil
 }
 
 // VerifyPeerChanges verifies if peer changes from header is the same as the one created while processing

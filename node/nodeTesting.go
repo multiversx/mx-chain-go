@@ -234,7 +234,7 @@ func (n *Node) generateAndSignTxBuffArray(
 		return nil, nil, err
 	}
 
-	signedMarshalizedTx, err := n.protoMarshalizer.Marshal(&batch.Batch{[][]byte{txBuff}})
+	signedMarshalizedTx, err := n.protoMarshalizer.Marshal(&batch.Batch{Data: [][]byte{txBuff}})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}
