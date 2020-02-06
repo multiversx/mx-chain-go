@@ -3,7 +3,6 @@ package sharding
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"runtime"
 	"strconv"
 	"strings"
@@ -134,23 +133,8 @@ func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) 
 }
 
 func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
-	eligibleMap := createDummyNodesMap(10, 3, "eligible")
-	waitingMap := createDummyNodesMap(3, 3, "waiting")
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-
-	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     nil,
-	}
+	arguments := createArguments()
+	arguments.ConsensusGroupCache = nil
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 
 	assert.Nil(t, ihgs)
@@ -584,6 +568,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10locksNoMemo
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
 
 	getCounter := int32(0)
 	putCounter := int32(0)
@@ -605,6 +590,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10locksNoMemo
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
@@ -639,6 +625,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10BlocksMemoi
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
 
 	getCounter := 0
 	putCounter := 0
@@ -673,6 +660,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10BlocksMemoi
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
@@ -702,10 +690,6 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup400of400For10BlocksMemoi
 
 func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.B) {
 	consensusGroupSize := 21
-	list := make([]Validator, 0)
-	eligibleMap := make(map[uint32][]Validator)
-	eligibleMap[0] = list
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
