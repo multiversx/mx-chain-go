@@ -379,13 +379,14 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	}
 
 	consensusRewardTxs := make([]data.TransactionHandler, 0, len(consensusRewardData.Addresses))
-	for _, address := range consensusRewardData.Addresses {
+	for index, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
 		rTx.Value = rtxh.economicsRewards.RewardsValue()
 		rTx.RcvAddr = []byte(address)
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
 		rTx.Epoch = consensusRewardData.Epoch
 		rTx.Round = consensusRewardData.Round
+		rTx.CnsIndex = uint16(index)
 		rTx.Type = rewardTx.ProtocolRewardsTx
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
@@ -405,7 +406,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 	}
 
 	for _, metaConsensusSet := range metaRewardsData {
-		for _, address := range metaConsensusSet.Addresses {
+		for index, address := range metaConsensusSet.Addresses {
 			shardId, err := rtxh.address.ShardIdForAddress([]byte(address))
 			if err != nil {
 				log.Debug("ShardIdForAddress", "error", err.Error())
@@ -422,6 +423,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 			rTx.ShardId = rtxh.shardCoordinator.SelfId()
 			rTx.Epoch = metaConsensusSet.Epoch
 			rTx.Round = metaConsensusSet.Round
+			rTx.CnsIndex = uint16(index)
 			rTx.Type = rewardTx.ProtocolRewardsForMetaTx
 
 			consensusRewardTxs = append(consensusRewardTxs, rTx)
@@ -443,41 +445,30 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
-	var err error
-	defer func() {
-		if err != nil {
-			rtxh.displayCalculatedRewardsTxs()
-		}
-	}()
-
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
 		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue())
 	}
 
 	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
-		err = process.ErrRewardTxsMismatchCreatedReceived
-		return err
+		return process.ErrRewardTxsMismatchCreatedReceived
 	}
 
 	totalCalculatedFees := big.NewInt(0)
-	var rewardTxHash []byte
-	for _, calculatedRewardTx := range calculatedRewardTxs {
-		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, calculatedRewardTx.GetValue())
+	for _, rTx := range calculatedRewardTxs {
+		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, rTx.GetValue())
 
-		rewardTxHash, err = core.CalculateHash(rtxh.marshalizer, rtxh.hasher, calculatedRewardTx)
+		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
 		if err != nil {
 			return err
 		}
 
 		txFromBlock, ok := rtxh.rewardTxsForBlock[string(rewardTxHash)]
 		if !ok {
-			err = process.ErrRewardTxNotFound
-			return err
+			return process.ErrRewardTxNotFound
 		}
-		if txFromBlock.GetValue().Cmp(calculatedRewardTx.GetValue()) != 0 {
-			err = process.ErrRewardTxsDoNotMatch
-			return err
+		if txFromBlock.GetValue().Cmp(rTx.GetValue()) != 0 {
+			return process.ErrRewardTxsDoNotMatch
 		}
 	}
 

@@ -269,13 +269,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	for _, hdr := range processedMetaHdrs {
-		log.Trace("processedMetaHdrs",
-			"epoch", hdr.GetEpoch(),
-			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce())
-	}
-
 	err = sp.setMetaConsensusData(processedMetaHdrs)
 	if err != nil {
 		return err
@@ -1182,7 +1175,15 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	log.Trace("cross mini blocks in body",
 		"num miniblocks", len(miniBlockHashes),
 	)
+
 	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes)
+
+	for _, hdr := range processedMetaBlocks {
+		log.Trace("getOrderedProcessedMetaBlocksFromMiniBlocks",
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce())
+	}
 
 	return processedMetaBlocks, err
 }
@@ -1674,13 +1675,6 @@ func (sp *shardProcessor) createMiniBlocks(
 	processedMetaHdrs, errNotCritical := sp.getOrderedProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks)
 	if errNotCritical != nil {
 		log.Debug("getOrderedProcessedMetaBlocksFromMiniBlocks", "error", errNotCritical.Error())
-	}
-
-	for _, hdr := range processedMetaHdrs {
-		log.Trace("processedMetaHdrs",
-			"epoch", hdr.GetEpoch(),
-			"round", hdr.GetRound(),
-			"nonce", hdr.GetNonce())
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)

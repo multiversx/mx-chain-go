@@ -6,25 +6,26 @@ import (
 
 const (
 	// LeaderTx identifies a leader reward tx type
-	LeaderTx = 1
+	LeaderTx = iota + 1
 	// BurnTx identifies a burn reward tx type
-	BurnTx = 2
+	BurnTx
 	// CommunityTx identifies a community reward tx type
-	CommunityTx = 3
+	CommunityTx
 	// ProtocolRewardsTx identifies a protocol reward tx type
-	ProtocolRewardsTx = 4
+	ProtocolRewardsTx
 	// ProtocolRewardsForMetaTx identifies a protocol reward for meta tx type
-	ProtocolRewardsForMetaTx = 5
+	ProtocolRewardsForMetaTx
 )
 
 // RewardTx holds the data for a reward transaction
 type RewardTx struct {
-	Round   uint64   `json:"round"`
-	Value   *big.Int `json:"value"`
-	RcvAddr []byte   `json:"receiver"`
-	ShardId uint32   `json:"shardId"`
-	Epoch   uint32   `json:"epoch"`
-	Type    uint8    `json:"type"`
+	Round    uint64   `json:"round"`
+	Value    *big.Int `json:"value"`
+	RcvAddr  []byte   `json:"receiver"`
+	ShardId  uint32   `json:"shardId"`
+	Epoch    uint32   `json:"epoch"`
+	CnsIndex uint16   `json:"cnsIndex"`
+	Type     uint8    `json:"type"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil
