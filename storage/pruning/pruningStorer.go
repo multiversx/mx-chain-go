@@ -149,6 +149,10 @@ func initPersistersInEpoch(
 		return persisters, persistersMapByEpoch, nil
 	}
 
+	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
+		return nil, nil, fmt.Errorf("invalid epochs configuration")
+	}
+
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0
@@ -156,10 +160,6 @@ func initPersistersInEpoch(
 	oldestEpochActive := int64(args.StartingEpoch) - int64(args.NumOfActivePersisters) + 1
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
-	}
-
-	if oldestEpochActive < oldestEpochKeep {
-		return nil, nil, fmt.Errorf("invalid epochs configuration")
 	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
@@ -581,7 +581,7 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr stri
 
 	db, err := args.PersisterFactory.Create(filePath)
 	if err != nil {
-		log.Debug("persister create error", "error", err.Error())
+		log.Warn("persister create error", "error", err.Error())
 		return nil, err
 	}
 
@@ -593,7 +593,7 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr stri
 
 	err = p.persister.Init()
 	if err != nil {
-		log.Debug("init old persister", "error", err.Error())
+		log.Warn("init old persister", "error", err.Error())
 		return nil, err
 	}
 

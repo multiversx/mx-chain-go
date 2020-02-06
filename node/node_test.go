@@ -1667,6 +1667,15 @@ func TestStartConsensus_ShardBootstrapperErrorResolver(t *testing.T) {
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 	)
 
 	err := n.StartConsensus(0)
@@ -1707,6 +1716,14 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	err := n.StartConsensus(0)
@@ -1743,6 +1760,15 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 				return &mock.MiniBlocksResolverStub{}, nil
 			},
 		}),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 	)
 
 	err := n.StartConsensus(0)
@@ -1864,6 +1890,9 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			},
 		}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	err := n.StartConsensus(0)
@@ -1954,6 +1983,8 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	err := n.StartConsensus(0)
@@ -2069,6 +2100,8 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartSubscriber(&mock.EpochStartNotifierStub{}),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	err := n.StartConsensus(0)

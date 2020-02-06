@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -270,10 +271,6 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
 
-	if st.nodesCoordinator.IsInterfaceNil() {
-		return data.ErrNilNodesCoordinator
-	}
-
 	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)
 	if err != nil {
 		log.Debug("cannot load nodes coordinator state", "error", err.Error())
@@ -348,4 +345,45 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)
+}
+
+func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) error {
+	if check.IfNil(args.BootStorer) {
+		return process.ErrNilBootStorer
+	}
+	if check.IfNil(args.ForkDetector) {
+		return process.ErrNilForkDetector
+	}
+	if check.IfNil(args.BlockProcessor) {
+		return process.ErrNilBlockProcessor
+	}
+	if check.IfNil(args.ChainHandler) {
+		return process.ErrNilBlockChain
+	}
+	if check.IfNil(args.Marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Store) {
+		return process.ErrNilStore
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return process.ErrNilUint64Converter
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(args.ResolversFinder) {
+		return dataRetriever.ErrNilResolverFinder
+	}
+	if check.IfNil(args.BlockTracker) {
+		return process.ErrNilBlockTracker
+	}
+
+	return nil
 }

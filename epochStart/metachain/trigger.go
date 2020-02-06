@@ -45,6 +45,7 @@ type trigger struct {
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
 	epochStartNotifier          epochStart.EpochStartNotifier
+	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
 }
@@ -81,6 +82,11 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilTriggerStorage
 	}
 
+	metaBlockStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(triggerStorage) {
+		return nil, epochStart.ErrNilMetaBlockStorage
+	}
+
 	trigger := &trigger{
 		triggerStateKey:             []byte("initial_value"),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -92,6 +98,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
 		epochStartNotifier:          args.EpochStartNotifier,
+		metaHeaderStorage:           metaBlockStorage,
 		triggerStorage:              triggerStorage,
 		marshalizer:                 args.Marshalizer,
 	}
@@ -199,9 +206,14 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
-	err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
-	if err != nil {
-		log.Debug("SetProcessed put into triggerStorage", "error", err.Error())
+	errNotCritical := t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if errNotCritical != nil {
+		log.Debug("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = t.metaHeaderStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if errNotCritical != nil {
+		log.Debug("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
 	}
 
 	t.currEpochStartRound = metaBlock.Round
@@ -229,9 +241,14 @@ func (t *trigger) Revert(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	epochStartIdentifier := core.EpochStartIdentifier(t.epoch)
-	err := t.triggerStorage.Remove([]byte(epochStartIdentifier))
-	if err != nil {
-		log.Debug("Revert remove from triggerStorage", "error", err.Error())
+	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
+	if errNotCritical != nil {
+		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
 	t.currEpochStartRound = t.prevEpochStartRound
@@ -291,6 +308,6 @@ func (t *trigger) saveCurrentState(round uint64) {
 	t.triggerStateKey = []byte(fmt.Sprint(round))
 	err := t.saveState(t.triggerStateKey)
 	if err != nil {
-		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
+		log.Warn("error saving trigger state", "error", err, "key", t.triggerStateKey)
 	}
 }

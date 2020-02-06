@@ -633,6 +633,16 @@ func (mp *metaProcessor) createMiniBlocks(
 		uint32(maxMbSpaceRemained),
 		haveTime)
 
+	nbTxs = 0
+	for _, mb := range mbFromMe {
+		nbTxs += uint32(len(mb.TxHashes))
+	}
+
+	log.Debug("processed miniblocks and txs with from me",
+		"num miniblocks", len(mbFromMe),
+		"num txs", nbTxs,
+	)
+
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)
 	}

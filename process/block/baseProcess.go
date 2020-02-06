@@ -751,8 +751,6 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
-	//TODO add end of epoch stuff
-
 	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
 
 	bootData := bootstrapStorage.BootstrapData{

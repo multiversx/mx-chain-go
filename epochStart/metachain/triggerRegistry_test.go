@@ -25,6 +25,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartTime = t.epochStartTime
 	rt.epochStartNotifier = t.epochStartNotifier
 	rt.triggerStorage = t.triggerStorage
+	rt.metaHeaderStorage = t.metaHeaderStorage
 	rt.marshalizer = t.marshalizer
 
 	return rt

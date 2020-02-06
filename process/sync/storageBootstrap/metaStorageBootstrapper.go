@@ -1,6 +1,7 @@
 package storageBootstrap
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,11 @@ type metaStorageBootstrapper struct {
 
 // NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
 func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
+	err := checkMetaStorageBootstrapperArgs(arguments)
+	if err != nil {
+		return nil, err
+	}
+
 	base := &storageBootstrapper{
 		bootStorer:        arguments.BootStorer,
 		forkDetector:      arguments.ForkDetector,
@@ -136,4 +142,16 @@ func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks 
 			"shard", pendingMiniBlockInfo.ShardID,
 			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
 	}
+}
+
+func checkMetaStorageBootstrapperArgs(args ArgsMetaStorageBootstrapper) error {
+	err := checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(args.PendingMiniBlocksHandler) {
+		return process.ErrNilPendingMiniBlocksHandler
+	}
+
+	return nil
 }

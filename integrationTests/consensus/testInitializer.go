@@ -457,6 +457,8 @@ func createConsensusOnlyNode(
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithChainID(consensusChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
 	if err != nil {

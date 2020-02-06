@@ -533,20 +533,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
-	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	var pathManager *pathmanager.PathManager
+	pathManager, err = pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
 	if err != nil {
 		return err
 	}
 
-	currentEpoch, err := storageFactory.FindLastEpochFromStorage(
+	var currentEpoch uint32
+	var errNotCritical error
+	currentEpoch, errNotCritical = storageFactory.FindLastEpochFromStorage(
 		workingDir,
 		nodesConfig.ChainID,
 		defaultDBPath,
 		defaultEpochString,
 	)
-	if err != nil {
+	if errNotCritical != nil {
 		currentEpoch = 0
-		log.Debug("no epoch db found in storage", "error", err.Error())
+		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	}
 
 	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
