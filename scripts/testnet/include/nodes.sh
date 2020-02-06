@@ -127,7 +127,7 @@ assembleCommand_startObserverNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -logFile -logLevel $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -destination-shard-as-observer $SHARD \
         -working-directory $WORKING_DIR"
@@ -153,7 +153,7 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -logFile -logLevel $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT \
         -working-directory $WORKING_DIR"

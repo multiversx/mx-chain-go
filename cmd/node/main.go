@@ -237,13 +237,13 @@ VERSION:
 	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
-		Name:  "logLevel",
+		Name:  "log-level",
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
 	}
 	//logFile is used when the log output needs to be logged in a file
-	logFile = cli.BoolFlag{
-		Name:  "logFile",
+	logSaveFile = cli.BoolFlag{
+		Name:  "log-save",
 		Usage: "Will automatically log into a file",
 	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
@@ -352,7 +352,7 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
-		logFile,
+		logSaveFile,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -394,7 +394,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	workingDir := getWorkingDir(ctx, log)
 
 	var err error
-	withLogFile := ctx.GlobalBool(logFile.Name)
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
 		var fileForLogs *os.File
 		fileForLogs, err = prepareLogFile(workingDir)
@@ -912,7 +912,7 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 
 	//we need this function as to close file.Close() when the code panics and the defer func associated
 	//with the file pointer in the main func will never be reached
-	runtime.SetFinalizer(logFile, func(f *os.File) {
+	runtime.SetFinalizer(fileForLog, func(f *os.File) {
 		_ = f.Close()
 	})
 
