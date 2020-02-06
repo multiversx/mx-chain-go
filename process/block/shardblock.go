@@ -59,26 +59,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:                     arguments.Accounts,
-		blockSizeThrottler:           blockSizeThrottler,
-		forkDetector:                 arguments.ForkDetector,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		store:                        arguments.Store,
-		shardCoordinator:             arguments.ShardCoordinator,
-		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
-		uint64Converter:              arguments.Uint64Converter,
-		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
-		blockChainHook:               arguments.BlockChainHook,
-		txCoordinator:                arguments.TxCoordinator,
-		rounder:                      arguments.Rounder,
-		epochStartTrigger:            arguments.EpochStartTrigger,
-		headerValidator:              arguments.HeaderValidator,
-		bootStorer:                   arguments.BootStorer,
-		blockTracker:                 arguments.BlockTracker,
-		dataPool:                     arguments.DataPool,
+		accounts:              arguments.Accounts,
+		blockSizeThrottler:    blockSizeThrottler,
+		forkDetector:          arguments.ForkDetector,
+		hasher:                arguments.Hasher,
+		marshalizer:           arguments.Marshalizer,
+		store:                 arguments.Store,
+		shardCoordinator:      arguments.ShardCoordinator,
+		nodesCoordinator:      arguments.NodesCoordinator,
+		specialAddressHandler: arguments.SpecialAddressHandler,
+		uint64Converter:       arguments.Uint64Converter,
+		requestHandler:        arguments.RequestHandler,
+		appStatusHandler:      statusHandler.NewNilStatusHandler(),
+		blockChainHook:        arguments.BlockChainHook,
+		txCoordinator:         arguments.TxCoordinator,
+		rounder:               arguments.Rounder,
+		epochStartTrigger:     arguments.EpochStartTrigger,
+		headerValidator:       arguments.HeaderValidator,
+		bootStorer:            arguments.BootStorer,
+		blockTracker:          arguments.BlockTracker,
+		dataPool:              arguments.DataPool,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -94,6 +94,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp.baseProcessor.requestBlockBodyHandler = &sp
+	sp.blockProcessor = &sp
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -475,26 +476,9 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(core.MetachainShardId)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, core.MetachainShardId, round, sp.dataPool.Headers().MaxSize())
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, core.MetachainShardId, round)
 	if err != nil {
 		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
-	}
-
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
-	if err != nil {
-		log.Debug("checkAndRequestIfMetaHeadersMissing",
-			"shard", core.MetachainShardId,
-			"error", err.Error())
-		return
-	}
-
-	for i := 0; i < len(orderedMetaBlocks); i++ {
-		isMetaBlockOutOfRange := orderedMetaBlocks[i].GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-		if isMetaBlockOutOfRange {
-			break
-		}
-
-		sp.txCoordinator.RequestMiniBlocks(orderedMetaBlocks[i])
 	}
 }
 
@@ -940,50 +924,48 @@ func (sp *shardProcessor) commitAll() error {
 }
 
 func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	// TODO add pruning on metachain. Refactor the pruning mechanism (remove everything before final nonce).
-	for i := range finalHeaders {
-		if !sp.accounts.IsPruningEnabled() {
-			break
-		}
+	if !sp.accounts.IsPruningEnabled() {
+		return
+	}
 
+	for i := range finalHeaders {
 		sp.saveState(finalHeaders[i])
 
-		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 			continue
 		}
 
-		var prevHeader block.Header
-		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
+		prevRootHash := prevHeader.GetRootHash()
+		if prevRootHash == nil {
 			continue
 		}
 
-		rootHash := prevHeader.GetRootHash()
-		if rootHash == nil {
+		rootHash := finalHeaders[i].GetRootHash()
+		if bytes.Equal(prevRootHash, rootHash) {
 			continue
 		}
 
-		log.Trace("final header will be pruned", "root hash", rootHash)
-		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 
-		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
+		sp.accounts.CancelPrune(rootHash)
 	}
 }
 
 func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SnapshotState(finalHeader.GetRootHash())
 		return
 	}
 
 	// TODO generate checkpoint on a trigger
 	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
 	}
 }
@@ -1238,7 +1220,15 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	log.Trace("cross mini blocks in body",
 		"num miniblocks", len(miniBlockHashes),
 	)
+
 	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes)
+
+	for _, hdr := range processedMetaBlocks {
+		log.Trace("getOrderedProcessedMetaBlocksFromMiniBlocks",
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce())
+	}
 
 	return processedMetaBlocks, err
 }
@@ -1423,16 +1413,15 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool.MaxSize()) {
+	if sp.isHeaderOutOfRange(metaBlock) {
 		metaBlocksPool.RemoveHeaderByHash(metaBlockHash)
-
 		return
 	}
 
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
 	if err != nil {
-		log.Debug("receivedMetaBlock",
-			"shard", core.MetachainShardId,
+		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
+			"shard", metaBlock.GetShardID(),
 			"error", err.Error())
 		return
 	}
@@ -1449,12 +1438,12 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.chRcvEpochStart <- true
 	}
 
-	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isMetaBlockOutOfRange {
+	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockOutOfRequestRange {
 		return
 	}
 
-	sp.txCoordinator.RequestMiniBlocks(metaBlock)
+	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
@@ -1884,40 +1873,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
-}
-
-// DecodeBlockBody method decodes block body from a given byte array
-func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var body block.Body
-
-	err := sp.marshalizer.Unmarshal(&body, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return body
-}
-
-// DecodeBlockHeader method decodes block header from a given byte array
-func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var header block.Header
-
-	err := sp.marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return &header
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -19,4 +19,5 @@ type ArgNodesCoordinator struct {
 	WaitingNodes            map[uint32][]Validator
 	SelfPublicKey           []byte
 	Epoch                   uint32
+	ConsensusGroupCache     Cacher
 }

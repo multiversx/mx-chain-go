@@ -2,10 +2,12 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+// PeerListCreatorStub -
 type PeerListCreatorStub struct {
 	PeerListCalled func() []p2p.PeerID
 }
 
+// PeerList -
 func (p PeerListCreatorStub) PeerList() []p2p.PeerID {
 	return p.PeerListCalled()
 }

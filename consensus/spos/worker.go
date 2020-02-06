@@ -325,9 +325,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			sigVerifErr.Error())
 	}
 
-	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
+	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
+	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
 		headerHash := cnsDta.BlockHeaderHash
-		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		var header data.HeaderHandler
+		if isMessageWithBlockHeader {
+			header = wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		} else {
+			_, header = wrk.blockProcessor.DecodeBlockBodyAndHeader(cnsDta.SubRoundData)
+		}
 
 		isHeaderInvalid := check.IfNil(header) || headerHash == nil
 		if isHeaderInvalid {

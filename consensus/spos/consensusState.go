@@ -17,9 +17,9 @@ var log = logger.GetOrCreate("consensus/spos")
 type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
-	Data      []byte
-	BlockBody data.BodyHandler
-	Header    data.HeaderHandler
+	Data   []byte
+	Body   data.BodyHandler
+	Header data.HeaderHandler
 
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
@@ -56,7 +56,7 @@ func NewConsensusState(
 
 // ResetConsensusState method resets all the consensus data
 func (cns *ConsensusState) ResetConsensusState() {
-	cns.BlockBody = nil
+	cns.Body = nil
 	cns.Header = nil
 	cns.Data = nil
 
@@ -198,7 +198,7 @@ func (cns *ConsensusState) IsNodeSelf(node string) bool {
 
 // IsBlockBodyAlreadyReceived method returns true if block body is already received and false otherwise
 func (cns *ConsensusState) IsBlockBodyAlreadyReceived() bool {
-	isBlockBodyAlreadyReceived := cns.BlockBody != nil
+	isBlockBodyAlreadyReceived := cns.Body != nil
 
 	return isBlockBodyAlreadyReceived
 }

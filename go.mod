@@ -3,10 +3,10 @@ module github.com/ElrondNetwork/elrond-go
 go 1.12
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191227132001-161cbe6d664b
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.4
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-vm v0.0.24
-	github.com/ElrondNetwork/elrond-vm-common v0.1.6
+	github.com/ElrondNetwork/elrond-vm v0.0.25
+	github.com/ElrondNetwork/elrond-vm-common v0.1.9
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta

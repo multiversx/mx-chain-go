@@ -564,7 +564,7 @@ func (txs *transactions) createAndProcessMiniBlock(
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Trace("time elapsed to ordered txs,"+
+	log.Trace("time elapsed to ordered txs",
 		"num txs", len(orderedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
