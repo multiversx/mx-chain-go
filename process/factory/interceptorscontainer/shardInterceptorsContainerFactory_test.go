@@ -1,7 +1,6 @@
-package shard_test
+package interceptorscontainer_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -9,18 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-var errExpected = errors.New("expected error")
-var chainID = []byte("chain ID")
-
-const maxTxNonceDeltaAllowed = 100
-
-func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
+func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			if matchStrToErrOnCreate == "" {
@@ -45,7 +39,7 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 	}
 }
 
-func createDataPools() dataRetriever.PoolsHolder {
+func createShardDataPools() dataRetriever.PoolsHolder {
 	pools := &mock.PoolsHolderStub{}
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
@@ -77,7 +71,7 @@ func createDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createStore() *mock.ChainStorerMock {
+func createShardStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{}
@@ -86,15 +80,15 @@ func createStore() *mock.ChainStorerMock {
 }
 
 //------- NewInterceptorsContainerFactory
-func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -102,7 +96,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -118,15 +112,15 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		nil,
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -134,7 +128,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -150,15 +144,15 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -166,7 +160,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -182,15 +176,15 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		nil,
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -198,7 +192,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -214,10 +208,10 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
@@ -230,7 +224,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -246,15 +240,15 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		nil,
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -262,7 +256,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -278,15 +272,15 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		nil,
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -294,7 +288,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -310,15 +304,15 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.SingleSignKeyGenMock{},
@@ -326,7 +320,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -342,15 +336,15 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		nil,
@@ -358,7 +352,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -374,15 +368,15 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -390,7 +384,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		nil,
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -406,15 +400,15 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -422,7 +416,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		nil,
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -438,15 +432,15 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -470,15 +464,15 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -486,7 +480,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		nil,
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -502,15 +496,15 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -518,7 +512,7 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		nil,
@@ -534,15 +528,15 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -550,7 +544,7 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -566,15 +560,15 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
-func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -582,7 +576,7 @@ func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -598,15 +592,15 @@ func TestNewInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
-func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -614,7 +608,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -630,15 +624,15 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
-func TestNewInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -646,7 +640,7 @@ func TestNewInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *test
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -662,15 +656,15 @@ func TestNewInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *test
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
-func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -678,7 +672,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -694,15 +688,15 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, icf.IsInterfaceNil())
 }
-func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 	t.Parallel()
 
-	icf, err := shard.NewInterceptorsContainerFactory(
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -710,7 +704,7 @@ func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -728,15 +722,15 @@ func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 
 //------- Create
 
-func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.TransactionTopic, ""),
-		createStore(),
+		createShardStubTopicHandler(factory.TransactionTopic, ""),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -744,7 +738,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -762,15 +756,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.ShardBlocksTopic, ""),
-		createStore(),
+		createShardStubTopicHandler(factory.ShardBlocksTopic, ""),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -778,7 +772,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -796,15 +790,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.MiniBlocksTopic, ""),
-		createStore(),
+		createShardStubTopicHandler(factory.MiniBlocksTopic, ""),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -812,7 +806,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -830,15 +824,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.MetachainBlocksTopic, ""),
-		createStore(),
+		createShardStubTopicHandler(factory.MetachainBlocksTopic, ""),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -846,7 +840,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -864,15 +858,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.TransactionTopic),
-		createStore(),
+		createShardStubTopicHandler("", factory.TransactionTopic),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -880,7 +874,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -898,15 +892,15 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.ShardBlocksTopic),
-		createStore(),
+		createShardStubTopicHandler("", factory.ShardBlocksTopic),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -914,7 +908,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -932,15 +926,15 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.MiniBlocksTopic),
-		createStore(),
+		createShardStubTopicHandler("", factory.MiniBlocksTopic),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -948,7 +942,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -966,15 +960,15 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.MetachainBlocksTopic),
-		createStore(),
+		createShardStubTopicHandler("", factory.MetachainBlocksTopic),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -982,7 +976,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -1000,15 +994,15 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.AccountTrieNodesTopic),
-		createStore(),
+		createShardStubTopicHandler("", factory.AccountTrieNodesTopic),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -1016,7 +1010,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -1034,10 +1028,10 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testin
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
+func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
@@ -1049,7 +1043,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -1057,7 +1051,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
@@ -1075,7 +1069,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
+func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	noOfShards := 4
@@ -1091,7 +1085,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		NbShards:           uint32(noOfShards),
 	}
 
-	icf, _ := shard.NewInterceptorsContainerFactory(
+	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		&mock.AccountsStub{},
 		shardCoordinator,
 		nodesCoordinator,
@@ -1103,7 +1097,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		createStore(),
+		createShardStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -1111,7 +1105,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
-		createDataPools(),
+		createShardDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},

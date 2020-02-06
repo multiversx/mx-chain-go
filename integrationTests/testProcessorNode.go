@@ -30,8 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
-	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
@@ -49,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -426,7 +426,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
+		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
 			tpn.Messenger,
@@ -473,7 +473,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(
 			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
@@ -509,7 +509,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
+		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
@@ -529,7 +529,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			100,
 		)
 	} else {
-		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
+		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.Messenger,
 			tpn.Storage,

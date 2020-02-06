@@ -40,8 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
-	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
@@ -66,6 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -1292,7 +1292,7 @@ func newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
 		state.AccountsAdapter,
 		shardCoordinator,
 		nodesCoordinator,
@@ -1338,7 +1338,7 @@ func newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(
 		shardCoordinator,
 		nodesCoordinator,
 		network.NetMessenger,
@@ -1382,7 +1382,7 @@ func newShardResolverContainerFactory(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
+	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(
 		shardCoordinator,
 		network.NetMessenger,
 		data.Store,
@@ -1412,7 +1412,7 @@ func newMetaResolverContainerFactory(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
+	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(
 		shardCoordinator,
 		network.NetMessenger,
 		data.Store,
