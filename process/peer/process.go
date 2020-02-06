@@ -22,11 +22,11 @@ var log = logger.GetOrCreate("process/peer")
 type validatorActionType uint8
 
 const (
-	unknownAction validatorActionType = 0
-	leaderSuccess validatorActionType = 1
-	leaderFail validatorActionType = 2
+	unknownAction    validatorActionType = 0
+	leaderSuccess    validatorActionType = 1
+	leaderFail       validatorActionType = 2
 	validatorSuccess validatorActionType = 3
-	validatorFail validatorActionType = 4
+	validatorFail    validatorActionType = 4
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -161,7 +161,7 @@ func (vs *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 }
 
 func (vs *validatorStatistics) processPeerChanges(header data.HeaderHandler) error {
-	if vs.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if vs.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}
 
@@ -263,6 +263,18 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	// TODO: This should be removed when we have the genesis block in the storage also
+	//  and make sure to calculate gaps for the first block also
+	if header.GetNonce() == 1 {
+		return vs.peerAdapter.RootHash()
+	}
+
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
 		log.Debug("UpdatePeerState after process.GetMetaHeader", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
@@ -274,6 +286,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		previousHeader.GetRound(),
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetShardID(),
+		epoch,
 	)
 	if err != nil {
 		return nil, err
@@ -288,7 +301,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return vs.peerAdapter.RootHash()
 	}
 
-	consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID(), epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -324,6 +337,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
 	shardId uint32,
+	epoch uint32,
 ) error {
 	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
@@ -340,7 +354,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
+		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardId, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
@@ -422,9 +436,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		return process.ErrInvalidMetaHeader
 	}
 
-	for _, h := range metaHeader.ShardInfo {
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
-		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
+	for _, h := range metaHeader.ShardInfo {
+		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -453,6 +472,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardID,
+			epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -539,7 +559,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte,shardId uint32) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -550,7 +570,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		var newRating uint32
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		actionType :=  vs.computeValidatorActionType(isLeader, validatorSigned)
+		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
 		switch actionType {
 		case leaderSuccess:

@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("process")
@@ -263,7 +263,7 @@ func GetMetaHeaderFromPoolWithNonce(
 	headersCacher dataRetriever.HeadersPool,
 ) (*block.MetaBlock, []byte, error) {
 
-	obj, hash, err := getHeaderFromPoolWithNonce(nonce, sharding.MetachainShardId, headersCacher)
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, core.MetachainShardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -285,7 +285,7 @@ func GetHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	if shardId == sharding.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
 	}
 	return GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)

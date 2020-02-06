@@ -60,8 +60,21 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
-// StartOfEpochNotifier defines what triggers should do for subscribed functions
-type StartOfEpochNotifier interface {
+// EpochStartHandler defines the action taken on epoch start event
+type EpochStartHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler)
+}
+
+// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
+type EpochStartSubscriber interface {
+	RegisterHandler(handler EpochStartHandler)
+	UnregisterHandler(handler EpochStartHandler)
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

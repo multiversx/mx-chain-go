@@ -5,6 +5,8 @@
   "minNodesPerShard": 20,
   "metaChainConsensusGroupSize": 1,
   "metaChainMinNodes": 1,
+  "hysteresis": 0.2,
+  "adaptivity": false,
   "chainID": "undefined",
   "initialNodes": [
     {

@@ -598,7 +598,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 }
 
 func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
-	if targetShardID == sharding.MetachainShardId {
+	if targetShardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
 		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
@@ -617,12 +617,12 @@ func (bp *baseProcessor) cleanupPools(
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(sharding.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
 	}
 }
 
@@ -714,12 +714,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 
 	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToFinal)
 
-	if bp.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupBlockTrackerPoolsForShard(sharding.MetachainShardId, noncesToFinal)
+		bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
@@ -785,7 +785,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		}
 	}
 
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(sharding.MetachainShardId)
+	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
@@ -876,7 +876,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header := bp.blockProcessor.CreateNewHeader()
+	header := bp.blockProcessor.CreateNewHeader(0)
 
 	err := bp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {

@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -33,7 +32,7 @@ type ArgsShardEpochStartTrigger struct {
 	DataPool           dataRetriever.PoolsHolder
 	Storage            dataRetriever.StorageService
 	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.StartOfEpochNotifier
+	EpochStartNotifier epochStart.EpochStartNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -63,7 +62,7 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.StartOfEpochNotifier
+	epochStartNotifier epochStart.EpochStartNotifier
 
 	epoch uint32
 
@@ -253,6 +252,8 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 	if metaHdr.IsStartOfEpochBlock() {
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(hdrHash)] = metaHdr
+
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr)
 	} else {
 		t.mapHashHdr[string(hdrHash)] = metaHdr
 		t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
@@ -436,7 +437,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
-	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, sharding.MetachainShardId)
+	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
 		return nil
 	}

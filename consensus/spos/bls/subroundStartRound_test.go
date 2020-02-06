@@ -197,7 +197,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
@@ -309,7 +309,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32) ([]sharding.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
@@ -329,6 +329,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 		bytes []byte,
 		round uint64,
 		shardId uint32,
+		epoch uint32,
 	) ([]sharding.Validator, error) {
 		return make([]sharding.Validator, 0), nil
 	}
@@ -422,6 +423,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		bytes []byte,
 		round uint64,
 		shardId uint32,
+		epoch uint32,
 	) ([]sharding.Validator, error) {
 		return nil, err
 	}

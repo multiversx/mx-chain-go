@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -47,6 +48,7 @@ import (
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -269,7 +271,7 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 		kp.sk, kp.pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[sharding.MetachainShardId] = keyPairs
+	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
 		keys:         keysMap,
@@ -299,6 +301,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
+	epochStartSubscriber epochStart.EpochStartSubscriber,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -451,6 +454,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
+		node.WithEpochStartSubscriber(epochStartSubscriber),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
@@ -476,8 +480,11 @@ func createNodes(
 	nodes := make(map[uint32][]*testNode)
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
-	validatorsMap := genValidatorsFromPubKeys(keysMap)
+	eligibleMap := genValidatorsFromPubKeys(keysMap)
+	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
+
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	pubKeys := make([]crypto.PublicKey, len(cp.keys[0]))
 	for idx, keyPairShard := range cp.keys[0] {
@@ -491,13 +498,18 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
 		consensusCache, _ := lrucache.NewCache(10000)
+
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			NbShards:                1,
-			Nodes:                   validatorsMap,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
 		}
@@ -515,6 +527,7 @@ func createNodes(
 			pubKeys,
 			cp.keyGen,
 			consensusType,
+			epochStartSubscriber,
 		)
 
 		testNodeObject.node = n

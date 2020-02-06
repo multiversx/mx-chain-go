@@ -2,11 +2,13 @@ package bls
 
 import (
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -41,6 +43,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
+	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -175,8 +178,18 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = sr.Blockchain().GetGenesisHeader()
+	}
+
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
+	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, currentHeader.GetEpoch())
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
 	round := sr.Rounder().Index()
 
 	roundInfo := indexer.RoundInfo{
@@ -211,6 +224,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		uint64(sr.RoundIndex),
 		shardId,
 		sr.NodesCoordinator(),
+		currentHeader.GetEpoch(),
 	)
 	if err != nil {
 		return err
@@ -226,4 +240,45 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
+}
+
+// EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
+// Some components may need to do initialisation on this event
+func (sr *subroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
+	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHeader.GetEpoch()))
+}
+
+// EpochStartAction is called upon a start of epoch event.
+func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
+	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
+
+	sr.changeEpoch(hdr)
+}
+
+func (sr *subroundStartRound) changeEpoch(header data.HeaderHandler) {
+	publicKeysPrevEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch() - 1)
+	if err != nil {
+		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch()-1, err.Error()))
+		return
+	}
+
+	publicKeysNewEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch())
+	if err != nil {
+		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch(), err.Error()))
+		return
+	}
+
+	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
+	shardEligible := make(map[string]struct{}, estimatedMapSize)
+	// TODO: update this when inter shard shuffling is enabled
+	shardId := sr.ShardCoordinator().SelfId()
+
+	for _, pubKey := range publicKeysPrevEpoch[shardId] {
+		shardEligible[string(pubKey)] = struct{}{}
+	}
+	for _, pubKey := range publicKeysNewEpoch[shardId] {
+		shardEligible[string(pubKey)] = struct{}{}
+	}
+
+	sr.SetEligibleList(shardEligible)
 }

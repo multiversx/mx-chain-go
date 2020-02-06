@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -176,11 +175,16 @@ func (sp *shardProcessor) ProcessBlock(
 	log.Debug("total txs in pool",
 		"num txs", numTxWithDst,
 	)
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := headerHandler.GetEpoch()
+	if headerHandler.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
 
 	err = sp.specialAddressHandler.SetShardConsensusData(
 		headerHandler.GetPrevRandSeed(),
 		headerHandler.GetRound(),
-		headerHandler.GetEpoch(),
+		epoch,
 		headerHandler.GetShardID(),
 	)
 	if err != nil {
@@ -427,6 +431,12 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 	for _, metaBlock := range finalizedMetaBlocks {
 		round := metaBlock.GetRound()
 		epoch := metaBlock.GetEpoch()
+
+		// TODO: remove if the start of epoch block needs to be validated by the new epoch nodes
+		if metaBlock.IsStartOfEpochBlock() && epoch > 0 {
+			epoch = epoch - 1
+		}
+
 		err := sp.specialAddressHandler.SetMetaConsensusData(metaBlock.GetPrevRandSeed(), round, epoch)
 		if err != nil {
 			return err
@@ -438,17 +448,17 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
 	}
 
 	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
-	if len(usedMetaHdrs[sharding.MetachainShardId]) == 0 {
+	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
 
-	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
+	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
@@ -476,7 +486,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
-	for _, metaHdr := range finalityAttestingMetaHdrs[sharding.MetachainShardId] {
+	for _, metaHdr := range finalityAttestingMetaHdrs[core.MetachainShardId] {
 		if nextBlocksVerified >= sp.metaBlockFinality {
 			break
 		}
@@ -505,9 +515,9 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 }
 
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
-	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(sharding.MetachainShardId)
+	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(core.MetachainShardId)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, sharding.MetachainShardId, round)
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, core.MetachainShardId, round)
 	if err != nil {
 		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
 	}
@@ -542,12 +552,29 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(header.GetPrevRandSeed(), header.GetRound(), shardId)
+
+	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		shardId,
+		epoch,
+	)
 	if err != nil {
 		return
 	}
 
-	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
+	if err != nil {
+		log.Error("error indexing round %d block header %s", header.GetRound(), err.Error())
+		return
+	}
+
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
 
 	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
@@ -665,11 +692,17 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		"nonce", initialHdrData.GetNonce(),
 	)
 
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := initialHdrData.GetEpoch()
+	if initialHdrData.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
 	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 	err := sp.specialAddressHandler.SetShardConsensusData(
 		initialHdrData.GetPrevRandSeed(),
 		initialHdrData.GetRound(),
-		initialHdrData.GetEpoch(),
+		epoch,
 		initialHdrData.GetShardID(),
 	)
 	if err != nil {
@@ -798,7 +831,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.cleanupBlockTrackerPools(headerHandler)
 
-	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.saveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
 	}
@@ -833,7 +866,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
 
 	selfNotarizedHeader, selfNotarizedHeaderHash := sp.getLastSelfNotarizedHeader()
-	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
+	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
 
 	sp.updateStateStorage(selfNotarizedHeaders)
 
@@ -858,7 +891,7 @@ func (sp *shardProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -1060,8 +1093,14 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
+func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
+	header := &block.Header{}
+
+	if sp.epochStartTrigger.IsEpochStart() {
+		header.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
+	}
+
+	return header
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
@@ -1292,7 +1331,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 }
 
 func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -1381,15 +1420,15 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			hdrInfoForHash.hdr = metaBlock
 			sp.hdrsForCurrBlock.missingHdrs--
 
-			if metaBlock.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] {
-				sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] = metaBlock.Nonce
+			if metaBlock.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
+				sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = metaBlock.Nonce
 			}
 		}
 
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
-				sharding.MetachainShardId,
+				core.MetachainShardId,
 				sp.metaBlockFinality,
 			)
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
@@ -1459,7 +1498,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
-			sharding.MetachainShardId,
+			core.MetachainShardId,
 			sp.metaBlockFinality,
 		)
 	}
@@ -1488,8 +1527,8 @@ func (sp *shardProcessor) computeMissingAndExistingMetaHeaders(header *block.Hea
 
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(header.MetaBlockHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
 
-		if hdr.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] {
-			sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] = hdr.Nonce
+		if hdr.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
+			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.Nonce
 		}
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
@@ -1514,7 +1553,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header *block.Header) e
 }
 
 func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (map[string][]byte, error) {
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -1574,7 +1613,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		"num metablocks", len(orderedMetaBlocks),
 	)
 
-	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1810,7 +1849,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
-	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
+	shardHeader.MetaBlockHashes = metaBlockHashes[core.MetachainShardId]
 
 	if sp.epochStartTrigger.IsEpochStart() {
 		shardHeader.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()

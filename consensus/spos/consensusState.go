@@ -124,9 +124,9 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	round uint64,
 	shardId uint32,
 	nodesCoordinator sharding.NodesCoordinator,
+	epoch uint32,
 ) ([]string, []string, error) {
-
-	validatorsGroup, err := nodesCoordinator.ComputeValidatorsGroup(randomSource, round, shardId)
+	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -64,13 +64,13 @@ func InitMetrics(
 	switch {
 	case shardCoordinator.SelfId() < shardCoordinator.NumberOfShards():
 		consensusGroupSize = nodesConfig.ConsensusGroupSize
-	case shardCoordinator.SelfId() == sharding.MetachainShardId:
+	case shardCoordinator.SelfId() == core.MetachainShardId:
 		consensusGroupSize = nodesConfig.MetaChainConsensusGroupSize
 	default:
 		consensusGroupSize = 0
 	}
 
-	validatorsNodes := nodesConfig.InitialNodesInfo()
+	validatorsNodes, _ := nodesConfig.InitialNodesInfo()
 	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))

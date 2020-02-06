@@ -405,6 +405,16 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	}
 }
 
+func WithEpochStartSubscriber(epochStartSubscriber epochStart.EpochStartSubscriber) Option {
+	return func(n *Node) error {
+		if epochStartSubscriber == nil {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartSubscriber = epochStartSubscriber
+		return nil
+	}
+}
+
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {

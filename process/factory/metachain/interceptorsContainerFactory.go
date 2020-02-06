@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -373,7 +374,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	}
 
 	//tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneTxInterceptor(identifierTx)
 	if err != nil {
@@ -497,7 +498,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
@@ -565,7 +566,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
@@ -574,7 +575,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err = icf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err

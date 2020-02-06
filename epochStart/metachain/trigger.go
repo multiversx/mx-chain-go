@@ -26,7 +26,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Settings           *config.EpochStartConfig
 	Epoch              uint32
 	EpochStartRound    uint64
-	EpochStartNotifier epochStart.StartOfEpochNotifier
+	EpochStartNotifier epochStart.EpochStartNotifier
 	Marshalizer        marshal.Marshalizer
 	Storage            dataRetriever.StorageService
 }
@@ -43,7 +43,7 @@ type trigger struct {
 	epochStartMetaHash          []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
-	epochStartNotifier          epochStart.StartOfEpochNotifier
+	epochStartNotifier          epochStart.EpochStartNotifier
 	metaHdrStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
 }
@@ -195,6 +195,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 }

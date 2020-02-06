@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -217,7 +218,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 		keys[idx] = identifierTx
 	}
 
-	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
@@ -269,7 +270,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	shardC := rcf.shardCoordinator
 
 	//only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
@@ -335,7 +336,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 		keys[idx] = identifierMiniBlocks
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
@@ -431,7 +432,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	metaAndCrtShardTopic := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
@@ -445,7 +446,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
-		sharding.MetachainShardId,
+		core.MetachainShardId,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -514,7 +515,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return nil, nil, err
@@ -523,7 +524,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []d
 	resolverSlice = append(resolverSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return nil, nil, err

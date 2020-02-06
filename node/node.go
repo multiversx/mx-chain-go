@@ -73,6 +73,7 @@ type Node struct {
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
 	epochStartTrigger        epochStart.TriggerHandler
+	epochStartSubscriber     epochStart.EpochStartSubscriber
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -310,21 +311,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	consensusArgs := &spos.ConsensusCoreArgs{
+		BlockChain:           n.blkc,
+		BlockProcessor:       n.blockProcessor,
+		Bootstrapper:         bootstrapper,
+		BroadcastMessenger:   broadcastMessenger,
+		ChronologyHandler:    chronologyHandler,
+		Hasher:               n.hasher,
+		Marshalizer:          n.marshalizer,
+		BlsPrivateKey:        n.privKey,
+		BlsSingleSigner:      n.singleSigner,
+		MultiSigner:          n.multiSigner,
+		Rounder:              n.rounder,
+		ShardCoordinator:     n.shardCoordinator,
+		NodesCoordinator:     n.nodesCoordinator,
+		SyncTimer:            n.syncTimer,
+		EpochStartSubscriber: n.epochStartSubscriber,
+	}
+
 	consensusDataContainer, err := spos.NewConsensusCore(
-		n.blkc,
-		n.blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		chronologyHandler,
-		n.hasher,
-		n.marshalizer,
-		n.privKey,
-		n.singleSigner,
-		n.multiSigner,
-		n.rounder,
-		n.shardCoordinator,
-		n.nodesCoordinator,
-		n.syncTimer,
+		consensusArgs,
 	)
 	if err != nil {
 		return err
@@ -406,7 +412,7 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 		return n.createShardBootstrapper(rounder)
 	}
 
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if n.shardCoordinator.SelfId() == core.MetachainShardId {
 		return n.createMetaChainBootstrapper(rounder)
 	}
 
@@ -567,8 +573,14 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		return nil, err
 	}
 
+	eligibleNodesPubKeys := make(map[string]struct{})
+
+	for _, v := range n.initialNodesPubkeys[n.shardCoordinator.SelfId()] {
+		eligibleNodesPubKeys[v] = struct{}{}
+	}
+
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
+		eligibleNodesPubKeys,
 		n.consensusGroupSize,
 		string(selfId))
 
