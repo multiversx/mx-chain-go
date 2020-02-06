@@ -78,12 +78,11 @@ func (sortedMap *BucketSortedMap) NotifyScoreChangeByKey(key string) {
 
 // NotifyScoreChange moves or adds the item to the corresponding score chunk
 func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem) {
-	flag := item.GetScoreChangeInProgressFlag()
-	if flag.IsSet() {
+	flag := item.ScoreChangeInProgressFlag()
+	wasAlreadySet := flag.Set()
+	if wasAlreadySet {
 		return
 	}
-
-	flag.Set()
 
 	newScore := item.ComputeScore()
 	if newScore > sortedMap.maxScore {

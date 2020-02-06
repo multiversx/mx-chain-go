@@ -243,8 +243,6 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 // This seems to be the worst case in terms of eviction complexity
 // Eviction is triggered often and little eviction (only 10 senders) is done
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(t *testing.T) {
-	t.Skip()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -265,8 +263,6 @@ func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEv
 }
 
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(t *testing.T) {
-	t.Skip()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -287,8 +283,6 @@ func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEv
 }
 
 func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(t *testing.T) {
-	t.Skip()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

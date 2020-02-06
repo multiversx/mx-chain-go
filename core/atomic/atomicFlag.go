@@ -7,9 +7,10 @@ type Flag struct {
 	value uint32
 }
 
-// Set sets flag
-func (flag *Flag) Set() {
-	atomic.StoreUint32(&flag.value, 1)
+// Set sets flag and returns its previous value
+func (flag *Flag) Set() bool {
+	previousValue := atomic.SwapUint32(&flag.value, 1)
+	return previousValue == 1
 }
 
 // Unset sets flag

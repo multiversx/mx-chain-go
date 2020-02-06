@@ -8,5 +8,5 @@ type BucketSortedMapItem interface {
 	ComputeScore() uint32
 	GetScoreChunk() *MapChunk
 	SetScoreChunk(*MapChunk)
-	GetScoreChangeInProgressFlag() *atomic.Flag
+	ScoreChangeInProgressFlag() *atomic.Flag
 }

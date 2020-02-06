@@ -46,7 +46,7 @@ func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
 	item.chunk = chunk
 }
 
-func (item *dummyItem) GetScoreChangeInProgressFlag() *atomic.Flag {
+func (item *dummyItem) ScoreChangeInProgressFlag() *atomic.Flag {
 	return &item.scoreChangeInProgress
 }
 
@@ -171,7 +171,7 @@ func TestBucketSortedMap_ItemDoesNotMoveOnIfMovementAlreadyInProgress(t *testing
 	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 
-	b.GetScoreChangeInProgressFlag().Set()
+	b.ScoreChangeInProgressFlag().Set()
 
 	a.score.Set(2)
 	b.score.Set(43)
