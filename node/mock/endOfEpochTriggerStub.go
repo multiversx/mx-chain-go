@@ -13,6 +13,10 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+// RequestEpochStartIfNeeded -
+func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
+}
+
 // SetCurrentEpochStartRound -
 func (e *EpochStartTriggerStub) SetCurrentEpochStartRound(_ uint64) {
 }

@@ -388,6 +388,7 @@ type EpochStartTriggerHandler interface {
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 }
 
 // EpochBootstrapper defines the actions needed by bootstrapper
@@ -446,6 +447,7 @@ type RequestHandler interface {
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestStartOfEpochMetaBlock(epoch uint32)
 	IsInterfaceNil() bool
 }
 
