@@ -80,11 +80,15 @@ func (cache *TxCache) shouldContinueEvictingSenders() bool {
 // For senders with many transactions (> "LargeNumOfTxsForASender"), evict "NumTxsToEvictFromASender" transactions
 // Also makes sure that there's no sender with 0 transactions
 func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
-	txsToEvict := make([][]byte, 0)
-	sendersToEvict := make([]string, 0)
-
 	threshold := cache.config.LargeNumOfTxsForASender
 	numTxsToEvict := cache.config.NumTxsToEvictFromASender
+
+	// Heuristics: estimate that ~10% of senders have more transactions than the threshold
+	sendersToEvictInitialCapacity := len(cache.evictionSnapshotOfSenders)/10 + 1
+	txsToEvictInitialCapacity := sendersToEvictInitialCapacity * int(numTxsToEvict)
+
+	sendersToEvict := make([]string, 0, sendersToEvictInitialCapacity)
+	txsToEvict := make([][]byte, 0, txsToEvictInitialCapacity)
 
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(threshold) {
@@ -142,8 +146,8 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 }
 
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
-	sendersToEvict := make([]string, 0)
-	txsToEvict := make([][]byte, 0)
+	sendersToEvict := make([]string, 0, len(listsToEvict))
+	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))
 
 	for _, txList := range listsToEvict {
 		sendersToEvict = append(sendersToEvict, txList.sender)

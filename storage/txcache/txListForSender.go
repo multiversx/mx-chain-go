@@ -195,13 +195,11 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	result := make([][]byte, listForSender.countTx())
+	result := make([][]byte, 0, listForSender.countTx())
 
-	index := 0
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
-		result[index] = value.txHash
-		index++
+		result = append(result, value.txHash)
 	}
 
 	return result
@@ -223,4 +221,14 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 
 func (listForSender *txListForSender) countTx() uint64 {
 	return uint64(listForSender.items.Len())
+}
+
+func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
+	count := uint64(0)
+
+	for _, listForSender := range lists {
+		count += listForSender.countTx()
+	}
+
+	return count
 }

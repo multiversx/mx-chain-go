@@ -37,7 +37,7 @@ func Test_computeSenderScore(t *testing.T) {
 
 func Benchmark_computeSenderScore(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for j := uint64(0); j < 15000; j++ {
+		for j := uint64(0); j < 10000000; j++ {
 			computeSenderScore(senderScoreParams{count: j, size: (j + 1) * 500, fee: toMicroERD(11 * j), gas: 100000 * j})
 		}
 	}

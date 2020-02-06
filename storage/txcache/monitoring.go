@@ -111,8 +111,7 @@ func (cache *TxCache) diagnose() {
 	sw.Stop("diagnose")
 	duration := sw.GetMeasurement("diagnose")
 
-	fine := true
-	fine = fine && (numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks)
+	fine := true && (numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks)
 	fine = fine && (len(sendersKeys) == len(sendersKeysSorted) && len(sendersKeys) == len(sendersSnapshot))
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))

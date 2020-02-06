@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
+// TODO: the score formula should not be sensitive to the order of magnitude of the minGasPrice.
+// TODO (continued): We should not rely on any order of magnitude known a priori.
+// TODO (continued): The score formula should work even if minGasPrice = 0.
 type senderScoreParams struct {
 	count uint64
 	// Size is in bytes
@@ -61,6 +64,8 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 //  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in micro ERD
 //  - txCount: number of transactions
 //  - txSize: size of transactions, in kB (1000 bytes)
+//
+// TODO (optimization): switch to integer operations (as opposed to float operations).
 func computeSenderScore(params senderScoreParams) float64 {
 	allParamsDefined := params.fee > 0 && params.gas > 0 && params.size > 0 && params.count > 0
 	if !allParamsDefined {

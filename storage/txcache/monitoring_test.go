@@ -1,9 +1,10 @@
 package txcache
 
 import (
-	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {

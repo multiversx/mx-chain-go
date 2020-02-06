@@ -160,6 +160,18 @@ func Test_CopyBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	require.Equal(t, 5, copied)
 }
 
+func Test_getTxHashes(t *testing.T) {
+	list := newListToTest()
+	require.Len(t, list.getTxHashes(), 0)
+
+	list.AddTx([]byte("A"), createTx(".", 1))
+	require.Len(t, list.getTxHashes(), 1)
+
+	list.AddTx([]byte("B"), createTx(".", 2))
+	list.AddTx([]byte("C"), createTx(".", 3))
+	require.Len(t, list.getTxHashes(), 3)
+}
+
 func newListToTest() *txListForSender {
 	return newTxListForSender(".", &CacheConfig{MinGasPriceMicroErd: 100})
 }
