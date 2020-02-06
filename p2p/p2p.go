@@ -214,8 +214,7 @@ func MessageOriginatorPid(msg MessageP2P) string {
 	return prettyPid
 }
 
-// MessageOriginatorSeq will output the sequence number if it can be converted to an uint64, otherwise it will
-// display it as byte array
+// MessageOriginatorSeq will output the sequence number as hex
 func MessageOriginatorSeq(msg MessageP2P) string {
 	return hex.EncodeToString(msg.SeqNo())
 }
