@@ -512,36 +512,31 @@ func (rtxh *rewardsHandler) displayCalculatedRewardTxs() {
 			"epoch", tx.Epoch,
 			"round", tx.Round,
 			"rcvAddr", tx.RcvAddr,
-			"value", tx.Value)
+			"value", tx.Value,
+			"cnsIndex", tx.CnsIndex,
+			"type", tx.Type)
 	}
 
-	for _, tx := range rtxh.protocolRewards {
-		log.Trace("protocolRewards",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress(),
-			"gasLimit", tx.GetGasLimit(),
-			"gasPrice", tx.GetGasPrice())
-	}
+	rtxh.displayTxs("protocolRewards", rtxh.protocolRewards)
+	rtxh.displayTxs("protocolRewardsMeta", rtxh.protocolRewardsMeta)
+	rtxh.displayTxs("feeRewards", rtxh.feeRewards)
+}
 
-	for _, tx := range rtxh.protocolRewardsMeta {
-		log.Trace("protocolRewardsMeta",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress(),
-			"gasLimit", tx.GetGasLimit(),
-			"gasPrice", tx.GetGasPrice())
-	}
+func (rtxh *rewardsHandler) displayTxs(message string, txs []data.TransactionHandler) {
+	for _, tx := range txs {
+		rtx, ok := tx.(*rewardTx.RewardTx)
+		if !ok {
+			log.Debug("displayTxs", "error", process.ErrWrongTypeAssertion)
+			continue
+		}
 
-	for _, tx := range rtxh.feeRewards {
-		log.Debug("feeRewards",
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sndAddress", tx.GetSndAddress(),
-			"rcvAddress", tx.GetRecvAddress(),
-			"gasLimit", tx.GetGasLimit(),
-			"gasPrice", tx.GetGasPrice())
+		log.Debug(message,
+			"shard", rtx.ShardId,
+			"epoch", rtx.Epoch,
+			"round", rtx.Round,
+			"rcvAddr", rtx.RcvAddr,
+			"value", rtx.Value,
+			"cnsIndex", rtx.CnsIndex,
+			"type", rtx.Type)
 	}
 }

@@ -6,7 +6,7 @@ import (
 
 const (
 	// LeaderTx identifies a leader reward tx type
-	LeaderTx = iota + 1
+	LeaderTx byte = iota + 1
 	// BurnTx identifies a burn reward tx type
 	BurnTx
 	// CommunityTx identifies a community reward tx type
@@ -25,7 +25,7 @@ type RewardTx struct {
 	ShardId  uint32   `json:"shardId"`
 	Epoch    uint32   `json:"epoch"`
 	CnsIndex uint16   `json:"cnsIndex"`
-	Type     uint8    `json:"type"`
+	Type     byte     `json:"type"`
 }
 
 // IsInterfaceNil verifies if underlying object is nil
