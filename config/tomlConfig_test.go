@@ -45,10 +45,6 @@ func TestTomlParser(t *testing.T) {
 				Type:     txBlockBodyStorageTypeDB,
 			},
 		},
-		Logger: LoggerConfig{
-			Path:            logsPath,
-			StackTraceDepth: logsStackDepth,
-		},
 		AccountsTrieStorage: StorageConfig{
 			Cache: CacheConfig{
 				Size: uint32(accountsStorageSize),

@@ -1076,7 +1076,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1123,7 +1123,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	t.Parallel()
 
 	nrShards := uint32(5)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1187,7 +1187,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	numMiniBlocks := allTxs / numTxsToAdd
 
 	nrShards := uint32(5)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: nrShards})
+	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1256,7 +1256,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1321,7 +1321,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := createTxPool()
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -2313,4 +2313,18 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	lastKey := tc.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
+}
+
+func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
+	return txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      1,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
 }
