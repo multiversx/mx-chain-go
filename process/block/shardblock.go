@@ -1215,7 +1215,15 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	log.Trace("cross mini blocks in body",
 		"num miniblocks", len(miniBlockHashes),
 	)
+
 	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes)
+
+	for _, hdr := range processedMetaBlocks {
+		log.Trace("getOrderedProcessedMetaBlocksFromMiniBlocks",
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce())
+	}
 
 	return processedMetaBlocks, err
 }

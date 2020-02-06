@@ -143,12 +143,16 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	IsInterfaceNil() bool
+}
+
+// DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
+type DataMarshalizer interface {
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 }
 
 // InternalTransactionProducer creates system transactions (e.g. rewards)
@@ -197,8 +201,6 @@ type PreProcessor interface {
 
 	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
-
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
