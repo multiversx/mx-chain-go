@@ -4349,7 +4349,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
-func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1(t *testing.T) {
+func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Block(t *testing.T) {
 	t.Parallel()
 
 	epochStartTrigger := &mock.EpochStartTriggerStub{

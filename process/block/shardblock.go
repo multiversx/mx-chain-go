@@ -260,7 +260,6 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if header.IsStartOfEpochBlock() {
 		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
-		sp.epochStartTrigger.SetProcessed(header)
 		if err != nil {
 			return err
 		}
@@ -407,7 +406,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		}
 
 		if !bytes.Equal(header.EpochStartMetaHash, metaBlockHash) {
-			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
+			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", metaBlockHash)
 			return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
 				process.ErrEpochDoesNotMatch, header.GetEpoch())
 		}
@@ -468,7 +467,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
 	}
 
@@ -721,10 +720,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.checkEpochCorrectnessCrossChain(chainHandler)
-	sp.epochStartTrigger.SetProcessed(header)
-	if err != nil {
-		return err
+	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		if err != nil {
+			return err
+		}
+		sp.epochStartTrigger.SetProcessed(header)
 	}
 
 	buff, err := sp.marshalizer.Marshal(header)
