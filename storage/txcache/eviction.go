@@ -29,14 +29,15 @@ func (cache *TxCache) doEviction() {
 	defer cache.isEvictionInProgress.Unset()
 
 	stopWatch := cache.monitorEvictionStart()
-	cache.makeSnapshotOfSenders()
 
 	if tooManyTxs {
+		cache.makeSnapshotOfSenders()
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
 		journal.evictionPerformed = true
 	}
 
 	if cache.shouldContinueEvictingSenders() {
+		cache.makeSnapshotOfSenders()
 		journal.passTwoNumSteps, journal.passTwoNumTxs, journal.passTwoNumSenders = cache.evictSendersInLoop()
 		journal.evictionPerformed = true
 	}
@@ -93,6 +94,7 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(threshold) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
+			cache.txListBySender.notifyScoreChange(txList)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
@@ -101,6 +103,12 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 		}
 	}
 
+	// Note that, at this very moment, high nonce transactions have been evicted from senders' lists,
+	// but not yet from the map of transactions.
+	//
+	// This may cause slight inconsistencies, such as:
+	// - if a tx previously (recently) removed from the sender's list ("RemoveHighNonceTxs") arrives again at the pool,
+	// before the execution of "doEvictItems", the tx will be ignored as it still exists (for a short time) in the map of transactions.
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
