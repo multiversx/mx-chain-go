@@ -37,6 +37,7 @@ type ArgsExporter struct {
 	ShardCoordinator         sharding.Coordinator
 	Messenger                p2p.Messenger
 	ActiveTries              state.TriesHolder
+	ExistingResolvers        dataRetriever.ResolversContainer
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportTriesCacheConfig   config.CacheConfig
@@ -62,6 +63,7 @@ type exportHandlerFactory struct {
 	exportStateStorageConfig config.StorageConfig
 	whiteListHandler         process.InterceptedDataWhiteList
 	interceptorsContainer    process.InterceptorsContainer
+	existingResolvers        dataRetriever.ResolversContainer
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -102,6 +104,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.InterceptorsContainer) {
 		return nil, update.ErrNilInterceptorsContainer
 	}
+	if check.IfNil(args.ExistingResolvers) {
+		return nil, update.ErrNilResolverContainer
+	}
 
 	e := &exportHandlerFactory{
 		marshalizer:              args.Marshalizer,
@@ -120,6 +125,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
+		existingResolvers:        args.ExistingResolvers,
 	}
 
 	return e, nil
@@ -166,6 +172,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Messenger:         e.messenger,
 		Marshalizer:       e.marshalizer,
 		DataTrieContainer: dataTries,
+		ExistingResolvers: e.existingResolvers,
 	}
 	resolversContainerFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -278,7 +285,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 func createFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
-	dbConfig.FilePath = path.Join(folder, "syncTries")
+	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -9,6 +10,10 @@ import (
 
 // GetDataFromStorage searches for data from storage
 func GetDataFromStorage(hash []byte, storer update.HistoryStorer, syncingEpoch uint32) ([]byte, error) {
+	if check.IfNil(storer) {
+		return nil, update.ErrNilStorage
+	}
+
 	currData, err := storer.Get(hash)
 	if err != nil {
 		currData, err = storer.GetFromEpoch(hash, syncingEpoch)

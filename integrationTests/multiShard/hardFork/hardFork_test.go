@@ -2,7 +2,7 @@ package hardFork
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"fmt"
 	"testing"
 	"time"
 
@@ -21,9 +21,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -83,34 +83,49 @@ func createHardForkExporter(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 ) {
-	for _, node := range nodes {
+	for id, node := range nodes {
 		argsExportHandler := factory.ArgsExporter{
-			Marshalizer:              integrationTests.TestMarshalizer,
-			Hasher:                   integrationTests.TestHasher,
-			HeaderValidator:          node.HeaderValidator,
-			Uint64Converter:          integrationTests.TestUint64Converter,
-			DataPool:                 node.DataPool,
-			StorageService:           node.Storage,
-			RequestHandler:           node.RequestHandler,
-			ShardCoordinator:         node.ShardCoordinator,
-			Messenger:                node.Messenger,
-			ActiveTries:              node.TrieContainer,
-			ExportFolder:             "export",
+			Marshalizer:      integrationTests.TestMarshalizer,
+			Hasher:           integrationTests.TestHasher,
+			HeaderValidator:  node.HeaderValidator,
+			Uint64Converter:  integrationTests.TestUint64Converter,
+			DataPool:         node.DataPool,
+			StorageService:   node.Storage,
+			RequestHandler:   node.RequestHandler,
+			ShardCoordinator: node.ShardCoordinator,
+			Messenger:        node.Messenger,
+			ActiveTries:      node.TrieContainer,
+			ExportFolder:     "export",
 			ExportTriesStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{},
-				DB:    config.DBConfig{},
-				Bloom: config.BloomFilterConfig{},
+				Cache: config.CacheConfig{
+					Size: 10000, Type: "LRU", Shards: 1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "ExportTrie" + fmt.Sprintf("%d", id),
+					Type:              "LvlDBSerial",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
 			},
 			ExportTriesCacheConfig: config.CacheConfig{
-				Size: 10000, Type: storageUnit.LRUCache, Shards: 1
+				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			ExportStateStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{},
-				DB:    config.DBConfig{},
-				Bloom: config.BloomFilterConfig{},
+				Cache: config.CacheConfig{
+					Size: 10000, Type: "LRU", Shards: 1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "ExportState" + fmt.Sprintf("%d", id),
+					Type:              "LvlDBSerial",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
 			},
-			WhiteListHandler:         node.WhiteListHandler,
-			InterceptorsContainer:    node.InterceptorsContainer,
+			WhiteListHandler:      node.WhiteListHandler,
+			InterceptorsContainer: node.InterceptorsContainer,
+			ExistingResolvers:     node.ResolversContainer,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

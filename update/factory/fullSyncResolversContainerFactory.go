@@ -1,15 +1,16 @@
 package factory
 
 import (
+	"errors"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	accountFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -22,6 +23,7 @@ type resolversContainerFactory struct {
 	marshalizer       marshal.Marshalizer
 	intRandomizer     dataRetriever.IntRandomizer
 	dataTrieContainer state.TriesHolder
+	existingResolvers dataRetriever.ResolversContainer
 }
 
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
@@ -30,6 +32,7 @@ type ArgsNewResolversContainerFactory struct {
 	Messenger         dataRetriever.TopicMessageHandler
 	Marshalizer       marshal.Marshalizer
 	DataTrieContainer state.TriesHolder
+	ExistingResolvers dataRetriever.ResolversContainer
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -46,6 +49,9 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.DataTrieContainer) {
 		return nil, update.ErrNilTrieDataGetter
 	}
+	if check.IfNil(args.ExistingResolvers) {
+		return nil, update.ErrNilResolverContainer
+	}
 
 	return &resolversContainerFactory{
 		shardCoordinator:  args.ShardCoordinator,
@@ -53,12 +59,13 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		marshalizer:       args.Marshalizer,
 		intRandomizer:     &random.ConcurrentSafeIntRandomizer{},
 		dataTrieContainer: args.DataTrieContainer,
+		existingResolvers: args.ExistingResolvers,
 	}, nil
 }
 
 // Create returns a resolver container that will hold all resolvers in the system
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
-	container := containers.NewResolversContainer()
+	container := rcf.existingResolvers
 
 	keys, resolverSlice, err := rcf.generateTrieNodesResolvers()
 	if err != nil {
@@ -92,39 +99,44 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() ([]string, []
 	keys := make([]string, 0)
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, i)
+		trieId := genesis.CreateTrieIdentifier(i, accountFactory.UserAccount)
+		resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, i, trieId)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		resolverSlice = append(resolverSlice, resolver)
-		trieId := genesis.CreateTrieIdentifier(i, accountFactory.UserAccount)
 		keys = append(keys, trieId)
 	}
 
-	resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId)
-	if err != nil {
+	trieId := genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.UserAccount)
+	resolver, err := rcf.createTrieNodesResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId, trieId)
+	if err != nil && !errors.Is(err, p2p.ErrTopicAlreadyExists) {
 		return nil, nil, err
 	}
 
 	resolverSlice = append(resolverSlice, resolver)
-	trieId := genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.UserAccount)
 	keys = append(keys, trieId)
 
-	resolver, err = rcf.createTrieNodesResolver(factory.ValidatorTrieNodesTopic, sharding.MetachainShardId)
+	trieId = genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.ValidatorAccount)
+	resolver, err = rcf.createTrieNodesResolver(factory.ValidatorTrieNodesTopic, sharding.MetachainShardId, trieId)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	resolverSlice = append(resolverSlice, resolver)
-	trieId = genesis.CreateTrieIdentifier(sharding.MetachainShardId, accountFactory.ValidatorAccount)
 	keys = append(keys, trieId)
 
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, shId uint32) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, shId uint32, trieId string) (dataRetriever.Resolver, error) {
 	topic := baseTopic + rcf.shardCoordinator.CommunicationIdentifier(shId)
+	existingResolver, _ := rcf.existingResolvers.Get(topic)
+	if !check.IfNil(existingResolver) {
+		return existingResolver, nil
+	}
+
 	excludePeersFromTopic := topic + rcf.shardCoordinator.CommunicationIdentifier(rcf.shardCoordinator.SelfId())
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludePeersFromTopic)
@@ -146,7 +158,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
-		rcf.dataTrieContainer.Get([]byte(topic)),
+		rcf.dataTrieContainer.Get([]byte(trieId)),
 		rcf.marshalizer,
 	)
 	if err != nil {
