@@ -133,6 +133,17 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 		rtxh.rewardTxsForBlock[string(rewardTxHash)] = addedRewardTx
 	}
 
+	for _, tx := range rtxh.rewardTxsForBlock {
+		log.Trace("rewardTxsForBlock",
+			"shard", tx.ShardId,
+			"epoch", tx.Epoch,
+			"round", tx.Round,
+			"rcvAddr", tx.RcvAddr,
+			"value", tx.Value,
+			"cnsIndex", tx.CnsIndex,
+			"type", tx.Type)
+	}
+
 	return nil
 }
 
@@ -506,17 +517,6 @@ func (rtxh *rewardsHandler) IsInterfaceNil() bool {
 }
 
 func (rtxh *rewardsHandler) displayCalculatedRewardTxs() {
-	for _, tx := range rtxh.rewardTxsForBlock {
-		log.Trace("rewardTxsForBlock",
-			"shard", tx.ShardId,
-			"epoch", tx.Epoch,
-			"round", tx.Round,
-			"rcvAddr", tx.RcvAddr,
-			"value", tx.Value,
-			"cnsIndex", tx.CnsIndex,
-			"type", tx.Type)
-	}
-
 	rtxh.displayTxs("protocolRewards", rtxh.protocolRewards)
 	rtxh.displayTxs("protocolRewardsMeta", rtxh.protocolRewardsMeta)
 	rtxh.displayTxs("feeRewards", rtxh.feeRewards)
