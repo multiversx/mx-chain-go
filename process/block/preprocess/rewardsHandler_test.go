@@ -389,9 +389,27 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.LeaderAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{
+		&rewardTx.RewardTx{
+			Type:    rewardTx.CommunityTx,
+			Value:   big.NewInt(5),
+			RcvAddr: addr.ElrondCommunityAddress(),
+		},
+	})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{
+		&rewardTx.RewardTx{
+			Type:    rewardTx.LeaderTx,
+			Value:   big.NewInt(25),
+			RcvAddr: addr.LeaderAddress(),
+		},
+	})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{
+		&rewardTx.RewardTx{
+			Type:    rewardTx.BurnTx,
+			Value:   big.NewInt(20),
+			RcvAddr: addr.BurnAddress(),
+		},
+	})
 	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
 	assert.Nil(t, err)
