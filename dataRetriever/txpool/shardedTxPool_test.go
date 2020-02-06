@@ -63,8 +63,8 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageUnit.CacheConfig{SizeInBytes: 4000000000, Size: 400000, Shards: 1}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4}
+	config := storageUnit.CacheConfig{SizeInBytes: 524288000, Size: 900000, Shards: 1}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 5}
 
 	poolAsInterface, err := NewShardedTxPool(args)
 	require.Nil(t, err)
@@ -72,7 +72,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	require.Equal(t, true, pool.cacheConfigPrototype.EvictionEnabled)
-	require.Equal(t, uint32(1000000000), pool.cacheConfigPrototype.NumBytesThreshold)
+	require.Equal(t, uint32(58254222), pool.cacheConfigPrototype.NumBytesThreshold)
 	require.Equal(t, uint32(100000), pool.cacheConfigPrototype.CountThreshold)
 	require.Equal(t, uint32(100), pool.cacheConfigPrototype.NumSendersToEvictInOneStep)
 	require.Equal(t, uint32(500), pool.cacheConfigPrototype.LargeNumOfTxsForASender)

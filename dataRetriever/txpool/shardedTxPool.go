@@ -37,12 +37,13 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	}
 
 	const oneTrilion = 1000000 * 1000000
+	numCaches := 2*args.NumberOfShards - 1
 
 	cacheConfigPrototype := txcache.CacheConfig{
 		NumChunksHint:              args.Config.Shards,
 		EvictionEnabled:            true,
-		NumBytesThreshold:          args.Config.SizeInBytes / args.NumberOfShards,
-		CountThreshold:             args.Config.Size / args.NumberOfShards,
+		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
+		CountThreshold:             args.Config.Size / numCaches,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
 		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
 		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
