@@ -2,9 +2,10 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type   string `json:"type"`
-	Size   uint32 `json:"size"`
-	Shards uint32 `json:"shards"`
+	Type        string `json:"type"`
+	Size        uint32 `json:"size"`
+	SizeInBytes uint32 `json:"sizeInBytes"`
+	Shards      uint32 `json:"shards"`
 }
 
 //HeadersPoolConfig will map the headers cache configuration
