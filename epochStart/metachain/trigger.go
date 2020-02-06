@@ -240,6 +240,10 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
+// RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
+func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
+}
+
 // ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(_ data.HeaderHandler) {
 }

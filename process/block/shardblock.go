@@ -262,6 +262,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		if err != nil {
+			return err
+		}
+	}
+
 	defer func() {
 		if err != nil {
 			sp.RevertAccountState()
@@ -351,28 +358,62 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isEpochIncorrect := header.GetEpoch() < currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
-		return process.ErrEpochDoesNotMatch
+		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
 	}
 
 	isEpochIncorrect = header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
-		return process.ErrEpochDoesNotMatch
+		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
+	}
+
+	isHeaderOfInvalidEpoch := header.GetEpoch() > sp.epochStartTrigger.Epoch()
+	if isHeaderOfInvalidEpoch {
+		return fmt.Errorf("%w proposed header with epoch too high %d with trigger in epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
 	}
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		header.GetEpoch() != sp.epochStartTrigger.Epoch()
+		header.GetEpoch() < sp.epochStartTrigger.Epoch()
 	if isOldEpochAndShouldBeNew {
-		return process.ErrEpochDoesNotMatch
+		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
 	}
 
 	isEpochStartMetaHashIncorrect := header.IsStartOfEpochBlock() &&
-		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
+		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash()) &&
+		header.GetEpoch() == sp.epochStartTrigger.Epoch()
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 		sp.epochStartTrigger.Revert(currentBlockHeader.GetRound())
-		return process.ErrEpochDoesNotMatch
+		log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
+		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
+			process.ErrEpochDoesNotMatch, header.GetEpoch())
+	}
+
+	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.Epoch()
+	if isOldEpochStart {
+		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
+		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		if err != nil {
+			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
+				err, header.GetEpoch())
+		}
+
+		metaBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
+		if err != nil {
+			return fmt.Errorf("%w could not calculate hash for epoch start metablock for epoch %d",
+				err, header.GetEpoch())
+		}
+
+		if !bytes.Equal(header.EpochStartMetaHash, metaBlockHash) {
+			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", metaBlockHash)
+			return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
+				process.ErrEpochDoesNotMatch, header.GetEpoch())
+		}
 	}
 
 	return nil
@@ -436,7 +477,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
 	}
 
@@ -657,6 +698,7 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 		epoch = epoch - 1
 	}
 
+	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 	err := sp.specialAddressHandler.SetShardConsensusData(
 		initialHdrData.GetPrevRandSeed(),
 		initialHdrData.GetRound(),
@@ -671,8 +713,6 @@ func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, hav
 	if err != nil {
 		return nil, err
 	}
-
-	sp.requestHandler.SetEpoch(initialHdrData.GetEpoch())
 
 	return miniBlocks, nil
 }
@@ -711,6 +751,14 @@ func (sp *shardProcessor) CommitBlock(
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
+	}
+
+	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
+		if err != nil {
+			return err
+		}
+		sp.epochStartTrigger.SetProcessed(header)
 	}
 
 	buff, err := sp.marshalizer.Marshal(header)
@@ -791,11 +839,6 @@ func (sp *shardProcessor) CommitBlock(
 	err = sp.commitAll()
 	if err != nil {
 		return err
-	}
-
-	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain(chainHandler)
-		sp.epochStartTrigger.SetProcessed(header)
 	}
 
 	log.Info("shard block has been committed successfully",
@@ -974,14 +1017,12 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 	nonce := currentHeader.GetNonce()
 	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod
 
-	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() != sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
+	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
 		shouldRevertChain = true
-		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
-			currentHeader.GetNonce()-1,
-			sp.shardCoordinator.SelfId(),
-			sp.store,
-			sp.uint64Converter,
+		prevHeader, err := process.GetShardHeaderFromStorage(
+			currentHeader.GetPrevHash(),
 			sp.marshalizer,
+			sp.store,
 		)
 		if err != nil {
 			return err
