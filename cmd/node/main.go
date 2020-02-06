@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
@@ -375,11 +376,9 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
 		return kyber.NewSuitePairingBn256(), nil
-	case factory.BnConsensusType:
-		return kyber.NewBlakeSHA256Ed25519(), nil
+	default:
+		return nil, errors.New("no consensus provided in config file")
 	}
-
-	return nil, errors.New("no consensus provided in config file")
 }
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
@@ -1024,6 +1023,10 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	consensusGroupCache, err := lrucache.NewCache(25000)
+	if err != nil {
+		return nil, err
+	}
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1032,6 +1035,7 @@ func createNodesCoordinator(
 		NbShards:                nbShards,
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     consensusGroupCache,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1178,6 +1182,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
+		node.WithRequestHandler(process.RequestHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1204,7 +1209,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithPendingMiniBlocks(process.PendingMiniBlocks))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}

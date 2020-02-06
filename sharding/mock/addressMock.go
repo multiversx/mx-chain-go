@@ -1,9 +1,11 @@
 package mock
 
+// AddressMock -
 type AddressMock struct {
 	Bts []byte
 }
 
+// Bytes -
 func (address *AddressMock) Bytes() []byte {
 	return address.Bts
 }

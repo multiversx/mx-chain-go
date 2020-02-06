@@ -884,11 +884,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:   argumentsBase,
-			SCDataGetter:       tpn.SCQueryService,
-			SCToProtocol:       scToProtocol,
-			PeerChangesHandler: scToProtocol,
-			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+			ArgBaseProcessor:         argumentsBase,
+			SCDataGetter:             tpn.SCQueryService,
+			SCToProtocol:             scToProtocol,
+			PeerChangesHandler:       scToProtocol,
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

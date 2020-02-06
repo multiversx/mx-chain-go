@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// SCProcessorMock -
 type SCProcessorMock struct {
 	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) (process.TransactionType, error)
 	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
@@ -14,6 +15,7 @@ type SCProcessorMock struct {
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) error
 }
 
+// ComputeTransactionType -
 func (sc *SCProcessorMock) ComputeTransactionType(
 	tx data.TransactionHandler,
 ) (process.TransactionType, error) {
@@ -24,6 +26,7 @@ func (sc *SCProcessorMock) ComputeTransactionType(
 	return sc.ComputeTransactionTypeCalled(tx)
 }
 
+// ExecuteSmartContractTransaction -
 func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
 	acntSrc, acntDst state.AccountHandler,
@@ -35,6 +38,7 @@ func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	return sc.ExecuteSmartContractTransactionCalled(tx, acntSrc, acntDst)
 }
 
+// DeploySmartContract -
 func (sc *SCProcessorMock) DeploySmartContract(
 	tx data.TransactionHandler,
 	acntSrc state.AccountHandler,
@@ -46,6 +50,7 @@ func (sc *SCProcessorMock) DeploySmartContract(
 	return sc.DeploySmartContractCalled(tx, acntSrc)
 }
 
+// ProcessSmartContractResult -
 func (sc *SCProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
 	if sc.ProcessSmartContractResultCalled == nil {
 		return nil

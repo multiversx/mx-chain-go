@@ -92,10 +92,8 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
 
-	ShardDataStorage StorageConfig
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
-	PeerDataStorage  StorageConfig
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig

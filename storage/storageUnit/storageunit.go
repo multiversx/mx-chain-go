@@ -6,15 +6,14 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
-	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -42,8 +41,6 @@ var log = logger.GetOrCreate("storage/storageUnit")
 const (
 	LvlDB       DBType = "LvlDB"
 	LvlDbSerial DBType = "LvlDBSerial"
-	BadgerDB    DBType = "BadgerDB"
-	BoltDB      DBType = "BoltDB"
 )
 
 const (
@@ -227,10 +224,10 @@ func (u *Unit) IsInterfaceNil() bool {
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil || c.IsInterfaceNil() {
+	if check.IfNil(c) {
 		return nil, storage.ErrNilCacher
 	}
 
@@ -346,10 +343,6 @@ func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, 
 		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case LvlDbSerial:
 		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
-	case BadgerDB:
-		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
-	case BoltDB:
-		db, err = boltdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}

@@ -20,6 +20,7 @@ type ForkDetectorMock struct {
 	ResetProbableHighestNonceCalled func()
 }
 
+// RestoreToGenesis -
 func (fdm *ForkDetectorMock) RestoreToGenesis() {
 	fdm.RestoreToGenesisCalled()
 }
@@ -44,6 +45,7 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 	return fdm.GetHighestFinalBlockNonceCalled()
 }
 
+// GetHighestFinalBlockHash -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
 	return fdm.GetHighestFinalBlockHashCalled()
 }
@@ -53,20 +55,24 @@ func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
 	return fdm.ProbableHighestNonceCalled()
 }
 
+// SetRollBackNonce -
 func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
 	if fdm.SetRollBackNonceCalled != nil {
 		fdm.SetRollBackNonceCalled(nonce)
 	}
 }
 
+// ResetFork -
 func (fdm *ForkDetectorMock) ResetFork() {
 	fdm.ResetForkCalled()
 }
 
+// GetNotarizedHeaderHash -
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 	return fdm.GetNotarizedHeaderHashCalled(nonce)
 }
 
+// ResetProbableHighestNonce -
 func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 	if fdm.ResetProbableHighestNonceCalled != nil {
 		fdm.ResetProbableHighestNonceCalled()

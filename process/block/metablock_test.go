@@ -57,10 +57,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			DataPool:     mdp,
 		},
-		SCDataGetter:       &mock.ScQueryMock{},
-		SCToProtocol:       &mock.SCToProtocolStub{},
-		PeerChangesHandler: &mock.PeerChangesHandler{},
-		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
+		SCDataGetter:             &mock.ScQueryMock{},
+		SCToProtocol:             &mock.SCToProtocolStub{},
+		PeerChangesHandler:       &mock.PeerChangesHandler{},
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 	}
 	return arguments
 }
@@ -283,7 +283,7 @@ func TestNewMetaProcessor_NilPendingMiniBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	arguments.PendingMiniBlocks = nil
+	arguments.PendingMiniBlocksHandler = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilPendingMiniBlocksHandler, err)
@@ -885,6 +885,58 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 	err := mp.CommitBlock(nil, nil, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
+}
+
+func TestMetaProcessor_RevertStateToBlockRevertPeerStateFailsShouldErr(t *testing.T) {
+	expectedErr := errors.New("err")
+	arguments := createMockMetaArguments()
+	arguments.Accounts = &mock.AccountsStub{}
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
+	arguments.Store = initStore()
+	arguments.Accounts = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr := block.MetaBlock{Nonce: 37}
+	err := mp.RevertStateToBlock(&hdr)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestMetaProcessor_RevertStateToBlockShouldWork(t *testing.T) {
+	recreateTrieWasCalled := false
+	revertePeerStateWasCalled := false
+
+	arguments := createMockMetaArguments()
+	arguments.DataPool = initDataPool([]byte("tx_hash"))
+	arguments.Store = initStore()
+
+	arguments.Accounts = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			recreateTrieWasCalled = true
+			return nil
+		},
+	}
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{
+		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+			revertePeerStateWasCalled = true
+			return nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	hdr := block.MetaBlock{Nonce: 37}
+	err := mp.RevertStateToBlock(&hdr)
+	assert.Nil(t, err)
+	assert.True(t, revertePeerStateWasCalled)
+	assert.True(t, recreateTrieWasCalled)
 }
 
 func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
@@ -1958,6 +2010,47 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := createMockMetaArguments()
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body := block.Body{}
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+
+	marshalizedBody, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	assert.Nil(t, err)
+
+	dcdBlk, dcdHdr := mp.DecodeBlockBodyAndHeader(nil)
+	assert.Nil(t, dcdBlk)
+	assert.Nil(t, dcdHdr)
+
+	dcdBlk, dcdHdr = mp.DecodeBlockBodyAndHeader(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }
 
 func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
