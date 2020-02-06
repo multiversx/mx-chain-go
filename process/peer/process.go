@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -693,8 +694,8 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorCount)
 	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1)
 	consensusGroupAppearances := uint32(float64(consensusGroupSize)*percentageRoundMissedFromTotalValidators + 1)
-
-	for _, validator := range shardValidators {
+	ratingDifference := uint32(0)
+	for i, validator := range shardValidators {
 		validatorPeerAccount, err := vs.GetPeerAccount(validator)
 		if err != nil {
 			return err
@@ -717,11 +718,17 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 			currentTempRating = vs.rater.ComputeDecreaseValidator(currentTempRating)
 		}
 
+		if i == 0 {
+			ratingDifference = validatorPeerAccount.GetTempRating() - currentTempRating
+		}
+
 		err = validatorPeerAccount.SetTempRatingWithJournal(currentTempRating)
 		if err != nil {
 			return err
 		}
 	}
+
+	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
 
 	return nil
 }
