@@ -244,28 +244,6 @@ func (rtxh *rewardsHandler) CreateBlockStarted() {
 	rtxh.cleanCachedData()
 }
 
-// CreateMarshalizedData creates the marshalized data for broadcasting purposes
-func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	rtxh.mut.Lock()
-	defer rtxh.mut.Unlock()
-
-	marshaledTxs := make([][]byte, len(txHashes))
-	for idx, txHash := range txHashes {
-		rTx, ok := rtxh.rewardTxsForBlock[string(txHash)]
-		if !ok {
-			return nil, process.ErrRewardTxNotFound
-		}
-
-		marshaledTx, err := rtxh.marshalizer.Marshal(rTx)
-		if err != nil {
-			return nil, process.ErrMarshalWithoutSuccess
-		}
-		marshaledTxs[idx] = marshaledTx
-	}
-
-	return marshaledTxs, nil
-}
-
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 	if cost == nil {
