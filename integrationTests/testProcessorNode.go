@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"math/big"
 	"sort"
 	"strconv"
@@ -201,6 +202,8 @@ type TestProcessorNode struct {
 	CounterMetaRcv int32
 
 	ChainID []byte
+
+	ExportHandler update.ExportHandler
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger

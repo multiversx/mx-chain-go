@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -16,7 +17,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+// ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
+	Reader      update.MultiFileReader
+	Hasher      hashing.Hasher
+	Marshalizer marshal.Marshalizer
 }
 
 type stateImport struct {
@@ -31,10 +36,33 @@ type stateImport struct {
 	marshalizer marshal.Marshalizer
 }
 
+// NewStateImport creates an importer which reads all the files for a new start
 func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
-	return nil, nil
+	if check.IfNil(args.Reader) {
+		return nil, update.ErrNilMultiFileReader
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, update.ErrNilHasher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, update.ErrNilMarshalizer
+	}
+
+	st := &stateImport{
+		reader:            args.Reader,
+		genesisHeaders:    make(map[uint32]data.HeaderHandler),
+		transactions:      make(map[string]data.TransactionHandler),
+		miniBlocks:        make(map[string]*block.MiniBlock),
+		importedMetaBlock: &block.MetaBlock{},
+		tries:             make(map[string]data.Trie),
+		hasher:            args.Hasher,
+		marshalizer:       args.Marshalizer,
+	}
+
+	return st, nil
 }
 
+// ImportAll imports all the relevant files for the new genesis
 func (si *stateImport) ImportAll() error {
 	files := si.reader.GetFileNames()
 	if len(files) == 0 {
@@ -248,18 +276,22 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 	return nil
 }
 
+// ProcessTransactions processes all the pending transactions at the current moment
 func (si *stateImport) ProcessTransactions() error {
 	return nil
 }
 
+// CreateGenesisBlocks creates the genesis blocks for all shards with the data which is imported
 func (si *stateImport) CreateGenesisBlocks() error {
 	return nil
 }
 
+// GetAllGenesisBlocks returns the created genesis blocks
 func (si *stateImport) GetAllGenesisBlocks() map[uint32]data.HeaderHandler {
 	return si.genesisHeaders
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (si *stateImport) IsInterfaceNil() bool {
 	return si == nil
 }

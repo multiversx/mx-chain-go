@@ -97,3 +97,6 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilMultiFileReader signals that nil multi file reader was provided
+var ErrNilMultiFileReader = errors.New("nil multi file reader")
