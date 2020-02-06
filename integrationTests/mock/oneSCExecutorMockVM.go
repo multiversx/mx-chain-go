@@ -56,16 +56,6 @@ func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashi
 	return vm, nil
 }
 
-// G0Create -
-func (vm *OneSCExecutorMockVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
-	return big.NewInt(0), nil
-}
-
-// G0Call -
-func (vm *OneSCExecutorMockVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
-	return big.NewInt(0), nil
-}
-
 // RunSmartContractCreate -
 func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
@@ -98,13 +88,11 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		Code:         input.ContractCode,
 		BalanceDelta: input.CallValue,
 		Address:      newSCAddr,
-		StorageUpdates: []*vmcommon.StorageUpdate{
-			{
-				//only one variable: a
-				Offset: variableA,
-				Data:   initialValue,
-			},
-		},
+		StorageUpdates: makeStorageUpdatesMap(&vmcommon.StorageUpdate{
+			//only one variable: a
+			Offset: variableA,
+			Data:   initialValue,
+		}),
 	}
 
 	senderOutputAccount := &vmcommon.OutputAccount{
@@ -116,7 +104,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
+		OutputAccounts:  makeOutputAccountsMap(scOutputAccount, senderOutputAccount),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    input.GasProvided - vm.GasForOperation,
@@ -183,13 +171,11 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		Nonce:        destNonce,
 		BalanceDelta: input.CallValue,
 		Address:      input.RecipientAddr,
-		StorageUpdates: []*vmcommon.StorageUpdate{
-			{
-				//only one variable: a
-				Offset: variableA,
-				Data:   newValue.Bytes(),
-			},
-		},
+		StorageUpdates: makeStorageUpdatesMap(&vmcommon.StorageUpdate{
+			//only one variable: a
+			Offset: variableA,
+			Data:   newValue.Bytes(),
+		}),
 	}
 
 	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
@@ -206,7 +192,7 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
+		OutputAccounts:  makeOutputAccountsMap(scOutputAccount, senderOutputAccount),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    input.GasProvided - vm.GasForOperation,
@@ -254,7 +240,7 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
+		OutputAccounts:  makeOutputAccountsMap(scOutputAccount, senderOutputAccount),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    input.GasProvided - vm.GasForOperation,
@@ -280,11 +266,11 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		Nonce:          destNonce,
 		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
-		StorageUpdates: make([]*vmcommon.StorageUpdate, 0),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount},
+		OutputAccounts:  makeOutputAccountsMap(scOutputAccount),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    input.GasProvided - vm.GasForOperation,
@@ -304,11 +290,11 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
 		Address:        input.RecipientAddr,
-		StorageUpdates: make([]*vmcommon.StorageUpdate, 0),
+		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount},
+		OutputAccounts:  makeOutputAccountsMap(scOutputAccount),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    0,
@@ -332,7 +318,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	}
 
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{vmo},
+		OutputAccounts:  makeOutputAccountsMap(vmo),
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    0,
@@ -341,4 +327,28 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 		ReturnData:      [][]byte{},
 		TouchedAccounts: make([][]byte, 0),
 	}, nil
+}
+
+func makeStorageUpdatesMap(updates ...*vmcommon.StorageUpdate) map[string]*vmcommon.StorageUpdate {
+	if len(updates) == 0 {
+		return make(map[string]*vmcommon.StorageUpdate)
+	}
+
+	updatesMap := make(map[string]*vmcommon.StorageUpdate, len(updates))
+	for _, update := range updates {
+		updatesMap[string(update.Offset)] = update
+	}
+	return updatesMap
+}
+
+func makeOutputAccountsMap(accounts ...*vmcommon.OutputAccount) map[string]*vmcommon.OutputAccount {
+	if accounts == nil {
+		return make(map[string]*vmcommon.OutputAccount)
+	}
+
+	accountsMap := make(map[string]*vmcommon.OutputAccount, len(accounts))
+	for _, account := range accounts {
+		accountsMap[string(account.Address)] = account
+	}
+	return accountsMap
 }

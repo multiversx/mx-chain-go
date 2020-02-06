@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -134,6 +136,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("doee"))
 	_ = tr.Commit()
 
+	tr.CancelPrune(rootHash, data.NewRoot)
 	err := tr.Prune(rootHash, data.OldRoot)
 	assert.Nil(t, err)
 
@@ -162,6 +165,8 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 
 	_ = tr.Update([]byte("doge"), []byte("doge"))
 	_ = tr.Commit()
+
+	tr.CancelPrune(rootHash, data.NewRoot)
 	_ = tr.Prune(rootHash, data.OldRoot)
 
 	val, err := tr.Database().Get(rootHash)
@@ -269,6 +274,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
+	tr.CancelPrune(rootHash, data.NewRoot)
 	rootHashes = append(rootHashes, rootHash)
 	tr.TakeSnapshot(rootHash)
 
@@ -288,7 +294,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 		_ = tr.Prune(currentRootHash, data.NewRoot)
 		rootHashes = append(rootHashes, currentRootHash)
 	}
-	numKeysToBeEvicted := 21
+	numKeysToBeEvicted := 20
 	assert.Equal(t, numKeysToBeEvicted, len(evictionWaitList.Cache))
 	assert.NotEqual(t, 0, trieStorage.pruningBufferLength())
 
@@ -468,4 +474,38 @@ func TestRemoveFromPruningBufferWhenCancelingPrune(t *testing.T) {
 	for i := range trieStorage.pruningBuffer {
 		assert.NotEqual(t, trieStorage.pruningBuffer[i], rootHash2NewRoot)
 	}
+}
+
+func TestCheckpointWithErrWillNotGeneratePruningDeadlock(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash1, false)
+
+	trieStorage.snapshotsBuffer.add([]byte("rootHash"), false)
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	trieStorage.snapshotsBuffer.add(rootHash2, false)
+
+	tr.CancelPrune(rootHash1, data.NewRoot)
+	_ = tr.Prune(rootHash2, data.NewRoot)
+	_ = tr.Prune(rootHash1, data.OldRoot)
+
+	trieStorage.snapshot(tr.marshalizer, tr.hasher)
+
+	trieStorage.snapshots = make([]storage.Persister, 0)
+	newTr, err := tr.Recreate(rootHash1)
+	assert.Nil(t, newTr)
+	assert.True(t, errors.Is(err, ErrHashNotFound))
+
+	newTr, err = tr.Recreate(rootHash2)
+	assert.Nil(t, newTr)
+	assert.True(t, errors.Is(err, ErrHashNotFound))
 }
