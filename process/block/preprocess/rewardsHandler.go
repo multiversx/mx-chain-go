@@ -442,6 +442,9 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 	rtxh.mutGenRewardTxs.RUnlock()
 
+	rtxh.mut.Lock()
+	defer rtxh.mut.Unlock()
+
 	for _, tx := range rtxh.rewardTxsForBlock {
 		log.Trace("rewardTxsForBlock",
 			"shard", tx.ShardId,
@@ -452,9 +455,6 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 			"cnsIndex", tx.CnsIndex,
 			"type", tx.Type)
 	}
-
-	rtxh.mut.Lock()
-	defer rtxh.mut.Unlock()
 
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
