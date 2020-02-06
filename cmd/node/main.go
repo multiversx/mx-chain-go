@@ -394,11 +394,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	workingDir := getWorkingDir(ctx, log)
 
 	var err error
-
 	withLogFile := ctx.GlobalBool(logFile.Name)
 	if withLogFile {
 		var fileForLogs *os.File
-		fileForLogs, err = createLogFile(workingDir)
+		fileForLogs, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -406,11 +405,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		defer func() {
 			_ = fileForLogs.Close()
 		}()
-
-		err = logger.AddLogObserver(fileForLogs, &logger.PlainFormatter{})
-		if err != nil {
-			return fmt.Errorf("%w adding file log observer", err)
-		}
 	}
 
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
@@ -893,7 +887,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
-	var workingDir = ""
+	var workingDir string
 	var err error
 	if ctx.IsSet(workingDirectory.Name) {
 		workingDir = ctx.GlobalString(workingDirectory.Name)
@@ -909,25 +903,30 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 	return workingDir
 }
 
-func createLogFile(workingDir string) (*os.File, error) {
+func prepareLogFile(workingDir string) (*os.File, error) {
 	logDirectory := filepath.Join(workingDir, defaultLogsPath)
-	f, err := core.CreateFile("elrond-go", logDirectory, "log")
+	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
 	if err != nil {
 		return nil, err
 	}
 
 	//we need this function as to close file.Close() when the code panics and the defer func associated
 	//with the file pointer in the main func will never be reached
-	runtime.SetFinalizer(f, func(f *os.File) {
+	runtime.SetFinalizer(logFile, func(f *os.File) {
 		_ = f.Close()
 	})
 
-	err = redirects.RedirectStderr(f)
+	err = redirects.RedirectStderr(fileForLog)
 	if err != nil {
 		return nil, err
 	}
 
-	return f, nil
+	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
+	if err != nil {
+		return nil, fmt.Errorf("%w adding file log observer", err)
+	}
+
+	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
