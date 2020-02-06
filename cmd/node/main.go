@@ -376,11 +376,9 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
 		return kyber.NewSuitePairingBn256(), nil
-	case factory.BnConsensusType:
-		return kyber.NewBlakeSHA256Ed25519(), nil
+	default:
+		return nil, errors.New("no consensus provided in config file")
 	}
-
-	return nil, errors.New("no consensus provided in config file")
 }
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {

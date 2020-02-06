@@ -92,6 +92,10 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		mrsTxs = append(mrsTxs, txMrs)
 	}
 
+	log.Trace("basePreProcess.createMarshalizedData",
+		"num txs", len(mrsTxs),
+	)
+
 	return mrsTxs, nil
 }
 
