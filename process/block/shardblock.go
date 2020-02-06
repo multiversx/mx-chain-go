@@ -918,50 +918,48 @@ func (sp *shardProcessor) commitAll() error {
 }
 
 func (sp *shardProcessor) updateStateStorage(finalHeaders []data.HeaderHandler) {
-	// TODO add pruning on metachain. Refactor the pruning mechanism (remove everything before final nonce).
-	for i := range finalHeaders {
-		if !sp.accounts.IsPruningEnabled() {
-			break
-		}
+	if !sp.accounts.IsPruningEnabled() {
+		return
+	}
 
+	for i := range finalHeaders {
 		sp.saveState(finalHeaders[i])
 
-		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(finalHeaders[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 			continue
 		}
 
-		var prevHeader block.Header
-		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
+		prevRootHash := prevHeader.GetRootHash()
+		if prevRootHash == nil {
 			continue
 		}
 
-		rootHash := prevHeader.GetRootHash()
-		if rootHash == nil {
+		rootHash := finalHeaders[i].GetRootHash()
+		if bytes.Equal(prevRootHash, rootHash) {
 			continue
 		}
 
-		log.Trace("final header will be pruned", "root hash", rootHash)
-		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		errNotCritical = sp.accounts.PruneTrie(prevRootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 
-		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
+		sp.accounts.CancelPrune(rootHash)
 	}
 }
 
 func (sp *shardProcessor) saveState(finalHeader data.HeaderHandler) {
 	if finalHeader.IsStartOfEpochBlock() {
+		log.Debug("trie snapshot", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SnapshotState(finalHeader.GetRootHash())
 		return
 	}
 
 	// TODO generate checkpoint on a trigger
 	if finalHeader.GetRound()%uint64(sp.stateCheckpointModulus) == 0 {
+		log.Debug("trie checkpoint", "rootHash", finalHeader.GetRootHash())
 		sp.accounts.SetStateCheckpoint(finalHeader.GetRootHash())
 	}
 }
@@ -1216,7 +1214,15 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	log.Trace("cross mini blocks in body",
 		"num miniblocks", len(miniBlockHashes),
 	)
+
 	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes)
+
+	for _, hdr := range processedMetaBlocks {
+		log.Trace("getOrderedProcessedMetaBlocksFromMiniBlocks",
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce())
+	}
 
 	return processedMetaBlocks, err
 }

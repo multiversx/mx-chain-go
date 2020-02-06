@@ -345,6 +345,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 }
 
 //func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
+//	//TODO fix this test
+//	t.Skip("TODO fix this test")
 //	if testing.Short() {
 //		t.Skip("this is not a short test")
 //	}
@@ -392,6 +394,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 //		shardConsensusGroupSize,
 //		consensusGroupSize,
 //		seedAddress,
+//		cache,
 //	)
 //
 //	roundsPerEpoch := uint64(1000)
@@ -420,7 +423,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 //	roundDifference := 10
 //	nonce := uint64(1)
 //
-//	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
+//	firstNodeOnMeta := nodesMap[sharding.MetachainShardId][0]
 //	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
 //
 //	// set bitmap for all consensus nodes signing
