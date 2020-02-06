@@ -67,10 +67,10 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
-	err = se.exportAllTries()
-	if err != nil {
-		return err
-	}
+	//err = se.exportAllTries()
+	//if err != nil {
+	//	return err
+	//}
 
 	err = se.exportAllMiniBlocks()
 	if err != nil {
@@ -91,6 +91,7 @@ func (se *stateExport) exportAllTransactions() error {
 		return err
 	}
 
+	log.Debug("Exported transactions", "len", len(toExportTransactions))
 	for key, tx := range toExportTransactions {
 		err := se.exportTx(key, tx)
 		if err != nil {
@@ -107,6 +108,7 @@ func (se *stateExport) exportAllMiniBlocks() error {
 		return err
 	}
 
+	log.Debug("Exported miniBlocks", "len", len(toExportMBs))
 	for key, mb := range toExportMBs {
 		err := se.exportMBs(key, mb)
 		if err != nil {
@@ -152,6 +154,8 @@ func (se *stateExport) exportMeta() error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("Exported metaBlock", "rootHash", metaBlock.RootHash)
 
 	return nil
 }

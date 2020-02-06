@@ -60,12 +60,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		err := ss.tries.SyncTriesFrom(meta, time.Hour)
-		if err != nil {
-			mutErr.Lock()
-			errFound = err
-			mutErr.Unlock()
-		}
+		//err := ss.tries.SyncTriesFrom(meta, time.Hour)
+		//if err != nil {
+		//	mutErr.Lock()
+		//	errFound = err
+		//	mutErr.Unlock()
+		//}
 		wg.Done()
 	}()
 
