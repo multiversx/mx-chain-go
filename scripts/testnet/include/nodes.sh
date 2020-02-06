@@ -127,7 +127,7 @@ assembleCommand_startObserverNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -logFile -logLevel $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -destination-shard-as-observer $SHARD \
         -working-directory $WORKING_DIR"
@@ -139,10 +139,7 @@ assembleCommand_startObserverNode() {
 
   if [ $NODETERMUI -eq 0 ]
   then
-    local logs_folder=$WORKING_DIR/logs
-    [ -d $logs_folder ] || mkdir -p $logs_folder
-    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel $LOGLEVEL"
-    nodeCommand="$nodeCommand |& tee $WORKING_DIR/logs/stdout.txt"
+    nodeCommand="$nodeCommand -use-log-view"
   fi
 
   echo $nodeCommand
@@ -156,7 +153,7 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -logFile -logLevel $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT \
         -working-directory $WORKING_DIR"
@@ -168,10 +165,7 @@ assembleCommand_startValidatorNode() {
 
   if [ $NODETERMUI -eq 0 ]
   then
-    local logs_folder=$WORKING_DIR/logs
-    [ -d $logs_folder ] || mkdir -p $logs_folder
-    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel $LOGLEVEL"
-    nodeCommand="$nodeCommand |& tee $WORKING_DIR/logs/stdout.txt"
+    nodeCommand="$nodeCommand -use-log-view"
   fi
 
   echo $nodeCommand

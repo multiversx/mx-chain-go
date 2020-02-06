@@ -230,10 +230,6 @@
     Size = 75000
     Type = "LRU"
 
-[Logger]
-    Path = "logs"
-    StackTraceDepth = 2
-
 [Address]
     Length = 32
     Prefix = "0x"

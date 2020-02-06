@@ -35,12 +35,6 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig `json:"bloom"`
 }
 
-// LoggerConfig will map the json logger configuration
-type LoggerConfig struct {
-	Path            string `json:"path"`
-	StackTraceDepth int    `json:"stackTraceDepth"`
-}
-
 // AddressConfig will map the json address configuration
 type AddressConfig struct {
 	Length int    `json:"length"`
@@ -108,7 +102,6 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	EpochStartConfig            EpochStartConfig
-	Logger                      LoggerConfig
 	Address                     AddressConfig
 	BLSPublicKey                AddressConfig
 	Hasher                      TypeConfig
