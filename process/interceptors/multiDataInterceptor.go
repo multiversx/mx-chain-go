@@ -110,7 +110,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	var buffToSend []byte
 	haveDataForBroadcast := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
 	if haveDataForBroadcast {
-		buffToSend, err = mdi.marshalizer.Marshal(&batch.Batch{filteredMultiDataBuff})
+		buffToSend, err = mdi.marshalizer.Marshal(&batch.Batch{Data: filteredMultiDataBuff})
 		if err != nil {
 			return err
 		}

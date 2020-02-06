@@ -84,7 +84,7 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 	storer := mock.NewStorerMock()
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	msr := &mock.MarshalizerFake{}
-	keysBytes, _ := msr.Marshal(&batch.Batch{keys})
+	keysBytes, _ := msr.Marshal(&batch.Batch{Data: keys})
 	_ = storer.Put([]byte("keys"), keysBytes)
 
 	hs, _ := storage.NewHeartbeatDbStorer(

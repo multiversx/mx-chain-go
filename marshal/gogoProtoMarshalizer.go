@@ -24,11 +24,7 @@ func (x *GogoProtoMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 func (x *GogoProtoMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if msg, ok := obj.(data.GogoProtoObj); ok {
 		msg.Reset()
-		err := msg.Unmarshal(buff)
-		if err != nil {
-			panic(err)
-		}
-		return err
+		return msg.Unmarshal(buff)
 	}
 
 	return fmt.Errorf("%T, %w", obj, ErrUnmarshallingProto)
