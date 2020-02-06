@@ -157,7 +157,7 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 
-	rtxh.displayCalculatedRewardsTxs()
+	rtxh.displayCalculatedRewardTxs()
 
 	rtxh.mutGenRewardTxs.Unlock()
 
@@ -505,7 +505,7 @@ func (rtxh *rewardsHandler) IsInterfaceNil() bool {
 	return rtxh == nil
 }
 
-func (rtxh *rewardsHandler) displayCalculatedRewardsTxs() {
+func (rtxh *rewardsHandler) displayCalculatedRewardTxs() {
 	for _, tx := range rtxh.rewardTxsForBlock {
 		log.Trace("rewardTxsForBlock",
 			"shard", tx.ShardId,
