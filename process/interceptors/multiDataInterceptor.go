@@ -99,12 +99,15 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		if !interceptedData.IsForCurrentShard() {
-			log.Trace("intercepted data is for other shards")
+			log.Trace("intercepted data is for other shards",
+				"pid", p2p.MessageOriginatorPid(message),
+				"seq no", p2p.MessageOriginatorSeq(message),
+			)
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess)
+		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
 	}
 
 	return lastErrEncountered

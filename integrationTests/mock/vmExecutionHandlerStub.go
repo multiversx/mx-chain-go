@@ -5,6 +5,7 @@ import (
 	"math/big"
 )
 
+// VMExecutionHandlerStub -
 type VMExecutionHandlerStub struct {
 	G0CreateCalled               func(input *vmcommon.ContractCreateInput) (*big.Int, error)
 	G0CallCalled                 func(input *vmcommon.ContractCallInput) (*big.Int, error)
