@@ -607,9 +607,10 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
 }
 
@@ -636,9 +637,10 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
@@ -666,9 +668,10 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
 	assert.NotNil(t, err)
 }
 
@@ -696,9 +699,10 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.NotNil(t, tx)
+	assert.NotNil(t, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 	assert.Equal(t, value, tx.Value)
@@ -724,61 +728,6 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	numOfTxsProcessed, err := n.SendBulkTransactions(txs)
 	assert.Equal(t, uint64(0), numOfTxsProcessed)
 	assert.Equal(t, node.ErrNoTxToProcess, err)
-}
-
-func TestSendTransaction_ShouldWork(t *testing.T) {
-	txSent := false
-	mes := &mock.MessengerStub{
-		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
-			txSent = true
-		},
-	}
-
-	marshalizer := &mock.MarshalizerFake{}
-	hasher := &mock.HasherFake{}
-	adrConverter := mock.NewAddressConverterFake(32, "0x")
-
-	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer, testSizeCheckDelta),
-		node.WithAddressConverter(adrConverter),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMessenger(mes),
-		node.WithHasher(hasher),
-	)
-
-	nonce := uint64(50)
-	value := big.NewInt(567)
-	sender := createDummyHexAddress(64)
-	receiver := createDummyHexAddress(64)
-	txData := "data"
-	signature := []byte("signature")
-
-	senderBuff, _ := adrConverter.CreateAddressFromHex(sender)
-	receiverBuff, _ := adrConverter.CreateAddressFromHex(receiver)
-
-	txHexHashResulted, err := n.SendTransaction(
-		nonce,
-		sender,
-		receiver,
-		value.String(),
-		0,
-		0,
-		[]byte(txData),
-		signature)
-
-	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
-		Nonce:     nonce,
-		Value:     value,
-		SndAddr:   senderBuff.Bytes(),
-		RcvAddr:   receiverBuff.Bytes(),
-		Data:      []byte(txData),
-		Signature: signature,
-	})
-	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))
-
-	assert.Nil(t, err)
-	assert.Equal(t, txHexHashExpected, txHexHashResulted)
-	assert.True(t, txSent)
 }
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {

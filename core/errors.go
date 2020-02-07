@@ -46,3 +46,6 @@ var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 // ErrInvalidIdentifierForEpochStartBlockRequest signals that an invalid identifier for epoch start block request
 // has been provided
 var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifier for epoch start block request")
+
+// ErrNilContext signals that a nil context has been provided
+var ErrNilContext = errors.New("nil context")

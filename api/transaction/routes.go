@@ -13,8 +13,8 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, txData []byte, signature []byte) (string, error)
+	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	IsInterfaceNil() bool
@@ -79,19 +79,24 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	signature, err := hex.DecodeString(gtx.Signature)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrInvalidSignatureHex.Error(), err.Error())})
-		return
-	}
-
-	txHash, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.GasPrice, gtx.GasLimit, gtx.Data, signature)
+	var txHash []byte
+	_, txHash, err = ef.CreateTransaction(
+		gtx.Nonce,
+		gtx.Value,
+		gtx.Receiver,
+		gtx.Sender,
+		gtx.GasPrice,
+		gtx.GasLimit,
+		gtx.Data,
+		gtx.Signature,
+	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"txHash": txHash})
+	txHexHash := hex.EncodeToString(txHash)
+	c.JSON(http.StatusOK, gin.H{"txHash": txHexHash})
 }
 
 // SendMultipleTransactions will receive a number of transactions and will propagate them for processing
@@ -112,7 +117,7 @@ func SendMultipleTransactions(c *gin.Context) {
 	var txs []*transaction.Transaction
 	var tx *transaction.Transaction
 	for _, receivedTx := range gtx {
-		tx, err = ef.CreateTransaction(
+		tx, _, err = ef.CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,

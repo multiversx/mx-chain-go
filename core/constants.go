@@ -13,6 +13,10 @@ const NodeTypeObserver NodeType = "observer"
 // NodeTypeValidator signals that a node is running as validator node
 const NodeTypeValidator NodeType = "validator"
 
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 15000
+
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 

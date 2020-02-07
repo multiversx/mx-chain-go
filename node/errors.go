@@ -153,3 +153,6 @@ var ErrNilRequestHandler = errors.New("trying to set nil request handler")
 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
+var ErrNilTxAccumulator = errors.New("nil tx accumulator")
