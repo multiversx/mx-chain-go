@@ -478,7 +478,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
 			return false
 		}
-		err := handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
+		err = handler.ProcessReceivedMessage(wrappedMsg, broadcastHandler)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
