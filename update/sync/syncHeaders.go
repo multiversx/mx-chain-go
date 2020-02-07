@@ -65,7 +65,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		return nil, update.ErrNilUint64Converter
 	}
 
-	headers := &headersToSync{
+	h := &headersToSync{
 		mutMeta:                sync.Mutex{},
 		epochStartMetaBlock:    &block.MetaBlock{},
 		chReceivedAll:          make(chan bool),
@@ -81,7 +81,11 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		missingMetaNonces:      make(map[uint64]struct{}),
 	}
 
-	return headers, nil
+	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockIfEpochStart)
+	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockFirstPending)
+	h.metaBlockPool.RegisterHandler(h.receivedUnFinishedMetaBlocks)
+
+	return h, nil
 }
 
 func (h *headersToSync) receivedMetaBlockIfEpochStart(headerHandler data.HeaderHandler, _ []byte) {
@@ -191,19 +195,16 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 
 // SyncUnFinishedMetaHeaders syncs and validates all the unfinished metaHeaders for each shard
 func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
-	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockIfEpochStart)
 	err := h.syncEpochStartMetaHeader(epoch, time.Minute)
 	if err != nil {
 		return err
 	}
 
-	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockFirstPending)
 	err = h.syncFirstPendingMetaBlocks(time.Minute)
 	if err != nil {
 		return err
 	}
 
-	h.metaBlockPool.RegisterHandler(h.receivedUnFinishedMetaBlocks)
 	err = h.syncAllNeededMetaHeaders(time.Minute)
 	if err != nil {
 		return err
@@ -226,8 +227,8 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 		h.mutMeta.Unlock()
 
 		err = WaitFor(h.chReceivedAll, waitTime)
-		log.Warn("timeOut for requesting epoch metaHdr")
 		if err != nil {
+			log.Warn("timeOut for requesting epoch metaHdr")
 			return err
 		}
 
@@ -279,8 +280,8 @@ func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error
 	h.mutMeta.Unlock()
 
 	err := WaitFor(h.chReceivedAll, waitTime)
-	log.Warn("timeOut for requesting epoch metaHdr")
 	if err != nil {
+		log.Warn("timeOut for requesting first pending metaHeaders")
 		return err
 	}
 
@@ -302,8 +303,8 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 	h.mutMeta.Unlock()
 
 	err := WaitFor(h.chReceivedAll, waitTime)
-	log.Warn("timeOut for requesting epoch metaHdr")
 	if err != nil {
+		log.Warn("timeOut for requesting all unfinished metaBlocks")
 		return err
 	}
 
