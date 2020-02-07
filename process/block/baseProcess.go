@@ -905,3 +905,55 @@ func (bp *baseProcessor) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler,
 
 	return body, header
 }
+
+func (bp *baseProcessor) saveBody(body block.Body) {
+	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
+	if errNotCritical != nil {
+		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
+	}
+
+	for i := 0; i < len(body); i++ {
+		marshalizedBody, errNotCritical := bp.marshalizer.Marshal(body[i])
+		if errNotCritical != nil {
+			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
+			continue
+		}
+
+		miniBlockHash := bp.hasher.Compute(string(marshalizedBody))
+		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedBody)
+		if errNotCritical != nil {
+			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
+		}
+	}
+}
+
+func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.GetShardID())
+
+	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	if errNotCritical != nil {
+		log.Warn(fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
+			"error", errNotCritical.Error(),
+		)
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader)
+	if errNotCritical != nil {
+		log.Warn("saveHeader.Put -> BlockHeaderUnit", "error", errNotCritical.Error())
+	}
+}
+
+func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
+
+	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	if errNotCritical != nil {
+		log.Warn("saveMetaHeader.Put -> MetaHdrNonceHashDataUnit", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
+	if errNotCritical != nil {
+		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
+	}
+}
