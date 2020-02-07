@@ -486,9 +486,11 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 				"pid", p2p.MessageOriginatorPid(wrappedMsg),
 				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
 			)
+
+			return false
 		}
 
-		return err == nil
+		return true
 	})
 	if err != nil {
 		return err
