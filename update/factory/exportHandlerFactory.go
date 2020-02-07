@@ -200,11 +200,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
-		StorageService: e.storageService,
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.marshalizer,
-		EpochHandler:   epochHandler,
-		RequestHandler: e.requestHandler,
+		StorageService:  e.storageService,
+		Cache:           e.dataPool.Headers(),
+		Marshalizer:     e.marshalizer,
+		EpochHandler:    epochHandler,
+		RequestHandler:  e.requestHandler,
+		Uint64Converter: e.uint64Converter,
 	}
 	epochStartHeadersSyncer, err := sync.NewHeadersSyncHandler(argsNewHeadersSync)
 	if err != nil {

@@ -115,3 +115,6 @@ var ErrNilMiniBlocksSyncHandler = errors.New("nil miniblocks sync handler")
 
 // ErrNilTransactionsSyncHandler signals that nil transactions sync handler was provided
 var ErrNilTransactionsSyncHandler = errors.New("nil transaction sync handler")
+
+// ErrWrongUnfinishedMetaHdrsMap signals that wrong unfinished meta headers map was provided
+var ErrWrongUnfinishedMetaHdrsMap = errors.New("wrong unfinished meta headers map")

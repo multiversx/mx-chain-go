@@ -79,6 +79,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		firstPendingMetaBlocks: make(map[string]*block.MetaBlock),
 		missingMetaBlocks:      make(map[string]struct{}),
 		missingMetaNonces:      make(map[uint64]struct{}),
+		uint64Converter:        args.Uint64Converter,
 	}
 
 	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockIfEpochStart)
@@ -276,13 +277,15 @@ func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error
 		h.stopSyncing = false
 		h.requestHandler.RequestMetaHeader([]byte(metaHash))
 	}
-
+	requested := len(h.missingMetaBlocks) > 0
 	h.mutMeta.Unlock()
 
-	err := WaitFor(h.chReceivedAll, waitTime)
-	if err != nil {
-		log.Warn("timeOut for requesting first pending metaHeaders")
-		return err
+	if requested {
+		err := WaitFor(h.chReceivedAll, waitTime)
+		if err != nil {
+			log.Warn("timeOut for requesting first pending metaHeaders")
+			return err
+		}
 	}
 
 	return nil
@@ -300,12 +303,15 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 		h.requestHandler.RequestMetaHeaderByNonce(nonce)
 	}
 
+	requested := len(h.missingMetaNonces) > 0
 	h.mutMeta.Unlock()
 
-	err := WaitFor(h.chReceivedAll, waitTime)
-	if err != nil {
-		log.Warn("timeOut for requesting all unfinished metaBlocks")
-		return err
+	if requested {
+		err := WaitFor(h.chReceivedAll, waitTime)
+		if err != nil {
+			log.Warn("timeOut for requesting all unfinished metaBlocks")
+			return err
+		}
 	}
 
 	return nil
@@ -314,7 +320,7 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 func (h *headersToSync) computeMissingNonce(lowestNonce uint64, epochStartNonce uint64) {
 	h.missingMetaNonces = make(map[uint64]struct{})
 
-	for nonce := lowestNonce; nonce < epochStartNonce; nonce++ {
+	for nonce := lowestNonce; nonce <= epochStartNonce; nonce++ {
 		metaHdr, metaHash, err := process.GetMetaHeaderWithNonce(nonce, h.metaBlockPool, h.marshalizer, h.store, h.uint64Converter)
 		if err != nil {
 			h.missingMetaNonces[nonce] = struct{}{}

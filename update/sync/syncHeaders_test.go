@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"testing"
 	"time"
@@ -26,6 +28,32 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 		RequestHandler:  &mock.RequestHandlerStub{},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
 	}
+}
+
+func generateTestCache() storage.Cacher {
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	return cache
+}
+
+func generateTestUnit() storage.Storer {
+	storer, _ := storageUnit.NewStorageUnit(
+		generateTestCache(),
+		memorydb.New(),
+	)
+
+	return storer
+}
+
+func initStore() *dataRetriever.ChainStorer {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	return store
 }
 
 func TestHeadersSyncHandler(t *testing.T) {
