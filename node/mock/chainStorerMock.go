@@ -18,6 +18,7 @@ type ChainStorerMock struct {
 	CloseAllCalled  func() error
 }
 
+// CloseAll -
 func (bc *ChainStorerMock) CloseAll() error {
 	if bc.CloseAllCalled != nil {
 		return bc.CloseAllCalled()

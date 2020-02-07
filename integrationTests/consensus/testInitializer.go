@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -188,7 +189,18 @@ func createTestStore() dataRetriever.StorageService {
 }
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      1,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
+
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
@@ -491,7 +503,7 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-
+		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
@@ -499,6 +511,7 @@ func createNodes(
 			NbShards:                1,
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

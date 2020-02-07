@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -298,7 +299,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node,
 		n.Key = n.Key[keyMatchLen:]
 		dirty, newNode, oldHashes, err = en.child.insert(n, db)
 		if !dirty || err != nil {
-			return false, nil, emptyHashes, err
+			return false, en, emptyHashes, err
 		}
 
 		if !en.dirty {
@@ -434,9 +435,14 @@ func (en *extensionNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (en *extensionNode) print(writer io.Writer, index int) {
+func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCacher) {
 	if en == nil {
 		return
+	}
+
+	err := resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		log.Debug("print trie err", "error", en.EncodedChild)
 	}
 
 	key := ""
@@ -444,13 +450,13 @@ func (en *extensionNode) print(writer io.Writer, index int) {
 		key += fmt.Sprintf("%d", k)
 	}
 
-	str := fmt.Sprintf("E:(%s) - ", key)
+	str := fmt.Sprintf("E:(%v) - %v", hex.EncodeToString(en.hash), en.dirty)
 	_, _ = fmt.Fprint(writer, str)
 
 	if en.child == nil {
 		return
 	}
-	en.child.print(writer, index+len(str))
+	en.child.print(writer, index+len(str), db)
 }
 
 func (en *extensionNode) deepClone() node {
@@ -487,26 +493,23 @@ func (en *extensionNode) deepClone() node {
 	return clonedNode
 }
 
-func (en *extensionNode) getDirtyHashes() ([][]byte, error) {
+func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	dirtyHashes := make([][]byte, 0)
 
 	if !en.isDirty() {
-		return dirtyHashes, nil
+		return nil
 	}
 
-	hashes, err := en.child.getDirtyHashes()
+	err = en.child.getDirtyHashes(hashes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	dirtyHashes = append(dirtyHashes, hashes...)
-	dirtyHashes = append(dirtyHashes, en.hash)
-	return dirtyHashes, nil
+	hashes[hex.EncodeToString(en.getHash())] = struct{}{}
+	return nil
 }
 
 func (en *extensionNode) getChildren(db data.DBWriteCacher) ([]node, error) {

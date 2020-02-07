@@ -110,11 +110,23 @@ var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrCacheConfigInvalidSizeInBytes signals that the cache parameter "sizeInBytes" is invalid
+var ErrCacheConfigInvalidSizeInBytes = errors.New("cache parameter [sizeInBytes] is not valid, it must be a positive, and large enough number")
+
 // ErrCacheConfigInvalidSize signals that the cache parameter "size" is invalid
 var ErrCacheConfigInvalidSize = errors.New("cache parameter [size] is not valid, it must be a positive number")
 
 // ErrCacheConfigInvalidShards signals that the cache parameter "shards" is invalid
 var ErrCacheConfigInvalidShards = errors.New("cache parameter [shards] is not valid, it must be a positive number")
+
+// ErrCacheConfigInvalidEconomics signals that an economics parameter required by the cache is invalid
+var ErrCacheConfigInvalidEconomics = errors.New("cache-economics parameter is not valid")
+
+// ErrCacheConfigInvalidSharding signals that a sharding parameter required by the cache is invalid
+var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not valid")
+
+// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")

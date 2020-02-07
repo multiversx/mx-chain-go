@@ -1,11 +1,13 @@
 package mock
 
+// ReconnecterStub -
 type ReconnecterStub struct {
 	ReconnectToNetworkCalled func()
 	PauseCall                func()
 	ResumeCall               func()
 }
 
+// ReconnectToNetwork -
 func (rs *ReconnecterStub) ReconnectToNetwork() {
 	rs.ReconnectToNetworkCalled()
 }
@@ -18,5 +20,8 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	return false
 }
 
-func (rs *ReconnecterStub) Pause()  { rs.PauseCall() }
+// Pause -
+func (rs *ReconnecterStub) Pause() { rs.PauseCall() }
+
+// Resume -
 func (rs *ReconnecterStub) Resume() { rs.ResumeCall() }

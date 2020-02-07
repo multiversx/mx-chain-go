@@ -4,11 +4,13 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// SystemSCStub -
 type SystemSCStub struct {
 	ExecuteCalled func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	ValueOfCalled func(key interface{}) interface{}
 }
 
+// Execute -
 func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.ExecuteCalled != nil {
 		return s.ExecuteCalled(args)
@@ -16,6 +18,7 @@ func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.Return
 	return 0
 }
 
+// ValueOf -
 func (s *SystemSCStub) ValueOf(key interface{}) interface{} {
 	if s.ValueOfCalled != nil {
 		return s.ValueOfCalled(key)
@@ -23,6 +26,7 @@ func (s *SystemSCStub) ValueOf(key interface{}) interface{} {
 	return nil
 }
 
+// IsInterfaceNil -
 func (s *SystemSCStub) IsInterfaceNil() bool {
 	if s == nil {
 		return true
