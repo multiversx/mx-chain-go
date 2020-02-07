@@ -46,11 +46,15 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	ss.syncingEpoch = epoch
-	meta, err := ss.headers.SyncEpochStartMetaHeader(epoch, time.Minute)
+	err := ss.headers.SyncUnFinishedMetaHeaders(epoch)
 	if err != nil {
 		return err
 	}
 
+	meta, err := ss.headers.GetEpochStartMetaBlock()
+	if err != nil {
+		return err
+	}
 	ss.syncingEpoch = meta.GetEpoch()
 
 	wg := sync.WaitGroup{}
@@ -107,8 +111,13 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 }
 
 // GetMetaBlock returns the synced metablock
-func (ss *syncState) GetMetaBlock() (*block.MetaBlock, error) {
-	return ss.headers.GetMetaBlock()
+func (ss *syncState) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+	return ss.headers.GetEpochStartMetaBlock()
+}
+
+// GetUnfinishedMetaBlocks returns the synced unfinished metablocks
+func (ss *syncState) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+	return ss.headers.GetUnfinishedMetaBlocks()
 }
 
 // GetAllTries returns the synced tries

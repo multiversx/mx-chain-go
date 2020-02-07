@@ -100,3 +100,9 @@ var ErrNilResolverContainer = errors.New("nil resolver container")
 
 // ErrNilMultiFileReader signals that nil multi file reader was provided
 var ErrNilMultiFileReader = errors.New("nil multi file reader")
+
+// ErrNilCacher signals that nil cacher was provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that nil epoch handler was provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")

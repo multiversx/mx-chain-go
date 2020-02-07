@@ -10,7 +10,8 @@ import (
 
 // StateSyncer interface defines the methods needed to sync and get all states
 type StateSyncer interface {
-	GetMetaBlock() (*block.MetaBlock, error)
+	GetEpochStartMetaBlock() (*block.MetaBlock, error)
+	GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	SyncAllState(epoch uint32) error
 	GetAllTries() (map[string]data.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
@@ -112,8 +113,9 @@ type ImportHandler interface {
 
 // HeaderSyncHandler defines the methods to sync and get the epoch start metablock
 type HeaderSyncHandler interface {
-	SyncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) (*block.MetaBlock, error)
-	GetMetaBlock() (*block.MetaBlock, error)
+	SyncUnFinishedMetaHeaders(epoch uint32) error
+	GetEpochStartMetaBlock() (*block.MetaBlock, error)
+	GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }
 
