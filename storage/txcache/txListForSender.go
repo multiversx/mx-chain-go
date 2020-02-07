@@ -4,16 +4,24 @@ import (
 	"container/list"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	items          *list.List
-	mutex          sync.Mutex
-	copyBatchIndex *list.Element
-	orderNumber    int64
-	sender         string
+	items                 *list.List
+	mutex                 sync.Mutex
+	copyBatchIndex        *list.Element
+	totalBytes            atomic.Counter
+	totalGas              atomic.Counter
+	totalFee              atomic.Counter
+	sender                string
+	scoreChunk            *maps.MapChunk
+	scoreChangeInProgress atomic.Flag
+	lastComputedScore     atomic.Uint32
+	cacheConfig           *CacheConfig
 }
 
 // txListForSenderNode is a node of the linked list
@@ -23,11 +31,11 @@ type txListForSenderNode struct {
 }
 
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, globalIndex int64) *txListForSender {
+func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSender {
 	return &txListForSender{
 		items:       list.New(),
-		orderNumber: globalIndex,
 		sender:      sender,
+		cacheConfig: cacheConfig,
 	}
 }
 
@@ -39,21 +47,29 @@ func (listForSender *txListForSender) AddTx(txHash []byte, tx data.TransactionHa
 	defer listForSender.mutex.Unlock()
 
 	nonce := tx.GetNonce()
-	mark := listForSender.findTxWithLargerNonce(nonce)
+	mark := listForSender.findTxWithLowerNonce(nonce)
 	newNode := txListForSenderNode{txHash, tx}
 
 	if mark == nil {
-		listForSender.items.PushBack(newNode)
+		listForSender.items.PushFront(newNode)
 	} else {
-		listForSender.items.InsertBefore(newNode, mark)
+		listForSender.items.InsertAfter(newNode, mark)
 	}
+
+	listForSender.onAddedTransaction(tx)
+}
+
+func (listForSender *txListForSender) onAddedTransaction(tx data.TransactionHandler) {
+	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
+	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
+	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findTxWithLargerNonce(nonce uint64) *list.Element {
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.Element {
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
 		value := element.Value.(txListForSenderNode)
-		if value.tx.GetNonce() > nonce {
+		if value.tx.GetNonce() < nonce {
 			return element
 		}
 	}
@@ -71,9 +87,18 @@ func (listForSender *txListForSender) RemoveTx(tx data.TransactionHandler) bool 
 	isFound := marker != nil
 	if isFound {
 		listForSender.items.Remove(marker)
+		listForSender.onRemovedListElement(marker)
 	}
 
 	return isFound
+}
+
+func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
+	value := element.Value.(txListForSenderNode)
+
+	listForSender.totalBytes.Subtract(int64(estimateTxSize(value.tx)))
+	listForSender.totalGas.Subtract(int64(estimateTxGas(value.tx)))
+	listForSender.totalGas.Subtract(int64(estimateTxFee(value.tx)))
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
@@ -89,6 +114,7 @@ func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte 
 		// Remove node
 		previous = element.Prev()
 		listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
 
 		// Keep track of removed transaction
 		value := element.Value.(txListForSenderNode)
@@ -120,12 +146,12 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind data.Transa
 
 // HasMoreThan checks whether the list has more items than specified
 func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
-	return uint32(listForSender.items.Len()) > count
+	return uint32(listForSender.countTx()) > count
 }
 
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
-	return listForSender.items.Len() == 0
+	return listForSender.countTx() == 0
 }
 
 // copyBatchTo copies a batch (usually small) of transactions to a destination slice
@@ -169,13 +195,11 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	result := make([][]byte, listForSender.items.Len())
+	result := make([][]byte, 0, listForSender.countTx())
 
-	index := 0
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(txListForSenderNode)
-		result[index] = value.txHash
-		index++
+		result = append(result, value.txHash)
 	}
 
 	return result
@@ -193,4 +217,18 @@ func (listForSender *txListForSender) getHighestNonceTx() data.TransactionHandle
 
 	value := back.Value.(txListForSenderNode)
 	return value.tx
+}
+
+func (listForSender *txListForSender) countTx() uint64 {
+	return uint64(listForSender.items.Len())
+}
+
+func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
+	count := uint64(0)
+
+	for _, listForSender := range lists {
+		count += listForSender.countTx()
+	}
+
+	return count
 }
