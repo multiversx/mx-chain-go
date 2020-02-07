@@ -256,8 +256,20 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) DoEndRoundJobByParticipant() bool {
-	return sr.doEndRoundJobByParticipant()
+func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
+	return sr.doEndRoundJobByParticipant(cnsDta)
+}
+
+func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
+	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
+}
+
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
+	sr.createAndBroadcastHeaderFinalInfo()
+}
+
+func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeaderFinalInfo(cnsDta)
 }
 
 func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {

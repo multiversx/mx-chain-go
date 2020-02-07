@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.SubroundEndRound {
@@ -590,7 +592,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 	assert.Equal(t, err, err2)
 }
 
-func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
+func TestSubroundEndRound_CheckSignaturesValidityShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundEndRound()
@@ -607,7 +609,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_RoundCanceledShouldReturnFa
 	sr := *initSubroundEndRound()
 	sr.RoundCanceled = true
 
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.False(t, res)
 }
 
@@ -617,7 +620,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusDataNotSetShouldRe
 	sr := *initSubroundEndRound()
 	sr.Data = nil
 
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.False(t, res)
 }
 
@@ -626,7 +630,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_PreviousSubroundNotFinished
 
 	sr := *initSubroundEndRound()
 	sr.SetStatus(2, spos.SsNotFinished)
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.False(t, res)
 }
 
@@ -641,7 +646,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_CurrentSubroundFinishedShou
 	// set current as finished
 	sr.SetStatus(3, spos.SsFinished)
 
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.False(t, res)
 }
 
@@ -656,7 +662,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusHeaderNotReceivedS
 	// set current as not finished
 	sr.SetStatus(3, spos.SsNotFinished)
 
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.False(t, res)
 }
 
@@ -674,7 +681,8 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ShouldReturnTrue(t *testing
 	// set current as not finished
 	sr.SetStatus(3, spos.SsNotFinished)
 
-	res := sr.DoEndRoundJobByParticipant()
+	cnsData := consensus.Message{}
+	res := sr.DoEndRoundJobByParticipant(&cnsData)
 	assert.True(t, res)
 }
 
@@ -717,6 +725,94 @@ func TestSubroundEndRound_IsConsensusHeaderReceivedShouldReturnTrue(t *testing.T
 	assert.Equal(t, hdr, retHdr)
 }
 
+func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoNilHdrShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	cnsData := consensus.Message{}
+
+	haveHdr, hdr := sr.HaveConsensusHeaderWithFullInfo(&cnsData)
+	assert.False(t, haveHdr)
+	assert.Nil(t, hdr)
+}
+
+func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	originalPubKeyBitMap := []byte{0, 1, 2}
+	newPubKeyBitMap := []byte{3, 4, 5}
+	originalLeaderSig := []byte{6, 7, 8}
+	newLeaderSig := []byte{9, 10, 11}
+	originalSig := []byte{12, 13, 14}
+	newSig := []byte{15, 16, 17}
+	hdr := block.Header{
+		PubKeysBitmap:   originalPubKeyBitMap,
+		Signature:       originalSig,
+		LeaderSignature: originalLeaderSig,
+	}
+	sr := *initSubroundEndRound()
+	sr.Header = &hdr
+
+	cnsData := consensus.Message{
+		PubKeysBitmap:      newPubKeyBitMap,
+		LeaderSignature:    newLeaderSig,
+		AggregateSignature: newSig,
+	}
+	haveHdr, newHdr := sr.HaveConsensusHeaderWithFullInfo(&cnsData)
+	assert.True(t, haveHdr)
+	require.NotNil(t, newHdr)
+	assert.Equal(t, newPubKeyBitMap, newHdr.GetPubKeysBitmap())
+	assert.Equal(t, newLeaderSig, newHdr.GetLeaderSignature())
+	assert.Equal(t, newSig, newHdr.GetSignature())
+}
+
+func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	chanRcv := make(chan bool, 1)
+	leaderSigInHdr := []byte("leader sig")
+	container := mock.InitConsensusCore()
+	messenger := &mock.BroadcastMessengerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			chanRcv <- true
+			assert.Equal(t, message.LeaderSignature, leaderSigInHdr)
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(messenger)
+	sr := *initSubroundEndRoundWithContainer(container)
+	sr.Header = &block.Header{LeaderSignature: leaderSigInHdr}
+
+	sr.CreateAndBroadcastHeaderFinalInfo()
+
+	select {
+	case <-chanRcv:
+	case <-time.After(100 * time.Millisecond):
+		assert.Fail(t, "broadcast not called")
+	}
+}
+
+func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{Nonce: 37}
+	sr := *initSubroundEndRound()
+	sr.Header = hdr
+	sr.AddReceivedHeader(hdr)
+
+	sr.SetStatus(2, spos.SsFinished)
+	sr.SetStatus(3, spos.SsNotFinished)
+
+	cnsData := consensus.Message{
+		// apply the data which is mocked in consensus state so the checks will pass
+		BlockHeaderHash: []byte("X"),
+		PubKey:          []byte("A"),
+	}
+	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+	assert.True(t, res)
+}
+
 func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
@@ -745,29 +841,4 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	res := sr.IsOutOfTime()
 	assert.True(t, res)
-}
-
-// getSubroundName returns the name of each subround from a given subround ID
-func getSubroundName(subroundId int) string {
-	switch subroundId {
-	case SrStartRound:
-		return "(START_ROUND)"
-	case SrBlock:
-		return "(BLOCK)"
-	case SrCommitmentHash:
-		return "(COMMITMENT_HASH)"
-	case SrBitmap:
-		return "(BITMAP)"
-	case SrCommitment:
-		return "(COMMITMENT)"
-	case SrSignature:
-		return "(SIGNATURE)"
-	case SrEndRound:
-		return "(END_ROUND)"
-	default:
-		return "Undefined subround"
-	}
-}
-
-func displayStatistics() {
 }
