@@ -854,14 +854,14 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	masrhalizedHeader, err := mp.marshalizer.Marshal(header)
+	marshalizedHeader, err := mp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	headerHash := mp.hasher.Compute(string(masrhalizedHeader))
+	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 
-	go mp.saveMetaHeader(header, headerHash, masrhalizedHeader)
+	go mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 
 	metaBlocksPool := mp.dataPool.Headers()
 	if metaBlocksPool == nil {
