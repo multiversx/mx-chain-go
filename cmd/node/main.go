@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -57,6 +58,7 @@ import (
 
 const (
 	defaultStatsPath      = "stats"
+	defaultLogsPath       = "logs"
 	defaultDBPath         = "db"
 	defaultEpochString    = "Epoch"
 	defaultStaticDbString = "Static"
@@ -236,9 +238,14 @@ VERSION:
 	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
-		Name:  "logLevel",
+		Name:  "log-level",
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
+	}
+	//logFile is used when the log output needs to be logged in a file
+	logSaveFile = cli.BoolFlag{
+		Name:  "log-save",
+		Usage: "Will automatically log into a file",
 	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
@@ -343,6 +350,7 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
+		logSaveFile,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -381,8 +389,24 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
+	workingDir := getWorkingDir(ctx, log)
+
+	var err error
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
+	if withLogFile {
+		var fileForLogs *os.File
+		fileForLogs, err = prepareLogFile(workingDir)
+		if err != nil {
+			return fmt.Errorf("%w creating a log file", err)
+		}
+
+		defer func() {
+			_ = fileForLogs.Close()
+		}()
+	}
+
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevelFlagValue)
+	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -501,18 +525,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-
-	var workingDir = ""
-	if ctx.IsSet(workingDirectory.Name) {
-		workingDir = ctx.GlobalString(workingDirectory.Name)
-	} else {
-		workingDir, err = os.Getwd()
-		if err != nil {
-			log.LogIfError(err)
-			workingDir = ""
-		}
-	}
-	log.Trace("working directory", "path", workingDir)
 
 	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
@@ -892,6 +904,49 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
+	var workingDir string
+	var err error
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
+	}
+	log.Trace("working directory", "path", workingDir)
+
+	return workingDir
+}
+
+func prepareLogFile(workingDir string) (*os.File, error) {
+	logDirectory := filepath.Join(workingDir, defaultLogsPath)
+	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	//we need this function as to close file.Close() when the code panics and the defer func associated
+	//with the file pointer in the main func will never be reached
+	runtime.SetFinalizer(fileForLog, func(f *os.File) {
+		_ = f.Close()
+	})
+
+	err = redirects.RedirectStderr(fileForLog)
+	if err != nil {
+		return nil, err
+	}
+
+	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
+	if err != nil {
+		return nil, fmt.Errorf("%w adding file log observer", err)
+	}
+
+	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {

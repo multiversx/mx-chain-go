@@ -3,38 +3,41 @@ package txcache
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
-
-var log = logger.GetOrCreate("txcache")
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	txListBySender txListBySenderMap
-	txByHash       txByHashMap
-	evictionConfig EvictionConfig
-	evictionMutex  sync.Mutex
+	name                          string
+	txListBySender                txListBySenderMap
+	txByHash                      txByHashMap
+	config                        CacheConfig
+	evictionMutex                 sync.Mutex
+	evictionJournal               evictionJournal
+	evictionSnapshotOfSenders     []*txListForSender
+	isEvictionInProgress          atomic.Flag
+	numTxAddedBetweenSelections   atomic.Counter
+	numTxAddedDuringEviction      atomic.Counter
+	numTxRemovedBetweenSelections atomic.Counter
+	numTxRemovedDuringEviction    atomic.Counter
 }
 
 // NewTxCache creates a new transaction cache
-// "nChunksHint" is used to configure the internal concurrent maps on which the implementation relies
-func NewTxCache(nChunksHint uint32) *TxCache {
-	// Note: for simplicity, we use the same "nChunksHint" for both internal concurrent maps
+func NewTxCache(config CacheConfig) *TxCache {
+	log.Trace("NewTxCache", "config", config)
+
+	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
+	numChunksHint := config.NumChunksHint
+
 	txCache := &TxCache{
-		txListBySender: newTxListBySenderMap(nChunksHint),
-		txByHash:       newTxByHashMap(nChunksHint),
-		evictionConfig: EvictionConfig{Enabled: false},
+		name:            config.Name,
+		txListBySender:  newTxListBySenderMap(numChunksHint, config),
+		txByHash:        newTxByHashMap(numChunksHint),
+		config:          config,
+		evictionJournal: evictionJournal{},
 	}
-
-	return txCache
-}
-
-// NewTxCacheWithEviction creates a new transaction cache with eviction
-func NewTxCacheWithEviction(nChunksHint uint32, evictionConfig EvictionConfig) *TxCache {
-	txCache := NewTxCache(nChunksHint)
-	txCache.evictionConfig = evictionConfig
 
 	return txCache
 }
@@ -49,7 +52,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 		return
 	}
 
-	if cache.evictionConfig.Enabled {
+	if cache.config.EvictionEnabled {
 		cache.doEviction()
 	}
 
@@ -57,6 +60,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) (ok bool,
 	added = cache.txByHash.addTx(txHash, tx)
 	if added {
 		cache.txListBySender.addTx(txHash, tx)
+		cache.monitorTxAddition()
 	}
 
 	return
@@ -68,10 +72,12 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 	return tx, ok
 }
 
-// GetTransactions gets a reasonably fair list of transactions to be included in the next miniblock
+// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
+func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) ([]data.TransactionHandler, [][]byte) {
+	stopWatch := cache.monitorSelectionStart()
+
 	result := make([]data.TransactionHandler, numRequested)
 	resultHashes := make([][]byte, numRequested)
 	resultFillIndex := 0
@@ -80,10 +86,11 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.forEachSender(func(key string, txList *txListForSender) {
+		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			shouldResetCopy := pass == 0
-			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizePerSender)
+			copied := txList.copyBatchTo(shouldResetCopy, result[resultFillIndex:], resultHashes[resultFillIndex:], batchSizeWithScoreCoefficient)
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -98,7 +105,9 @@ func (cache *TxCache) GetTransactions(numRequested int, batchSizePerSender int) 
 		}
 	}
 
-	return result[:resultFillIndex], resultHashes
+	result = result[:resultFillIndex]
+	cache.monitorSelectionEnd(result, stopWatch)
+	return result, resultHashes
 }
 
 // RemoveTxByHash removes tx by hash
@@ -108,14 +117,20 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 		return ErrTxNotFound
 	}
 
+	cache.monitorTxRemoval()
+
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
-		// This should never happen (eviction should never cause this kind of inconsistency between the two internal maps)
-		log.Error("TxCache.RemoveTxByHash() detected maps sync inconsistency", "tx", txHash)
+		cache.onRemoveTxInconsistency(txHash)
 		return ErrMapsSyncInconsistency
 	}
 
 	return nil
+}
+
+// NumBytes gets the approximate number of bytes stored in the cache
+func (cache *TxCache) NumBytes() int64 {
+	return cache.txByHash.numBytes.Get()
 }
 
 // CountTx gets the number of transactions in the cache
@@ -133,9 +148,8 @@ func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
 }
 
-// forEachSender iterates over the senders in the cache
-func (cache *TxCache) forEachSender(function ForEachSender) {
-	cache.txListBySender.forEach(function)
+func (cache *TxCache) forEachSenderDescending(function ForEachSender) {
+	cache.txListBySender.forEachDescending(function)
 }
 
 // ForEachTransaction iterates over the transactions in the cache
