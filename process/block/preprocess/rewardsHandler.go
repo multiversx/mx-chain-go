@@ -508,7 +508,7 @@ func (rtxh *rewardsHandler) displayTxs(message string, txs []data.TransactionHan
 			continue
 		}
 
-		log.Debug(message,
+		log.Trace(message,
 			"shard", rtx.ShardId,
 			"epoch", rtx.Epoch,
 			"round", rtx.Round,
