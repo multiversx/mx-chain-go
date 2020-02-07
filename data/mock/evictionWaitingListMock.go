@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -10,7 +12,7 @@ import (
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
 // cacher and db will overwrite the previous values. This structure is not concurrent safe.
 type EvictionWaitingList struct {
-	Cache       map[string][][]byte
+	Cache       map[string]data.ModifiedHashes
 	CacheSize   uint
 	Db          storage.Persister
 	Marshalizer marshal.Marshalizer
@@ -29,7 +31,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 	}
 
 	return &EvictionWaitingList{
-		Cache:       make(map[string][][]byte),
+		Cache:       make(map[string]data.ModifiedHashes),
 		CacheSize:   size,
 		Db:          db,
 		Marshalizer: marshalizer,
@@ -37,7 +39,7 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (ewl *EvictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
+func (ewl *EvictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes) error {
 	if uint(len(ewl.Cache)) < ewl.CacheSize {
 		ewl.Cache[string(rootHash)] = hashes
 		return nil
@@ -57,7 +59,7 @@ func (ewl *EvictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (ewl *EvictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
+func (ewl *EvictionWaitingList) Evict(rootHash []byte) (data.ModifiedHashes, error) {
 	hashes, ok := ewl.Cache[string(rootHash)]
 	if ok {
 		delete(ewl.Cache, string(rootHash))
@@ -90,4 +92,36 @@ func (ewl *EvictionWaitingList) IsInterfaceNil() bool {
 // GetSize returns the size of the cache
 func (ewl *EvictionWaitingList) GetSize() uint {
 	return ewl.CacheSize
+}
+
+func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
+	for key := range ewl.Cache {
+		if len(key) == 0 {
+			return false, errors.New("invalid key")
+		}
+
+		lastByte := key[len(key)-1]
+		if data.TriePruningIdentifier(lastByte) == data.OldRoot {
+			continue
+		}
+
+		hashes := ewl.Cache[key]
+		if len(hashes) == 0 {
+			marshalizedHashes, err := ewl.Db.Get([]byte(key))
+			if err != nil {
+				return false, err
+			}
+
+			err = ewl.Marshalizer.Unmarshal(&hashes, marshalizedHashes)
+			if err != nil {
+				return false, err
+			}
+		}
+		_, ok := hashes[hash]
+		if ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

@@ -243,6 +243,11 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
+	log.Trace("requesting shard header from network",
+		"shard", shardID,
+		"hash", hash,
+	)
+
 	headerResolver, err := rrh.getShardHeaderResolver(shardID)
 	if err != nil {
 		log.Error("RequestShardHeader.getShardHeaderResolver",
@@ -270,6 +275,10 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 	if !rrh.testIfRequestIsNeeded(hash) {
 		return
 	}
+
+	log.Trace("requesting meta header from network",
+		"hash", hash,
+	)
 
 	resolver, err := rrh.getMetaHeaderResolver()
 	if err != nil {
@@ -299,6 +308,11 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
+
+	log.Trace("requesting shard header by nonce from network",
+		"shard", shardID,
+		"nonce", nonce,
+	)
 
 	headerResolver, err := rrh.getShardHeaderResolver(shardID)
 	if err != nil {
@@ -376,6 +390,10 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
+
+	log.Trace("requesting meta header by nonce from network",
+		"nonce", nonce,
+	)
 
 	headerResolver, err := rrh.getMetaHeaderResolver()
 	if err != nil {

@@ -1,4 +1,4 @@
-package commonSubround
+package bls
 
 import (
 	"encoding/hex"
@@ -7,29 +7,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.GetOrCreate("consensus/spos/commonsubround")
-
-// SubroundStartRound defines the data needed by the subround StartRound
-type SubroundStartRound struct {
+// subroundStartRound defines the data needed by the subround StartRound
+type subroundStartRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
-	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
 
 	indexer indexer.Indexer
 }
 
-// NewSubroundStartRound creates a SubroundStartRound object
+// NewSubroundStartRound creates a subroundStartRound object
 func NewSubroundStartRound(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
-	getSubroundName func(subroundId int) string,
 	executeStoredMessages func(),
-) (*SubroundStartRound, error) {
+) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
 	)
@@ -37,10 +32,9 @@ func NewSubroundStartRound(
 		return nil, err
 	}
 
-	srStartRound := SubroundStartRound{
+	srStartRound := subroundStartRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		getSubroundName:               getSubroundName,
 		executeStoredMessages:         executeStoredMessages,
 		indexer:                       indexer.NewNilIndexer(),
 	}
@@ -67,12 +61,12 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetIndexer method set indexer
-func (sr *SubroundStartRound) SetIndexer(indexer indexer.Indexer) {
+func (sr *subroundStartRound) SetIndexer(indexer indexer.Indexer) {
 	sr.indexer = indexer
 }
 
 // doStartRoundJob method does the job of the subround StartRound
-func (sr *SubroundStartRound) doStartRoundJob() bool {
+func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
@@ -80,7 +74,7 @@ func (sr *SubroundStartRound) doStartRoundJob() bool {
 }
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound
-func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
+func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
 	}
@@ -96,7 +90,7 @@ func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 	return false
 }
 
-func (sr *SubroundStartRound) initCurrentRound() bool {
+func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
@@ -104,7 +98,9 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
-		log.Debug("generateNextConsensusGroup", "error", err.Error())
+		log.Debug("initCurrentRound.generateNextConsensusGroup",
+			"round index", sr.Rounder().Index(),
+			"error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -113,7 +109,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	leader, err := sr.GetLeader()
 	if err != nil {
-		log.Debug("GetLeader", "error", err.Error())
+		log.Debug("initCurrentRound.GetLeader", "error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -129,7 +125,6 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	}
 
 	log.Debug("step 0: preparing the round",
-		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"leader", core.GetTrimmedPk(hex.EncodeToString([]byte(leader))),
 		"messsage", msg)
 
@@ -139,8 +134,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("not in consensus group",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime())
+		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "not in consensus group")
 	} else {
 		sr.AppStatusHandler().Increment(core.MetricCountConsensus)
@@ -149,7 +143,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
-		log.Debug("Reset", "error", err.Error())
+		log.Debug("initCurrentRound.Reset", "error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -160,9 +154,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
-			"subround", sr.getSubroundName(sr.Current()))
+			"subround", sr.Name())
 
 		sr.RoundCanceled = true
 
@@ -177,7 +170,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	return true
 }
 
-func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
 		return
 	}
@@ -197,7 +190,7 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	go sr.indexer.SaveRoundInfo(roundInfo)
 }
 
-func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
+func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()

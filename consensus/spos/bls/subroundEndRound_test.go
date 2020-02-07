@@ -15,25 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const processingThresholdPercent = 85
-
-const (
-	// SrStartRound defines ID of subround "Start round"
-	SrStartRound = iota
-	// SrBlock defines ID of subround "block"
-	SrBlock
-	// SrCommitmentHash defines ID of subround "commitment hash"
-	SrCommitmentHash
-	// SrBitmap defines ID of subround "bitmap"
-	SrBitmap
-	// SrCommitment defines ID of subround "commitment"
-	SrCommitment
-	// SrSignature defines ID of subround "signature"
-	SrSignature
-	// SrEndRound defines ID of subround "End round"
-	SrEndRound
-)
-
 func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
 	consensusState := initConsensusState()
@@ -55,7 +36,6 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.Su
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -73,7 +53,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		nil,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -106,7 +85,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -139,7 +117,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -173,7 +150,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -206,7 +182,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -239,7 +214,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -272,7 +246,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 
@@ -305,7 +278,6 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		sr,
 		extend,
 		processingThresholdPercent,
-		getSubroundName,
 		displayStatistics,
 	)
 

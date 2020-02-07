@@ -212,3 +212,6 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MegabyteSize represents the size in bytes of a megabyte
+const MegabyteSize = 1024 * 1024
