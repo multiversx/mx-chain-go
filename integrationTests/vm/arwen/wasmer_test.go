@@ -67,8 +67,6 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 func TestSCAbortExecution_Abort(t *testing.T) {
 	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
 
-	// Run testFunc with argument 1, which will abort execution, leading to a
-	// call to int64finish(99).
 	arguments := make([][]byte, 0)
 	arguments = append(arguments, []byte{0x01})
 
@@ -79,10 +77,9 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
 	assert.Nil(t, err)
 
-	assert.Equal(t, 1, len(vmOutput.ReturnData))
-	expectedBytes := []byte{98}
-	assertReturnData(t, vmOutput, vmcommon.Ok, expectedBytes)
-	assert.Equal(t, "1", vmOutput.ReturnMessage)
+	assert.Equal(t, 0, len(vmOutput.ReturnData))
+	assertReturnData(t, vmOutput, vmcommon.UserError, nil)
+	assert.Equal(t, "abort here", vmOutput.ReturnMessage)
 }
 
 func deploy(t *testing.T, wasm_filename string) (vmcommon.VMExecutionHandler, []byte) {
