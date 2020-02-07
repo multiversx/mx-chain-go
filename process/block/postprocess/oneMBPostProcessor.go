@@ -86,6 +86,16 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() map[uint32]*block.Mini
 		return bytes.Compare(miniBlocks[selfId].TxHashes[a], miniBlocks[selfId].TxHashes[b]) < 0
 	})
 
+	log.Debug("oneMBPostProcessor.CreateAllInterMiniBlocks",
+		"type", miniBlocks[selfId].Type,
+		"senderShardID", miniBlocks[selfId].SenderShardID,
+		"receiverShardID", miniBlocks[selfId].ReceiverShardID,
+	)
+
+	for _, hash := range miniBlocks[selfId].TxHashes {
+		log.Debug("tx", "hash", hash)
+	}
+
 	opp.intraShardMiniBlock = miniBlocks[selfId].Clone()
 
 	return miniBlocks

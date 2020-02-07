@@ -424,7 +424,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	defer rtxh.mut.Unlock()
 
 	for _, tx := range rtxh.rewardTxsForBlock {
-		log.Trace("rewardTxsForBlock",
+		log.Debug("rewardTxsForBlock",
 			"shard", tx.ShardId,
 			"epoch", tx.Epoch,
 			"round", tx.Round,
