@@ -51,6 +51,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
+	// testing section
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node
