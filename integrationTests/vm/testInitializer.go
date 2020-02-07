@@ -132,7 +132,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		accnts)
 
-	argsParser, _ := vmcommon.NewAtArgumentParser()
+	argsParser := vmcommon.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -230,7 +230,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
 ) process.TransactionProcessor {
-	argsParser, _ := vmcommon.NewAtArgumentParser()
+	argsParser := vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
 		addrConv,
 		oneShardCoordinator,
