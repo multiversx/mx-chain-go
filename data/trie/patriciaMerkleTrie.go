@@ -273,7 +273,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root == nil {
 		return nil
 	}
-	if tr.root.isCollapsed() {
+	if !tr.root.isDirty() {
 		return nil
 	}
 	err := tr.root.setRootHash()
