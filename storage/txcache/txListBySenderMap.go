@@ -1,26 +1,27 @@
 package txcache
 
 import (
-	"sort"
-
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
+
+const numberOfScoreChunks = uint32(100)
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap      *ConcurrentMap
-	counter         core.AtomicCounter
-	nextOrderNumber core.AtomicCounter
+	backingMap  *maps.BucketSortedMap
+	cacheConfig CacheConfig
+	counter     atomic.Counter
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32) txListBySenderMap {
-	backingMap := NewConcurrentMap(nChunksHint)
+func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListBySenderMap {
+	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return txListBySenderMap{
-		backingMap: backingMap,
-		counter:    0,
+		backingMap:  backingMap,
+		cacheConfig: cacheConfig,
 	}
 }
 
@@ -29,6 +30,11 @@ func (txMap *txListBySenderMap) addTx(txHash []byte, tx data.TransactionHandler)
 	sender := string(tx.GetSndAddress())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(txHash, tx)
+	txMap.notifyScoreChange(listForSender)
+}
+
+func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
+	txMap.backingMap.NotifyScoreChange(txList)
 }
 
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
@@ -51,12 +57,10 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	orderNumber := txMap.nextOrderNumber.Get()
-	listForSender := newTxListForSender(sender, orderNumber)
+	listForSender := newTxListForSender(sender, &txMap.cacheConfig)
 
-	txMap.backingMap.Set(sender, listForSender)
+	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()
-	txMap.nextOrderNumber.Increment()
 
 	return listForSender
 }
@@ -67,7 +71,7 @@ func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		log.Error("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", sender)
+		txMap.onRemoveTxInconsistency(sender)
 		return false
 	}
 
@@ -75,6 +79,8 @@ func (txMap *txListBySenderMap) removeTx(tx data.TransactionHandler) bool {
 
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
+	} else {
+		txMap.notifyScoreChange(listForSender)
 	}
 
 	return isFound
@@ -102,32 +108,22 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return nRemoved
 }
 
-// GetListsSortedByOrderNumber gets the list of sender addreses, sorted by the global order number
-func (txMap *txListBySenderMap) GetListsSortedByOrderNumber() []*txListForSender {
-	counter := txMap.counter.Get()
-	if counter < 1 {
-		return make([]*txListForSender, 0)
+func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
+	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
+	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+
+	for i, item := range itemsSnapshot {
+		listsSnapshot[i] = item.(*txListForSender)
 	}
 
-	lists := make([]*txListForSender, 0, counter)
-
-	txMap.backingMap.IterCb(func(key string, item interface{}) {
-		lists = append(lists, item.(*txListForSender))
-	})
-
-	sort.Slice(lists, func(i, j int) bool {
-		return lists[i].orderNumber < lists[j].orderNumber
-	})
-
-	return lists
+	return listsSnapshot
 }
 
 // ForEachSender is an iterator callback
 type ForEachSender func(key string, value *txListForSender)
 
-// forEach iterates over the senders
-func (txMap *txListBySenderMap) forEach(function ForEachSender) {
-	txMap.backingMap.IterCb(func(key string, item interface{}) {
+func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
+	txMap.backingMap.IterCbSortedDescending(func(key string, item maps.BucketSortedMapItem) {
 		txList := item.(*txListForSender)
 		function(key, txList)
 	})
