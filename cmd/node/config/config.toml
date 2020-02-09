@@ -218,7 +218,8 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 75000
+    Size = 900000
+    SizeInBytes = 524288000
     Type = "TxCache"
     Shards = 16
 
@@ -233,10 +234,6 @@
 [RewardTransactionDataPool]
     Size = 75000
     Type = "LRU"
-
-[Logger]
-    Path = "logs"
-    StackTraceDepth = 2
 
 [Address]
     Length = 32
