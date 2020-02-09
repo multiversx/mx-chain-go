@@ -3,6 +3,7 @@ package peer
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 
@@ -338,24 +339,12 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	}
 
 	tooManyComputations := missedRounds > vs.maxComputableRounds
-	if tooManyComputations {
-		consensusGroup, err := vs.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, previousHeaderRound+1, shardId)
-		if err != nil {
-			return err
-		}
-
-		consensusGroupSize := len(consensusGroup)
-		err = vs.decreaseAll(shardId, missedRounds, consensusGroupSize)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
-		if err != nil {
-			return err
-		}
+	if !tooManyComputations {
+		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
 	}
-	return nil
+
+	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
+	return vs.decreaseAll(shardId, missedRounds-1, consensusGroupSize)
 }
 
 func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32) error {
@@ -690,10 +679,11 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 
 	shardValidators := vs.nodesCoordinator.GetAllValidatorsPublicKeys()[shardId]
-	validatorCount := len(shardValidators)
-	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorCount)
-	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1)
-	consensusGroupAppearances := uint32(float64(consensusGroupSize)*percentageRoundMissedFromTotalValidators + 1)
+	validatorsCount := len(shardValidators)
+	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
+	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1 - math.SmallestNonzeroFloat64)
+	consensusGroupAppearances := uint32(float64(consensusGroupSize)*percentageRoundMissedFromTotalValidators +
+		1 - math.SmallestNonzeroFloat64)
 	ratingDifference := uint32(0)
 	for i, validator := range shardValidators {
 		validatorPeerAccount, err := vs.GetPeerAccount(validator)

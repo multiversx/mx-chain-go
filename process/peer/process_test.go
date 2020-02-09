@@ -3,6 +3,7 @@ package peer_test
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -1173,8 +1174,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferences(t
 	for i, nodes := range validators {
 		{
 			leaderProbability := computeLeaderProbability(currentHeaderRound, previousHeaderRound, nodes.validators)
-			intValidatorProbability := uint32(leaderProbability*float64(nodes.consensusSize) + 1)
-			intLeaderProbability := uint32(leaderProbability + 1)
+			intValidatorProbability := uint32(leaderProbability*float64(nodes.consensusSize) + 1 - math.SmallestNonzeroFloat64)
+			intLeaderProbability := uint32(leaderProbability + 1 - math.SmallestNonzeroFloat64)
 
 			tests[i] = testSuite{
 				args: args{
@@ -1236,7 +1237,7 @@ func computeLeaderProbability(
 	previousHeaderRound uint64,
 	validators int,
 ) float64 {
-	return (float64(currentHeaderRound) - float64(previousHeaderRound)) / float64(validators)
+	return (float64(currentHeaderRound) - float64(previousHeaderRound) - 1) / float64(validators)
 }
 
 func DoComputeMissingBlocks(
@@ -1303,6 +1304,9 @@ func DoComputeMissingBlocks(
 		},
 		GetAllValidatorsPublicKeysCalled: func() map[uint32][][]byte {
 			return validatorPublicKeys
+		},
+		ConsensusGroupSizeCalled: func(uint32) int {
+			return consensusGroupSize
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
