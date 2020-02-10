@@ -8,6 +8,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// SystemEIStub -
 type SystemEIStub struct {
 	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalanceCalled                func(addr []byte) *big.Int
@@ -23,14 +24,17 @@ type SystemEIStub struct {
 	CryptoHookCalled                func() vmcommon.CryptoHook
 }
 
+// ExecuteOnDestContext -
 func (s *SystemEIStub) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	return &vmcommon.VMOutput{}, nil
 }
 
+// SetSystemSCContainer -
 func (s *SystemEIStub) SetSystemSCContainer(scContainer vm.SystemSCContainer) error {
 	return nil
 }
 
+// BlockChainHook -
 func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
 	if s.BlockChainHookCalled != nil {
 		return s.BlockChainHookCalled()
@@ -38,6 +42,7 @@ func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
 	return &BlockChainHookStub{}
 }
 
+// CryptoHook -
 func (s *SystemEIStub) CryptoHook() vmcommon.CryptoHook {
 	if s.CryptoHookCalled != nil {
 		return s.CryptoHookCalled()
@@ -45,27 +50,32 @@ func (s *SystemEIStub) CryptoHook() vmcommon.CryptoHook {
 	return hooks.NewVMCryptoHook()
 }
 
+// AddCode -
 func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
 	if s.AddCodeCalled != nil {
 		s.AddCodeCalled(addr, code)
 	}
 }
 
+// AddTxValueToSmartContract -
 func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
 	if s.AddTxValueToSmartContractCalled != nil {
 		s.AddTxValueToSmartContractCalled(value, scAddress)
 	}
 }
 
+// SetSCAddress -
 func (s *SystemEIStub) SetSCAddress(addr []byte) {
 }
 
+// Finish -
 func (s *SystemEIStub) Finish(value []byte) {
 	if s.FinishCalled != nil {
 		s.FinishCalled(value)
 	}
 }
 
+// Transfer -
 func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error {
 	if s.TransferCalled != nil {
 		return s.TransferCalled(destination, sender, value, input)
@@ -73,6 +83,7 @@ func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.In
 	return nil
 }
 
+// GetBalance -
 func (s *SystemEIStub) GetBalance(addr []byte) *big.Int {
 	if s.GetBalanceCalled != nil {
 		return s.GetBalanceCalled(addr)
@@ -80,12 +91,14 @@ func (s *SystemEIStub) GetBalance(addr []byte) *big.Int {
 	return big.NewInt(0)
 }
 
+// SetStorage -
 func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 	if s.SetStorageCalled != nil {
 		s.SetStorageCalled(key, value)
 	}
 }
 
+// GetStorage -
 func (s *SystemEIStub) GetStorage(key []byte) []byte {
 	if s.GetStorageCalled != nil {
 		return s.GetStorageCalled(key)
@@ -93,12 +106,14 @@ func (s *SystemEIStub) GetStorage(key []byte) []byte {
 	return nil
 }
 
+// SelfDestruct -
 func (s *SystemEIStub) SelfDestruct(beneficiary []byte) {
 	if s.SelfDestructCalled != nil {
 		s.SelfDestructCalled(beneficiary)
 	}
 }
 
+// CreateVMOutput -
 func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
 	if s.CreateVMOutputCalled != nil {
 		return s.CreateVMOutputCalled()
@@ -107,12 +122,14 @@ func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
 	return &vmcommon.VMOutput{}
 }
 
+// CleanCache -
 func (s *SystemEIStub) CleanCache() {
 	if s.CleanCacheCalled != nil {
 		s.CleanCacheCalled()
 	}
 }
 
+// IsInterfaceNil -
 func (s *SystemEIStub) IsInterfaceNil() bool {
 	if s == nil {
 		return true

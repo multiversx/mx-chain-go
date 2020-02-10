@@ -7,17 +7,20 @@ import (
 	"sync"
 )
 
+// StorerMock -
 type StorerMock struct {
 	mut  sync.Mutex
 	data map[string][]byte
 }
 
+// NewStorerMock -
 func NewStorerMock() *StorerMock {
 	return &StorerMock{
 		data: make(map[string][]byte),
 	}
 }
 
+// Put -
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
@@ -26,6 +29,7 @@ func (sm *StorerMock) Put(key, data []byte) error {
 	return nil
 }
 
+// Get -
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
@@ -38,33 +42,41 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
+// GetFromEpoch -
 func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// HasInEpoch -
 func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
 	return errors.New("not implemented")
 }
 
+// SearchFirst -
 func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
+// Close -
 func (sm *StorerMock) Close() error {
 	return nil
 }
 
+// Has -
 func (sm *StorerMock) Has(key []byte) error {
 	return errors.New("not implemented")
 }
 
+// Remove -
 func (sm *StorerMock) Remove(key []byte) error {
 	return errors.New("not implemented")
 }
 
+// ClearCache -
 func (sm *StorerMock) ClearCache() {
 }
 
+// DestroyUnit -
 func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }

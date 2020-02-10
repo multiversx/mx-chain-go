@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// TrieStub -
 type TrieStub struct {
 	GetCalled                func(key []byte) ([]byte, error)
 	UpdateCalled             func(key, value []byte) error
@@ -23,6 +24,7 @@ type TrieStub struct {
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
+// Get -
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {
 		return ts.GetCalled(key)
@@ -31,6 +33,7 @@ func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	return nil, errNotImplemented
 }
 
+// Update -
 func (ts *TrieStub) Update(key, value []byte) error {
 	if ts.UpdateCalled != nil {
 		return ts.UpdateCalled(key, value)
@@ -39,6 +42,7 @@ func (ts *TrieStub) Update(key, value []byte) error {
 	return errNotImplemented
 }
 
+// Delete -
 func (ts *TrieStub) Delete(key []byte) error {
 	if ts.DeleteCalled != nil {
 		return ts.DeleteCalled(key)
@@ -47,6 +51,7 @@ func (ts *TrieStub) Delete(key []byte) error {
 	return errNotImplemented
 }
 
+// Root -
 func (ts *TrieStub) Root() ([]byte, error) {
 	if ts.RootCalled != nil {
 		return ts.RootCalled()
@@ -55,6 +60,7 @@ func (ts *TrieStub) Root() ([]byte, error) {
 	return nil, errNotImplemented
 }
 
+// Prove -
 func (ts *TrieStub) Prove(key []byte) ([][]byte, error) {
 	if ts.ProveCalled != nil {
 		return ts.ProveCalled(key)
@@ -63,6 +69,7 @@ func (ts *TrieStub) Prove(key []byte) ([][]byte, error) {
 	return nil, errNotImplemented
 }
 
+// VerifyProof -
 func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
 	if ts.VerifyProofCalled != nil {
 		return ts.VerifyProofCalled(proofs, key)
@@ -71,6 +78,7 @@ func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
 	return false, errNotImplemented
 }
 
+// Commit -
 func (ts *TrieStub) Commit() error {
 	if ts != nil {
 		return ts.CommitCalled()
@@ -79,6 +87,7 @@ func (ts *TrieStub) Commit() error {
 	return errNotImplemented
 }
 
+// Recreate -
 func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 	if ts.RecreateCalled != nil {
 		return ts.RecreateCalled(root)
@@ -87,10 +96,12 @@ func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 	return nil, errNotImplemented
 }
 
+// String -
 func (ts *TrieStub) String() string {
 	return "stub trie"
 }
 
+// DeepClone -
 func (ts *TrieStub) DeepClone() (data.Trie, error) {
 	return ts.DeepCloneCalled()
 }
@@ -132,6 +143,7 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	}
 }
 
+// Snapshot -
 func (ts *TrieStub) Snapshot() error {
 	if ts.SnapshotCalled != nil {
 		return ts.SnapshotCalled()
@@ -139,6 +151,7 @@ func (ts *TrieStub) Snapshot() error {
 	return nil
 }
 
+// GetSerializedNodes -
 func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, error) {
 	if ts.GetSerializedNodesCalled != nil {
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
@@ -146,6 +159,7 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 	return nil, nil
 }
 
+// Database -
 func (ts *TrieStub) Database() data.DBWriteCacher {
 	if ts.DatabaseCalled != nil {
 		return ts.DatabaseCalled()

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// FeeHandlerStub -
 type FeeHandlerStub struct {
 	MaxGasLimitPerBlockCalled   func() uint64
 	SetMinGasPriceCalled        func(minasPrice uint64)
@@ -15,18 +16,22 @@ type FeeHandlerStub struct {
 	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
 }
 
+// MaxGasLimitPerBlock -
 func (fhs *FeeHandlerStub) MaxGasLimitPerBlock() uint64 {
 	return fhs.MaxGasLimitPerBlockCalled()
 }
 
+// ComputeGasLimit -
 func (fhs *FeeHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	return fhs.ComputeGasLimitCalled(tx)
 }
 
+// ComputeFee -
 func (fhs *FeeHandlerStub) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	return fhs.ComputeFeeCalled(tx)
 }
 
+// CheckValidityTxValues -
 func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
 	return fhs.CheckValidityTxValuesCalled(tx)
 }

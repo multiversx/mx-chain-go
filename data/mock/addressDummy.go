@@ -1,10 +1,12 @@
 package mock
 
+// AddressDummy -
 type AddressDummy struct {
 	bytes []byte
 	hash  []byte
 }
 
+// NewAddressDummy -
 func NewAddressDummy(bytes, hash []byte) *AddressDummy {
 	return &AddressDummy{
 		bytes: bytes,
@@ -12,10 +14,12 @@ func NewAddressDummy(bytes, hash []byte) *AddressDummy {
 	}
 }
 
+// Bytes -
 func (ad *AddressDummy) Bytes() []byte {
 	return ad.bytes
 }
 
+// Hash -
 func (ad *AddressDummy) Hash() []byte {
 	return ad.hash
 }

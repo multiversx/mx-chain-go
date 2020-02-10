@@ -10,11 +10,13 @@ import (
 
 var errFailure = errors.New("failure")
 
+// AddressConverterMock -
 type AddressConverterMock struct {
 	Fail                                          bool
 	CreateAddressFromPublicKeyBytesRetErrForValue []byte
 }
 
+// CreateAddressFromPublicKeyBytes -
 func (acm *AddressConverterMock) CreateAddressFromPublicKeyBytes(pubKey []byte) (state.AddressContainer, error) {
 	if acm.Fail {
 		return nil, errFailure
@@ -29,6 +31,7 @@ func (acm *AddressConverterMock) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 	return NewAddressMock(pubKey), nil
 }
 
+// ConvertToHex -
 func (acm *AddressConverterMock) ConvertToHex(addressContainer state.AddressContainer) (string, error) {
 	if acm.Fail {
 		return "", errFailure
@@ -37,6 +40,7 @@ func (acm *AddressConverterMock) ConvertToHex(addressContainer state.AddressCont
 	return hex.EncodeToString(addressContainer.Bytes()), nil
 }
 
+// CreateAddressFromHex -
 func (acm *AddressConverterMock) CreateAddressFromHex(hexAddress string) (state.AddressContainer, error) {
 	if acm.Fail {
 		return nil, errFailure
@@ -45,6 +49,7 @@ func (acm *AddressConverterMock) CreateAddressFromHex(hexAddress string) (state.
 	panic("implement me")
 }
 
+// PrepareAddressBytes -
 func (acm *AddressConverterMock) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	if acm.Fail {
 		return nil, errFailure
@@ -53,6 +58,7 @@ func (acm *AddressConverterMock) PrepareAddressBytes(addressBytes []byte) ([]byt
 	panic("implement me")
 }
 
+// AddressLen -
 func (acm *AddressConverterMock) AddressLen() int {
 	return 32
 }

@@ -938,6 +938,10 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	timer := &heartbeat.RealTimer{}
 	netInputMarshalizer := n.marshalizer
 	if n.sizeCheckDelta > 0 {
