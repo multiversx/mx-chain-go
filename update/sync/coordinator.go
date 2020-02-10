@@ -110,7 +110,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	return nil
 }
 
-// GetMetaBlock returns the synced metablock
+// GetEpochStartMetaBlock returns the synced metablock
 func (ss *syncState) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	return ss.headers.GetEpochStartMetaBlock()
 }

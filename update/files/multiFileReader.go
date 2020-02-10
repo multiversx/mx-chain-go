@@ -26,7 +26,7 @@ type ArgsNewMultiFileReader struct {
 	ImportStore  storage.Storer
 }
 
-// NewMultiFileReaders creates a multi file reader and opens all the files from a give folder
+// NewMultiFileReader creates a multi file reader and opens all the files from a give folder
 func NewMultiFileReader(args ArgsNewMultiFileReader) (*multiFileReader, error) {
 	if len(args.ImportFolder) < 2 {
 		return nil, update.ErrInvalidFolderName
@@ -62,7 +62,7 @@ func (m *multiFileReader) readAllFiles() error {
 		}
 
 		name := fileInfo.Name()
-		file, err := os.OpenFile(name, os.O_RDONLY, 0644)
+		file, err := os.OpenFile(m.importFolder+"/"+name, os.O_RDONLY, 0644)
 		if err != nil {
 			log.Warn("unable to open file", "fileName", name, "error", err)
 			continue
@@ -92,17 +92,8 @@ func (m *multiFileReader) GetFileNames() []string {
 
 // ReadNextItem returns the next elements from a file if that exist
 func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) {
-	scanner, ok := m.dataReader[fileName]
-	if !ok {
-		return "", nil, update.ErrNilDataReader
-	}
-
-	canRead := scanner.Scan()
-	if !canRead {
-		err := scanner.Err()
-		if err == io.EOF {
-			return "", nil, update.ErrEndOfFile
-		}
+	scanner, err := m.getDataReader(fileName)
+	if err != nil {
 		return "", nil, err
 	}
 
@@ -118,6 +109,25 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 	}
 
 	return string(key), value, nil
+}
+
+func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, error) {
+	scanner, ok := m.dataReader[fileName]
+	if !ok {
+		return nil, update.ErrNilDataReader
+	}
+
+	canRead := scanner.Scan()
+	if canRead {
+		return scanner, nil
+	}
+
+	err := scanner.Err()
+	if err == io.EOF {
+		return nil, update.ErrEndOfFile
+	}
+
+	return nil, err
 }
 
 // Finish closes all the opened files

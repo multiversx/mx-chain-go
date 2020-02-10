@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -80,11 +80,11 @@ func (si *stateImport) ImportAll() error {
 			err = si.importTransactions()
 		default:
 			splitString := strings.Split(fileName, atSep)
-			if len(splitString) > 1 && splitString[0] == TrieFileName {
-				err = si.importState(splitString[0], splitString[1])
-			} else {
+			canImportState := len(splitString) > 1 && splitString[0] == TrieFileName
+			if !canImportState {
 				continue
 			}
+			err = si.importState(splitString[0], splitString[1])
 		}
 		if err != nil {
 			return err

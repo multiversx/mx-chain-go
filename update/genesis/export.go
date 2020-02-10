@@ -138,7 +138,7 @@ func (se *stateExport) exportAllTries() error {
 }
 
 func (se *stateExport) exportMeta() error {
-	metaBlock, err := se.stateSyncer.GetMetaBlock()
+	metaBlock, err := se.stateSyncer.GetEpochStartMetaBlock()
 	if err != nil {
 		return err
 	}

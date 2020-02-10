@@ -18,10 +18,10 @@ import (
 // MetaBlockFileName is the constant which defines the export/import filename for metablock
 const MetaBlockFileName = "metaBlock"
 
-// MetaBlockFileName is the constant which defines the export/import filename for miniblocks
+// TransactionsFileName is the constant which defines the export/import filename for miniblocks
 const TransactionsFileName = "transactions"
 
-// MetaBlockFileName is the constant which defines the export/import filename for transactions
+// MiniBlocksFileName is the constant which defines the export/import filename for transactions
 const MiniBlocksFileName = "miniBlocks"
 
 // TrieFileName is the constant which defines the export/import filename for tries
@@ -39,7 +39,7 @@ const (
 	SmartContractResult
 	// RewardTransaction is the export/import type for pending reward transaction
 	RewardTransaction
-	// MiniBlocks is the export/import type for pending miniblocks
+	// MiniBlock is the export/import type for pending miniblocks
 	MiniBlock
 	// Header is the export/import type for pending headers
 	Header
@@ -47,7 +47,7 @@ const (
 	MetaHeader
 	// AccountsTrie is the export/import type for saved accounts trie
 	AccountsTrie
-	// Roothash is the export/import type for byte array which has to be treated as roothash
+	// RootHash is the export/import type for byte array which has to be treated as roothash
 	RootHash
 	// UserAccount is the export/import type for an account of type user account
 	UserAccount
