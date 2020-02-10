@@ -26,17 +26,21 @@ func (w *whiteListDataVerifier) IsForCurrentShard(interceptedData process.Interc
 	}
 
 	wasItRequested := w.cache.Has(interceptedData.Hash())
-	w.cache.Remove(interceptedData.Hash())
+	if wasItRequested {
+		w.cache.Remove(interceptedData.Hash())
+	}
 
 	return wasItRequested
 }
 
+// Add ads all the list to the cache
 func (w *whiteListDataVerifier) Add(keys [][]byte) {
 	for _, key := range keys {
 		_ = w.cache.Put(key, struct{}{})
 	}
 }
 
+// Remove removes all the keys from the cache
 func (w *whiteListDataVerifier) Remove(keys [][]byte) {
 	for _, key := range keys {
 		w.cache.Remove(key)

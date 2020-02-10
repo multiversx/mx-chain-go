@@ -254,6 +254,22 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestSingleDataInterceptor_SetIsDataForCurrentShardVerifier(t *testing.T) {
+	t.Parallel()
+
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		createMockThrottler(),
+	)
+
+	err := sdi.SetIsDataForCurrentShardVerifier(nil)
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
+
+	err = sdi.SetIsDataForCurrentShardVerifier(&mock.InterceptedDataVerifierMock{})
+	assert.Nil(t, err)
+}
+
 //------- IsInterfaceNil
 
 func TestSingleDataInterceptor_IsInterfaceNil(t *testing.T) {

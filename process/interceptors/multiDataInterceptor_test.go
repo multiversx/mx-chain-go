@@ -386,6 +386,23 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestMultiDataInterceptor_SetIsDataForCurrentShardVerifier(t *testing.T) {
+	t.Parallel()
+
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		&mock.MarshalizerMock{},
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		createMockThrottler(),
+	)
+
+	err := mdi.SetIsDataForCurrentShardVerifier(nil)
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
+
+	err = mdi.SetIsDataForCurrentShardVerifier(&mock.InterceptedDataVerifierMock{})
+	assert.Nil(t, err)
+}
+
 //------- IsInterfaceNil
 
 func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {
