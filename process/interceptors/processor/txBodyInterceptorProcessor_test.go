@@ -163,12 +163,9 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksNotForCurrentShardShouldNotAdd
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
 	}
-	tbip, _ := processor.NewTxBodyInterceptorProcessor(arg)
+	_, _ = processor.NewTxBodyInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedTxBlockBody(txBlockBody)
-
-	err := tbip.Save(inTxBlkBdy)
-
-	assert.Nil(t, err)
+	assert.False(t, inTxBlkBdy.IsForCurrentShard())
 }
 
 func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing.T) {
@@ -193,13 +190,10 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing
 	arg := createMockTxBodyArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-		miniblock, ok := value.(*block.MiniBlock)
+		_, ok = value.(*block.MiniBlock)
 		if !ok {
 			assert.Fail(t, "hasOrAdd called for an invalid type")
 			return
-		}
-		if miniblock.SenderShardID != currentShard {
-			assert.Fail(t, "hasOrAdd called for the wrong object")
 		}
 
 		return
@@ -234,13 +228,10 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testi
 	arg := createMockTxBodyArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-		miniblock, ok := value.(*block.MiniBlock)
+		_, ok = value.(*block.MiniBlock)
 		if !ok {
 			assert.Fail(t, "hasOrAdd called for an invalid type")
 			return
-		}
-		if miniblock.ReceiverShardID != currentShard {
-			assert.Fail(t, "hasOrAdd called for the wrong object")
 		}
 
 		return

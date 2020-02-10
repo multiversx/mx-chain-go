@@ -178,7 +178,7 @@ func GetKeyTypeAndHash(key string) (Type, []byte, error) {
 
 // CreateVersionKey creates a version key from the given metaBlock
 func CreateVersionKey(meta *block.MetaBlock) string {
-	return string(meta.ChainID)
+	return "meta" + atSep + string(meta.ChainID)
 }
 
 // CreateAccountKey creates a key for an account according to its type, shard ID and address

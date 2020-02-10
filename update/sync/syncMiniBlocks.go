@@ -160,6 +160,7 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 
+		log.Debug("unFinished access")
 		meta, ok := unFinished[metaHash]
 		if !ok {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap

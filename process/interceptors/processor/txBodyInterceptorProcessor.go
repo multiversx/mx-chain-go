@@ -53,7 +53,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (tbip *TxBodyInterceptorProcessor) Validate(data process.InterceptedData) error {
+func (tbip *TxBodyInterceptorProcessor) Validate(_ process.InterceptedData) error {
 	return nil
 }
 
@@ -92,21 +92,21 @@ func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBl
 	return nil
 }
 
-func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBlock) error {
+func (tbip *TxBodyInterceptorProcessor) checkMiniblock(_ *block.MiniBlock) error {
 	//TODO check for whitelisting
-
-	isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
-	isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
-	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender
-	if !isForCurrentShard {
-		return process.ErrMiniblockNotForCurrentShard
-	}
+	// already implemented in intercepted data IsForCurrentShard
+	//isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
+	//isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
+	//isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender
+	//if !isForCurrentShard {
+	//	return process.ErrMiniblockNotForCurrentShard
+	//}
 
 	return nil
 }
 
 // SignalEndOfProcessing signals the end of processing
-func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
+func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -3,6 +3,7 @@ package interceptors
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -23,6 +24,11 @@ func NewWhiteListDataVerifier(cacher storage.Cacher) (*whiteListDataVerifier, er
 func (w *whiteListDataVerifier) IsForCurrentShard(interceptedData process.InterceptedData) bool {
 	if check.IfNil(interceptedData) {
 		return false
+	}
+
+	// TODO: refactor generic block body resolver and delete the next condition
+	if _, ok := interceptedData.(*interceptedBlocks.InterceptedTxBlockBody); ok {
+		return true
 	}
 
 	wasItRequested := w.cache.Has(interceptedData.Hash())

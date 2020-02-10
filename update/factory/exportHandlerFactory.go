@@ -216,7 +216,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		TrieSyncers: trieSyncers,
 		ActiveTries: e.activeTries,
 	}
-	epochStartTriesSyncer, err := sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
+	_, err = sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	argsSyncState := sync.ArgsNewSyncState{
 		Headers:      epochStartHeadersSyncer,
-		Tries:        epochStartTriesSyncer,
+		Tries:        sync.NewNilSyncTries(), // TODO change to the actual trie syncer
 		MiniBlocks:   epochStartMiniBlocksSyncer,
 		Transactions: epochStartTransactionsSyncer,
 	}
