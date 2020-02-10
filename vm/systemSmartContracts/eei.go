@@ -114,7 +114,7 @@ func (host *vmContext) Transfer(
 	destination []byte,
 	sender []byte,
 	value *big.Int,
-	_ []byte,
+	input []byte,
 ) error {
 
 	senderAcc, ok := host.outputAccounts[string(sender)]
