@@ -200,7 +200,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
-		Storage:        e.storageService.GetStorer(dataRetriever.MetaBlockUnit),
+		StorageService: e.storageService,
 		Cache:          e.dataPool.Headers(),
 		Marshalizer:    e.marshalizer,
 		EpochHandler:   epochHandler,

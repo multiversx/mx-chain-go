@@ -31,15 +31,17 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 		},
 	}
 	args := createMockHeadersSyncHandlerArgs()
-	args.Storage = &mock.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
-			if retErr {
-				return nil, errors.New("err")
-			}
+	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				if retErr {
+					return nil, errors.New("err")
+				}
 
-			return json.Marshal(meta)
-		},
-	}
+				return json.Marshal(meta)
+			},
+		}
+	}}
 
 	headersSyncHandler, _ := NewHeadersSyncHandler(args)
 	return headersSyncHandler
@@ -173,8 +175,11 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
 		Headers: &mock.HeaderSyncHandlerMock{
-			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
-				return &block.MetaBlock{Epoch: 0}, nil
+			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
+				return nil
+			},
+			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
@@ -199,8 +204,11 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
 		Headers: &mock.HeaderSyncHandlerMock{
-			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
-				return &block.MetaBlock{Epoch: 0}, nil
+			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
+				return nil
+			},
+			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
@@ -225,8 +233,11 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
 		Headers: &mock.HeaderSyncHandlerMock{
-			SyncEpochStartMetaHeaderCalled: func(epoch uint32, waitTime time.Duration) (metaBlock *block.MetaBlock, err error) {
-				return &block.MetaBlock{Epoch: 0}, nil
+			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
+				return nil
+			},
+			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries:      &mock.EpochStartTriesSyncHandlerMock{},

@@ -106,3 +106,12 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilEpochHandler signals that nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrNilHeaderSyncHandler signals that nil header sync handler was provided
+var ErrNilHeaderSyncHandler = errors.New("nil header sync handler")
+
+// ErrNilMiniBlocksSyncHandler signals that nil miniblocks sync handler was provided
+var ErrNilMiniBlocksSyncHandler = errors.New("nil miniblocks sync handler")
+
+// ErrNilTransactionsSyncHandler signals that nil transactions sync handler was provided
+var ErrNilTransactionsSyncHandler = errors.New("nil transaction sync handler")

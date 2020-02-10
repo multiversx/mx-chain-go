@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"sync"
 	"time"
 
@@ -31,6 +32,19 @@ type ArgsNewSyncState struct {
 
 // NewSyncState creates a complete syncer which saves the state of the blockchain with pending values as well
 func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
+	if check.IfNil(args.Headers) {
+		return nil, update.ErrNilHeaderSyncHandler
+	}
+	if check.IfNil(args.Tries) {
+		return nil, update.ErrNilTrieSyncers
+	}
+	if check.IfNil(args.MiniBlocks) {
+		return nil, update.ErrNilMiniBlocksSyncHandler
+	}
+	if check.IfNil(args.Transactions) {
+		return nil, update.ErrNilTransactionsSyncHandler
+	}
+
 	ss := &syncState{
 		tries:        args.Tries,
 		miniBlocks:   args.MiniBlocks,
