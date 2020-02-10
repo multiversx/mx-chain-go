@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -274,7 +273,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root == nil {
 		return nil
 	}
-	if tr.root.isCollapsed() {
+	if !tr.root.isDirty() {
 		return nil
 	}
 	err := tr.root.setRootHash()
@@ -282,11 +281,34 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	newRoot := tr.root.getHash()
-	newHashes, err := tr.root.getDirtyHashes()
+	if tr.trieStorage.IsPruningEnabled() {
+		err = tr.markForEviction()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tr.root.commit(false, 0, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) markForEviction() error {
+	newRoot := tr.root.getHash()
+	newHashes := make(data.ModifiedHashes)
+	err := tr.root.getDirtyHashes(newHashes)
+	if err != nil {
+		return err
+	}
+
+	oldHashes := make(data.ModifiedHashes)
+	for i := range tr.oldHashes {
+		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
+	}
+
+	removeDuplicatedKeys(oldHashes, newHashes)
 
 	if len(newHashes) > 0 && len(newRoot) > 0 {
 		newRoot = append(newRoot, byte(data.NewRoot))
@@ -298,19 +320,24 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
-		err = tr.trieStorage.MarkForEviction(tr.oldRoot, tr.oldHashes)
+		err = tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
 		if err != nil {
 			return err
 		}
 		tr.oldRoot = make([]byte, 0)
 		tr.oldHashes = make([][]byte, 0)
 	}
-
-	err = tr.root.commit(false, 0, tr.trieStorage.Database(), tr.trieStorage.Database())
-	if err != nil {
-		return err
-	}
 	return nil
+}
+
+func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]struct{}) {
+	for key := range oldHashes {
+		_, ok := newHashes[key]
+		if ok {
+			delete(oldHashes, key)
+			delete(newHashes, key)
+		}
+	}
 }
 
 // Recreate returns a new trie that has the given root hash and database
@@ -329,7 +356,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 
 	newTr, err := tr.recreateFromDb(root)
 	if err != nil {
-		err = fmt.Errorf("trie recreate error: %w, for root %v", err, core.ToB64(root))
+		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(root))
 		return nil, err
 	}
 
@@ -367,7 +394,7 @@ func (tr *patriciaMerkleTrie) String() string {
 	if tr.root == nil {
 		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
 	} else {
-		tr.root.print(writer, 0)
+		tr.root.print(writer, 0, tr.Database())
 	}
 
 	return writer.String()

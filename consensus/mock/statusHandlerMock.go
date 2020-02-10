@@ -4,6 +4,7 @@ package mock
 type AppStatusHandlerMock struct {
 }
 
+// IsInterfaceNil -
 func (ashs *AppStatusHandlerMock) IsInterfaceNil() bool {
 	if ashs == nil {
 		return true
@@ -11,6 +12,7 @@ func (ashs *AppStatusHandlerMock) IsInterfaceNil() bool {
 	return false
 }
 
+// AddUint64 -
 func (ashs *AppStatusHandlerMock) AddUint64(key string, value uint64) {
 }
 

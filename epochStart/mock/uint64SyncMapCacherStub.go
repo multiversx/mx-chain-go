@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+// Uint64SyncMapCacherStub -
 type Uint64SyncMapCacherStub struct {
 	ClearCalled           func()
 	GetCalled             func(nonce uint64) (dataRetriever.ShardIdHashMap, bool)
@@ -13,26 +14,32 @@ type Uint64SyncMapCacherStub struct {
 	HasCalled             func(nonce uint64, shardId uint32) bool
 }
 
+// Clear -
 func (usmcs *Uint64SyncMapCacherStub) Clear() {
 	usmcs.ClearCalled()
 }
 
+// Get -
 func (usmcs *Uint64SyncMapCacherStub) Get(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
 	return usmcs.GetCalled(nonce)
 }
 
+// Merge -
 func (usmcs *Uint64SyncMapCacherStub) Merge(nonce uint64, src dataRetriever.ShardIdHashMap) {
 	usmcs.MergeCalled(nonce, src)
 }
 
+// RegisterHandler -
 func (usmcs *Uint64SyncMapCacherStub) RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte)) {
 	usmcs.RegisterHandlerCalled(handler)
 }
 
+// Has -
 func (usmcs *Uint64SyncMapCacherStub) Has(nonce uint64, shardId uint32) bool {
 	return usmcs.HasCalled(nonce, shardId)
 }
 
+// Remove -
 func (usmcs *Uint64SyncMapCacherStub) Remove(nonce uint64, shardId uint32) {
 	usmcs.RemoveCalled(nonce, shardId)
 }

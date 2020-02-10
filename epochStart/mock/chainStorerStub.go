@@ -18,6 +18,7 @@ type ChainStorerStub struct {
 	CloseAllCalled  func() error
 }
 
+// CloseAll -
 func (bc *ChainStorerStub) CloseAll() error {
 	if bc.CloseAllCalled != nil {
 		return bc.CloseAllCalled()

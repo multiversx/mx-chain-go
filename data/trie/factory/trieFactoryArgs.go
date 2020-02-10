@@ -15,12 +15,10 @@ const PeerAccountTrie = "peerAccount"
 
 // TrieFactoryArgs holds arguments for creating a trie factory
 type TrieFactoryArgs struct {
-	Cfg                    config.StorageConfig
 	EvictionWaitingListCfg config.EvictionWaitingListConfig
 	SnapshotDbCfg          config.DBConfig
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	PathManager            storage.PathManagerHandler
 	ShardId                string
-	PruningEnabled         bool
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// BroadcastMessengerMock -
 type BroadcastMessengerMock struct {
 	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeaderCalled           func(data.HeaderHandler) error
@@ -13,6 +14,7 @@ type BroadcastMessengerMock struct {
 	BroadcastConsensusMessageCalled func(*consensus.Message) error
 }
 
+// BroadcastBlock -
 func (bmm *BroadcastMessengerMock) BroadcastBlock(bodyHandler data.BodyHandler, headerhandler data.HeaderHandler) error {
 	if bmm.BroadcastBlockCalled != nil {
 		return bmm.BroadcastBlockCalled(bodyHandler, headerhandler)
@@ -20,6 +22,7 @@ func (bmm *BroadcastMessengerMock) BroadcastBlock(bodyHandler data.BodyHandler, 
 	return nil
 }
 
+// BroadcastMiniBlocks -
 func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
 	if bmm.BroadcastMiniBlocksCalled != nil {
 		return bmm.BroadcastMiniBlocksCalled(miniBlocks)
@@ -27,6 +30,7 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 	return nil
 }
 
+// BroadcastTransactions -
 func (bmm *BroadcastMessengerMock) BroadcastTransactions(transactions map[string][][]byte) error {
 	if bmm.BroadcastTransactionsCalled != nil {
 		return bmm.BroadcastTransactionsCalled(transactions)
@@ -34,6 +38,7 @@ func (bmm *BroadcastMessengerMock) BroadcastTransactions(transactions map[string
 	return nil
 }
 
+// BroadcastConsensusMessage -
 func (bmm *BroadcastMessengerMock) BroadcastConsensusMessage(message *consensus.Message) error {
 	if bmm.BroadcastConsensusMessageCalled != nil {
 		return bmm.BroadcastConsensusMessageCalled(message)
@@ -41,6 +46,7 @@ func (bmm *BroadcastMessengerMock) BroadcastConsensusMessage(message *consensus.
 	return nil
 }
 
+// BroadcastHeader -
 func (bmm *BroadcastMessengerMock) BroadcastHeader(headerhandler data.HeaderHandler) error {
 	if bmm.BroadcastHeaderCalled != nil {
 		return bmm.BroadcastHeaderCalled(headerhandler)

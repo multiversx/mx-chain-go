@@ -1,5 +1,6 @@
 package mock
 
+// ShardIdHasMapMock -
 type ShardIdHasMapMock struct {
 	LoadCalled   func(shardId uint32) ([]byte, bool)
 	StoreCalled  func(shardId uint32, hash []byte)
@@ -7,18 +8,22 @@ type ShardIdHasMapMock struct {
 	DeleteCalled func(shardId uint32)
 }
 
+// Load -
 func (sihsm *ShardIdHasMapMock) Load(shardId uint32) ([]byte, bool) {
 	return sihsm.LoadCalled(shardId)
 }
 
+// Store -
 func (sihsm *ShardIdHasMapMock) Store(shardId uint32, hash []byte) {
 	sihsm.StoreCalled(shardId, hash)
 }
 
+// Range -
 func (sihsm *ShardIdHasMapMock) Range(f func(shardId uint32, hash []byte) bool) {
 	sihsm.RangeCalled(f)
 }
 
+// Delete -
 func (sihsm *ShardIdHasMapMock) Delete(shardId uint32) {
 	sihsm.DeleteCalled(shardId)
 }
