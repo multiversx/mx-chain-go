@@ -772,8 +772,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	fmt.Println(fmt.Sprintf("preparing data for boot storer with bootstrapData: %+v", bootData))
-
 	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
