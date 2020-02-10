@@ -24,6 +24,7 @@ type TestEpochStartTrigger interface {
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }
 
+// NodesCoordinatorFactory is used for creating a nodesCoordinator in the integration tests
 type NodesCoordinatorFactory interface {
 	CreateNodesCoordinator(
 		nodesPerShard int,

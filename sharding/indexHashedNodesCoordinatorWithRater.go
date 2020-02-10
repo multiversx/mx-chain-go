@@ -32,7 +32,6 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	}
 
 	ihncr.nodesPerShardSetter = ihncr
-
 	ihncr.epochStartSubscriber.UnregisterHandler(indexNodesCoordinator)
 	ihncr.epochStartSubscriber.RegisterHandler(ihncr)
 
@@ -55,12 +54,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 		return err
 	}
 
-	go func() {
-
-		err = ihgs.expandAllLists(epoch)
-
-	}()
-	return err
+	return ihgs.expandAllLists(epoch)
 }
 
 //IsInterfaceNil verifies that the underlying value is nil

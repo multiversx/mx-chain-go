@@ -258,13 +258,14 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
 	}
-	round := header.GetRound()
-	log.Trace("hello", round)
 
-	rootHash, _ := vs.peerAdapter.RootHash()
-	log.Trace("Starting from validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
+	rootHash, err := vs.peerAdapter.RootHash()
+	if err != nil {
+		log.Debug("UpdatePeerState - get root hash failed start", "error", err.Error())
+	}
+	log.Trace("starting from validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
-	err := vs.processPeerChanges(header)
+	err = vs.processPeerChanges(header)
 	if err != nil {
 		return nil, err
 	}
@@ -318,8 +319,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 	}
 
 	vs.displayRatings(header.GetEpoch())
-	rootHash, _ = vs.peerAdapter.RootHash()
-	log.Trace("After updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
+	rootHash, err = vs.peerAdapter.RootHash()
+	if err != nil {
+		log.Debug("UpdatePeerState - get root hash failed end", "error", err.Error())
+	}
+
+	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
 	return vs.peerAdapter.RootHash()
 }
@@ -327,14 +332,16 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 func (vs *validatorStatistics) displayRatings(epoch uint32) {
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("Could not get ValidatorPublicKeys", "epoch", epoch)
+		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)
 		return
 	}
+	log.Trace("started printing tempRatings")
 	for shardId, list := range validatorPKs {
 		for _, pk := range list {
 			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardId)
 		}
 	}
+	log.Trace("finished printing tempRatings")
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -696,17 +703,16 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
 	log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
 	for _, pk := range pks {
 		peer, err := vs.GetPeerAccount([]byte(pk))
-
 		if err != nil {
-			log.Debug("Error getting peer account", "error", err)
+			log.Warn("Error getting peer account", "error", err)
 		}
+
 		tempRating := vs.getTempRating(pk)
 		rating := vs.getRating(pk)
 		log.Trace("UpdateRatingFromTempRating", "pk", []byte(pk), "rating", rating, "tempRating", tempRating)
 		err = peer.SetRatingWithJournal(vs.getTempRating(pk))
-
 		if err != nil {
-			log.Debug("Error setting rating with journal on peer account", "error", err)
+			log.Warn("Error setting rating with journal on peer account", "error", err)
 		}
 	}
 	rootHash, _ = vs.RootHash()

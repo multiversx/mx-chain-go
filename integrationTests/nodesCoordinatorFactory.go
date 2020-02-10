@@ -40,7 +40,6 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(
 		SelfPublicKey:           pubKeyBytes,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
 	if err != nil {
 		fmt.Println("Error creating node coordinator")
 	}
@@ -52,6 +51,8 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 	sharding.RaterHandler
 }
 
+// CreateNodesCoordinator is used for creating a nodes coordinator in the integration tests
+// based on the provided parameters
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -84,15 +85,13 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
 	if err != nil {
-		fmt.Println("Error creating node coordinator")
+		log.Debug("Error creating node coordinator")
 	}
 
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.RaterHandler)
-
 	if err != nil {
-		fmt.Println("Error creating node coordinator")
+		log.Debug("Error creating node coordinator")
 	}
 
 	return &NodesWithRater{

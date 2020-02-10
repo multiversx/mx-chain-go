@@ -1,16 +1,21 @@
 package rating
 
-type Chance struct {
+type selectionChance struct {
 	maxThreshold     uint32
 	chancePercentage uint32
 }
 
 //GetMaxThreshold returns the maxThreshold until this ChancePercentage holds
-func (bsr *Chance) GetMaxThreshold() uint32 {
+func (bsr *selectionChance) GetMaxThreshold() uint32 {
 	return bsr.maxThreshold
 }
 
 //GetChancePercentage returns the percentage for the RatingChance
-func (bsr *Chance) GetChancePercentage() uint32 {
+func (bsr *selectionChance) GetChancePercentage() uint32 {
 	return bsr.chancePercentage
+}
+
+//IsInterfaceNil verifies if the interface is nil
+func (bsr *selectionChance) IsInterfaceNil() bool {
+	return bsr == nil
 }

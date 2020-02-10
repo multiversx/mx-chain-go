@@ -165,19 +165,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 
 	log.Trace("Setting new nodes config", "selfPubKey", ihgs.selfPubKey)
 
-	for shardId, validators := range eligible {
-		for _, validator := range validators {
-			pk := validator.PubKey()
-			log.Trace("Eligible", "shardId", shardId, "pk", pk)
-		}
-	}
-
-	for shardId, validators := range waiting {
-		for _, validator := range validators {
-			pk := validator.PubKey()
-			log.Trace("Waiting", "shardId", shardId, "pk", pk)
-		}
-	}
+	displayNodesConfiguration(eligible, waiting)
 
 	return nil
 }
@@ -571,4 +559,20 @@ func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func displayNodesConfiguration(eligible map[uint32][]Validator, waiting map[uint32][]Validator) {
+	for shardId, validators := range eligible {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Eligible", "shardId", shardId, "pk", pk)
+		}
+	}
+
+	for shardId, validators := range waiting {
+		for _, validator := range validators {
+			pk := validator.PubKey()
+			log.Trace("Waiting", "shardId", shardId, "pk", pk)
+		}
+	}
 }

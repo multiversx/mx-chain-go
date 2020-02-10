@@ -33,12 +33,3 @@ var ErrGetTransaction = errors.New("transaction getting failed")
 
 // ErrTxNotFound signals an error happened trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")
-
-// ErrDupplicateThreshold signals that two thresholds are the same
-var ErrDupplicateThreshold = errors.New("two thresholds are the same")
-
-// ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
-var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")
-
-// ErrNoChancesProvided signals that there were no chances provided
-var ErrNoChancesProvided = errors.New("no chances are provided")

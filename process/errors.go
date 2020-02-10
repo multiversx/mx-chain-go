@@ -638,3 +638,12 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 
 // ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
 var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+
+// ErrDupplicateThreshold signals that two thresholds are the same
+var ErrDupplicateThreshold = errors.New("two thresholds are the same")
+
+// ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
+var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")
+
+// ErrNoChancesProvided signals that there were no chances provided
+var ErrNoChancesProvided = errors.New("no chances are provided")
