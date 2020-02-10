@@ -1,7 +1,6 @@
 package resolverscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -33,33 +32,8 @@ func NewShardResolversContainerFactory(
 	trieContainer state.TriesHolder,
 	sizeCheckDelta uint32,
 ) (*shardResolversContainerFactory, error) {
-
-	if check.IfNil(shardCoordinator) {
-		return nil, dataRetriever.ErrNilShardCoordinator
-	}
-	if check.IfNil(messenger) {
-		return nil, dataRetriever.ErrNilMessenger
-	}
-	if check.IfNil(store) {
-		return nil, dataRetriever.ErrNilTxStorage
-	}
-	if check.IfNil(marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
 	if sizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
-	}
-	if check.IfNil(dataPools) {
-		return nil, dataRetriever.ErrNilDataPoolHolder
-	}
-	if check.IfNil(uint64ByteSliceConverter) {
-		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
-	}
-	if check.IfNil(dataPacker) {
-		return nil, dataRetriever.ErrNilDataPacker
-	}
-	if check.IfNil(trieContainer) {
-		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
 	base := &baseResolversContainerFactory{
@@ -72,6 +46,11 @@ func NewShardResolversContainerFactory(
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
 		triesContainer:           trieContainer,
+	}
+
+	err := base.checkParams()
+	if err != nil {
+		return nil, err
 	}
 
 	return &shardResolversContainerFactory{
@@ -123,7 +102,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	keys, resolverSlice, err = srcf.generateHdrResolver()
+	keys, resolverSlice, err = srcf.generateHeaderResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +120,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	keys, resolverSlice, err = srcf.generatePeerChBlockBodyResolver()
+	keys, resolverSlice, err = srcf.generatePeerChBlockBodyResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +129,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	keys, resolverSlice, err = srcf.generateMetablockHeaderResolver()
+	keys, resolverSlice, err = srcf.generateMetablockHeaderResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +138,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	keys, resolverSlice, err = srcf.generateTrieNodesResolver()
+	keys, resolverSlice, err = srcf.generateTrieNodesResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +152,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 
 //------- Hdr resolver
 
-func (srcf *shardResolversContainerFactory) generateHdrResolver() ([]string, []dataRetriever.Resolver, error) {
+func (srcf *shardResolversContainerFactory) generateHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := srcf.shardCoordinator
 
 	//only one shard header topic, for example: shardBlocks_0_META
@@ -224,7 +203,7 @@ func (srcf *shardResolversContainerFactory) generateHdrResolver() ([]string, []d
 
 //------- PeerChBlocks resolvers
 
-func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolver() ([]string, []dataRetriever.Resolver, error) {
+func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := srcf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
@@ -271,7 +250,7 @@ func (srcf *shardResolversContainerFactory) generatePeerChBlockBodyResolver() ([
 
 //------- MetaBlockHeaderResolvers
 
-func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
+func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := srcf.shardCoordinator
 
 	//only one metachain header block topic
@@ -329,7 +308,7 @@ func (srcf *shardResolversContainerFactory) IsInterfaceNil() bool {
 	return srcf == nil
 }
 
-func (srcf *shardResolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
+func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := srcf.shardCoordinator
 
 	keys := make([]string, 0)

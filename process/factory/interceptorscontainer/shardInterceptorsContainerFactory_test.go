@@ -208,7 +208,7 @@ func TestNewShardInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testin
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
-func TestNewShardInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
+func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(
@@ -237,7 +237,7 @@ func TestNewShardInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.
 	)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlockChain, err)
+	assert.Equal(t, process.ErrNilStore, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {

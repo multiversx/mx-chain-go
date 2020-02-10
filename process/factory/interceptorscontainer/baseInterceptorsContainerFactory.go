@@ -1,6 +1,7 @@
 package interceptorscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -34,24 +35,70 @@ type baseInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 }
 
-func (icf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
+func checkBaseParams(
+	shardCoordinator sharding.Coordinator,
+	accounts state.AccountsAdapter,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	store dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	messenger process.TopicHandler,
+	multiSigner crypto.MultiSigner,
+	nodesCoordinator sharding.NodesCoordinator,
+	blackList process.BlackListHandler,
+) error {
+	if check.IfNil(shardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(messenger) {
+		return process.ErrNilMessenger
+	}
+	if check.IfNil(store) {
+		return process.ErrNilStore
+	}
+	if check.IfNil(marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(multiSigner) {
+		return process.ErrNilMultiSigVerifier
+	}
+	if check.IfNil(dataPool) {
+		return process.ErrNilDataPoolHolder
+	}
+	if check.IfNil(nodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(accounts) {
+		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(blackList) {
+		return process.ErrNilBlackListHandler
+	}
+
+	return nil
+}
+
+func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
 
-	err := icf.messenger.CreateTopic(topic, createChannel)
+	err := bicf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
 		return nil, err
 	}
 
-	return interceptor, icf.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, interceptor)
 }
 
 //------- Tx interceptors
 
-func (icf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
+func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := bicf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
 
@@ -61,7 +108,7 @@ func (icf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string,
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := icf.createOneTxInterceptor(identifierTx)
+		interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -73,7 +120,7 @@ func (icf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string,
 	//tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
-	interceptor, err := icf.createOneTxInterceptor(identifierTx)
+	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,14 +130,14 @@ func (icf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string,
 	return keys, interceptorSlice, nil
 }
 
-func (icf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
-	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator, icf.maxTxNonceDeltaAllowed)
+func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+	txValidator, err := dataValidators.NewTxValidator(bicf.accounts, bicf.shardCoordinator, bicf.maxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil, err
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: icf.dataPool.Transactions(),
+		ShardedDataCache: bicf.dataPool.Transactions(),
 		TxValidator:      txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
@@ -98,25 +145,25 @@ func (icf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(icf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		bicf.marshalizer,
 		txFactory,
 		txProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (icf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -124,7 +171,7 @@ func (icf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topi
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: icf.dataPool.UnsignedTransactions(),
+		ShardedDataCache: bicf.dataPool.UnsignedTransactions(),
 		TxValidator:      txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
@@ -132,28 +179,28 @@ func (icf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topi
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedUnsignedTxDataFactory(icf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedUnsignedTxDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		bicf.marshalizer,
 		txFactory,
 		txProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Reward transactions interceptors
 
-func (icf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
+func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := bicf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
 
@@ -163,7 +210,7 @@ func (icf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]s
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := icf.createOneRewardTxInterceptor(identifierScr)
+		interceptor, err := bicf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -174,7 +221,7 @@ func (icf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]s
 
 	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
-	interceptor, err := icf.createOneRewardTxInterceptor(identifierTx)
+	interceptor, err := bicf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -185,7 +232,7 @@ func (icf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]s
 	return keys, interceptorSlice, nil
 }
 
-func (icf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -193,7 +240,7 @@ func (icf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic 
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: icf.dataPool.RewardTransactions(),
+		ShardedDataCache: bicf.dataPool.RewardTransactions(),
 		TxValidator:      txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
@@ -201,28 +248,28 @@ func (icf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic 
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedRewardTxDataFactory(icf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedRewardTxDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		bicf.marshalizer,
 		txFactory,
 		txProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Hdr interceptor
 
-func (icf *baseInterceptorsContainerFactory) generateHdrInterceptor() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
+func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := bicf.shardCoordinator
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
 	hdrValidator, err := dataValidators.NewNilHeaderValidator()
@@ -230,15 +277,15 @@ func (icf *baseInterceptorsContainerFactory) generateHdrInterceptor() ([]string,
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(icf.argInterceptorFactory)
+	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      icf.dataPool.Headers(),
+		Headers:      bicf.dataPool.Headers(),
 		HdrValidator: hdrValidator,
-		BlackList:    icf.blackList,
+		BlackList:    bicf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -249,7 +296,7 @@ func (icf *baseInterceptorsContainerFactory) generateHdrInterceptor() ([]string,
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		hdrFactory,
 		hdrProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -257,7 +304,7 @@ func (icf *baseInterceptorsContainerFactory) generateHdrInterceptor() ([]string,
 
 	// compose header shard topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
+	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,8 +314,8 @@ func (icf *baseInterceptorsContainerFactory) generateHdrInterceptor() ([]string,
 
 //------- MiniBlocks interceptors
 
-func (icf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
+func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := bicf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+1)
 	interceptorsSlice := make([]process.Interceptor, noOfShards+1)
@@ -276,7 +323,7 @@ func (icf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+		interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -287,7 +334,7 @@ func (icf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
-	interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -298,19 +345,19 @@ func (icf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([
 	return keys, interceptorsSlice, nil
 }
 
-func (icf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
-		MiniblockCache:   icf.dataPool.MiniBlocks(),
-		Marshalizer:      icf.marshalizer,
-		Hasher:           icf.hasher,
-		ShardCoordinator: icf.shardCoordinator,
+		MiniblockCache:   bicf.dataPool.MiniBlocks(),
+		Marshalizer:      bicf.marshalizer,
+		Hasher:           bicf.hasher,
+		ShardCoordinator: bicf.shardCoordinator,
 	}
 	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(icf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -318,18 +365,18 @@ func (icf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topi
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		txFactory,
 		txBlockBodyProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- MetachainHeader interceptors
 
-func (icf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptors() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
@@ -338,15 +385,15 @@ func (icf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor(
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(icf.argInterceptorFactory)
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      icf.dataPool.Headers(),
+		Headers:      bicf.dataPool.Headers(),
 		HdrValidator: hdrValidator,
-		BlackList:    icf.blackList,
+		BlackList:    bicf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -357,13 +404,13 @@ func (icf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor(
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		hdrFactory,
 		hdrProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
+	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -371,26 +418,26 @@ func (icf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor(
 	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
 }
 
-func (icf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
-	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(icf.dataPool.TrieNodes())
+func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(bicf.dataPool.TrieNodes())
 	if err != nil {
 		return nil, err
 	}
 
-	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(icf.argInterceptorFactory)
+	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		icf.marshalizer,
+		bicf.marshalizer,
 		trieNodesFactory,
 		trieNodesProcessor,
-		icf.globalThrottler,
+		bicf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }

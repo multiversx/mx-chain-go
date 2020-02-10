@@ -1,6 +1,7 @@
 package resolverscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -23,6 +24,35 @@ type baseResolversContainerFactory struct {
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
 	triesContainer           state.TriesHolder
+}
+
+func (bcrf *baseResolversContainerFactory) checkParams() error {
+	if check.IfNil(bcrf.shardCoordinator) {
+		return dataRetriever.ErrNilShardCoordinator
+	}
+	if check.IfNil(bcrf.messenger) {
+		return dataRetriever.ErrNilMessenger
+	}
+	if check.IfNil(bcrf.store) {
+		return dataRetriever.ErrNilStore
+	}
+	if check.IfNil(bcrf.marshalizer) {
+		return dataRetriever.ErrNilMarshalizer
+	}
+	if check.IfNil(bcrf.dataPools) {
+		return dataRetriever.ErrNilDataPoolHolder
+	}
+	if check.IfNil(bcrf.uint64ByteSliceConverter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(bcrf.dataPacker) {
+		return dataRetriever.ErrNilDataPacker
+	}
+	if check.IfNil(bcrf.triesContainer) {
+		return dataRetriever.ErrNilTrieDataGetter
+	}
+
+	return nil
 }
 
 func (brcf *baseResolversContainerFactory) createTopicAndAssignHandler(

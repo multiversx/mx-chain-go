@@ -50,50 +50,36 @@ func NewShardInterceptorsContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (*shardInterceptorsContainerFactory, error) {
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(messenger) {
-		return nil, process.ErrNilMessenger
-	}
-	if check.IfNil(store) {
-		return nil, process.ErrNilBlockChain
-	}
 	if sizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
+	err := checkBaseParams(
+		shardCoordinator,
+		accounts,
+		marshalizer,
+		hasher,
+		store,
+		dataPool,
+		messenger,
+		multiSigner,
+		nodesCoordinator,
+		blackList,
+	)
+	if err != nil {
+		return nil, err
 	}
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
+
 	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
 	if check.IfNil(singleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(multiSigner) {
-		return nil, process.ErrNilMultiSigVerifier
-	}
-	if check.IfNil(dataPool) {
-		return nil, process.ErrNilDataPoolHolder
-	}
 	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if check.IfNil(nodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
-	}
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(blackList) {
-		return nil, process.ErrNilBlackListHandler
 	}
 	if check.IfNil(blockSignKeyGen) {
 		return nil, process.ErrNilKeyGen
@@ -154,7 +140,6 @@ func NewShardInterceptorsContainerFactory(
 		addrConverter:                    addrConverter,
 	}
 
-	var err error
 	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
@@ -197,7 +182,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = sicf.generateHdrInterceptor()
+	keys, interceptorSlice, err = sicf.generateHeaderInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +202,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = sicf.generateMetachainHeaderInterceptor()
+	keys, interceptorSlice, err = sicf.generateMetachainHeaderInterceptors()
 	if err != nil {
 		return nil, err
 	}

@@ -50,36 +50,23 @@ func NewMetaInterceptorsContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (*metaInterceptorsContainerFactory, error) {
-
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(messenger) {
-		return nil, process.ErrNilMessenger
-	}
-	if check.IfNil(store) {
-		return nil, process.ErrNilStore
-	}
 	if sizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(multiSigner) {
-		return nil, process.ErrNilMultiSigVerifier
-	}
-	if check.IfNil(dataPool) {
-		return nil, process.ErrNilDataPoolHolder
-	}
-	if check.IfNil(nodesCoordinator) {
-		return nil, process.ErrNilNodesCoordinator
-	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
+	err := checkBaseParams(
+		shardCoordinator,
+		accounts,
+		marshalizer,
+		hasher,
+		store,
+		dataPool,
+		messenger,
+		multiSigner,
+		nodesCoordinator,
+		blackList,
+	)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
@@ -92,9 +79,6 @@ func NewMetaInterceptorsContainerFactory(
 	}
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(blackList) {
-		return nil, process.ErrNilBlackListHandler
 	}
 	if check.IfNil(blockKeyGen) {
 		return nil, process.ErrNilKeyGen
@@ -152,7 +136,6 @@ func NewMetaInterceptorsContainerFactory(
 		baseInterceptorsContainerFactory: base,
 	}
 
-	var err error
 	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
@@ -165,7 +148,7 @@ func NewMetaInterceptorsContainerFactory(
 func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
 	container := containers.NewInterceptorsContainer()
 
-	keys, interceptorSlice, err := micf.generateMetablockInterceptor()
+	keys, interceptorSlice, err := micf.generateMetablockInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +209,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 
 //------- Metablock interceptor
 
-func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptor() ([]string, []process.Interceptor, error) {
+func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
 
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
