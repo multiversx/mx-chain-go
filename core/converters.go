@@ -27,6 +27,7 @@ func ConvertBytes(bytes uint64) string {
 }
 
 // ToB64 encodes the given buff to base64
+// This should be used only for display purposes!
 func ToB64(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
@@ -35,6 +36,7 @@ func ToB64(buff []byte) string {
 }
 
 // ToHex encodes the given buff to hex
+// This should be used only for display purposes!
 func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"

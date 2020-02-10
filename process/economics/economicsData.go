@@ -216,6 +216,11 @@ func (ed *EconomicsData) BurnPercentage() float64 {
 	return ed.burnPercentage
 }
 
+// MinGasPrice will return min gas price
+func (ed *EconomicsData) MinGasPrice() uint64 {
+	return ed.minGasPrice
+}
+
 // ComputeFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())

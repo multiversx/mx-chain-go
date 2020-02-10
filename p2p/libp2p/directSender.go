@@ -117,7 +117,14 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message) 
 		return p2p.ErrAlreadySeenMessage
 	}
 
-	p2pMsg := NewMessage(&pubsub.Message{Message: message})
+	p2pMsg, err := NewMessage(
+		&pubsub.Message{
+			Message: message,
+		},
+	)
+	if err != nil {
+		return err
+	}
 	return ds.messageHandler(p2pMsg)
 }
 
