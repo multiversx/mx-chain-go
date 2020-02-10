@@ -1,6 +1,7 @@
 package consensusGroupProviders
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -13,20 +14,22 @@ import (
 )
 
 func BenchmarkReslicingBasedProvider_Get(b *testing.B) {
-	numVals := 400
+	numVals := 63
 	expElList := getExpandedEligibleList(400)
-	randomness := uint64(12345)
+	randomness := uint64(12<<56 | 34<<48 | 56<<40 | 78<<32 | 90<<24 | 12<<16 | 34<<8 | 56)
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testWithReslicing(randomness, numVals, expElList)
 	}
 }
 
 func BenchmarkSelectionBasedProvider_Get(b *testing.B) {
-	numVals := 400
+	numVals := 63
 	expElList := getExpandedEligibleList(400)
-	randomness := uint64(12345)
+	randomness := uint64(12<<56 | 34<<48 | 56<<40 | 78<<32 | 90<<24 | 12<<16 | 34<<8 | 56)
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testWithSelection(randomness, numVals, expElList)
 	}
@@ -83,7 +86,8 @@ func TestMemUsageWithSelection(t *testing.T) {
 func TestBoth(t *testing.T) {
 	numVals := 400
 	expElList := getExpandedEligibleList(400)
-	randomness := uint64(12345)
+	randomness := uint64(12<<56 | 34<<48 | 56<<40 | 78<<32 | 90<<24 | 12<<16 | 34<<8 | 56)
+
 	for i := 0; i < 100; i++ {
 		testBothAlgorithmsHaveTheSameOutput(t, randomness, numVals, expElList)
 	}
@@ -110,7 +114,7 @@ func testBothAlgorithmsHaveTheSameOutput(t *testing.T, rand uint64, numVals int,
 
 func displayVals(vals []sharding.Validator) {
 	for _, val := range vals {
-		fmt.Println(string(val.Address()))
+		fmt.Println(hex.EncodeToString(val.PubKey()))
 	}
 	fmt.Println()
 }
