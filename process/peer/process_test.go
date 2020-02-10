@@ -41,12 +41,13 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue:     "500",
-				UnBondPeriod:   "5",
-				TotalSupply:    "200000000000",
-				MinStepValue:   "100000",
-				NumNodes:       1000,
-				AuctionEnabled: false,
+				StakeValue:         "500",
+				UnBondPeriod:       "5",
+				TotalSupply:        "200000000000",
+				MinStepValue:       "100000",
+				NumNodes:           1000,
+				AuctionEnableNonce: "100000",
+				StakeEnableNonce:   "100000",
 			},
 			RatingSettings: config.RatingSettings{
 				StartRating:                 5,
@@ -809,7 +810,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		switch v := obj.(type) {
 		case *block.MetaBlock:
 			*v = block.MetaBlock{
-				Nonce: 0,
+				Nonce:         0,
 				PubKeysBitmap: []byte{0, 0},
 			}
 		case *block.Header:

@@ -68,7 +68,8 @@ type ValidatorSettingsHandler interface {
 	MinStepValue() *big.Int
 	TotalSupply() *big.Int
 	NumNodes() uint32
-	AuctionEnabled() bool
+	AuctionEnableNonce() uint64
+	StakeEnableNonce() uint64
 	IsInterfaceNil() bool
 }
 

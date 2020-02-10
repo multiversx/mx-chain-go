@@ -34,13 +34,14 @@ type AuctionConfig struct {
 }
 
 type stakingAuctionSC struct {
-	eei              vm.SystemEI
-	unBondPeriod     uint64
-	sigVerifier      vm.MessageSignVerifier
-	baseConfig       AuctionConfig
-	auctionEnabled   bool
-	stakingSCAddress []byte
-	auctionSCAddress []byte
+	eei                vm.SystemEI
+	unBondPeriod       uint64
+	sigVerifier        vm.MessageSignVerifier
+	baseConfig         AuctionConfig
+	enableAuctionNonce uint64
+	stakingSCAddress   []byte
+	auctionSCAddress   []byte
+	enableStakingNonce uint64
 }
 
 type ArgsStakingAuctionSmartContract struct {
@@ -83,13 +84,14 @@ func NewStakingAuctionSmartContract(
 	}
 
 	reg := &stakingAuctionSC{
-		eei:              args.Eei,
-		unBondPeriod:     args.ValidatorSettings.UnBondPeriod(),
-		sigVerifier:      args.SigVerifier,
-		baseConfig:       baseConfig,
-		auctionEnabled:   args.ValidatorSettings.AuctionEnabled(),
-		stakingSCAddress: args.StakingSCAddress,
-		auctionSCAddress: args.AuctionSCAddress,
+		eei:                args.Eei,
+		unBondPeriod:       args.ValidatorSettings.UnBondPeriod(),
+		sigVerifier:        args.SigVerifier,
+		baseConfig:         baseConfig,
+		enableAuctionNonce: args.ValidatorSettings.AuctionEnableNonce(),
+		enableStakingNonce: args.ValidatorSettings.StakeEnableNonce(),
+		stakingSCAddress:   args.StakingSCAddress,
+		auctionSCAddress:   args.AuctionSCAddress,
 	}
 	return reg, nil
 }
@@ -308,7 +310,25 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	return blsKeys
 }
 
+func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
+	currentNonce := s.eei.BlockChainHook().CurrentNonce()
+	if currentNonce == 0 {
+		return true
+	}
+
+	if currentNonce < nonce {
+		return false
+	}
+
+	return true
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
+	if !isStakeEnabled {
+		return vmcommon.UserError
+	}
+
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
@@ -352,7 +372,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	if !s.auctionEnabled {
+	if !s.isFunctionEnabled(s.enableAuctionNonce) {
 		numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, config.MinStakeValue)
 		s.activateStakingFor(numQualified.Uint64(), registrationData, config.MinStakeValue, registrationData.RewardAddress)
 	}
@@ -474,6 +494,11 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 }
 
 func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
+	if !isUnStakeEnabled {
+		return vmcommon.UserError
+	}
+
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		return vmcommon.UserError
@@ -519,6 +544,11 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 }
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
+	if !isStakeEnabled {
+		return vmcommon.UserError
+	}
+
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		return vmcommon.UserError

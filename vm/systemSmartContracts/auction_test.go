@@ -782,6 +782,39 @@ func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
+func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T) {
+	t.Parallel()
+
+	eei := &mock.SystemEIStub{}
+	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
+		return &mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
+			return 100
+		}}
+	}
+	args := createMockArgumentsForAuction()
+	args.ValidatorSettings = &mock.ValidatorSettingsStub{StakeEnableNonceCalled: func() uint64 {
+		return eei.BlockChainHook().CurrentNonce() + uint64(1)
+	}}
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = []byte("data")
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes()}
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	arguments.Function = "unStake"
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	arguments.Function = "stake"
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+}
+
 func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	t.Parallel()
 
@@ -936,7 +969,14 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		},
 		StakeValueCalled: func() *big.Int {
 			return valueStakedByTheCaller
-		}}
+		},
+		AuctionEnableNonceCalled: func() uint64 {
+			return 0
+		},
+		StakeEnableNonceCalled: func() uint64 {
+			return 0
+		},
+	}
 
 	stakeSC, _ := NewStakingSmartContract(args.ValidatorSettings.StakeValue(), args.ValidatorSettings.UnBondPeriod(), eei, args.AuctionSCAddress)
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {

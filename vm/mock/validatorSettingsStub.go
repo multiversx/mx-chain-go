@@ -3,12 +3,13 @@ package mock
 import "math/big"
 
 type ValidatorSettingsStub struct {
-	MinStepValueCalled   func() *big.Int
-	TotalSupplyCalled    func() *big.Int
-	NumNodesCalled       func() uint32
-	AuctionEnabledCalled func() bool
-	UnBondPeriodCalled   func() uint64
-	StakeValueCalled     func() *big.Int
+	MinStepValueCalled       func() *big.Int
+	TotalSupplyCalled        func() *big.Int
+	NumNodesCalled           func() uint32
+	AuctionEnableNonceCalled func() uint64
+	StakeEnableNonceCalled   func() uint64
+	UnBondPeriodCalled       func() uint64
+	StakeValueCalled         func() *big.Int
 }
 
 func (v *ValidatorSettingsStub) MinStepValue() *big.Int {
@@ -32,11 +33,18 @@ func (v *ValidatorSettingsStub) NumNodes() uint32 {
 	return 10
 }
 
-func (v *ValidatorSettingsStub) AuctionEnabled() bool {
-	if v.AuctionEnabledCalled != nil {
-		return v.AuctionEnabledCalled()
+func (v *ValidatorSettingsStub) AuctionEnableNonce() uint64 {
+	if v.AuctionEnableNonceCalled != nil {
+		return v.AuctionEnableNonceCalled()
 	}
-	return false
+	return 1000000
+}
+
+func (v *ValidatorSettingsStub) StakeEnableNonce() uint64 {
+	if v.AuctionEnableNonceCalled != nil {
+		return v.AuctionEnableNonceCalled()
+	}
+	return 10000000
 }
 
 func (v *ValidatorSettingsStub) UnBondPeriod() uint64 {

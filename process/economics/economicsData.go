@@ -28,7 +28,8 @@ type EconomicsData struct {
 	minStep              *big.Int
 	totalSupply          *big.Int
 	numNodes             uint32
-	auctionEnabled       bool
+	auctionEnableNonce   uint64
+	stakeEnableNonce     uint64
 }
 
 const float64EqualityThreshold = 1e-9
@@ -78,7 +79,8 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		totalSupply:          data.totalSupply,
 		minStep:              data.minStep,
 		numNodes:             data.numNodes,
-		auctionEnabled:       data.auctionEnabled,
+		auctionEnableNonce:   data.auctionEnableNonce,
+		stakeEnableNonce:     data.stakeEnableNonce,
 	}, nil
 }
 
@@ -140,6 +142,16 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidMinStepValue
 	}
 
+	auctionEnableNonce, err := strconv.ParseUint(economics.ValidatorSettings.AuctionEnableNonce, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnBondPeriod
+	}
+
+	stakeEnableNonce, err := strconv.ParseUint(economics.ValidatorSettings.StakeEnableNonce, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnBondPeriod
+	}
+
 	return &EconomicsData{
 		rewardsValue:         rewardsValue,
 		minGasPrice:          minGasPrice,
@@ -152,7 +164,8 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		totalSupply:          totalSupply,
 		minStep:              minStepValue,
 		numNodes:             economics.ValidatorSettings.NumNodes,
-		auctionEnabled:       economics.ValidatorSettings.AuctionEnabled,
+		auctionEnableNonce:   auctionEnableNonce,
+		stakeEnableNonce:     stakeEnableNonce,
 	}, nil
 }
 
@@ -286,14 +299,14 @@ func (ed *EconomicsData) NumNodes() uint32 {
 	return ed.numNodes
 }
 
-// AuctionEnabled returns whether full auction process is enabled
-func (ed *EconomicsData) AuctionEnabled() bool {
-	return ed.auctionEnabled
+// AuctionEnableNonce returns whether full auction process is enabled
+func (ed *EconomicsData) AuctionEnableNonce() uint64 {
+	return ed.auctionEnableNonce
 }
 
-// SetAuctionEnabled sets whether the auction is enabled
-func (ed *EconomicsData) SetAuctionEnabled(auctionEnabled bool) {
-	ed.auctionEnabled = auctionEnabled
+// StakeEnableNonce returns whether full auction process is enabled
+func (ed *EconomicsData) StakeEnableNonce() uint64 {
+	return ed.stakeEnableNonce
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

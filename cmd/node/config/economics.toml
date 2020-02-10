@@ -23,7 +23,8 @@
     MinStepValue = "10000000000000000000000"
     TotalSupply = "20000000000000000000000000000" #20BIL ERD
     NumNodes = 1000
-    AuctionEnabled = false
+    AuctionEnableNonce = "100000000000"
+    StakeEnableNonce = "100000000000"
 
 [RatingSettings]
     StartRating = 50
