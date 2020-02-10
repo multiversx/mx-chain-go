@@ -887,6 +887,9 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 		UnBondPeriodCalled: func() uint64 {
 			return unBondPeriod
 		},
+		StakeEnableNonceCalled: func() uint64 {
+			return 0
+		},
 	}
 
 	stakeSC, _ := NewStakingSmartContract(args.ValidatorSettings.StakeValue(), args.ValidatorSettings.UnBondPeriod(), eei, args.AuctionSCAddress)

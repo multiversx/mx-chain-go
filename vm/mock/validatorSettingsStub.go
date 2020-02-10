@@ -47,8 +47,8 @@ func (v *ValidatorSettingsStub) AuctionEnableNonce() uint64 {
 
 // StakeEnableNonce -
 func (v *ValidatorSettingsStub) StakeEnableNonce() uint64 {
-	if v.AuctionEnableNonceCalled != nil {
-		return v.AuctionEnableNonceCalled()
+	if v.StakeEnableNonceCalled != nil {
+		return v.StakeEnableNonceCalled()
 	}
 	return 10000000
 }
