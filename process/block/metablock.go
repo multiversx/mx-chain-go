@@ -854,22 +854,14 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	buff, err := mp.marshalizer.Marshal(header)
+	marshalizedHeader, err := mp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	headerHash := mp.hasher.Compute(string(buff))
-	nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
-	errNotCritical := mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-	if errNotCritical != nil {
-		log.Trace("MetaHdrNonceHashDataUnit store.Put", "error", errNotCritical.Error())
-	}
+	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 
-	errNotCritical = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
-	if errNotCritical != nil {
-		log.Trace("MetaBlockUnit store.Put", "error", errNotCritical.Error())
-	}
+	go mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 
 	metaBlocksPool := mp.dataPool.Headers()
 	if metaBlocksPool == nil {
@@ -885,21 +877,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.SaveBlockDataToStorage(body)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(body); i++ {
-		buff, err = mp.marshalizer.Marshal(body[i])
-		if err != nil {
-			return err
-		}
-
-		miniBlockHash := mp.hasher.Compute(string(buff))
-		errNotCritical = mp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
-		log.LogIfError(errNotCritical)
-	}
+	go mp.saveBody(body)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
@@ -910,33 +888,21 @@ func (mp *metaProcessor) CommitBlock(
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, typeOk := headerInfo.hdr.(*block.Header)
-		if !typeOk {
+		shardBlock, ok := headerInfo.hdr.(*block.Header)
+		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
 
 		mp.updateShardHeadersNonce(shardBlock.ShardId, shardBlock.Nonce)
 
-		buff, err = mp.marshalizer.Marshal(shardBlock)
+		marshalizedHeader, err := mp.marshalizer.Marshal(shardBlock)
 		if err != nil {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return err
 		}
 
-		nonceBytes := mp.uint64Converter.ToByteSlice(shardBlock.Nonce)
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardBlock.ShardId)
-		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceBytes, shardHeaderHash)
-		if errNotCritical != nil {
-			log.Trace(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", shardBlock.ShardId),
-				"error", errNotCritical.Error(),
-			)
-		}
-
-		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardHeaderHash, buff)
-		if errNotCritical != nil {
-			log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical.Error())
-		}
+		go mp.saveShardHeader(shardBlock, shardHeaderHash, marshalizedHeader)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -967,7 +933,7 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", header.Nonce,
 		"hash", headerHash)
 
-	errNotCritical = mp.removeBlockInfoFromPool(header)
+	errNotCritical := mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
 		log.Debug("removeBlockInfoFromPool", "error", errNotCritical.Error())
 	}
@@ -1029,7 +995,7 @@ func (mp *metaProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	mp.prepareDataForBootStorer(
+	go mp.prepareDataForBootStorer(
 		headerInfo,
 		header.Round,
 		nil,
