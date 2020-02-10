@@ -4,11 +4,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// MessageProcessorStub -
 type MessageProcessorStub struct {
 	ProcessMessageCalled func(message p2p.MessageP2P) error
 }
 
-func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+// ProcessReceivedMessage -
+func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return mps.ProcessMessageCalled(message)
 }
 

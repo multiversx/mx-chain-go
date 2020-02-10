@@ -214,7 +214,8 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 75000
+    Size = 900000
+    SizeInBytes = 524288000
     Type = "TxCache"
     Shards = 16
 
@@ -328,5 +329,4 @@
 
 [StateTrieConfig]
     RoundsModulus = 100
-    # TODO: change this to true when pruning bugs are fixed
-    PruningEnabled = false
+    PruningEnabled = true

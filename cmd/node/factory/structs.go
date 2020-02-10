@@ -42,9 +42,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
+	txpoolFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -97,9 +98,6 @@ const (
 
 	// BlsConsensusType specifies te signature scheme used in the consensus
 	BlsConsensusType = "bls"
-
-	// BnConsensusType specifies te signature scheme used in the consensus
-	BnConsensusType = "bn"
 
 	// MaxTxsToRequest specifies the maximum number of txs to request
 	MaxTxsToRequest = 100
@@ -231,43 +229,27 @@ func createTries(
 	trieContainer := state.NewDataTriesHolder()
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		Cfg:                    args.config.AccountsTrieStorage,
 		EvictionWaitingListCfg: args.config.EvictionWaitingList,
 		SnapshotDbCfg:          args.config.TrieSnapshotDB,
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		PathManager:            args.pathManager,
 		ShardId:                args.shardId,
-		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	merkleTrie, err := trieFactory.Create()
+	merkleTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTrieConfig.PruningEnabled)
 	if err != nil {
 		return nil, err
 	}
 
 	trieContainer.Put([]byte(factory.UserAccountTrie), merkleTrie)
 
-	peerAccountsTrieFactoryArguments := factory.TrieFactoryArgs{
-		Cfg:                    args.config.PeerAccountsTrieStorage,
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            args.pathManager,
-		ShardId:                args.shardId,
-		PruningEnabled:         args.config.StateTrieConfig.PruningEnabled,
-	}
-	peerAccountsTrieFactory, err := factory.NewTrieFactory(peerAccountsTrieFactoryArguments)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccountsTrie, err := peerAccountsTrieFactory.Create()
+	//TODO add pruning on peer accounts trie
+	peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, false)
 	if err != nil {
 		return nil, err
 	}
@@ -358,6 +340,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 
 type dataComponentsFactoryArgs struct {
 	config             *config.Config
+	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
 	core               *Core
 	pathManager        storage.PathManagerHandler
@@ -368,6 +351,7 @@ type dataComponentsFactoryArgs struct {
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
 func NewDataComponentsFactoryArgs(
 	config *config.Config,
+	economicsData *economics.EconomicsData,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
@@ -376,6 +360,7 @@ func NewDataComponentsFactoryArgs(
 ) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
 		config:             config,
+		economicsData:      economicsData,
 		shardCoordinator:   shardCoordinator,
 		core:               core,
 		pathManager:        pathManager,
@@ -403,7 +388,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	datapool, err = createDataPoolFromConfig(args.config)
+	datapool, err = createDataPoolFromConfig(args)
 	if err != nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -682,15 +667,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
-	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
-		args.core,
-		args.state,
-		args.data,
-		args.shardCoordinator,
-		args.nodesConfig,
-		args.genesisConfig,
-		args.economicsData,
-	)
+	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args)
 	if err != nil {
 		return nil, err
 	}
@@ -1074,13 +1051,16 @@ func createDataStoreFromConfig(
 	return nil, errors.New("can not create data store")
 }
 
-func createDataPoolFromConfig(
-	config *config.Config,
-) (dataRetriever.PoolsHolder, error) {
-
+func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
-	txPool, err := txpool.CreateTxPool(storageFactory.GetCacherFromConfig(config.TxDataPool))
+	config := args.config
+
+	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
+		Config:         storageFactory.GetCacherFromConfig(config.TxDataPool),
+		MinGasPrice:    args.economicsData.MinGasPrice(),
+		NumberOfShards: args.shardCoordinator.NumberOfShards(),
+	})
 	if err != nil {
 		log.Error("error creating txpool")
 		return nil, err
@@ -1146,11 +1126,9 @@ func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
 	case BlsConsensusType:
 		return &singlesig.BlsSingleSigner{}, nil
-	case BnConsensusType:
-		return &singlesig.SchnorrSigner{}, nil
+	default:
+		return nil, errors.New("no consensus type provided in config file")
 	}
-
-	return nil, errors.New("no consensus type provided in config file")
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
@@ -1183,11 +1161,9 @@ func createMultiSigner(
 	case BlsConsensusType:
 		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
 		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
-	case BnConsensusType:
-		return multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGen, uint16(0))
+	default:
+		return nil, errors.New("no consensus type provided in config file")
 	}
-
-	return nil, errors.New("no consensus type provided in config file")
 }
 
 func createNetMessenger(
@@ -1467,15 +1443,7 @@ func newMetaResolverContainerFactory(
 	return resolversContainerFactory, nil
 }
 
-func generateGenesisHeadersAndApplyInitialBalances(
-	coreComponents *Core,
-	stateComponents *State,
-	dataComponents *Data,
-	shardCoordinator sharding.Coordinator,
-	nodesSetup *sharding.NodesSetup,
-	genesisConfig *sharding.Genesis,
-	economics *economics.EconomicsData,
-) (map[uint32]data.HeaderHandler, error) {
+func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactoryArgs) (map[uint32]data.HeaderHandler, error) {
 	//TODO change this rudimentary startup for metachain nodes
 	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
 	// --------------------------------------------------------------------
@@ -1488,6 +1456,14 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	// so shard nodes can go ahead with individually creating the block, but then run consensus on this.
 	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
 	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
+
+	coreComponents := args.core
+	stateComponents := args.state
+	dataComponents := args.data
+	shardCoordinator := args.shardCoordinator
+	nodesSetup := args.nodesConfig
+	genesisConfig := args.genesisConfig
+	economics := args.economicsData
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 

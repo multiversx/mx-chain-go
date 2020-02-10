@@ -2,12 +2,14 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+// HashSliceResolverStub -
 type HashSliceResolverStub struct {
 	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 }
 
+// RequestDataFromHash -
 func (hsrs *HashSliceResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hsrs.RequestDataFromHashCalled != nil {
 		return hsrs.RequestDataFromHashCalled(hash, epoch)
@@ -16,6 +18,7 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHash(hash []byte, epoch uint32
 	return errNotImplemented
 }
 
+// ProcessReceivedMessage -
 func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	if hsrs.ProcessReceivedMessageCalled != nil {
 		return hsrs.ProcessReceivedMessageCalled(message)
@@ -24,6 +27,7 @@ func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P
 	return errNotImplemented
 }
 
+// RequestDataFromHashArray -
 func (hsrs *HashSliceResolverStub) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	if hsrs.RequestDataFromHashArrayCalled != nil {
 		return hsrs.RequestDataFromHashArrayCalled(hashes, epoch)

@@ -124,7 +124,7 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg)
+	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
 
 	select {
 	case <-chDone:
@@ -156,7 +156,7 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg)
+	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
 
 	select {
 	case <-chDone:
@@ -188,7 +188,7 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg)
+	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
 
 	select {
 	case <-chDone:

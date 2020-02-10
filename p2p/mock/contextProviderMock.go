@@ -4,9 +4,11 @@ import (
 	"context"
 )
 
+// ContextProviderMock -
 type ContextProviderMock struct {
 }
 
+// Context -
 func (*ContextProviderMock) Context() context.Context {
 	panic("implement me")
 }

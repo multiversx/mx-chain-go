@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// HeaderResolverMock -
 type HeaderResolverMock struct {
 	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
@@ -13,6 +14,7 @@ type HeaderResolverMock struct {
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// RequestDataFromEpoch -
 func (hrm *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
 	if hrm.RequestDataFromEpochCalled != nil {
 		return hrm.RequestDataFromEpochCalled(identifier)
@@ -20,6 +22,7 @@ func (hrm *HeaderResolverMock) RequestDataFromEpoch(identifier []byte) error {
 	return nil
 }
 
+// SetEpochHandler -
 func (hrm *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if hrm.SetEpochHandlerCalled != nil {
 		return hrm.SetEpochHandlerCalled(epochHandler)
@@ -27,14 +30,17 @@ func (hrm *HeaderResolverMock) SetEpochHandler(epochHandler dataRetriever.EpochH
 	return nil
 }
 
+// RequestDataFromHash -
 func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return hrm.RequestDataFromHashCalled(hash, epoch)
 }
 
+// ProcessReceivedMessage -
 func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 
+// RequestDataFromNonce -
 func (hrm *HeaderResolverMock) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	return hrm.RequestDataFromNonceCalled(nonce, epoch)
 }

@@ -1,4 +1,4 @@
-package commonSubround_test
+package bls_test
 
 import (
 	"errors"
@@ -9,17 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
 )
-
-var chainID = []byte("chain ID")
-
-func extend(subroundId int) {
-	fmt.Println(subroundId)
-}
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
 	container *mock.ConsensusCoreMock) (*spos.Subround, error) {
@@ -38,20 +32,27 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 	)
 }
 
-func defaultSubroundBlockFromSubround(sr *spos.Subround) (*commonSubround.SubroundBlock, error) {
-	srBlock, err := commonSubround.NewSubroundBlock(
+func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, error) {
+	srBlock, err := bls.NewSubroundBlock(
 		sr,
 		extend,
-		MtBlockBody,
-		MtBlockHeader,
 		processingThresholdPercent,
-		getSubroundName,
 	)
 
 	return srBlock, err
 }
 
-func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) *commonSubround.SubroundBlock {
+func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.SubroundBlock {
+	srBlock, _ := bls.NewSubroundBlock(
+		sr,
+		extend,
+		processingThresholdPercent,
+	)
+
+	return srBlock
+}
+
+func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) bls.SubroundBlock {
 	if blockChain == nil {
 		blockChain = &mock.BlockChainMock{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -83,7 +84,7 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 func initSubroundBlockWithBlockProcessor(
 	bp *mock.BlockProcessorMock,
 	container *mock.ConsensusCoreMock,
-) *commonSubround.SubroundBlock {
+) bls.SubroundBlock {
 	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -110,13 +111,10 @@ func initSubroundBlockWithBlockProcessor(
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srBlock, err := commonSubround.NewSubroundBlock(
+	srBlock, err := bls.NewSubroundBlock(
 		nil,
 		extend,
-		MtBlockBody,
-		MtBlockHeader,
 		processingThresholdPercent,
-		getSubroundName,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -328,12 +326,15 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
-	sr.BlockBody = make(block.Body, 0)
+	sr.Body = make(block.Body, 0)
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
-	sr.BlockBody = nil
+	sr.Body = nil
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
@@ -359,6 +360,9 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		MtBlockHeader,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -406,6 +410,9 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
@@ -431,9 +438,12 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -452,9 +462,12 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
@@ -479,9 +492,12 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	assert.True(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -659,8 +675,10 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
 	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -689,8 +707,10 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
 	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -737,8 +757,10 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	header, _ := sr.CreateHeader()
 	body, _ := sr.CreateBody(header)
 	_, _ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
-	_ = sr.SendBlockBody(body)
-	_ = sr.SendBlockHeader(header)
+	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+	_ = sr.SendBlockBody(body, marshalizedBody)
+	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
@@ -841,9 +863,12 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		MtBlockBody,
 		0,
 		chainID,
+		nil,
+		nil,
+		nil,
 	)
 	sr.Header = hdr
-	sr.BlockBody = blk
+	sr.Body = blk
 	receivedValue := uint64(0)
 	_ = sr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
@@ -870,8 +895,13 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDurationWithZeroDurationShould
 		}
 	}()
 
-	sr := &commonSubround.SubroundBlock{
-		Subround: &spos.Subround{},
-	}
-	sr.ComputeSubroundProcessingMetric(time.Now(), "dummy")
+	container := mock.InitConsensusCore()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
+	srBlock := *defaultSubroundBlockWithoutErrorFromSubround(sr)
+
+	srBlock.ComputeSubroundProcessingMetric(time.Now(), "dummy")
 }

@@ -35,11 +35,9 @@ const DirectSendID = protocol.ID("/directsend/1.0.0")
 
 const refreshPeersOnTopic = time.Second * 60
 const ttlPeersOnTopic = time.Second * 120
-
 const pubsubTimeCacheDuration = 10 * time.Minute
-
 const broadcastGoRoutines = 1000
-
+const durationBetweenPeersPrints = time.Second * 20
 const defaultThresholdMinConnectedPeers = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -176,6 +174,19 @@ func createMessenger(
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		for {
+			time.Sleep(durationBetweenPeersPrints)
+
+			numConnectedPeers := len(netMes.ConnectedPeers())
+			numKnownPeers := len(netMes.Peers())
+			log.Debug("network connection status",
+				"known peers", numKnownPeers,
+				"connected peers", numConnectedPeers,
+			)
+		}
+	}()
 
 	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
 		for {
@@ -514,9 +525,15 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message), p2p.PeerID(pid))
+		wrappedMsg := NewMessage(message)
+		err := handler.ProcessReceivedMessage(wrappedMsg, p2p.PeerID(pid))
 		if err != nil {
-			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
+			log.Trace("p2p validator",
+				"error", err.Error(),
+				"topics", message.TopicIDs,
+				"pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
+			)
 		}
 
 		return err == nil
@@ -571,7 +588,12 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	go func(msg p2p.MessageP2P) {
 		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
-			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
+			log.Trace("p2p validator",
+				"error", err.Error(),
+				"topics", msg.TopicIDs(),
+				"pid", p2p.MessageOriginatorPid(msg),
+				"seq no", p2p.MessageOriginatorSeq(msg),
+			)
 		}
 	}(message)
 

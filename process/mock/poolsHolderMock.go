@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+// PoolsHolderMock -
 type PoolsHolderMock struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
@@ -22,9 +23,22 @@ type PoolsHolderMock struct {
 	currBlockTxs         dataRetriever.TransactionCacher
 }
 
+// NewPoolsHolderMock -
 func NewPoolsHolderMock() *PoolsHolderMock {
 	phf := &PoolsHolderMock{}
-	phf.transactions, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 10000, Shards: 16})
+
+	phf.transactions, _ = txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        10000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
+
 	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	phf.headers, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
@@ -36,42 +50,52 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	return phf
 }
 
+// CurrentBlockTxs -
 func (phm *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return phm.currBlockTxs
 }
 
+// Transactions -
 func (phm *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return phm.transactions
 }
 
+// UnsignedTransactions -
 func (phm *PoolsHolderMock) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phm.unsignedTransactions
 }
 
+// RewardTransactions -
 func (phm *PoolsHolderMock) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phm.rewardTransactions
 }
 
+// Headers -
 func (phm *PoolsHolderMock) Headers() dataRetriever.HeadersPool {
 	return phm.headers
 }
 
+// MiniBlocks -
 func (phm *PoolsHolderMock) MiniBlocks() storage.Cacher {
 	return phm.miniBlocks
 }
 
+// PeerChangesBlocks -
 func (phm *PoolsHolderMock) PeerChangesBlocks() storage.Cacher {
 	return phm.peerChangesBlocks
 }
 
+// SetTransactions -
 func (phm *PoolsHolderMock) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
 	phm.transactions = transactions
 }
 
+// SetUnsignedTransactions -
 func (phm *PoolsHolderMock) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
 	phm.unsignedTransactions = scrs
 }
 
+// TrieNodes -
 func (phm *PoolsHolderMock) TrieNodes() storage.Cacher {
 	return phm.trieNodes
 }
