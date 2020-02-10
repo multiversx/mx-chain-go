@@ -39,7 +39,7 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 	return list, nil
 }
 
-// ConsensusGroupSize
+// ConsensusGroupSize -
 func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	return 1
 }

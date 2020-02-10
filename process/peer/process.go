@@ -343,8 +343,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
 	}
 
-	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	return vs.decreaseAll(shardId, missedRounds-1, consensusGroupSize)
+	return vs.decreaseAll(shardId, missedRounds-1)
 }
 
 func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32) error {
@@ -674,10 +673,10 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	return peer.GetTempRating()
 }
 
-func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, consensusGroupSize int) error {
+func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64) error {
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
-
+	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
 	shardValidators := vs.nodesCoordinator.GetAllValidatorsPublicKeys()[shardId]
 	validatorsCount := len(shardValidators)
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
