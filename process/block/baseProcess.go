@@ -913,14 +913,14 @@ func (bp *baseProcessor) saveBody(body block.Body) {
 	}
 
 	for i := 0; i < len(body); i++ {
-		marshalizedBody, errNotCritical := bp.marshalizer.Marshal(body[i])
+		marshalizedMiniBlock, errNotCritical := bp.marshalizer.Marshal(body[i])
 		if errNotCritical != nil {
 			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue
 		}
 
-		miniBlockHash := bp.hasher.Compute(string(marshalizedBody))
-		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedBody)
+		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
+		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
 		if errNotCritical != nil {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
