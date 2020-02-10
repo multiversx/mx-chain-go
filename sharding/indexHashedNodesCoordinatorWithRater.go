@@ -1,8 +1,6 @@
 package sharding
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
@@ -32,7 +30,6 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	}
 
 	ihncr.nodesPerShardSetter = ihncr
-
 	ihncr.epochStartSubscriber.UnregisterHandler(indexNodesCoordinator)
 	ihncr.epochStartSubscriber.RegisterHandler(ihncr)
 
@@ -55,12 +52,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 		return err
 	}
 
-	go func() {
-
-		err = ihgs.expandAllLists(epoch)
-
-	}()
-	return err
+	return ihgs.expandAllLists(epoch)
 }
 
 //IsInterfaceNil verifies that the underlying value is nil
@@ -79,15 +71,26 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandAllLists(epoch uint32) e
 
 	shardsExpanded := make(map[uint32][]Validator)
 
-	nrShards := len(nodesConfig.eligibleMap)
+	err2 := ihgs.expandListsForEpochConfig(nodesConfig, shardsExpanded)
+	if err2 != nil {
+		return err2
+	}
 
-	metaChainExpanded, err := ihgs.expandList(nodesConfig, core.MetachainShardId, ihgs.metaConsensusGroupSize)
+	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinatorWithRater) expandListsForEpochConfig(nodesConfig *epochNodesConfig, shardsExpanded map[uint32][]Validator) error {
+	nodesConfig.mutNodesMaps.Lock()
+	defer nodesConfig.mutNodesMaps.Unlock()
+
+	nrShards := len(nodesConfig.eligibleMap)
+	metaChainExpanded, err := ihgs.expandList(nodesConfig, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
 
 	for shardId := uint32(0); shardId < uint32(nrShards-1); shardId++ {
-		shardsExpanded[shardId], err = ihgs.expandList(nodesConfig, shardId, ihgs.shardConsensusGroupSize)
+		shardsExpanded[shardId], err = ihgs.expandList(nodesConfig, shardId)
 		if err != nil {
 			return err
 		}
@@ -97,45 +100,29 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandAllLists(epoch uint32) e
 	for shardId := uint32(0); shardId < uint32(nrShards-1); shardId++ {
 		nodesConfig.expandedEligibleMap[shardId] = shardsExpanded[shardId]
 	}
-
 	return nil
 }
 
-func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochNodesConfig, shardId uint32, consensusGroupSize int) ([]Validator, error) {
+func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochNodesConfig, shardId uint32) ([]Validator, error) {
 	validators := nodesConfig.eligibleMap[shardId]
-	mut := &nodesConfig.mutNodesMaps
 	log.Trace("Expanding eligible list", "shardId", shardId)
-	return ihgs.expandEligibleList(validators, mut, consensusGroupSize)
+	return ihgs.expandEligibleList(validators)
 }
 
-func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators []Validator, mut *sync.RWMutex, consensusGroupSize int) ([]Validator, error) {
-	mut.RLock()
-	defer mut.RUnlock()
-
+func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators []Validator) ([]Validator, error) {
 	validatorList := make([]Validator, 0)
-	zeroChanceValidators := make([]Validator, 0)
-	totalValidatorsSelected := 0
 
 	for _, validatorInShard := range validators {
 		pk := validatorInShard.PubKey()
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
-		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
-		if chances > 0 {
-			totalValidatorsSelected += 1
-		} else {
-			zeroChanceValidators = append(zeroChanceValidators, validatorInShard)
+		if chances == 0 {
+			chances = ihgs.GetChance(0)
 		}
+		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)
+
 		for i := uint32(0); i < chances; i++ {
 			validatorList = append(validatorList, validatorInShard)
-		}
-	}
-
-	if totalValidatorsSelected < consensusGroupSize {
-		log.Trace("Adding Zerochance validators")
-		for _, validator := range zeroChanceValidators {
-			log.Trace("ZeroChancevalidator", "pk", validator.PubKey())
-			validatorList = append(validatorList, validator)
 		}
 	}
 

@@ -5,6 +5,7 @@ type nilRatingReader struct {
 	startRating uint32
 }
 
+// NewNilRatingReader create a new ratingReader that returns fixed values
 func NewNilRatingReader(startRating uint32) *nilRatingReader {
 	return &nilRatingReader{startRating: startRating}
 }

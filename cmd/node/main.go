@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -878,13 +879,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
-	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+	if check.IfNil(elasticIndexer) {
 		return
 	}
 
 	validatorsPubKeys, _ := coordinator.GetAllEligibleValidatorsPublicKeys(0)
 
-	if validatorsPubKeys != nil {
+	if len(validatorsPubKeys) > 0 {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
 }

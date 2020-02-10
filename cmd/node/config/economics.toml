@@ -29,33 +29,36 @@
     ProposerDecreaseRatingStep = 3858
     ValidatorIncreaseRatingStep = 31
     ValidatorDecreaseRatingStep = 61
-    [[RatingSettings.Chance]]
+    [[RatingSettings.SelectionChance]]
+    MaxThreshold = 0
+    ChancePercent = 5
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 100000
     ChancePercent = 0
-    [[RatingSettings.Chance]]
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 200000
-    ChancePercent = 80
-    [[RatingSettings.Chance]]
+    ChancePercent = 16
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 300000
-    ChancePercent = 85
-    [[RatingSettings.Chance]]
+    ChancePercent = 17
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 400000
-    ChancePercent = 90
-    [[RatingSettings.Chance]]
+    ChancePercent = 18
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 500000
-    ChancePercent = 95
-    [[RatingSettings.Chance]]
+    ChancePercent = 19
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 600000
-    ChancePercent = 100
-    [[RatingSettings.Chance]]
+    ChancePercent = 20
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 700000
-    ChancePercent = 105
-    [[RatingSettings.Chance]]
+    ChancePercent = 21
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 800000
-    ChancePercent = 110
-    [[RatingSettings.Chance]]
+    ChancePercent = 22
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 900000
-    ChancePercent = 115
-    [[RatingSettings.Chance]]
+    ChancePercent = 23
+    [[RatingSettings.SelectionChance]]
     MaxThreshold = 1000000
-    ChancePercent = 120
+    ChancePercent = 24

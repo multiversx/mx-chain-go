@@ -181,7 +181,7 @@ func createNode(
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
-	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(
+	argFactory := ArgIndexHashedNodesCoordinatorFactory{
 		nodesPerShard,
 		nbMetaNodes,
 		shardConsensusGroupSize,
@@ -193,7 +193,10 @@ func createNode(
 		keyIndex,
 		cp,
 		epochStartSubscriber,
-		TestHasher)
+		TestHasher,
+	}
+
+	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
 	return NewTestProcessorNodeWithCustomNodesCoordinator(
 		uint32(nbShards),

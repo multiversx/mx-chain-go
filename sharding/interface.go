@@ -124,4 +124,6 @@ type RatingChance interface {
 	GetMaxThreshold() uint32
 	//GetChancePercentage returns the percentage for the RatingChance
 	GetChancePercentage() uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }

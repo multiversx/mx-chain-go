@@ -187,7 +187,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 
 	eligibleNodes := ihgs.nodesConfig[0].eligibleMap[0]
-	expandedList, _ := ihgs.expandEligibleList(eligibleNodes, &ihgs.nodesConfig[0].mutNodesMaps, ihgs.shardConsensusGroupSize)
+	expandedList, _ := ihgs.expandEligibleList(eligibleNodes)
 	assert.Equal(t, int(ratingPk0+ratingPk1), len(expandedList))
 
 	occurences := make(map[string]uint32, 2)

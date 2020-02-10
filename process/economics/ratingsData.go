@@ -5,6 +5,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+type SelectionChance struct {
+	MaxThreshold  uint32
+	ChancePercent uint32
+}
+
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
 	startRating                 uint32
@@ -14,7 +19,7 @@ type RatingsData struct {
 	proposerDecreaseRatingStep  uint32
 	validatorIncreaseRatingStep uint32
 	validatorDecreaseRatingStep uint32
-	chances                     []Chance
+	selectionChances            []SelectionChance
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -31,9 +36,9 @@ func NewRatingsData(
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
 
-	chances := make([]Chance, 0)
-	for _, chance := range settings.Chance {
-		chances = append(chances, Chance{
+	chances := make([]SelectionChance, 0)
+	for _, chance := range settings.SelectionChance {
+		chances = append(chances, SelectionChance{
 			MaxThreshold:  chance.MaxThreshold,
 			ChancePercent: chance.ChancePercent,
 		})
@@ -47,11 +52,11 @@ func NewRatingsData(
 		proposerDecreaseRatingStep:  settings.ProposerDecreaseRatingStep,
 		validatorIncreaseRatingStep: settings.ValidatorIncreaseRatingStep,
 		validatorDecreaseRatingStep: settings.ValidatorDecreaseRatingStep,
-		chances:                     chances,
+		selectionChances:            chances,
 	}, nil
 }
 
-// startRating will return the start rating
+// StartRating will return the start rating
 func (rd *RatingsData) StartRating() uint32 {
 	return rd.startRating
 }
@@ -86,7 +91,7 @@ func (rd *RatingsData) ValidatorDecreaseRatingStep() uint32 {
 	return rd.validatorDecreaseRatingStep
 }
 
-// chances will return the array of chances and thresholds
-func (rd *RatingsData) Chances() []Chance {
-	return rd.chances
+// SelectionChances will return the array of selectionChances and thresholds
+func (rd *RatingsData) SelectionChances() []SelectionChance {
+	return rd.selectionChances
 }

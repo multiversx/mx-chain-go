@@ -433,7 +433,11 @@ func CreateEconomicsData() *economics.EconomicsData {
 				ProposerIncreaseRatingStep:  1929,
 				ValidatorDecreaseRatingStep: 61,
 				ValidatorIncreaseRatingStep: 31,
-				Chance: []config.Chance{
+				SelectionChance: []config.SelectionChance{
+					{
+						MaxThreshold:  0,
+						ChancePercent: 0,
+					},
 					{
 						MaxThreshold:  100000,
 						ChancePercent: 0,

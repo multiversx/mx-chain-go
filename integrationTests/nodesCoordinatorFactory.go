@@ -6,41 +6,43 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+type ArgIndexHashedNodesCoordinatorFactory struct {
+	nodesPerShard           int
+	nbMetaNodes             int
+	shardConsensusGroupSize int
+	metaConsensusGroupSize  int
+	shardId                 uint32
+	nbShards                int
+	validatorsMap           map[uint32][]sharding.Validator
+	waitingMap              map[uint32][]sharding.Validator
+	keyIndex                int
+	cp                      *CryptoParams
+	epochStartSubscriber    sharding.EpochStartSubscriber
+	hasher                  hashing.Hasher
+}
+
 type IndexHashedNodesCoordinatorFactory struct {
 }
 
-func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(
-	nodesPerShard int,
-	nbMetaNodes int,
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	shardId uint32,
-	nbShards int,
-	validatorsMap map[uint32][]sharding.Validator,
-	waitingMap map[uint32][]sharding.Validator,
-	keyIndex int,
-	cp *CryptoParams,
-	epochStartSubscriber sharding.EpochStartSubscriber,
-	hasher hashing.Hasher,
-) sharding.NodesCoordinator {
-	nodeKeys := cp.Keys[shardId][keyIndex]
+func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator {
+
+	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Hasher:                  hasher,
+		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
+		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
-		ShardId:                 shardId,
-		NbShards:                uint32(nbShards),
-		EligibleNodes:           validatorsMap,
-		WaitingNodes:            waitingMap,
+		EpochStartSubscriber:    arg.epochStartSubscriber,
+		ShardId:                 arg.shardId,
+		NbShards:                uint32(arg.nbShards),
+		EligibleNodes:           arg.validatorsMap,
+		WaitingNodes:            arg.waitingMap,
 		SelfPublicKey:           pubKeyBytes,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
 	if err != nil {
 		fmt.Println("Error creating node coordinator")
 	}
@@ -52,47 +54,36 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 	sharding.RaterHandler
 }
 
+// CreateNodesCoordinator is used for creating a nodes coordinator in the integration tests
+// based on the provided parameters
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
-	nodesPerShard int,
-	nbMetaNodes int,
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	shardId uint32,
-	nbShards int,
-	validatorsMap map[uint32][]sharding.Validator,
-	waitingMap map[uint32][]sharding.Validator,
-	keyIndex int,
-	cp *CryptoParams,
-	epochStartSubscriber sharding.EpochStartSubscriber,
-	hasher hashing.Hasher,
+	arg ArgIndexHashedNodesCoordinatorFactory,
 ) sharding.NodesCoordinator {
-	nodeKeys := cp.Keys[shardId][keyIndex]
+	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Hasher:                  hasher,
+		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
+		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
-		ShardId:                 shardId,
-		NbShards:                uint32(nbShards),
-		EligibleNodes:           validatorsMap,
-		WaitingNodes:            waitingMap,
+		EpochStartSubscriber:    arg.epochStartSubscriber,
+		ShardId:                 arg.shardId,
+		NbShards:                uint32(arg.nbShards),
+		EligibleNodes:           arg.validatorsMap,
+		WaitingNodes:            arg.waitingMap,
 		SelfPublicKey:           pubKeyBytes,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-
 	if err != nil {
-		fmt.Println("Error creating node coordinator")
+		log.Debug("Error creating node coordinator")
 	}
 
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.RaterHandler)
-
 	if err != nil {
-		fmt.Println("Error creating node coordinator")
+		log.Debug("Error creating node coordinator")
 	}
 
 	return &NodesWithRater{
