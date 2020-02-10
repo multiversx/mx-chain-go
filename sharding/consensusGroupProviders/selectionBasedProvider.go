@@ -1,8 +1,6 @@
 package consensusGroupProviders
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -16,22 +14,15 @@ type selectionBasedProvider struct {
 	size        int64
 }
 
-func NewSelectionBasedProvider() *selectionBasedProvider {
+func NewSelectionBasedProvider(maxSize uint32) *selectionBasedProvider {
 	return &selectionBasedProvider{
-		sortedSlice: make([]*validatorEntry, 0),
+		sortedSlice: make([]*validatorEntry, 0, maxSize),
 		size:        0,
 	}
 }
 
-func (sbp *selectionBasedProvider) addToSlice(ve *validatorEntry) {
-	defer func() {
-		sbp.size += ve.numAppearances
-	}()
-
-	if len(sbp.sortedSlice) == 0 {
-		sbp.sortedSlice = append(sbp.sortedSlice, ve)
-		return
-	}
+func (sbp *selectionBasedProvider) addToSortedSlice(ve *validatorEntry) {
+	sbp.size += ve.numAppearances
 
 	for i := 0; i < len(sbp.sortedSlice); i++ {
 		if sbp.sortedSlice[i].startIndex >= ve.startIndex {
@@ -45,74 +36,36 @@ func (sbp *selectionBasedProvider) addToSlice(ve *validatorEntry) {
 }
 
 func (sbp *selectionBasedProvider) add(expElList []sharding.Validator, x int64) {
-	startIdx, numAppearances := sbp.computeNumAppearancesForValidator(expElList, x)
+	startIdx, numAppearances := computeNumAppearancesForValidator(expElList, x)
 	ve := &validatorEntry{
 		startIndex:     startIdx,
 		numAppearances: numAppearances,
 	}
-	sbp.addToSlice(ve)
+	sbp.addToSortedSlice(ve)
 }
 
 func (sbp *selectionBasedProvider) Get(randomness uint64, numVal int64, originalExpEligibleList []sharding.Validator) ([]sharding.Validator, error) {
-	expEligibleList := make([]sharding.Validator, len(originalExpEligibleList))
-	copy(expEligibleList, originalExpEligibleList)
-	valSlice := make([]sharding.Validator, 0)
+	valSlice := make([]sharding.Validator, 0, numVal)
+	var x uint64
+	lenExpandedList := int64(len(originalExpEligibleList))
 
-	x := randomness % uint64(len(expEligibleList))
-	valSlice = append(valSlice, expEligibleList[x])
-	sbp.add(expEligibleList, int64(x))
-	for i := int64(1); i < numVal; i++ {
-		x = randomness % uint64(int64(len(expEligibleList))-sbp.size)
-		sliceIdx := 0
-		for {
-			if sliceIdx == len(sbp.sortedSlice) {
-				sbp.add(expEligibleList, int64(x))
-				valSlice = append(valSlice, expEligibleList[x])
-				break
-			}
-			if uint64(sbp.sortedSlice[sliceIdx].startIndex) <= x {
-				x += uint64(sbp.sortedSlice[sliceIdx].numAppearances)
-				sliceIdx++
-			} else {
-				sbp.add(expEligibleList, int64(x))
-				valSlice = append(valSlice, expEligibleList[x])
-				break
-			}
-		}
+	for i := int64(0); i < numVal; i++ {
+		x = randomness % uint64(lenExpandedList-sbp.size)
+		x = sbp.adjustIndex(x)
+		valSlice = append(valSlice, originalExpEligibleList[x])
+		sbp.add(originalExpEligibleList, int64(x))
 	}
 
 	return valSlice, nil
 }
 
-func (sbp *selectionBasedProvider) computeNumAppearancesForValidator(expEligibleList []sharding.Validator, idx int64) (int64, int64) {
-	val := expEligibleList[idx].Address()
-	originalIdx := idx
-	startIdx := int64(0)
-	if idx == 0 {
-		startIdx = 0
-	} else {
-		for {
-			idx--
-			if idx == 0 || !bytes.Equal(expEligibleList[idx].Address(), val) {
-				startIdx = idx + 1
-				break
-			}
+func (sbp *selectionBasedProvider) adjustIndex(index uint64) uint64 {
+	for sliceIdx := 0; sliceIdx < len(sbp.sortedSlice); sliceIdx++ {
+		if uint64(sbp.sortedSlice[sliceIdx].startIndex) > index {
+			break
 		}
+		index += uint64(sbp.sortedSlice[sliceIdx].numAppearances)
 	}
 
-	idx = originalIdx
-	var endIdx int64
-	if idx == int64(len(expEligibleList)) {
-		endIdx = idx
-	} else {
-		for {
-			idx++
-			if idx == int64(len(expEligibleList)) || !bytes.Equal(expEligibleList[idx].Address(), val) {
-				endIdx = idx
-				break
-			}
-		}
-	}
-
-	return startIdx, endIdx - startIdx
+	return index
 }

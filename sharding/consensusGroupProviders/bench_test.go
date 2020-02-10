@@ -46,9 +46,7 @@ func TestMemUsageWithReslicing(t *testing.T) {
 	fmt.Println("TotalAlloc", memStats.TotalAlloc)
 	fmt.Println("----------------")
 
-	for i := 0; i < 1; i++ {
-		testWithReslicing(randomness, numVals, expElList)
-	}
+	testWithReslicing(randomness, numVals, expElList)
 
 	runtime.ReadMemStats(&memStats)
 	fmt.Println("\nAlloc", memStats.Alloc)
@@ -72,9 +70,7 @@ func TestMemUsageWithSelection(t *testing.T) {
 	fmt.Println("TotalAlloc", memStats.TotalAlloc)
 	fmt.Println("----------------")
 
-	for i := 0; i < 1; i++ {
-		testWithSelection(randomness, numVals, expElList)
-	}
+	testWithSelection(randomness, numVals, expElList)
 
 	runtime.ReadMemStats(&memStats)
 	fmt.Println("\nAlloc", memStats.Alloc)
@@ -100,7 +96,7 @@ func testWithReslicing(rand uint64, numVals int, expElList []sharding.Validator)
 }
 
 func testWithSelection(rand uint64, numVals int, expElList []sharding.Validator) []sharding.Validator {
-	sbp := NewSelectionBasedProvider()
+	sbp := NewSelectionBasedProvider(uint32(numVals))
 	res1, _ := sbp.Get(rand, int64(numVals), expElList)
 	return res1
 }

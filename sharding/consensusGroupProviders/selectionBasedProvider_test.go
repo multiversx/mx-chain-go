@@ -1,16 +1,13 @@
 package consensusGroupProviders
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/stretchr/testify/assert"
-	"math/big"
-	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
-	sbp := NewSelectionBasedProvider()
+	sbp := NewSelectionBasedProvider(7)
 
 	v1 := &validatorEntry{
 		startIndex:     0,
@@ -41,13 +38,13 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 		numAppearances: 3,
 	}
 
-	sbp.addToSlice(v1)
-	sbp.addToSlice(v2)
-	sbp.addToSlice(v3)
-	sbp.addToSlice(v4)
-	sbp.addToSlice(v5)
-	sbp.addToSlice(v6)
-	sbp.addToSlice(v7)
+	sbp.addToSortedSlice(v1)
+	sbp.addToSortedSlice(v2)
+	sbp.addToSortedSlice(v3)
+	sbp.addToSortedSlice(v4)
+	sbp.addToSortedSlice(v5)
+	sbp.addToSortedSlice(v6)
+	sbp.addToSortedSlice(v7)
 
 	lastIndex := sbp.sortedSlice[0].startIndex
 	for i := 1; i < len(sbp.sortedSlice); i++ {
@@ -58,7 +55,7 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 }
 
 func TestSelectionBasedProvider_Get(t *testing.T) {
-	sbp := NewSelectionBasedProvider()
+	sbp := NewSelectionBasedProvider(7)
 
 	numVals := 7
 	randomness := uint64(4567890)
