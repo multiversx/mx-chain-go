@@ -3212,13 +3212,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(4)
-	mutPut := sync.RWMutex{}
-	putCalledNr := 0
+	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-			mutPut.Lock()
-			putCalledNr++
-			mutPut.Unlock()
+			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
 		},
@@ -3280,10 +3277,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	mutPut.RLock()
-	putsDone := putCalledNr
-	mutPut.RUnlock()
-	assert.Equal(t, 0, putsDone)
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, firstNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 	assert.Equal(t, 0, len(processedMetaHdrs))
@@ -3304,10 +3298,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	mutPut.RLock()
-	putsDone = putCalledNr
-	mutPut.RUnlock()
-	assert.Equal(t, 0, putsDone)
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, firstNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 
@@ -3333,10 +3324,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
-	mutPut.RLock()
-	putsDone = putCalledNr
-	mutPut.RUnlock()
-	assert.Equal(t, 4, putsDone)
+	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, currHdr, sp.LastNotarizedHdrForShard(sharding.MetachainShardId))
 }
@@ -3379,13 +3367,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-	mutPut := sync.RWMutex{}
-	putCalledNr := 0
+	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-			mutPut.Lock()
-			putCalledNr++
-			mutPut.Unlock()
+			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
 		},
@@ -3499,10 +3484,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
-	mutPut.RLock()
-	putsDone := putCalledNr
-	mutPut.RUnlock()
-	assert.Equal(t, 2, putsDone)
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, prevHdr, sp.LastNotarizedHdrForShard(sharding.MetachainShardId))
 }
@@ -3521,13 +3503,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	wg := sync.WaitGroup{}
 	wg.Add(4)
-	mutPut := sync.RWMutex{}
-	putCalledNr := 0
+	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-			mutPut.Lock()
-			putCalledNr++
-			mutPut.Unlock()
+			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
 		},
@@ -3652,10 +3631,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
-	mutPut.RLock()
-	putsDone := putCalledNr
-	mutPut.RUnlock()
-	assert.Equal(t, 4, putsDone)
+	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, currHdr, sp.LastNotarizedHdrForShard(sharding.MetachainShardId))
 }
