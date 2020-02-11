@@ -902,7 +902,9 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		go mp.saveShardHeader(shardBlock, shardHeaderHash, marshalizedHeader)
+		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+			mp.saveShardHeader(header, headerHash, marshalizedHeader)
+		}(shardBlock, shardHeaderHash, marshalizedHeader)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 

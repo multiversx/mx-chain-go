@@ -1538,7 +1538,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	tdp := initDataPool([]byte("tx_hash1"))
 	errPersister := errors.New("failure")
-	wasCalled := false
+	putCalledNr := uint32(0)
 	rootHash := []byte("root hash to be tested")
 	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
@@ -1567,7 +1567,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 			return marshalizer.Marshal(&block.Header{})
 		},
 		PutCalled: func(key, data []byte) error {
-			wasCalled = true
+			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return errPersister
 		},
@@ -1612,14 +1612,14 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	err := sp.CommitBlock(blkc, hdr, body)
 	wg.Wait()
-	assert.True(t, wasCalled)
+	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
-	wasCalled := false
+	putCalledNr := uint32(0)
 	errPersister := errors.New("failure")
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
@@ -1648,7 +1648,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	wg.Add(1)
 	miniBlockUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
-			wasCalled = true
+			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return errPersister
 		},
@@ -1692,7 +1692,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	err = sp.CommitBlock(blkc, hdr, body)
 	wg.Wait()
 	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 }
 
 func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
