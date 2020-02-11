@@ -68,7 +68,6 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	go dbStore.processLoop(ctx)
 
 	runtime.SetFinalizer(dbStore, func(db *SerialDB) {
-		log.Debug("closing persister", "path", dbStore.path)
 		_ = db.Close()
 	})
 
