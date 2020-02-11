@@ -117,9 +117,104 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.get(args)
 	case "setConfig":
 		return s.setConfig(args)
+	case "changeRewardAddress":
+		return s.changeRewardAddress(args)
+	case "changeValidatorKeys":
+		return s.changeValidatorKeys(args)
+	case "unJail":
+		return s.unJail(args)
 	}
 
 	return vmcommon.UserError
+}
+
+func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
+
+	registrationData.RewardAddress = args.Arguments[0]
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 4 {
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		return vmcommon.UserError
+	}
+	if len(registrationData.BlsPubKeys) == 0 {
+		return vmcommon.UserError
+	}
+
+	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
+	if uint64(len(args.Arguments)) < numNodesToChange*3+1 {
+		return vmcommon.UserError
+	}
+
+	for i := 1; i < len(args.Arguments); i += 3 {
+		oldBlsKey := args.Arguments[i]
+		newBlsKey := args.Arguments[i+1]
+		signedWithNewKey := args.Arguments[i+2]
+
+		err := s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
+		if err != nil {
+			return vmcommon.UserError
+		}
+
+		err = s.replaceBLSKey(registrationData, oldBlsKey, newBlsKey)
+		if err != nil {
+			return vmcommon.UserError
+		}
+	}
+
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKey []byte, newBlsKey []byte) error {
+	foundOldKey := false
+	for i, registeredKey := range registrationData.BlsPubKeys {
+		if bytes.Equal(registeredKey, oldBlsKey) {
+			foundOldKey = true
+			registrationData.BlsPubKeys[i] = newBlsKey
+			break
+		}
+	}
+
+	if !foundOldKey {
+		return vm.ErrBLSPublicKeyMissmatch
+	}
+
+	return nil
 }
 
 func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -201,6 +296,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 		baseConfigData, err := json.Marshal(s.baseConfig)
 		if err != nil {
 			log.Debug("marshal error on getConfig function")
+			return s.baseConfig
 		}
 		s.eei.SetStorage(epochKey, baseConfigData)
 		return s.baseConfig

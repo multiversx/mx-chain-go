@@ -84,9 +84,21 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.isStaked(args)
 	case "setStakeValue":
 		return r.setStakeValueForCurrentEpoch(args)
+	case "jail":
+		return r.jail(args)
+	case "unJail":
+		return r.unJail(args)
 	}
 
 	return vmcommon.UserError
+}
+
+func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
 }
 
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
