@@ -1,13 +1,14 @@
-package consensusGroupProviders
+package sharding
 
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
-	sbp := NewSelectionBasedProvider(7)
+	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, 7)
 
 	v1 := &validatorEntry{
 		startIndex:     0,
@@ -55,10 +56,10 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 }
 
 func TestSelectionBasedProvider_Get(t *testing.T) {
-	sbp := NewSelectionBasedProvider(7)
+	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, 7)
 
 	numVals := 7
-	randomness := uint64(4567890)
+	randomness := []byte("randomness")
 	expElList := getExpandedEligibleList(17)
 	res, err := sbp.Get(randomness, int64(numVals), expElList)
 	assert.Nil(t, err)

@@ -1,12 +1,10 @@
-package consensusGroupProviders
+package sharding
 
 import (
 	"bytes"
-
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-func computeNumAppearancesForValidator(expEligibleList []sharding.Validator, idx int64) (int64, int64) {
+func computeStartIndexAndNumAppearancesForValidator(expEligibleList []Validator, idx int64) (int64, int64) {
 	val := expEligibleList[idx].PubKey()
 	startIdx := int64(0)
 	listLen := int64(len(expEligibleList))
