@@ -74,7 +74,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -183,11 +183,12 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 	for _, node := range nodes {
-		go func() {
-			err := node.ExportHandler.ExportAll(2)
+		var err error
+		go func(err error) {
+			err = node.ExportHandler.ExportAll(2)
 			assert.Nil(t, err)
 			wg.Done()
-		}()
+		}(err)
 	}
 	wg.Wait()
 }

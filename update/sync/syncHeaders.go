@@ -240,10 +240,6 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 			return err
 		}
 
-		h.mutMeta.Lock()
-		meta = h.epochStartMetaBlock
-		h.mutMeta.Unlock()
-
 		return nil
 	}
 
