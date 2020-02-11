@@ -117,7 +117,9 @@ func NewMetaInterceptorsContainerFactory(
 		EpochStartTrigger: epochStartTrigger,
 	}
 
+	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
+		container:              container,
 		shardCoordinator:       shardCoordinator,
 		messenger:              messenger,
 		store:                  store,
@@ -146,82 +148,54 @@ func NewMetaInterceptorsContainerFactory(
 
 // Create returns an interceptor container that will hold all interceptors in the system
 func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
-	container := containers.NewInterceptorsContainer()
-
-	keys, interceptorSlice, err := micf.generateMetablockInterceptors()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
+	err := micf.generateMetablockInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = micf.generateShardHeaderInterceptors()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
+	err = micf.generateShardHeaderInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = micf.generateTxInterceptors()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
+	err = micf.generateTxInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = micf.generateUnsignedTxsInterceptors()
+	err = micf.generateUnsignedTxsInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.AddMultiple(keys, interceptorSlice)
+	err = micf.generateMiniBlocksInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = micf.generateMiniBlocksInterceptors()
-	if err != nil {
-		return nil, err
-	}
-	err = container.AddMultiple(keys, interceptorSlice)
+	err = micf.generateTrieNodesInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = micf.generateTrieNodesInterceptors()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.AddMultiple(keys, interceptorSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
+	return micf.container, nil
 }
 
 //------- Metablock interceptor
 
-func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() ([]string, []process.Interceptor, error) {
+func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
 
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
 	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(micf.argInterceptorFactory)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
@@ -231,7 +205,7 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() ([
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	//only one metachain header topic
@@ -241,38 +215,38 @@ func (micf *metaInterceptorsContainerFactory) generateMetablockInterceptors() ([
 		micf.globalThrottler,
 	)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	_, err = micf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+	return micf.container.Add(identifierHdr, interceptor)
 }
 
 //------- Shard header interceptors
 
-func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() ([]string, []process.Interceptor, error) {
+func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
 	shardC := micf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
+	interceptorsSlice := make([]process.Interceptor, noOfShards)
 
 	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := micf.createOneShardHeaderInterceptor(identifierHeader)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys[int(idx)] = identifierHeader
-		interceptorSlice[int(idx)] = interceptor
+		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	return keys, interceptorSlice, nil
+	return micf.container.AddMultiple(keys, interceptorsSlice)
 }
 
 func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
@@ -310,7 +284,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	return micf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
+func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
 	shardC := micf.shardCoordinator
 
 	keys := make([]string, 0)
@@ -320,7 +294,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() ([
 		identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys = append(keys, identifierTrieNodes)
@@ -329,7 +303,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() ([
 		identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys = append(keys, identifierTrieNodes)
@@ -339,7 +313,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() ([
 	identifierTrieNodes := factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	keys = append(keys, identifierTrieNodes)
@@ -348,36 +322,13 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() ([
 	identifierTrieNodes = factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	return keys, trieInterceptors, nil
-}
-
-func (micf *metaInterceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := micf.shardCoordinator
-
-	noOfShards := shardC.NumberOfShards()
-
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
-
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
-
-		interceptor, err := micf.createOneUnsignedTxInterceptor(identifierScr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		keys[int(idx)] = identifierScr
-		interceptorSlice[int(idx)] = interceptor
-	}
-
-	return keys, interceptorSlice, nil
+	return micf.container.AddMultiple(keys, trieInterceptors)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -20,6 +20,7 @@ import (
 const numGoRoutines = 2000
 
 type baseInterceptorsContainerFactory struct {
+	container              process.InterceptorsContainer
 	shardCoordinator       sharding.Coordinator
 	accounts               state.AccountsAdapter
 	marshalizer            marshal.Marshalizer
@@ -97,7 +98,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 
 //------- Tx interceptors
 
-func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	shardC := bicf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
@@ -110,7 +111,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string
 
 		interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys[int(idx)] = identifierTx
@@ -122,12 +123,13 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() ([]string
 
 	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
-	return keys, interceptorSlice, nil
+
+	return bicf.container.AddMultiple(keys, interceptorSlice)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
@@ -199,7 +201,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 
 //------- Reward transactions interceptors
 
-func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() error {
 	shardC := bicf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
@@ -212,7 +214,7 @@ func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]
 
 		interceptor, err := bicf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys[int(idx)] = identifierScr
@@ -223,13 +225,13 @@ func (bicf *baseInterceptorsContainerFactory) generateRewardTxInterceptors() ([]
 
 	interceptor, err := bicf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	return keys, interceptorSlice, nil
+	return bicf.container.AddMultiple(keys, interceptorSlice)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
@@ -268,18 +270,18 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 //------- Hdr interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error {
 	shardC := bicf.shardCoordinator
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
 	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
@@ -289,7 +291,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() ([]st
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	//only one intrashard header topic
@@ -299,22 +301,22 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() ([]st
 		bicf.globalThrottler,
 	)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+	return bicf.container.Add(identifierHdr, interceptor)
 }
 
 //------- MiniBlocks interceptors
 
-func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
 	shardC := bicf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+1)
@@ -325,7 +327,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() (
 
 		interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		keys[int(idx)] = identifierMiniBlocks
@@ -336,13 +338,13 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() (
 
 	interceptor, err := bicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	keys[noOfShards] = identifierMiniBlocks
 	interceptorsSlice[noOfShards] = interceptor
 
-	return keys, interceptorsSlice, nil
+	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
@@ -376,18 +378,18 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 
 //------- MetachainHeader interceptors
 
-func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptors() ([]string, []process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
 	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
@@ -397,7 +399,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	//only one metachain header topic
@@ -407,15 +409,15 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		bicf.globalThrottler,
 	)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	_, err = bicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+	return bicf.container.Add(identifierHdr, interceptor)
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
@@ -440,4 +442,27 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	}
 
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() error {
+	shardC := bicf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	interceptorsSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
+		if err != nil {
+			return err
+		}
+
+		keys[int(idx)] = identifierScr
+		interceptorsSlice[int(idx)] = interceptor
+	}
+
+	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }

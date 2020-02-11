@@ -15,6 +15,7 @@ import (
 const emptyExcludePeersOnTopic = ""
 
 type baseResolversContainerFactory struct {
+	container                dataRetriever.ResolversContainer
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
@@ -26,29 +27,29 @@ type baseResolversContainerFactory struct {
 	triesContainer           state.TriesHolder
 }
 
-func (bcrf *baseResolversContainerFactory) checkParams() error {
-	if check.IfNil(bcrf.shardCoordinator) {
+func (brcf *baseResolversContainerFactory) checkParams() error {
+	if check.IfNil(brcf.shardCoordinator) {
 		return dataRetriever.ErrNilShardCoordinator
 	}
-	if check.IfNil(bcrf.messenger) {
+	if check.IfNil(brcf.messenger) {
 		return dataRetriever.ErrNilMessenger
 	}
-	if check.IfNil(bcrf.store) {
+	if check.IfNil(brcf.store) {
 		return dataRetriever.ErrNilStore
 	}
-	if check.IfNil(bcrf.marshalizer) {
+	if check.IfNil(brcf.marshalizer) {
 		return dataRetriever.ErrNilMarshalizer
 	}
-	if check.IfNil(bcrf.dataPools) {
+	if check.IfNil(brcf.dataPools) {
 		return dataRetriever.ErrNilDataPoolHolder
 	}
-	if check.IfNil(bcrf.uint64ByteSliceConverter) {
+	if check.IfNil(brcf.uint64ByteSliceConverter) {
 		return dataRetriever.ErrNilUint64ByteSliceConverter
 	}
-	if check.IfNil(bcrf.dataPacker) {
+	if check.IfNil(brcf.dataPacker) {
 		return dataRetriever.ErrNilDataPacker
 	}
-	if check.IfNil(bcrf.triesContainer) {
+	if check.IfNil(brcf.triesContainer) {
 		return dataRetriever.ErrNilTrieDataGetter
 	}
 
@@ -73,7 +74,7 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 	topic string,
 	unit dataRetriever.UnitType,
 	dataPool dataRetriever.ShardedDataCacherNotifier,
-) ([]string, []dataRetriever.Resolver, error) {
+) error {
 
 	shardC := brcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
@@ -87,7 +88,7 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 
 		resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		resolverSlice[idx] = resolver
@@ -99,13 +100,13 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 
 	resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	resolverSlice[noOfShards] = resolver
 	keys[noOfShards] = identifierTx
 
-	return keys, resolverSlice, nil
+	return brcf.container.AddMultiple(keys, resolverSlice)
 }
 
 func (brcf *baseResolversContainerFactory) createTxResolver(
@@ -140,7 +141,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		false)
 }
 
-func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() ([]string, []dataRetriever.Resolver, error) {
+func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	shardC := brcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+1)
@@ -152,7 +153,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() ([]stri
 
 		resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		resolverSlice[idx] = resolver
@@ -164,13 +165,13 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() ([]stri
 
 	resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	resolverSlice[noOfShards] = resolver
 	keys[noOfShards] = identifierMiniBlocks
 
-	return keys, resolverSlice, nil
+	return brcf.container.AddMultiple(keys, resolverSlice)
 }
 
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
