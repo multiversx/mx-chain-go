@@ -105,7 +105,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -138,7 +138,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -171,7 +171,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -204,7 +204,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -237,7 +237,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -270,7 +270,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *
 		1,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -303,7 +303,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -336,7 +336,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -369,7 +369,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -402,7 +402,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -435,7 +435,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -468,7 +468,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -501,7 +501,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -534,7 +534,7 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -567,7 +567,7 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -600,7 +600,7 @@ func TestNewInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -633,7 +633,7 @@ func TestNewInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing
 		0,
 		nil,
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -666,7 +666,7 @@ func TestNewInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testing.T
 		0,
 		&mock.ValidityAttesterStub{},
 		nil,
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -698,7 +698,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -731,7 +731,7 @@ func TestNewInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 		1,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -767,7 +767,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -802,7 +802,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -837,7 +837,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -872,7 +872,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -907,7 +907,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -949,7 +949,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -1004,7 +1004,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		0,
 		&mock.ValidityAttesterStub{},
 		&mock.EpochStartTriggerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	container, err := icf.Create()
