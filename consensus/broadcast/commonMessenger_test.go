@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	testBlockBody = block.Body{
+func newTestBlockBody() *block.Body {
+	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			&block.MiniBlock{
 				TxHashes:        [][]byte{[]byte("txh1"), []byte("txh2")},
@@ -23,7 +23,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t *testing.T) {
 	err := errors.New("sign message error")

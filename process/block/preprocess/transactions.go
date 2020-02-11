@@ -150,6 +150,10 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 
 // RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
 func (txs *transactions) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	if body == nil {
+		return process.ErrNilTxBlockBody
+	}
+
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}

@@ -138,38 +138,39 @@ func (sr *SubroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 
 // sendBlockBody method job the proposed block body in the subround Block
 func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
-	if b, ok := blockBody.(*block.Body); ok {
-		blkStr, err := sr.Marshalizer().Marshal(b)
-		if err != nil {
-			log.Debug("Marshal", "error", err.Error())
-			return false
-		}
-
-		msg := consensus.NewConsensusMessage(
-			nil,
-			blkStr,
-			[]byte(sr.SelfPubKey()),
-			nil,
-			sr.mtBlockBody,
-			uint64(sr.Rounder().TimeStamp().Unix()),
-			sr.Rounder().Index())
-
-		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
-		if err != nil {
-			log.Debug("BroadcastConsensusMessage", "error", err.Error())
-			return false
-		}
-
-		log.Debug("step 1: block body has been sent",
-			"time [s]", sr.SyncTimer().FormattedCurrentTime())
-
-		sr.BlockBody = b
-
-		return true
-	} else {
+	b, ok := blockBody.(*block.Body)
+	if !ok {
 		log.Debug("Marshal", "Not a block body")
 		return false
 	}
+
+	blkStr, err := sr.Marshalizer().Marshal(b)
+	if err != nil {
+		log.Debug("Marshal", "error", err.Error())
+		return false
+	}
+
+	msg := consensus.NewConsensusMessage(
+		nil,
+		blkStr,
+		[]byte(sr.SelfPubKey()),
+		nil,
+		sr.mtBlockBody,
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		sr.Rounder().Index())
+
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Debug("BroadcastConsensusMessage", "error", err.Error())
+		return false
+	}
+
+	log.Debug("step 1: block body has been sent",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
+
+	sr.BlockBody = b
+
+	return true
 }
 
 // sendBlockHeader method job the proposed block header in the subround Block
