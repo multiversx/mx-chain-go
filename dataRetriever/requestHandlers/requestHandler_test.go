@@ -37,7 +37,7 @@ func TestNewResolverRequestHandlerNilFinder(t *testing.T) {
 	rrh, err := NewResolverRequestHandler(
 		nil,
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -52,7 +52,7 @@ func TestNewResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		nil,
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -67,7 +67,7 @@ func TestNewResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		0,
 		0,
 	)
@@ -82,7 +82,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 	rrh, err := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -111,7 +111,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -138,7 +138,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -164,7 +164,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -206,7 +206,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -242,7 +242,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -274,7 +274,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -300,7 +300,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -328,7 +328,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -350,7 +350,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 				return true
 			},
 		},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -364,7 +364,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 	rrh, _ := NewResolverRequestHandler(
 		createResolversFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -390,7 +390,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -412,7 +412,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotR
 				return true
 			},
 		},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -438,7 +438,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -466,7 +466,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -490,7 +490,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 				return true
 			},
 		},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -512,7 +512,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		sharding.MetachainShardId,
 	)
@@ -540,7 +540,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -572,7 +572,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -604,7 +604,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -630,7 +630,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -652,7 +652,7 @@ func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRe
 				return true
 			},
 		},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -678,7 +678,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		100,
 		0,
 	)
@@ -708,7 +708,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -735,7 +735,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -761,7 +761,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -803,7 +803,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -839,7 +839,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -873,7 +873,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -895,7 +895,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -923,7 +923,7 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -945,7 +945,7 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -968,7 +968,7 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -996,7 +996,7 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)
@@ -1028,7 +1028,7 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 				return localError
 			},
 		},
-		&mock.WhiteListHandlerMock{},
+		&mock.WhiteListHandlerStub{},
 		1,
 		0,
 	)

@@ -95,11 +95,13 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 	for keyVal := range ic.objects.Iter() {
 		key, ok := keyVal.Key.(string)
 		if !ok {
+			ic.objects.Del(keyVal.Key)
 			continue
 		}
 
 		val, ok := keyVal.Value.(process.Interceptor)
 		if !ok {
+			ic.objects.Del(keyVal.Key)
 			continue
 		}
 
