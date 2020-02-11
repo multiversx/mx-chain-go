@@ -278,7 +278,10 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	e.setWhiteListHandlerToInterceptors()
+	err = e.setWhiteListHandlerToInterceptors()
+	if err != nil {
+		return nil, err
+	}
 
 	return exportHandler, nil
 }
@@ -298,11 +301,19 @@ func createFinalExportStorage(storageConfig config.StorageConfig, folder string)
 	return accountsTrieStorage, nil
 }
 
-func (e *exportHandlerFactory) setWhiteListHandlerToInterceptors() {
+func (e *exportHandlerFactory) setWhiteListHandlerToInterceptors() error {
+	var err error
+
 	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
-		interceptor.SetIsDataForCurrentShardVerifier(e.whiteListHandler)
+		errFound := interceptor.SetIsDataForCurrentShardVerifier(e.whiteListHandler)
+		if errFound != nil {
+			err = errFound
+			return false
+		}
 		return true
 	})
+
+	return err
 }
 
 // IsInterfaceNil returns true if underlying object is nil

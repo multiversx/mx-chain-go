@@ -97,8 +97,6 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		return
 	}
 
-	rrh.whiteList.Add(hashes)
-
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
 		var sliceBatches [][][]byte
@@ -124,6 +122,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		}
 	}()
 
+	rrh.whiteList.Add(hashes)
 	for _, hash := range unrequestedHashes {
 		rrh.addRequestedItem(hash)
 	}

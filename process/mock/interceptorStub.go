@@ -7,11 +7,11 @@ import (
 
 type InterceptorStub struct {
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
-	SetIsDataForCurrentShardVerifierCalled func(verifier process.InterceptedDataVerifier)
+	SetIsDataForCurrentShardVerifierCalled func(verifier process.InterceptedDataVerifier) error
 }
 
-func (is *InterceptorStub) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) {
-	is.SetIsDataForCurrentShardVerifierCalled(verifier)
+func (is *InterceptorStub) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) error {
+	return is.SetIsDataForCurrentShardVerifierCalled(verifier)
 }
 
 func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
