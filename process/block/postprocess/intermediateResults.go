@@ -102,6 +102,16 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
 
+			log.Trace("intermediateResultsProcessor.CreateAllInterMiniBlocks",
+				"type", miniblock.Type,
+				"senderShardID", miniblock.SenderShardID,
+				"receiverShardID", miniblock.ReceiverShardID,
+			)
+
+			for _, hash := range miniblock.TxHashes {
+				log.Trace("tx", "hash", hash)
+			}
+
 			finalMBs[shId] = miniblock
 		}
 	}
