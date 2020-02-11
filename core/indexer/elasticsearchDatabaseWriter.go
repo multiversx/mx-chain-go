@@ -24,7 +24,7 @@ func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
 }
 
 // CheckAndCreateIndex will check if a index exits and if dont will create a new one
-func (dw *databaseWriter) checkAndCreateIndex(index string, body io.Reader) error {
+func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) error {
 	res, err := dw.client.Indices.Exists([]string{index})
 	if err != nil {
 		return err
@@ -52,15 +52,13 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 	var err error
 	var res *esapi.Response
 
+	defer closeESResponseBody(res)
+
 	if body != nil {
-		res, err = dw.client.Indices.Create(
-			index,
-			dw.client.Indices.Create.WithBody(body))
+		res, err = dw.client.Indices.Create(index, dw.client.Indices.Create.WithBody(body))
 	} else {
 		res, err = dw.client.Indices.Create(index)
 	}
-
-	defer closeESResponseBody(res)
 
 	if err != nil {
 		return err
@@ -80,7 +78,7 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 }
 
 // DoRequest will do a request to elastic server
-func (dw *databaseWriter) doRequest(req esapi.IndexRequest) error {
+func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
 	res, err := req.Do(context.Background(), dw.client)
 	if err != nil {
 		return err
@@ -94,7 +92,7 @@ func (dw *databaseWriter) doRequest(req esapi.IndexRequest) error {
 }
 
 // DoBulkRequest will do a bulk of request to elastic server
-func (dw *databaseWriter) doBulkRequest(buff *bytes.Buffer, index string) error {
+func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	reader := bytes.NewReader(buff.Bytes())
 
 	res, err := dw.client.Bulk(reader, dw.client.Bulk.WithIndex(index))
@@ -107,4 +105,10 @@ func (dw *databaseWriter) doBulkRequest(buff *bytes.Buffer, index string) error 
 	}
 
 	return nil
+}
+
+func closeESResponseBody(res *esapi.Response) {
+	if res != nil && res.Body != nil {
+		_ = res.Body.Close()
+	}
 }

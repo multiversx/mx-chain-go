@@ -17,8 +17,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-// elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elastic search
-// database object
+// elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
 type elasticSearchDatabaseArgs struct {
 	url         string
 	userName    string
@@ -27,7 +26,7 @@ type elasticSearchDatabaseArgs struct {
 	hasher      hashing.Hasher
 }
 
-// elasticSearchDatabase is used to prepare and write data in elastic search database
+// elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
 	client      databaseWriterHandler
 	marshalizer marshal.Marshalizer
@@ -46,42 +45,42 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		return nil, err
 	}
 
-	elasticSearchDatabase := &elasticSearchDatabase{
+	esdb := &elasticSearchDatabase{
 		client:      es,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
 	}
 
-	err = elasticSearchDatabase.createIndexes()
+	err = esdb.createIndexes()
 	if err != nil {
 		return nil, err
 	}
 
-	return elasticSearchDatabase, nil
+	return esdb, nil
 }
 
 func (esd *elasticSearchDatabase) createIndexes() error {
-	err := esd.client.checkAndCreateIndex(blockIndex, timestampMapping())
+	err := esd.client.CheckAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.client.checkAndCreateIndex(txIndex, timestampMapping())
+	err = esd.client.CheckAndCreateIndex(txIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.client.checkAndCreateIndex(tpsIndex, nil)
+	err = esd.client.CheckAndCreateIndex(tpsIndex, nil)
 	if err != nil {
 		return err
 	}
 
-	err = esd.client.checkAndCreateIndex(validatorsIndex, nil)
+	err = esd.client.CheckAndCreateIndex(validatorsIndex, nil)
 	if err != nil {
 		return err
 	}
 
-	err = esd.client.checkAndCreateIndex(roundIndex, timestampMapping())
+	err = esd.client.CheckAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,8 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 	return nil
 }
 
-func (esd *elasticSearchDatabase) saveHeader(header data.HeaderHandler, signersIndexes []uint64) {
+// SaveHeader will prepare and save information about a header in elasticsearch server
+func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersIndexes []uint64) {
 	var buff bytes.Buffer
 
 	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
@@ -107,7 +107,7 @@ func (esd *elasticSearchDatabase) saveHeader(header data.HeaderHandler, signersI
 		Refresh:    "true",
 	}
 
-	err = esd.client.doRequest(req)
+	err = esd.client.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: could not index block header", "error", err.Error())
 		return
@@ -146,7 +146,8 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(header 
 	return serializedBlock, headerHash
 }
 
-func (esd *elasticSearchDatabase) saveTransactions(
+//SaveTransactions will prepare and save information about a transactions in elasticsearch server
+func (esd *elasticSearchDatabase) SaveTransactions(
 	body block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
@@ -155,7 +156,7 @@ func (esd *elasticSearchDatabase) saveTransactions(
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
 	for _, bulk := range bulks {
 		buff := esd.serializeBulkTx(bulk)
-		err := esd.client.doBulkRequest(&buff, txIndex)
+		err := esd.client.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
 			continue
@@ -240,7 +241,8 @@ func (esd *elasticSearchDatabase) serializeBulkTx(bulk []*Transaction) bytes.Buf
 	return buff
 }
 
-func (esd *elasticSearchDatabase) saveRoundInfo(info RoundInfo) {
+// SaveRoundInfo will prepare and save information about a round in elasticsearch server
+func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 	var buff bytes.Buffer
 
 	marshalizedRoundInfo, err := esd.marshalizer.Marshal(info)
@@ -263,14 +265,15 @@ func (esd *elasticSearchDatabase) saveRoundInfo(info RoundInfo) {
 		Refresh:    "true",
 	}
 
-	err = esd.client.doRequest(req)
+	err = esd.client.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index round info", "error", err.Error())
 		return
 	}
 }
 
-func (esd *elasticSearchDatabase) saveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
+// SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
@@ -293,14 +296,15 @@ func (esd *elasticSearchDatabase) saveShardValidatorsPubKeys(shardId uint32, sha
 		Refresh:    "true",
 	}
 
-	err = esd.client.doRequest(req)
+	err = esd.client.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index validators pubkey", "error", err.Error())
 		return
 	}
 }
 
-func (esd *elasticSearchDatabase) saveShardStatistics(tpsBenchmark statistics.TPSBenchmark) {
+// SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
+func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) {
 	buff := prepareGeneralInfo(tpsBenchmark)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
@@ -319,7 +323,7 @@ func (esd *elasticSearchDatabase) saveShardStatistics(tpsBenchmark statistics.TP
 			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
 		}
 
-		err = esd.client.doBulkRequest(&buff, tpsIndex)
+		err = esd.client.DoBulkRequest(&buff, tpsIndex)
 		if err != nil {
 			log.Warn("indexer: error indexing tps information", "error", err.Error())
 			continue

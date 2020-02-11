@@ -22,18 +22,18 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// databaseHandler --
+// databaseHandler is an interface used by elasticsearch component to prepare data to be saved on elasticseach server
 type databaseHandler interface {
-	saveHeader(header data.HeaderHandler, signersIndexes []uint64)
-	saveTransactions(body block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
-	saveRoundInfo(info RoundInfo)
-	saveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string)
-	saveShardStatistics(tpsBenchmark statistics.TPSBenchmark)
+	SaveHeader(header data.HeaderHandler, signersIndexes []uint64)
+	SaveTransactions(body block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
+	SaveRoundInfo(info RoundInfo)
+	SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string)
+	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark)
 }
 
-// databaseWriterHandler --
+// databaseWriterHandler is an interface that do requests to elasticsearch server do save data
 type databaseWriterHandler interface {
-	doRequest(req esapi.IndexRequest) error
-	doBulkRequest(buff *bytes.Buffer, index string) error
-	checkAndCreateIndex(index string, body io.Reader) error
+	DoRequest(req esapi.IndexRequest) error
+	DoBulkRequest(buff *bytes.Buffer, index string) error
+	CheckAndCreateIndex(index string, body io.Reader) error
 }

@@ -86,7 +86,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.database.saveHeader(headerHandler, signersIndexes)
+	go ei.database.SaveHeader(headerHandler, signersIndexes)
 
 	if len(body) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
@@ -94,7 +94,7 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 
 	if ei.options.TxIndexingEnabled {
-		go ei.database.saveTransactions(body, headerHandler, txPool, ei.shardCoordinator.SelfId())
+		go ei.database.SaveTransactions(body, headerHandler, txPool, ei.shardCoordinator.SelfId())
 	}
 }
 
@@ -105,12 +105,12 @@ func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexe
 		return
 	}
 
-	go ei.database.saveHeader(header, signersIndexes)
+	go ei.database.SaveHeader(header, signersIndexes)
 }
 
 // SaveRoundInfo will save data about a round on elastic search
 func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
-	ei.database.saveRoundInfo(roundInfo)
+	ei.database.SaveRoundInfo(roundInfo)
 }
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
@@ -121,7 +121,7 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
 		}
 		go func(id uint32, publicKeys []string) {
-			ei.database.saveShardValidatorsPubKeys(id, publicKeys)
+			ei.database.SaveShardValidatorsPubKeys(id, publicKeys)
 		}(shardId, valPubKeys[shardId])
 	}
 }
@@ -133,7 +133,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 		return
 	}
 
-	ei.database.saveShardStatistics(tpsBenchmark)
+	ei.database.SaveShardStatistics(tpsBenchmark)
 }
 
 // IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer

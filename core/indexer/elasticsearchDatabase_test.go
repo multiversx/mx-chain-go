@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -20,29 +19,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/require"
 )
-
-type databaseWriterMock struct {
-	doRequestCalled     func(req esapi.IndexRequest) error
-	doBulkRequestCalled func(buff *bytes.Buffer, index string) error
-}
-
-func (dwm *databaseWriterMock) doRequest(req esapi.IndexRequest) error {
-	if dwm.doRequestCalled != nil {
-		return dwm.doRequestCalled(req)
-	}
-	return nil
-}
-
-func (dwm *databaseWriterMock) doBulkRequest(buff *bytes.Buffer, index string) error {
-	if dwm.doBulkRequestCalled != nil {
-		return dwm.doBulkRequestCalled(buff, index)
-	}
-	return nil
-}
-
-func (dwm *databaseWriterMock) checkAndCreateIndex(_ string, _ io.Reader) error {
-	return nil
-}
 
 func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arguments elasticSearchDatabaseArgs) *elasticSearchDatabase {
 	return &elasticSearchDatabase{
@@ -63,39 +39,37 @@ func createMockElasticsearchDatabaseArgs() elasticSearchDatabaseArgs {
 }
 
 func newTestTxPool() map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler)
-
-	txPool["tx1"] = &transaction.Transaction{
-		Nonce:     uint64(1),
-		Value:     big.NewInt(1),
-		RcvAddr:   []byte("receiver_address1"),
-		SndAddr:   []byte("sender_address1"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data1"),
-		Signature: []byte("signature1"),
-	}
-
-	txPool["tx2"] = &transaction.Transaction{
-		Nonce:     uint64(2),
-		Value:     big.NewInt(2),
-		RcvAddr:   []byte("receiver_address2"),
-		SndAddr:   []byte("sender_address2"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data2"),
-		Signature: []byte("signature2"),
-	}
-
-	txPool["tx3"] = &transaction.Transaction{
-		Nonce:     uint64(3),
-		Value:     big.NewInt(3),
-		RcvAddr:   []byte("receiver_address3"),
-		SndAddr:   []byte("sender_address3"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data3"),
-		Signature: []byte("signature3"),
+	txPool := map[string]data.TransactionHandler{
+		"tx1": &transaction.Transaction{
+			Nonce:     uint64(1),
+			Value:     big.NewInt(1),
+			RcvAddr:   []byte("receiver_address1"),
+			SndAddr:   []byte("sender_address1"),
+			GasPrice:  uint64(10000),
+			GasLimit:  uint64(1000),
+			Data:      []byte("tx_data1"),
+			Signature: []byte("signature1"),
+		},
+		"tx2": &transaction.Transaction{
+			Nonce:     uint64(2),
+			Value:     big.NewInt(2),
+			RcvAddr:   []byte("receiver_address2"),
+			SndAddr:   []byte("sender_address2"),
+			GasPrice:  uint64(10000),
+			GasLimit:  uint64(1000),
+			Data:      []byte("tx_data2"),
+			Signature: []byte("signature2"),
+		},
+		"tx3": &transaction.Transaction{
+			Nonce:     uint64(3),
+			Value:     big.NewInt(3),
+			RcvAddr:   []byte("receiver_address3"),
+			SndAddr:   []byte("sender_address3"),
+			GasPrice:  uint64(10000),
+			GasLimit:  uint64(1000),
+			Data:      []byte("tx_data3"),
+			Signature: []byte("signature3"),
+		},
 	}
 
 	return txPool
@@ -136,14 +110,14 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			return localErr
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveHeader(header, signerIndexes)
+	elasticDatabase.SaveHeader(header, signerIndexes)
 
 	require.True(t, strings.Contains(output.String(), localErr.Error()))
 	_ = logger.RemoveLogObserver(output)
@@ -154,8 +128,8 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
@@ -170,7 +144,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveHeader(header, signerIndexes)
+	elasticDatabase.SaveHeader(header, signerIndexes)
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
@@ -180,8 +154,8 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localErr
 		},
 	}
@@ -190,7 +164,7 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1, TxCount: 2}
 	txPool := newTestTxPool()
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveTransactions(body, header, txPool, 0)
+	elasticDatabase.SaveTransactions(body, header, txPool, 0)
 	require.True(t, strings.Contains(output.String(), "indexing bulk of transactions"))
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
@@ -204,13 +178,13 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	valPubKeys := []string{"key1", "key2"}
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			return localErr
 		},
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
 
 	require.True(t, strings.Contains(output.String(), localErr.Error()))
 	_ = logger.RemoveLogObserver(output)
@@ -221,15 +195,15 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardId := uint32(0)
 	valPubKeys := []string{"key1", "key2"}
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(shardId), 10), req.DocumentID)
 			return nil
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
 }
 
 func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
@@ -246,14 +220,14 @@ func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
 
 	localError := errors.New("local err")
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveShardStatistics(tpsBenchmark)
+	elasticDatabase.SaveShardStatistics(tpsBenchmark)
 	require.True(t, strings.Contains(output.String(), localError.Error()))
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
@@ -268,15 +242,15 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 	tpsBenchmark.UpdateWithShardStats(metaBlock)
 
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			require.Equal(t, tpsIndex, index)
 			return nil
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveShardStatistics(tpsBenchmark)
+	elasticDatabase.SaveShardStatistics(tpsBenchmark)
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
@@ -284,15 +258,15 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(roundInfo.ShardId), 10)+"_"+strconv.FormatUint(roundInfo.Index, 10), req.DocumentID)
 			return nil
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveRoundInfo(roundInfo)
+	elasticDatabase.SaveRoundInfo(roundInfo)
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
@@ -303,14 +277,14 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	roundInfo := RoundInfo{}
 	localError := errors.New("local err")
 	arguments := createMockElasticsearchDatabaseArgs()
-	dbWriter := &databaseWriterMock{
-		doRequestCalled: func(req esapi.IndexRequest) error {
+	dbWriter := &mock.DatabaseWriterMock{
+		DoRequestCalled: func(req esapi.IndexRequest) error {
 			return localError
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.saveRoundInfo(roundInfo)
+	elasticDatabase.SaveRoundInfo(roundInfo)
 	require.True(t, strings.Contains(output.String(), localError.Error()))
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")

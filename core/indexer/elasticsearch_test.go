@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,8 +49,8 @@ func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
 	arguments.Url = ""
 	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilUrl, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilUrl, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.T) {
@@ -59,8 +58,8 @@ func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.
 	arguments.ShardCoordinator = nil
 	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilCoordinator, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilCoordinator, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
@@ -68,8 +67,8 @@ func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
 	arguments.Marshalizer = nil
 	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilMarshalizer, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
@@ -77,8 +76,8 @@ func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
 	arguments.Hasher = nil
 	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilHasher, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilHasher, err)
 }
 
 func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
@@ -97,9 +96,9 @@ func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	ei, err := indexer.NewElasticIndexer(arguments)
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(ei))
-	assert.False(t, ei.IsNilIndexer())
+	require.Nil(t, err)
+	require.False(t, check.IfNil(ei))
+	require.False(t, ei.IsNilIndexer())
 }
 
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
@@ -108,8 +107,8 @@ func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = url
 	ind, err := indexer.NewElasticIndexer(arguments)
-	assert.Nil(t, ind)
-	assert.NotNil(t, err)
+	require.Nil(t, ind)
+	require.NotNil(t, err)
 }
 
 func TestElasticIndexer_UpdateTPS(t *testing.T) {
@@ -121,13 +120,13 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	ei, err := indexer.NewElasticIndexer(arguments)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
 
 	ei.UpdateTPS(&tpsBench)
-	assert.Empty(t, output.String())
+	require.Empty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
 }
@@ -141,10 +140,10 @@ func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	ei, err := indexer.NewElasticIndexer(arguments)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	ei.UpdateTPS(nil)
-	assert.NotEmpty(t, output.String())
+	require.NotEmpty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
 }
@@ -227,7 +226,7 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
 	ei.SaveRoundInfo(indexer.RoundInfo{})
-	assert.NotEmpty(t, output.String())
+	require.NotEmpty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
 }
@@ -249,7 +248,7 @@ func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	valPubKey[0] = keys
 	ei.SaveValidatorsPubKeys(valPubKey)
 
-	assert.Empty(t, output.String())
+	require.Empty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
 	_ = logger.SetLogLevel("core/indexer:INFO")
 }

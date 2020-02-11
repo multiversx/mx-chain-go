@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
@@ -43,12 +42,6 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	}
 
 	return nil
-}
-
-func closeESResponseBody(res *esapi.Response) {
-	if res != nil && res.Body != nil {
-		_ = res.Body.Close()
-	}
 }
 
 func timestampMapping() io.Reader {
