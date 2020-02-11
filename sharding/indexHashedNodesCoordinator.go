@@ -2,7 +2,6 @@ package sharding
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -163,8 +162,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 func (ihgs *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
 	value, ok := ihgs.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, ok := value.([]Validator)
-		if ok {
+		consensusGroup, typeOk := value.([]Validator)
+		if typeOk {
 			return consensusGroup
 		}
 
@@ -303,41 +302,6 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(publicKeys []strin
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.nodesMap[shardId]
-}
-
-// computeListIndex computes a proposed index from expanded eligible list
-func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, lenList int, randomSource string) int {
-	buffCurrentIndex := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(currentIndex))
-
-	indexHash := ihgs.hasher.Compute(string(buffCurrentIndex) + randomSource)
-
-	computedLargeIndex := binary.BigEndian.Uint64(indexHash)
-	lenExpandedEligibleList := uint64(lenList)
-
-	computedListIndex := computedLargeIndex % lenExpandedEligibleList
-
-	return int(computedListIndex)
-}
-
-// checkIndex returns a checked index starting from a proposed index
-func (ihgs *indexHashedNodesCoordinator) checkIndex(
-	proposedIndex int,
-	eligibleList []Validator,
-	selectedList []Validator,
-) int {
-
-	for {
-		v := eligibleList[proposedIndex]
-
-		if ihgs.validatorIsInList(v, selectedList) {
-			proposedIndex++
-			proposedIndex %= len(eligibleList)
-			continue
-		}
-
-		return proposedIndex
-	}
 }
 
 // validatorIsInList returns true if a validator has been found in provided list
