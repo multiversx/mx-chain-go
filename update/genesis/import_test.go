@@ -65,7 +65,7 @@ func createMbMap() map[string]*block.MiniBlock {
 func createTestImportFile(t *testing.T, folderName string, storer storage.Storer) {
 	testFolderName := folderName
 	_ = os.Mkdir(testFolderName, 0755)
-	testPath := "./testFiles"
+	testPath := "./" + folderName
 	argsWriter := files.ArgsNewMultiFileWriter{ExportFolder: testPath, ExportStore: storer}
 	writer, _ := files.NewMultiFileWriter(argsWriter)
 
@@ -131,7 +131,7 @@ func TestNewStateImport(t *testing.T) {
 func TestImportAll(t *testing.T) {
 	t.Parallel()
 
-	folderName := "testFiles"
+	folderName := "files"
 	storer := mock.NewStorerMock()
 	createTestImportFile(t, folderName, storer)
 
