@@ -21,5 +21,4 @@ type StorerArgs struct {
 	StartingEpoch         uint32
 	PruningEnabled        bool
 	FullArchive           bool
-	MaxBatchSize          int
 }

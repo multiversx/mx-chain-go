@@ -361,7 +361,6 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		NumOfEpochsToKeep:     numOfEpochsToKeep,
 		NumOfActivePersisters: numOfActivePersisters,
 		Notifier:              psf.epochStartNotifier,
-		MaxBatchSize:          storageConfig.DB.MaxBatchSize,
 	}
 
 	return args

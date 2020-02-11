@@ -88,9 +88,6 @@ func initPruningStorer(
 	if check.IfNil(args.PathManager) {
 		return nil, storage.ErrNilPathManager
 	}
-	if args.MaxBatchSize > int(args.CacheConf.Size) {
-		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
-	}
 
 	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards)
 	if err != nil {
