@@ -285,6 +285,10 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
+	if dbConf.MaxBatchSize > int(cacheConf.Size) {
+		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
+	}
+
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {
 		return nil, err

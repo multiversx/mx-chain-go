@@ -54,6 +54,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		NumOfEpochsToKeep:     2,
 		NumOfActivePersisters: 2,
 		Notifier:              &mock.EpochStartNotifierStub{},
+		MaxBatchSize:          10,
 	}
 }
 
@@ -111,6 +112,17 @@ func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
 
 	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPersisterFactory, err)
+}
+
+func TestNewPruningStorer_CacheSizeLowerThanBatchSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.MaxBatchSize = 11
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrCacheSizeIsLowerThanBatchSize, err)
 }
 
 func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
