@@ -136,6 +136,11 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
+
+	if body == nil {
+		return 0, process.ErrNilBlockBody
+	}
+
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return 0, process.ErrNilMiniBlockPool
 	}
@@ -188,6 +193,10 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	haveTime func() bool,
 ) error {
 
+	if body == nil {
+		return process.ErrNilBlockBody
+	}
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -236,6 +245,10 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 // SaveTxBlockToStorage saves smartContractResults from body into storage
 func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
+	if body == nil {
+		return process.ErrNilBlockBody
+	}
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.SmartContractResultBlock {
@@ -310,6 +323,11 @@ func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint3
 // computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
 	scrTxs := block.Body{}
+
+	if body == nil {
+		return map[uint32][]*txsHashesInfo{}
+	}
+
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.SmartContractResultBlock {
 			continue

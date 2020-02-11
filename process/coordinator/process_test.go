@@ -1636,7 +1636,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1680,7 +1680,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}

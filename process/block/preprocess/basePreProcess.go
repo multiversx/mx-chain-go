@@ -172,8 +172,12 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 ) map[uint32][]*txsHashesInfo {
 
 	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
+	if body == nil {
+		return missingTxsForShard
+	}
 
 	forBlock.mutTxsForBlock.Lock()
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != currType {
