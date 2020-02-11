@@ -123,11 +123,11 @@ func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, err
 	}
 
 	err := scanner.Err()
-	if err == io.EOF {
-		return nil, update.ErrEndOfFile
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	return nil, update.ErrEndOfFile
 }
 
 // Finish closes all the opened files

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -18,6 +19,7 @@ type ArgsNewStateExporter struct {
 	ShardCoordinator sharding.Coordinator
 	StateSyncer      update.StateSyncer
 	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
 	Writer           update.MultiFileWriter
 }
 
@@ -26,6 +28,7 @@ type stateExport struct {
 	stateSyncer      update.StateSyncer
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 }
 
 var log = logger.GetOrCreate("update/genesis/")
@@ -44,12 +47,16 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	if check.IfNil(args.Writer) {
 		return nil, epochStart.ErrNilStorage
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, update.ErrNilHasher
+	}
 
 	se := &stateExport{
 		writer:           args.Writer,
 		stateSyncer:      args.StateSyncer,
 		shardCoordinator: args.ShardCoordinator,
 		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
 	}
 
 	return se, nil
@@ -61,6 +68,8 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 	if err != nil {
 		return err
 	}
+
+	defer se.writer.Finish()
 
 	err = se.exportMeta()
 	if err != nil {
@@ -143,12 +152,13 @@ func (se *stateExport) exportMeta() error {
 		return err
 	}
 
-	versionKey := CreateVersionKey(metaBlock)
-
 	jsonData, err := json.Marshal(metaBlock)
 	if err != nil {
 		return err
 	}
+
+	metaHash := se.hasher.Compute(string(jsonData))
+	versionKey := CreateVersionKey(metaBlock, metaHash)
 
 	err = se.writer.Write(MetaBlockFileName, versionKey, jsonData)
 	if err != nil {
