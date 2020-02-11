@@ -170,6 +170,9 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 ) (int, error) {
 	txsRestored := 0
 
+	if body == nil {
+		return 0, process.ErrNilBlockBody
+	}
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
@@ -214,6 +217,11 @@ func (txs *transactions) ProcessBlockTransactions(
 ) error {
 
 	mapHashesAndTxs := txs.GetAllCurrentUsedTxs()
+
+	if body == nil {
+		return process.ErrNilBlockBody
+	}
+
 	expandedMiniBlocks, err := txs.miniBlocksCompacter.Expand(block.MiniBlockSlice(body.MiniBlocks), mapHashesAndTxs)
 	if err != nil {
 		return err
@@ -278,6 +286,11 @@ func (txs *transactions) ProcessBlockTransactions(
 
 // SaveTxBlockToStorage saves transactions from body into storage
 func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
+
+	if body == nil {
+		return process.ErrNilBlockBody
+	}
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.TxBlock {

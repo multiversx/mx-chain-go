@@ -115,16 +115,18 @@ func NewTransactionCoordinator(
 // separateBodyByType creates a map of bodies according to type
 func (tc *transactionCoordinator) separateBodyByType(body *block.Body) map[block.Type]*block.Body {
 	separatedBodies := make(map[block.Type]*block.Body)
-	if !check.IfNil(body) {
-		for i := 0; i < len(body.MiniBlocks); i++ {
-			mb := body.MiniBlocks[i]
+	if body == nil {
+		return separatedBodies
+	}
 
-			if _, ok := separatedBodies[mb.Type]; !ok {
-				separatedBodies[mb.Type] = &block.Body{}
-			}
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
 
-			separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
+		if _, ok := separatedBodies[mb.Type]; !ok {
+			separatedBodies[mb.Type] = &block.Body{}
 		}
+
+		separatedBodies[mb.Type].MiniBlocks = append(separatedBodies[mb.Type].MiniBlocks, mb)
 	}
 
 	return separatedBodies
@@ -342,6 +344,9 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body *block.Body,
 	timeRemaining func() time.Duration,
 ) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
 
 	haveTime := func() bool {
 		return timeRemaining() >= 0
