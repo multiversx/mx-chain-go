@@ -2,6 +2,7 @@ package leveldb
 
 import (
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -63,6 +64,11 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	dbStore.batch = dbStore.createBatch()
 
 	go dbStore.batchTimeoutHandle()
+
+	runtime.SetFinalizer(dbStore, func(db *DB) {
+		log.Debug("closing persister", "path", dbStore.path)
+		_ = db.Close()
+	})
 
 	return dbStore, nil
 }
