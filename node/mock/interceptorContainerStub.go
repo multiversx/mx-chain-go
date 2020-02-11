@@ -7,6 +7,10 @@ import (
 type InterceptorsContainerStub struct {
 }
 
+func (ics *InterceptorsContainerStub) Iterate(_ func(key string, interceptor process.Interceptor) bool) {
+	panic("implement me")
+}
+
 func (ics *InterceptorsContainerStub) Get(_ string) (process.Interceptor, error) {
 	panic("implement me")
 }

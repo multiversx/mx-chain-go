@@ -36,6 +36,7 @@ type interceptorsContainerFactory struct {
 	blackList              process.BlackListHandler
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
+	whiteListHandler       process.InterceptedDataWhiteList
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -62,6 +63,7 @@ func NewInterceptorsContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -127,6 +129,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(validityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:       marshalizer,
@@ -159,6 +164,7 @@ func NewInterceptorsContainerFactory(
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		accounts:               accounts,
+		whiteListHandler:       whiteListHandler,
 	}
 
 	var err error

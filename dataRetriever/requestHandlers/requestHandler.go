@@ -17,6 +17,7 @@ type resolverRequestHandler struct {
 	resolversFinder       dataRetriever.ResolversFinder
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epoch                 uint32
+	whiteList             dataRetriever.WhiteListHandler
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
@@ -24,10 +25,11 @@ type resolverRequestHandler struct {
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-// NewShardResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewShardResolverRequestHandler(
+// NewResolverRequestHandler creates a requestHandler interface implementation with request functions
+func NewResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteList dataRetriever.WhiteListHandler,
 	maxTxsToRequest int,
 	shardID uint32,
 ) (*resolverRequestHandler, error) {
@@ -41,6 +43,9 @@ func NewShardResolverRequestHandler(
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
+	if check.IfNil(whiteList) {
+		return nil, dataRetriever.ErrNilWhiteListHandler
+	}
 
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
@@ -48,37 +53,10 @@ func NewShardResolverRequestHandler(
 		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
+		whiteList:             whiteList,
 	}
 
 	rrh.sweepTime = time.Now()
-
-	return rrh, nil
-}
-
-// NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewMetaResolverRequestHandler(
-	finder dataRetriever.ResolversFinder,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	maxTxsToRequest int,
-) (*resolverRequestHandler, error) {
-
-	if check.IfNil(finder) {
-		return nil, dataRetriever.ErrNilResolverFinder
-	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
-	if maxTxsToRequest < 1 {
-		return nil, dataRetriever.ErrInvalidMaxTxRequest
-	}
-
-	rrh := &resolverRequestHandler{
-		resolversFinder:       finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               sharding.MetachainShardId,
-		maxTxsToRequest:       maxTxsToRequest,
-	}
 
 	return rrh, nil
 }
@@ -144,6 +122,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		}
 	}()
 
+	rrh.whiteList.Add(hashes)
 	for _, hash := range unrequestedHashes {
 		rrh.addRequestedItem(hash)
 	}
@@ -416,7 +395,9 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 		log.Trace("addRequestedItem",
 			"error", err.Error(),
 			"key", key)
+		return
 	}
+	rrh.whiteList.Add([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {

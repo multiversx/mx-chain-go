@@ -10,9 +10,10 @@ import (
 
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
-	factory   process.InterceptedDataFactory
-	processor process.InterceptorProcessor
-	throttler process.InterceptorThrottler
+	factory      process.InterceptedDataFactory
+	processor    process.InterceptorProcessor
+	throttler    process.InterceptorThrottler
+	dataVerifier process.InterceptedDataVerifier
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -33,12 +34,22 @@ func NewSingleDataInterceptor(
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{
-		factory:   factory,
-		processor: processor,
-		throttler: throttler,
+		factory:      factory,
+		processor:    processor,
+		throttler:    throttler,
+		dataVerifier: NewDefaultDataVerifier(),
 	}
 
 	return singleDataIntercept, nil
+}
+
+// SetIsDataForCurrentShardVerifier sets a different implementation for the data verifier
+func (sdi *SingleDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) error {
+	if check.IfNil(verifier) {
+		return process.ErrNilInterceptedDataVerifier
+	}
+	sdi.dataVerifier = verifier
+	return nil
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -61,7 +72,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
-	if !interceptedData.IsForCurrentShard() {
+	if !sdi.dataVerifier.IsForCurrentShard(interceptedData) {
 		sdi.throttler.EndProcessing()
 		log.Trace("intercepted data is for other shards")
 		return nil

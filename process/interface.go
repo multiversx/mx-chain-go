@@ -306,6 +306,7 @@ type InterceptorsContainer interface {
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int
+	Iterate(handler func(key string, interceptor Interceptor) bool)
 	IsInterfaceNil() bool
 }
 
@@ -410,6 +411,7 @@ type BlockChainHookHandler interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
+	SetIsDataForCurrentShardVerifier(verifier InterceptedDataVerifier) error
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
@@ -655,5 +657,19 @@ type ValidityAttester interface {
 type MiniBlocksResolver interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataVerifier check whether the received data is needed by shard
+type InterceptedDataVerifier interface {
+	IsForCurrentShard(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataWhiteList is the interface needed to add whitelisted data
+type InterceptedDataWhiteList interface {
+	IsForCurrentShard(interceptedData InterceptedData) bool
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
 	IsInterfaceNil() bool
 }

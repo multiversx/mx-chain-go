@@ -39,10 +39,10 @@ func NewTrieSyncersContainerFactory(args ArgsNewTrieSyncersContainerFactory) (*t
 		return nil, update.ErrInvalidFolderName
 	}
 	if check.IfNil(args.ResolversContainer) {
-		return nil, dataRetriever.ErrNilResolverContainer
+		return nil, update.ErrNilResolverContainer
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, sharding.ErrNilShardCoordinator
+		return nil, update.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.DataTrieContainer) {
 		return nil, update.ErrNilDataTrieContainer

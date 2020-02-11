@@ -222,6 +222,10 @@
     Size = 50000
     Type = "LRU"
 
+[WhiteListPool]
+    Size = 100000
+    Type = "LRU"
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"

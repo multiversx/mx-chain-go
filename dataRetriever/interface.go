@@ -280,3 +280,10 @@ type RequestedItemsHandler interface {
 	Sweep()
 	IsInterfaceNil() bool
 }
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsInterfaceNil() bool
+}

@@ -107,6 +107,7 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
+	WhiteListPool               CacheConfig
 	EpochStartConfig            EpochStartConfig
 	Logger                      LoggerConfig
 	Address                     AddressConfig

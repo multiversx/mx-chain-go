@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+// ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
 	StorageConfig    config.StorageConfig
 	SyncFolder       string
@@ -33,18 +34,19 @@ type dataTrieFactory struct {
 	hasher           hashing.Hasher
 }
 
+// NewDataTrieFactory creates a data trie factory
 func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	if len(args.SyncFolder) < 2 {
 		return nil, update.ErrInvalidFolderName
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, sharding.ErrNilShardCoordinator
+		return nil, update.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, data.ErrNilMarshalizer
+		return nil, update.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, sharding.ErrNilHasher
+		return nil, update.ErrNilHasher
 	}
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
@@ -73,6 +75,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	return d, nil
 }
 
+// Create creates a TriesHolder container to hold all the states
 func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
@@ -108,6 +111,7 @@ func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType factory.Type,
 	return nil
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (d *dataTrieFactory) IsInterfaceNil() bool {
 	return d == nil
 }

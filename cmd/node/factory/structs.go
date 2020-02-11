@@ -540,6 +540,7 @@ type processComponentsFactoryArgs struct {
 	network                *Network
 	coreServiceContainer   serviceContainer.Core
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	whiteListHandler       process.InterceptedDataWhiteList
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
 	rater                  sharding.RaterHandler
@@ -565,6 +566,7 @@ func NewProcessComponentsFactoryArgs(
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
@@ -588,6 +590,7 @@ func NewProcessComponentsFactoryArgs(
 		network:                network,
 		coreServiceContainer:   coreServiceContainer,
 		requestedItemsHandler:  requestedItemsHandler,
+		whiteListHandler:       whiteListHandler,
 		epochStartNotifier:     epochStartNotifier,
 		epochStart:             epochStart,
 		startEpochNum:          startEpochNum,
@@ -642,7 +645,13 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	requestHandler, err := newRequestHandler(resolversFinder, args.shardCoordinator, args.requestedItemsHandler)
+	requestHandler, err := requestHandlers.NewResolverRequestHandler(
+		resolversFinder,
+		args.requestedItemsHandler,
+		args.whiteListHandler,
+		MaxTxsToRequest,
+		args.shardCoordinator.SelfId(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -728,6 +737,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.sizeCheckDelta,
 		blockTracker,
 		epochStartTrigger,
+		args.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -831,41 +841,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	}
 
 	return nil
-}
-
-func newRequestHandler(
-	resolversFinder dataRetriever.ResolversFinder,
-	shardCoordinator sharding.Coordinator,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-) (process.RequestHandler, error) {
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-			shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return requestHandler, nil
-	}
-
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
-			resolversFinder,
-			requestedItemsHandler,
-			MaxTxsToRequest,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return requestHandler, nil
-	}
-
-	return nil, errors.New("could not create new request handler because of wrong shard id")
 }
 
 func newEpochStartTrigger(
@@ -1231,6 +1206,7 @@ func newInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1247,6 +1223,7 @@ func newInterceptorContainerFactory(
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
+			whiteListHandler,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1263,6 +1240,7 @@ func newInterceptorContainerFactory(
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
+			whiteListHandler,
 		)
 	}
 
@@ -1312,8 +1290,8 @@ func newShardInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
-
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
@@ -1338,6 +1316,7 @@ func newShardInterceptorContainerFactory(
 		sizeCheckDelta,
 		validityAttester,
 		epochStartTrigger,
+		whiteListHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1359,6 +1338,7 @@ func newMetaInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	whiteListHandler process.InterceptedDataWhiteList,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1384,6 +1364,7 @@ func newMetaInterceptorContainerFactory(
 		sizeCheckDelta,
 		validityAttester,
 		epochStartTrigger,
+		whiteListHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -2049,25 +2030,25 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:                     state.AccountsAdapter,
-		ForkDetector:                 forkDetector,
-		Hasher:                       core.Hasher,
-		Marshalizer:                  core.Marshalizer,
-		Store:                        data.Store,
-		ShardCoordinator:             shardCoordinator,
-		NodesCoordinator:             nodesCoordinator,
-		SpecialAddressHandler:        specialAddressHandler,
-		Uint64Converter:              core.Uint64ByteSliceConverter,
-		RequestHandler:               requestHandler,
-		Core:                         coreServiceContainer,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		TxCoordinator:                txCoordinator,
-		Rounder:                      rounder,
-		EpochStartTrigger:            epochStartTrigger,
-		HeaderValidator:              headerValidator,
-		BootStorer:                   bootStorer,
-		BlockTracker:                 blockTracker,
-		DataPool:                     data.Datapool,
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
+		TxCoordinator:         txCoordinator,
+		Rounder:               rounder,
+		EpochStartTrigger:     epochStartTrigger,
+		HeaderValidator:       headerValidator,
+		BootStorer:            bootStorer,
+		BlockTracker:          blockTracker,
+		DataPool:              data.Datapool,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor:       argumentsBaseProcessor,

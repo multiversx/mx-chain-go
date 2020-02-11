@@ -14,10 +14,11 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	marshalizer marshal.Marshalizer
-	factory     process.InterceptedDataFactory
-	processor   process.InterceptorProcessor
-	throttler   process.InterceptorThrottler
+	marshalizer  marshal.Marshalizer
+	factory      process.InterceptedDataFactory
+	processor    process.InterceptorProcessor
+	throttler    process.InterceptorThrottler
+	dataVerifier process.InterceptedDataVerifier
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -42,13 +43,23 @@ func NewMultiDataInterceptor(
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		marshalizer: marshalizer,
-		factory:     factory,
-		processor:   processor,
-		throttler:   throttler,
+		marshalizer:  marshalizer,
+		factory:      factory,
+		processor:    processor,
+		throttler:    throttler,
+		dataVerifier: NewDefaultDataVerifier(),
 	}
 
 	return multiDataIntercept, nil
+}
+
+// SetIsDataForCurrentShardVerifier sets a different implementation for the data verifier
+func (mdi *MultiDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) error {
+	if check.IfNil(verifier) {
+		return process.ErrNilInterceptedDataVerifier
+	}
+	mdi.dataVerifier = verifier
+	return nil
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -95,7 +106,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
-		if !interceptedData.IsForCurrentShard() {
+		if !mdi.dataVerifier.IsForCurrentShard(interceptedData) {
 			log.Trace("intercepted data is for other shards")
 			wgProcess.Done()
 			continue
