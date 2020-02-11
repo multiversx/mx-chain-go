@@ -2038,7 +2038,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	b := &block.Body{}
-	message, err := marshalizerMock.Marshal(&b)
+	message, err := marshalizerMock.Marshal(b)
 	assert.Nil(t, err)
 
 	dcdBlk := mp.DecodeBlockBody(nil)

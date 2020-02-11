@@ -134,7 +134,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrNilMetaHeader(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(&testBlockBody, nil)
+	err := mcm.BroadcastBlock(newTestBlockBody(), nil)
 	assert.Equal(t, spos.ErrNilMetaHeader, err)
 }
 
@@ -154,7 +154,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T)
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(&testBlockBody, &block.MetaBlock{})
+	err := mcm.BroadcastBlock(newTestBlockBody(), &block.MetaBlock{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
@@ -176,7 +176,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(&testBlockBody, &block.MetaBlock{})
+	err := mcm.BroadcastBlock(newTestBlockBody(), &block.MetaBlock{})
 	assert.Nil(t, err)
 }
 
