@@ -1,7 +1,6 @@
 package longTests
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -14,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,27 +31,14 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG,process:TRACE")
 
 	nodesMap := integrationTests.CreateProcessorNodesWithNodesCoordinator(numOfNodes, 1, 1, numOfNodes, 1, advertiserAddr)
-
-	for _, nodes := range nodesMap {
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0).SetUint64(2 * integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice))
-		}
-	}
+	setRewardParametersToNodes(nodesMap)
 
 	defer func() {
 		_ = advertiser.Close()
-		for _, shards := range nodesMap {
-			for _, n := range shards {
-				_ = n.Messenger.Close()
-			}
-		}
+		closeNodes(nodesMap)
 	}()
 
-	for _, shards := range nodesMap {
-		for _, n := range shards {
-			_ = n.Messenger.Bootstrap()
-		}
-	}
+	p2pBootstrapNodes(nodesMap)
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
@@ -62,32 +47,18 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 	nonce := uint64(1)
 	round = integrationTests.IncrementAndPrintRound(round)
 	randomness := generateInitialRandomness(1)
-	pubKeys, _ := nodesMap[0][0].NodesCoordinator.GetValidatorsPublicKeys(randomness[0], round, 0)
 
-	var proposer *integrationTests.TestProcessorNode
-	for _, shard := range nodesMap {
-		for _, n := range shard {
-			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
-			if bytes.Equal([]byte(pubKeys[0]), buffPk) {
-				proposer = n
-				break
-			}
-		}
-	}
-	if proposer == nil {
-		assert.Fail(t, "failed to find the proposer")
-		return
-	}
+	firstNode := nodesMap[0][0]
 
 	transferValue := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice / 2
 
 	go func() {
 		for {
 			generateAndSendTxs(
-				proposer,
+				firstNode,
 				transferValue,
-				proposer.OwnAccount.SkTxSign,
-				proposer.OwnAccount.Address,
+				firstNode.OwnAccount.SkTxSign,
+				firstNode.OwnAccount.Address,
 				nodesMap[sharding.MetachainShardId][0].OwnAccount.PkTxSign)
 			time.Sleep(time.Second)
 		}
@@ -96,8 +67,7 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 	nbBlocksProduced := uint64(20)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	for i := uint64(0); i < nbBlocksProduced; i++ {
-		log.Info("starting", "leader", proposer.OwnAccount.Address.Bytes())
-		printBalance(proposer)
+		printBalance(firstNode)
 
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
@@ -111,17 +81,45 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 
 		time.Sleep(time.Second)
 
-		for _, nodes := range nodesMap {
-			crtBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
-			for _, n := range nodes {
-				blkc := n.BlockChain.GetCurrentBlockHeader()
-				require.False(t, (crtBlock == nil) != (blkc == nil))
-				require.Equal(t, crtBlock.GetNonce(), blkc.GetNonce())
-			}
-		}
+		checkSameBlockHeight(t, nodesMap)
 	}
 
-	printBalance(proposer)
+	printBalance(firstNode)
+}
+
+func setRewardParametersToNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
+	for _, nodes := range nodesMap {
+		for _, n := range nodes {
+			n.EconomicsData.SetRewards(big.NewInt(0).SetUint64(2 * integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice))
+		}
+	}
+}
+
+func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
+	for _, shards := range nodesMap {
+		for _, n := range shards {
+			_ = n.Messenger.Close()
+		}
+	}
+}
+
+func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
+	for _, shards := range nodesMap {
+		for _, n := range shards {
+			_ = n.Messenger.Bootstrap()
+		}
+	}
+}
+
+func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
+	for _, nodes := range nodesMap {
+		crtBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
+		for _, n := range nodes {
+			blkc := n.BlockChain.GetCurrentBlockHeader()
+			require.False(t, (crtBlock == nil) != (blkc == nil))
+			require.Equal(t, crtBlock.GetNonce(), blkc.GetNonce())
+		}
+	}
 }
 
 func printBalance(node *integrationTests.TestProcessorNode) {
