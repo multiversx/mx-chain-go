@@ -650,14 +650,14 @@ func (vs *validatorStatistics) updateMissedBlocksCounters() error {
 		}
 
 		if roundCounters.leaderDecreaseCount > 0 {
-			err = peerAccount.UpdateLeaderFailureRateWithJournal(roundCounters.leaderDecreaseCount)
+			err = peerAccount.DecreaseLeaderSuccessRateWithJournal(roundCounters.leaderDecreaseCount)
 			if err != nil {
 				return err
 			}
 		}
 
 		if roundCounters.validatorDecreaseCount > 0 {
-			err = peerAccount.UpdateValidatorFailureRateWithJournal(roundCounters.validatorDecreaseCount)
+			err = peerAccount.DecreaseValidatorSuccessRateWithJournal(roundCounters.validatorDecreaseCount)
 			if err != nil {
 				return err
 			}

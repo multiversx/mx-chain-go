@@ -321,20 +321,6 @@ func (pa *PeerAccount) IncreaseValidatorSuccessRateWithJournal(value uint32) err
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// UpdateValidatorSuccessRateWithJournal increases the account's number of successful signing with the provided amount,
-// saving the old state before changing
-func (pa *PeerAccount) UpdateValidatorSuccessRateWithJournal(amount uint32) error {
-	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.ValidatorSuccessRate.NrSuccess += amount
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
 func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
@@ -345,20 +331,6 @@ func (pa *PeerAccount) DecreaseValidatorSuccessRateWithJournal(value uint32) err
 
 	pa.accountTracker.Journalize(entry)
 	pa.ValidatorSuccessRate.NrFailure += value
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// UpdateValidatorFailureRateWithJournal increases the account's number of missed signing with the provided amount,
-// saving the old state before changing
-func (pa *PeerAccount) UpdateValidatorFailureRateWithJournal(amount uint32) error {
-	entry, err := NewPeerJournalEntryValidatorSuccessRate(pa, pa.ValidatorSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.ValidatorSuccessRate.NrFailure += amount
 
 	return pa.accountTracker.SaveAccount(pa)
 }
@@ -377,20 +349,6 @@ func (pa *PeerAccount) IncreaseLeaderSuccessRateWithJournal(value uint32) error 
 	return pa.accountTracker.SaveAccount(pa)
 }
 
-// UpdateLeaderSuccessRateWithJournal increases the account's number of successful signing with the provided amount,
-// saving the old state before changing
-func (pa *PeerAccount) UpdateLeaderSuccessRateWithJournal(amount uint32) error {
-	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrSuccess++
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
 // DecreaseLeaderSuccessRateWithJournal increases the account's number of missing signing,
 // saving the old state before changing
 func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
@@ -401,20 +359,6 @@ func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal(value uint32) error 
 
 	pa.accountTracker.Journalize(entry)
 	pa.LeaderSuccessRate.NrFailure += value
-
-	return pa.accountTracker.SaveAccount(pa)
-}
-
-// UpdateLeaderFailureRateWithJournal increases the account's number of missing signing with the provided amount,
-// saving the old state before changing
-func (pa *PeerAccount) UpdateLeaderFailureRateWithJournal(amount uint32) error {
-	entry, err := NewPeerJournalEntryLeaderSuccessRate(pa, pa.LeaderSuccessRate)
-	if err != nil {
-		return err
-	}
-
-	pa.accountTracker.Journalize(entry)
-	pa.LeaderSuccessRate.NrFailure += amount
 
 	return pa.accountTracker.SaveAccount(pa)
 }
