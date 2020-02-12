@@ -7,6 +7,10 @@
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 
+   # MaxComputableRounds represents the max number of rounds computable in a round
+   # by the validator statistics processor
+   MaxComputableRounds = 100
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true
@@ -34,7 +38,7 @@
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -45,7 +49,7 @@
     [MiniBlockHeadersStorage.DB]
         FilePath = "MiniBlockHeaders"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -56,7 +60,7 @@
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -67,7 +71,7 @@
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -78,7 +82,7 @@
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 1
         MaxOpenFiles = 10
 
@@ -89,7 +93,7 @@
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -100,7 +104,7 @@
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
@@ -111,7 +115,7 @@
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
@@ -122,7 +126,7 @@
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
@@ -133,7 +137,7 @@
     [StatusMetricsStorage.DB]
         FilePath = "StatusMetricsStorageDB"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -144,7 +148,7 @@
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -155,7 +159,7 @@
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 30
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
@@ -166,23 +170,23 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 5
+        BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 500
+    Size = 1000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 5
+        BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [TrieSnapshotDB]
      FilePath = "TrieSnapshot"
      Type = "LvlDBSerial"
-     BatchDelaySeconds = 15
+     BatchDelaySeconds = 2
      MaxBatchSize = 40000
      MaxOpenFiles = 10
 
@@ -193,7 +197,7 @@
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 5
+        BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
@@ -275,13 +279,13 @@
    DurationInSecToConsiderUnresponsive = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
-           Size = 100
+           Size = 1000
            Type = "LRU"
        [Heartbeat.HeartbeatStorage.DB]
            FilePath = "HeartbeatStorage"
            Type = "LvlDBSerial"
-           BatchDelaySeconds = 15
-           MaxBatchSize = 300
+           BatchDelaySeconds = 5
+           MaxBatchSize = 100
            MaxOpenFiles = 10
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")

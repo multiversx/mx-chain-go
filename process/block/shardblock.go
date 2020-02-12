@@ -761,26 +761,14 @@ func (sp *shardProcessor) CommitBlock(
 		sp.epochStartTrigger.SetProcessed(header)
 	}
 
-	buff, err := sp.marshalizer.Marshal(header)
+	marshalizedHeader, err := sp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	headerHash := sp.hasher.Compute(string(buff))
-	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
+	headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-	errNotCritical := sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-	if errNotCritical != nil {
-		log.Debug(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", header.ShardId),
-			"error", errNotCritical.Error(),
-		)
-	}
-
-	errNotCritical = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
-	if errNotCritical != nil {
-		log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical.Error())
-	}
+	go sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
 	headersPool := sp.dataPool.Headers()
 	if headersPool == nil {
@@ -796,23 +784,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.SaveBlockDataToStorage(body)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(body); i++ {
-		buff, err = sp.marshalizer.Marshal(body[i])
-		if err != nil {
-			return err
-		}
-
-		miniBlockHash := sp.hasher.Compute(string(buff))
-		errNotCritical = sp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
-		if errNotCritical != nil {
-			log.Trace("MiniBlockUnit store.Put", "error", errNotCritical.Error())
-		}
-	}
+	go sp.saveBody(body)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
@@ -848,7 +820,7 @@ func (sp *shardProcessor) CommitBlock(
 		"hash", headerHash,
 	)
 
-	errNotCritical = sp.txCoordinator.RemoveBlockDataFromPool(body)
+	errNotCritical := sp.txCoordinator.RemoveBlockDataFromPool(body)
 	if errNotCritical != nil {
 		log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
 	}
@@ -927,7 +899,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
-	sp.prepareDataForBootStorer(args)
+	go sp.prepareDataForBootStorer(args)
 
 	go sp.cleanTxsPools()
 
@@ -1025,10 +997,12 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 
 	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
 		shouldRevertChain = true
-		prevHeader, err := process.GetShardHeaderFromStorage(
-			currentHeader.GetPrevHash(),
-			sp.marshalizer,
+		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
+			currentHeader.GetNonce()-1,
+			sp.shardCoordinator.SelfId(),
 			sp.store,
+			sp.uint64Converter,
+			sp.marshalizer,
 		)
 		if err != nil {
 			return err
@@ -1352,27 +1326,18 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 			continue
 		}
 
-		var buff []byte
 		// metablock was processed and finalized
-		buff, err = sp.marshalizer.Marshal(hdr)
+		marshalizedHeader, err := sp.marshalizer.Marshal(hdr)
 		if err != nil {
 			log.Debug("marshalizer.Marshal", "error", err.Error())
 			continue
 		}
 
-		headerHash := sp.hasher.Compute(string(buff))
-		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
-		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-		if err != nil {
-			log.Debug("MetaHdrNonceHashDataUnit store.Put", "error", err.Error())
-			continue
-		}
+		headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
-		err = sp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
-		if err != nil {
-			log.Debug("MetaBlockUnit store.Put", "error", err.Error())
-			continue
-		}
+		go func(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+			sp.saveMetaHeader(header, headerHash, marshalizedHeader)
+		}(hdr, headerHash, marshalizedHeader)
 
 		sp.dataPool.Headers().RemoveHeaderByHash(headerHash)
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
