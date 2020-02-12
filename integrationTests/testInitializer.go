@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -1439,6 +1440,7 @@ func generateValidTx(
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
 
+	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	mockNode, _ := node.NewNode(
 		node.WithMarshalizer(TestMarshalizer, 100),
 		node.WithHasher(TestHasher),
@@ -1448,6 +1450,7 @@ func generateValidTx(
 		node.WithTxSignPrivKey(skSender),
 		node.WithTxSignPubKey(pkSender),
 		node.WithAccountsAdapter(accnts),
+		node.WithTxAccumulator(txAccumulator),
 	)
 
 	tx, err := mockNode.GenerateTransaction(

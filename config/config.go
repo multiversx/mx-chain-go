@@ -224,6 +224,12 @@ type TopicAntifloodConfig struct {
 	HeadersRequestsPerSec      uint32
 }
 
+// TxAccumulatorConfig will hold the tx accumulator config values
+type TxAccumulatorConfig struct {
+	MaxAllowedTimeInMillis   uint32
+	MaxDeviationTimeInMillis uint32
+}
+
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
 	Enabled                   bool
@@ -235,4 +241,5 @@ type AntifloodConfig struct {
 	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
+	TxAccumulator             TxAccumulatorConfig
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -1197,12 +1198,25 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*node.Node, error) {
-	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	var err error
+	var consensusGroupSize uint32
+	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nd, err := node.NewNode(
+	var txAccumulator node.Accumulator
+	txAccumulatorConfig := config.Antiflood.TxAccumulator
+	txAccumulator, err = accumulator.NewTimeAccumulator(
+		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMillis)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMillis)*time.Millisecond,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var nd *node.Node
+	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
 		node.WithMarshalizer(core.Marshalizer, config.Marshalizer.SizeCheckDelta),
@@ -1248,6 +1262,7 @@ func createNode(
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithAntifloodHandler(network.AntifloodHandler),
+		node.WithTxAccumulator(txAccumulator),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

@@ -80,7 +80,8 @@ func SendTransaction(c *gin.Context) {
 	}
 
 	var txHash []byte
-	_, txHash, err = ef.CreateTransaction(
+	var tx *transaction.Transaction
+	tx, txHash, err = ef.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -92,6 +93,12 @@ func SendTransaction(c *gin.Context) {
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
+		return
+	}
+
+	_, err = ef.SendBulkTransactions([]*transaction.Transaction{tx})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

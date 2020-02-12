@@ -209,7 +209,7 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	gasLimit uint64,
 	txData []byte,
 	signatureHex string,
-) (*transaction.Transaction, error) {
+) (*transaction.Transaction, []byte, error) {
 
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex)
 }
@@ -217,21 +217,6 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 // ValidatorStatisticsApi will return the statistics for all validators
 func (ef *ElrondNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return ef.node.ValidatorStatisticsApi()
-}
-
-// SendTransaction will send a new transaction on the topic channel
-func (ef *ElrondNodeFacade) SendTransaction(
-	nonce uint64,
-	senderHex string,
-	receiverHex string,
-	value string,
-	gasPrice uint64,
-	gasLimit uint64,
-	txData []byte,
-	signature []byte,
-) (string, error) {
-
-	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, txData, signature)
 }
 
 // SendBulkTransactions will send a bulk of transactions on the topic channel

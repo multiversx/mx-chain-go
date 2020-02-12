@@ -678,9 +678,16 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	expectedHash := []byte("expected hash")
 	n, _ := node.NewNode(
 		node.WithMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithHasher(getHasher()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
 		node.WithAddressConverter(&mock.AddressConverterStub{
 			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
 				return state.NewAddress([]byte(hexAddress)), nil
@@ -702,7 +709,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
 
 	assert.NotNil(t, tx)
-	assert.NotNil(t, txHash)
+	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 	assert.Equal(t, value, tx.Value)
@@ -2402,6 +2409,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		node.WithMessenger(mes),
 		node.WithDataPool(dataPool),
 		node.WithTxFeeHandler(feeHandler),
+		node.WithTxAccumulator(mock.NewAccumulatorMock()),
 	)
 
 	numTxs, err := n.SendBulkTransactions(txsToSend)
