@@ -18,7 +18,7 @@ import (
 
 var log = logger.GetOrCreate("integrationtests/singleshard/block")
 
-// TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound tests what happens in a setting where a proposer/validator
+// TestExecutingTransactionsFromGatheredRewards tests what happens in a setting where a proposer/validator
 // periodically sends transactions to someone else. The tests starts with the node having 0 balance.
 func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 	t.Skip("this is a long test")
@@ -64,10 +64,10 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 		}
 	}()
 
-	nbBlocksProduced := uint64(20)
+	numBlocksProduced := uint64(20)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
-	for i := uint64(0); i < nbBlocksProduced; i++ {
-		printBalance(firstNode)
+	for i := uint64(0); i < numBlocksProduced; i++ {
+		printAccount(firstNode)
 
 		for _, nodes := range nodesMap {
 			integrationTests.UpdateRound(nodes, round)
@@ -84,7 +84,7 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 		checkSameBlockHeight(t, nodesMap)
 	}
 
-	printBalance(firstNode)
+	printAccount(firstNode)
 }
 
 func setRewardParametersToNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
@@ -113,16 +113,18 @@ func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode
 
 func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, nodes := range nodesMap {
-		crtBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
+		referenceBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
 		for _, n := range nodes {
-			blkc := n.BlockChain.GetCurrentBlockHeader()
-			require.False(t, (crtBlock == nil) != (blkc == nil))
-			require.Equal(t, crtBlock.GetNonce(), blkc.GetNonce())
+			crtBlock := n.BlockChain.GetCurrentBlockHeader()
+			//(crtBlock == nil) != (blkc == nil) actually does a XOR operation between the 2 conditions
+			//as if the reference is nil, the same must be all other nodes. Same if the reference is not nil.
+			require.False(t, (referenceBlock == nil) != (crtBlock == nil))
+			require.Equal(t, referenceBlock.GetNonce(), crtBlock.GetNonce())
 		}
 	}
 }
 
-func printBalance(node *integrationTests.TestProcessorNode) {
+func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
 	if accnt == nil {
 		log.Info("account",
@@ -144,7 +146,6 @@ func getBlockProposersIndexes(
 	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
 ) map[uint32]int {
-
 	indexProposer := make(map[uint32]int)
 
 	for sh, testNodeList := range nodesMap {
@@ -158,10 +159,10 @@ func getBlockProposersIndexes(
 	return indexProposer
 }
 
-func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
+func generateInitialRandomness(numShards uint32) map[uint32][]byte {
 	randomness := make(map[uint32][]byte)
 
-	for i := uint32(0); i < nbShards; i++ {
+	for i := uint32(0); i < numShards; i++ {
 		randomness[i] = []byte("root hash")
 	}
 
@@ -177,7 +178,6 @@ func generateAndSendTxs(
 	addr state.AddressContainer,
 	pkReceiver crypto.PublicKey,
 ) {
-
 	accnt, _ := n.AccntState.GetExistingAccount(addr)
 	startingNonce := uint64(0)
 	if accnt != nil {
