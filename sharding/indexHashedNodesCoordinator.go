@@ -135,7 +135,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return validators, nil
 	}
 
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	// TODO: pre-compute eligible list and update only on rating change.
@@ -145,6 +145,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		"randomness", randomness,
 		"consensus size", consensusSize,
 		"eligible list length", len(expandedList))
+
 	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
 	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
 	if err != nil {
@@ -241,7 +242,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte,
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	publicKeys = make([]string, consensusSize)
 	cnt := 0
 
@@ -312,7 +313,7 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	return false
 }
 
-func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(shardId uint32) int {
+func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(shardId uint32) int {
 	if shardId == MetachainShardId {
 		return ihgs.metaConsensusGroupSize
 	}

@@ -180,6 +180,11 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 	return validatorsGroup, nil
 }
 
+// ConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
+	return 1
+}
+
 // GetValidatorWithPublicKey -
 func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	if ncm.GetValidatorWithPublicKeyCalled != nil {
