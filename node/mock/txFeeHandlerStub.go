@@ -14,6 +14,12 @@ type FeeHandlerStub struct {
 	ComputeGasLimitCalled       func(tx process.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
+	DeveloperPercentageCalled   func() float64
+}
+
+// DeveloperPercentage -
+func (fhs *FeeHandlerStub) DeveloperPercentage() float64 {
+	return fhs.DeveloperPercentageCalled()
 }
 
 // MaxGasLimitPerBlock -

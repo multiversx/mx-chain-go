@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,6 +15,9 @@ type Account struct {
 	RootHash []byte
 	Address  []byte
 
+	AccumulatedFee *big.Int
+	OwnerAddress   []byte
+
 	addressContainer AddressContainer
 	code             []byte
 	accountTracker   AccountTracker
@@ -22,10 +26,10 @@ type Account struct {
 
 // NewAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Account, error) {
-	if addressContainer == nil || addressContainer.IsInterfaceNil() {
+	if check.IfNil(addressContainer) {
 		return nil, ErrNilAddressContainer
 	}
-	if tracker == nil || tracker.IsInterfaceNil() {
+	if check.IfNil(tracker) {
 		return nil, ErrNilAccountTracker
 	}
 

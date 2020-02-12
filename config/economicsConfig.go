@@ -22,6 +22,7 @@ type FeeSettings struct {
 	DataLimitForBaseCalc string
 	MinGasPrice          string
 	MinGasLimit          string
+	DeveloperPercentage  float64
 }
 
 // ValidatorSettings will hold the validator settings

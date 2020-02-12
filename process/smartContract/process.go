@@ -23,15 +23,16 @@ import (
 var log = logger.GetOrCreate("process/smartcontract")
 
 type scProcessor struct {
-	accounts         state.AccountsAdapter
-	tempAccounts     process.TemporaryAccountsHandler
-	adrConv          state.AddressConverter
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	vmContainer      process.VirtualMachinesContainer
-	argsParser       process.ArgumentsParser
-	isCallBack       bool
+	accounts         	state.AccountsAdapter
+	tempAccounts     	process.TemporaryAccountsHandler
+	adrConv          	state.AddressConverter
+	hasher           	hashing.Hasher
+	marshalizer      	marshal.Marshalizer
+	shardCoordinator 	sharding.Coordinator
+	vmContainer      	process.VirtualMachinesContainer
+	argsParser       	process.ArgumentsParser
+	isCallBack       	bool
+	developerPercentage float64
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -138,14 +139,18 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-	if acntDst == nil || acntDst.IsInterfaceNil() {
+	if check.IfNil(acntDst) {
 		return process.ErrNilSCDestAccount
 	}
-	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
+	if len(acntDst.GetCode()) == 0 {
 		return process.ErrNilSCDestAccount
+	}
+	accWithBalance, ok := acntDst.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
 
 	err := sc.processSCPayment(tx, acntSnd)
@@ -199,7 +204,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	developerReward := core.GetPercentageOfValue(consumedFee, sc.developerPercentage)
+	feeForValidators := big.NewInt(0).Sub(consumedFee, developerReward)
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
+
+	accWithBalance.
 
 	return nil
 }

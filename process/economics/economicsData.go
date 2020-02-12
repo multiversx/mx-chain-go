@@ -25,6 +25,7 @@ type EconomicsData struct {
 	stakeValue           *big.Int
 	unBoundPeriod        uint64
 	ratingsData          *RatingsData
+	developerPercentage  float64
 }
 
 const float64EqualityThreshold = 1e-9
@@ -71,6 +72,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
 		ratingsData:          rd,
+		developerPercentage:  economics.FeeSettings.DeveloperPercentage,
 	}, nil
 }
 
@@ -213,6 +215,11 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 // MaxGasLimitPerBlock will return maximum gas limit allowed per block
 func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
 	return ed.maxGasLimitPerBlock
+}
+
+// DeveloperPercentage will return the developer percentage value
+func (ed *EconomicsData) DeveloperPercentage() float64 {
+	return ed.developerPercentage
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

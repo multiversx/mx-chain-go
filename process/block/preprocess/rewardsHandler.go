@@ -274,22 +274,10 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 
 }
 
-func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
-	x := new(big.Float).SetInt(value)
-	y := big.NewFloat(percentage)
-
-	z := new(big.Float).Mul(x, y)
-
-	op := big.NewInt(0)
-	result, _ := z.Int(op)
-
-	return result
-}
-
 func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.LeaderPercentage())
+	currTx.Value = core.GetPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.LeaderPercentage())
 	currTx.RcvAddr = rtxh.address.LeaderAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
@@ -302,7 +290,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.BurnPercentage())
+	currTx.Value = core.GetPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.BurnPercentage())
 	currTx.RcvAddr = rtxh.address.BurnAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
@@ -315,7 +303,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.CommunityPercentage())
+	currTx.Value = core.GetPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.CommunityPercentage())
 	currTx.RcvAddr = rtxh.address.ElrondCommunityAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()

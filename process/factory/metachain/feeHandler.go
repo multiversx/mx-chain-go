@@ -15,6 +15,11 @@ func (t *TransactionFeeHandler) MaxGasLimitPerBlock() uint64 {
 	return 1500000000
 }
 
+// DeveloperPercentage will return 0 as system VMs developers is the same as protocol
+func (t *TransactionFeeHandler) DeveloperPercentage() float64 {
+	return 0
+}
+
 // ComputeGasLimit will return 0
 func (t *TransactionFeeHandler) ComputeGasLimit(_ process.TransactionWithFeeHandler) uint64 {
 	return 0
