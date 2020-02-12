@@ -59,3 +59,11 @@ func (n *nilEpochTrigger) SetFinalityAttestingRound(_ uint64) {
 func (n *nilEpochTrigger) EpochFinalityAttestingRound() uint64 {
 	return 0
 }
+
+func (n *nilEpochTrigger) GetSavedStateKey() []byte {
+	return nil
+}
+
+func (n *nilEpochTrigger) LoadState(_ []byte) error {
+	return nil
+}

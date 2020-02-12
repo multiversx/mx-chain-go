@@ -34,6 +34,16 @@ func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
 	return 0
 }
 
+// GetSavedStateKey -
+func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
+	return []byte("key")
+}
+
+// LoadState -
+func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
+	return nil
+}
+
 // EpochStartMetaHdrHash -
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil

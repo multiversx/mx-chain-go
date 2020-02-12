@@ -3,7 +3,6 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -30,7 +29,7 @@ func NewTestSyncNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("add"), []byte("add"))
+			validator := mock.NewValidatorMock([]byte("add"), []byte("add"))
 			return []sharding.Validator{validator}, nil
 		},
 	}

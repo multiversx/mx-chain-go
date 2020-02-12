@@ -178,6 +178,7 @@ func createNode(
 
 	nodeKeys := cp.Keys[shardId][keyIndex]
 	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	bootStorer := CreateMemUnit()
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -185,6 +186,7 @@ func createNode(
 		Hasher:                  TestHasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
 		ShardId:                 shardId,
 		NbShards:                uint32(nbShards),
 		EligibleNodes:           validatorsMap,
@@ -227,6 +229,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := CreateMemUnit()
 
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
@@ -235,6 +238,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
+			BootStorer:              bootStorer,
 			EpochStartSubscriber:    epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
@@ -303,6 +307,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
+		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -310,6 +315,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			EpochStartSubscriber:    epochStartSubscriber,
+			BootStorer:              bootStorer,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,

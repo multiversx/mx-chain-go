@@ -252,33 +252,14 @@ func (sr *subroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
 func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
-	sr.changeEpoch(hdr)
+	sr.changeEpoch(hdr.GetEpoch())
 }
 
-func (sr *subroundStartRound) changeEpoch(header data.HeaderHandler) {
-	publicKeysPrevEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch() - 1)
+func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
+	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
 	if err != nil {
-		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch()-1, err.Error()))
-		return
+		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
 	}
 
-	publicKeysNewEpoch, err := sr.NodesCoordinator().GetAllValidatorsPublicKeys(header.GetEpoch())
-	if err != nil {
-		log.Error(fmt.Sprintf("epoch %d: %s", header.GetEpoch(), err.Error()))
-		return
-	}
-
-	estimatedMapSize := len(publicKeysNewEpoch) * len(publicKeysNewEpoch[0])
-	shardEligible := make(map[string]struct{}, estimatedMapSize)
-	// TODO: update this when inter shard shuffling is enabled
-	shardId := sr.ShardCoordinator().SelfId()
-
-	for _, pubKey := range publicKeysPrevEpoch[shardId] {
-		shardEligible[string(pubKey)] = struct{}{}
-	}
-	for _, pubKey := range publicKeysNewEpoch[shardId] {
-		shardEligible[string(pubKey)] = struct{}{}
-	}
-
-	sr.SetEligibleList(shardEligible)
+	sr.SetEligibleList(epochNodes)
 }

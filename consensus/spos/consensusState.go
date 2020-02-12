@@ -128,6 +128,14 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 ) ([]string, []string, error) {
 	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
+		log.Debug(
+			"compute consensus group",
+			"error", err.Error(),
+			"randomSource", randomSource,
+			"round", round,
+			"shardId", shardId,
+			"epoch", epoch,
+		)
 		return nil, nil, err
 	}
 

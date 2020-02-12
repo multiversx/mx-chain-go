@@ -154,7 +154,7 @@ func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaHdrStorage, err)
+	assert.Equal(t, epochStart.ErrNilMetaBlockStorage, err)
 }
 
 func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {

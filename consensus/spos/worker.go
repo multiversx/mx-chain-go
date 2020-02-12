@@ -297,6 +297,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		"header hash", cnsDta.BlockHeaderHash,
 		"round", cnsDta.RoundIndex,
+		"size", len(message.Data()),
 	)
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
@@ -347,6 +348,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
+			"nbTxs", header.GetTxCount(),
 		)
 
 		err = header.CheckChainID(wrk.chainID)

@@ -17,15 +17,22 @@ type shardStorageBootstrapper struct {
 
 // NewShardStorageBootstrapper is method used to create a nes storage bootstrapper
 func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shardStorageBootstrapper, error) {
+	err := checkShardStorageBootstrapperArgs(arguments)
+	if err != nil {
+		return nil, err
+	}
+
 	base := &storageBootstrapper{
-		bootStorer:       arguments.BootStorer,
-		forkDetector:     arguments.ForkDetector,
-		blkExecutor:      arguments.BlockProcessor,
-		blkc:             arguments.ChainHandler,
-		marshalizer:      arguments.Marshalizer,
-		store:            arguments.Store,
-		shardCoordinator: arguments.ShardCoordinator,
-		blockTracker:     arguments.BlockTracker,
+		bootStorer:        arguments.BootStorer,
+		forkDetector:      arguments.ForkDetector,
+		blkExecutor:       arguments.BlockProcessor,
+		blkc:              arguments.ChainHandler,
+		marshalizer:       arguments.Marshalizer,
+		store:             arguments.Store,
+		shardCoordinator:  arguments.ShardCoordinator,
+		nodesCoordinator:  arguments.NodesCoordinator,
+		epochStartTrigger: arguments.EpochStartTrigger,
+		blockTracker:      arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -178,4 +185,8 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
+}
+
+func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {
+	return checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
 }

@@ -20,40 +20,6 @@ type RaterMock struct {
 	RatingReader                   sharding.RatingReader
 }
 
-func GetNewMockRater() *RaterMock {
-	raterMock := &RaterMock{
-		StartRating:       5,
-		MinRating:         1,
-		MaxRating:         10,
-		IncreaseProposer:  1,
-		DecreaseProposer:  1,
-		IncreaseValidator: 1,
-		DecreaseValidator: 1,
-	}
-	raterMock.GetRatingCalled = func(s string) uint32 {
-		return raterMock.StartRating
-	}
-	raterMock.GetStartRatingCalled = func() uint32 {
-		return raterMock.StartRating
-	}
-	raterMock.ComputeIncreaseProposerCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(raterMock.IncreaseProposer))
-	}
-	raterMock.ComputeDecreaseProposerCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(0-raterMock.DecreaseProposer))
-	}
-	raterMock.ComputeIncreaseValidatorCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(raterMock.IncreaseValidator))
-	}
-	raterMock.ComputeDecreaseValidatorCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(0-raterMock.DecreaseValidator))
-	}
-	raterMock.GetChancesCalled = func(pk string) uint32 {
-		return raterMock.StartRating
-	}
-	return raterMock
-}
-
 func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
 	newVal := int64(val) + int64(ratingStep)
 	if newVal < int64(rm.MinRating) {

@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgNodesCoordinator holds all dependencies required by the nodes coordinator in order to create new instances
@@ -11,6 +12,7 @@ type ArgNodesCoordinator struct {
 	Hasher                  hashing.Hasher
 	Shuffler                NodesShuffler
 	EpochStartSubscriber    EpochStartSubscriber
+	BootStorer              storage.Storer
 	ShardId                 uint32
 	NbShards                uint32
 	EligibleNodes           map[uint32][]Validator

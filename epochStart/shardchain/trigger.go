@@ -40,9 +40,10 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epochMetaBlockHash          []byte
 	currentRoundIndex           int64
 	epochStartRound             uint64
+	epochMetaBlockHash          []byte
+	triggerStateKey             []byte
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
@@ -54,6 +55,7 @@ type trigger struct {
 
 	headersPool         dataRetriever.HeadersPool
 	metaHdrStorage      storage.Storer
+	triggerStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
 	uint64Converter     typeConverters.Uint64ByteSliceConverter
 
@@ -105,7 +107,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
-		return nil, epochStart.ErrNilMetaHdrStorage
+		return nil, epochStart.ErrNilMetaBlockStorage
+	}
+
+	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if check.IfNil(triggerStorage) {
+		return nil, epochStart.ErrNilTriggerStorage
 	}
 
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
@@ -113,7 +120,10 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilMetaNonceHashStorage
 	}
 
+	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+
 	newTrigger := &trigger{
+		triggerStateKey:             []byte(trigStateKey),
 		epoch:                       args.Epoch,
 		currentRoundIndex:           0,
 		epochStartRound:             0,
@@ -128,6 +138,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
 		headersPool:                 args.DataPool.Headers(),
 		metaHdrStorage:              metaHdrStorage,
+		triggerStorage:              triggerStorage,
 		metaNonceHdrStorage:         metaHdrNoncesStorage,
 		uint64Converter:             args.Uint64Converter,
 		marshalizer:                 args.Marshalizer,
@@ -137,6 +148,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
 	}
+
+	err := newTrigger.saveState(newTrigger.triggerStateKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return newTrigger, nil
 }
 
@@ -267,6 +284,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 			t.epochStartRound = meta.Round
 			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
+			t.saveCurrentState(meta.GetRound())
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
@@ -512,6 +530,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
+
+	t.saveCurrentState(header.GetRound())
 }
 
 // Revert sets the start of epoch back to true
@@ -531,6 +551,11 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 
+// GetSavedStateKey returns the last saved trigger state key
+func (t *trigger) GetSavedStateKey() []byte {
+	return t.triggerStateKey
+}
+
 // Update updates the end-of-epoch trigger
 func (t *trigger) Update(_ uint64) {
 }
@@ -546,4 +571,13 @@ func (t *trigger) SetCurrentEpochStartRound(_ uint64) {
 // IsInterfaceNil returns true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
+}
+
+// needs to be called under locked mutex
+func (t *trigger) saveCurrentState(round uint64) {
+	t.triggerStateKey = []byte(fmt.Sprint(round))
+	err := t.saveState(t.triggerStateKey)
+	if err != nil {
+		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
+	}
 }

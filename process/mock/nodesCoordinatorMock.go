@@ -3,7 +3,6 @@ package mock
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -34,8 +33,6 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList := make([]sharding.Validator, nodesPerShard)
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = sharding.NewValidator(
-				big.NewInt(10),
-				1,
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				[]byte(fmt.Sprintf("address%d%d", sh, v)),
 			)
@@ -46,8 +43,6 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	validatorsList := make([]sharding.Validator, nodesPerShard)
 	for v := 0; v < nodesPerShard; v++ {
 		validatorsList[v], _ = sharding.NewValidator(
-			big.NewInt(10),
-			1,
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
 			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
 		)
@@ -145,7 +140,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
-	waiting map[uint32][]sharding.Validator,
+	_ map[uint32][]sharding.Validator,
 	epoch uint32,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
@@ -219,10 +214,30 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	return []byte("key")
 }
 
+// LoadState -
+func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
+	return nil
+}
+
+// GetSavedStateKey -
+func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
+	return []byte("key")
+}
+
+// ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
+// otherwise error
+func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
+	panic("not implemented")
+}
+
+// GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
+func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
+	_ uint32,
+) (map[string]struct{}, error) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil -
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
-	if ncm == nil {
-		return true
-	}
-	return false
+	return ncm == nil
 }

@@ -42,6 +42,16 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
+// GetSavedStateKey -
+func (e *EpochStartTriggerStub) GetSavedStateKey() []byte {
+	return []byte("epoch start trigger key")
+}
+
+// LoadState -
+func (e *EpochStartTriggerStub) LoadState(_ []byte) error {
+	return nil
+}
+
 // GetRoundsPerEpoch -
 func (e *EpochStartTriggerStub) GetRoundsPerEpoch() uint64 {
 	return 0
