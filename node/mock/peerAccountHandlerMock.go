@@ -25,14 +25,10 @@ type PeerAccountHandlerMock struct {
 	TempRatingCalled               func() uint32
 	SetTempRatingWithJournalCalled func(rating uint32) error
 
-	IncreaseLeaderSuccessRateWithJournalCalled    func() error
-	DecreaseLeaderSuccessRateWithJournalCalled    func() error
-	IncreaseValidatorSuccessRateWithJournalCalled func() error
-	DecreaseValidatorSuccessRateWithJournalCalled func() error
-	UpdateLeaderSuccessRateWithJournalCalled      func(amount uint32) error
-	UpdateLeaderFailureRateWithJournalCalled      func(amount uint32) error
-	UpdateValidatorSuccessRateWithJournalCalled   func(amount uint32) error
-	UpdateValidatorFailureRateWithJournalCalled   func(amount uint32) error
+	IncreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
+	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
+	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
+	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 }
 
 // GetCodeHash -
@@ -112,65 +108,33 @@ func (pahm *PeerAccountHandlerMock) GetNonce() uint64 {
 }
 
 // IncreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal(value uint32) error {
 	if pahm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseLeaderSuccessRateWithJournalCalled()
+		return pahm.IncreaseLeaderSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // DecreaseLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal(value uint32) error {
 	if pahm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseLeaderSuccessRateWithJournalCalled()
+		return pahm.DecreaseLeaderSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // IncreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal(value uint32) error {
 	if pahm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.IncreaseValidatorSuccessRateWithJournalCalled()
+		return pahm.IncreaseValidatorSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }
 
 // DecreaseValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
+func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal(value uint32) error {
 	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
-	}
-	return nil
-}
-
-// UpdateLeaderSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) UpdateLeaderSuccessRateWithJournal(amount uint32) error {
-	if pahm.UpdateLeaderSuccessRateWithJournalCalled != nil {
-		return pahm.UpdateLeaderSuccessRateWithJournalCalled(amount)
-	}
-	return nil
-}
-
-// UpdateLeaderFailureRateWithJournal -
-func (pahm *PeerAccountHandlerMock) UpdateLeaderFailureRateWithJournal(amount uint32) error {
-	if pahm.UpdateLeaderFailureRateWithJournalCalled != nil {
-		return pahm.UpdateLeaderFailureRateWithJournalCalled(amount)
-	}
-	return nil
-}
-
-// UpdateValidatorSuccessRateWithJournal -
-func (pahm *PeerAccountHandlerMock) UpdateValidatorSuccessRateWithJournal(amount uint32) error {
-	if pahm.UpdateValidatorSuccessRateWithJournalCalled != nil {
-		return pahm.UpdateValidatorSuccessRateWithJournalCalled(amount)
-	}
-	return nil
-}
-
-// UpdateValidatorFailureRateWithJournal -
-func (pahm *PeerAccountHandlerMock) UpdateValidatorFailureRateWithJournal(amount uint32) error {
-	if pahm.UpdateValidatorFailureRateWithJournalCalled != nil {
-		return pahm.UpdateValidatorFailureRateWithJournalCalled(amount)
+		return pahm.DecreaseValidatorSuccessRateWithJournalCalled(value)
 	}
 	return nil
 }

@@ -155,6 +155,17 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
+	// broadcast section
+
+	// create and broadcast header final info
+	sr.createAndBroadcastHeaderFinalInfo()
+
+	// broadcast block body and header
+	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
+	if err != nil {
+		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
+	}
+
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
@@ -167,17 +178,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
-
-	// broadcast section
-
-	// create and broadcast header final info
-	sr.createAndBroadcastHeaderFinalInfo()
-
-	// broadcast block body and header
-	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
-	if err != nil {
-		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
-	}
 
 	sr.displayStatistics()
 

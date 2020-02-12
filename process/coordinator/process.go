@@ -774,6 +774,21 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		}
 
 		mb := interProc.GetCreatedInShardMiniBlock()
+
+		if mb != nil {
+			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+				"type", mb.Type,
+				"senderShardID", mb.SenderShardID,
+				"receiverShardID", mb.ReceiverShardID,
+			)
+
+			for _, hash := range mb.TxHashes {
+				log.Trace("tx", "hash", hash)
+			}
+		} else {
+			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock -> nil miniblock", "block.Type", value)
+		}
+
 		currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
 		if err != nil {
 			return nil, err

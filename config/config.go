@@ -170,6 +170,7 @@ type HeartbeatConfig struct {
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
 	StatusPollingIntervalSec   int
+	MaxComputableRounds        uint64
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer
