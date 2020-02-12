@@ -357,12 +357,12 @@ func (ed *EconomicsData) NumNodes() uint32 {
 	return ed.numNodes
 }
 
-// AuctionEnableNonce returns whether full auction process is enabled
+// AuctionEnableNonce returns the nonce from which the auction process is enabled
 func (ed *EconomicsData) AuctionEnableNonce() uint64 {
 	return ed.auctionEnableNonce
 }
 
-// StakeEnableNonce returns whether full auction process is enabled
+// StakeEnableNonce returns the nonce from which the staking/unstaking function is enabled
 func (ed *EconomicsData) StakeEnableNonce() uint64 {
 	return ed.stakeEnableNonce
 }

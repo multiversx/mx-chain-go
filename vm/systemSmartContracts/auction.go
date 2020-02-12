@@ -182,8 +182,11 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	return vmcommon.Ok
 }
 
+const minArgsLenToChangeValidatorKey = 4
+
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 4 {
+	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
+	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
 		return vmcommon.UserError
 	}
 
@@ -318,7 +321,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 	config := AuctionConfig{}
 	err := json.Unmarshal(configData, &config)
 	if err != nil {
-		log.Debug("unmarshal error on getConfig function",
+		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
 		)
 		return s.baseConfig
@@ -327,7 +330,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 	if s.checkConfigCorrectness(config) != nil {
 		baseConfigData, err := json.Marshal(s.baseConfig)
 		if err != nil {
-			log.Debug("marshal error on getConfig function")
+			log.Warn("marshal error on getConfig function, returning baseConfig")
 			return s.baseConfig
 		}
 		s.eei.SetStorage(epochKey, baseConfigData)
