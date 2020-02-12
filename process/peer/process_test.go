@@ -910,64 +910,28 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnGetPeerAcc(t *tes
 	assert.Equal(t, peerAccErr, err)
 }
 
-func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testing.T) {
-	t.Parallel()
-
-	decreaseErr := errors.New("peer acc err")
-	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerAdapter := getAccountsMock()
-	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &mock.PeerAccountHandlerMock{
-			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
-				return decreaseErr
-			},
-		}, nil
-	}
-
-	arguments := CreateMockArguments()
-	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
-			return []sharding.Validator{
-				&mock.ValidatorMock{},
-			}, nil
-		},
-	}
-	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (addressContainer state.AddressContainer, e error) {
-			return nil, nil
-		},
-	}
-	arguments.PeerAdapter = peerAdapter
-	arguments.Rater = mock.GetNewMockRater()
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
-	assert.Equal(t, decreaseErr, err)
-}
-
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testing.T) {
 	t.Parallel()
 
 	currentHeaderRound := 10
 	previousHeaderRound := 4
-	decreaseCount := 0
+	pubKey := []byte("pubKey")
 
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
 	peerAdapter.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &mock.PeerAccountHandlerMock{
-			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
-				decreaseCount++
-				return nil
-			},
-		}, nil
+		return &mock.PeerAccountHandlerMock{}, nil
 	}
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
-				&mock.ValidatorMock{},
+				&mock.ValidatorMock{
+					PubKeyCalled: func() []byte {
+						return pubKey
+					},
+				},
 			}, nil
 		},
 	}
@@ -981,7 +945,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	arguments.Rater = mock.GetNewMockRater()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
-	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
+	counters := validatorStatistics.GetLeaderDecreaseCount(pubKey)
+	assert.Equal(t, uint32(currentHeaderRound-previousHeaderRound-1), counters)
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {

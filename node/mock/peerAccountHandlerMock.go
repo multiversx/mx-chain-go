@@ -29,6 +29,10 @@ type PeerAccountHandlerMock struct {
 	DecreaseLeaderSuccessRateWithJournalCalled    func() error
 	IncreaseValidatorSuccessRateWithJournalCalled func() error
 	DecreaseValidatorSuccessRateWithJournalCalled func() error
+	UpdateLeaderSuccessRateWithJournalCalled      func(amount uint32) error
+	UpdateLeaderFailureRateWithJournalCalled      func(amount uint32) error
+	UpdateValidatorSuccessRateWithJournalCalled   func(amount uint32) error
+	UpdateValidatorFailureRateWithJournalCalled   func(amount uint32) error
 }
 
 // GetCodeHash -
@@ -139,6 +143,38 @@ func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() er
 	return nil
 }
 
+// UpdateLeaderSuccessRateWithJournal -
+func (pahm *PeerAccountHandlerMock) UpdateLeaderSuccessRateWithJournal(amount uint32) error {
+	if pahm.UpdateLeaderSuccessRateWithJournalCalled != nil {
+		return pahm.UpdateLeaderSuccessRateWithJournalCalled(amount)
+	}
+	return nil
+}
+
+// UpdateLeaderFailureRateWithJournal -
+func (pahm *PeerAccountHandlerMock) UpdateLeaderFailureRateWithJournal(amount uint32) error {
+	if pahm.UpdateLeaderFailureRateWithJournalCalled != nil {
+		return pahm.UpdateLeaderFailureRateWithJournalCalled(amount)
+	}
+	return nil
+}
+
+// UpdateValidatorSuccessRateWithJournal -
+func (pahm *PeerAccountHandlerMock) UpdateValidatorSuccessRateWithJournal(amount uint32) error {
+	if pahm.UpdateValidatorSuccessRateWithJournalCalled != nil {
+		return pahm.UpdateValidatorSuccessRateWithJournalCalled(amount)
+	}
+	return nil
+}
+
+// UpdateValidatorFailureRateWithJournal -
+func (pahm *PeerAccountHandlerMock) UpdateValidatorFailureRateWithJournal(amount uint32) error {
+	if pahm.UpdateValidatorFailureRateWithJournalCalled != nil {
+		return pahm.UpdateValidatorFailureRateWithJournalCalled(amount)
+	}
+	return nil
+}
+
 // GetRating -
 func (pahm *PeerAccountHandlerMock) GetRating() uint32 {
 	if pahm.SetRatingWithJournalCalled != nil {
@@ -173,5 +209,8 @@ func (pahm *PeerAccountHandlerMock) SetTempRatingWithJournal(rating uint32) erro
 
 // IsInterfaceNil -
 func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	return pahm == nil
+	if pahm == nil {
+		return true
+	}
+	return false
 }
