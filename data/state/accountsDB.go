@@ -359,13 +359,13 @@ func (adb *AccountsDB) newAccountHandler(address AddressContainer) (AccountHandl
 // 0 index based. Calling this method with negative value will do nothing. Calling with 0 revert everything.
 // Concurrent safe.
 func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
+	adb.mutEntries.Lock()
+	defer adb.mutEntries.Unlock()
+
 	if snapshot > len(adb.entries) || snapshot < 0 {
 		//outside of bounds array, not quite error, just return
 		return nil
 	}
-
-	adb.mutEntries.Lock()
-	defer adb.mutEntries.Unlock()
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
