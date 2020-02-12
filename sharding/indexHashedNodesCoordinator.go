@@ -141,6 +141,10 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
 
+	log.Debug("ComputeValidatorsGroup",
+		"randomness", randomness,
+		"consensus size", consensusSize,
+		"eligible list length", len(expandedList))
 	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
 	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
 	if err != nil {
