@@ -359,6 +359,35 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
+	mbIndex, err := tc.processMiniBlocksDestinationMe(body, haveTime)
+	if err != nil {
+		return err
+	}
+
+	if mbIndex == len(body) {
+		return nil
+	}
+
+	bodiesFromMe := body[mbIndex:]
+	err = tc.processMiniBlocksFromMe(bodiesFromMe, haveTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) processMiniBlocksFromMe(
+	body block.Body,
+	haveTime func() bool,
+) error {
+
+	for _, mb := range body {
+		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+			return process.ErrMiniBlocksInWrongOrder
+		}
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -366,18 +395,45 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			continue
 		}
 
-		preproc := tc.getPreProcessor(blockType)
-		if check.IfNil(preproc) {
+		preProc := tc.getPreProcessor(blockType)
+		if check.IfNil(preProc) {
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
+	body block.Body,
+	haveTime func() bool,
+) (int, error) {
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	// processing destination ME miniblocks first
+	mbIndex := 0
+	for mbIndex = 0; mbIndex < len(body); mbIndex++ {
+		miniBlock := body[mbIndex]
+		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+			return mbIndex, nil
+		}
+
+		preProc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preProc) {
+			return mbIndex, process.ErrMissingPreProcessor
+		}
+
+		err := preProc.ProcessBlockTransactions(block.Body{miniBlock}, haveTime)
+		if err != nil {
+			return mbIndex, err
+		}
+	}
+
+	return mbIndex, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
