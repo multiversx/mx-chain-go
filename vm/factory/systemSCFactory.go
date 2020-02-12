@@ -38,12 +38,17 @@ func NewSystemSCFactory(
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
-	staking, err := systemSmartContracts.NewStakingSmartContract(
-		scf.validatorSettings.StakeValue(),
-		scf.validatorSettings.UnBondPeriod(),
-		scf.systemEI,
-		AuctionSCAddress,
-	)
+	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
+		MinStakeValue:            scf.validatorSettings.StakeValue(),
+		UnBondPeriod:             scf.validatorSettings.UnBondPeriod(),
+		Eei:                      scf.systemEI,
+		StakingAccessAddr:        AuctionSCAddress,
+		JailAccessAddr:           JailingAddress,
+		NumRoundsWithoutBleed:    scf.validatorSettings.NumRoundsWithoutBleed(),
+		BleedPercentagePerRound:  scf.validatorSettings.BleedPercentagePerRound(),
+		MaximumPercentageToBleed: scf.validatorSettings.MaximumPercentageToBleed(),
+	}
+	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	if err != nil {
 		return nil, err
 	}

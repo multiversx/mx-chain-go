@@ -25,6 +25,10 @@
     NumNodes = 1000
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "100000000000"
+    NumRoundsWithoutBleed = "100"
+    MaximumPercentageToBleed = "0.5"
+    BleedPercentagePerRound = "0.00001"
+    UnJailValue = "1000"
 
 [RatingSettings]
     StartRating = 50

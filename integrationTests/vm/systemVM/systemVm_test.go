@@ -22,9 +22,9 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 6
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE,process/scToProtocol:TRACE,process/block:TRACE")
 

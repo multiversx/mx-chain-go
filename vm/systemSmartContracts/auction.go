@@ -31,6 +31,7 @@ type AuctionConfig struct {
 	TotalSupply   *big.Int `json:"TotalSupply"`
 	MinStep       *big.Int `json:"MinStep"`
 	NodePrice     *big.Int `json:"NodePrice"`
+	UnJailPrice   *big.Int `json:"UnJailPrice"`
 }
 
 type stakingAuctionSC struct {
@@ -44,6 +45,7 @@ type stakingAuctionSC struct {
 	enableStakingNonce uint64
 }
 
+// ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
 type ArgsStakingAuctionSmartContract struct {
 	ValidatorSettings vm.ValidatorSettingsHandler
 	Eei               vm.SystemEI
@@ -81,6 +83,7 @@ func NewStakingAuctionSmartContract(
 		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
 		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.StakeValue()),
+		UnJailPrice:   big.NewInt(0).Set(args.ValidatorSettings.UnJailValue()),
 	}
 
 	reg := &stakingAuctionSC{
@@ -129,6 +132,17 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
+	totalUnJailPrice := big.NewInt(0).Mul(config.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
+
+	if totalUnJailPrice.Cmp(args.CallValue) < 0 {
+		return vmcommon.UserError
+	}
+
+	for _, argument := range args.Arguments {
+		_, _ = s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(argument)))
+	}
+
 	return vmcommon.Ok
 }
 
@@ -144,8 +158,10 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	if err != nil {
 		return vmcommon.UserError
 	}
-
 	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
+	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
 		return vmcommon.UserError
 	}
 
@@ -153,6 +169,14 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
 		return vmcommon.UserError
+	}
+
+	for _, blsKey := range registrationData.BlsPubKeys {
+		vmOutput, err := s.executeOnStakingSC([]byte("changeRewardAddress@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
+		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+			log.LogIfError(err)
+			return vmcommon.UserError
+		}
 	}
 
 	return vmcommon.Ok
@@ -214,6 +238,11 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 		return vm.ErrBLSPublicKeyMissmatch
 	}
 
+	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKey@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
+	if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		return vm.ErrOnExecutionAtStakingSC
+	}
+
 	return nil
 }
 
@@ -229,7 +258,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("setConfig function was not called by the owner address")
 		return vmcommon.UserError
@@ -273,6 +302,9 @@ func (s *stakingAuctionSC) checkConfigCorrectness(config AuctionConfig) error {
 	if config.MinStep == nil {
 		return fmt.Errorf("%w for MinStep", vm.ErrIncorrectConfig)
 	}
+	if config.UnJailPrice == nil {
+		return fmt.Errorf("%w for UnJailPrice", vm.ErrIncorrectConfig)
+	}
 	return nil
 }
 
@@ -306,13 +338,13 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 }
 
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
 	if ownerAddress != nil {
 		log.Error("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	s.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
+	s.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
 
 	return vmcommon.Ok
 }
