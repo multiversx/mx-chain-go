@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"io/ioutil"
 	"math"
 	"math/big"
