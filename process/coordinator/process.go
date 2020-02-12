@@ -368,8 +368,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return nil
 	}
 
-	bodiesFromMe := body[mbIndex:]
-	err = tc.processMiniBlocksFromMe(bodiesFromMe, haveTime)
+	miniBlocksFromMe := body[mbIndex:]
+	err = tc.processMiniBlocksFromMe(miniBlocksFromMe, haveTime)
 	if err != nil {
 		return err
 	}
