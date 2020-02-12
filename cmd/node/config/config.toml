@@ -183,7 +183,7 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-//TODO add cacher to trie snapshot
+# TODO: add cacher to trie snapshot
 [TrieSnapshotDB]
      FilePath = "TrieSnapshot"
      Type = "LvlDBSerial"
