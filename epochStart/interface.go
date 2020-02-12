@@ -16,11 +16,14 @@ type TriggerHandler interface {
 	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	SetProcessed(header data.HeaderHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	Revert(round uint64)
 	SetCurrentEpochStartRound(round uint64)
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -55,6 +58,7 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
+	RequestStartOfEpochMetaBlock(epoch uint32)
 	IsInterfaceNil() bool
 }
 

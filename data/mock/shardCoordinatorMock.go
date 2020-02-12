@@ -5,31 +5,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// ShardCoordinatorMock -
 type ShardCoordinatorMock struct {
 	SelfID     uint32
 	NrOfShards uint32
 }
 
+// NumberOfShards -
 func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
 	return scm.NrOfShards
 }
 
+// ComputeId -
 func (scm ShardCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
 	panic("implement me")
 }
 
+// SetSelfId -
 func (scm ShardCoordinatorMock) SetSelfId(shardId uint32) error {
 	panic("implement me")
 }
 
+// SelfId -
 func (scm ShardCoordinatorMock) SelfId() uint32 {
 	return scm.SelfID
 }
 
+// SameShard -
 func (scm ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	return true
 }
 
+// CommunicationIdentifier -
 func (scm ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
 	if destShardID == core.MetachainShardId {
 		return "_0_META"

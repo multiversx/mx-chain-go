@@ -120,7 +120,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 // CreateTestDataPool creates a test data pool for shard nodes
 func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+		txPool, _ = createTxPool()
 	}
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
@@ -1340,7 +1340,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100, Shards: 1})
+	txPool, _ := createTxPool()
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -1523,7 +1523,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) m
 			if err != nil {
 				return nil
 			}
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), address)
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -1737,4 +1737,18 @@ func proposeBlocks(
 		crtNonce := atomic.LoadUint64(nonces[idx])
 		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
 	}
+}
+
+func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
+	return txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
 }

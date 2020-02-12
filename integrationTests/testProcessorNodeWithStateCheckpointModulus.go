@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -28,7 +27,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	address := make([]byte, 32)
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}

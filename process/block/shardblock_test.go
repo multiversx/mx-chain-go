@@ -40,7 +40,17 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := txpool.NewShardedTxPool(storageUnit.CacheConfig{Size: 100000, Shards: 1})
+	txPool, _ := txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      1,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
@@ -3118,6 +3128,51 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txFromPool)
 }
 
+func TestShardProcessor_DecodeBlockBodyAndHeader(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool([]byte("tx_hash1"))
+	marshalizerMock := &mock.MarshalizerMock{}
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.DataPool = tdp
+	arguments.Marshalizer = marshalizerMock
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, err)
+
+	body := make(block.Body, 0)
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+
+	marshalizedBody, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	marshalizedHeader, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	marshalizedBodyAndHeader := data.MarshalizedBodyAndHeader{
+		Body:   marshalizedBody,
+		Header: marshalizedHeader,
+	}
+
+	message, err := marshalizerMock.Marshal(&marshalizedBodyAndHeader)
+	assert.Nil(t, err)
+
+	dcdBlk, dcdHdr := sp.DecodeBlockBodyAndHeader(nil)
+	assert.Nil(t, dcdBlk)
+	assert.Nil(t, dcdHdr)
+
+	dcdBlk, dcdHdr = sp.DecodeBlockBodyAndHeader(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 
@@ -4190,12 +4245,19 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	rootHash := []byte("root-hash")
 	poolMock := mock.NewPoolsHolderMock()
 
-	storer := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+	hdrStore := &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
 			hdr := block.Header{Nonce: 7, RootHash: rootHash}
 			return json.Marshal(hdr)
 		},
 	}
+
+	storer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return hdrStore
+		},
+	}
+
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -4227,4 +4289,174 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 
 	assert.True(t, pruneTrieWasCalled)
 	assert.True(t, cancelPruneWasCalled)
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return nil
+	}}
+	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, nil, err)
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 10
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = epochStartTrigger
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{Epoch: 1}
+	}}
+	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, nil, err)
+
+	blockChain = &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound()}
+	}}
+
+	err = sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, nil, err)
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageError(t *testing.T) {
+	t.Parallel()
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 10
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = epochStartTrigger
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
+	}}
+
+	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, process.ErrMissingHeader, err)
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Block(t *testing.T) {
+	t.Parallel()
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 10
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	store := initStore()
+	nonceCalled := uint64(444444)
+	forkDetector := &mock.ForkDetectorMock{SetRollBackNonceCalled: func(nonce uint64) {
+		nonceCalled = nonce
+	}}
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = epochStartTrigger
+	arguments.Store = store
+	arguments.ForkDetector = forkDetector
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHash := []byte("prevHash")
+	currHeader := &block.Header{
+		Nonce:    10,
+		Epoch:    epochStartTrigger.Epoch() - 1,
+		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
+		PrevHash: prevHash}
+
+	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return currHeader
+	}}
+	prevHeader := &block.Header{
+		Nonce: 8,
+		Epoch: epochStartTrigger.Epoch() - 1,
+		Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod,
+	}
+	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
+
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
+
+	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.Equal(t, nonceCalled, currHeader.Nonce)
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Blocks(t *testing.T) {
+	t.Parallel()
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 10
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	store := initStore()
+	nonceCalled := uint64(444444)
+	forkDetector := &mock.ForkDetectorMock{SetRollBackNonceCalled: func(nonce uint64) {
+		nonceCalled = nonce
+	}}
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EpochStartTrigger = epochStartTrigger
+	arguments.Store = store
+	arguments.ForkDetector = forkDetector
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHash := []byte("prevHash")
+	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{
+			Nonce:    10,
+			Epoch:    epochStartTrigger.Epoch() - 1,
+			Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 2,
+			PrevHash: prevHash}
+	}}
+
+	prevPrevHash := []byte("prevPrevHash")
+	prevHeader := &block.Header{
+		Nonce:    8,
+		Epoch:    epochStartTrigger.Epoch() - 1,
+		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
+		PrevHash: prevPrevHash,
+	}
+	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
+
+	prevPrevHeader := &block.Header{
+		Nonce:    7,
+		Epoch:    epochStartTrigger.Epoch() - 1,
+		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod,
+		PrevHash: prevPrevHash,
+	}
+	prevPrevHeaderData, _ := arguments.Marshalizer.Marshal(prevPrevHeader)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevPrevHash, prevPrevHeaderData)
+
+	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+	assert.Equal(t, nonceCalled, prevHeader.Nonce)
 }

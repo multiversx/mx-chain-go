@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
+// SubroundHandlerMock -
 type SubroundHandlerMock struct {
 	DoWorkCalled    func(rounder consensus.Rounder) bool
 	PreviousCalled  func() int
@@ -16,30 +17,37 @@ type SubroundHandlerMock struct {
 	CheckCalled     func() bool
 }
 
+// DoWork -
 func (srm *SubroundHandlerMock) DoWork(rounder consensus.Rounder) bool {
 	return srm.DoWorkCalled(rounder)
 }
 
+// Previous -
 func (srm *SubroundHandlerMock) Previous() int {
 	return srm.PreviousCalled()
 }
 
+// Next -
 func (srm *SubroundHandlerMock) Next() int {
 	return srm.NextCalled()
 }
 
+// Current -
 func (srm *SubroundHandlerMock) Current() int {
 	return srm.CurrentCalled()
 }
 
+// StartTime -
 func (srm *SubroundHandlerMock) StartTime() int64 {
 	return srm.StartTimeCalled()
 }
 
+// EndTime -
 func (srm *SubroundHandlerMock) EndTime() int64 {
 	return srm.EndTimeCalled()
 }
 
+// Name -
 func (srm *SubroundHandlerMock) Name() string {
 	return srm.NameCalled()
 }

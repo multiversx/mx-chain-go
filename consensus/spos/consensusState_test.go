@@ -305,7 +305,7 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnFalse(t *testing.T
 
 	cns := internalInitConsensusState()
 
-	cns.BlockBody = nil
+	cns.Body = nil
 
 	assert.False(t, cns.IsBlockBodyAlreadyReceived())
 }
@@ -315,7 +315,7 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnTrue(t *testing.T)
 
 	cns := internalInitConsensusState()
 
-	cns.BlockBody = make(block.Body, 0)
+	cns.Body = make(block.Body, 0)
 
 	assert.True(t, cns.IsBlockBodyAlreadyReceived())
 }

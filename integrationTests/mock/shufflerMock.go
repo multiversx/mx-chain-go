@@ -19,3 +19,7 @@ func (nsm *NodeShufflerMock) UpdateNodeLists(
 ) (map[uint32][]sharding.Validator, map[uint32][]sharding.Validator, []sharding.Validator) {
 	return args.Eligible, args.Waiting, args.Leaving
 }
+
+func (nsm *NodeShufflerMock) IsInterfaceNil() bool {
+	return nsm == nil
+}

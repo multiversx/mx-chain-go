@@ -32,14 +32,17 @@ type Facade struct {
 	ValidatorStatisticsHandler  func() (map[string]*state.ValidatorApiResponse, error)
 }
 
+// RestApiInterface -
 func (f *Facade) RestApiInterface() string {
 	return "localhost:8080"
 }
 
+// RestAPIServerDebugMode -
 func (f *Facade) RestAPIServerDebugMode() bool {
 	return false
 }
 
+// PprofEnabled -
 func (f *Facade) PprofEnabled() bool {
 	return false
 }
@@ -50,7 +53,7 @@ func (f *Facade) IsNodeRunning() bool {
 }
 
 // StartNode is the mock implementation of a handler's StartNode method
-func (f *Facade) StartNode() error {
+func (f *Facade) StartNode(_ uint32) error {
 	if f.ShouldErrorStart {
 		return errors.New("error")
 	}

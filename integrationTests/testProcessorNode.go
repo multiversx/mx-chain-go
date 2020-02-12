@@ -222,7 +222,7 @@ func NewTestProcessorNode(
 	address[0] = 1
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address)
 			return []sharding.Validator{v}, nil
 		},
 	}
@@ -532,7 +532,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
@@ -1123,7 +1123,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
 	}
 	blockBody, err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)

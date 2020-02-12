@@ -107,6 +107,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp.baseProcessor.requestBlockBodyHandler = &mp
+	mp.blockProcessor = &mp
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
@@ -417,9 +418,9 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	orderedHdrsPerShard := mp.blockTracker.GetTrackedHeadersForAllShards()
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round, mp.dataPool.Headers().MaxSize())
+		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round)
 		if err != nil {
-			log.Trace("checkAndRequestIfShardHeadersMissing", "error", err.Error())
+			log.Debug("checkAndRequestIfShardHeadersMissing", "error", err.Error())
 			continue
 		}
 	}
@@ -632,6 +633,16 @@ func (mp *metaProcessor) createMiniBlocks(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
 		haveTime)
+
+	nbTxs = 0
+	for _, mb := range mbFromMe {
+		nbTxs += uint32(len(mb.TxHashes))
+	}
+
+	log.Debug("processed miniblocks and txs with from me",
+		"num miniblocks", len(mbFromMe),
+		"num txs", nbTxs,
+	)
 
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)
@@ -1032,14 +1043,20 @@ func (mp *metaProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	mp.prepareDataForBootStorer(
-		headerInfo,
-		header.Round,
-		nil,
-		mp.getPendingMiniBlocks(),
-		mp.forkDetector.GetHighestFinalBlockNonce(),
-		nil,
-	)
+	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
+	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
+
+	args := bootStorerDataArgs{
+		headerInfo:                 headerInfo,
+		round:                      header.Round,
+		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
+		epochStartTriggerConfigKey: epochStartKey,
+		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
+		processedMiniBlocks:        nil,
+		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
+	}
+
+	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
@@ -1365,9 +1382,28 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if mp.isHeaderOutOfRange(shardHeader, shardHeadersPool.MaxSize()) {
+	if mp.isHeaderOutOfRange(shardHeader) {
 		shardHeadersPool.RemoveHeaderByHash(shardHeaderHash)
+		return
+	}
 
+	lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardHeader.GetShardID())
+	if err != nil {
+		log.Debug("receivedShardHeader.GetLastCrossNotarizedHeader",
+			"shard", shardHeader.GetShardID(),
+			"error", err.Error())
+		return
+	}
+
+	if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+		return
+	}
+	if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+		return
+	}
+
+	isShardHeaderOutOfRequestRange := shardHeader.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isShardHeaderOutOfRequestRange {
 		return
 	}
 
@@ -1696,40 +1732,6 @@ func getTxCount(shardInfo []block.ShardData) uint32 {
 	}
 
 	return txs
-}
-
-// DecodeBlockBody method decodes block body from a given byte array
-func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var body block.Body
-
-	err := mp.marshalizer.Unmarshal(&body, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return body
-}
-
-// DecodeBlockHeader method decodes block header from a given byte array
-func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
-		return nil
-	}
-
-	var header block.MetaBlock
-
-	err := mp.marshalizer.Unmarshal(&header, dta)
-	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err.Error())
-		return nil
-	}
-
-	return &header
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
