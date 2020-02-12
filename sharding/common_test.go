@@ -17,12 +17,14 @@ func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
 	v2 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk2"), []byte("addr2"))
 	v3 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk3"), []byte("addr3"))
 	v4 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk4"), []byte("addr4"))
+	v5 := mock.NewValidatorMock(big.NewInt(10), 5, []byte("pk5"), []byte("addr5"))
 
 	elList := make([]Validator, 0)
 	elList = append(elList, v1, v1, v1)     // starts at 0 - count 3
 	elList = append(elList, v2, v2, v2, v2) // starts at 3 - count 4
 	elList = append(elList, v3, v3, v3)     // starts at 7 - count 3
 	elList = append(elList, v4, v4, v4, v4) // starts at 10 - count 4
+	elList = append(elList, v5)             // starts at 14 - count 1
 
 	type result struct {
 		start int64
@@ -51,6 +53,10 @@ func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
 			indexes: []int64{10, 11, 12, 13},
 			res:     result{10, 4},
 		},
+		{
+			indexes: []int64{14},
+			res:     result{14, 1},
+		},
 	}
 
 	for _, field := range fields {
@@ -77,8 +83,8 @@ func (rbp *reslicingBasedProvider) Get(randomness []byte, numVal int64, expEligi
 
 	valSlice := make([]Validator, 0, numVal)
 	for i := int64(0); i < numVal; i++ {
-		randomness := computeRandomnessAsUint64(randomness, int(i))
-		randomIdx := randomness % uint64(len(expEligibleListClone))
+		rndmnss := computeRandomnessAsUint64(randomness, int(i))
+		randomIdx := rndmnss % uint64(len(expEligibleListClone))
 		valSlice = append(valSlice, expEligibleListClone[randomIdx])
 		expEligibleListClone = reslice(expEligibleListClone, int64(randomIdx))
 	}

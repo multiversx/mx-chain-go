@@ -21,7 +21,6 @@ type indexHashedNodesCoordinator struct {
 	metaConsensusGroupSize  int
 	selfPubKey              []byte
 	consensusGroupCacher    Cacher
-	consensusGroupProvider  *SelectionBasedProvider
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -30,12 +29,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	if err != nil {
 		return nil, err
 	}
-
-	consensusGroupSize := arguments.ShardConsensusGroupSize
-	if arguments.ShardId > arguments.NbShards {
-		consensusGroupSize = arguments.MetaConsensusGroupSize
-	}
-	selectionConsensusGroupProvider := NewSelectionBasedProvider(arguments.Hasher, uint32(consensusGroupSize))
 
 	ihgs := &indexHashedNodesCoordinator{
 		nbShards:                arguments.NbShards,
@@ -46,7 +39,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
 		selfPubKey:              arguments.SelfPublicKey,
 		consensusGroupCacher:    arguments.ConsensusGroupCache,
-		consensusGroupProvider:  selectionConsensusGroupProvider,
 	}
 
 	ihgs.doExpandEligibleList = ihgs.expandEligibleList
@@ -149,7 +141,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.doExpandEligibleList(shardId)
 
-	tempList, err := ihgs.consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
+	consensusGroupProvider := NewSelectionBasedProvider(ihgs.hasher, uint32(consensusSize))
+	tempList, err := consensusGroupProvider.Get(randomness, int64(consensusSize), expandedList)
 	if err != nil {
 		return nil, err
 	}

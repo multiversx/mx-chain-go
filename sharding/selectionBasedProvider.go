@@ -70,8 +70,6 @@ func (sbp *SelectionBasedProvider) Get(randomness []byte, numVal int64, expanded
 		sbp.add(expandedEligibleList, int64(x))
 	}
 
-	sbp.clearFields()
-
 	return validators, nil
 }
 
@@ -84,11 +82,6 @@ func (sbp *SelectionBasedProvider) computeRandomnessAsUint64(randomness []byte, 
 	randomnessAsUint64 := binary.BigEndian.Uint64(indexHash)
 
 	return randomnessAsUint64
-}
-
-func (sbp *SelectionBasedProvider) clearFields() {
-	sbp.sortedSlice = make([]*validatorEntry, 0)
-	sbp.size = 0
 }
 
 func (sbp *SelectionBasedProvider) adjustIndex(index uint64) uint64 {
