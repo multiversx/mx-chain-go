@@ -563,13 +563,13 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	var err error
 
 	if epoch > 0 {
-		publicKeysPrevEpoch, err = ihgs.GetAllValidatorsPublicKeys(epoch - 1)
+		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	publicKeysNewEpoch, err := ihgs.GetAllValidatorsPublicKeys(epoch)
+	publicKeysNewEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
 	}

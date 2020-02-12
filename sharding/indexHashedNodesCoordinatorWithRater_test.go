@@ -358,7 +358,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	assert.Equal(t, []byte("addr2_shard1"), validator.Address())
 }
 
-func TestIndexHashedGroupSelectorWithRater_GetAllValidatorsPublicKeys(t *testing.T) {
+func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
 	t.Parallel()
 
 	shardZeroId := uint32(0)

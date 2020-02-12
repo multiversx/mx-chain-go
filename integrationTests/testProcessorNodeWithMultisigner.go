@@ -196,27 +196,8 @@ func createNode(
 ) *TestProcessorNode {
 
 	initialNodes := createInitialNodes(validatorsMap, waitingMap)
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(nodesPerShard), uint32(nbMetaNodes), 0.2, false)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-
-	nodeKeys := cp.Keys[shardId][keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
 	bootStorer := CreateMemUnit()
-
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Hasher:                  TestHasher,
-		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
-		BootStorer:              bootStorer,
-		ShardId:                 shardId,
-		NbShards:                uint32(nbShards),
-		EligibleNodes:           validatorsMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     cache}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 	argFactory := ArgIndexHashedNodesCoordinatorFactory{
 		nodesPerShard,
@@ -231,6 +212,8 @@ func createNode(
 		cp,
 		epochStartSubscriber,
 		TestHasher,
+		cache,
+		bootStorer,
 	}
 
 	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)

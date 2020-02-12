@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type ArgIndexHashedNodesCoordinatorFactory struct {
@@ -19,6 +20,8 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	cp                      *CryptoParams
 	epochStartSubscriber    sharding.EpochStartSubscriber
 	hasher                  hashing.Hasher
+	consensusGroupCache     sharding.Cacher
+	bootStorer              storage.Storer
 }
 
 type IndexHashedNodesCoordinatorFactory struct {
@@ -41,6 +44,8 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		EligibleNodes:           arg.validatorsMap,
 		WaitingNodes:            arg.waitingMap,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     arg.consensusGroupCache,
+		BootStorer:              arg.bootStorer,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -74,6 +79,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		EligibleNodes:           arg.validatorsMap,
 		WaitingNodes:            arg.waitingMap,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     arg.consensusGroupCache,
+		BootStorer:              arg.bootStorer,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
