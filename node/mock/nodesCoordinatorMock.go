@@ -97,11 +97,6 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize(_ uint32) int {
-	panic("implement me")
-}
-
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	_ map[uint32][]sharding.Validator,

@@ -997,12 +997,10 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain(blockChain data.ChainH
 
 	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.Epoch(); round = currentHeader.GetRound() {
 		shouldRevertChain = true
-		prevHeader, _, err := process.GetHeaderFromStorageWithNonce(
-			currentHeader.GetNonce()-1,
-			sp.shardCoordinator.SelfId(),
-			sp.store,
-			sp.uint64Converter,
+		prevHeader, err := process.GetShardHeaderFromStorage(
+			currentHeader.GetPrevHash(),
 			sp.marshalizer,
+			sp.store,
 		)
 		if err != nil {
 			return err

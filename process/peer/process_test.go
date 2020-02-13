@@ -1031,13 +1031,13 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() map[uint32][][]byte {
-			return validatorPublicKeys
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return validatorPublicKeys, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1051,7 +1051,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	arguments.MaxComputableRounds = 5
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
+	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
 	assert.Equal(t, 1, decreaseLeaderCalls)
 	assert.Equal(t, 1, decreaseValidatorCalls)
 	assert.Equal(t, 1, setTempRatingCalls)
@@ -1094,13 +1094,13 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return []sharding.Validator{
 				&mock.ValidatorMock{},
 			}, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() map[uint32][][]byte {
-			return validatorPublicKeys
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return validatorPublicKeys, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1114,7 +1114,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 	arguments.MaxComputableRounds = 5
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
+	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0, 0)
 	assert.Equal(t, 1, decreaseLeaderCalls)
 	assert.Equal(t, 1, decreaseValidatorCalls)
 	assert.Equal(t, 1, setTempRatingCalls)
@@ -1299,11 +1299,11 @@ func DoComputeMissingBlocks(
 
 	arguments := CreateMockArguments()
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
 			return consensus, nil
 		},
-		GetAllValidatorsPublicKeysCalled: func() map[uint32][][]byte {
-			return validatorPublicKeys
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return validatorPublicKeys, nil
 		},
 		ConsensusGroupSizeCalled: func(uint32) int {
 			return consensusGroupSize
@@ -1321,7 +1321,7 @@ func DoComputeMissingBlocks(
 	arguments.MaxComputableRounds = maxComputableRounds
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	_ = validatorStatistics.CheckForMissedBlocks(currentHeaderRounds, previousHeaderRound, []byte("prev"), 0)
+	_ = validatorStatistics.CheckForMissedBlocks(currentHeaderRounds, previousHeaderRound, []byte("prev"), 0, 0)
 
 	firstKey := "testpk_0"
 

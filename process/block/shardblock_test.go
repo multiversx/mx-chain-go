@@ -4254,9 +4254,16 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 	arguments.EpochStartTrigger = epochStartTrigger
 	sp, _ := blproc.NewShardProcessor(arguments)
 
+	header := &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
+
 	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-		return &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
+		return header
 	}}
+
+	store := arguments.Store
+	val, _ := arguments.Marshalizer.Marshal(header)
+	key := arguments.Hasher.Compute(string(val))
+	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(header.Nonce), key)
 
 	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
 	assert.Equal(t, process.ErrMissingHeader, err)
@@ -4295,13 +4302,15 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 		return currHeader
 	}}
+
 	prevHeader := &block.Header{
 		Nonce: 8,
 		Epoch: epochStartTrigger.Epoch() - 1,
 		Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod,
 	}
-	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
 
+	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
+	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevHeader.Nonce), prevHash)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
 
 	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
@@ -4329,16 +4338,17 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 	arguments.EpochStartTrigger = epochStartTrigger
 	arguments.Store = store
 	arguments.ForkDetector = forkDetector
-
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	prevHash := []byte("prevHash")
+	header := &block.Header{
+		Nonce:    10,
+		Epoch:    epochStartTrigger.Epoch() - 1,
+		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 2,
+		PrevHash: prevHash}
+
 	blockChain := &mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-		return &block.Header{
-			Nonce:    10,
-			Epoch:    epochStartTrigger.Epoch() - 1,
-			Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 2,
-			PrevHash: prevHash}
+		return header
 	}}
 
 	prevPrevHash := []byte("prevPrevHash")
@@ -4349,6 +4359,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		PrevHash: prevPrevHash,
 	}
 	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
+	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevHeader.Nonce), prevHash)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
 
 	prevPrevHeader := &block.Header{
@@ -4358,6 +4369,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		PrevHash: prevPrevHash,
 	}
 	prevPrevHeaderData, _ := arguments.Marshalizer.Marshal(prevPrevHeader)
+	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevPrevHeader.Nonce), prevPrevHash)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevPrevHash, prevPrevHeaderData)
 
 	err := sp.CheckEpochCorrectnessCrossChain(blockChain)
