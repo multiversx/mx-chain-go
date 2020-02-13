@@ -605,10 +605,13 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 	}
 }
 
-func (bp *baseProcessor) cleanupPools(
-	headerHandler data.HeaderHandler,
-	headersPool dataRetriever.HeadersPool,
-) {
+func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
+	headersPool := bp.dataPool.Headers()
+	if headersPool == nil {
+		log.Warn("cleanupPools", "error", process.ErrNilHeadersDataPool)
+		return
+	}
+
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
 	bp.removeHeadersBehindNonceFromPools(
@@ -724,13 +727,22 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToFinal uint64) {
-	selfNotarizedNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	shardForSelfNotarized := bp.getShardForSelfNotarized(shardID)
+	selfNotarizedHeader, _, err := bp.blockTracker.GetLastSelfNotarizedHeader(shardForSelfNotarized)
+	if err != nil {
+		log.Trace("cleanupBlockTrackerPoolsForShard.GetLastSelfNotarizedHeader",
+			"shard", shardForSelfNotarized,
+			"error", err.Error())
+		return
+	}
+
+	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
 	crossNotarizedNonce := uint64(0)
 
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
 		if err != nil {
-			log.Trace("cleanupBlockTrackerPoolsForShard",
+			log.Trace("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
 				"shard", shardID,
 				"nonces to final", noncesToFinal,
 				"error", err.Error())
@@ -745,6 +757,20 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		selfNotarizedNonce,
 		crossNotarizedNonce,
 	)
+
+	log.Trace("cleanupBlockTrackerPoolsForShard.CleanupHeadersBehindNonce",
+		"shard", shardID,
+		"self notarized nonce", selfNotarizedNonce,
+		"cross notarized nonce", crossNotarizedNonce)
+}
+
+func (bp *baseProcessor) getShardForSelfNotarized(shardID uint32) uint32 {
+	isSelfShard := shardID == bp.shardCoordinator.SelfId()
+	if isSelfShard && bp.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		return sharding.MetachainShardId
+	}
+
+	return shardID
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(
@@ -956,4 +982,12 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	if errNotCritical != nil {
 		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
 	}
+}
+
+func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.HeaderHandler, []byte) {
+	if check.IfNil(chainHandler.GetCurrentBlockHeader()) {
+		return chainHandler.GetGenesisHeader(), chainHandler.GetGenesisHeaderHash()
+	}
+
+	return chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash()
 }
