@@ -83,8 +83,6 @@ type Node struct {
 	appStatusHandler         core.AppStatusHandler
 	validatorStatistics      process.ValidatorStatisticsProcessor
 
-	txSignPrivKey     crypto.PrivateKey
-	txSignPubKey      crypto.PublicKey
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
 	keyGen            crypto.KeyGenerator
@@ -845,15 +843,6 @@ func (n *Node) CreateTransaction(
 //GetTransaction gets the transaction
 func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
-}
-
-// GetCurrentPublicKey will return the current node's public key
-func (n *Node) GetCurrentPublicKey() string {
-	if n.txSignPubKey != nil {
-		pkey, _ := n.txSignPubKey.ToByteArray()
-		return fmt.Sprintf("%x", pkey)
-	}
-	return ""
 }
 
 // GetAccount will return acount details for a given address

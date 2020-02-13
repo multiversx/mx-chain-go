@@ -172,18 +172,6 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithDataStore(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.txSignPrivKey)
-	assert.Equal(t, ErrNilStore, err)
-}
-
 func TestWithDataStore_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -195,32 +183,6 @@ func TestWithDataStore_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.store == store)
-	assert.Nil(t, err)
-}
-
-func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxSignPrivKey(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.txSignPrivKey)
-	assert.Equal(t, ErrNilPrivateKey, err)
-}
-
-func TestWithPrivateKey_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	sk := &mock.PrivateKeyStub{}
-
-	opt := WithTxSignPrivKey(sk)
-	err := opt(node)
-
-	assert.True(t, node.txSignPrivKey == sk)
 	assert.Nil(t, err)
 }
 
@@ -303,32 +265,6 @@ func TestWithPublicKey(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, pubKeys, node.initialNodesPubkeys)
-	assert.Nil(t, err)
-}
-
-func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxSignPubKey(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.txSignPubKey)
-	assert.Equal(t, ErrNilPublicKey, err)
-}
-
-func TestWithPublicKey_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	pk := &mock.PublicKeyMock{}
-
-	opt := WithTxSignPubKey(pk)
-	err := opt(node)
-
-	assert.True(t, node.txSignPubKey == pk)
 	assert.Nil(t, err)
 }
 

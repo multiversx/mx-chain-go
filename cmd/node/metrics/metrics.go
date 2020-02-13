@@ -78,8 +78,7 @@ func InitMetrics(
 }
 
 // SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
-func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, txSignPk string, nodeName string) {
-	ash.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, nodeName string) {
 	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
 }
 

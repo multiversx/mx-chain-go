@@ -154,8 +154,6 @@ type Crypto struct {
 	MultiSigner     crypto.MultiSigner
 	BlockSignKeyGen crypto.KeyGenerator
 	TxSignKeyGen    crypto.KeyGenerator
-	TxSignPrivKey   crypto.PrivateKey
-	TxSignPubKey    crypto.PublicKey
 	InitialPubKeys  map[uint32][]string
 }
 
@@ -403,16 +401,13 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 }
 
 type cryptoComponentsFactoryArgs struct {
-	ctx                          *cli.Context
-	config                       *config.Config
-	nodesConfig                  *sharding.NodesSetup
-	shardCoordinator             sharding.Coordinator
-	keyGen                       crypto.KeyGenerator
-	privKey                      crypto.PrivateKey
-	log                          logger.Logger
-	initialBalancesSkPemFileName string
-	txSignSkName                 string
-	txSignSkIndexName            string
+	ctx              *cli.Context
+	config           *config.Config
+	nodesConfig      *sharding.NodesSetup
+	shardCoordinator sharding.Coordinator
+	keyGen           crypto.KeyGenerator
+	privKey          crypto.PrivateKey
+	log              logger.Logger
 }
 
 // NewCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
@@ -424,21 +419,15 @@ func NewCryptoComponentsFactoryArgs(
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	log logger.Logger,
-	initialBalancesSkPemFileName string,
-	txSignSkName string,
-	txSignSkIndexName string,
 ) *cryptoComponentsFactoryArgs {
 	return &cryptoComponentsFactoryArgs{
-		ctx:                          ctx,
-		config:                       config,
-		nodesConfig:                  nodesConfig,
-		shardCoordinator:             shardCoordinator,
-		keyGen:                       keyGen,
-		privKey:                      privKey,
-		log:                          log,
-		initialBalancesSkPemFileName: initialBalancesSkPemFileName,
-		txSignSkName:                 txSignSkName,
-		txSignSkIndexName:            txSignSkIndexName,
+		ctx:              ctx,
+		config:           config,
+		nodesConfig:      nodesConfig,
+		shardCoordinator: shardCoordinator,
+		keyGen:           keyGen,
+		privKey:          privKey,
+		log:              log,
 	}
 }
 
@@ -466,17 +455,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, err
 	}
 
-	initialBalancesSkPemFileName := args.ctx.GlobalString(args.initialBalancesSkPemFileName)
-	txSignKeyGen, txSignPrivKey, txSignPubKey, err := GetSigningParams(
-		args.ctx,
-		args.txSignSkName,
-		args.txSignSkIndexName,
-		initialBalancesSkPemFileName,
-		kyber.NewBlakeSHA256Ed25519())
-	if err != nil {
-		return nil, err
-	}
-	args.log.Debug("starting with", "tx sign pubkey", GetPkEncoded(txSignPubKey))
+	txSignKeyGen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
 
 	return &Crypto{
 		TxSingleSigner:  txSingleSigner,
@@ -484,8 +463,6 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		MultiSigner:     multiSigner,
 		BlockSignKeyGen: args.keyGen,
 		TxSignKeyGen:    txSignKeyGen,
-		TxSignPrivKey:   txSignPrivKey,
-		TxSignPubKey:    txSignPubKey,
 		InitialPubKeys:  initialPubKeys,
 	}, nil
 }
@@ -1043,10 +1020,10 @@ func createDataStoreFromConfig(
 func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
-	config := args.config
+	cfg := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(config.TxDataPool),
+		Config:         storageFactory.GetCacherFromConfig(cfg.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
 	})
@@ -1055,39 +1032,39 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(cfg.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(cfg.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(cfg.HeadersPoolConfig)
 	if err != nil {
 		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(cfg.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(cfg.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(cfg.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating trieNodes")
@@ -1448,7 +1425,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
 	genesisConfig := args.genesisConfig
-	economics := args.economicsData
+	economicsCfg := args.economicsData
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
@@ -1519,7 +1496,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		Economics:                economics,
+		Economics:                economicsCfg,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 
@@ -2351,12 +2328,7 @@ func createMemUnit() storage.Storer {
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key
-func GetSigningParams(
-	ctx *cli.Context,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-	suite crypto.Suite,
+func GetSigningParams(ctx *cli.Context, skName string, skIndexName string, skPemFileName string, suite crypto.Suite,
 ) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
 	sk, err := getSk(ctx, skName, skIndexName, skPemFileName)
