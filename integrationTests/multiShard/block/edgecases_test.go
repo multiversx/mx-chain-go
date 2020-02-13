@@ -1,4 +1,4 @@
-package longTests
+package block
 
 import (
 	"context"
@@ -16,21 +16,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var log = logger.GetOrCreate("integrationtests/singleshard/block")
+var log = logger.GetOrCreate("integrationTests/multishard/block")
 
-// TestExecutingTransactionsFromGatheredRewards tests what happens in a setting where a proposer/validator
-// periodically sends transactions to someone else. The tests starts with the node having 0 balance.
-func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
-	t.Skip("this is a long test")
+// TestExecutingTransactionsFromRewardsFundsCrossShard tests the following scenario:
+// A validator from shard 0 receives rewards from shard 1 (where it is assigned) and creates move balance
+// transactions. All other shard peers can and will sync the blocks containing the move balance transactions.
+func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
-	numOfNodes := 2
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	_ = logger.SetLogLevel("*:DEBUG,process:TRACE")
 
-	nodesMap := integrationTests.CreateProcessorNodesWithNodesCoordinator(numOfNodes, 1, 1, numOfNodes, 1, advertiserAddr)
+	//it is important to have all combinations here as to test more edgecases
+	mapAssignements := map[uint32][]uint32{
+		0:                         {1, 0},
+		1:                         {0, 1},
+		sharding.MetachainShardId: {0, 1},
+	}
+
+	nodesMap, numShards := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
 	setRewardParametersToNodes(nodesMap)
 
 	defer func() {
@@ -46,11 +55,13 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(1)
 	round = integrationTests.IncrementAndPrintRound(round)
-	randomness := generateInitialRandomness(1)
+	randomness := generateInitialRandomness(numShards)
 
 	firstNode := nodesMap[0][0]
+	secondNode := nodesMap[0][1]
+	receiver := nodesMap[sharding.MetachainShardId][0].OwnAccount.PkTxSign
 
-	transferValue := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice / 2
+	transferValue := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
 
 	go func() {
 		for {
@@ -59,12 +70,18 @@ func TestExecutingTransactionsFromGatheredRewards(t *testing.T) {
 				transferValue,
 				firstNode.OwnAccount.SkTxSign,
 				firstNode.OwnAccount.Address,
-				nodesMap[sharding.MetachainShardId][0].OwnAccount.PkTxSign)
+				receiver)
+			generateAndSendTxs(
+				secondNode,
+				transferValue,
+				secondNode.OwnAccount.SkTxSign,
+				secondNode.OwnAccount.Address,
+				receiver)
 			time.Sleep(time.Second)
 		}
 	}()
 
-	numBlocksProduced := uint64(20)
+	numBlocksProduced := uint64(13)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	for i := uint64(0); i < numBlocksProduced; i++ {
 		printAccount(firstNode)
@@ -140,35 +157,6 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 		"nonce", accnt.GetNonce(),
 		"balance", accnt.(*state.Account).Balance,
 	)
-}
-
-func getBlockProposersIndexes(
-	consensusMap map[uint32][]*integrationTests.TestProcessorNode,
-	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
-) map[uint32]int {
-	indexProposer := make(map[uint32]int)
-
-	for sh, testNodeList := range nodesMap {
-		for k, testNode := range testNodeList {
-			if consensusMap[sh][0] == testNode {
-				indexProposer[sh] = k
-			}
-		}
-	}
-
-	return indexProposer
-}
-
-func generateInitialRandomness(numShards uint32) map[uint32][]byte {
-	randomness := make(map[uint32][]byte)
-
-	for i := uint32(0); i < numShards; i++ {
-		randomness[i] = []byte("root hash")
-	}
-
-	randomness[sharding.MetachainShardId] = []byte("root hash")
-
-	return randomness
 }
 
 func generateAndSendTxs(

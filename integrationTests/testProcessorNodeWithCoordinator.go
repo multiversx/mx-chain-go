@@ -46,15 +46,13 @@ func pubKeysMapFromKeysMap(ncp map[uint32][]*nodeKeys) map[uint32][]string {
 // CreateProcessorNodesWithNodesCoordinator creates a map of nodes with a valid nodes coordinator implementation
 // keeping the consistency of generated keys
 func CreateProcessorNodesWithNodesCoordinator(
-	nodesPerShard int,
-	nbMetaNodes int,
-	nbShards int,
+	rewardsAddrsAssignments map[uint32][]uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	seedAddress string,
-) map[uint32][]*TestProcessorNode {
+) (map[uint32][]*TestProcessorNode, uint32) {
 
-	ncp := createNodesCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	ncp, numShards := createNodesCryptoParams(rewardsAddrsAssignments)
 	validatorsMap := genValidators(ncp)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
@@ -66,7 +64,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
 				Hasher:                  TestHasher,
 				ShardId:                 shardId,
-				NbShards:                uint32(nbShards),
+				NbShards:                numShards,
 				Nodes:                   validatorsMap,
 				SelfPublicKey:           v.Address(),
 				ConsensusGroupCache:     cache,
@@ -78,7 +76,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			}
 
 			nodesList[i] = newTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
+				numShards,
 				shardId,
 				seedAddress,
 				nodesCoordinator,
@@ -89,43 +87,54 @@ func CreateProcessorNodesWithNodesCoordinator(
 		nodesMap[shardId] = nodesList
 	}
 
-	return nodesMap
+	return nodesMap, numShards
 }
 
 func createTestSingleSigner() crypto.SingleSigner {
 	return &singlesig.SchnorrSigner{}
 }
 
-func createNodesCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) map[uint32][]*nodeKeys {
+func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {
+	numShards := uint32(0)
 	suiteBlock := kyber.NewSuitePairingBn256()
 	suiteTx := kyber.NewBlakeSHA256Ed25519()
 
 	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
 	txSignKeyGen := signing.NewKeyGenerator(suiteTx)
 
+	//we need to first precompute the num shard ID
+	for shardID := range rewardsAddrsAssignments {
+		foundAHigherShardID := shardID != sharding.MetachainShardId && shardID > numShards
+		if foundAHigherShardID {
+			numShards = shardID
+		}
+	}
+	//we need to increment this as the numShards is actually the max shard at this moment
+	numShards++
+
 	ncp := make(map[uint32][]*nodeKeys)
-	for shard := uint32(0); shard < nbShards; shard++ {
-		ncp[shard] = createShardNodeKeys(blockSignKeyGen, txSignKeyGen, nodesPerShard)
+	for shardID, assignments := range rewardsAddrsAssignments {
+		ncp[shardID] = createShardNodeKeys(blockSignKeyGen, txSignKeyGen, assignments, shardID, numShards)
 	}
 
-	ncp[sharding.MetachainShardId] = createShardNodeKeys(blockSignKeyGen, txSignKeyGen, nbMetaNodes)
-
-	return ncp
+	return ncp, numShards
 }
 
 func createShardNodeKeys(
 	blockSignKeyGen crypto.KeyGenerator,
 	txSignKeyGen crypto.KeyGenerator,
-	nodesPerShard int,
+	assignments []uint32,
+	shardID uint32,
+	numShards uint32,
 ) []*nodeKeys {
-
-	keys := make([]*nodeKeys, nodesPerShard)
-	for i := 0; i < nodesPerShard; i++ {
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numShards, shardID)
+	keys := make([]*nodeKeys, len(assignments))
+	for i, addrShardID := range assignments {
 		keys[i] = &nodeKeys{
 			BlockSignKeyGen: blockSignKeyGen,
 			TxSignKeyGen:    txSignKeyGen,
 		}
-		keys[i].TxSignSk, keys[i].TxSignPk = txSignKeyGen.GeneratePair()
+		keys[i].TxSignSk, keys[i].TxSignPk = generateSkAndPkInShard(keys[i].TxSignKeyGen, shardCoordinator, addrShardID)
 		keys[i].BlockSignSk, keys[i].BlockSignPk = blockSignKeyGen.GeneratePair()
 
 		keys[i].BlockSignPkBytes, _ = keys[i].BlockSignPk.ToByteArray()
@@ -133,6 +142,24 @@ func createShardNodeKeys(
 	}
 
 	return keys
+}
+
+func generateSkAndPkInShard(
+	keyGen crypto.KeyGenerator,
+	shardCoordinator sharding.Coordinator,
+	addrShardID uint32,
+) (crypto.PrivateKey, crypto.PublicKey) {
+	sk, pk := keyGen.GeneratePair()
+	for {
+		pkBytes, _ := pk.ToByteArray()
+		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
+		if shardCoordinator.ComputeId(addr) == addrShardID {
+			break
+		}
+		sk, pk = keyGen.GeneratePair()
+	}
+
+	return sk, pk
 }
 
 func genValidators(ncp map[uint32][]*nodeKeys) map[uint32][]sharding.Validator {
