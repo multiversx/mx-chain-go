@@ -216,6 +216,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	feeForValidators := big.NewInt(0).Sub(consumedFee, newDeveloperReward)
 	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
 
+	acntDst, err = sc.reloadLocalAccount(acntDst)
+	if err != nil {
+		log.Debug("reloadLocalAccount error", "error", err.Error())
+		return nil
+	}
+
 	err = acntDst.AddToDeveloperReward(newDeveloperReward)
 	if err != nil {
 		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
@@ -604,7 +610,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	acntSnd, err = sc.reloadLocalSndAccount(acntSnd)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -712,10 +718,10 @@ func (sc *scProcessor) createSCRsWhenError(
 	return resultedScrs, nil
 }
 
-// reloadLocalSndAccount will reload from current account state the sender account
+// reloadLocalAccount will reload from current account state the sender account
 // this requirement is needed because in the case of refunding the exact account that was previously
 // modified in saveSCOutputToCurrentState, the modifications done there should be visible here
-func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
+func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
 	if check.IfNil(acntSnd) {
 		return acntSnd, nil
 	}
