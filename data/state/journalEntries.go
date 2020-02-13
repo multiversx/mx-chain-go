@@ -38,6 +38,38 @@ func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
 	return jeb == nil
 }
 
+//------- JournalEntryDeveloperReward
+
+// JournalEntryDeveloperReward is used to revert a developer reward change
+type JournalEntryDeveloperReward struct {
+	account            *Account
+	oldDeveloperReward *big.Int
+}
+
+// NewJournalEntryDeveloperReward outputs a new JournalEntry implementation used to revert a developer reward change
+func NewJournalEntryDeveloperReward(account *Account, oldDeveloperReward *big.Int) (*JournalEntryDeveloperReward, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &JournalEntryDeveloperReward{
+		account:            account,
+		oldDeveloperReward: oldDeveloperReward,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jeb *JournalEntryDeveloperReward) Revert() (AccountHandler, error) {
+	jeb.account.DeveloperReward = jeb.oldDeveloperReward
+
+	return jeb.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jeb *JournalEntryDeveloperReward) IsInterfaceNil() bool {
+	return jeb == nil
+}
+
 //------- JournalEntryDataTrieUpdates
 
 // JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
@@ -84,4 +116,36 @@ func (jedtu *JournalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
 	return jedtu == nil
+}
+
+//------- JournalEntryOwnerAddress
+
+// JournalEntryOwnerAddress is used to revert a balance change
+type JournalEntryOwnerAddress struct {
+	account         *Account
+	oldOwnerAddress []byte
+}
+
+// NewJournalEntryOwnerAddress outputs a new JournalEntry implementation used to revert an owner address change
+func NewJournalEntryOwnerAddress(account *Account, ownerAddress []byte) (*JournalEntryOwnerAddress, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &JournalEntryOwnerAddress{
+		account:         account,
+		oldOwnerAddress: ownerAddress,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jeb *JournalEntryOwnerAddress) Revert() (AccountHandler, error) {
+	jeb.account.OwnerAddress = jeb.oldOwnerAddress
+
+	return jeb.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jeb *JournalEntryOwnerAddress) IsInterfaceNil() bool {
+	return jeb == nil
 }

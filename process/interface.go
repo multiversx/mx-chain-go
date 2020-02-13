@@ -133,8 +133,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -509,6 +509,7 @@ type FeeHandler interface {
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
 	IsInterfaceNil() bool
 }
 

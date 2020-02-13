@@ -22,7 +22,7 @@ func generateEmptyByteSlice(size int) []byte {
 	return buff
 }
 
-func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
+func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -1562,45 +1562,6 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	assert.Nil(t, err)
 }
 
-func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
-	t.Parallel()
-
-	sc, err := NewSmartContractProcessor(
-		&mock.VMContainerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.TemporaryAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
-		&mock.TxTypeHandlerMock{},
-		&mock.GasHandlerMock{},
-	)
-
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-
-	tx.Value = big.NewInt(45)
-	tx.GasPrice = 10
-	tx.GasLimit = 10
-
-	acntSrc := &mock.AccountWrapMock{SetNonceWithJournalCalled: func(nonce uint64) error {
-		return nil
-	}}
-
-	err = sc.ProcessSCPayment(tx, acntSrc)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
 func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	t.Parallel()
 
@@ -1719,7 +1680,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1757,28 +1718,23 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err := sc.createSCRForSender(vmOutput, tx, txHash, nil)
+	sctx, consumed, err := sc.CreateSCRForSender(vmOutput, tx, txHash, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
-	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
+	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
 	acntSrc = nil
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	sctx, consumed, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
-	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
-
-	badAcc := &mock.AccountWrapMock{}
-	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	sctx, _, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-	assert.Nil(t, sctx)
+	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 }
 
 func TestScProcessor_RefundGasToSender(t *testing.T) {
 	t.Parallel()
 
+	minGasPrice := uint64(10)
 	sc, err := NewSmartContractProcessor(
 		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
@@ -1790,7 +1746,9 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+			return minGasPrice
+		}},
 		&mock.TxTypeHandlerMock{},
 		&mock.GasHandlerMock{},
 	)
@@ -1804,7 +1762,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 
 	tx.Value = big.NewInt(45)
-	tx.GasPrice = 10
+	tx.GasPrice = 15
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
@@ -1812,10 +1770,10 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
+	_, _, err = sc.CreateSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 
-	totalRefund := refundGas.Uint64() * tx.GasPrice
+	totalRefund := refundGas.Uint64() * minGasPrice
 	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Uint64())
 }
 

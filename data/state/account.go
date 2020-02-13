@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math/big"
 
@@ -15,8 +16,8 @@ type Account struct {
 	RootHash []byte
 	Address  []byte
 
-	AccumulatedFee *big.Int
-	OwnerAddress   []byte
+	DeveloperReward *big.Int
+	OwnerAddress    []byte
 
 	addressContainer AddressContainer
 	code             []byte
@@ -36,6 +37,7 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	addressBytes := addressContainer.Bytes()
 
 	return &Account{
+		DeveloperReward:  big.NewInt(0),
 		Balance:          big.NewInt(0),
 		addressContainer: addressContainer,
 		Address:          addressBytes,
@@ -86,6 +88,30 @@ func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
 
 	a.accountTracker.Journalize(entry)
 	a.Balance = balance
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+func (a *Account) SetDeveloperRewardWithJournal(developerReward *big.Int) error {
+	entry, err := NewJournalEntryDeveloperReward(a, a.DeveloperReward)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.DeveloperReward = developerReward
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+func (a *Account) SetOwnerAddressWithJournal(ownerAddress []byte) error {
+	entry, err := NewJournalEntryOwnerAddress(a, a.OwnerAddress)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.OwnerAddress = ownerAddress
 
 	return a.accountTracker.SaveAccount(a)
 }
@@ -150,6 +176,76 @@ func (a *Account) SetDataTrie(trie data.Trie) {
 // DataTrieTracker returns the trie wrapper used in managing the SC data
 func (a *Account) DataTrieTracker() DataTrieTracker {
 	return a.dataTrieTracker
+}
+
+// ClaimDeveloperRewards returns the accumulated developer rewards and sets it to 0 in the account
+func (a *Account) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
+	if !bytes.Equal(sndAddress, a.OwnerAddress) {
+		return nil, ErrOperationNotPermitted
+	}
+
+	oldValue := big.NewInt(0).Set(a.DeveloperReward)
+	err := a.SetDeveloperRewardWithJournal(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return oldValue, nil
+}
+
+// ChangeOwnerAddress changes the owner account if operation is permitted
+func (a *Account) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error {
+	if !bytes.Equal(sndAddress, a.OwnerAddress) {
+		return ErrOperationNotPermitted
+	}
+	if len(newAddress) != len(a.addressContainer.Bytes()) {
+		return ErrInvalidAddressLength
+	}
+
+	err := a.SetOwnerAddressWithJournal(newAddress)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddToDeveloperReward adds new value to developer reward
+func (a *Account) AddToDeveloperReward(value *big.Int) error {
+	newDeveloperReward := big.NewInt(0).Add(a.DeveloperReward, value)
+	err := a.SetDeveloperRewardWithJournal(newDeveloperReward)
+	if err != nil {
+		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
+		return nil
+	}
+
+	return nil
+}
+
+// AddToBalance adds new value to balance
+func (a *Account) AddToBalance(value *big.Int) error {
+	newBalance := big.NewInt(0).Add(a.Balance, value)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return ErrInsufficientFunds
+	}
+
+	err := a.SetBalanceWithJournal(newBalance)
+	if err != nil {
+		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
+		return nil
+	}
+
+	return nil
+}
+
+// GetOwnerAddress returns the owner address
+func (a *Account) GetOwnerAddress() []byte {
+	return a.OwnerAddress
+}
+
+// GetBalance returns the actual balance from the account
+func (a *Account) GetBalance() *big.Int {
+	return big.NewInt(0).Set(a.Balance)
 }
 
 //TODO add Cap'N'Proto converter funcs

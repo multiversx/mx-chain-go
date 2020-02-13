@@ -10,6 +10,11 @@ import (
 type TransactionFeeHandler struct {
 }
 
+// MinGasPrice will return the min gas price in the system
+func (t *TransactionFeeHandler) MinGasPrice() uint64 {
+	return 0
+}
+
 // MaxGasLimitPerBlock will return the maximum gas limit to exist in a block
 func (t *TransactionFeeHandler) MaxGasLimitPerBlock() uint64 {
 	return 1500000000
