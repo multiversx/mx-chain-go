@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -29,8 +30,6 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-
-	_ = logger.SetLogLevel("*:DEBUG,process:TRACE")
 
 	//it is important to have all combinations here as to test more edgecases
 	mapAssignements := map[uint32][]uint32{
@@ -57,30 +56,26 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	randomness := generateInitialRandomness(numShards)
 
-	firstNode := nodesMap[0][0]
-	secondNode := nodesMap[0][1]
+	senderShardID := uint32(0)
 	receiver := nodesMap[sharding.MetachainShardId][0].OwnAccount.PkTxSign
 
 	transferValue := integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
 
 	go func() {
 		for {
-			generateAndSendTxs(
-				firstNode,
-				transferValue,
-				firstNode.OwnAccount.SkTxSign,
-				firstNode.OwnAccount.Address,
-				receiver)
-			generateAndSendTxs(
-				secondNode,
-				transferValue,
-				secondNode.OwnAccount.SkTxSign,
-				secondNode.OwnAccount.Address,
-				receiver)
+			for _, n := range nodesMap[senderShardID] {
+				generateAndSendTxs(
+					n,
+					transferValue,
+					n.OwnAccount.SkTxSign,
+					n.OwnAccount.Address,
+					receiver)
+			}
 			time.Sleep(time.Second)
 		}
 	}()
 
+	firstNode := nodesMap[senderShardID][0]
 	numBlocksProduced := uint64(13)
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	for i := uint64(0); i < numBlocksProduced; i++ {
@@ -143,7 +138,7 @@ func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.
 
 func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
-	if accnt == nil {
+	if check.IfNil(accnt) {
 		log.Info("account",
 			"address", node.OwnAccount.Address.Bytes(),
 			"nonce", "-",
