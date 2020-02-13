@@ -51,7 +51,6 @@ type hdrForBlock struct {
 type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
 	nodesCoordinator             sharding.NodesCoordinator
-	specialAddressHandler        process.SpecialAddressHandler
 	accounts                     state.AccountsAdapter
 	forkDetector                 process.ForkDetector
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor

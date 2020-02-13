@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -111,6 +112,7 @@ type Header struct {
 	PeerChanges            []PeerChange
 	Epoch                  uint32
 	TxCount                uint32
+	AccumulatedFees        *big.Int
 	ShardId                uint32
 	BlockBodyType          Type
 }
@@ -198,6 +200,16 @@ func (h *Header) SetShardID(shId uint32) {
 // GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
 func (h *Header) GetReceiptsHash() []byte {
 	return h.ReceiptsHash
+}
+
+// GetAccumulatedFees returns the accumulated fees in the header
+func (h *Header) GetAccumulatedFees() *big.Int {
+	return big.NewInt(0).Set(h.AccumulatedFees)
+}
+
+// SetAccumulatedFees returns the accumulated fees in the header
+func (h *Header) SetAccumulatedFees(value *big.Int) {
+	h.AccumulatedFees.Set(value)
 }
 
 // SetNonce sets header nonce

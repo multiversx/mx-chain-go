@@ -115,6 +115,7 @@ type MetaBlock struct {
 	ChainID                []byte
 	Epoch                  uint32
 	TxCount                uint32
+	AccumulatedFees        *big.Int
 }
 
 // GetShardID returns the metachain shard id
@@ -195,6 +196,16 @@ func (m *MetaBlock) GetTxCount() uint32 {
 // GetReceiptsHash returns the hash of the receipts and intra-shard smart contract results
 func (m *MetaBlock) GetReceiptsHash() []byte {
 	return m.ReceiptsHash
+}
+
+// GetAccumulatedFees returns the accumulated fees in the header
+func (m *MetaBlock) GetAccumulatedFees() *big.Int {
+	return big.NewInt(0).Set(m.AccumulatedFees)
+}
+
+// SetAccumulatedFees returns the accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	m.AccumulatedFees.Set(value)
 }
 
 // SetShardID sets header shard ID

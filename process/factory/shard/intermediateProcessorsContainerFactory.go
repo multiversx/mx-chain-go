@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -159,7 +158,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewRewardTxHandler(
+	irp, err := postprocess.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
 		ppcm.hasher,
 		ppcm.marshalizer,

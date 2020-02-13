@@ -77,7 +77,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		store:                        arguments.Store,
 		shardCoordinator:             arguments.ShardCoordinator,
 		nodesCoordinator:             arguments.NodesCoordinator,
-		specialAddressHandler:        arguments.SpecialAddressHandler,
 		uint64Converter:              arguments.Uint64Converter,
 		requestHandler:               arguments.RequestHandler,
 		appStatusHandler:             statusHandler.NewNilStatusHandler(),

@@ -629,3 +629,6 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 
 // ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
 var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+
+// ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")

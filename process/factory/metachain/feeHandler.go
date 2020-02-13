@@ -34,6 +34,11 @@ func (t *TransactionFeeHandler) CheckValidityTxValues(_ process.TransactionWithF
 func (t *TransactionFeeHandler) ProcessTransactionFee(_ *big.Int) {
 }
 
+// GetAccumulatedFees
+func (t *TransactionFeeHandler) GetAccumulatedFees() *big.Int {
+	return big.NewInt(0)
+}
+
 // IsInterfaceNil verifies if underlying struct is nil
 func (t *TransactionFeeHandler) IsInterfaceNil() bool {
 	return t == nil

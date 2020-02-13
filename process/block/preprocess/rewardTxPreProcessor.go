@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -26,8 +25,6 @@ type rewardTxPreprocessor struct {
 	rewardTxPool           dataRetriever.ShardedDataCacherNotifier
 	storage                dataRetriever.StorageService
 	rewardsProcessor       process.RewardTransactionProcessor
-	rewardsProducer        process.InternalTransactionProducer
-	accounts               state.AccountsAdapter
 }
 
 // NewRewardTxPreprocessor creates a new reward transaction preprocessor object
@@ -37,9 +34,7 @@ func NewRewardTxPreprocessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	rewardProcessor process.RewardTransactionProcessor,
-	rewardProducer process.InternalTransactionProducer,
 	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 ) (*rewardTxPreprocessor, error) {
@@ -59,14 +54,8 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(rewardProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if check.IfNil(rewardProducer) {
-		return nil, process.ErrNilInternalTransactionProducer
-	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
@@ -88,8 +77,6 @@ func NewRewardTxPreprocessor(
 		rewardTxPool:      rewardTxDataPool,
 		onRequestRewardTx: onRequestRewardTransaction,
 		rewardsProcessor:  rewardProcessor,
-		rewardsProducer:   rewardProducer,
-		accounts:          accounts,
 	}
 
 	rtp.chReceivedAllRewardTxs = make(chan bool)
@@ -194,14 +181,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	haveTime func() bool,
 ) error {
 
-	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
-	computedRewardsMbsMap := rtp.rewardsProducer.CreateAllInterMiniBlocks()
-	for _, mb := range computedRewardsMbsMap {
-		rewardMiniBlocksSlice = append(rewardMiniBlocksSlice, mb)
-	}
-	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocksSlice)
-
-	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != block.RewardsBlock {
@@ -218,7 +197,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
 			if txData == nil || txData.tx == nil {
-				log.Debug("missing transaction/missmatch in ProcessBlockTransactions ", "type", block.RewardsBlock, "hash", txHash)
+				log.Debug("missing rewardsTransaction in ProcessBlockTransactions ", "type", block.RewardsBlock, "hash", txHash)
 				return process.ErrMissingTransaction
 			}
 
@@ -239,33 +218,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 		}
 	}
 	return nil
-}
-
-// AddComputedRewardMiniBlocks adds to the local cache the reward transactions from the given miniblocks
-func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
-	for _, rewardMb := range computedRewardMiniblocks {
-		txShardData := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
-		for _, txHash := range rewardMb.TxHashes {
-			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
-			if !ok {
-				log.Debug("reward txs not found in pool", "error", process.ErrRewardTransactionNotFound.Error())
-				continue
-			}
-
-			rTx, ok := tx.(*rewardTx.RewardTx)
-			if !ok {
-				log.Warn("not a reward tx in pool", "error", process.ErrWrongTypeAssertion.Error())
-				continue
-			}
-
-			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
-				tx:          rTx,
-				txShardInfo: txShardData,
-			}
-			rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
-		}
-	}
 }
 
 // SaveTxBlockToStorage saves the reward transactions from body into storage
@@ -348,7 +300,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		if mb.Type != block.RewardsBlock {
 			continue
 		}
-		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+		if mb.SenderShardID != sharding.MetachainShardId {
 			continue
 		}
 
@@ -470,47 +422,8 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	_ uint32,
 	_ func() bool,
 ) (block.MiniBlockSlice, error) {
-
-	// always have time for rewards
-	haveTime := func() bool {
-		return true
-	}
-
-	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
-	computedRewardsMbsMap := rtp.rewardsProducer.CreateAllInterMiniBlocks()
-	numRewardTxs := 0
-	for _, mb := range computedRewardsMbsMap {
-		rewardMiniBlocksSlice = append(rewardMiniBlocksSlice, mb)
-		numRewardTxs += len(mb.TxHashes)
-	}
-
-	snapshot := rtp.accounts.JournalLen()
-	processedTxHashes := make([][]byte, 0, numRewardTxs)
-
-	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime)
-		if err != nil {
-			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
-
-			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
-			if errAccountState != nil {
-				// TODO: evaluate if reloading the trie from disk will solve the problem
-				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
-			}
-
-			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-			for _, txHash := range processedTxHashes {
-				delete(rtp.rewardTxsForBlock.txHashAndInfo, string(txHash))
-			}
-			rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
-
-			return nil, err
-		}
-
-		processedTxHashes = append(processedTxHashes, mb.TxHashes...)
-	}
-
-	return rewardMiniBlocksSlice, nil
+	// rewards are created only by meta
+	return make(block.MiniBlockSlice, 0), nil
 }
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
@@ -522,6 +435,9 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 
 	if miniBlock.Type != block.RewardsBlock {
 		return process.ErrWrongTypeInMiniBlock
+	}
+	if miniBlock.SenderShardID != sharding.MetachainShardId {
+		return process.ErrRewardMiniBlockNotFromMeta
 	}
 
 	miniBlockRewardTxs, miniBlockTxHashes, err := rtp.getAllRewardTxsFromMiniBlock(miniBlock, haveTime)
