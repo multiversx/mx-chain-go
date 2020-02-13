@@ -649,3 +649,34 @@ func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {
 	_, ok = map2["hash4"]
 	assert.False(t, ok)
 }
+
+func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T) {
+	t.Parallel()
+
+	tr, tsm, _ := newEmptyTrie()
+	_ = tr.Update([]byte("dog"), []byte("dog"))
+	_ = tr.Update([]byte("doe"), []byte("doe"))
+	_ = tr.Update([]byte("ddog"), []byte("ddog"))
+	_ = tr.Commit()
+
+	rootHash, _ := tr.Root()
+	tr.TakeSnapshot(rootHash)
+
+	for tsm.snapshotsBuffer.len() != 0 {
+		time.Sleep(time.Second)
+	}
+	_ = tr.Prune(rootHash, data.NewRoot)
+
+	val, err := tsm.db.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	newTr, _ := tr.Recreate(rootHash)
+	newPmt, _ := newTr.(*patriciaMerkleTrie)
+	newTsm, _ := newPmt.trieStorage.(*trieStorageManager)
+
+	assert.True(t, newTr.Database() != newTsm.snapshots[0])
+	val, err = newTr.Database().Get(rootHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+}
