@@ -536,7 +536,7 @@ type processComponentsFactoryArgs struct {
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 	epochStartNotifier     EpochStartNotifier
 	epochStart             *config.EpochStartConfig
-	rater                  sharding.RaterHandler
+	rater                  sharding.PeerAccountListAndRatingHandler
 	startEpochNum          uint32
 	sizeCheckDelta         uint32
 	stateCheckpointModulus uint
@@ -562,7 +562,7 @@ func NewProcessComponentsFactoryArgs(
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
-	rater sharding.RaterHandler,
+	rater sharding.PeerAccountListAndRatingHandler,
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
 ) *processComponentsFactoryArgs {
@@ -1457,7 +1457,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
 	genesisConfig := args.genesisConfig
-	economics := args.economicsData
+	economicsData := args.economicsData
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
@@ -1528,7 +1528,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		Economics:                economics,
+		Economics:                economicsData,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 

@@ -3,6 +3,8 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"sort"
 	"strings"
 	"sync"
@@ -22,6 +24,8 @@ var log = logger.GetOrCreate("node/heartbeat")
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	marshalizer                 marshal.Marshalizer
+	eligibleListProvider        EligibleListProvider
+	epochHandler                dataRetriever.EpochHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutPubKeysMap               sync.RWMutex
@@ -43,10 +47,15 @@ func NewMonitor(
 	genesisTime time.Time,
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
+	eligibleListProvider EligibleListProvider,
+	epochHandler dataRetriever.EpochHandler,
 	timer Timer,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(eligibleListProvider) {
+		return nil, errors.New("nil eligible list provider")
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
@@ -64,6 +73,8 @@ func NewMonitor(
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
+		eligibleListProvider:        eligibleListProvider,
+		epochHandler:                epochHandler,
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 		genesisTime:                 genesisTime,
@@ -231,8 +242,9 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
+	isInEligibleList := m.isIsEligibleList(hb.Pubkey, computedShardID)
 
-	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, isInEligibleList)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
@@ -281,6 +293,22 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 
+func (m *Monitor) isIsEligibleList(pubkey []byte, shardID uint32) bool {
+	nodesMap, err := m.eligibleListProvider.GetNodesPerShard(m.epochHandler.Epoch())
+	if err != nil {
+		return false
+	}
+
+	validatorsInShard := nodesMap[shardID]
+	for _, validator := range validatorsInShard {
+		if bytes.Equal(validator.PubKey(), pubkey) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Lock()
 	counterActiveValidators := 0
@@ -320,17 +348,18 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
-			HexPublicKey:    hex.EncodeToString([]byte(k)),
-			TimeStamp:       v.timeStamp,
-			MaxInactiveTime: v.maxInactiveTime,
-			IsActive:        v.isActive,
-			ReceivedShardID: v.receivedShardID,
-			ComputedShardID: v.computedShardID,
-			TotalUpTime:     int(v.totalUpTime.Seconds()),
-			TotalDownTime:   int(v.totalDownTime.Seconds()),
-			VersionNumber:   v.versionNumber,
-			IsValidator:     v.isValidator,
-			NodeDisplayName: v.nodeDisplayName,
+			HexPublicKey:     hex.EncodeToString([]byte(k)),
+			TimeStamp:        v.timeStamp,
+			MaxInactiveTime:  v.maxInactiveTime,
+			IsActive:         v.isActive,
+			ReceivedShardID:  v.receivedShardID,
+			ComputedShardID:  v.computedShardID,
+			TotalUpTime:      int(v.totalUpTime.Seconds()),
+			TotalDownTime:    int(v.totalDownTime.Seconds()),
+			VersionNumber:    v.versionNumber,
+			IsValidator:      v.isValidator,
+			NodeDisplayName:  v.nodeDisplayName,
+			IsInEligibleList: v.isInEligibleList,
 		}
 		idx++
 	}
@@ -364,6 +393,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		NodeDisplayName:    v.nodeDisplayName,
 		LastUptimeDowntime: v.lastUptimeDowntime,
 		GenesisTime:        v.genesisTime,
+		IsInEligibleList:   v.isInEligibleList,
 	}
 }
 
@@ -382,5 +412,6 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		isValidator:                 hbDTO.IsValidator,
 		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
 		genesisTime:                 hbDTO.GenesisTime,
+		isInEligibleList:            hbDTO.IsInEligibleList,
 	}
 }

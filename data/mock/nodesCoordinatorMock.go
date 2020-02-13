@@ -3,7 +3,6 @@ package mock
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -16,6 +15,7 @@ type NodesCoordinatorMock struct {
 	ShardId                             uint32
 	NbShards                            uint32
 	GetOwnPublicKeyCalled               func() []byte
+	UpdatePeersListAndIndexCalled       func() error
 	GetSelectedPublicKeysCalled         func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
@@ -139,6 +139,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
 	waiting map[uint32][]sharding.Validator,
 	epoch uint32,
+	_ bool,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, waiting, epoch)
@@ -236,6 +237,20 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
 ) (map[string]struct{}, error) {
 	panic("not implemented")
+}
+
+// GetNodesPerShard -
+func (ncm *NodesCoordinatorMock) GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error) {
+	return nil, nil
+}
+
+// UpdatePeersListAndIndex -
+func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
+	if ncm.UpdatePeersListAndIndexCalled != nil {
+		return ncm.UpdatePeersListAndIndexCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

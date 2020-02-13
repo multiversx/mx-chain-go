@@ -40,7 +40,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService   dataRetriever.StorageService
 	AdrConv          state.AddressConverter
 	PeerAdapter      state.AccountsAdapter
-	Rater            sharding.RaterHandler
+	Rater            sharding.PeerAccountListAndRatingHandler
 }
 
 type validatorStatistics struct {
@@ -53,7 +53,7 @@ type validatorStatistics struct {
 	peerAdapter      state.AccountsAdapter
 	prevShardInfo    map[string]block.ShardData
 	mutPrevShardInfo sync.RWMutex
-	rater            sharding.RaterHandler
+	rater            sharding.PeerAccountListAndRatingHandler
 	initialNodes     []*sharding.InitialNode
 }
 
@@ -114,9 +114,26 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	ratingReaderSetter.SetRatingReader(rr)
 
+	listIndexUpdaterSetter, ok := rater.(sharding.ListIndexUpdaterSetter)
+	if !ok {
+		return nil, process.ErrNilRatingReader
+	}
+	log.Debug("setting list index updater")
+
+	liu := &ListIndexUpdater{
+		updateListAndIndex: vs.updateListAndIndex,
+	}
+
+	listIndexUpdaterSetter.SetListIndexUpdater(liu)
+
 	vs.initialNodes = arguments.InitialNodes
 
-	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
+	err := vs.nodesCoordinator.UpdatePeersListAndIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	err = vs.saveInitialState(vs.initialNodes, arguments.StakeValue, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
@@ -658,11 +675,22 @@ func (vs *validatorStatistics) IsInterfaceNil() bool {
 func (vs *validatorStatistics) getRating(s string) uint32 {
 	peer, err := vs.GetPeerAccount([]byte(s))
 	if err != nil {
-		log.Debug("Error getting peer account", "error", err)
+		log.Debug("error getting peer account", "error", err, "key", s)
 		return vs.rater.GetStartRating()
 	}
 
 	return peer.GetRating()
+}
+
+func (vs *validatorStatistics) updateListAndIndex(pubKey string, list string, index int) error {
+	peer, err := vs.GetPeerAccount([]byte(pubKey))
+	if err != nil {
+		log.Debug("error getting peer account", "error", err, "key", pubKey)
+		return err
+	}
+
+	peer.SetListAndIndex(list, index)
+	return nil
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {

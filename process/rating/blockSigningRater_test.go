@@ -61,8 +61,8 @@ func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderM
 	return rrm
 }
 
-func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRater {
-	bsr, _ := rating.NewBlockSigningRater(rd)
+func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRaterAndListIndexer {
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 	ratingPk := pk
 	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = initialRating
@@ -75,7 +75,7 @@ func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rat
 func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
 
@@ -86,7 +86,7 @@ func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRatin
 
 func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
@@ -98,7 +98,7 @@ func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testi
 
 func TestBlockSigningRater_GetRatingsWithAllKnownPeersShouldReturnRatings(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	pk1 := "pk1"
 	pk2 := "pk2"
@@ -122,7 +122,7 @@ func TestBlockSigningRater_GetRatingsWithAllKnownPeersShouldReturnRatings(t *tes
 
 func TestBlockSigningRater_GetRatingsWithNotAllKnownPeersShouldReturnRatings(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	pk1 := "pk1"
 	pk2 := "pk2"
@@ -148,7 +148,7 @@ func TestBlockSigningRater_GetRatingsWithNotAllKnownPeersShouldReturnRatings(t *
 func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	ratingPk := "test"
 	ratingValue := uint32(5)
@@ -245,7 +245,7 @@ func TestBlockSigningRater_UpdateRatingsShouldNotDecreaseBelowMinRating(t *testi
 
 func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
+	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
 
 	pk1 := "pk1"
 	pk2 := "pk2"

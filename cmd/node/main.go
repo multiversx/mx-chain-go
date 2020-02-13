@@ -588,7 +588,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	rater, err := rating.NewBlockSigningRaterAndListIndexer(economicsData.RatingsData())
 	if err != nil {
 		return err
 	}
@@ -1064,7 +1064,7 @@ func createNodesCoordinator(
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	_ sharding.RaterHandler,
+	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
 ) (sharding.NodesCoordinator, error) {
 
@@ -1111,6 +1111,7 @@ func createNodesCoordinator(
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		ListIndexUpdater:        ratingAndListIndexHandler,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartSubscriber:    epochStartSubscriber,

@@ -23,6 +23,9 @@ func TestNewSender_NilP2pMessengerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -41,6 +44,9 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -59,6 +65,9 @@ func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		nil,
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -77,6 +86,9 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -95,6 +107,9 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -113,6 +128,9 @@ func TestNewSender_ShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -155,6 +173,9 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -196,6 +217,9 @@ func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -237,6 +261,9 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 		},
 		"",
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)
@@ -300,6 +327,9 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 		},
 		testTopic,
 		&mock.ShardCoordinatorMock{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		"v0.1",
 		"undefined",
 	)

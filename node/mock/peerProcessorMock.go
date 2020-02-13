@@ -8,8 +8,8 @@ import (
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
 	UpdatePeerStateCalled           func(header data.HeaderHandler) ([]byte, error)
+	UpdatePeerAccountsCalled        func() error
 	RevertPeerStateCalled           func(header data.HeaderHandler) error
-	IsInterfaceNilCalled            func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
 	GetPeerAccountCalled            func(address []byte) (state.PeerAccountHandler, error)
 	CommitCalled                    func() ([]byte, error)
@@ -65,10 +65,16 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 	return nil, nil
 }
 
+// updatePeersListAndIndex -
+func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerAccounts() error {
+	if vsp.UpdatePeerAccountsCalled != nil {
+		return vsp.UpdatePeerAccountsCalled()
+	}
+
+	return nil
+}
+
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
-	if vsp.IsInterfaceNilCalled != nil {
-		return vsp.IsInterfaceNilCalled()
-	}
-	return false
+	return vsp == nil
 }

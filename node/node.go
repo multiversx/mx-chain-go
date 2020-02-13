@@ -935,6 +935,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.marshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
+		n.nodesCoordinator,
+		n.epochStartTrigger,
+		n.appStatusHandler,
 		versionNumber,
 		nodeDisplayName,
 	)
@@ -952,6 +955,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
+	//n.nodesCoordinator
 	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
 	timer := &heartbeat.RealTimer{}
 	netInputMarshalizer := n.marshalizer
@@ -965,6 +969,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.genesisTime,
 		heartBeatMsgProcessor,
 		heartbeatStorer,
+		n.nodesCoordinator,
+		n.epochStartTrigger,
 		timer,
 	)
 	if err != nil {

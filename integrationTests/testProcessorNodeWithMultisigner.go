@@ -94,7 +94,7 @@ func CreateNodesWithNodesCoordinator(
 	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress)
 }
 
-// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
+// CreateNodesWithNodesCoordinatorWithCacher returns a map with nodes per shard each using a real nodes coordinator
 func CreateNodesWithNodesCoordinatorWithCacher(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -192,7 +192,9 @@ func createNode(
 		EligibleNodes:           validatorsMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     cache}
+		ConsensusGroupCache:     cache,
+		ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
+	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 	if err != nil {
@@ -246,6 +248,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     consensusCache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

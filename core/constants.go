@@ -1,5 +1,17 @@
 package core
 
+// ValidatorList represents the list to which a validator belongs
+type ValidatorList string
+
+// EligibleList represents the list of peers who participate in consensus inside a shard
+const EligibleList ValidatorList = "eligible"
+
+// WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
+const WaitingList ValidatorList = "waiting"
+
+// NewList -
+const NewList ValidatorList = "new"
+
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
 const UnVersionedAppString = "undefined"
@@ -188,6 +200,9 @@ const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
+
+// MetricValidatorType is the metric which tells the validator's type (in eligible list, in waiting list)
+const MetricValidatorType = "erd_validator_type"
 
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"

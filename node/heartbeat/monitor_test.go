@@ -28,6 +28,8 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -46,6 +48,8 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -64,6 +68,8 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		nil,
 		&mock.HeartbeatStorerStub{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -82,6 +88,8 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		nil,
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -99,6 +107,8 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		time.Now(),
 		&mock.MessageHandlerStub{},
 		&mock.HeartbeatStorerStub{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		nil,
 	)
 
@@ -130,6 +140,8 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -170,6 +182,8 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -223,6 +237,8 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -281,6 +297,8 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -343,6 +361,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 
@@ -414,6 +434,8 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 			},
 		},
 		storer,
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		th,
 	)
 

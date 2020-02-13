@@ -47,6 +47,9 @@ type PeerAccount struct {
 	NodeInWaitingList bool
 	UnStakedNonce     uint64
 
+	IndexInList int
+	List        string
+
 	ValidatorSuccessRate SignRate
 	LeaderSuccessRate    SignRate
 
@@ -366,6 +369,12 @@ func (pa *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
 // GetRating gets the rating
 func (pa *PeerAccount) GetRating() uint32 {
 	return pa.Rating
+}
+
+// SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it
+func (pa *PeerAccount) SetListAndIndex(list string, index int) {
+	pa.List = list
+	pa.IndexInList = index
 }
 
 // SetRatingWithJournal sets the account's rating id, saving the old state before changing

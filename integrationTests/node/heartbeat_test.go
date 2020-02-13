@@ -200,6 +200,9 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		integrationTests.TestMarshalizer,
 		topic,
 		&sharding.OneShardCoordinator{},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
+		&mock.AppStatusHandlerStub{},
 		version,
 		nodeName,
 	)
@@ -237,6 +240,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		&heartbeat.RealTimer{},
 	)
 

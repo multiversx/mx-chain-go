@@ -25,6 +25,8 @@ func createMonitor(
 		genesisTime,
 		&mock.MessageHandlerStub{},
 		storer,
+		&mock.EligibleListProviderStub{},
+		&mock.EpochStartTriggerStub{},
 		timer,
 	)
 

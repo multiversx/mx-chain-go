@@ -64,8 +64,8 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
-// ErrEpochNodesConfigDesNotExist signals that the epoch nodes configuration is missing
-var ErrEpochNodesConfigDesNotExist = errors.New("epoch nodes configuration does not exist")
+// ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
@@ -87,6 +87,9 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
+// ErrNilListIndexUpdater signals that a nil list index updater was provided
+var ErrNilListIndexUpdater = errors.New("nil list index updater")
 
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")

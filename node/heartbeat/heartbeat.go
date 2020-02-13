@@ -6,27 +6,29 @@ import (
 
 // Heartbeat represents the heartbeat message that is sent between peers
 type Heartbeat struct {
-	Payload         []byte
-	Pubkey          []byte
-	Signature       []byte
-	ShardID         uint32
-	VersionNumber   string
-	NodeDisplayName string
+	Payload          []byte
+	Pubkey           []byte
+	Signature        []byte
+	ShardID          uint32
+	VersionNumber    string
+	NodeDisplayName  string
+	IsInEligibleList bool
 }
 
 // PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
-	TimeStamp       time.Time `json:"timeStamp"`
-	HexPublicKey    string    `json:"hexPublicKey"`
-	VersionNumber   string    `json:"versionNumber"`
-	NodeDisplayName string    `json:"nodeDisplayName"`
-	TotalUpTime     int       `json:"totalUpTimeSec"`
-	TotalDownTime   int       `json:"totalDownTimeSec"`
-	MaxInactiveTime Duration  `json:"maxInactiveTime"`
-	ReceivedShardID uint32    `json:"receivedShardID"`
-	ComputedShardID uint32    `json:"computedShardID"`
-	IsValidator     bool      `json:"isValidator"`
-	IsActive        bool      `json:"isActive"`
+	TimeStamp        time.Time `json:"timeStamp"`
+	HexPublicKey     string    `json:"hexPublicKey"`
+	VersionNumber    string    `json:"versionNumber"`
+	NodeDisplayName  string    `json:"nodeDisplayName"`
+	TotalUpTime      int       `json:"totalUpTimeSec"`
+	TotalDownTime    int       `json:"totalDownTimeSec"`
+	MaxInactiveTime  Duration  `json:"maxInactiveTime"`
+	ReceivedShardID  uint32    `json:"receivedShardID"`
+	ComputedShardID  uint32    `json:"computedShardID"`
+	IsValidator      bool      `json:"isValidator"`
+	IsInEligibleList bool      `json:"isInEligibleList"`
+	IsActive         bool      `json:"isActive"`
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
@@ -44,4 +46,5 @@ type HeartbeatDTO struct {
 	ComputedShardID             uint32
 	IsValidator                 bool
 	IsActive                    bool
+	IsInEligibleList            bool
 }

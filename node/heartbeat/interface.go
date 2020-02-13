@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -15,6 +16,12 @@ type PeerMessenger interface {
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
 	CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error)
+	IsInterfaceNil() bool
+}
+
+// EligibleListProvider defines what an eligible list provider should do
+type EligibleListProvider interface {
+	GetNodesPerShard(epoch uint32) (map[uint32][]sharding.Validator, error)
 	IsInterfaceNil() bool
 }
 

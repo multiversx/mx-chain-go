@@ -802,7 +802,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		return bytes.Compare([]byte(initialNodes[i].PubKey), []byte(initialNodes[j].PubKey)) > 0
 	})
 
-	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
+	rater, _ := rating.NewBlockSigningRaterAndListIndexer(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
