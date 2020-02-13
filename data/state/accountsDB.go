@@ -375,6 +375,9 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 		if account != nil {
 			err = adb.SaveAccount(account)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

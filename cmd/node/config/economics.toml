@@ -22,8 +22,8 @@
     UnBoundPeriod = "100000"
 
 [RatingSettings]
-    StartRating = 50
-    MaxRating = 100
+    StartRating = 500000
+    MaxRating = 1000000
     MinRating = 1
     ProposerIncreaseRatingStep = 2
     ProposerDecreaseRatingStep = 4
