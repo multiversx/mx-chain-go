@@ -486,7 +486,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 	if err != nil {
 		return nil, err
 	}
-	newTr.trieStorage.SetDatabase(db)
 
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, tr.marshalizer, tr.hasher)
 	if err != nil {
@@ -495,6 +494,14 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
+
+	if db != tr.Database() {
+		err = newTr.root.commit(true, 0, db, tr.Database())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return newTr, nil
 }
 
