@@ -52,7 +52,6 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)

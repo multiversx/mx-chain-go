@@ -126,11 +126,8 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
 	}
 
-	pkTxSign := wr.presenter.GetPublicKeyTxSign()
-	rows[2] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
-
 	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
-	rows[3] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
+	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
 	var consensusInfo string
 	countConsensus := wr.presenter.GetCountConsensus()
@@ -143,16 +140,16 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		consensusInfo = fmt.Sprintf("Consensus accepted / signed blocks: %d / %d", countConsensusAcceptedBlocks, countConsensus)
 	}
 
-	rows[4] = []string{consensusInfo}
+	rows[3] = []string{consensusInfo}
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[5] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
+	rows[4] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
 
 	switch instanceType {
 	case string(core.NodeTypeValidator):
 		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-		rows[6] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+		rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
 
 		var rewardsInfo []string
 		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
@@ -164,11 +161,11 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
 			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
 		}
-		rows[7] = rewardsInfo
+		rows[6] = rewardsInfo
 
 	default:
+		rows[5] = []string{""}
 		rows[6] = []string{""}
-		rows[7] = []string{""}
 	}
 
 	wr.instanceInfo.Title = "Elrond instance info"
