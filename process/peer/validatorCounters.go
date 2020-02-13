@@ -30,9 +30,11 @@ func (vrc validatorRoundCounters) decreaseLeader(key []byte) {
 }
 
 func (vrc validatorRoundCounters) get(key []byte) *validatorCounters {
-	if vrc[string(key)] == nil {
+	vdCounter, ok := vrc[string(key)]
+	if !ok {
 		vrc[string(key)] = &validatorCounters{}
+		return vrc[string(key)]
 	}
 
-	return vrc[string(key)]
+	return vdCounter
 }
