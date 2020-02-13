@@ -88,10 +88,10 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		time.Sleep(stepDelay)
+
 		round++
 		nonce++
-
-		time.Sleep(time.Second)
 
 		checkSameBlockHeight(t, nodesMap)
 	}
@@ -167,7 +167,7 @@ func generateAndSendTxs(
 		startingNonce = accnt.GetNonce()
 	}
 
-	numTxs := 2
+	numTxs := 1
 	for i := 0; i < numTxs; i++ {
 		nonce := startingNonce + uint64(i)
 
