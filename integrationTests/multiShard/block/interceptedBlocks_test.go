@@ -208,7 +208,7 @@ func TestMetaHeadersAreRequstedByAMetachainNode(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(stepDelay)
 
 	metaBlock1 := &block.MetaBlock{
 		Nonce:         1,
@@ -267,7 +267,7 @@ func requestAndRetrieveMetaHeader(
 
 	select {
 	case <-chanReceived:
-	case <-time.After(time.Second * 2):
+	case <-time.After(stepDelay):
 		return nil
 	}
 
