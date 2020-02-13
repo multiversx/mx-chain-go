@@ -527,6 +527,7 @@ type processComponentsFactoryArgs struct {
 	startEpochNum          uint32
 	sizeCheckDelta         uint32
 	stateCheckpointModulus uint
+	maxComputableRounds    uint64
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -552,6 +553,7 @@ func NewProcessComponentsFactoryArgs(
 	rater sharding.RaterHandler,
 	sizeCheckDelta uint32,
 	stateCheckpointModulus uint,
+	maxComputableRounds uint64,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:         coreComponents,
@@ -575,6 +577,7 @@ func NewProcessComponentsFactoryArgs(
 		rater:                  rater,
 		sizeCheckDelta:         sizeCheckDelta,
 		stateCheckpointModulus: stateCheckpointModulus,
+		maxComputableRounds:    maxComputableRounds,
 	}
 }
 
@@ -2287,16 +2290,17 @@ func newValidatorStatisticsProcessor(
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
-		PeerAdapter:      processComponents.state.PeerAccounts,
-		AdrConv:          processComponents.state.BLSAddressConverter,
-		NodesCoordinator: processComponents.nodesCoordinator,
-		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool:         peerDataPool,
-		StorageService:   storageService,
-		Marshalizer:      processComponents.core.Marshalizer,
-		StakeValue:       processComponents.economicsData.StakeValue(),
-		Rater:            processComponents.rater,
+		InitialNodes:        initialNodes,
+		PeerAdapter:         processComponents.state.PeerAccounts,
+		AdrConv:             processComponents.state.BLSAddressConverter,
+		NodesCoordinator:    processComponents.nodesCoordinator,
+		ShardCoordinator:    processComponents.shardCoordinator,
+		DataPool:            peerDataPool,
+		StorageService:      storageService,
+		Marshalizer:         processComponents.core.Marshalizer,
+		StakeValue:          processComponents.economicsData.StakeValue(),
+		Rater:               processComponents.rater,
+		MaxComputableRounds: processComponents.maxComputableRounds,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

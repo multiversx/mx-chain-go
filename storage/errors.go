@@ -79,5 +79,8 @@ var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to sav
 // ErrInvalidNumberOfActivePersisters signals that an invalid number of active persisters has been provided
 var ErrInvalidNumberOfActivePersisters = errors.New("invalid number of active persisters")
 
-//ErrClosingPersisters signals that not all persisters were closed
+// ErrClosingPersisters signals that not all persisters were closed
 var ErrClosingPersisters = errors.New("cannot close all the persisters")
+
+// ErrCacheSizeIsLowerThanBatchSize signals that size of cache is lower than size of batch
+var ErrCacheSizeIsLowerThanBatchSize = errors.New("cache size is lower than batch size")
