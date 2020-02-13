@@ -44,6 +44,11 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 	return list, nil
 }
 
+// ConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
+	return 1
+}
+
 // GetValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(
 	randomness []byte,
@@ -89,11 +94,6 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 	}
 
 	return addresses, nil
-}
-
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize(shardId uint32) int {
-	panic("implement me")
 }
 
 // SetNodesPerShards -
