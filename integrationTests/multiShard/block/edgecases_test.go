@@ -131,7 +131,9 @@ func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.
 			//(crtBlock == nil) != (blkc == nil) actually does a XOR operation between the 2 conditions
 			//as if the reference is nil, the same must be all other nodes. Same if the reference is not nil.
 			require.False(t, (referenceBlock == nil) != (crtBlock == nil))
-			require.Equal(t, referenceBlock.GetNonce(), crtBlock.GetNonce())
+			if referenceBlock != nil {
+				require.Equal(t, referenceBlock.GetNonce(), crtBlock.GetNonce())
+			}
 		}
 	}
 }
