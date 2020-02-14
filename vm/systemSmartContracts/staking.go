@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,13 +15,17 @@ import (
 
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
-const ownerKey = "owner"
+const OwnerKey = "owner"
 
 type stakingSC struct {
-	eei           vm.SystemEI
-	minStakeValue *big.Int
-	unBondPeriod  uint64
-	accessAddr    []byte
+	eei                      vm.SystemEI
+	minStakeValue            *big.Int
+	unBondPeriod             uint64
+	stakeAccessAddr          []byte
+	jailAccessAddr           []byte
+	numRoundsWithoutBleed    uint64
+	bleedPercentagePerRound  float64
+	maximumPercentageToBleed float64
 }
 
 // StakedData represents the data which is saved for the selected nodes
@@ -31,30 +36,50 @@ type StakedData struct {
 	UnStakedEpoch uint32   `json:"UnStakedEpoch"`
 	RewardAddress []byte   `json:"RewardAddress"`
 	StakeValue    *big.Int `json:"StakeValue"`
+	JailedRound   uint64   `json:"JailedRound"`
+}
+
+// ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
+type ArgsNewStakingSmartContract struct {
+	MinStakeValue            *big.Int
+	UnBondPeriod             uint64
+	Eei                      vm.SystemEI
+	StakingAccessAddr        []byte
+	JailAccessAddr           []byte
+	NumRoundsWithoutBleed    uint64
+	BleedPercentagePerRound  float64
+	MaximumPercentageToBleed float64
 }
 
 // NewStakingSmartContract creates a staking smart contract
 func NewStakingSmartContract(
-	minStakeValue *big.Int,
-	unBondPeriod uint64,
-	eei vm.SystemEI,
-	accessAddr []byte,
+	args ArgsNewStakingSmartContract,
 ) (*stakingSC, error) {
-	if minStakeValue == nil {
+	if args.MinStakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if minStakeValue.Cmp(big.NewInt(0)) < 1 {
+	if args.MinStakeValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
-	if check.IfNil(eei) {
+	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
+	}
+	if len(args.StakingAccessAddr) < 1 {
+		return nil, vm.ErrInvalidStakingAccessAddress
+	}
+	if len(args.JailAccessAddr) < 1 {
+		return nil, vm.ErrInvalidJailAccessAddress
 	}
 
 	reg := &stakingSC{
-		minStakeValue: big.NewInt(0).Set(minStakeValue),
-		eei:           eei,
-		unBondPeriod:  unBondPeriod,
-		accessAddr:    accessAddr,
+		minStakeValue:            big.NewInt(0).Set(args.MinStakeValue),
+		eei:                      args.Eei,
+		unBondPeriod:             args.UnBondPeriod,
+		stakeAccessAddr:          args.StakingAccessAddr,
+		jailAccessAddr:           args.JailAccessAddr,
+		numRoundsWithoutBleed:    args.NumRoundsWithoutBleed,
+		bleedPercentagePerRound:  args.BleedPercentagePerRound,
+		maximumPercentageToBleed: args.MaximumPercentageToBleed,
 	}
 	return reg, nil
 }
@@ -84,9 +109,211 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.isStaked(args)
 	case "setStakeValue":
 		return r.setStakeValueForCurrentEpoch(args)
+	case "jail":
+		return r.jail(args)
+	case "unJail":
+		return r.unJail(args)
+	case "changeRewardAddress":
+		return r.changeRewardAddress(args)
+	case "changeValidatorKeys":
+		return r.changeValidatorKey(args)
 	}
 
 	return vmcommon.UserError
+}
+
+func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
+	x := new(big.Float).SetInt(value)
+	y := big.NewFloat(percentage)
+
+	z := new(big.Float).Mul(x, y)
+
+	op := big.NewInt(0)
+	result, _ := z.Int(op)
+
+	return result
+}
+
+func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64, stake *big.Int) *big.Int {
+	if startRound > endRound {
+		return stake
+	}
+	if endRound-startRound < r.numRoundsWithoutBleed {
+		return stake
+	}
+
+	totalRoundsToBleed := endRound - startRound - r.numRoundsWithoutBleed
+	totalPercentageToBleed := float64(totalRoundsToBleed) * r.bleedPercentagePerRound
+	totalPercentageToBleed = math.Min(totalPercentageToBleed, r.maximumPercentageToBleed)
+
+	bleedValue := getPercentageOfValue(stake, totalPercentageToBleed)
+	stakeAfterBleed := big.NewInt(0).Sub(stake, bleedValue)
+
+	if stakeAfterBleed.Cmp(big.NewInt(0)) < 0 {
+		stakeAfterBleed = big.NewInt(0)
+	}
+
+	return stakeAfterBleed
+}
+
+func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		return vmcommon.UserError
+	}
+
+	oldKey := args.Arguments[0]
+	newKey := args.Arguments[1]
+	if len(oldKey) != len(newKey) {
+		return vmcommon.UserError
+	}
+
+	stakedData, err := r.getOrCreateRegisteredData(oldKey)
+	if err != nil {
+		return vmcommon.UserError
+	}
+	if len(stakedData.RewardAddress) == 0 {
+		// if not registered this is not an error
+		return vmcommon.Ok
+	}
+
+	r.eei.SetStorage(oldKey, nil)
+	err = r.saveStakingData(newKey, stakedData)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		return vmcommon.UserError
+	}
+
+	newRewardAddress := args.Arguments[0]
+	if len(newRewardAddress) != len(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	for i := 1; i < len(args.Arguments); i++ {
+		blsKey := args.Arguments[i]
+		stakedData, err := r.getOrCreateRegisteredData(blsKey)
+		if err != nil {
+			return vmcommon.UserError
+		}
+		if len(stakedData.RewardAddress) == 0 {
+			continue
+		}
+
+		stakedData.RewardAddress = newRewardAddress
+		err = r.saveStakingData(blsKey, stakedData)
+		if err != nil {
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		return vmcommon.UserError
+	}
+
+	for _, argument := range args.Arguments {
+		stakedData, err := r.getOrCreateRegisteredData(argument)
+		if err != nil {
+			return vmcommon.UserError
+		}
+		if len(stakedData.RewardAddress) == 0 {
+			return vmcommon.UserError
+		}
+
+		stakedData.StakeValue = r.calculateStakeAfterBleed(
+			stakedData.JailedRound,
+			r.eei.BlockChainHook().CurrentRound(),
+			stakedData.StakeValue,
+		)
+		stakedData.JailedRound = math.MaxUint64
+
+		err = r.saveStakingData(argument, stakedData)
+		if err != nil {
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
+	registrationData := StakedData{
+		RegisterNonce: 0,
+		Staked:        false,
+		UnStakedNonce: 0,
+		UnStakedEpoch: 0,
+		RewardAddress: nil,
+		StakeValue:    big.NewInt(0),
+		JailedRound:   math.MaxUint64,
+	}
+
+	data := r.eei.GetStorage(key)
+	if data != nil {
+		err := json.Unmarshal(data, &registrationData)
+		if err != nil {
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
+			return nil, err
+		}
+	}
+
+	return &registrationData, nil
+}
+
+func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedData) error {
+	data, err := json.Marshal(*stakedData)
+	if err != nil {
+		log.Debug("marshal error on staking SC stake function ",
+			"error", err.Error(),
+		)
+		return err
+	}
+
+	r.eei.SetStorage(key, data)
+	return nil
+}
+
+func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.jailAccessAddr) {
+		return vmcommon.UserError
+	}
+
+	for _, argument := range args.Arguments {
+		stakedData, err := r.getOrCreateRegisteredData(argument)
+		if err != nil {
+			return vmcommon.UserError
+		}
+		if len(stakedData.RewardAddress) == 0 {
+			return vmcommon.UserError
+		}
+
+		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
+		err = r.saveStakingData(argument, stakedData)
+		if err != nil {
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
 }
 
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -101,13 +328,13 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
+	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
 	if ownerAddress != nil {
 		log.Debug("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
+	r.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
@@ -119,7 +346,7 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
 		return vmcommon.UserError
 	}
@@ -159,7 +386,7 @@ func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
 }
 
 func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
 		return vmcommon.UserError
 	}
@@ -169,28 +396,13 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	stakeValue := r.getStakeValueForCurrentEpoch()
-	registrationData := StakedData{
-		RegisterNonce: 0,
-		Staked:        false,
-		RewardAddress: nil,
-		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
-		StakeValue:    big.NewInt(0).Set(stakeValue),
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		return vmcommon.UserError
 	}
-	data := r.eei.GetStorage(args.Arguments[0])
 
-	if data != nil {
-		err := json.Unmarshal(data, &registrationData)
-		if err != nil {
-			log.Debug("unmarshal error on staking SC stake function",
-				"error", err.Error(),
-			)
-			return vmcommon.UserError
-		}
-
-		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
-			registrationData.StakeValue.Set(stakeValue)
-		}
+	if registrationData.StakeValue.Cmp(stakeValue) < 0 {
+		registrationData.StakeValue.Set(stakeValue)
 	}
 
 	if !onlyRegister {
@@ -200,21 +412,16 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.RewardAddress = args.Arguments[1]
 
-	data, err := json.Marshal(registrationData)
+	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
-		log.Debug("marshal error on staking SC stake function ",
-			"error", err.Error(),
-		)
 		return vmcommon.UserError
 	}
-
-	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("unStake function not allowed to be called by", "address", args.CallerAddr)
 		return vmcommon.UserError
 	}
@@ -223,18 +430,11 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	var registrationData StakedData
-	data := r.eei.GetStorage(args.Arguments[0])
-	if data == nil {
-		log.Debug("unStake is not possible for address which is not staked")
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
 		return vmcommon.UserError
 	}
-
-	err := json.Unmarshal(data, &registrationData)
-	if err != nil {
-		log.Debug("unmarshal error in unStake function of staking SC",
-			"error", err.Error(),
-		)
+	if len(registrationData.RewardAddress) == 0 {
 		return vmcommon.UserError
 	}
 
@@ -250,26 +450,25 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
+	if registrationData.JailedRound != math.MaxUint64 {
+		log.Error("unStake is not possible for jailed nodes")
+		return vmcommon.UserError
+	}
 
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
 
-	data, err = json.Marshal(registrationData)
+	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
-		log.Debug("marshal error in unStake function of staking SC",
-			"error", err.Error(),
-		)
 		return vmcommon.UserError
 	}
-
-	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, r.accessAddr) {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("unStake function not allowed to be called by", "address", args.CallerAddr)
 		return vmcommon.UserError
 	}
@@ -278,29 +477,26 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	var registrationData StakedData
-	data := r.eei.GetStorage(args.Arguments[0])
-	if data == nil {
-		log.Error("unBond is not possible for address which is not staked")
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
 		return vmcommon.UserError
 	}
-
-	err := json.Unmarshal(data, &registrationData)
-	if err != nil {
-		log.Debug("unmarshal error on unBond function",
-			"error", err.Error(),
-		)
+	if len(registrationData.RewardAddress) == 0 {
 		return vmcommon.UserError
 	}
 
 	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.RegisterNonce {
-		log.Debug("unBond is not possible for address which is staked or is not in unbond period")
+		log.Debug("unBond is not possible for address which is staked or is not in unBond period")
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		log.Debug("unBond is not possible for address because unbond period did not pass")
+		log.Debug("unBond is not possible for address because unBond period did not pass")
+		return vmcommon.UserError
+	}
+	if registrationData.JailedRound != math.MaxUint64 {
+		log.Error("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
 
@@ -312,7 +508,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 }
 
 func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
+	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("slash function called by not the owners address")
 		return vmcommon.UserError
@@ -323,20 +519,13 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	var registrationData StakedData
-	stakerAddress := args.Arguments[0]
-	data := r.eei.GetStorage(stakerAddress)
-	if data == nil {
-		return vmcommon.UserError
-	}
-	err := json.Unmarshal(data, &registrationData)
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
-		log.Debug("unmarshal error on slash function",
-			"error", err.Error(),
-		)
 		return vmcommon.UserError
 	}
-
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
 	if !registrationData.Staked {
 		log.Debug("cannot slash already unstaked or user not staked")
 		return vmcommon.UserError
@@ -345,16 +534,12 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
 	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
+	registrationData.JailedRound = r.eei.BlockChainHook().CurrentRound()
 
-	data, err = json.Marshal(registrationData)
+	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
-		log.Debug("marshal error in slash function of staking smart contract",
-			"error", err.Error(),
-		)
 		return vmcommon.UserError
 	}
-
-	r.eei.SetStorage(args.Arguments[0], data)
 
 	return vmcommon.Ok
 }
@@ -364,16 +549,12 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	data := r.eei.GetStorage(args.Arguments[0])
-	registrationData := StakedData{}
-	if data != nil {
-		err := json.Unmarshal(data, &registrationData)
-		if err != nil {
-			log.Debug("unmarshal error on staking SC stake function",
-				"error", err.Error(),
-			)
-			return vmcommon.UserError
-		}
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		return vmcommon.UserError
+	}
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
 	}
 
 	if registrationData.Staked {

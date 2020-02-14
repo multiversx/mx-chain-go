@@ -229,13 +229,10 @@ func createProcessorsForMetaGenesisBlock(
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
 
-	auctionEnabled := args.Economics.AuctionEnabled()
-	args.Economics.SetAuctionEnabled(false)
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{})
 	if err != nil {
 		return nil, nil, err
 	}
-	args.Economics.SetAuctionEnabled(auctionEnabled)
 
 	argsParser, err := vmcommon.NewAtArgumentParser()
 	if err != nil {

@@ -66,9 +66,14 @@ type ValidatorSettingsHandler interface {
 	UnBondPeriod() uint64
 	StakeValue() *big.Int
 	MinStepValue() *big.Int
+	UnJailValue() *big.Int
 	TotalSupply() *big.Int
 	NumNodes() uint32
-	AuctionEnabled() bool
+	AuctionEnableNonce() uint64
+	StakeEnableNonce() uint64
+	NumRoundsWithoutBleed() uint64
+	BleedPercentagePerRound() float64
+	MaximumPercentageToBleed() float64
 	IsInterfaceNil() bool
 }
 

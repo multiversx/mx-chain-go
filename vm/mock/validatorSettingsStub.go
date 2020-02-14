@@ -4,18 +4,55 @@ import "math/big"
 
 // ValidatorSettingsStub -
 type ValidatorSettingsStub struct {
-	MinStepValueCalled   func() *big.Int
-	TotalSupplyCalled    func() *big.Int
-	NumNodesCalled       func() uint32
-	AuctionEnabledCalled func() bool
-	UnBondPeriodCalled   func() uint64
-	StakeValueCalled     func() *big.Int
+	MinStepValueCalled             func() *big.Int
+	TotalSupplyCalled              func() *big.Int
+	NumNodesCalled                 func() uint32
+	AuctionEnableNonceCalled       func() uint64
+	StakeEnableNonceCalled         func() uint64
+	UnBondPeriodCalled             func() uint64
+	StakeValueCalled               func() *big.Int
+	UnJailValueCalled              func() *big.Int
+	NumRoundsWithoutBleedCalled    func() uint64
+	BleedPercentagePerRoundCalled  func() float64
+	MaximumPercentageToBleedCalled func() float64
+}
+
+// NumRoundsWithoutBleed -
+func (v *ValidatorSettingsStub) NumRoundsWithoutBleed() uint64 {
+	if v.NumRoundsWithoutBleedCalled != nil {
+		return v.NumRoundsWithoutBleedCalled()
+	}
+	return 0
+}
+
+// BleedPercentagePerRound -
+func (v *ValidatorSettingsStub) BleedPercentagePerRound() float64 {
+	if v.BleedPercentagePerRoundCalled != nil {
+		return v.BleedPercentagePerRoundCalled()
+	}
+	return 0
+}
+
+// MaximumPercentageToBleed -
+func (v *ValidatorSettingsStub) MaximumPercentageToBleed() float64 {
+	if v.MaximumPercentageToBleedCalled != nil {
+		return v.MaximumPercentageToBleedCalled()
+	}
+	return 0
 }
 
 // MinStepValue -
 func (v *ValidatorSettingsStub) MinStepValue() *big.Int {
 	if v.MinStepValueCalled != nil {
 		return v.MinStepValueCalled()
+	}
+	return big.NewInt(100000)
+}
+
+// UnJailValue -
+func (v *ValidatorSettingsStub) UnJailValue() *big.Int {
+	if v.UnJailValueCalled != nil {
+		return v.UnJailValueCalled()
 	}
 	return big.NewInt(100000)
 }
@@ -36,12 +73,20 @@ func (v *ValidatorSettingsStub) NumNodes() uint32 {
 	return 10
 }
 
-// AuctionEnabled -
-func (v *ValidatorSettingsStub) AuctionEnabled() bool {
-	if v.AuctionEnabledCalled != nil {
-		return v.AuctionEnabledCalled()
+// AuctionEnableNonce -
+func (v *ValidatorSettingsStub) AuctionEnableNonce() uint64 {
+	if v.AuctionEnableNonceCalled != nil {
+		return v.AuctionEnableNonceCalled()
 	}
-	return false
+	return 1000000
+}
+
+// StakeEnableNonce -
+func (v *ValidatorSettingsStub) StakeEnableNonce() uint64 {
+	if v.StakeEnableNonceCalled != nil {
+		return v.StakeEnableNonceCalled()
+	}
+	return 10000000
 }
 
 // UnBondPeriod -

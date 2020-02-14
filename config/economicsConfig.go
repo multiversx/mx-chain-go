@@ -26,12 +26,17 @@ type FeeSettings struct {
 
 // ValidatorSettings will hold the validator settings
 type ValidatorSettings struct {
-	StakeValue     string
-	UnBondPeriod   string
-	TotalSupply    string
-	MinStepValue   string
-	NumNodes       uint32
-	AuctionEnabled bool
+	StakeValue               string
+	UnBondPeriod             string
+	TotalSupply              string
+	MinStepValue             string
+	NumNodes                 uint32
+	AuctionEnableNonce       string
+	StakeEnableNonce         string
+	NumRoundsWithoutBleed    string
+	MaximumPercentageToBleed string
+	BleedPercentagePerRound  string
+	UnJailValue              string
 }
 
 // RatingSettings will hold rating settings
