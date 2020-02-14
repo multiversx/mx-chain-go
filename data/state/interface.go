@@ -103,7 +103,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	GetValidatorInfoFromRootHash(rootHash []byte) ([]ValidatorInfo, error)
+	GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32][]ValidatorInfo, error)
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
@@ -132,10 +132,11 @@ type TriesHolder interface {
 }
 
 type ValidatorInfo interface {
-	PublicKey() []byte
-	ShardId() uint32
-	List() string
-	Index() uint32
-	TempRating() uint32
-	Rating() uint32
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
 }

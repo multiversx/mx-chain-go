@@ -237,7 +237,7 @@ type ValidatorStatisticsProcessor interface {
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
-	GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error)
+	GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
 	RootHash() ([]byte, error)

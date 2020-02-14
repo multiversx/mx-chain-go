@@ -346,7 +346,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 // RootHash returns the root hash of the validator statistics trie
-func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error) {
+func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
 	return vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
 }
 
