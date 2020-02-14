@@ -39,7 +39,7 @@ type StakedData struct {
 	JailedRound   uint64   `json:"JailedRound"`
 }
 
-// ArgsNewStakingSmartContract
+// ArgsNewStakingSmartContract is used to store all components that are needed to create staking smart contract
 type ArgsNewStakingSmartContract struct {
 	MinStakeValue            *big.Int
 	UnBondPeriod             uint64

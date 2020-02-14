@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math"
 	"math/big"
 	"testing"
@@ -63,6 +64,28 @@ func TestNewStakingSmartContract_NilSystemEIShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
 }
 
+func TestNewStakingSmartContract_NilStakingAccessAddrEIShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = nil
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.Equal(t, vm.ErrInvalidStakingAccessAddress, err)
+}
+
+func TestNewStakingSmartContract_NilJailAccessAddrEIShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.JailAccessAddr = nil
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.Equal(t, vm.ErrInvalidJailAccessAddress, err)
+}
+
 func TestNewStakingSmartContract_NegativeStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -80,7 +103,7 @@ func TestNewStakingSmartContract(t *testing.T) {
 	args := createMockStakingScArguments()
 	stakingSmartContract, err := NewStakingSmartContract(args)
 
-	assert.NotNil(t, stakingSmartContract)
+	assert.False(t, check.IfNil(stakingSmartContract))
 	assert.Nil(t, err)
 }
 
@@ -814,4 +837,140 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 
 	expectedStake = big.NewInt(0).Sub(expectedStake, slashValue)
 	assert.Equal(t, expectedStake, registrationData.StakeValue)
+}
+
+func TestStakingSc_ExecuteNilArgs(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
+
+	args := createMockStakingScArguments()
+	args.MinStakeValue = stakeValue
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	retCode := stakingSmartContract.Execute(nil)
+	assert.Equal(t, vmcommon.UserError, retCode)
+}
+
+func doStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte, stakeValue *big.Int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "stake"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+	arguments.CallValue = stakeValue
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func doUnStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unStake"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "isStaked"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+// TestStakingSc_ExecuteIsStaked
+// Will test next behaviour
+// 1 - will execute function isStaked should return UserError
+// 2 - will execute function stake and after that will call function isStaked and will return Ok
+// 3 - will execute function unStake and after that will cal function isStaked and will return UserError
+func TestStakingSc_ExecuteIsStaked(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.MinStakeValue = stakeValue
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPublicKey")
+	callerAddress := []byte("data")
+
+	// check if account is staked should return error code
+	checkIsStaked(t, stakingSmartContract, callerAddress, nil, vmcommon.UserError)
+	// check if account is staked should return error code
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, stakeValue)
+	// check again isStaked should return vmcommon.Ok
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
+	//do unStake
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+	// check if account is staked should return error code
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+}
+
+func setStakeValueCurrentEpoch(t *testing.T, sc *stakingSC, callerAddr []byte, stakeValue *big.Int, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+
+	arguments.CallerAddr = callerAddr
+	arguments.Function = "setStakeValue"
+	if stakeValue != nil {
+		arguments.Arguments = [][]byte{stakeValue.Bytes()}
+	} else {
+		arguments.Arguments = nil
+	}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+func TestStakingSc_SetStakeValueForCurrentEpoch(t *testing.T) {
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.MinStakeValue = stakeValue
+	args.StakingAccessAddr = stakingAccessAddress
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPublicKey")
+
+	//setStakeValueCurrentEpoch will return UserError -> wrong caller address
+	currentEpochStakeValue := big.NewInt(1000)
+	callerAddress := []byte("data")
+	setStakeValueCurrentEpoch(t, stakingSmartContract, callerAddress, currentEpochStakeValue, vmcommon.UserError)
+	//setStakeValueCurrentEpoch will return UserError -> nil current epoch stake value
+	callerAddress = stakingAccessAddress
+	setStakeValueCurrentEpoch(t, stakingSmartContract, callerAddress, nil, vmcommon.UserError)
+	//setStakeValueCurrentEpoch will return Ok
+	setStakeValueCurrentEpoch(t, stakingSmartContract, callerAddress, currentEpochStakeValue, vmcommon.Ok)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, stakeValue)
 }

@@ -241,7 +241,7 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 		return vm.ErrBLSPublicKeyMissmatch
 	}
 
-	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKey@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
+	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKeys@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
 	if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
 		return vm.ErrOnExecutionAtStakingSC
 	}
@@ -267,18 +267,18 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	if len(args.Arguments) != 6 {
+	if len(args.Arguments) != 7 {
 		log.Debug("setConfig function called with wrong number of arguments")
 		return vmcommon.UserError
 	}
 
-	epoch := args.Arguments[5]
 	config := AuctionConfig{
 		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
 		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
 		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
 		MinStep:       big.NewInt(0).SetBytes(args.Arguments[3]),
 		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[4]),
+		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
 	}
 
 	configData, err := json.Marshal(config)
@@ -286,8 +286,8 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		log.Debug("setConfig marshall config error")
 		return vmcommon.UserError
 	}
-
-	s.eei.SetStorage(epoch, configData)
+	epochBytes := args.Arguments[6]
+	s.eei.SetStorage(epochBytes, configData)
 
 	return vmcommon.Ok
 }
