@@ -263,7 +263,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 
 	tempList := make([]Validator, 0)
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on epoch/checkpoint change.
@@ -397,7 +397,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	consensusSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.ConsensusGroupSize(shardId)
 	publicKeys = make([]string, consensusSize)
 	cnt := 0
 
@@ -716,7 +716,7 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	return false
 }
 
-func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(
+func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize(
 	shardId uint32,
 ) int {
 	if shardId == core.MetachainShardId {

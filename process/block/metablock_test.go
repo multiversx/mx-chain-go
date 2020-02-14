@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -599,9 +600,12 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	hdr := createMetaBlockHeader()
 	body := block.Body{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
+			wg.Done()
 			return errPersister
 		},
 		GetCalled: func(key []byte) (i []byte, e error) {
@@ -638,6 +642,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	)
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
 	err := mp.CommitBlock(blkc, hdr, body)
+	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
 }

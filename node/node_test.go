@@ -2120,6 +2120,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 	)
 
+	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
 	err := n.StartConsensus(0)
 	assert.Nil(t, err)
 }

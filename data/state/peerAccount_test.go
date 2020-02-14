@@ -471,7 +471,7 @@ func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseLeaderSuccessRateWithJournal()
+	err = acc.IncreaseLeaderSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -499,7 +499,7 @@ func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseValidatorSuccessRateWithJournal()
+	err = acc.IncreaseValidatorSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -527,7 +527,7 @@ func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseLeaderSuccessRateWithJournal()
+	err = acc.DecreaseLeaderSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -555,7 +555,7 @@ func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseValidatorSuccessRateWithJournal()
+	err = acc.DecreaseValidatorSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
