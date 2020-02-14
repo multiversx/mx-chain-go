@@ -325,6 +325,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
+			ListIndexUpdater:        &mock.ListIndexUpdaterStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

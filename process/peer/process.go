@@ -42,7 +42,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService      dataRetriever.StorageService
 	AdrConv             state.AddressConverter
 	PeerAdapter         state.AccountsAdapter
-	Rater               sharding.RaterHandler
+	Rater               sharding.PeerAccountListAndRatingHandler
 	MaxComputableRounds uint64
 }
 
