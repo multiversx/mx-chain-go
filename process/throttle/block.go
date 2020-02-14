@@ -15,7 +15,7 @@ const (
 	jumpBelowPercent        = 90
 	jumpAboveFactor         = 0.5
 	jumpBelowFactor         = 0.5
-	maxNumOfStatistics      = 1000
+	maxNumOfStatistics      = 600
 	numOfStatisticsToRemove = 100
 )
 

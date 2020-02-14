@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -880,10 +880,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if err != nil {
 		return nil
 	}
-	if dstAcc == nil || dstAcc.IsInterfaceNil() {
+	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
 		return nil
 	}
+
+	process.DysplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {

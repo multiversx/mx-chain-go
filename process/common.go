@@ -1,12 +1,14 @@
 package process
 
 import (
+	"encoding/hex"
 	"math"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -602,4 +604,29 @@ type ForkInfo struct {
 // NewForkInfo creates a new ForkInfo object
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
+}
+
+func DysplayProcessTxDetails(
+	message string,
+	accountHandler state.AccountHandler,
+	txHandler data.TransactionHandler,
+) {
+	if accountHandler != nil {
+		account := accountHandler.(*state.Account)
+		if account != nil {
+			log.Trace(message,
+				"nonce", account.Nonce,
+				"balance", account.Balance,
+			)
+		}
+	}
+
+	log.Trace("executing tx",
+		"nonce", txHandler.GetNonce(),
+		"value", txHandler.GetValue(),
+		"gas limit", txHandler.GetGasLimit(),
+		"gas price", txHandler.GetGasPrice(),
+		"data", hex.EncodeToString(txHandler.GetData()),
+		"sender", hex.EncodeToString(txHandler.GetSndAddress()),
+		"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
 }

@@ -942,11 +942,11 @@ func (mp *metaProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
-	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
+	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
+	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash = mp.getLastSelfNotarizedHeaderByShard(shardID)
+		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderByShard(shardID)
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 

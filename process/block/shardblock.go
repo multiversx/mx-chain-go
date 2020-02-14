@@ -751,11 +751,11 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	selfNotarizedHeader, selfNotarizedHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
-	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), selfNotarizedHeader, selfNotarizedHeaderHash)
+	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
+	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
-	selfNotarizedHeader, selfNotarizedHeaderHash = sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
-	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain(chainHandler)
+	sp.blockTracker.AddSelfNotarizedHeader(sharding.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.updateStateStorage(selfNotarizedHeaders)
 

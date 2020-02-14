@@ -11,10 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/transaction")
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
@@ -111,6 +114,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 	if err != nil {
 		return err
 	}
+
+	process.DysplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {

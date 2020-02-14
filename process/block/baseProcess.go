@@ -607,11 +607,6 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	headersPool := bp.dataPool.Headers()
-	if headersPool == nil {
-		log.Warn("cleanupPools", "error", process.ErrNilHeadersDataPool)
-		return
-	}
-
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
 	bp.removeHeadersBehindNonceFromPools(
@@ -636,7 +631,7 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
 	if err != nil {
-		log.Trace("cleanupPoolsForShard",
+		log.Warn("cleanupPoolsForShard",
 			"shard", shardID,
 			"nonces to final", noncesToFinal,
 			"error", err.Error())
@@ -730,7 +725,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	shardForSelfNotarized := bp.getShardForSelfNotarized(shardID)
 	selfNotarizedHeader, _, err := bp.blockTracker.GetLastSelfNotarizedHeader(shardForSelfNotarized)
 	if err != nil {
-		log.Trace("cleanupBlockTrackerPoolsForShard.GetLastSelfNotarizedHeader",
+		log.Warn("cleanupBlockTrackerPoolsForShard.GetLastSelfNotarizedHeader",
 			"shard", shardForSelfNotarized,
 			"error", err.Error())
 		return
@@ -742,7 +737,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
 		if err != nil {
-			log.Trace("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
+			log.Warn("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
 				"shard", shardID,
 				"nonces to final", noncesToFinal,
 				"error", err.Error())
@@ -822,7 +817,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
 	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 	if err != nil {
-		log.Debug("getLastCrossNotarizedHeadersForShard",
+		log.Warn("getLastCrossNotarizedHeadersForShard",
 			"shard", shardID,
 			"error", err.Error())
 		return nil

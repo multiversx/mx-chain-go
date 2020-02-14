@@ -74,6 +74,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return err
 	}
 
+	process.DysplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
+
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
 		return err
