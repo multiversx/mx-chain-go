@@ -168,6 +168,7 @@ type TransactionVerifier interface {
 
 // TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
+	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
 	ProcessTransactionFee(cost *big.Int)
 	IsInterfaceNil() bool

@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,7 +20,7 @@ func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -34,7 +33,7 @@ func TestNewRewardTxProcessor_NilAddressConverterShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -47,23 +46,10 @@ func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		nil,
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewRewardTxProcessor_NilRewardTxForwarderShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rtp, err := rewardTransaction.NewRewardTxProcessor(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		nil)
-
-	assert.Nil(t, rtp)
-	assert.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
 }
 
 func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
@@ -73,7 +59,7 @@ func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	assert.NotNil(t, rtp)
 	assert.Nil(t, err)
@@ -87,7 +73,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxShouldErr(t *testing.T) 
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	err := rtp.ProcessRewardTransaction(nil)
 	assert.Equal(t, process.ErrNilRewardTransaction, err)
@@ -100,7 +86,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testin
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	rwdTx := rewardTx.RewardTx{Value: nil}
 	err := rtp.ProcessRewardTransaction(&rwdTx)
@@ -119,7 +105,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(
 			},
 		},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -150,7 +136,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 		},
 		&mock.AddressConverterMock{},
 		shardCoord,
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -178,33 +164,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 		},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
-
-	rwdTx := rewardTx.RewardTx{
-		Round:   0,
-		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
-		RcvAddr: []byte("rcvr"),
-		ShardId: 0,
-	}
-
-	err := rtp.ProcessRewardTransaction(&rwdTx)
-	assert.Equal(t, expectedErr, err)
-}
-
-func TestRewardTxProcessor_ProcessRewardTransactionCannotAddIntermediateTxsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("cannot add intermediate transactions")
-	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{
-			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
-				return expectedErr
-			},
-		})
+	)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -231,7 +191,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 		accountsDb,
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -270,7 +230,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 		accountsDb,
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.IntermediateTransactionHandlerMock{})
+	)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,

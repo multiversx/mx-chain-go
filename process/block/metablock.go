@@ -76,6 +76,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		marshalizer:                  arguments.Marshalizer,
 		store:                        arguments.Store,
 		shardCoordinator:             arguments.ShardCoordinator,
+		feeHandler:                   arguments.FeeHandler,
 		nodesCoordinator:             arguments.NodesCoordinator,
 		uint64Converter:              arguments.Uint64Converter,
 		requestHandler:               arguments.RequestHandler,
@@ -1550,6 +1551,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.PeerInfo = peerInfo
 	metaHdr.RootHash = mp.getRootHash()
 	metaHdr.TxCount = getTxCount(shardInfo)
+	metaHdr.AccumulatedFees = mp.feeHandler.GetAccumulatedFees()
 
 	if check.IfNil(bodyHandler) {
 		return nil, process.ErrNilBlockBody

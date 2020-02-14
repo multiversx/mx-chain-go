@@ -479,7 +479,6 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -697,7 +696,6 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -812,6 +810,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		ShardId:          0,
 		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
+		AccumulatedFees:  big.NewInt(0),
 	}
 
 	// set accounts not dirty
@@ -894,6 +893,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		ShardId:          0,
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
+		AccumulatedFees:  big.NewInt(0),
 	}
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
@@ -1715,13 +1715,14 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	hdr := &block.Header{
-		Nonce:         1,
-		Round:         1,
-		PubKeysBitmap: rootHash,
-		PrevHash:      hdrHash,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  randSeed,
+		Nonce:           1,
+		Round:           1,
+		PubKeysBitmap:   rootHash,
+		PrevHash:        hdrHash,
+		Signature:       rootHash,
+		RootHash:        rootHash,
+		PrevRandSeed:    randSeed,
+		AccumulatedFees: big.NewInt(0),
 	}
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{txHash},
@@ -1819,13 +1820,14 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 
 	hdr := &block.Header{
-		Nonce:         1,
-		Round:         1,
-		PubKeysBitmap: rootHash,
-		PrevHash:      hdrHash,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  randSeed,
+		Nonce:           1,
+		Round:           1,
+		PubKeysBitmap:   rootHash,
+		PrevHash:        hdrHash,
+		Signature:       rootHash,
+		RootHash:        rootHash,
+		PrevRandSeed:    randSeed,
+		AccumulatedFees: big.NewInt(0),
 	}
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{txHash},
@@ -2246,7 +2248,6 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
@@ -2356,7 +2357,6 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
@@ -2739,7 +2739,6 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -2946,7 +2945,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},

@@ -66,6 +66,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		hasher:             arguments.Hasher,
 		marshalizer:        arguments.Marshalizer,
 		store:              arguments.Store,
+		feeHandler:         arguments.FeeHandler,
 		shardCoordinator:   arguments.ShardCoordinator,
 		nodesCoordinator:   arguments.NodesCoordinator,
 		uint64Converter:    arguments.Uint64Converter,
@@ -81,7 +82,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		dataPool:           arguments.DataPool,
 	}
 
-	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
+	if check.IfNil(arguments.TxsPoolsCleaner) {
 		return nil, process.ErrNilTxsPoolsCleaner
 	}
 
@@ -99,7 +100,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
 	transactionPool := sp.dataPool.Transactions()
-	if transactionPool == nil {
+	if check.IfNil(transactionPool) {
 		return nil, process.ErrNilTransactionPool
 	}
 
@@ -108,7 +109,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
 	metaBlockPool := sp.dataPool.Headers()
-	if metaBlockPool == nil {
+	if check.IfNil(metaBlockPool) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
@@ -264,6 +265,11 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return err
+	}
+
+	err = sp.verifyAccumulatedFees(header)
 	if err != nil {
 		return err
 	}
@@ -1592,9 +1598,9 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sw.Start("ApplyBodyToHeader")
 	defer func() {
 		sw.Stop("ApplyBodyToHeader")
-
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
+
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
@@ -1635,6 +1641,8 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
+	shardHeader.AccumulatedFees = sp.feeHandler.GetAccumulatedFees()
+
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"math/big"
 	"sort"
 	"strconv"
@@ -133,10 +134,9 @@ type CryptoParams struct {
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
-	ShardCoordinator      sharding.Coordinator
-	NodesCoordinator      sharding.NodesCoordinator
-	SpecialAddressHandler process.SpecialAddressHandler
-	Messenger             p2p.Messenger
+	ShardCoordinator sharding.Coordinator
+	NodesCoordinator sharding.NodesCoordinator
+	Messenger        p2p.Messenger
 
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
@@ -171,6 +171,7 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
+	FeeAccumulator         process.TransactionFeeHandler
 
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
@@ -292,11 +293,6 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.NodesCoordinator,
-	)
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
@@ -576,7 +572,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		TestAddressConverter,
-		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
@@ -584,15 +579,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
-	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
-	internalTxProducer, _ := rewardsInter.(process.InternalTransactionProducer)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
-		rewardsInter,
 	)
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -616,9 +607,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	mockVM.GasForOperation = OpGasValueForMockVm
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
+	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
+
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -629,7 +622,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
-		rewardsHandler,
+		tpn.FeeAccumulator,
 		tpn.EconomicsData,
 		txTypeHandler,
 		tpn.GasHandler,
@@ -644,7 +637,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
-		rewardsHandler,
+		tpn.FeeAccumulator,
 		txTypeHandler,
 		tpn.EconomicsData,
 		receiptsHandler,
@@ -666,7 +659,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
-		internalTxProducer,
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
@@ -717,6 +709,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.addMockVm(tpn.BlockchainHook)
 
+	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
@@ -730,7 +723,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
-		&metaProcess.TransactionFeeHandler{},
+		tpn.FeeAccumulator,
 		tpn.EconomicsData,
 		txTypeHandler,
 		tpn.GasHandler,
@@ -848,7 +841,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Store:                        tpn.Storage,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		NodesCoordinator:             tpn.NodesCoordinator,
-		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		FeeHandler:                   tpn.FeeAccumulator,
 		Uint64Converter:              TestUint64Converter,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,

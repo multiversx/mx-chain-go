@@ -69,6 +69,7 @@ type baseProcessor struct {
 	requestHandler               process.RequestHandler
 	blockTracker                 process.BlockTracker
 	dataPool                     dataRetriever.PoolsHolder
+	feeHandler                   process.TransactionFeeHandler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -82,13 +83,13 @@ func checkForNils(
 	bodyHandler data.BodyHandler,
 ) error {
 
-	if chainHandler == nil || chainHandler.IsInterfaceNil() {
+	if check.IfNil(chainHandler) {
 		return process.ErrNilBlockChain
 	}
-	if headerHandler == nil || headerHandler.IsInterfaceNil() {
+	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
-	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+	if check.IfNil(bodyHandler) {
 		return process.ErrNilBlockBody
 	}
 	return nil
@@ -96,7 +97,7 @@ func checkForNils(
 
 // SetAppStatusHandler method is used to set appStatusHandler
 func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return process.ErrNilAppStatusHandler
 	}
 
@@ -118,7 +119,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
 
-	if currentBlockHeader == nil {
+	if check.IfNil(currentBlockHeader) {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
@@ -176,16 +177,11 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-	if bodyHandler != nil {
-		// TODO: add bodyHandler verification here
-	}
-
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
 	}
 
-	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
 
@@ -355,9 +351,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if check.IfNil(arguments.SpecialAddressHandler) {
-		return process.ErrNilSpecialAddressHandler
-	}
 	if check.IfNil(arguments.Uint64Converter) {
 		return process.ErrNilUint64Converter
 	}
@@ -385,6 +378,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
+	if check.IfNil(arguments.FeeHandler) {
+		return process.ErrNilEconomicsFeeHandler
+	}
 
 	return nil
 }
@@ -396,6 +392,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	bp.txCoordinator.CreateBlockStarted()
+	bp.feeHandler.CreateBlockStarted()
 }
 
 func (bp *baseProcessor) resetMissingHdrs() {
@@ -403,6 +400,13 @@ func (bp *baseProcessor) resetMissingHdrs() {
 	bp.hdrsForCurrBlock.missingHdrs = 0
 	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error {
+	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
+		return process.ErrAccumulatedFeesDoNotMatch
+	}
+	return nil
 }
 
 //TODO: remove bool parameter and give instead the set to sort

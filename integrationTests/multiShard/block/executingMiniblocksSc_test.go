@@ -480,7 +480,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	randomness := generateInitialRandomness(uint32(maxShards))
 	_, _, consensusNodes, _ := integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 	shardId0 := uint32(0)
-	leaderPkBytes := consensusNodes[shardId0][0].SpecialAddressHandler.LeaderAddress()
+	leaderPkBytes := []byte("leader")
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
 
 	_ = integrationTests.IncrementAndPrintRound(round)

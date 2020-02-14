@@ -274,6 +274,7 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
+	genesisFeeHandler := NewGenesisFeeHandler()
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -284,8 +285,8 @@ func createProcessorsForMetaGenesisBlock(
 		args.AddrConv,
 		args.ShardCoordinator,
 		scForwarder,
-		&metachain.TransactionFeeHandler{},
-		&metachain.TransactionFeeHandler{},
+		genesisFeeHandler,
+		genesisFeeHandler,
 		txTypeHandler,
 		gasHandler,
 	)
@@ -293,14 +294,13 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	nilTxFeeHandler := &metachain.TransactionFeeHandler{}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
 		args.Accounts,
 		args.AddrConv,
 		args.ShardCoordinator,
 		scProcessor,
 		txTypeHandler,
-		nilTxFeeHandler, //we need the nil fee handler in order to process the the staking transactions
+		genesisFeeHandler, //we need the nil fee handler in order to process the the staking transactions
 	)
 	if err != nil {
 		return nil, nil, process.ErrNilTxProcessor

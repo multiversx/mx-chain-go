@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,14 +15,13 @@ import (
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator      sharding.Coordinator
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	addrConverter         state.AddressConverter
-	specialAddressHandler process.SpecialAddressHandler
-	store                 dataRetriever.StorageService
-	poolsHolder           dataRetriever.PoolsHolder
-	economics             *economics.EconomicsData
+	shardCoordinator sharding.Coordinator
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	addrConverter    state.AddressConverter
+	store            dataRetriever.StorageService
+	poolsHolder      dataRetriever.PoolsHolder
+	economics        *economics.EconomicsData
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -30,43 +30,38 @@ func NewIntermediateProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
-	specialAddressHandler process.SpecialAddressHandler,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) (*intermediateProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
-		return nil, process.ErrNilSpecialAddressHandler
-	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator:      shardCoordinator,
-		marshalizer:           marshalizer,
-		hasher:                hasher,
-		addrConverter:         addrConverter,
-		specialAddressHandler: specialAddressHandler,
-		store:                 store,
-		poolsHolder:           poolsHolder,
-		economics:             economics,
+		shardCoordinator: shardCoordinator,
+		marshalizer:      marshalizer,
+		hasher:           hasher,
+		addrConverter:    addrConverter,
+		store:            store,
+		poolsHolder:      poolsHolder,
+		economics:        economics,
 	}, nil
 }
 
@@ -80,11 +75,6 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 	}
 
 	err = container.Add(block.SmartContractResultBlock, interproc)
-	if err != nil {
-		return nil, err
-	}
-
-	interproc, err = ppcm.createRewardsTxIntermediateProcessor()
 	if err != nil {
 		return nil, err
 	}
@@ -152,21 +142,6 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		ppcm.store,
 		block.InvalidBlock,
 		dataRetriever.TransactionUnit,
-	)
-
-	return irp, err
-}
-
-func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := postprocess.NewRewardTxHandler(
-		ppcm.specialAddressHandler,
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.shardCoordinator,
-		ppcm.addrConverter,
-		ppcm.store,
-		ppcm.poolsHolder.RewardTransactions(),
-		ppcm.economics,
 	)
 
 	return irp, err

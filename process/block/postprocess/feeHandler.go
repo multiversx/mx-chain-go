@@ -14,40 +14,40 @@ type feeHandler struct {
 
 // NewFeeAccumulator constructor for the fee accumulator
 func NewFeeAccumulator() (*feeHandler, error) {
-	rtxh := &feeHandler{}
-	rtxh.accumulatedFees = big.NewInt(0)
-	return rtxh, nil
+	f := &feeHandler{}
+	f.accumulatedFees = big.NewInt(0)
+	return f, nil
 }
 
 // CreateBlockStarted does the cleanup before creating a new block
-func (rtxh *feeHandler) CreateBlockStarted() {
-	rtxh.mut.Lock()
-	rtxh.accumulatedFees = big.NewInt(0)
-	rtxh.mut.Unlock()
+func (f *feeHandler) CreateBlockStarted() {
+	f.mut.Lock()
+	f.accumulatedFees = big.NewInt(0)
+	f.mut.Unlock()
 }
 
 // GetAccumulatedFees returns the total accumulated fees
-func (rtxh *feeHandler) GetAccumulatedFees() *big.Int {
-	rtxh.mut.Lock()
-	accumulatedFees := big.NewInt(0).Set(rtxh.accumulatedFees)
-	rtxh.mut.Unlock()
+func (f *feeHandler) GetAccumulatedFees() *big.Int {
+	f.mut.Lock()
+	accumulatedFees := big.NewInt(0).Set(f.accumulatedFees)
+	f.mut.Unlock()
 
 	return accumulatedFees
 }
 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
-func (rtxh *feeHandler) ProcessTransactionFee(cost *big.Int) {
+func (f *feeHandler) ProcessTransactionFee(cost *big.Int) {
 	if cost == nil {
 		log.Debug("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
 		return
 	}
 
-	rtxh.mut.Lock()
-	_ = rtxh.accumulatedFees.Add(rtxh.accumulatedFees, cost)
-	rtxh.mut.Unlock()
+	f.mut.Lock()
+	_ = f.accumulatedFees.Add(f.accumulatedFees, cost)
+	f.mut.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rtxh *feeHandler) IsInterfaceNil() bool {
-	return rtxh == nil
+func (f *feeHandler) IsInterfaceNil() bool {
+	return f == nil
 }
