@@ -1183,6 +1183,29 @@ func TestGetLastCrossNotarizedHeadersForAllShards_ShouldWork(t *testing.T) {
 	assert.Equal(t, shardHeader1Shard1, lastCrossNotarizedHeaders[1])
 }
 
+func TestGetLastSelfNotarizedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	header1 := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash1 := []byte("hash")
+	sbt.AddSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), header1, headerHash1)
+
+	header2 := &block.Header{
+		ShardId: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   2,
+	}
+	headerHash2 := []byte("hash")
+	sbt.AddSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), header2, headerHash2)
+	lastSelfNotarizedHeader, _, _ := sbt.GetLastSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId())
+
+	assert.Equal(t, header2, lastSelfNotarizedHeader)
+}
+
 func TestGetTrackedHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 	shardArguments := CreateShardTrackerMockArguments()
