@@ -349,6 +349,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 			"nonce", header.GetNonce(),
 			"prev hash", header.GetPrevHash(),
 			"nbTxs", header.GetTxCount(),
+			"val stats root hash", header.GetValidatorStatsRootHash(),
 		)
 
 		err = header.CheckChainID(wrk.chainID)

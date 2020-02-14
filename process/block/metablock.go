@@ -154,6 +154,9 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	vsrh, _ := mp.validatorStatisticsProcessor.RootHash()
+	log.Debug("processBlock with", "initial vsrh 1.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
+
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
@@ -297,6 +300,9 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	vsrh, _ = mp.validatorStatisticsProcessor.RootHash()
+	log.Debug("processBlock with", "initial vsrh 2.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
+
 	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
 	if err != nil {
 		return err
@@ -307,10 +313,16 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	vsrh, _ = mp.validatorStatisticsProcessor.RootHash()
+	log.Debug("processBlock with", "initial vsrh 3.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
+
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
 		return err
 	}
+
+	vsrh, _ = mp.validatorStatisticsProcessor.RootHash()
+	log.Debug("processBlock with", "initial vsrh 4.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
