@@ -606,14 +606,15 @@ func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
 }
 
-func DysplayProcessTxDetails(
+// DisplayProcessTxDetails displays information related to the tx which should be executed
+func DisplayProcessTxDetails(
 	message string,
 	accountHandler state.AccountHandler,
 	txHandler data.TransactionHandler,
 ) {
-	if accountHandler != nil {
-		account := accountHandler.(*state.Account)
-		if account != nil {
+	if !check.IfNil(accountHandler) {
+		account, ok := accountHandler.(*state.Account)
+		if ok {
 			log.Trace(message,
 				"nonce", account.Nonce,
 				"balance", account.Balance,
@@ -621,7 +622,7 @@ func DysplayProcessTxDetails(
 		}
 	}
 
-	log.Trace("executing tx",
+	log.Trace("executing transaction",
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),

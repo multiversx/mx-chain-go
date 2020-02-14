@@ -885,7 +885,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return nil
 	}
 
-	process.DysplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
+	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
