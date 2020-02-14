@@ -218,6 +218,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
+		"shardId", shardId,
 		"randomness", randomness,
 		"round", round)
 
