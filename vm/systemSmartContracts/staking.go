@@ -146,7 +146,7 @@ func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64,
 	totalPercentageToBleed := float64(totalRoundsToBleed) * r.bleedPercentagePerRound
 	totalPercentageToBleed = math.Min(totalPercentageToBleed, r.maximumPercentageToBleed)
 
-	bleedValue := big.NewInt(0).Neg(getPercentageOfValue(stake, totalPercentageToBleed))
+	bleedValue := getPercentageOfValue(stake, totalPercentageToBleed)
 	stakeAfterBleed := big.NewInt(0).Sub(stake, bleedValue)
 
 	if stakeAfterBleed.Cmp(big.NewInt(0)) < 0 {
