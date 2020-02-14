@@ -110,7 +110,9 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandList(nodesConfig *epochN
 }
 
 func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators []Validator) ([]Validator, error) {
-	validatorList := make([]Validator, 0)
+	minChance := ihgs.GetChance(1)
+	minSize := len(validators) * int(minChance)
+	validatorList := make([]Validator, 0, minSize)
 
 	for _, validatorInShard := range validators {
 		pk := validatorInShard.PubKey()
