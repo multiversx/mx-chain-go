@@ -17,7 +17,7 @@ func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byt
 }
 
 // GetValidatorsIndexes -
-func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes([]string) []uint64 {
 	return nil
 }
 
@@ -35,6 +35,11 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 	var list []sharding.Validator
 
 	return list, nil
+}
+
+// ConsensusGroupSize -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
+	return 1
 }
 
 // GetValidatorsPublicKeys -
@@ -90,12 +95,12 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validat
 }
 
 // GetSelectedPublicKeys -
-func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
+func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys([]byte, uint32) (publicKeys []string, err error) {
 	panic("implement me")
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
+func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey([]byte) (sharding.Validator, uint32, error) {
 	panic("implement me")
 }
 

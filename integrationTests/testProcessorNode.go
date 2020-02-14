@@ -803,16 +803,17 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.EconomicsData.RatingsData())
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes:     initialNodes,
-		PeerAdapter:      tpn.PeerState,
-		AdrConv:          TestAddressConverterBLS,
-		NodesCoordinator: tpn.NodesCoordinator,
-		ShardCoordinator: tpn.ShardCoordinator,
-		DataPool:         tpn.DataPool,
-		StorageService:   tpn.Storage,
-		Marshalizer:      TestMarshalizer,
-		StakeValue:       big.NewInt(500),
-		Rater:            rater,
+		InitialNodes:        initialNodes,
+		PeerAdapter:         tpn.PeerState,
+		AdrConv:             TestAddressConverterBLS,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		DataPool:            tpn.DataPool,
+		StorageService:      tpn.Storage,
+		Marshalizer:         TestMarshalizer,
+		StakeValue:          big.NewInt(500),
+		Rater:               rater,
+		MaxComputableRounds: 1000,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
