@@ -94,4 +94,4 @@ const MinForkRound = uint64(0)
 const MaxNonceDifferences = uint64(1000)
 
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
-const MaxNumPendingMiniBlocks = 100
+const MaxNumPendingMiniBlocks = 100000
