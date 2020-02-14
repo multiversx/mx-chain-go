@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -73,10 +74,11 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	mutNodeSynched     sync.RWMutex
-	isNodeSynchronized bool
-	hasLastBlock       bool
-	roundIndex         int64
+	mutNodeSynched        sync.RWMutex
+	isNodeSynchronized    bool
+	isNodeStateCalculated atomic.Flag
+	hasLastBlock          bool
+	roundIndex            int64
 
 	forkInfo *process.ForkInfo
 
@@ -258,9 +260,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
-	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
-	if isNodeSynchronizedInCurrentRound {
-		return false
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated.IsSet()
+	if isNodeStateCalculatedInCurrentRound {
+		return !boot.isNodeSynchronized
 	}
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
@@ -282,6 +284,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
+	boot.isNodeStateCalculated.Set()
 	boot.roundIndex = boot.rounder.Index()
 
 	var result uint64
@@ -448,6 +451,10 @@ func (boot *baseBootstrap) syncBlock() error {
 	if !boot.ShouldSync() {
 		return nil
 	}
+
+	defer func() {
+		boot.isNodeStateCalculated.Unset()
+	}()
 
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)

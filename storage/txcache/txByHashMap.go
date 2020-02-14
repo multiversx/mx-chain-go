@@ -1,23 +1,24 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 // txByHashMap is a new map-like structure for holding and accessing transactions by txHash
 type txByHashMap struct {
-	backingMap *ConcurrentMap
-	counter    core.AtomicCounter
+	backingMap *maps.ConcurrentMap
+	counter    atomic.Counter
+	numBytes   atomic.Counter
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
 func newTxByHashMap(nChunksHint uint32) txByHashMap {
-	backingMap := NewConcurrentMap(nChunksHint)
+	backingMap := maps.NewConcurrentMap(nChunksHint)
 
 	return txByHashMap{
 		backingMap: backingMap,
-		counter:    0,
 	}
 }
 
@@ -26,6 +27,7 @@ func (txMap *txByHashMap) addTx(txHash []byte, tx data.TransactionHandler) bool 
 	added := txMap.backingMap.SetIfAbsent(string(txHash), tx)
 	if added {
 		txMap.counter.Increment()
+		txMap.numBytes.Add(int64(estimateTxSize(tx)))
 	}
 
 	return added
@@ -40,6 +42,7 @@ func (txMap *txByHashMap) removeTx(txHash string) (data.TransactionHandler, bool
 
 	txMap.backingMap.Remove(txHash)
 	txMap.counter.Decrement()
+	txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
 	return tx, true
 }
 
@@ -56,16 +59,15 @@ func (txMap *txByHashMap) getTx(txHash string) (data.TransactionHandler, bool) {
 
 // RemoveTxsBulk removes transactions, in bulk
 func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
+	oldCount := uint32(txMap.counter.Get())
+
 	for _, txHash := range txHashes {
-		txMap.backingMap.Remove(string(txHash))
+		txMap.removeTx(string(txHash))
 	}
 
-	oldCount := uint32(txMap.counter.Get())
-	newCount := uint32(txMap.backingMap.Count())
-	nRemoved := oldCount - newCount
-
-	txMap.counter.Set(int64(newCount))
-	return nRemoved
+	newCount := uint32(txMap.counter.Get())
+	numRemoved := oldCount - newCount
+	return numRemoved
 }
 
 // ForEachTransaction is an iterator callback

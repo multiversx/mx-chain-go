@@ -2,6 +2,8 @@ package peer
 
 import (
 	"bytes"
+	"fmt"
+	"math"
 	"math/big"
 	"sync"
 
@@ -22,39 +24,41 @@ var log = logger.GetOrCreate("process/peer")
 type validatorActionType uint8
 
 const (
-	unknownAction validatorActionType = 0
-	leaderSuccess validatorActionType = 1
-	leaderFail validatorActionType = 2
+	unknownAction    validatorActionType = 0
+	leaderSuccess    validatorActionType = 1
+	leaderFail       validatorActionType = 2
 	validatorSuccess validatorActionType = 3
-	validatorFail validatorActionType = 4
+	validatorFail    validatorActionType = 4
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	InitialNodes     []*sharding.InitialNode
-	StakeValue       *big.Int
-	Marshalizer      marshal.Marshalizer
-	NodesCoordinator sharding.NodesCoordinator
-	ShardCoordinator sharding.Coordinator
-	DataPool         DataPool
-	StorageService   dataRetriever.StorageService
-	AdrConv          state.AddressConverter
-	PeerAdapter      state.AccountsAdapter
-	Rater            sharding.RaterHandler
+	InitialNodes        []*sharding.InitialNode
+	StakeValue          *big.Int
+	Marshalizer         marshal.Marshalizer
+	NodesCoordinator    sharding.NodesCoordinator
+	ShardCoordinator    sharding.Coordinator
+	DataPool            DataPool
+	StorageService      dataRetriever.StorageService
+	AdrConv             state.AddressConverter
+	PeerAdapter         state.AccountsAdapter
+	Rater               sharding.RaterHandler
+	MaxComputableRounds uint64
 }
 
 type validatorStatistics struct {
-	marshalizer      marshal.Marshalizer
-	dataPool         DataPool
-	storageService   dataRetriever.StorageService
-	nodesCoordinator sharding.NodesCoordinator
-	shardCoordinator sharding.Coordinator
-	adrConv          state.AddressConverter
-	peerAdapter      state.AccountsAdapter
-	prevShardInfo    map[string]block.ShardData
-	mutPrevShardInfo sync.RWMutex
-	rater            sharding.RaterHandler
-	initialNodes     []*sharding.InitialNode
+	marshalizer         marshal.Marshalizer
+	dataPool            DataPool
+	storageService      dataRetriever.StorageService
+	nodesCoordinator    sharding.NodesCoordinator
+	shardCoordinator    sharding.Coordinator
+	adrConv             state.AddressConverter
+	peerAdapter         state.AccountsAdapter
+	prevShardInfo       map[string]block.ShardData
+	mutPrevShardInfo    sync.RWMutex
+	rater               sharding.RaterHandler
+	initialNodes        []*sharding.InitialNode
+	maxComputableRounds uint64
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -84,20 +88,24 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
+	if arguments.MaxComputableRounds == 0 {
+		return nil, process.ErrZeroMaxComputableRounds
+	}
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:      arguments.PeerAdapter,
-		adrConv:          arguments.AdrConv,
-		nodesCoordinator: arguments.NodesCoordinator,
-		shardCoordinator: arguments.ShardCoordinator,
-		dataPool:         arguments.DataPool,
-		storageService:   arguments.StorageService,
-		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[string]block.ShardData),
-		rater:            arguments.Rater,
+		peerAdapter:         arguments.PeerAdapter,
+		adrConv:             arguments.AdrConv,
+		nodesCoordinator:    arguments.NodesCoordinator,
+		shardCoordinator:    arguments.ShardCoordinator,
+		dataPool:            arguments.DataPool,
+		storageService:      arguments.StorageService,
+		marshalizer:         arguments.Marshalizer,
+		prevShardInfo:       make(map[string]block.ShardData),
+		rater:               arguments.Rater,
+		maxComputableRounds: arguments.MaxComputableRounds,
 	}
 
 	rater := arguments.Rater
@@ -293,7 +301,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetShardID())
+	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap())
 	if err != nil {
 		return nil, err
 	}
@@ -325,10 +333,20 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	prevRandSeed []byte,
 	shardId uint32,
 ) error {
-	if currentHeaderRound-previousHeaderRound <= 1 {
+	missedRounds := currentHeaderRound - previousHeaderRound
+	if missedRounds <= 1 {
 		return nil
 	}
 
+	tooManyComputations := missedRounds > vs.maxComputableRounds
+	if !tooManyComputations {
+		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
+	}
+
+	return vs.decreaseAll(shardId, missedRounds-1)
+}
+
+func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32) error {
 	sw := core.NewStopWatch()
 	sw.Start("checkForMissedBlocks")
 	defer func() {
@@ -354,7 +372,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		}
 
 		swInner.Start("DecreaseLeaderSuccessRateWithJournal")
-		err = leaderPeerAcc.DecreaseLeaderSuccessRateWithJournal()
+		err = leaderPeerAcc.DecreaseLeaderSuccessRateWithJournal(1)
 		swInner.Stop("DecreaseLeaderSuccessRateWithJournal")
 		if err != nil {
 			return err
@@ -379,7 +397,6 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		}
 		sw.Add(swInner)
 	}
-
 	return nil
 }
 
@@ -390,7 +407,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []s
 			return verr
 		}
 
-		verr = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal()
+		verr = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal(1)
 		if verr != nil {
 			return verr
 		}
@@ -429,7 +446,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.ShardID)
+		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -539,7 +556,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte,shardId uint32) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -550,20 +567,20 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		var newRating uint32
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		actionType :=  vs.computeValidatorActionType(isLeader, validatorSigned)
+		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
 		switch actionType {
 		case leaderSuccess:
-			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
+			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 		case leaderFail:
-			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
+			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())
 		case validatorSuccess:
-			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+			err = peerAcc.IncreaseValidatorSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())
 		case validatorFail:
-			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
+			err = peerAcc.DecreaseValidatorSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeDecreaseValidator(peerAcc.GetTempRating())
 		}
 
@@ -654,4 +671,53 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	}
 
 	return peer.GetTempRating()
+}
+
+func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64) error {
+
+	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
+	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
+	shardValidators := vs.nodesCoordinator.GetAllValidatorsPublicKeys()[shardId]
+	validatorsCount := len(shardValidators)
+	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
+	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1 - math.SmallestNonzeroFloat64)
+	consensusGroupAppearances := uint32(float64(consensusGroupSize)*percentageRoundMissedFromTotalValidators +
+		1 - math.SmallestNonzeroFloat64)
+	ratingDifference := uint32(0)
+	for i, validator := range shardValidators {
+		validatorPeerAccount, err := vs.GetPeerAccount(validator)
+		if err != nil {
+			return err
+		}
+		err = validatorPeerAccount.DecreaseLeaderSuccessRateWithJournal(leaderAppearances)
+		if err != nil {
+			return err
+		}
+		err = validatorPeerAccount.DecreaseValidatorSuccessRateWithJournal(consensusGroupAppearances)
+		if err != nil {
+			return err
+		}
+
+		currentTempRating := validatorPeerAccount.GetTempRating()
+		for ct := uint32(0); ct < leaderAppearances; ct++ {
+			currentTempRating = vs.rater.ComputeDecreaseProposer(currentTempRating)
+		}
+
+		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
+			currentTempRating = vs.rater.ComputeDecreaseValidator(currentTempRating)
+		}
+
+		if i == 0 {
+			ratingDifference = validatorPeerAccount.GetTempRating() - currentTempRating
+		}
+
+		err = validatorPeerAccount.SetTempRatingWithJournal(currentTempRating)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Trace(fmt.Sprintf("Decrease leader: %v, decrease validator: %v, ratingDifference: %v", leaderAppearances, consensusGroupAppearances, ratingDifference))
+
+	return nil
 }

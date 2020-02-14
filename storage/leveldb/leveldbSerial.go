@@ -3,6 +3,7 @@ package leveldb
 import (
 	"context"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -65,6 +66,10 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 
 	go dbStore.batchTimeoutHandle(ctx)
 	go dbStore.processLoop(ctx)
+
+	runtime.SetFinalizer(dbStore, func(db *SerialDB) {
+		_ = db.Close()
+	})
 
 	return dbStore, nil
 }
