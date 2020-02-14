@@ -28,6 +28,7 @@ func processInterceptedData(
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
 ) {
+
 	err := processor.Validate(data)
 	if err != nil {
 		log.Trace("intercepted data is not valid",

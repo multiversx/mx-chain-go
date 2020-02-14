@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"sync"
 	"time"
 
@@ -588,16 +589,16 @@ func (mp *metaProcessor) createMiniBlocks(
 	maxItemsInBlock uint32,
 	haveTime func() bool,
 ) (block.Body, error) {
-
-	miniBlocks := make(block.Body, 0)
 	if mp.epochStartTrigger.IsEpochStart() {
-		body, err2 := mp.generateValidatorMiniBlock()
+		peerMiniBlocks, err2 := mp.generateValidatorMiniBlocks()
 		if err2 != nil {
-			return body, err2
+			return nil, err2
 		}
 
-		return miniBlocks, nil
+		return peerMiniBlocks, nil
 	}
+
+	miniBlocks := make(block.Body, 0)
 
 	if mp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -649,7 +650,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	return miniBlocks, nil
 }
 
-func (mp *metaProcessor) generateValidatorMiniBlock() (block.Body, error) {
+func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
 	validatorStatsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return nil, err
@@ -662,9 +663,7 @@ func (mp *metaProcessor) generateValidatorMiniBlock() (block.Body, error) {
 
 	log.Trace(fmt.Sprintf("%#v", validatorInfoDataList))
 
-	//mp.createValidatorMiniBlocks(validatorInfoDataList)
-
-	return nil, nil
+	return mp.createValidatorMiniBlocks(validatorInfoDataList)
 }
 
 // full verification through metachain header
@@ -1837,33 +1836,37 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 	return pendingMiniBlocks
 }
 
-//func (mp *metaProcessor) createValidatorMiniBlocks(list []state.ValidatorInfo) ([]*block.MiniBlock, error) {
-//	sort.Slice(list, func(i, j int) bool {
-//		return list[i].ShardId() > list[j].ShardId()
-//	})
-//
-//	for shardId, validator := range list {
-//		miniBlock := &block.MiniBlock{}
-//		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
-//		miniBlock.ReceiverShardID = shardId
-//		miniBlock.TxHashes = make([][]byte, len(validators))
-//		miniBlock.Type = block.PeerBlock
-//
-//		for _, validator := range validators{
-//			account, _ := mp.validatorStatisticsProcessor.GetPeerAccount(validator)
-//			tempRating := account.GetTempRating()
-//			err := account.SetRatingWithJournal(tempRating)
-//			if err != nil{
-//				return nil, err
-//			}
-//
-//			miniBlock.TxHashes
-//
-//		}
-//	}
-//
-//
-//}
+func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]state.ValidatorInfo) ([]*block.MiniBlock, error) {
+	miniblocks := make([]*block.MiniBlock, 0)
+
+	for shardId, validators := range list {
+		miniBlock := &block.MiniBlock{}
+		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
+		miniBlock.ReceiverShardID = shardId
+		miniBlock.TxHashes = make([][]byte, len(validators))
+		miniBlock.Type = block.PeerBlock
+
+		for index, validator := range validators {
+			//account, _ := mp.validatorStatisticsProcessor.GetPeerAccount(validator.PublicKey())
+			//tempRating := account.GetTempRating()
+			//err := account.SetRatingWithJournal(tempRating)
+			//if err != nil{
+			//	return nil, err
+			//}
+			marshalizedValidator, err := mp.marshalizer.Marshal(validator)
+			if err != nil {
+				return nil, err
+			}
+			miniBlock.TxHashes[index] = marshalizedValidator
+
+		}
+
+		miniblocks = append(miniblocks, miniBlock)
+	}
+
+	return miniblocks, nil
+}
+
 //
 //func (mp *metaProcessor) createTrieSnapshot(hash []byte) ([]state.ValidatorInfo, error) {
 //	validatorInfos, err :=

@@ -992,7 +992,7 @@ func createNodesCoordinator(
 	epochStartSubscriber epochStart.EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	_ sharding.RaterHandler,
+	rater sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1050,12 +1050,12 @@ func createNodesCoordinator(
 
 	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
 	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
-	//if err != nil {
-	//	return nil, err
-	//}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	if err != nil {
+		return nil, err
+	}
 
-	return baseNodesCoordinator, nil
+	return nodesCoordinator, nil
 }
 
 func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {

@@ -47,14 +47,18 @@ type trigger struct {
 	validity                    uint64
 	epochFinalityAttestingRound uint64
 
-	mutTrigger        sync.RWMutex
-	mapHashHdr        map[string]*block.MetaBlock
-	mapNonceHashes    map[uint64][]string
-	mapEpochStartHdrs map[string]*block.MetaBlock
+	mutTrigger                                  sync.RWMutex
+	mapHashHdr                                  map[string]*block.MetaBlock
+	mapNonceHashes                              map[uint64][]string
+	mapEpochStartHdrs                           map[string]*block.MetaBlock
+	mapEpochStartMiniBlockHashToHeaderBlockHash map[string]string
+	mapEpochStartPeerBlocks                     map[string]*block.MiniBlock
 
 	headersPool         dataRetriever.HeadersPool
 	metaHdrStorage      storage.Storer
 	metaNonceHdrStorage storage.Storer
+	miniblocksPool      storage.Cacher
+	miniblocksStorage   storage.Storer
 	uint64Converter     typeConverters.Uint64ByteSliceConverter
 
 	marshalizer     marshal.Marshalizer
@@ -136,6 +140,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
 		epochStartNotifier:          args.EpochStartNotifier,
+		miniblocksPool:              args.DataPool.MiniBlocks(),
+		miniblocksStorage:           args.Storage.GetStorer(dataRetriever.MiniBlockUnit),
 	}
 	return newTrigger, nil
 }
@@ -215,7 +221,27 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	t.updateTriggerFromMeta(metaHdr, hdrHash)
+	var mbHash []byte
+
+	for _, miniblock := range metaHdr.MiniBlockHeaders {
+		if miniblock.Type == block.PeerBlock {
+			mbHash = miniblock.Hash
+			log.Debug("Searching for peerminiblock", "hash", mbHash)
+		}
+	}
+
+	mb, found := t.miniblocksPool.Get(mbHash)
+
+	if !found {
+		mb, err = t.miniblocksStorage.Get(mbHash)
+		if err != nil {
+			return
+		}
+	}
+
+	if mb != nil {
+		t.updateTriggerFromMeta(metaHdr, hdrHash)
+	}
 }
 
 // call only if mutex is locked before

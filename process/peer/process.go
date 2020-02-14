@@ -346,8 +346,21 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 // RootHash returns the root hash of the validator statistics trie
-func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) ([]state.ValidatorInfo, error) {
-	return vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
+func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
+	vinfos, err := vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
+
+	//for _, validators := range vinfos{
+	//	for _, validator := range validators{
+	//		addrContainer, _ := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+	//		account, _ := vs.peerAdapter.GetAccountWithJournal(addrContainer)
+	//		peerAccount, ok := account.(*state.PeerAccount)
+	//		if ok {
+	//			peerAccount.SetRatingWithJournal(validator.GetTempRating())
+	//		}
+	//	}
+	//}
+
+	return vinfos, err
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(

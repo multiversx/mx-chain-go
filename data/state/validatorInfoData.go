@@ -3,50 +3,50 @@ package state
 import "fmt"
 
 type ValidatorInfoData struct {
-	publicKey  []byte
-	shardId    uint32
-	list       string
-	index      uint32
-	tempRating uint32
-	rating     uint32
+	PublicKey  []byte
+	ShardId    uint32
+	List       string
+	Index      uint32
+	TempRating uint32
+	Rating     uint32
 }
 
-func NewValidatorInfoData(publicKey []byte, shardId uint32, list string, index uint32, tempRating uint32, rating uint32) *ValidatorInfoData {
+func NewValidatorInfoData(publicKey []byte, shardId uint32, list string, index uint32, tempRating uint32, rating uint32) (*ValidatorInfoData, error) {
 	return &ValidatorInfoData{
-		publicKey:  publicKey,
-		shardId:    shardId,
-		list:       list,
-		index:      index,
-		tempRating: tempRating,
-		rating:     rating,
-	}
+		PublicKey:  publicKey,
+		ShardId:    shardId,
+		List:       list,
+		Index:      index,
+		TempRating: tempRating,
+		Rating:     rating,
+	}, nil
 }
 
-func (vid *ValidatorInfoData) PublicKey() []byte {
-	return vid.publicKey
+func (vid *ValidatorInfoData) GetPublicKey() []byte {
+	return vid.PublicKey
 }
 
-func (vid *ValidatorInfoData) ShardId() uint32 {
-	return vid.shardId
+func (vid *ValidatorInfoData) GetShardId() uint32 {
+	return vid.ShardId
 }
 
-func (vid *ValidatorInfoData) List() string {
-	return vid.list
+func (vid *ValidatorInfoData) GetList() string {
+	return vid.List
 }
 
-func (vid *ValidatorInfoData) Index() uint32 {
-	return vid.index
+func (vid *ValidatorInfoData) GetIndex() uint32 {
+	return vid.TempRating
 }
 
-func (vid *ValidatorInfoData) TempRating() uint32 {
-	return vid.tempRating
+func (vid *ValidatorInfoData) GetTempRating() uint32 {
+	return vid.TempRating
 }
 
-func (vid *ValidatorInfoData) Rating() uint32 {
-	return vid.rating
+func (vid *ValidatorInfoData) GetRating() uint32 {
+	return vid.Rating
 }
 
 func (vid *ValidatorInfoData) String() string {
 	return fmt.Sprintf("PK:%v, ShardId: %v, List: %v, Index:%v, TempRating:%v, Rating:%v",
-		vid.publicKey, vid.shardId, vid.list, vid.index, vid.tempRating, vid.rating)
+		vid.PublicKey, vid.ShardId, vid.List, vid.Index, vid.TempRating, vid.Rating)
 }

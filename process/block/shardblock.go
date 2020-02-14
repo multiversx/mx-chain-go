@@ -3,6 +3,8 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -37,6 +39,9 @@ type shardProcessor struct {
 
 	stateCheckpointModulus            uint
 	lowestNonceInSelfNotarizedHeaders uint64
+
+	startOfEpochData      []startOfEpochData
+	startOfEpochDataMutex sync.Mutex
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -59,26 +64,27 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:              arguments.Accounts,
-		blockSizeThrottler:    blockSizeThrottler,
-		forkDetector:          arguments.ForkDetector,
-		hasher:                arguments.Hasher,
-		marshalizer:           arguments.Marshalizer,
-		store:                 arguments.Store,
-		shardCoordinator:      arguments.ShardCoordinator,
-		nodesCoordinator:      arguments.NodesCoordinator,
-		specialAddressHandler: arguments.SpecialAddressHandler,
-		uint64Converter:       arguments.Uint64Converter,
-		requestHandler:        arguments.RequestHandler,
-		appStatusHandler:      statusHandler.NewNilStatusHandler(),
-		blockChainHook:        arguments.BlockChainHook,
-		txCoordinator:         arguments.TxCoordinator,
-		rounder:               arguments.Rounder,
-		epochStartTrigger:     arguments.EpochStartTrigger,
-		headerValidator:       arguments.HeaderValidator,
-		bootStorer:            arguments.BootStorer,
-		blockTracker:          arguments.BlockTracker,
-		dataPool:              arguments.DataPool,
+		accounts:                     arguments.Accounts,
+		blockSizeThrottler:           blockSizeThrottler,
+		forkDetector:                 arguments.ForkDetector,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		specialAddressHandler:        arguments.SpecialAddressHandler,
+		uint64Converter:              arguments.Uint64Converter,
+		requestHandler:               arguments.RequestHandler,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		blockChainHook:               arguments.BlockChainHook,
+		txCoordinator:                arguments.TxCoordinator,
+		rounder:                      arguments.Rounder,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		headerValidator:              arguments.HeaderValidator,
+		bootStorer:                   arguments.BootStorer,
+		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
+		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 	}
 
 	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
@@ -112,9 +118,71 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 
+	miniBlockPool := sp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+	log.Debug("Registering miniblockHandler")
+	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
+
 	sp.metaBlockFinality = process.BlockFinality
 
 	return &sp, nil
+}
+
+func (sp *shardProcessor) receivedMiniBlock(key []byte) {
+	log.Debug("miniblock key", "key", key)
+	mb, ok := sp.dataPool.MiniBlocks().Get(key)
+	if ok {
+		peerMb, ok := mb.(*block.MiniBlock)
+		if ok && peerMb.Type == block.PeerBlock {
+			log.Debug(fmt.Sprintf("Received miniblock of type %s", peerMb.Type))
+
+			sp.startOfEpochDataMutex.Lock()
+
+			for _, sod := range sp.startOfEpochData {
+				if sod.stillMissing > 0 {
+					for _, mbHash := range sod.peerMiniblocks {
+						if bytes.Equal(mbHash, key) {
+							sod.stillMissing--
+						}
+					}
+				}
+
+				if sod.stillMissing == 0 {
+					for _, peerMiniBlock := range sod.peerMiniblocks {
+						mb, _ := sp.dataPool.MiniBlocks().Get(peerMiniBlock)
+						if mb == nil {
+							mb, _ = sp.store.GetStorer(dataRetriever.MiniBlockUnit).Get(peerMiniBlock)
+						}
+
+						actualMiniblock, ok := mb.(*block.MiniBlock)
+						if !ok {
+							return
+						}
+
+						for _, txHash := range actualMiniblock.TxHashes {
+							vid := &state.ValidatorInfoData{}
+							_ = sp.marshalizer.Unmarshal(vid, txHash)
+
+							log.Debug("ValidatorInfoData", "pk", vid.PublicKey, "rating", vid.Rating, "tempRating", vid.TempRating)
+
+							pa, _ := sp.validatorStatisticsProcessor.GetPeerAccount(vid.PublicKey)
+							pa.SetRatingWithJournal(vid.Rating)
+							pa.SetTempRatingWithJournal(vid.TempRating)
+						}
+					}
+
+					sp.startOfEpochDataMutex.Unlock()
+
+					sp.receivedMetaBlock(sod.metaHeader, sod.headerHash)
+					return
+				}
+			}
+
+			sp.startOfEpochDataMutex.Unlock()
+		}
+	}
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -1438,6 +1506,24 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
+	if metaBlock.IsStartOfEpochBlock() {
+		peerMiniBlocks := make([][]byte, 0)
+		for _, mb := range metaBlock.MiniBlockHeaders {
+			if mb.Type == block.PeerBlock {
+				peerMiniBlocks = append(peerMiniBlocks, mb.Hash)
+			}
+		}
+		sp.startOfEpochDataMutex.Lock()
+		sp.startOfEpochData = append(sp.startOfEpochData,
+			startOfEpochData{
+				peerMiniblocks: peerMiniBlocks,
+				stillMissing:   len(peerMiniBlocks),
+				headerHash:     metaBlockHash,
+				metaHeader:     metaBlock,
+			})
+		sp.startOfEpochDataMutex.Unlock()
+	}
+
 	sp.epochStartTrigger.ReceivedHeader(metaBlock)
 	if sp.epochStartTrigger.IsEpochStart() {
 		sp.chRcvEpochStart <- true
@@ -1448,6 +1534,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
+	log.Debug("Requesting miniblocks", "startOfEpoch", metaBlock.IsStartOfEpochBlock(), "hash", metaBlockHash)
 	sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
 

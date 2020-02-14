@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"errors"
 	"strconv"
 	"sync"
@@ -471,7 +472,7 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 }
 
 // RecreateTrie is used to reload the trie based on an existing rootHash
-func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) ([]ValidatorInfo, error) {
+func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32][]ValidatorInfo, error) {
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return nil, err
@@ -485,7 +486,7 @@ func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) ([]Validato
 		return nil, err
 	}
 
-	validators := make([]ValidatorInfo, len(peerAccounts))
+	validators := make(map[uint32][]ValidatorInfo, len(peerAccounts))
 	i := uint32(0)
 
 	for _, pa := range peerAccounts {
@@ -494,14 +495,26 @@ func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) ([]Validato
 		if err != nil {
 			return nil, err
 		}
-		validators[i] = NewValidatorInfoData(
-			deserializedPa.BLSPublicKey,
+		currentShardId := deserializedPa.CurrentShardId
+		if validators[currentShardId] == nil {
+			validators[currentShardId] = make([]ValidatorInfo, 0)
+		}
+		pk128, err := hex.DecodeString(string(deserializedPa.BLSPublicKey))
+		validatorInfoData, err := NewValidatorInfoData(
+			pk128,
 			deserializedPa.CurrentShardId,
 			"list",
 			i,
 			deserializedPa.TempRating,
 			deserializedPa.Rating,
 		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+
 		i++
 	}
 

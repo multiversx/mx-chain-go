@@ -24,7 +24,7 @@ type AccountsStub struct {
 	SetStateCheckpointCalled    func(rootHash []byte)
 	CancelPruneCalled           func(rootHash []byte)
 	IsPruningEnabledCalled      func() bool
-	GetTrieFromRootHashCalled   func(rootHash []byte) ([]state.ValidatorInfo, error)
+	GetTrieFromRootHashCalled   func(rootHash []byte) (map[uint32][]state.ValidatorInfo, error)
 }
 
 func (as *AccountsStub) ClosePersister() error {
@@ -107,7 +107,7 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	return as.IsPruningEnabledCalled()
 }
 
-func (as *AccountsStub) GetValidatorInfoFromRootHash(rootHash []byte) ([]state.ValidatorInfo, error) {
+func (as *AccountsStub) GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
 	return as.GetTrieFromRootHashCalled(rootHash)
 }
 
