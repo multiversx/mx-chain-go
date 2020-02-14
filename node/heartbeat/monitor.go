@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"sort"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"

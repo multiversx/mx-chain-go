@@ -1050,12 +1050,12 @@ func createDataStoreFromConfig(
 }
 
 func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
-	log.Debug("creatingDataPool from config")
+	log.Debug("creatingDataPool from mainConfig")
 
-	config := args.config
+	mainConfig := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(config.TxDataPool),
+		Config:         storageFactory.GetCacherFromConfig(mainConfig.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
 	})
@@ -1064,39 +1064,39 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {
 		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating trieNodes")
