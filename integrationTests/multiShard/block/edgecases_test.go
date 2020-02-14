@@ -86,6 +86,8 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		}
 		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
+		time.Sleep(time.Second * 10)
+
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		time.Sleep(stepDelay)
@@ -131,7 +133,7 @@ func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.
 			//(crtBlock == nil) != (blkc == nil) actually does a XOR operation between the 2 conditions
 			//as if the reference is nil, the same must be all other nodes. Same if the reference is not nil.
 			require.False(t, (referenceBlock == nil) != (crtBlock == nil))
-			if referenceBlock != nil {
+			if !check.IfNil(referenceBlock) {
 				require.Equal(t, referenceBlock.GetNonce(), crtBlock.GetNonce())
 			}
 		}
