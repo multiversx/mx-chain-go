@@ -622,12 +622,14 @@ func DisplayProcessTxDetails(
 		}
 	}
 
-	log.Trace("executing transaction",
-		"nonce", txHandler.GetNonce(),
-		"value", txHandler.GetValue(),
-		"gas limit", txHandler.GetGasLimit(),
-		"gas price", txHandler.GetGasPrice(),
-		"data", hex.EncodeToString(txHandler.GetData()),
-		"sender", hex.EncodeToString(txHandler.GetSndAddress()),
-		"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
+	if !check.IfNil(txHandler) {
+		log.Trace("executing transaction",
+			"nonce", txHandler.GetNonce(),
+			"value", txHandler.GetValue(),
+			"gas limit", txHandler.GetGasLimit(),
+			"gas price", txHandler.GetGasPrice(),
+			"data", hex.EncodeToString(txHandler.GetData()),
+			"sender", hex.EncodeToString(txHandler.GetSndAddress()),
+			"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
+	}
 }
