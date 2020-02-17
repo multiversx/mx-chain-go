@@ -105,10 +105,6 @@ const (
 //TODO remove this
 var log = logger.GetOrCreate("main")
 
-// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
-// in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 15000
-
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
 var ErrCreateForkDetector = errors.New("could not create fork detector")
@@ -958,7 +954,7 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		return blake2b.Blake2b{}, nil
+		return &blake2b.Blake2b{}, nil
 	}
 
 	return nil, errors.New("no hasher provided in config file")
@@ -1046,10 +1042,10 @@ func createDataStoreFromConfig(
 func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
-	config := args.config
+	configs := args.config
 
 	txPool, err := txpoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
-		Config:         storageFactory.GetCacherFromConfig(config.TxDataPool),
+		Config:         storageFactory.GetCacherFromConfig(configs.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
 	})
@@ -1058,39 +1054,39 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(config.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(storageFactory.GetCacherFromConfig(configs.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(configs.HeadersPoolConfig)
 	if err != nil {
 		log.Error("error creating headers pool")
 		return nil, err
 	}
 
-	cacherCfg := storageFactory.GetCacherFromConfig(config.TxBlockBodyDataPool)
+	cacherCfg := storageFactory.GetCacherFromConfig(configs.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.PeerBlockBodyDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(configs.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
-	cacherCfg = storageFactory.GetCacherFromConfig(config.TrieNodesDataPool)
+	cacherCfg = storageFactory.GetCacherFromConfig(configs.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating trieNodes")
@@ -1133,9 +1129,9 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 		return sha256.Sha256{}, nil
 	case "blake2b":
 		if cfg.Consensus.Type == BlsConsensusType {
-			return blake2b.Blake2b{HashSize: BlsHashSize}, nil
+			return &blake2b.Blake2b{HashSize: BlsHashSize}, nil
 		}
-		return blake2b.Blake2b{}, nil
+		return &blake2b.Blake2b{}, nil
 	}
 
 	return nil, errors.New("no multisig hasher provided in config file")
@@ -1282,7 +1278,7 @@ func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	dataCore *Core,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -1300,8 +1296,8 @@ func newShardInterceptorContainerFactory(
 		nodesCoordinator,
 		network.NetMessenger,
 		data.Store,
-		core.Marshalizer,
-		core.Hasher,
+		dataCore.Marshalizer,
+		dataCore.Hasher,
 		crypto.TxSignKeyGen,
 		crypto.BlockSignKeyGen,
 		crypto.TxSingleSigner,
@@ -1309,11 +1305,11 @@ func newShardInterceptorContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
-		MaxTxNonceDeltaAllowed,
+		core.MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
 		headerSigVerifier,
-		core.ChainID,
+		dataCore.ChainID,
 		sizeCheckDelta,
 		validityAttester,
 		epochStartTrigger,
@@ -1329,7 +1325,7 @@ func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	dataCore *Core,
 	crypto *Crypto,
 	network *Network,
 	state *State,
@@ -1345,8 +1341,8 @@ func newMetaInterceptorContainerFactory(
 		nodesCoordinator,
 		network.NetMessenger,
 		data.Store,
-		core.Marshalizer,
-		core.Hasher,
+		dataCore.Marshalizer,
+		dataCore.Hasher,
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AccountsAdapter,
@@ -1355,11 +1351,11 @@ func newMetaInterceptorContainerFactory(
 		crypto.SingleSigner,
 		crypto.TxSignKeyGen,
 		crypto.BlockSignKeyGen,
-		MaxTxNonceDeltaAllowed,
+		core.MaxTxNonceDeltaAllowed,
 		economics,
 		headerBlackList,
 		headerSigVerifier,
-		core.ChainID,
+		dataCore.ChainID,
 		sizeCheckDelta,
 		validityAttester,
 		epochStartTrigger,
@@ -1451,7 +1447,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
 	genesisConfig := args.genesisConfig
-	economics := args.economicsData
+	economicsData := args.economicsData
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
@@ -1522,7 +1518,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		Economics:                economics,
+		Economics:                economicsData,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 
@@ -1839,10 +1835,7 @@ func newShardBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         state.AccountsAdapter,
@@ -2101,10 +2094,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser, err := vmcommon.NewAtArgumentParser()
-	if err != nil {
-		return nil, err
-	}
+	argsParser := vmcommon.NewAtArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {

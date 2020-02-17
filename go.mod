@@ -8,11 +8,9 @@ require (
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.10
 	github.com/beevik/ntp v0.2.0
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d
-	github.com/dgraph-io/badger v1.6.0 // indirect
 	github.com/elastic/go-elasticsearch/v7 v7.1.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.2.0

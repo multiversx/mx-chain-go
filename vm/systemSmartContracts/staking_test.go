@@ -21,6 +21,7 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
+			CallType:    vmcommon.DirectCall,
 		},
 		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
