@@ -36,7 +36,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	switch storageUnit.DBType(pf.dbType) {
 	case storageUnit.LvlDB:
 		return leveldb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageUnit.LvlDbSerial:
+	case storageUnit.LvlDBSerial:
 		return leveldb.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	default:
 		return nil, storage.ErrNotSupportedDBType

@@ -116,7 +116,7 @@ func generateFiles() error {
 		return err
 	}
 
-	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
+	genForBalanceSk := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
 	genForBlockSigningSk := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
@@ -165,10 +165,6 @@ func generateFiles() error {
 	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
-}
-
-func getSuiteForBalanceSk() crypto.Suite {
-	return kyber.NewBlakeSHA256Ed25519()
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {

@@ -26,8 +26,12 @@ func TestGetTransactionByType_SC(t *testing.T) {
 
 	resultTx := getTransactionByType(smartContract, txHash, mbHash, blockHash, mb, header, "")
 	expectedTx := &Transaction{
-		Hash: hex.EncodeToString(txHash), MBHash: hex.EncodeToString(mbHash), BlockHash: hex.EncodeToString(blockHash),
-		Nonce: nonce, Value: "<nil>", Status: "Success",
+		Hash:      hex.EncodeToString(txHash),
+		MBHash:    hex.EncodeToString(mbHash),
+		BlockHash: hex.EncodeToString(blockHash),
+		Nonce:     nonce,
+		Value:     "<nil>",
+		Status:    "Success",
 	}
 	require.Equal(t, expectedTx, resultTx)
 }
@@ -46,8 +50,15 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 
 	resultTx := getTransactionByType(rwdTx, txHash, mbHash, blockHash, mb, header, "")
 	expectedTx := &Transaction{
-		Hash: hex.EncodeToString(txHash), MBHash: hex.EncodeToString(mbHash), BlockHash: hex.EncodeToString(blockHash),
-		Round: round, Receiver: hex.EncodeToString(rcvAddr), Status: "Success", Value: "<nil>", Sender: fmt.Sprintf("Shard%d", 0), Data: []byte(""),
+		Hash:      hex.EncodeToString(txHash),
+		MBHash:    hex.EncodeToString(mbHash),
+		BlockHash: hex.EncodeToString(blockHash),
+		Round:     round,
+		Receiver:  hex.EncodeToString(rcvAddr),
+		Status:    "Success",
+		Value:     "<nil>",
+		Sender:    fmt.Sprintf("Shard%d", 0),
+		Data:      []byte(""),
 	}
 	require.Equal(t, expectedTx, resultTx)
 }
@@ -64,8 +75,11 @@ func TestGetTransactionByType_Receipt(t *testing.T) {
 
 	resultTx := getTransactionByType(receiptTest, txHash, mbHash, blockHash, mb, header, "")
 	expectedTx := &Transaction{
-		Hash: hex.EncodeToString(txHash), MBHash: hex.EncodeToString(mbHash), BlockHash: hex.EncodeToString(blockHash),
-		Value: receiptTest.Value.String(), Status: "Success",
+		Hash:      hex.EncodeToString(txHash),
+		MBHash:    hex.EncodeToString(mbHash),
+		BlockHash: hex.EncodeToString(blockHash),
+		Value:     receiptTest.Value.String(),
+		Status:    "Success",
 	}
 	require.Equal(t, expectedTx, resultTx)
 }

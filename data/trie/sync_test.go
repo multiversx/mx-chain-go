@@ -40,7 +40,7 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 	cfg := &config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,

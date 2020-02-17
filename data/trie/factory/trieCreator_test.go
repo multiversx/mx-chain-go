@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"os"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -10,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,7 @@ func getArgs() TrieFactoryArgs {
 func createTrieStorageCfg() config.StorageConfig {
 	return config.StorageConfig{
 		Cache: config.CacheConfig{Type: "LRU", Size: 1000},
-		DB:    config.DBConfig{Type: "LvlDBSerial", MaxBatchSize: 1, MaxOpenFiles: 1, BatchDelaySeconds: 1},
+		DB:    config.DBConfig{Type: string(storageUnit.MemoryDB)},
 		Bloom: config.BloomFilterConfig{},
 	}
 }
@@ -87,13 +87,11 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
+	t.Parallel()
+
 	args := getArgs()
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
-
-	defer func() {
-		_ = os.RemoveAll("./Static/")
-	}()
 
 	tr, err := tf.Create(trieStorageCfg, false)
 	require.NotNil(t, tr)
@@ -101,13 +99,11 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
+	t.Parallel()
+
 	args := getArgs()
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
-
-	defer func() {
-		_ = os.RemoveAll("./Static/")
-	}()
 
 	tr, err := tf.Create(trieStorageCfg, true)
 	require.Nil(t, tr)
@@ -115,16 +111,14 @@ func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
 }
 
 func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
+	t.Parallel()
+
 	args := getArgs()
 	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB: config.DBConfig{Type: "LvlDBSerial", MaxBatchSize: 1, MaxOpenFiles: 10, BatchDelaySeconds: 1, FilePath: "./Static"},
+		DB: config.DBConfig{Type: string(storageUnit.MemoryDB)},
 	}
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
-
-	defer func() {
-		_ = os.RemoveAll("./Static/")
-	}()
 
 	tr, err := tf.Create(trieStorageCfg, true)
 	require.Nil(t, tr)
@@ -132,17 +126,15 @@ func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
 }
 
 func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
+	t.Parallel()
+
 	args := getArgs()
 	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB:   config.DBConfig{Type: "LvlDBSerial", MaxBatchSize: 1, MaxOpenFiles: 10, BatchDelaySeconds: 1, FilePath: "./Static"},
+		DB:   config.DBConfig{Type: string(storageUnit.MemoryDB)},
 		Size: 100,
 	}
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
-
-	defer func() {
-		_ = os.RemoveAll("./Static/")
-	}()
 
 	tr, err := tf.Create(trieStorageCfg, true)
 	require.NotNil(t, tr)

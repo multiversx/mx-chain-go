@@ -7,25 +7,29 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-type DatabaseWriterMock struct {
+// DatabaseWriterStub --
+type DatabaseWriterStub struct {
 	DoRequestCalled     func(req esapi.IndexRequest) error
 	DoBulkRequestCalled func(buff *bytes.Buffer, index string) error
 }
 
-func (dwm *DatabaseWriterMock) DoRequest(req esapi.IndexRequest) error {
+// DoRequest --
+func (dwm *DatabaseWriterStub) DoRequest(req esapi.IndexRequest) error {
 	if dwm.DoRequestCalled != nil {
 		return dwm.DoRequestCalled(req)
 	}
 	return nil
 }
 
-func (dwm *DatabaseWriterMock) DoBulkRequest(buff *bytes.Buffer, index string) error {
+// DoBulkRequest --
+func (dwm *DatabaseWriterStub) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	if dwm.DoBulkRequestCalled != nil {
 		return dwm.DoBulkRequestCalled(buff, index)
 	}
 	return nil
 }
 
-func (dwm *DatabaseWriterMock) CheckAndCreateIndex(_ string, _ io.Reader) error {
+// CheckAndCreateIndex --
+func (dwm *DatabaseWriterStub) CheckAndCreateIndex(_ string, _ io.Reader) error {
 	return nil
 }

@@ -119,16 +119,17 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
-	ei, err := indexer.NewElasticIndexer(arguments)
-	require.Nil(t, err)
-
-	tpsBench := mock.TpsBenchmarkMock{}
-	tpsBench.Update(newTestMetaBlock())
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
+
+	ei, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, err)
+
+	tpsBench := mock.TpsBenchmarkMock{}
+	tpsBench.Update(newTestMetaBlock())
 
 	ei.UpdateTPS(&tpsBench)
 	require.Empty(t, output.String())
@@ -142,13 +143,14 @@ func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
-	ei, err := indexer.NewElasticIndexer(arguments)
-	require.Nil(t, err)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
+
+	ei, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, err)
 
 	ei.UpdateTPS(nil)
 	require.NotEmpty(t, output.String())

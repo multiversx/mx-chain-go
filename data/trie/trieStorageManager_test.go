@@ -59,7 +59,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := &config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
@@ -254,7 +254,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := &config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      40000,
 		MaxOpenFiles:      10,
