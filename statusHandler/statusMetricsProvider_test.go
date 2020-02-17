@@ -37,7 +37,7 @@ func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T
 	sm.SetStringValue(key1, value1)
 	sm.Increment(key1)
 
-	retMap, _ := sm.StatusMetricsMap()
+	retMap := sm.StatusMetricsMap()
 	assert.Equal(t, value1, retMap[key1])
 }
 
@@ -104,7 +104,6 @@ func TestStatusMetricsProvider_AddUint64Value(t *testing.T) {
 	sm.SetUInt64Value(key, value)
 	sm.AddUint64(key, value)
 
-	retMap, err := sm.StatusMetricsMap()
-	assert.Nil(t, err)
+	retMap := sm.StatusMetricsMap()
 	assert.Equal(t, value+value, retMap[key])
 }

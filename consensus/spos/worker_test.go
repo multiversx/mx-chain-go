@@ -648,7 +648,7 @@ func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bn.NewConsensusService()
+	bnService, _ := bls.NewConsensusService()
 
 	wrk, err := spos.NewWorker(
 		bnService,
@@ -1746,6 +1746,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		syncTimerMock,
 		headerSigVerifier,
 		chainID,
+		createMockNetworkShardingCollector(),
 	)
 
 	hdr := &block.Header{}

@@ -13,50 +13,13 @@ type NodesCoordinatorMock struct {
 	GetValidatorWithPublicKeyCalled func(publicKey []byte) (sharding.Validator, uint32, error)
 }
 
-func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+// GetSelectedPublicKeys -
+func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32) (publicKeys []string, err error) {
 	panic("implement me")
-}
-
-func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
-	panic("implement me")
-}
-
-func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32) ([]string, error) {
-	panic("implement me")
-}
-
-// ComputeValidatorsGroup -
-func (ncm NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []sharding.Validator, err error) {
-func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
-	panic("implement me")
-}
-
-func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
-	return ncm == nil
-}
-
-func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
-	if ncm.ComputeValidatorsGroupCalled != nil {
-		return ncm.ComputeValidatorsGroupCalled(randomness)
-	}
-
-	list := []sharding.Validator{
-		NewValidatorMock(big.NewInt(0), 0, []byte("A"), []byte("AA")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("B"), []byte("BB")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("C"), []byte("CC")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("D"), []byte("DD")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("E"), []byte("EE")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("F"), []byte("FF")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("G"), []byte("GG")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("H"), []byte("HH")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("I"), []byte("II")),
-	}
-
-	return list, nil
 }
 
 // GetValidatorsPublicKeys -
-func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
+func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
 		return ncm.GetValidatorsPublicKeysCalled(randomness)
 	}
@@ -76,8 +39,54 @@ func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]st
 }
 
 // ConsensusGroupSize -
-func (ncm NodesCoordinatorMock) ConsensusGroupSize() int {
+func (ncm *NodesCoordinatorMock) ConsensusGroupSize(uint32) int {
 	panic("implement me")
+}
+
+// GetValidatorsIndexes -
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string) []uint64 {
+	panic("implement me")
+}
+
+// GetAllValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	panic("implement me")
+}
+
+// GetValidatorsRewardsAddresses -
+func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(_ []byte, _ uint64, _ uint32) ([]string, error) {
+	panic("implement me")
+}
+
+// GetOwnPublicKey -
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	panic("implement me")
+}
+
+// IsInterfaceNil -
+func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
+	return ncm == nil
+}
+
+// ComputeValidatorsGroup -
+func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte, _ uint64, _ uint32) (validatorsGroup []sharding.Validator, err error) {
+	if ncm.ComputeValidatorsGroupCalled != nil {
+		return ncm.ComputeValidatorsGroupCalled(randomness)
+	}
+
+	list := []sharding.Validator{
+		NewValidatorMock(big.NewInt(0), 0, []byte("A"), []byte("AA")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("B"), []byte("BB")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("C"), []byte("CC")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("D"), []byte("DD")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("E"), []byte("EE")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("F"), []byte("FF")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("G"), []byte("GG")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("H"), []byte("HH")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("I"), []byte("II")),
+	}
+
+	return list, nil
 }
 
 // SetNodesPerShards -
@@ -86,12 +95,7 @@ func (ncm NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validato
 }
 
 // SetConsensusGroupSize -
-func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
-	panic("implement me")
-}
-
-// GetSelectedPublicKeys -
-func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+func (ncm NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
 	panic("implement me")
 }
 

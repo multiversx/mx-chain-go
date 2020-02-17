@@ -273,6 +273,8 @@ func CreateNodesWithTestP2PNodes(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestP2PNode)
+	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -282,6 +284,7 @@ func CreateNodesWithTestP2PNodes(
 			NbShards:                uint32(nbShards),
 			Nodes:                   validatorsMap,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -311,8 +314,8 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 	header := []string{"pk", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/Intra/Cross/Unk"}
 	dataLines := make([]*display.LineData, 0)
 
-	for shardId, nodes := range nodes {
-		for _, n := range nodes {
+	for shardId, nodesList := range nodes {
+		for _, n := range nodesList {
 			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
 
 			peerInfo := n.Messenger.GetConnectedPeersInfo()

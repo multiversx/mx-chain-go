@@ -155,18 +155,17 @@ func createMessenger(
 	netMes := networkMessenger{
 		ctxProvider:       lctx,
 		pb:                pb,
-		topics:        	   make(map[string]p2p.MessageProcessor),
+		topics:            make(map[string]p2p.MessageProcessor),
 		outgoingPLB:       outgoingPLB,
 		peerDiscoverer:    peerDiscoverer,
 		targetConnCount:   targetConnCount,
 		peerShardResolver: &unknownPeerShardResolver{},
 	}
 
-	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+	err = netMes.createConnectionMonitor()
 	if err != nil {
 		return nil, err
 	}
-	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
 	if err != nil {
@@ -591,7 +590,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 // IsConnectedToTheNetwork returns true if the current node is connected to the network
 func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
 	netw := netMes.ctxProvider.connHost.Network()
-	return netMes.connMonitor.isConnectedToTheNetwork(netw)
+	return netMes.connMonitor.IsConnectedToTheNetwork(netw)
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
@@ -601,15 +600,14 @@ func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers 
 	}
 
 	netw := netMes.ctxProvider.connHost.Network()
-	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
-	netMes.connMonitor.doReconnectionIfNeeded(netw)
+	netMes.connMonitor.SetThresholdMinConnectedPeers(minConnectedPeers, netw)
 
 	return nil
 }
 
 // ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
 func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
-	return netMes.connMonitor.thresholdMinConnectedPeers()
+	return netMes.connMonitor.ThresholdMinConnectedPeers()
 }
 
 // SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link

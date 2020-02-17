@@ -187,8 +187,6 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		Timeout: peerDiscoveryTimeout,
 	}
 
-	ctx := kdd.contextProvider.Context()
-
 	go func() {
 		<-chanStartBootstrap
 
@@ -203,7 +201,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 				if initConns {
 					var err error = nil
 					if kadDht != nil {
-						err = kadDht.Bootstrap(ctx)
+						err = kadDht.BootstrapOnce(ctx, cfg)
 					}
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()
