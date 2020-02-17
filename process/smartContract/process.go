@@ -171,9 +171,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if check.IfNil(acntDst) {
 		return process.ErrNilSCDestAccount
 	}
-	if len(acntDst.GetCode()) == 0 {
-		return process.ErrNilSCDestAccount
-	}
 
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
@@ -278,6 +275,11 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	gasConsumed := builtInFunctionBaseCostMultiplier * sc.economicsFee.ComputeGasLimit(tx)
 	if tx.GetGasLimit() < gasConsumed {
 		return true, process.ErrNotEnoughGas
+	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return true, err
 	}
 
 	gasRemaining := tx.GetGasLimit() - gasConsumed

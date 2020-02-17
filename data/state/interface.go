@@ -80,6 +80,8 @@ type PeerAccountHandler interface {
 	SetTempRatingWithJournal(uint322 uint32) error
 }
 
+// UserAccountHandler models a user account, which can journalize account's data with some extra features
+// like balance, developer rewards, owner
 type UserAccountHandler interface {
 	AccountHandler
 	ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error)

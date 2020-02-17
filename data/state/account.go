@@ -2,9 +2,9 @@ package state
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -92,7 +92,7 @@ func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-func (a *Account) SetDeveloperRewardWithJournal(developerReward *big.Int) error {
+func (a *Account) setDeveloperRewardWithJournal(developerReward *big.Int) error {
 	entry, err := NewJournalEntryDeveloperReward(a, a.DeveloperReward)
 	if err != nil {
 		return err
@@ -104,6 +104,7 @@ func (a *Account) SetDeveloperRewardWithJournal(developerReward *big.Int) error 
 	return a.accountTracker.SaveAccount(a)
 }
 
+// SetOwnerAddressWithJournal sets the owner address of an account, saving the old before changing
 func (a *Account) SetOwnerAddressWithJournal(ownerAddress []byte) error {
 	entry, err := NewJournalEntryOwnerAddress(a, a.OwnerAddress)
 	if err != nil {
@@ -185,7 +186,7 @@ func (a *Account) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
 	}
 
 	oldValue := big.NewInt(0).Set(a.DeveloperReward)
-	err := a.SetDeveloperRewardWithJournal(big.NewInt(0))
+	err := a.setDeveloperRewardWithJournal(big.NewInt(0))
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +214,7 @@ func (a *Account) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error
 // AddToDeveloperReward adds new value to developer reward
 func (a *Account) AddToDeveloperReward(value *big.Int) error {
 	newDeveloperReward := big.NewInt(0).Add(a.DeveloperReward, value)
-	err := a.SetDeveloperRewardWithJournal(newDeveloperReward)
+	err := a.setDeveloperRewardWithJournal(newDeveloperReward)
 	if err != nil {
 		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
 		return nil
