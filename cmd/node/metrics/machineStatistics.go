@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
@@ -9,7 +10,7 @@ import (
 )
 
 // StartMachineStatisticsPolling will start read information about current  running machini
-func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval int) error {
+func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval time.Duration) error {
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
 	}

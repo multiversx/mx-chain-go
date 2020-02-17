@@ -125,10 +125,13 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.UpdateTPS(&tpsBench)
 	require.Empty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
@@ -142,10 +145,13 @@ func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	ei, err := indexer.NewElasticIndexer(arguments)
 	require.Nil(t, err)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.UpdateTPS(nil)
 	require.NotEmpty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
@@ -158,10 +164,13 @@ func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
 	arguments.Url = ts.URL
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.SaveBlock(block.Body{{}}, nil, nil, nil)
 	require.True(t, strings.Contains(output.String(), indexer.ErrNoHeader.Error()))
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
@@ -174,10 +183,13 @@ func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
 	arguments.Url = ts.URL
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.SaveBlock(nil, nil, nil, nil)
 	require.True(t, strings.Contains(output.String(), indexer.ErrBodyTypeAssertion.Error()))
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveBlockNoMiniBlocks(t *testing.T) {
@@ -190,12 +202,15 @@ func TestElasticIndexer_SaveBlockNoMiniBlocks(t *testing.T) {
 	arguments.Url = ts.URL
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	header := &block.Header{}
 	body := block.Body{}
 	ei.SaveBlock(body, header, nil, []uint64{0})
 	require.True(t, strings.Contains(output.String(), indexer.ErrNoMiniblocks.Error()))
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveMetaBlockNilHeader(t *testing.T) {
@@ -208,10 +223,13 @@ func TestElasticIndexer_SaveMetaBlockNilHeader(t *testing.T) {
 	arguments.Url = ts.URL
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.SaveMetaBlock(nil, []uint64{0})
 	require.True(t, strings.Contains(output.String(), indexer.ErrNoHeader.Error()))
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
@@ -225,10 +243,13 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 	arguments.Url = ts.URL
 	ei, _ := indexer.NewElasticIndexer(arguments)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	ei.SaveRoundInfo(indexer.RoundInfo{})
 	require.NotEmpty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
@@ -248,7 +269,10 @@ func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	valPubKey[0] = keys
 	ei.SaveValidatorsPubKeys(valPubKey)
 
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
 	require.Empty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type databaseWriter struct {
-	client *elasticsearch.Client
+	dbWriter *elasticsearch.Client
 }
 
 func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
@@ -20,17 +20,20 @@ func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
 		return nil, err
 	}
 
-	return &databaseWriter{client: es}, nil
+	return &databaseWriter{dbWriter: es}, nil
 }
 
 // CheckAndCreateIndex will check if a index exits and if dont will create a new one
 func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) error {
-	res, err := dw.client.Indices.Exists([]string{index})
+	var res *esapi.Response
+
+	defer closeESResponseBody(res)
+
+	res, err := dw.dbWriter.Indices.Exists([]string{index})
 	if err != nil {
 		return err
 	}
 
-	defer closeESResponseBody(res)
 	// Indices.Exists actually does a HEAD request to the elastic index.
 	// A status code of 200 actually means the index exists so we
 	//  don't need to do anything.
@@ -55,9 +58,9 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 	defer closeESResponseBody(res)
 
 	if body != nil {
-		res, err = dw.client.Indices.Create(index, dw.client.Indices.Create.WithBody(body))
+		res, err = dw.dbWriter.Indices.Create(index, dw.dbWriter.Indices.Create.WithBody(body))
 	} else {
-		res, err = dw.client.Indices.Create(index)
+		res, err = dw.dbWriter.Indices.Create(index)
 	}
 
 	if err != nil {
@@ -66,7 +69,7 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 
 	if res.IsError() {
 		// Resource already exists
-		if res.StatusCode == badRequest {
+		if res.StatusCode == http.StatusBadRequest {
 			return nil
 		}
 
@@ -79,7 +82,7 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 
 // DoRequest will do a request to elastic server
 func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
-	res, err := req.Do(context.Background(), dw.client)
+	res, err := req.Do(context.Background(), dw.dbWriter)
 	if err != nil {
 		return err
 	}
@@ -95,7 +98,7 @@ func (dw *databaseWriter) DoRequest(req esapi.IndexRequest) error {
 func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	reader := bytes.NewReader(buff.Bytes())
 
-	res, err := dw.client.Bulk(reader, dw.client.Bulk.WithIndex(index))
+	res, err := dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
 	if err != nil {
 		return err
 	}

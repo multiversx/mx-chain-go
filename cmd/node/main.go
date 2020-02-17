@@ -839,9 +839,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("starting status pooling components")
+	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
-		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		statusPollingInterval,
 		networkComponents,
 		processComponents,
 	)
@@ -849,8 +850,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	updateMachineStatisticsDurationSec := 1
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	updateMachineStatisticsDuration := time.Second
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}

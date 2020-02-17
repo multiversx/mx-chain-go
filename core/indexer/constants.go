@@ -9,5 +9,3 @@ const roundIndex = "rounds"
 
 const metachainTpsDocID = "meta"
 const shardTpsDocIDPrefix = "shard"
-
-const badRequest = 400

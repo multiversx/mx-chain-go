@@ -54,8 +54,8 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
-		return generateFiles(c)
+	app.Action = func(_ *cli.Context) error {
+		return generateFiles()
 	}
 
 	err := app.Run(os.Args)
@@ -75,7 +75,7 @@ func backupFileIfExists(filename string) {
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 }
 
-func generateFiles(ctx *cli.Context) error {
+func generateFiles() error {
 	var initialBalancesSkFile, initialNodesSkFile *os.File
 
 	defer func() {
@@ -117,8 +117,7 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
-	consensusTypeFlagValue := ctx.GlobalString(consensusType.Name)
-	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusTypeFlagValue))
+	genForBlockSigningSk := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
 	if err != nil {
@@ -170,14 +169,6 @@ func generateFiles(ctx *cli.Context) error {
 
 func getSuiteForBalanceSk() crypto.Suite {
 	return kyber.NewBlakeSHA256Ed25519()
-}
-
-func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	if consensusType == "bls" {
-		return kyber.NewSuitePairingBn256()
-	}
-
-	return nil
 }
 
 func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {
