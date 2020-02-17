@@ -517,14 +517,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
-		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
 	}
 
 	if ctx.IsSet(nodeDisplayName.Name) {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -597,7 +597,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
-		generalConfig.GeneralSettings,
+		preferencesConfig.Preferences,
 		pubKey,
 		coreComponents.Hasher,
 		rater)
@@ -920,7 +920,7 @@ func copySingleFile(folder string, configFile string) {
 		return
 	}
 	defer func() {
-		err := source.Close()
+		err = source.Close()
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
 		}
@@ -932,7 +932,7 @@ func copySingleFile(folder string, configFile string) {
 		return
 	}
 	defer func() {
-		err := destination.Close()
+		err = destination.Close()
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
 		}
@@ -1034,8 +1034,8 @@ func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
 	return cfg, nil
 }
 
-func loadPreferencesConfig(filepath string) (*config.ConfigPreferences, error) {
-	cfg := &config.ConfigPreferences{}
+func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
+	cfg := &config.Preferences{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1065,7 +1065,7 @@ func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.Nod
 func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
-	settingsConfig config.GeneralSettingsConfig,
+	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1074,7 +1074,7 @@ func createShardCoordinator(
 		nodeType = core.NodeTypeObserver
 		log.Info("starting as observer node")
 
-		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
+		selfShardId, err = processDestinationShardAsObserver(prefsConfig)
 	}
 	if err != nil {
 		return nil, "", err
@@ -1098,7 +1098,7 @@ func createShardCoordinator(
 
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
-	settingsConfig config.GeneralSettingsConfig,
+	prefsConfig config.PreferencesConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 	_ sharding.RaterHandler,
@@ -1106,7 +1106,7 @@ func createNodesCoordinator(
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		shardId, err = processDestinationShardAsObserver(settingsConfig)
+		shardId, err = processDestinationShardAsObserver(prefsConfig)
 	}
 	if err != nil {
 		return nil, err
@@ -1166,8 +1166,8 @@ func createNodesCoordinator(
 	return baseNodesCoordinator, nil
 }
 
-func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
-	destShard := strings.ToLower(settingsConfig.DestinationShardAsObserver)
+func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
+	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
 		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
 	}
@@ -1226,7 +1226,7 @@ func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sh
 
 func createNode(
 	config *config.Config,
-	preferencesConfig *config.ConfigPreferences,
+	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
 	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,

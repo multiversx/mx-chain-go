@@ -1,9 +1,5 @@
 # GeneralSettings section of the node
 [GeneralSettings]
-   # DestinationShardAsObserver represents the desired shard when running as observer
-   # value will be given as string. For example: "0", "1", "15", "metachain"
-   DestinationShardAsObserver = "0"
-
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 

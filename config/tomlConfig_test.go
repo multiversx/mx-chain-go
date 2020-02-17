@@ -168,19 +168,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 func TestTomlPreferencesParser(t *testing.T) {
 	nodeDisplayName := "test-name"
+	destinationShardAsObs := "3"
 
-	cfgPreferencesExpected := ConfigPreferences{
+	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
-			NodeDisplayName: nodeDisplayName,
+			NodeDisplayName:            nodeDisplayName,
+			DestinationShardAsObserver: destinationShardAsObs,
 		},
 	}
 
 	testString := `
 [Preferences]
 	NodeDisplayName = "` + nodeDisplayName + `"
+	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 `
 
-	cfg := ConfigPreferences{}
+	cfg := Preferences{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
