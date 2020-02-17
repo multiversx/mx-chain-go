@@ -946,7 +946,7 @@ func copySingleFile(folder string, configFile string) {
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
 	}
 }
 
