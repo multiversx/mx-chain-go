@@ -76,10 +76,10 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
-	//err = se.exportAllTries()
-	//if err != nil {
-	//	return err
-	//}
+	err = se.exportAllTries()
+	if err != nil {
+		return err
+	}
 
 	err = se.exportAllMiniBlocks()
 	if err != nil {
