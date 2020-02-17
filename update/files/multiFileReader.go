@@ -127,6 +127,7 @@ func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, err
 		return nil, err
 	}
 
+	// is end of file because cannot read from file and err is nil (scanner.Err() return nil if it end of file
 	return nil, update.ErrEndOfFile
 }
 

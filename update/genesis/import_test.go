@@ -98,13 +98,13 @@ func createTestImportFile(t *testing.T, folderName string, storer storage.Storer
 	require.Nil(t, err)
 
 	// check if export files was created
-	if _, err := os.Stat(testPath + "/" + MetaBlockFileName); err != nil {
+	if _, err = os.Stat(testPath + "/" + MetaBlockFileName); err != nil {
 		require.Fail(t, "file wasn't created"+MetaBlockFileName)
 	}
-	if _, err := os.Stat(testPath + "/" + MiniBlocksFileName); err != nil {
+	if _, err = os.Stat(testPath + "/" + MiniBlocksFileName); err != nil {
 		require.Fail(t, "file wasn't created"+MiniBlocksFileName)
 	}
-	if _, err := os.Stat(testPath + "/" + TransactionsFileName); err != nil {
+	if _, err = os.Stat(testPath + "/" + TransactionsFileName); err != nil {
 		require.Fail(t, "file wasn't created"+TransactionsFileName)
 	}
 }

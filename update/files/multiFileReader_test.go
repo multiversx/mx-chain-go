@@ -30,7 +30,11 @@ func TestNewMultiFileReader_CheckArgs(t *testing.T) {
 func TestMultiFileReader_ReadFiles(t *testing.T) {
 	t.Parallel()
 
-	err := os.Mkdir("testDir", 0755)
+	_ = os.Mkdir("testDir", 0755)
+	defer func() {
+		_ = os.RemoveAll("./testDir/")
+	}()
+
 	filePath := "./testDir"
 	storer := mock.NewStorerMock()
 	file1, file2 := "file1", "file2"
@@ -62,6 +66,4 @@ func TestMultiFileReader_ReadFiles(t *testing.T) {
 	require.Equal(t, data2, resData)
 
 	dwr.Finish()
-
-	_ = os.RemoveAll("./testDir/")
 }

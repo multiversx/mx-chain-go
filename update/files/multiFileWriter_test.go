@@ -44,6 +44,12 @@ func TestNewFile(t *testing.T) {
 	require.False(t, mfw.IsInterfaceNil())
 
 	fileName := "metablock"
+
+	//remove created file
+	defer func() {
+		_ = os.Remove(exportFolderPath + fileName)
+	}()
+
 	err := mfw.NewFile(fileName)
 	require.Nil(t, err)
 
@@ -55,8 +61,6 @@ func TestNewFile(t *testing.T) {
 		require.Fail(t, "file wasn't created")
 	}
 
-	//remove created file
-	_ = os.Remove(exportFolderPath + fileName)
 }
 
 func TestWrite(t *testing.T) {
@@ -73,6 +77,12 @@ func TestWrite(t *testing.T) {
 
 	fileName := "fileName"
 	_ = os.Remove(exportFolderPath + fileName)
+
+	//remove created file
+	defer func() {
+		_ = os.Remove(exportFolderPath + fileName)
+	}()
+
 	key := "dataKey"
 	value := []byte("dataDataDataDataMbune")
 	err := mfw.Write(fileName, key, value)
@@ -91,7 +101,4 @@ func TestWrite(t *testing.T) {
 	b, _ := ioutil.ReadAll(file)
 	b = b[:len(b)-1]
 	require.Equal(t, []byte(hex.EncodeToString([]byte(key))), b)
-
-	//remove created file
-	_ = os.Remove(exportFolderPath + fileName)
 }
