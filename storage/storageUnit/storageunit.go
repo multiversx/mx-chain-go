@@ -2,20 +2,18 @@ package storageUnit
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
-	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -43,8 +41,6 @@ var log = logger.GetOrCreate("storage/storageUnit")
 const (
 	LvlDB       DBType = "LvlDB"
 	LvlDbSerial DBType = "LvlDBSerial"
-	BadgerDB    DBType = "BadgerDB"
-	BoltDB      DBType = "BoltDB"
 )
 
 const (
@@ -65,9 +61,10 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Size   uint32
-	Type   CacheType
-	Shards uint32
+	Type        CacheType
+	SizeInBytes uint32
+	Size        uint32
+	Shards      uint32
 }
 
 // DBConfig holds the configurable elements of a database
@@ -89,35 +86,34 @@ type BloomConfig struct {
 // holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
-	batcher     storage.Batcher
 	persister   storage.Persister
 	cacher      storage.Cacher
 	bloomFilter storage.BloomFilter
 }
 
 // Put adds data to both cache and persistence medium and updates the bloom filter
-func (s *Unit) Put(key, data []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) Put(key, data []byte) error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	s.cacher.Put(key, data)
+	u.cacher.Put(key, data)
 
-	err := s.persister.Put(key, data)
+	err := u.persister.Put(key, data)
 	if err != nil {
-		s.cacher.Remove(key)
+		u.cacher.Remove(key)
 		return err
 	}
 
-	if s.bloomFilter != nil {
-		s.bloomFilter.Add(key)
+	if u.bloomFilter != nil {
+		u.bloomFilter.Add(key)
 	}
 
 	return err
 }
 
 // Close will close unit
-func (s *Unit) Close() error {
-	err := s.persister.Close()
+func (u *Unit) Close() error {
+	err := u.persister.Close()
 	if err != nil {
 		log.Error("cannot close storage unit persister", err)
 		return err
@@ -130,96 +126,108 @@ func (s *Unit) Close() error {
 // for the key in bloom filter first and if found
 // it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
-func (s *Unit) Get(key []byte) ([]byte, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) Get(key []byte) ([]byte, error) {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	v, ok := s.cacher.Get(key)
+	v, ok := u.cacher.Get(key)
 	var err error
 
 	if !ok {
 		// not found in cache
 		// search it in second persistence medium
-		if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-			v, err = s.persister.Get(key)
+		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
+			v, err = u.persister.Get(key)
 
 			if err != nil {
 				return nil, err
 			}
 
 			// if found in persistence unit, add it in cache
-			s.cacher.Put(key, v)
+			u.cacher.Put(key, v)
 		} else {
-			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
 	}
 
 	return v.([]byte), nil
 }
 
+// GetFromEpoch will call the Get method as this storer doesn't handle epochs
+func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
+	return u.Get(key)
+}
+
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
-func (s *Unit) Has(key []byte) error {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+func (u *Unit) Has(key []byte) error {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 
-	has := s.cacher.Has(key)
+	has := u.cacher.Has(key)
 	if has {
 		return nil
 	}
 
-	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-		return s.persister.Has(key)
+	if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
+		return u.persister.Has(key)
 	}
 
 	return storage.ErrKeyNotFound
 }
 
-// Remove removes the data associated to the given key from both cache and persistence medium
-func (s *Unit) Remove(key []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// SearchFirst will call the Get method as this storer doesn't handle epochs
+func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
+	return u.Get(key)
+}
 
-	s.cacher.Remove(key)
-	err := s.persister.Remove(key)
+// HasInEpoch will call the Has method as this storer doesn't handle epochs
+func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
+	return u.Has(key)
+}
+
+// Remove removes the data associated to the given key from both cache and persistence medium
+func (u *Unit) Remove(key []byte) error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
+
+	u.cacher.Remove(key)
+	err := u.persister.Remove(key)
 
 	return err
 }
 
 // ClearCache cleans up the entire cache
-func (s *Unit) ClearCache() {
-	s.cacher.Clear()
+func (u *Unit) ClearCache() {
+	u.cacher.Clear()
 }
 
 // DestroyUnit cleans up the bloom filter, the cache, and the db
-func (s *Unit) DestroyUnit() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (u *Unit) DestroyUnit() error {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 
-	if s.bloomFilter != nil {
-		s.bloomFilter.Clear()
+	if u.bloomFilter != nil {
+		u.bloomFilter.Clear()
 	}
 
-	s.cacher.Clear()
-	return s.persister.Destroy()
+	u.cacher.Clear()
+	return u.persister.Destroy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *Unit) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+func (u *Unit) IsInterfaceNil() bool {
+	return u == nil
 }
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
-	if p == nil || p.IsInterfaceNil() {
+	if check.IfNil(p) {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil || c.IsInterfaceNil() {
+	if check.IfNil(c) {
 		return nil, storage.ErrNilCacher
 	}
 
@@ -277,48 +285,16 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
+	if dbConf.MaxBatchSize > int(cacheConf.Size) {
+		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
+	}
+
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {
 		return nil, err
 	}
 
 	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	if reflect.DeepEqual(bloomFilterConf, BloomConfig{}) {
-		return NewStorageUnit(cache, db)
-	}
-
-	bf, err = NewBloomFilter(bloomFilterConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewStorageUnitWithBloomFilter(cache, db, bf)
-}
-
-// NewShardedStorageUnitFromConf creates a new sharded storage unit from a storage unit config
-func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig, shardId uint32) (*Unit, error) {
-	var cache storage.Cacher
-	var db storage.Persister
-	var bf storage.BloomFilter
-	var err error
-
-	defer func() {
-		if err != nil && db != nil {
-			_ = db.Destroy()
-		}
-	}()
-
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
-	if err != nil {
-		return nil, err
-	}
-
-	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
-	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -371,10 +347,6 @@ func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, 
 		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case LvlDbSerial:
 		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
-	case BadgerDB:
-		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
-	case BoltDB:
-		db, err = boltdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
@@ -393,7 +365,8 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 	var hashers []hashing.Hasher
 
 	for _, hashString := range conf.HashFunc {
-		hasher, err := hashString.NewHasher()
+		var hasher hashing.Hasher
+		hasher, err = hashString.NewHasher()
 		if err == nil {
 			hashers = append(hashers, hasher)
 		} else {

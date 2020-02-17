@@ -74,9 +74,6 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrNilTrie signals that a trie is nil and no operation can be made
 var ErrNilTrie = errors.New("trie is nil")
 
-// ErrNilValue signals that an operation has been attempted to or with a nil value
-var ErrNilValue = errors.New("nil value")
-
 // ErrNilPubKeysBytes signals that an operation has been attempted to or with a nil public key slice
 var ErrNilPubKeysBytes = errors.New("nil public key bytes")
 
@@ -121,9 +118,6 @@ var ErrAccNotFound = errors.New("account was not found")
 
 // ErrUnknownShardId signals that shard id is not valid
 var ErrUnknownShardId = errors.New("shard id is not valid")
-
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("nil address converter")
 
 //ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
 var ErrBech32ConvertError = errors.New("can't convert bech32 string")

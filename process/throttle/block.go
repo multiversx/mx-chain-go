@@ -11,10 +11,12 @@ import (
 var log = logger.GetOrCreate("process/throttle")
 
 const (
-	jumpAbovePercent = 90
-	jumpBelowPercent = 90
-	jumpAboveFactor  = 0.5
-	jumpBelowFactor  = 0.5
+	jumpAbovePercent        = 90
+	jumpBelowPercent        = 90
+	jumpAboveFactor         = 0.5
+	jumpBelowFactor         = 0.5
+	maxNumOfStatistics      = 600
+	numOfStatisticsToRemove = 100
 )
 
 type blockInfo struct {
@@ -57,6 +59,11 @@ func (bst *blockSizeThrottle) Add(round uint64, items uint32) {
 		bst.statistics,
 		&blockInfo{round: round, items: items, maxItems: bst.maxItems},
 	)
+
+	if len(bst.statistics) > maxNumOfStatistics {
+		bst.statistics = bst.statistics[numOfStatisticsToRemove:]
+	}
+
 	bst.mutThrottler.Unlock()
 }
 
@@ -153,8 +160,5 @@ func (bst *blockSizeThrottle) getCloserBelowMaxItemsUsedWithSucceed(currentMaxIt
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bst *blockSizeThrottle) IsInterfaceNil() bool {
-	if bst == nil {
-		return true
-	}
-	return false
+	return bst == nil
 }

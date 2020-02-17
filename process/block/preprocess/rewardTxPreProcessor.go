@@ -478,12 +478,14 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
 	computedRewardsMbsMap := rtp.rewardsProducer.CreateAllInterMiniBlocks()
+	numRewardTxs := 0
 	for _, mb := range computedRewardsMbsMap {
 		rewardMiniBlocksSlice = append(rewardMiniBlocksSlice, mb)
+		numRewardTxs += len(mb.TxHashes)
 	}
 
 	snapshot := rtp.accounts.JournalLen()
-	processedTxHashes := make([][]byte, 0, len(rewardMiniBlocksSlice))
+	processedTxHashes := make([][]byte, 0, numRewardTxs)
 
 	for _, mb := range rewardMiniBlocksSlice {
 		err := rtp.ProcessMiniBlock(mb, haveTime)
@@ -573,8 +575,5 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
-	if rtp == nil {
-		return true
-	}
-	return false
+	return rtp == nil
 }

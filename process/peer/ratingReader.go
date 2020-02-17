@@ -1,5 +1,6 @@
 package peer
 
+// RatingReader will handle the fetching of the ratings
 type RatingReader struct {
 	getRating  func(string) uint32
 	getRatings func([]string) map[string]uint32

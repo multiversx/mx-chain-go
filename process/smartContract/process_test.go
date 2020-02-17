@@ -320,6 +320,7 @@ func TestNewSmartContractProcessor(t *testing.T) {
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
+	assert.False(t, sc.IsInterfaceNil())
 }
 
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
@@ -1942,7 +1943,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1966,25 +1967,24 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	accTracker.JournalizeCalled = func(entry state.JournalEntry) {
-		return
-	}
+	accTracker.JournalizeCalled = func(entry state.JournalEntry) {}
+
 	accTracker.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
 		testAcc = accountHandler.(*state.Account)
 		return nil
 	}
 
 	tx.Value = big.NewInt(int64(5))
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
-	outacc1.Nonce = outacc1.Nonce + 1
+	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
-	err = sc.processSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
-	outacc1.Nonce = outacc1.Nonce + 1
+	outacc1.Nonce++
 	outacc1.BalanceDelta = big.NewInt(int64(10))
 	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
@@ -1995,7 +1995,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
-	err = sc.processSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
@@ -2026,7 +2026,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -2040,14 +2040,25 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx, []byte("hash"))
 	assert.Nil(t, err)
 }
 
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	testAccounts, _ := state.NewAccount(
+		state.NewAddress([]byte("address")),
+		&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+				return nil
+			}},
+	)
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+			return testAccounts, nil
+		},
+	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
@@ -2072,9 +2083,9 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	outaddress := []byte("newsmartcontract")
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
-	outacc1.Code = []byte("contract-code")
-	outacc1.Nonce = 5
+	outacc1.Nonce = 0
 	outacc1.Balance = big.NewInt(int64(5))
+	outacc1.BalanceDelta = big.NewInt(int64(15))
 	outputAccounts = append(outputAccounts, outacc1, outacc1, outacc1)
 
 	tx := &transaction.Transaction{}
@@ -2342,17 +2353,10 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	test := "test"
 	result := ""
 	sep := "@"
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
-	result = result + sep
-	result = result + test
+	for i := 0; i < 6; i++ {
+		result += test
+		result += sep
+	}
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),

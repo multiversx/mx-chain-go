@@ -2,6 +2,7 @@ package trie_test
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -68,7 +69,7 @@ func initTrie() data.Trie {
 	tr := emptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
 
 	return tr
 }
@@ -522,7 +523,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	key := base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))
 	err := fmt.Errorf("key: %s not found", key)
-	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, key)
+	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, hex.EncodeToString(append(rootHash, byte(data.OldRoot))))
 
 	err = tr.Prune(rootHash, data.OldRoot)
 	assert.Equal(t, expectedErr, err)
@@ -542,6 +543,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
+	tr.CancelPrune(rootHash, data.NewRoot)
 	_ = tr.Prune(rootHash, data.OldRoot)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
@@ -606,7 +608,7 @@ func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
 	assert.Equal(t, 3, len(leaves))
 	assert.Equal(t, []byte("reindeer"), leaves[string([]byte("doe"))])
 	assert.Equal(t, []byte("puppy"), leaves[string([]byte("dog"))])
-	assert.Equal(t, []byte("cat"), leaves[string([]byte("dogglesworth"))])
+	assert.Equal(t, []byte("cat"), leaves[string([]byte("ddog"))])
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

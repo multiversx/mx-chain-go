@@ -8,11 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// AddressConverterFake -
 type AddressConverterFake struct {
 	addressLen int
 	prefix     string
 }
 
+// NewAddressConverterFake -
 func NewAddressConverterFake(addressLen int, prefix string) *AddressConverterFake {
 	return &AddressConverterFake{
 		addressLen: addressLen,
@@ -20,6 +22,7 @@ func NewAddressConverterFake(addressLen int, prefix string) *AddressConverterFak
 	}
 }
 
+// CreateAddressFromPublicKeyBytes -
 func (acf *AddressConverterFake) CreateAddressFromPublicKeyBytes(pubKey []byte) (state.AddressContainer, error) {
 	newPubKey := make([]byte, len(pubKey))
 	copy(newPubKey, pubKey)
@@ -31,10 +34,12 @@ func (acf *AddressConverterFake) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 	return state.NewAddress(newPubKey), nil
 }
 
+// ConvertToHex -
 func (acf *AddressConverterFake) ConvertToHex(addressContainer state.AddressContainer) (string, error) {
 	return acf.prefix + hex.EncodeToString(addressContainer.Bytes()), nil
 }
 
+// CreateAddressFromHex -
 func (acf *AddressConverterFake) CreateAddressFromHex(hexAddress string) (state.AddressContainer, error) {
 	hexAddress = strings.ToLower(hexAddress)
 
@@ -57,10 +62,12 @@ func (acf *AddressConverterFake) CreateAddressFromHex(hexAddress string) (state.
 	return state.NewAddress(buff), nil
 }
 
+// PrepareAddressBytes -
 func (acf *AddressConverterFake) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	return addressBytes, nil
 }
 
+// AddressLen -
 func (acf *AddressConverterFake) AddressLen() int {
 	return acf.addressLen
 }

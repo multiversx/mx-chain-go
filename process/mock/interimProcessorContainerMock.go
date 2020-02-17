@@ -5,11 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// InterimProcessorContainerMock -
 type InterimProcessorContainerMock struct {
 	GetCalled  func(key block.Type) (process.IntermediateTransactionHandler, error)
 	KeysCalled func() []block.Type
 }
 
+// Get -
 func (ipcm *InterimProcessorContainerMock) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
 	if ipcm.GetCalled == nil {
 		return &IntermediateTransactionHandlerMock{}, nil
@@ -17,38 +19,41 @@ func (ipcm *InterimProcessorContainerMock) Get(key block.Type) (process.Intermed
 	return ipcm.GetCalled(key)
 }
 
-func (ppcm *InterimProcessorContainerMock) Add(key block.Type, val process.IntermediateTransactionHandler) error {
+// Add -
+func (ipcm *InterimProcessorContainerMock) Add(key block.Type, val process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.IntermediateTransactionHandler) error {
+// AddMultiple -
+func (ipcm *InterimProcessorContainerMock) AddMultiple(keys []block.Type, preprocessors []process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Replace(key block.Type, val process.IntermediateTransactionHandler) error {
+// Replace -
+func (ipcm *InterimProcessorContainerMock) Replace(key block.Type, val process.IntermediateTransactionHandler) error {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Remove(key block.Type) {
+// Remove -
+func (ipcm *InterimProcessorContainerMock) Remove(key block.Type) {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Len() int {
+// Len -
+func (ipcm *InterimProcessorContainerMock) Len() int {
 	panic("implement me")
 }
 
-func (ppcm *InterimProcessorContainerMock) Keys() []block.Type {
-	if ppcm.KeysCalled == nil {
+// Keys -
+func (ipcm *InterimProcessorContainerMock) Keys() []block.Type {
+	if ipcm.KeysCalled == nil {
 		return nil
 	}
 
-	return ppcm.KeysCalled()
+	return ipcm.KeysCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ppcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
-	if ppcm == nil {
-		return true
-	}
-	return false
+func (ipcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
+	return ipcm == nil
 }

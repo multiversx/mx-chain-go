@@ -18,6 +18,7 @@ type ChainStorerMock struct {
 	CloseAllCalled  func() error
 }
 
+// CloseAll -
 func (bc *ChainStorerMock) CloseAll() error {
 	if bc.CloseAllCalled != nil {
 		return bc.CloseAllCalled()
@@ -90,8 +91,5 @@ func (bc *ChainStorerMock) Destroy() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *ChainStorerMock) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
-	}
-	return false
+	return bc == nil
 }

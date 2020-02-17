@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// NodesCoordinatorMock -
 type NodesCoordinatorMock struct {
 	ComputeValidatorsGroupCalled    func([]byte) ([]sharding.Validator, error)
 	GetValidatorsPublicKeysCalled   func(randomness []byte) ([]string, error)
@@ -24,6 +25,8 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(randomness []byte
 	panic("implement me")
 }
 
+// ComputeValidatorsGroup -
+func (ncm NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []sharding.Validator, err error) {
 func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
@@ -52,7 +55,8 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte, round
 	return list, nil
 }
 
-func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+// GetValidatorsPublicKeys -
+func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
 		return ncm.GetValidatorsPublicKeysCalled(randomness)
 	}
@@ -71,22 +75,27 @@ func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, roun
 	return pubKeys, nil
 }
 
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize() int {
+// ConsensusGroupSize -
+func (ncm NodesCoordinatorMock) ConsensusGroupSize() int {
 	panic("implement me")
 }
 
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator) error {
+// SetNodesPerShards -
+func (ncm NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator) error {
 	return nil
 }
 
-func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(int) error {
+// SetConsensusGroupSize -
+func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
 	panic("implement me")
 }
 
-func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
+// GetSelectedPublicKeys -
+func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
 	panic("implement me")
 }
 
-func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
+// GetValidatorWithPublicKey -
+func (ncm NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	return ncm.GetValidatorWithPublicKeyCalled(publicKey)
 }

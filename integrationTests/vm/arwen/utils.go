@@ -41,6 +41,7 @@ type testParticipant struct {
 	Balance *big.Int
 }
 
+// AddressHex will return the participant address in hex string format
 func (participant *testParticipant) AddressHex() string {
 	return hex.EncodeToString(participant.Address)
 }
@@ -184,6 +185,7 @@ func (context *testContext) querySC(function string, args [][]byte) []byte {
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
 	if err != nil {
 		assert.FailNow(context.T, err.Error())
+		return []byte{}
 	}
 
 	firstResult := vmOutput.ReturnData[0]

@@ -291,7 +291,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 				return nil
 			}
 
-			connCalled = connCalled % 2
+			connCalled %= 2
 			if connCalled == 0 {
 				if peerID1 != address {
 					assert.Fail(t, "should have tried to connect to "+peerID1)

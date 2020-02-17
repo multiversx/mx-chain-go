@@ -4,10 +4,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 )
 
+// RewardTxProcessorMock -
 type RewardTxProcessorMock struct {
 	ProcessRewardTransactionCalled func(rTx *rewardTx.RewardTx) error
 }
 
+// ProcessRewardTransaction -
 func (scrp *RewardTxProcessorMock) ProcessRewardTransaction(rTx *rewardTx.RewardTx) error {
 	if scrp.ProcessRewardTransactionCalled == nil {
 		return nil
@@ -16,6 +18,7 @@ func (scrp *RewardTxProcessorMock) ProcessRewardTransaction(rTx *rewardTx.Reward
 	return scrp.ProcessRewardTransactionCalled(rTx)
 }
 
+// IsInterfaceNil -
 func (scrp *RewardTxProcessorMock) IsInterfaceNil() bool {
 	if scrp == nil {
 		return true

@@ -6,22 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-var log = logger.GetOrCreate("dataretriever/txpool")
+var log = logger.GetOrCreate("txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
-	mutex             sync.RWMutex
-	backingMap        map[string]*txPoolShard
-	mutexAddCallbacks sync.RWMutex
-	onAddCallbacks    []func(key []byte)
-	cacheConfig       storageUnit.CacheConfig
-	evictionConfig    txcache.EvictionConfig
+	mutex                sync.RWMutex
+	backingMap           map[string]*txPoolShard
+	mutexAddCallbacks    sync.RWMutex
+	onAddCallbacks       []func(key []byte)
+	cacheConfigPrototype txcache.CacheConfig
 }
 
 type txPoolShard struct {
@@ -31,43 +28,37 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(config storageUnit.CacheConfig) (dataRetriever.ShardedDataCacherNotifier, error) {
-	err := verifyConfig(config)
+func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+	log.Trace("NewShardedTxPool", "args", args)
+
+	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	size := config.Size
-	evictionConfig := txcache.EvictionConfig{
-		Enabled:                         true,
-		CountThreshold:                  size,
-		ThresholdEvictSenders:           process.TxPoolThresholdEvictSenders,
-		NumOldestSendersToEvict:         process.TxPoolNumOldestSendersToEvict,
-		ALotOfTransactionsForASender:    process.TxPoolALotOfTransactionsForASender,
-		NumTxsToEvictForASenderWithALot: process.TxPoolNumTxsToEvictForASenderWithALot,
+	const oneTrilion = 1000000 * 1000000
+	numCaches := 2*args.NumberOfShards - 1
+
+	cacheConfigPrototype := txcache.CacheConfig{
+		NumChunksHint:              args.Config.Shards,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
+		CountThreshold:             args.Config.Size / numCaches,
+		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
+		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
+		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
+		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
-	shardedTxPool := &shardedTxPool{
-		mutex:             sync.RWMutex{},
-		backingMap:        make(map[string]*txPoolShard),
-		mutexAddCallbacks: sync.RWMutex{},
-		onAddCallbacks:    make([]func(key []byte), 0),
-		cacheConfig:       config,
-		evictionConfig:    evictionConfig,
+	shardedTxPoolObject := &shardedTxPool{
+		mutex:                sync.RWMutex{},
+		backingMap:           make(map[string]*txPoolShard),
+		mutexAddCallbacks:    sync.RWMutex{},
+		onAddCallbacks:       make([]func(key []byte), 0),
+		cacheConfigPrototype: cacheConfigPrototype,
 	}
 
-	return shardedTxPool, nil
-}
-
-func verifyConfig(config storageUnit.CacheConfig) error {
-	if config.Size < 1 {
-		return dataRetriever.ErrCacheConfigInvalidSize
-	}
-	if config.Shards < 1 {
-		return dataRetriever.ErrCacheConfigInvalidShards
-	}
-
-	return nil
+	return shardedTxPoolObject, nil
 }
 
 // ShardDataStore returns the requested cache, as the generic Cacher interface
@@ -101,9 +92,10 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		nChunksHint := txPool.cacheConfig.Shards
-		evictionConfig := txPool.evictionConfig
-		cache := txcache.NewTxCacheWithEviction(nChunksHint, evictionConfig)
+		// Here we clone the config structure
+		cacheConfig := txPool.cacheConfigPrototype
+		cacheConfig.Name = cacheID
+		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
@@ -155,10 +147,12 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 	txPool.mutex.RLock()
 	defer txPool.mutex.RUnlock()
 
+	var txFromCache data.TransactionHandler
+	var hashExists bool
 	for _, shard := range txPool.backingMap {
-		tx, ok := shard.Cache.GetByTxHash(txHash)
-		if ok {
-			return tx, ok
+		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
+		if hashExists {
+			return txFromCache, true
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// ChannelLoadBalancerStub -
 type ChannelLoadBalancerStub struct {
 	AddChannelCalled                    func(pipe string) error
 	RemoveChannelCalled                 func(pipe string) error
@@ -11,26 +12,27 @@ type ChannelLoadBalancerStub struct {
 	CollectOneElementFromChannelsCalled func() *p2p.SendableData
 }
 
-func (plbs *ChannelLoadBalancerStub) AddChannel(pipe string) error {
-	return plbs.AddChannelCalled(pipe)
+// AddChannel -
+func (clbs *ChannelLoadBalancerStub) AddChannel(pipe string) error {
+	return clbs.AddChannelCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
-	return plbs.RemoveChannelCalled(pipe)
+// RemoveChannel -
+func (clbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
+	return clbs.RemoveChannelCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
-	return plbs.GetChannelOrDefaultCalled(pipe)
+// GetChannelOrDefault -
+func (clbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
+	return clbs.GetChannelOrDefaultCalled(pipe)
 }
 
-func (plbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
-	return plbs.CollectOneElementFromChannelsCalled()
+// CollectOneElementFromChannels -
+func (clbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
+	return clbs.CollectOneElementFromChannelsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (plbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
-	if plbs == nil {
-		return true
-	}
-	return false
+func (clbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
+	return clbs == nil
 }

@@ -24,7 +24,7 @@ type EconomicsData struct {
 	burnAddress          string
 	stakeValue           *big.Int
 	unBoundPeriod        uint64
-	ratingsData         *RatingsData
+	ratingsData          *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -70,7 +70,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		unBoundPeriod:        data.unBoundPeriod,
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
-		ratingsData:         rd,
+		ratingsData:          rd,
 	}, nil
 }
 
@@ -179,6 +179,11 @@ func (ed *EconomicsData) BurnPercentage() float64 {
 	return ed.burnPercentage
 }
 
+// MinGasPrice will return min gas price
+func (ed *EconomicsData) MinGasPrice() uint64 {
+	return ed.minGasPrice
+}
+
 // ComputeFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
@@ -249,10 +254,7 @@ func (ed *EconomicsData) UnBoundPeriod() uint64 {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
-	if ed == nil {
-		return true
-	}
-	return false
+	return ed == nil
 }
 
 // RatingsData will return the ratingsDataObject

@@ -105,6 +105,7 @@ func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.NotNil(t, imh)
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &dataTransaction.Transaction{

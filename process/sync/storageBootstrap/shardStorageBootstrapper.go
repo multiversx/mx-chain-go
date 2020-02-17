@@ -16,7 +16,7 @@ type shardStorageBootstrapper struct {
 }
 
 // NewShardStorageBootstrapper is method used to create a nes storage bootstrapper
-func NewShardStorageBootstrapper(arguments ArgsStorageBootstrapper) (*shardStorageBootstrapper, error) {
+func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shardStorageBootstrapper, error) {
 	base := &storageBootstrapper{
 		bootStorer:       arguments.BootStorer,
 		forkDetector:     arguments.ForkDetector,
@@ -121,7 +121,8 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 
 	for _, metaBlockHash := range shardHeader.MetaBlockHashes {
-		metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
+		var metaBlock *block.MetaBlock
+		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
 				"hash", metaBlockHash)
@@ -174,4 +175,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 	}
 
 	return selfNotarizedHeaders, nil
+}
+
+func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
 }

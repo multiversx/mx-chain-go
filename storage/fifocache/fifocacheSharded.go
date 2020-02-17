@@ -3,7 +3,7 @@ package fifocache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/concurrent-map"
+	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 

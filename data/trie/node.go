@@ -7,10 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-const nrOfChildren = 17
-const firstByte = 0
-const maxTrieLevelAfterCommit = 6
-const hexTerminator = 16
+const (
+	nrOfChildren            = 17
+	firstByte               = 0
+	maxTrieLevelAfterCommit = 6
+	hexTerminator           = 16
+	nibbleSize              = 4
+	nibbleMask              = 0x0f
+)
 
 type baseNode struct {
 	hash   []byte
@@ -180,19 +184,26 @@ func childPosOutOfRange(pos byte) bool {
 	return pos >= nrOfChildren
 }
 
-// keyBytesToHex transforms key bytes into hex nibbles
+// keyBytesToHex transforms key bytes into hex nibbles. The key nibbles are reversed, meaning that the
+// last key nibble will be the first in the hex key. A hex terminator is added at the end of the hex key.
 func keyBytesToHex(str []byte) []byte {
-	length := len(str)*2 + 1
-	nibbles := make([]byte, length)
-	for i, b := range str {
-		nibbles[i*2] = b / hexTerminator
-		nibbles[i*2+1] = b % hexTerminator
+	hexLength := len(str)*2 + 1
+	nibbles := make([]byte, hexLength)
+
+	hexSliceIndex := 0
+	nibbles[hexLength-1] = hexTerminator
+
+	for i := hexLength - 2; i > 0; i -= 2 {
+		nibbles[i] = str[hexSliceIndex] >> nibbleSize
+		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
+		hexSliceIndex++
 	}
-	nibbles[length-1] = hexTerminator
 
 	return nibbles
 }
 
+// hexToKeyBytes transforms hex nibbles into key bytes. The hex terminator is removed from the end of the hex slice,
+// and then the hex slice is reversed when forming the key bytes.
 func hexToKeyBytes(hex []byte) ([]byte, error) {
 	hex = hex[:len(hex)-1]
 	length := len(hex)
@@ -201,8 +212,10 @@ func hexToKeyBytes(hex []byte) ([]byte, error) {
 	}
 
 	key := make([]byte, length/2)
-	for i := range key {
-		key[i] = hex[i*2]*hexTerminator + hex[i*2+1]
+	hexSliceIndex := 0
+	for i := len(key) - 1; i >= 0; i-- {
+		key[i] = hex[hexSliceIndex+1]<<nibbleSize | hex[hexSliceIndex]
+		hexSliceIndex += 2
 	}
 
 	return key, nil

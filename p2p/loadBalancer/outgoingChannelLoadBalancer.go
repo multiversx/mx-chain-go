@@ -115,7 +115,7 @@ func (oplb *OutgoingChannelLoadBalancer) GetChannelOrDefault(channel string) cha
 	oplb.mut.RLock()
 	defer oplb.mut.RUnlock()
 
-	ch, _ := oplb.namesChans[channel]
+	ch := oplb.namesChans[channel]
 	if ch != nil {
 		return ch
 	}
@@ -131,8 +131,5 @@ func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *p2p.Se
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (oplb *OutgoingChannelLoadBalancer) IsInterfaceNil() bool {
-	if oplb == nil {
-		return true
-	}
-	return false
+	return oplb == nil
 }

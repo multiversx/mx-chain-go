@@ -320,7 +320,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -359,7 +359,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 				return testError
@@ -379,7 +378,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -418,7 +417,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 				return testError
@@ -439,7 +437,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -477,7 +475,6 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 
@@ -499,7 +496,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -538,7 +535,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 				return testError
@@ -559,7 +555,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -597,7 +593,6 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 				return nil
@@ -619,7 +614,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
@@ -664,7 +659,6 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 			JournalizeCalled: func(entry state.JournalEntry) {
-				return
 			},
 			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 				return nil
@@ -686,7 +680,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 	scDataGetter := &mock.ScQueryMock{}
 	scDataGetter.ExecuteQueryCalled = func(query *process.SCQuery) (output *vmcommon.VMOutput, e error) {
 		retData, _ := json.Marshal(&stakingData)
-		return &vmcommon.VMOutput{ReturnData: [][]byte{(retData)}}, nil
+		return &vmcommon.VMOutput{ReturnData: [][]byte{retData}}, nil
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()

@@ -9,11 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
+// InitChronologyHandlerMock -
 func InitChronologyHandlerMock() consensus.ChronologyHandler {
 	chr := &ChronologyHandlerMock{}
 	return chr
 }
 
+// InitBlockProcessorMock -
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
@@ -39,7 +41,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 		return &block.Header{}
 	}
 	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
+		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{}
@@ -48,6 +50,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	return blockProcessorMock
 }
 
+// InitMultiSignerMock -
 func InitMultiSignerMock() *BelNevMock {
 	multiSigner := NewMultiSigner()
 	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
@@ -71,6 +74,7 @@ func InitMultiSignerMock() *BelNevMock {
 	return multiSigner
 }
 
+// InitKeys -
 func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
@@ -94,6 +98,7 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 	return keyGenMock, privKeyMock, pubKeyMock
 }
 
+// InitConsensusCore -
 func InitConsensusCore() *ConsensusCoreMock {
 
 	blockChain := &BlockChainMock{

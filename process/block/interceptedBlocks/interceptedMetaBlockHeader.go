@@ -17,6 +17,7 @@ type InterceptedMetaHeader struct {
 	shardCoordinator sharding.Coordinator
 	hash             []byte
 	chainID          []byte
+	validityAttester process.ValidityAttester
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -37,6 +38,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		sigVerifier:      arg.HeaderSigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
 		chainID:          arg.ChainID,
+		validityAttester: arg.ValidityAttester,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -73,6 +75,16 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	err := imh.integrity()
+	if err != nil {
+		return err
+	}
+
+	err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	err = imh.validityAttester.CheckBlockAgainstRounder(imh.HeaderHandler())
 	if err != nil {
 		return err
 	}

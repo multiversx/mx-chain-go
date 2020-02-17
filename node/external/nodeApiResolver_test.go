@@ -3,6 +3,7 @@ package external_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -33,8 +34,8 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{})
 
-	assert.NotNil(t, nar)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(nar))
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

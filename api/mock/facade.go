@@ -18,7 +18,6 @@ type Facade struct {
 	Running                     bool
 	ShouldErrorStart            bool
 	ShouldErrorStop             bool
-	GetCurrentPublicKeyHandler  func() string
 	TpsBenchmarkHandler         func() *statistics.TpsBenchmark
 	GetHeartbeatsHandler        func() ([]heartbeat.PubKeyHeartbeat, error)
 	BalanceHandler              func(string) (*big.Int, error)
@@ -31,6 +30,21 @@ type Facade struct {
 	ExecuteSCQueryHandler       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler        func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler  func() (map[string]*state.ValidatorApiResponse, error)
+}
+
+// RestApiInterface -
+func (f *Facade) RestApiInterface() string {
+	return "localhost:8080"
+}
+
+// RestAPIServerDebugMode -
+func (f *Facade) RestAPIServerDebugMode() bool {
+	return false
+}
+
+// PprofEnabled -
+func (f *Facade) PprofEnabled() bool {
+	return false
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -63,11 +77,7 @@ func (f *Facade) StopNode() error {
 	return nil
 }
 
-// GetCurrentPublicKey is the mock implementation of a handler's StopNode method
-func (f *Facade) GetCurrentPublicKey() string {
-	return f.GetCurrentPublicKeyHandler()
-}
-
+// GetHeartbeats returns the slice of heartbeat info
 func (f *Facade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
 	return f.GetHeartbeatsHandler()
 }
@@ -135,10 +145,7 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (f *Facade) IsInterfaceNil() bool {
-	if f == nil {
-		return true
-	}
-	return false
+	return f == nil
 }
 
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler

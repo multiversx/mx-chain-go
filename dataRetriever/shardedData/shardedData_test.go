@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -22,6 +24,8 @@ var defaultTestConfig = storageUnit.CacheConfig{
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 0,
 		Type: storageUnit.LRUCache,
@@ -33,6 +37,8 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
 		Type: storageUnit.LRUCache,
@@ -40,7 +46,31 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
 	assert.Nil(t, err)
-	assert.NotNil(t, sd)
+	assert.False(t, check.IfNil(sd))
+}
+
+func TestNewShardedData_CreateShardStore(t *testing.T) {
+	t.Parallel()
+
+	cacheConfigBad := storageUnit.CacheConfig{
+		Size: 10,
+		Type: storageUnit.LRUCache,
+	}
+
+	sd, err := shardedData.NewShardedData(cacheConfigBad)
+	assert.Nil(t, err)
+
+	id := "id"
+	key := []byte("key")
+	sd.CreateShardStore(id)
+	sd.AddData(key, key, id)
+
+	shardStore := sd.ShardDataStore(id)
+	require.NotNil(t, shardStore)
+
+	sd.RemoveSetOfDataFromPool([][]byte{key}, id)
+	_, found := sd.SearchFirstData(key)
+	require.False(t, found)
 }
 
 func TestShardedData_AddData(t *testing.T) {
@@ -197,7 +227,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		if !bytes.Equal([]byte("aaaa"), key) {
@@ -243,7 +273,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		wg.Done()

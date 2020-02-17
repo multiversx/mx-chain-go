@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// InterceptedTxHandlerStub -
 type InterceptedTxHandlerStub struct {
 	SenderShardIdCalled   func() uint32
 	ReceiverShardIdCalled func() uint32
@@ -16,26 +17,32 @@ type InterceptedTxHandlerStub struct {
 	TransactionCalled     func() data.TransactionHandler
 }
 
+// SenderShardId -
 func (iths *InterceptedTxHandlerStub) SenderShardId() uint32 {
 	return iths.SenderShardIdCalled()
 }
 
+// ReceiverShardId -
 func (iths *InterceptedTxHandlerStub) ReceiverShardId() uint32 {
 	return iths.ReceiverShardIdCalled()
 }
 
+// Nonce -
 func (iths *InterceptedTxHandlerStub) Nonce() uint64 {
 	return iths.NonceCalled()
 }
 
+// SenderAddress -
 func (iths *InterceptedTxHandlerStub) SenderAddress() state.AddressContainer {
 	return iths.SenderAddressCalled()
 }
 
+// Fee -
 func (iths *InterceptedTxHandlerStub) Fee() *big.Int {
 	return iths.FeeCalled()
 }
 
+// Transaction -
 func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
 	return iths.TransactionCalled()
 }

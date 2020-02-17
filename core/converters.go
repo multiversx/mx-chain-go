@@ -27,6 +27,7 @@ func ConvertBytes(bytes uint64) string {
 }
 
 // ToB64 encodes the given buff to base64
+// This should be used only for display purposes!
 func ToB64(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
@@ -35,6 +36,7 @@ func ToB64(buff []byte) string {
 }
 
 // ToHex encodes the given buff to hex
+// This should be used only for display purposes!
 func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
@@ -115,7 +117,7 @@ func EpochStartIdentifier(epoch uint32) string {
 // IsUnknownEpochIdentifier return if the epoch identifier represents unknown epoch
 func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
 	splitString := strings.Split(string(identifier), "_")
-	if len(splitString) == 0 || len(splitString[0]) == 0 {
+	if len(splitString) < 2 || len(splitString[1]) == 0 {
 		return false, ErrInvalidIdentifierForEpochStartBlockRequest
 	}
 

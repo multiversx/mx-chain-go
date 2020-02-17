@@ -44,4 +44,5 @@ func TestNewInterceptedTrieNodeDataFactory_OkValsShouldWork(t *testing.T) {
 	itn, err := NewInterceptedTrieNodeDataFactory(createMockArgument())
 	assert.NotNil(t, itn)
 	assert.Nil(t, err)
+	assert.False(t, itn.IsInterfaceNil())
 }

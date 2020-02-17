@@ -22,11 +22,11 @@ var ErrNilInputData = errors.New("nil input data")
 //ErrNilUrl signals that the provided url is empty
 var ErrNilUrl = errors.New("url is empty")
 
-// ErrWrongTypeAssertion signals that an type assertion failed
-var ErrWrongTypeAssertion = errors.New("wrong type assertion")
-
 // ErrPemFileIsInvalid signals that a pem file is invalid
 var ErrPemFileIsInvalid = errors.New("pem file is invalid")
+
+// ErrNilPemBLock signals that the pem block is nil
+var ErrNilPemBLock = errors.New("nil pem block")
 
 // ErrNilFile signals that a nil file has been provided
 var ErrNilFile = errors.New("nil file provided")
@@ -43,5 +43,9 @@ var ErrNotPositiveValue = errors.New("the provided value is not positive")
 // ErrNilAppStatusHandler signals that a nil status handler has been provided
 var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 
-// ErrInvalidIdentifierForEpochStartBlockRequest
+// ErrNilStatusTagProvider signals that a nil status tag provider has been given as parameter
+var ErrNilStatusTagProvider = errors.New("nil status tag provider")
+
+// ErrInvalidIdentifierForEpochStartBlockRequest signals that an invalid identifier for epoch start block request
+// has been provided
 var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifier for epoch start block request")

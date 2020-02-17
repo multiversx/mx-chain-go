@@ -515,14 +515,9 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
-	sortVMOutputInsideData(vmOutput)
+	outPutAccounts := sortVMOutputInsideData(vmOutput)
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	scrTxs, err := sc.createSCRTransactions(vmOutput.OutputAccounts, tx, txHash)
+	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -563,21 +558,41 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
-func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) {
+func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
 	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
 		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
 	})
 	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
 		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
 	})
-	sort.Slice(vmOutput.OutputAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.OutputAccounts[i].Address, vmOutput.OutputAccounts[j].Address) < 0
-	})
+
+	outPutAccounts := make([]*vmcommon.OutputAccount, len(vmOutput.OutputAccounts))
+	i := 0
 	for _, outAcc := range vmOutput.OutputAccounts {
-		sort.Slice(outAcc.StorageUpdates, func(i, j int) bool {
-			return bytes.Compare(outAcc.StorageUpdates[i].Offset, outAcc.StorageUpdates[j].Offset) < 0
-		})
+		outPutAccounts[i] = outAcc
+		i++
 	}
+
+	sort.Slice(outPutAccounts, func(i, j int) bool {
+		return bytes.Compare(outPutAccounts[i].Address, outPutAccounts[j].Address) < 0
+	})
+
+	return outPutAccounts
+}
+
+func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
+	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
+	i := 0
+	for _, update := range account.StorageUpdates {
+		storageUpdates[i] = update
+		i++
+	}
+
+	sort.Slice(storageUpdates, func(i, j int) bool {
+		return bytes.Compare(storageUpdates[i].Offset, storageUpdates[j].Offset) < 0
+	})
+
+	return storageUpdates
 }
 
 func (sc *scProcessor) createSCRsWhenError(
@@ -613,7 +628,7 @@ func (sc *scProcessor) createSCRsWhenError(
 // this requirement is needed because in the case of refunding the exact account that was previously
 // modified in saveSCOutputToCurrentState, the modifications done there should be visible here
 func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.AccountHandler) (state.AccountHandler, error) {
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+	if check.IfNil(acntSnd) {
 		return acntSnd, nil
 	}
 
@@ -629,6 +644,7 @@ func (sc *scProcessor) createSmartContractResult(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
+	storageUpdates []*vmcommon.StorageUpdate,
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
@@ -637,27 +653,12 @@ func (sc *scProcessor) createSmartContractResult(
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRecvAddress()
 	result.Code = outAcc.Code
-	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)...)
+	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.TxHash = txHash
 
 	return result
-}
-
-func (sc *scProcessor) createSCRTransactions(
-	outAccs []*vmcommon.OutputAccount,
-	tx data.TransactionHandler,
-	txHash []byte,
-) ([]data.TransactionHandler, error) {
-	scResults := make([]data.TransactionHandler, 0, len(outAccs))
-
-	for i := 0; i < len(outAccs); i++ {
-		scTx := sc.createSmartContractResult(outAccs[i], tx, txHash)
-		scResults = append(scResults, scTx)
-	}
-
-	return scResults, nil
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
@@ -715,7 +716,13 @@ func (sc *scProcessor) createSCRForSender(
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx data.TransactionHandler) error {
+func (sc *scProcessor) processSCOutputAccounts(
+	outputAccounts []*vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) ([]data.TransactionHandler, error) {
+	scResults := make([]data.TransactionHandler, 0, len(outputAccounts))
+
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
@@ -724,18 +731,22 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if acc == nil || acc.IsInterfaceNil() {
+		storageUpdates := getSortedStorageUpdates(outAcc)
+		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
+		scResults = append(scResults, scTx)
+
+		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
 				sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
 			continue
 		}
 
-		for j := 0; j < len(outAcc.StorageUpdates); j++ {
-			storeUpdate := outAcc.StorageUpdates[j]
+		for j := 0; j < len(storageUpdates); j++ {
+			storeUpdate := storageUpdates[j]
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
@@ -743,9 +754,9 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		if len(outAcc.StorageUpdates) > 0 {
 			//SC with data variables
-			err := sc.accounts.SaveDataTrie(acc)
+			err = sc.accounts.SaveDataTrie(acc)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -753,7 +764,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		if len(outAcc.Code) > 0 {
 			err = sc.accounts.PutCode(acc, outAcc.Code)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
@@ -762,12 +773,12 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
-				return process.ErrWrongNonceInVMOutput
+				return nil, process.ErrWrongNonceInVMOutput
 			}
 
 			err = acc.SetNonceWithJournal(outAcc.Nonce)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -778,7 +789,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		stAcc, ok := acc.(*state.Account)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
 		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
@@ -787,20 +798,20 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		updatedBalance := big.NewInt(0)
 		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
 		if updatedBalance.Cmp(big.NewInt(0)) < 0 {
-			return process.ErrOverallBalanceChangeFromSC
+			return nil, process.ErrOverallBalanceChangeFromSC
 		}
 
 		err = stAcc.SetBalanceWithJournal(updatedBalance)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if sumOfAllDiff.Cmp(zero) != 0 {
-		return process.ErrOverallBalanceChangeFromSC
+		return nil, process.ErrOverallBalanceChangeFromSC
 	}
 
-	return nil
+	return scResults, nil
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
@@ -869,10 +880,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if err != nil {
 		return nil
 	}
-	if dstAcc == nil || dstAcc.IsInterfaceNil() {
+	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
 		return nil
 	}
+
+	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
@@ -944,8 +957,5 @@ func (sc *scProcessor) processSimpleSCR(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *scProcessor) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }

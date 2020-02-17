@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,21 +42,23 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	_ = nResolver.StateTrie.Update([]byte("doe"), []byte("reindeer"))
-	_ = nResolver.StateTrie.Update([]byte("dog"), []byte("puppy"))
-	_ = nResolver.StateTrie.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = nResolver.StateTrie.Commit()
-	rootHash, _ := nResolver.StateTrie.Root()
+	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+	_ = resolverTrie.Update([]byte("doe"), []byte("reindeer"))
+	_ = resolverTrie.Update([]byte("dog"), []byte("puppy"))
+	_ = resolverTrie.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = resolverTrie.Commit()
+	rootHash, _ := resolverTrie.Root()
 
-	nilRootHash, _ := nRequester.StateTrie.Root()
-	trieNodesResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TrieNodesTopic)
+	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+	nilRootHash, _ := requesterTrie.Root()
+	trieNodesResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.AccountTrieNodesTopic, sharding.MetachainShardId)
 
 	waitTime := 5 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.ShardDataPool.TrieNodes(), nRequester.StateTrie, waitTime)
+	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime)
 	err = trieSyncer.StartSyncing(rootHash)
 	assert.Nil(t, err)
 
-	newRootHash, _ := nRequester.StateTrie.Root()
+	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 }

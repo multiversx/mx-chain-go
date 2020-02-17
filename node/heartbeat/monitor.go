@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
-
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -45,20 +45,19 @@ func NewMonitor(
 	storer HeartbeatStorageHandler,
 	timer Timer,
 ) (*Monitor, error) {
-
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if messageHandler == nil || messageHandler.IsInterfaceNil() {
+	if check.IfNil(messageHandler) {
 		return nil, ErrNilMessageHandler
 	}
-	if storer == nil || storer.IsInterfaceNil() {
+	if check.IfNil(storer) {
 		return nil, ErrNilHeartbeatStorer
 	}
-	if timer == nil || timer.IsInterfaceNil() {
+	if check.IfNil(timer) {
 		return nil, ErrNilTimer
 	}
 
@@ -92,8 +91,8 @@ func NewMonitor(
 }
 
 func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string) error {
-	pubKeysMapCopy := make(map[uint32][]string, 0)
-	pubKeysToSave := make(map[string]*heartbeatMessageInfo, 0)
+	pubKeysMapCopy := make(map[uint32][]string)
+	pubKeysToSave := make(map[string]*heartbeatMessageInfo)
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
 			e := m.initializeHeartBeatForPK(pubkey, shardId, pubKeysToSave, pubKeysMapCopy)
@@ -346,10 +345,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *Monitor) IsInterfaceNil() bool {
-	if m == nil {
-		return true
-	}
-	return false
+	return m == nil
 }
 
 func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {

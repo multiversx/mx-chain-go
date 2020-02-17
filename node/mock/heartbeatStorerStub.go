@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
+// HeartbeatStorerStub -
 type HeartbeatStorerStub struct {
 	LoadGenesisTimeCalled   func() (time.Time, error)
 	UpdateGenesisTimeCalled func(genesisTime time.Time) error
@@ -15,30 +16,37 @@ type HeartbeatStorerStub struct {
 	SaveKeysCalled          func(peersSlice [][]byte) error
 }
 
+// LoadGenesisTime -
 func (hss *HeartbeatStorerStub) LoadGenesisTime() (time.Time, error) {
 	return hss.LoadGenesisTimeCalled()
 }
 
+// UpdateGenesisTime -
 func (hss *HeartbeatStorerStub) UpdateGenesisTime(genesisTime time.Time) error {
 	return hss.UpdateGenesisTimeCalled(genesisTime)
 }
 
+// LoadHbmiDTO -
 func (hss *HeartbeatStorerStub) LoadHbmiDTO(pubKey string) (*heartbeat.HeartbeatDTO, error) {
 	return hss.LoadHbmiDTOCalled(pubKey)
 }
 
+// SavePubkeyData -
 func (hss *HeartbeatStorerStub) SavePubkeyData(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
 	return hss.SavePubkeyDataCalled(pubkey, heartbeat)
 }
 
+// LoadKeys -
 func (hss *HeartbeatStorerStub) LoadKeys() ([][]byte, error) {
 	return hss.LoadKeysCalled()
 }
 
+// SaveKeys -
 func (hss *HeartbeatStorerStub) SaveKeys(peersSlice [][]byte) error {
 	return hss.SaveKeysCalled(peersSlice)
 }
 
+// IsInterfaceNil -
 func (hss *HeartbeatStorerStub) IsInterfaceNil() bool {
 	return false
 }
