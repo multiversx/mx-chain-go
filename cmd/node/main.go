@@ -879,6 +879,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		err = rm.Close()
 		log.LogIfError(err)
 	}
+
+	log.Info("closing network connections...")
+	err = networkComponents.NetMessenger.Close()
+	log.LogIfError(err)
+
 	return nil
 }
 
