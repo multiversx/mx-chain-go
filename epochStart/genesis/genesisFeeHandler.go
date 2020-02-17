@@ -14,6 +14,16 @@ func NewGenesisFeeHandler() *feeHandler {
 	return &feeHandler{}
 }
 
+// DeveloperPercentage -
+func (f *feeHandler) DeveloperPercentage() float64 {
+	return 0
+}
+
+// MinGasPrice -
+func (f *feeHandler) MinGasPrice() uint64 {
+	return 0
+}
+
 // MaxGasLimitPerBlock -
 func (f *feeHandler) MaxGasLimitPerBlock() uint64 {
 	return math.MaxUint64

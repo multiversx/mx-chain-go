@@ -120,7 +120,7 @@ func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
 
 //------- JournalEntryOwnerAddress
 
-// JournalEntryOwnerAddress is used to revert an owner change
+// JournalEntryOwnerAddress is used to revert an owner address change
 type JournalEntryOwnerAddress struct {
 	account         *Account
 	oldOwnerAddress []byte

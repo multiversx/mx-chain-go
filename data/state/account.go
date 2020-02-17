@@ -216,7 +216,6 @@ func (a *Account) AddToDeveloperReward(value *big.Int) error {
 	newDeveloperReward := big.NewInt(0).Add(a.DeveloperReward, value)
 	err := a.setDeveloperRewardWithJournal(newDeveloperReward)
 	if err != nil {
-		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
 		return err
 	}
 
@@ -232,7 +231,6 @@ func (a *Account) AddToBalance(value *big.Int) error {
 
 	err := a.SetBalanceWithJournal(newBalance)
 	if err != nil {
-		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
 		return err
 	}
 
