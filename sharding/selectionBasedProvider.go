@@ -85,11 +85,11 @@ func (sbp *SelectionBasedProvider) computeRandomnessAsUint64(randomness []byte, 
 }
 
 func (sbp *SelectionBasedProvider) adjustIndex(index uint64) uint64 {
-	for sliceIdx := 0; sliceIdx < len(sbp.sortedSlice); sliceIdx++ {
-		if uint64(sbp.sortedSlice[sliceIdx].startIndex) > index {
+	for _, entry := range sbp.sortedSlice {
+		if uint64(entry.startIndex) > index {
 			break
 		}
-		index += uint64(sbp.sortedSlice[sliceIdx].numAppearances)
+		index += uint64(entry.numAppearances)
 	}
 
 	return index

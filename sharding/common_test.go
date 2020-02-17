@@ -70,14 +70,7 @@ func TestComputeStartIndexAndNumAppearancesForValidator(t *testing.T) {
 
 // ------------- comparison between the selection algorithm and an algorithm which actually does reslicing
 
-type reslicingBasedProvider struct {
-}
-
-func NewReslicingBasedProvider() *reslicingBasedProvider {
-	return &reslicingBasedProvider{}
-}
-
-func (rbp *reslicingBasedProvider) Get(randomness []byte, numVal int64, expEligibleList []Validator) ([]Validator, error) {
+func GetValidatorsByReslicing(randomness []byte, numVal int64, expEligibleList []Validator) ([]Validator, error) {
 	expEligibleListClone := make([]Validator, len(expEligibleList))
 	copy(expEligibleListClone, expEligibleList)
 
@@ -124,8 +117,7 @@ func TestBoth(t *testing.T) {
 }
 
 func testWithReslicing(rand []byte, numVals int, expElList []Validator) []Validator {
-	rbp := NewReslicingBasedProvider()
-	res1, _ := rbp.Get(rand, int64(numVals), expElList)
+	res1, _ := GetValidatorsByReslicing(rand, int64(numVals), expElList)
 	return res1
 }
 

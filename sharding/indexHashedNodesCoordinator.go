@@ -111,7 +111,7 @@ func (ihgs *indexHashedNodesCoordinator) GetNodesPerShard() map[uint32][]Validat
 // is added to the validators group. Based on that slice, it will simulate a reslicing after each time a validator
 // is chosen. It has the same effect like removing all the appearances from the expanded eligible list (in order to avoid
 // choosing a validators twice), but has proven to be more efficient on smaller sets of data
-// 4. the returned slice will be saved into the temp validator list
+// 3. the returned slice will be saved into the temp validator list
 func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	randomness []byte,
 	round uint64,

@@ -50,6 +50,7 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 	lastIndex := sbp.sortedSlice[0].startIndex
 	for i := 1; i < len(sbp.sortedSlice); i++ {
 		if sbp.sortedSlice[i].startIndex < lastIndex {
+			lastIndex = sbp.sortedSlice[i].startIndex
 			assert.Fail(t, "slice is not sorted.")
 		}
 	}
