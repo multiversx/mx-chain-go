@@ -572,7 +572,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 
 	acntDst.SetCode(nil)
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
-	assert.Equal(t, process.ErrNilSCDestAccount, err)
+	assert.Nil(t, err)
 
 	acntDst = nil
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
