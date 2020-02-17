@@ -863,14 +863,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	go mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 
-	metaBlocksPool := mp.dataPool.Headers()
-	if metaBlocksPool == nil {
-		err = process.ErrNilMetaBlocksPool
-		return err
-	}
-
-	metaBlocksPool.RemoveHeaderByHash(headerHash)
-
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
@@ -950,10 +942,11 @@ func (mp *metaProcessor) CommitBlock(
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
-	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), chainHandler.GetCurrentBlockHeader(), chainHandler.GetCurrentBlockHeaderHash())
+	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(chainHandler)
+	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderForShard(shardID)
+		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderByShard(shardID)
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
@@ -1013,7 +1006,7 @@ func (mp *metaProcessor) CommitBlock(
 		"headers pool capacity", mp.dataPool.Headers().MaxSize(),
 	)
 
-	go mp.cleanupPools(headerHandler, mp.dataPool.Headers())
+	go mp.cleanupPools(headerHandler)
 
 	return nil
 }
@@ -1032,7 +1025,7 @@ func (mp *metaProcessor) commitAll() error {
 	return nil
 }
 
-func (mp *metaProcessor) getLastSelfNotarizedHeaderForShard(_ uint32) (data.HeaderHandler, []byte) {
+func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.HeaderHandler, []byte) {
 	//TODO: Implement mechanism to extract last meta header notarized by the given shard if this info will be needed later
 	return nil, nil
 }
