@@ -33,7 +33,7 @@ VERSION:
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
-		Name:  "nodesSetup-file",
+		Name:  "nodes-setup-file",
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
 		Value: "./config/nodesSetup.json",
 	}
@@ -57,31 +57,31 @@ VERSION:
 	}
 	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
 	configurationEconomicsFile = cli.StringFlag{
-		Name:  "configEconomics",
+		Name:  "config-economics",
 		Usage: "The economics configuration file to load",
 		Value: "./config/economics.toml",
 	}
 	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
 	configurationPreferencesFile = cli.StringFlag{
-		Name:  "configPreferences",
+		Name:  "config-preferences",
 		Usage: "The preferences configuration file to load",
 		Value: "./config/prefs.toml",
 	}
 	// externalConfigFile defines a flag for the path to the external toml configuration file
 	externalConfigFile = cli.StringFlag{
-		Name:  "configExternal",
+		Name:  "config-external",
 		Usage: "The external configuration file to load",
 		Value: "./config/external.toml",
 	}
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
-		Name:  "p2pconfig",
+		Name:  "p2p-config",
 		Usage: "The configuration file for P2P",
 		Value: "./config/p2p.toml",
 	}
 	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
 	gasScheduleConfigurationFile = cli.StringFlag{
-		Name:  "gasCostsConfig",
+		Name:  "gas-costs-config",
 		Usage: "The configuration file for gas costs used in SmartContract execution",
 		Value: "./config/gasSchedule.toml",
 	}
@@ -167,14 +167,14 @@ VERSION:
 
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
-		Name:  "initialBalancesSkPemFile",
+		Name:  "initial-balances-sk-pem-file",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialBalancesSk.pem",
 	}
 
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
-		Name:  "initialNodesSkPemFile",
+		Name:  "initial-nodes-sk-pem-file",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
