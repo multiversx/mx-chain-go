@@ -5,6 +5,5 @@ package marshal
 // all registered marshalizers
 var MarshalizersAvailableForTesting = map[string]Marshalizer{
 	"json":     &JsonMarshalizer{},
-	"capnp":    &CapnpMarshalizer{},
 	"protobuf": &ProtobufMarshalizer{},
 }

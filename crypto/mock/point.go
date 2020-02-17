@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// PointMock represents a mock implementation for a Point
 type PointMock struct {
 	X int
 	Y int

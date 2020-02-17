@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -34,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -48,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -57,6 +60,7 @@ import (
 
 const (
 	defaultStatsPath      = "stats"
+	defaultLogsPath       = "logs"
 	defaultDBPath         = "db"
 	defaultEpochString    = "Epoch"
 	defaultStaticDbString = "Static"
@@ -236,9 +240,14 @@ VERSION:
 	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
-		Name:  "logLevel",
+		Name:  "log-level",
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
+	}
+	//logFile is used when the log output needs to be logged in a file
+	logSaveFile = cli.BoolFlag{
+		Name:  "log-save",
+		Usage: "Will automatically log into a file",
 	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
@@ -346,6 +355,7 @@ func main() {
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
+		logSaveFile,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
@@ -377,17 +387,31 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
 		return kyber.NewSuitePairingBn256(), nil
-	case factory.BnConsensusType:
-		return kyber.NewBlakeSHA256Ed25519(), nil
+	default:
+		return nil, errors.New("no consensus provided in config file")
 	}
-
-	return nil, errors.New("no consensus provided in config file")
 }
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-	logLevel := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevel)
+	workingDir := getWorkingDir(ctx, log)
+
+	var err error
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
+	if withLogFile {
+		var fileForLogs *os.File
+		fileForLogs, err = prepareLogFile(workingDir)
+		if err != nil {
+			return fmt.Errorf("%w creating a log file", err)
+		}
+
+		defer func() {
+			_ = fileForLogs.Close()
+		}()
+	}
+
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -407,7 +431,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 	}
-	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -507,18 +531,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var workingDir = ""
-	if ctx.IsSet(workingDirectory.Name) {
-		workingDir = ctx.GlobalString(workingDirectory.Name)
-	} else {
-		workingDir, err = os.Getwd()
-		if err != nil {
-			log.LogIfError(err)
-			workingDir = ""
-		}
-	}
-	log.Trace("working directory", "path", workingDir)
-
 	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
 	pathTemplateForPruningStorer := filepath.Join(
@@ -542,8 +554,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
 			defaultDBPath)
@@ -626,7 +638,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -675,7 +687,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	statsFile := filepath.Join(workingDir, defaultStatsPath, "session.info")
+	statsFolder := filepath.Join(workingDir, defaultStatsPath)
+	copyConfigToStatsFolder(
+		statsFolder,
+		[]string{
+			configurationFileName,
+			configurationEconomicsFileName,
+			configurationPreferencesFileName,
+			p2pConfigurationFileName,
+			configurationFileName,
+			ctx.GlobalString(genesisFile.Name),
+			ctx.GlobalString(nodesFile.Name),
+		})
+
+	statsFile := filepath.Join(statsFolder, "session.info")
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
@@ -744,6 +769,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTrieConfig.RoundsModulus,
+		generalConfig.GeneralSettings.MaxComputableRounds,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -865,17 +891,103 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	err = coreComponents.Trie.ClosePersister()
-	log.LogIfError(err)
-
-	err = stateComponents.PeerAccounts.ClosePersister()
-	log.LogIfError(err)
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
 
 	if rm != nil {
 		err = rm.Close()
 		log.LogIfError(err)
 	}
+
+	log.Info("closing network connections...")
+	err = networkComponents.NetMessenger.Close()
+	log.LogIfError(err)
+
 	return nil
+}
+
+func copyConfigToStatsFolder(statsFolder string, configs []string) {
+	for _, configFile := range configs {
+		copySingleFile(statsFolder, configFile)
+	}
+}
+
+func copySingleFile(folder string, configFile string) {
+	fileName := filepath.Base(configFile)
+
+	source, err := core.OpenFile(configFile)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := source.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	destPath := filepath.Join(folder, fileName)
+	destination, err := os.Create(destPath)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := destination.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	_, err = io.Copy(destination, source)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+	}
+}
+
+func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
+	var workingDir string
+	var err error
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
+	}
+	log.Trace("working directory", "path", workingDir)
+
+	return workingDir
+}
+
+func prepareLogFile(workingDir string) (*os.File, error) {
+	logDirectory := filepath.Join(workingDir, defaultLogsPath)
+	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	//we need this function as to close file.Close() when the code panics and the defer func associated
+	//with the file pointer in the main func will never be reached
+	runtime.SetFinalizer(fileForLog, func(f *os.File) {
+		_ = f.Close()
+	})
+
+	err = redirects.RedirectStderr(fileForLog)
+	if err != nil {
+		return nil, err
+	}
+
+	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
+	if err != nil {
+		return nil, fmt.Errorf("%w adding file log observer", err)
+	}
+
+	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
@@ -1012,9 +1124,9 @@ func createNodesCoordinator(
 	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
+			validator, errNewValidator := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if errNewValidator != nil {
+				return nil, errNewValidator
 			}
 
 			validators = append(validators, validator)
@@ -1027,6 +1139,10 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	consensusGroupCache, err := lrucache.NewCache(25000)
+	if err != nil {
+		return nil, err
+	}
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1035,6 +1151,7 @@ func createNodesCoordinator(
 		NbShards:                nbShards,
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     consensusGroupCache,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1194,6 +1311,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithChainID(core.ChainID),
 		node.WithBlockTracker(process.BlockTracker),
+		node.WithRequestHandler(process.RequestHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1204,11 +1322,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1218,7 +1338,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}

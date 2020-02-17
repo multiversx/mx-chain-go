@@ -19,6 +19,10 @@ const pkPrefixSize = 12
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
 
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 15000
+
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 2 << 17 //128KB bulks
@@ -199,7 +203,25 @@ const MetricLeaderPercentage = "erd_metric_leader_percentage"
 const MetricCommunityPercentage = "erd_metric_community_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
-const MetricDenominationCoefficient = "erc_metric_denomination_coefficient"
+const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
+
+//MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
+//current node. The value is provided in percent (0 meaning it has been received just after the round started and
+//100 meaning that the block has been received in the last moment of the round)
+const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
+
+//MetricCreatedProposedBlock is the metric that specify the percent of the block subround used for header and body
+//creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
+//subround spare duration)
+const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
+
+//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+//processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
+//subround spare duration)
+const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
+
+// MegabyteSize represents the size in bytes of a megabyte
+const MegabyteSize = 1024 * 1024
 
 // MetricP2pPeerInfo is the metric for the node's p2p info
 const MetricP2pPeerInfo = "erd_p2p_peer_info"

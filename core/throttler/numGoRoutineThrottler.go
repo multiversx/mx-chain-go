@@ -42,8 +42,5 @@ func (ngrt *NumGoRoutineThrottler) EndProcessing() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ngrt *NumGoRoutineThrottler) IsInterfaceNil() bool {
-	if ngrt == nil {
-		return true
-	}
-	return false
+	return ngrt == nil
 }

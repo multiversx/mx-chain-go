@@ -1,11 +1,13 @@
 package mock
 
+// ReconnecterStub -
 type ReconnecterStub struct {
 	ReconnectToNetworkCalled func() <-chan struct{}
 	PauseCall                func()
 	ResumeCall               func()
 }
 
+// ReconnectToNetwork -
 func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
 	return rs.ReconnectToNetworkCalled()
 }

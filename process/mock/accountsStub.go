@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// AccountsStub -
 type AccountsStub struct {
 	AddJournalEntryCalled       func(je state.JournalEntry)
 	CommitCalled                func() ([]byte, error)
@@ -30,12 +31,14 @@ type AccountsStub struct {
 
 var errNotImplemented = errors.New("not implemented")
 
+// AddJournalEntry -
 func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
 	if as.AddJournalEntryCalled != nil {
 		as.AddJournalEntryCalled(je)
 	}
 }
 
+// Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {
 	if as.CommitCalled != nil {
 		return as.CommitCalled()
@@ -44,10 +47,12 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 	return nil, errNotImplemented
 }
 
+// ClosePersister -
 func (as *AccountsStub) ClosePersister() error {
 	return nil
 }
 
+// GetAccountWithJournal -
 func (as *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	if as.GetAccountWithJournalCalled != nil {
 		return as.GetAccountWithJournalCalled(addressContainer)
@@ -56,6 +61,7 @@ func (as *AccountsStub) GetAccountWithJournal(addressContainer state.AddressCont
 	return nil, errNotImplemented
 }
 
+// GetExistingAccount -
 func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
 		return as.GetExistingAccountCalled(addressContainer)
@@ -64,6 +70,7 @@ func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContain
 	return nil, errNotImplemented
 }
 
+// HasAccount -
 func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
 	if as.HasAccountStateCalled != nil {
 		return as.HasAccountStateCalled(addressContainer)
@@ -72,6 +79,7 @@ func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (boo
 	return false, errNotImplemented
 }
 
+// JournalLen -
 func (as *AccountsStub) JournalLen() int {
 	if as.JournalLenCalled != nil {
 		return as.JournalLenCalled()
@@ -80,6 +88,7 @@ func (as *AccountsStub) JournalLen() int {
 	return 0
 }
 
+// PutCode -
 func (as *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte) error {
 	if as.PutCodeCalled != nil {
 		return as.PutCodeCalled(accountHandler, code)
@@ -88,6 +97,7 @@ func (as *AccountsStub) PutCode(accountHandler state.AccountHandler, code []byte
 	return errNotImplemented
 }
 
+// RemoveAccount -
 func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
 	if as.RemoveAccountCalled != nil {
 		return as.RemoveAccountCalled(addressContainer)
@@ -96,6 +106,7 @@ func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) e
 	return errNotImplemented
 }
 
+// RemoveCode -
 func (as *AccountsStub) RemoveCode(codeHash []byte) error {
 	if as.RemoveCodeCalled != nil {
 		return as.RemoveCodeCalled(codeHash)
@@ -104,6 +115,7 @@ func (as *AccountsStub) RemoveCode(codeHash []byte) error {
 	return errNotImplemented
 }
 
+// RevertToSnapshot -
 func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
 	if as.RevertToSnapshotCalled != nil {
 		return as.RevertToSnapshotCalled(snapshot)
@@ -112,6 +124,7 @@ func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
 	return errNotImplemented
 }
 
+// SaveJournalizedAccount -
 func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
 	if as.SaveAccountStateCalled != nil {
 		return as.SaveAccountStateCalled(journalizedAccountHandler)
@@ -120,6 +133,7 @@ func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountHandler state.A
 	return errNotImplemented
 }
 
+// SaveDataTrie -
 func (as *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
 	if as.SaveDataTrieCalled != nil {
 		return as.SaveDataTrieCalled(journalizedAccountHandler)
@@ -128,6 +142,7 @@ func (as *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHand
 	return errNotImplemented
 }
 
+// RootHash -
 func (as *AccountsStub) RootHash() ([]byte, error) {
 	if as.RootHashCalled != nil {
 		return as.RootHashCalled()
@@ -136,6 +151,7 @@ func (as *AccountsStub) RootHash() ([]byte, error) {
 	return nil, errNotImplemented
 }
 
+// RecreateTrie -
 func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	if as.RecreateTrieCalled != nil {
 		return as.RecreateTrieCalled(rootHash)
@@ -144,6 +160,7 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
+// PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte) error {
 	if as.PruneTrieCalled != nil {
 		return as.PruneTrieCalled(rootHash)
@@ -152,27 +169,31 @@ func (as *AccountsStub) PruneTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
+// CancelPrune -
 func (as *AccountsStub) CancelPrune(rootHash []byte) {
 	if as.CancelPruneCalled != nil {
 		as.CancelPruneCalled(rootHash)
 	}
 }
 
+// SnapshotState -
 func (as *AccountsStub) SnapshotState(rootHash []byte) {
 	if as.SnapshotStateCalled != nil {
 		as.SnapshotStateCalled(rootHash)
 	}
 }
 
+// SetStateCheckpoint -
 func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
 	if as.SetStateCheckpointCalled != nil {
 		as.SetStateCheckpointCalled(rootHash)
 	}
 }
 
+// IsPruningEnabled -
 func (as *AccountsStub) IsPruningEnabled() bool {
 	if as.IsPruningEnabledCalled != nil {
-		as.IsPruningEnabledCalled()
+		return as.IsPruningEnabledCalled()
 	}
 
 	return false

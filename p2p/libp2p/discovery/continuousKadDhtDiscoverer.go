@@ -108,9 +108,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 			return err
 		}
 
-		opt.BucketSize = int(ckdd.bucketSize)
-		opt.RoutingTable.RefreshPeriod = ckdd.routingTableRefresh
-
 		return nil
 	}
 
@@ -161,6 +158,12 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 		ckdd.initialPeersList,
 	)
 
+	cfg := dht.BootstrapConfig{
+		Period:  ckdd.peersRefreshInterval,
+		Queries: noOfQueries,
+		Timeout: peerDiscoveryTimeout,
+	}
+
 	//TODO(iulian) remove one nested go routine. Refactor the whole function
 	go func() {
 		<-chanStartBootstrap
@@ -173,7 +176,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 
 				var err = error(nil)
 				if kadDht != nil {
-					err = kadDht.Bootstrap(ctx)
+					err = kadDht.BootstrapOnce(ctx, cfg)
 				}
 				if err == kbucket.ErrLookupFailure {
 					<-ckdd.ReconnectToNetwork()

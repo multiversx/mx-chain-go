@@ -10,9 +10,9 @@ import (
 func TestNewStatusMetricsProvider(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetrics()
-	assert.NotNil(t, ndh)
-	assert.False(t, ndh.IsInterfaceNil())
+	sm := statusHandler.NewStatusMetrics()
+	assert.NotNil(t, sm)
+	assert.False(t, sm.IsInterfaceNil())
 }
 
 func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
@@ -38,7 +38,6 @@ func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T
 	sm.Increment(key1)
 
 	retMap := sm.StatusMetricsMap()
-
 	assert.Equal(t, value1, retMap[key1])
 }
 
@@ -94,4 +93,17 @@ func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
 	retMap := sm.StatusMetricsMap()
 
 	assert.Equal(t, value, retMap[key])
+}
+
+func TestStatusMetricsProvider_AddUint64Value(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+	key := "test-key6"
+	value := uint64(100)
+	sm.SetUInt64Value(key, value)
+	sm.AddUint64(key, value)
+
+	retMap := sm.StatusMetricsMap()
+	assert.Equal(t, value+value, retMap[key])
 }

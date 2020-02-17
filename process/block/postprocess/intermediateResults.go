@@ -69,7 +69,7 @@ func NewIntermediateResultsProcessor(
 		currTxs:           currTxs,
 	}
 
-	irp.interResultsForBlock = make(map[string]*txInfo, 0)
+	irp.interResultsForBlock = make(map[string]*txInfo)
 
 	return irp, nil
 }
@@ -91,7 +91,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		irp.currTxs.AddTx([]byte(key), value.tx)
 	}
 
-	finalMBs := make(map[uint32]*block.MiniBlock, 0)
+	finalMBs := make(map[uint32]*block.MiniBlock)
 	for shId, miniblock := range miniBlocks {
 		if len(miniblock.TxHashes) > 0 {
 			miniblock.SenderShardID = irp.shardCoordinator.SelfId()
@@ -101,6 +101,16 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 			sort.Slice(miniblock.TxHashes, func(a, b int) bool {
 				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
+
+			log.Trace("intermediateResultsProcessor.CreateAllInterMiniBlocks",
+				"type", miniblock.Type,
+				"senderShardID", miniblock.SenderShardID,
+				"receiverShardID", miniblock.ReceiverShardID,
+			)
+
+			for _, hash := range miniblock.TxHashes {
+				log.Trace("tx", "hash", hash)
+			}
 
 			finalMBs[shId] = miniblock
 		}

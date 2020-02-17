@@ -2,6 +2,6 @@ package core
 
 import "time"
 
-func (sw *stopWatch) GetContainingDuration() (map[string]time.Duration, []string) {
+func (sw *StopWatch) GetContainingDuration() (map[string]time.Duration, []string) {
 	return sw.getContainingDuration()
 }

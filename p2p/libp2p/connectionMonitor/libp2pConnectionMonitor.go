@@ -46,7 +46,7 @@ func NewLibp2pConnectionMonitor(
 
 	cm := &libp2pConnectionMonitor{
 		reconnecter:                reconnecter,
-		chDoReconnect:              make(chan struct{}, 0),
+		chDoReconnect:              make(chan struct{}),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
 		thresholdDiscoveryResume:   0,
 		thresholdDiscoveryPause:    math.MaxInt32,
@@ -130,10 +130,8 @@ func (lcm *libp2pConnectionMonitor) ClosedStream(network.Network, network.Stream
 
 func (lcm *libp2pConnectionMonitor) doReconnection() {
 	for {
-		select {
-		case <-lcm.chDoReconnect:
-			<-lcm.reconnecter.ReconnectToNetwork()
-		}
+		<-lcm.chDoReconnect
+		<-lcm.reconnecter.ReconnectToNetwork()
 
 		time.Sleep(DurationBetweenReconnectAttempts)
 	}

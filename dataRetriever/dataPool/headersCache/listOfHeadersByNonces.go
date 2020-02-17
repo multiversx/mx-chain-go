@@ -25,11 +25,11 @@ func (hMap listOfHeadersByNonces) appendHeaderToList(headerHash []byte, header d
 	headerNonce := header.GetNonce()
 	headersWithTimestamp := hMap.getListOfHeaders(headerNonce)
 
-	headerDetails := headerDetails{
+	hdrDetails := headerDetails{
 		headerHash: headerHash,
 		header:     header,
 	}
-	headersWithTimestamp.items = append(headersWithTimestamp.items, headerDetails)
+	headersWithTimestamp.items = append(headersWithTimestamp.items, hdrDetails)
 	hMap.setListOfHeaders(headerNonce, headersWithTimestamp)
 }
 

@@ -37,13 +37,13 @@ func GetOrCreate(name string) *logger {
 	logMut.Lock()
 	defer logMut.Unlock()
 
-	logger, ok := loggers[name]
+	loggerFromMap, ok := loggers[name]
 	if !ok {
-		logger = newLogger(name, defaultLogLevel, defaultLogOut)
-		loggers[name] = logger
+		loggerFromMap = newLogger(name, defaultLogLevel, defaultLogOut)
+		loggers[name] = loggerFromMap
 	}
 
-	return logger
+	return loggerFromMap
 }
 
 // SetLogLevel changes the log level of the contained loggers. The expected format is

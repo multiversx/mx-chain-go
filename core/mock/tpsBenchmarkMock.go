@@ -23,8 +23,6 @@ type TpsBenchmarkMock struct {
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
 	shardStatistics       map[uint32]statistics.ShardStatistic
-	missingNonces         map[uint64]struct{}
-	missingNoncesLock     sync.RWMutex
 }
 
 // ActiveNodes returns the number of active nodes
@@ -99,7 +97,7 @@ func (s *TpsBenchmarkMock) ShardStatistic(shardID uint32) statistics.ShardStatis
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmarkMock) Update(mb data.HeaderHandler) {
 	s.blockNumber = mb.GetNonce()
-	s.roundNumber = uint64(mb.GetRound())
+	s.roundNumber = mb.GetRound()
 	s.lastBlockTxCount = mb.GetTxCount()
 	s.roundTime = 6
 
@@ -109,9 +107,10 @@ func (s *TpsBenchmarkMock) Update(mb data.HeaderHandler) {
 	}
 }
 
+// UpdateWithShardStats -
 func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
 	s.blockNumber = mb.Nonce
-	s.roundNumber = uint64(mb.Round)
+	s.roundNumber = mb.Round
 	s.lastBlockTxCount = mb.TxCount
 	s.roundTime = 6
 

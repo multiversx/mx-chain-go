@@ -206,11 +206,9 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 // CreateForMeta will return the storage service which contains all storers needed for metachain
 func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService, error) {
-	var shardDataUnit *pruning.PruningStorer
 	var metaBlockUnit *pruning.PruningStorer
 	var headerUnit *pruning.PruningStorer
 	var txUnit *pruning.PruningStorer
-	var peerDataUnit *pruning.PruningStorer
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var miniBlockUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
@@ -237,20 +235,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metaBlockUnit)
-
-	shardDataUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ShardDataStorage)
-	shardDataUnit, err = pruning.NewPruningStorer(shardDataUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, shardDataUnit)
-
-	peerDataUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerDataStorage)
-	peerDataUnit, err = pruning.NewPruningStorer(peerDataUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, peerDataUnit)
 
 	headerUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BlockHeaderStorage)
 	headerUnit, err = pruning.NewPruningStorer(headerUnitArgs)
@@ -339,8 +323,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
@@ -379,6 +361,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		NumOfEpochsToKeep:     numOfEpochsToKeep,
 		NumOfActivePersisters: numOfActivePersisters,
 		Notifier:              psf.epochStartNotifier,
+		MaxBatchSize:          storageConfig.DB.MaxBatchSize,
 	}
 
 	return args

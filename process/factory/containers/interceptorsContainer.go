@@ -88,8 +88,5 @@ func (ic *interceptorsContainer) Len() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ic *interceptorsContainer) IsInterfaceNil() bool {
-	if ic == nil {
-		return true
-	}
-	return false
+	return ic == nil
 }

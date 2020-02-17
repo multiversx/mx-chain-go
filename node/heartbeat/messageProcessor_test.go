@@ -251,7 +251,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 
 	updatePubKeyWasCalled := false
 	updatePidShardIdCalled := false
-	mon, _ := heartbeat.NewMessageProcessor(
+	mon, err := heartbeat.NewMessageProcessor(
 		singleSigner,
 		keyGen,
 		marshalizer,
@@ -264,6 +264,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 			},
 		},
 	)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,
@@ -386,7 +387,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 		},
 	}
 
-	mon, _ := heartbeat.NewMessageProcessor(
+	mon, err := heartbeat.NewMessageProcessor(
 		singleSigner,
 		keyGen,
 		marshalizer,
@@ -394,6 +395,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 		},
 	)
+	assert.Nil(t, err)
 
 	message := &mock.P2PMessageStub{
 		FromField:      nil,

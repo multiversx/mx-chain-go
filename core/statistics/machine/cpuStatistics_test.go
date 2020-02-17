@@ -17,6 +17,5 @@ func TestCpuStatisticsUsagePercent(t *testing.T) {
 	cpuUsagePercentValue := cs.CpuPercentUsage()
 	fmt.Printf("CPU usage: %d%%\n", cpuUsagePercentValue)
 
-	assert.True(t, cpuUsagePercentValue >= 0)
 	assert.True(t, cpuUsagePercentValue <= 100)
 }

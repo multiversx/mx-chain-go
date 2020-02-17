@@ -8,14 +8,16 @@ import (
 
 var errNotImplemented = errors.New("not implemented")
 
+// HeaderResolverStub -
 type HeaderResolverStub struct {
-	RequestDataFromHashCalled    func(hash []byte) error
+	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RequestDataFromNonceCalled   func(nonce uint64) error
+	RequestDataFromNonceCalled   func(nonce uint64, epoch uint32) error
 	RequestDataFromEpochCalled   func(identifier []byte) error
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 }
 
+// RequestDataFromEpoch -
 func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	if hrs.RequestDataFromEpochCalled != nil {
 		return hrs.RequestDataFromEpochCalled(identifier)
@@ -23,6 +25,7 @@ func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
 	return nil
 }
 
+// SetEpochHandler -
 func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if hrs.SetEpochHandlerCalled != nil {
 		return hrs.SetEpochHandlerCalled(epochHandler)
@@ -30,14 +33,16 @@ func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 	return nil
 }
 
-func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte) error {
+// RequestDataFromHash -
+func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 	if hrs.RequestDataFromHashCalled != nil {
-		return hrs.RequestDataFromHashCalled(hash)
+		return hrs.RequestDataFromHashCalled(hash, epoch)
 	}
 
 	return errNotImplemented
 }
 
+// ProcessReceivedMessage -
 func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
@@ -46,9 +51,10 @@ func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return errNotImplemented
 }
 
-func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64) error {
+// RequestDataFromNonce -
+func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	if hrs.RequestDataFromNonceCalled != nil {
-		return hrs.RequestDataFromNonceCalled(nonce)
+		return hrs.RequestDataFromNonceCalled(nonce, epoch)
 	}
 
 	return errNotImplemented
@@ -56,8 +62,5 @@ func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hrs *HeaderResolverStub) IsInterfaceNil() bool {
-	if hrs == nil {
-		return true
-	}
-	return false
+	return hrs == nil
 }

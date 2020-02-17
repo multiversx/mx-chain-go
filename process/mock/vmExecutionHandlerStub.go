@@ -5,6 +5,7 @@ import (
 	"math/big"
 )
 
+// VMExecutionHandlerStub -
 type VMExecutionHandlerStub struct {
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)

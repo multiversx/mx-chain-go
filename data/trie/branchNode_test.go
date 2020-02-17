@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -79,7 +78,7 @@ func initTrie() *patriciaMerkleTrie {
 	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
 
 	return tr
 }
@@ -1045,7 +1044,8 @@ func TestBranchNode_loadChildren(t *testing.T) {
 
 	marsh, hasher := getTestMarshAndHasher()
 	tr := initTrie()
-	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	_ = tr.root.setRootHash()
+	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 
 	resolver := &mock.TrieNodesResolverStub{
@@ -1062,29 +1062,26 @@ func TestBranchNode_loadChildren(t *testing.T) {
 		syncer.chRcvTrieNodes <- true
 	})
 
-	bnHashPosition := 1
-	firstChildPos := 5
-	firstChildHash := 2
-	secondChildPos := 7
-	secondChildHash := 3
-	encodedChildren := make([][]byte, nrOfChildren)
-	encodedChildren[firstChildPos] = hashes[firstChildHash]
-	encodedChildren[secondChildPos] = hashes[secondChildHash]
-	bn := &branchNode{
-		CollapsedBn: protobuf.CollapsedBn{
-			EncodedChildren: encodedChildren,
-		},
-		baseNode: &baseNode{
-			hash: hashes[bnHashPosition],
-		},
-	}
+	firstChildIndex := 5
+	secondChildIndex := 7
+
+	bn := getCollapsedBn(t, tr.root)
 
 	err := bn.loadChildren(syncer)
 	assert.Nil(t, err)
-	assert.NotNil(t, bn.children[firstChildPos])
-	assert.NotNil(t, bn.children[secondChildPos])
+	assert.NotNil(t, bn.children[firstChildIndex])
+	assert.NotNil(t, bn.children[secondChildIndex])
 
 	assert.Equal(t, 5, nodesCacher.Len())
+}
+
+func getCollapsedBn(t *testing.T, n node) *branchNode {
+	bn, ok := n.(*branchNode)
+	assert.True(t, ok)
+	for i := 0; i < nrOfChildren; i++ {
+		bn.children[i] = nil
+	}
+	return bn
 }
 
 //------- deepClone
@@ -1125,6 +1122,27 @@ func TestBranchNode_deepCloneShouldWork(t *testing.T) {
 	cloned := bn.deepClone().(*branchNode)
 
 	testSameBranchNodeContent(t, bn, cloned)
+}
+
+func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tr, _, _ := newEmptyTrie()
+	_ = tr.Update([]byte("aaa"), []byte("aaa"))
+	_ = tr.Update([]byte("nnn"), []byte("nnn"))
+	_ = tr.Update([]byte("zzz"), []byte("zzz"))
+	_ = tr.Commit()
+
+	tr.root, _ = tr.root.getCollapsed()
+	_ = tr.Delete([]byte("zzz"))
+
+	assert.True(t, tr.root.isDirty())
+	assert.True(t, tr.root.isCollapsed())
+
+	_ = tr.Commit()
+
+	assert.False(t, tr.root.isDirty())
+	assert.True(t, tr.root.isCollapsed())
 }
 
 func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
@@ -1199,15 +1217,6 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = decodeNode(proof[0], marsh, hsh)
-	}
-}
-
-func BenchmarkMarshallNodeCapnp(b *testing.B) {
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
-	marsh := &marshal.CapnpMarshalizer{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = marsh.Marshal(bn)
 	}
 }
 

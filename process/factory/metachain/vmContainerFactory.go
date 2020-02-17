@@ -10,7 +10,7 @@ import (
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContainerFactory struct {
@@ -95,8 +95,5 @@ func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContain
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmf *vmContainerFactory) IsInterfaceNil() bool {
-	if vmf == nil {
-		return true
-	}
-	return false
+	return vmf == nil
 }

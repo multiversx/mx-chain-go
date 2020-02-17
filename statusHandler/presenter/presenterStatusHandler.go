@@ -31,10 +31,7 @@ func NewPresenterStatusHandler() *PresenterStatusHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (psh *PresenterStatusHandler) IsInterfaceNil() bool {
-	if psh == nil {
-		return true
-	}
-	return false
+	return psh == nil
 }
 
 // SetInt64Value method - will update the value for a key

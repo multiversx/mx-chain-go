@@ -2,6 +2,7 @@ package mock
 
 import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
+// VMContainerMock -
 type VMContainerMock struct {
 	GetCalled         func(key []byte) (vmcommon.VMExecutionHandler, error)
 	AddCalled         func(key []byte, val vmcommon.VMExecutionHandler) error
@@ -12,59 +13,63 @@ type VMContainerMock struct {
 	KeysCalled        func() [][]byte
 }
 
-func (V *VMContainerMock) Get(key []byte) (vmcommon.VMExecutionHandler, error) {
-	if V.GetCalled == nil {
+// Get -
+func (v *VMContainerMock) Get(key []byte) (vmcommon.VMExecutionHandler, error) {
+	if v.GetCalled == nil {
 		return &VMExecutionHandlerStub{}, nil
 	}
-	return V.GetCalled(key)
+	return v.GetCalled(key)
 }
 
-func (V *VMContainerMock) Add(key []byte, val vmcommon.VMExecutionHandler) error {
-	if V.AddCalled == nil {
+// Add -
+func (v *VMContainerMock) Add(key []byte, val vmcommon.VMExecutionHandler) error {
+	if v.AddCalled == nil {
 		return nil
 	}
-	return V.AddCalled(key, val)
+	return v.AddCalled(key, val)
 }
 
-func (V *VMContainerMock) AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error {
-	if V.AddMultipleCalled == nil {
+// AddMultiple -
+func (v *VMContainerMock) AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error {
+	if v.AddMultipleCalled == nil {
 		return nil
 	}
-	return V.AddMultipleCalled(keys, vms)
+	return v.AddMultipleCalled(keys, vms)
 }
 
-func (V *VMContainerMock) Replace(key []byte, val vmcommon.VMExecutionHandler) error {
-	if V.ReplaceCalled == nil {
+// Replace -
+func (v *VMContainerMock) Replace(key []byte, val vmcommon.VMExecutionHandler) error {
+	if v.ReplaceCalled == nil {
 		return nil
 	}
-	return V.ReplaceCalled(key, val)
+	return v.ReplaceCalled(key, val)
 }
 
-func (V *VMContainerMock) Remove(key []byte) {
-	if V.RemoveCalled == nil {
+// Remove -
+func (v *VMContainerMock) Remove(key []byte) {
+	if v.RemoveCalled == nil {
 		return
 	}
-	V.RemoveCalled(key)
+	v.RemoveCalled(key)
 }
 
-func (V *VMContainerMock) Len() int {
-	if V.LenCalled == nil {
+// Len -
+func (v *VMContainerMock) Len() int {
+	if v.LenCalled == nil {
 		return 0
 	}
-	return V.LenCalled()
+	return v.LenCalled()
 }
 
-func (V *VMContainerMock) Keys() [][]byte {
-	if V.KeysCalled == nil {
+// Keys -
+func (v *VMContainerMock) Keys() [][]byte {
+	if v.KeysCalled == nil {
 		return nil
 	}
-	return V.KeysCalled()
+	return v.KeysCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (V *VMContainerMock) IsInterfaceNil() bool {
-	if V == nil {
-		return true
-	}
-	return false
+func (v *VMContainerMock) IsInterfaceNil() bool {
+	return v == nil
 }

@@ -24,7 +24,6 @@ type txProcessor struct {
 	marshalizer      marshal.Marshalizer
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
-	shardCoordinator sharding.Coordinator
 	receiptForwarder process.IntermediateTransactionHandler
 	badTxForwarder   process.IntermediateTransactionHandler
 }
@@ -113,6 +112,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return err
 	}
 
+	process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
+
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -189,6 +190,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 	if err != nil {
 		return err
 	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return process.ErrFailedTransaction
 }

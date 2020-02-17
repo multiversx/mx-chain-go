@@ -3,15 +3,46 @@ package bls_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
 var chainID = []byte("chain ID")
+
+const roundTimeDuration = 100 * time.Millisecond
+
+const processingThresholdPercent = 85
+
+const (
+	// SrStartRound defines ID of subround "Start round"
+	SrStartRound = iota
+	// SrBlock defines ID of subround "block"
+	SrBlock
+	// SrCommitmentHash defines ID of subround "commitment hash"
+	SrCommitmentHash
+	// SrBitmap defines ID of subround "bitmap"
+	SrBitmap
+	// SrCommitment defines ID of subround "commitment"
+	SrCommitment
+	// SrSignature defines ID of subround "signature"
+	SrSignature
+)
+
+const (
+	// MtBlockBody defines ID of a message that has a block body inside
+	MtBlockBody = iota
+	// MtBlockHeader defines ID of a message that has a block header inside
+	MtBlockHeader
+)
+
+func displayStatistics() {
+}
 
 func extend(subroundId int) {
 	fmt.Println(subroundId)
@@ -19,6 +50,18 @@ func extend(subroundId int) {
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
+}
+
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex: 0,
+		TimeStampCalled: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
+	}
 }
 
 func initWorker() spos.WorkerHandler {
@@ -56,7 +99,10 @@ func initFactory() bls.Factory {
 func TestFactory_GetMessageTypeName(t *testing.T) {
 	t.Parallel()
 
-	r := bls.GetStringValue(bls.MtBlockBody)
+	r := bls.GetStringValue(bls.MtBlockBodyAndHeader)
+	assert.Equal(t, "(BLOCK_BODY_AND_HEADER)", r)
+
+	r = bls.GetStringValue(bls.MtBlockBody)
 	assert.Equal(t, "(BLOCK_BODY)", r)
 
 	r = bls.GetStringValue(bls.MtBlockHeader)
@@ -64,6 +110,9 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 
 	r = bls.GetStringValue(bls.MtSignature)
 	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bls.GetStringValue(bls.MtBlockHeaderFinalInfo)
+	assert.Equal(t, "(FINAL_INFO)", r)
 
 	r = bls.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
@@ -337,7 +386,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 
 	fct := *initFactory()
 
-	assert.NotNil(t, fct)
+	assert.False(t, check.IfNil(&fct))
 }
 
 func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
@@ -474,4 +523,39 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	_ = fct.GenerateSubrounds()
 
 	assert.Equal(t, 4, subroundHandlers)
+}
+
+func TestFactory_SetAppStatusHandlerNilStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	err := fct.SetAppStatusHandler(nil)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestFactory_SetAppStatusHandlerOkStatusHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	ash := &mock.AppStatusHandlerMock{}
+	err := fct.SetAppStatusHandler(ash)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ash, fct.AppStatusHandler())
+}
+
+func TestFactory_SetIndexerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	fct := *initFactoryWithContainer(container)
+
+	indexer := &mock.IndexerMock{}
+	fct.SetIndexer(indexer)
+
+	assert.Equal(t, indexer, fct.Indexer())
 }

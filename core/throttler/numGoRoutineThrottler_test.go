@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,8 +32,8 @@ func TestNewNumGoRoutineThrottler_ShouldWork(t *testing.T) {
 
 	nt, err := throttler.NewNumGoRoutineThrottler(1)
 
-	assert.NotNil(t, nt)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(nt))
 }
 
 func TestNumGoRoutineThrottler_CanProcessMessageWithZeroCounter(t *testing.T) {
