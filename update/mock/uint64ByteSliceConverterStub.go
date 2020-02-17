@@ -1,13 +1,13 @@
 package mock
 
-// Uint64ByteSliceConverterMock converts byte slice to/from uint64
-type Uint64ByteSliceConverterMock struct {
+// Uint64ByteSliceConverterStub converts byte slice to/from uint64
+type Uint64ByteSliceConverterStub struct {
 	ToByteSliceCalled func(uint64) []byte
 	ToUint64Called    func([]byte) (uint64, error)
 }
 
 // ToByteSlice is a mock implementation for Uint64ByteSliceConverter
-func (u *Uint64ByteSliceConverterMock) ToByteSlice(p uint64) []byte {
+func (u *Uint64ByteSliceConverterStub) ToByteSlice(p uint64) []byte {
 	if u.ToByteSliceCalled == nil {
 		return []byte("")
 	}
@@ -15,7 +15,7 @@ func (u *Uint64ByteSliceConverterMock) ToByteSlice(p uint64) []byte {
 }
 
 // ToUint64 is a mock implementation for Uint64ByteSliceConverter
-func (u *Uint64ByteSliceConverterMock) ToUint64(p []byte) (uint64, error) {
+func (u *Uint64ByteSliceConverterStub) ToUint64(p []byte) (uint64, error) {
 	if u.ToUint64Called == nil {
 		return 0, nil
 	}
@@ -23,6 +23,6 @@ func (u *Uint64ByteSliceConverterMock) ToUint64(p []byte) (uint64, error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (u *Uint64ByteSliceConverterMock) IsInterfaceNil() bool {
+func (u *Uint64ByteSliceConverterStub) IsInterfaceNil() bool {
 	return u == nil
 }

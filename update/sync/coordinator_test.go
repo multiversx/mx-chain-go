@@ -3,11 +3,11 @@ package sync
 import (
 	"encoding/json"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -186,7 +186,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
-		Headers: &mock.HeaderSyncHandlerMock{
+		Headers: &mock.HeaderSyncHandlerStub{
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
@@ -215,7 +215,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
-		Headers: &mock.HeaderSyncHandlerMock{
+		Headers: &mock.HeaderSyncHandlerStub{
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
@@ -244,7 +244,7 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 
 	localErr := errors.New("err")
 	args := ArgsNewSyncState{
-		Headers: &mock.HeaderSyncHandlerMock{
+		Headers: &mock.HeaderSyncHandlerStub{
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},

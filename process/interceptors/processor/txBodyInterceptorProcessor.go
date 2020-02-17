@@ -93,15 +93,6 @@ func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBl
 }
 
 func (tbip *TxBodyInterceptorProcessor) checkMiniblock(_ *block.MiniBlock) error {
-	//TODO check for whitelisting
-	// already implemented in intercepted data IsForCurrentShard
-	//isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
-	//isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
-	//isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender
-	//if !isForCurrentShard {
-	//	return process.ErrMiniblockNotForCurrentShard
-	//}
-
 	return nil
 }
 

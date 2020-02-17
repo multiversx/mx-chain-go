@@ -153,8 +153,8 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 		return nil, update.ErrWrongUnfinishedMetaHdrsMap
 	}
 
-	firstUnFinishedNonce := firstPendingMeta.GetNonce() + 1
-	for nonce := firstUnFinishedNonce; nonce <= epochStartNonce; nonce++ {
+	firstUnFinishedNonce := firstPendingMeta.GetNonce()
+	for nonce := firstUnFinishedNonce + 1; nonce <= epochStartNonce; nonce++ {
 		metaHash, ok := nonceToHash[nonce]
 		if !ok {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap

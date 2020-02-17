@@ -1,9 +1,9 @@
 package sync
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
 )

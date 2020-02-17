@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"sync"
 	"testing"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("integrationTests/hardfork")
@@ -79,24 +79,21 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	time.Sleep(time.Second)
 
 	epoch := uint32(1)
-	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	verifyIfNodesHaveCorrectEpoch(t, epoch, nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	createHardForkExporter(t, nodes)
 
 	_ = logger.SetLogLevel("*:TRACE")
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(nodes))
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
 		err := node.ExportHandler.ExportAll(1)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
-		wg.Done()
 	}
-	wg.Wait()
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
@@ -157,11 +154,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
@@ -173,18 +166,16 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	verifyIfNodesHaveCorrectEpoch(t, epoch, nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	createHardForkExporter(t, nodes)
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(nodes))
 	for _, node := range nodes {
 		err := node.ExportHandler.ExportAll(2)
 		assert.Nil(t, err)
 	}
-	wg.Wait()
 }
 
 func createHardForkExporter(
@@ -238,30 +229,33 @@ func createHardForkExporter(
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
 		assert.Nil(t, err)
-		assert.NotNil(t, exportHandler)
+		require.NotNil(t, exportHandler)
 
 		node.ExportHandler, err = exportHandler.Create()
 		assert.Nil(t, err)
-		assert.NotNil(t, node.ExportHandler)
+		require.NotNil(t, node.ExportHandler)
 	}
 }
 
-func verifyIfNodesHasCorrectEpoch(
+func verifyIfNodesHaveCorrectEpoch(
 	t *testing.T,
 	epoch uint32,
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for _, node := range nodes {
-		currentShId := node.ShardCoordinator.SelfId()
 		currentHeader := node.BlockChain.GetCurrentBlockHeader()
 		assert.Equal(t, epoch, currentHeader.GetEpoch())
+	}
+}
 
-		for _, testNode := range nodes {
-			if testNode.ShardCoordinator.SelfId() == currentShId {
-				testHeader := testNode.BlockChain.GetCurrentBlockHeader()
-				assert.Equal(t, testHeader.GetNonce(), currentHeader.GetNonce())
-			}
-		}
+func verifyIfNodesHaveCorrectNonce(
+	t *testing.T,
+	nonce uint64,
+	nodes []*integrationTests.TestProcessorNode,
+) {
+	for _, node := range nodes {
+		currentHeader := node.BlockChain.GetCurrentBlockHeader()
+		assert.Equal(t, nonce, currentHeader.GetNonce())
 	}
 }
 
@@ -288,7 +282,7 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 					assert.Fail(t, "wrong type in shard header pool")
 				}
 
-				assert.Equal(t, header.GetEpoch(), currentMetaHdr.GetEpoch())
+				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}
 
@@ -298,7 +292,7 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 			shardHeader := block.Header{}
 			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
 			assert.Nil(t, err)
-			assert.Equal(t, shardHeader.Epoch, currentMetaHdr.Epoch)
+			assert.Equal(t, shardHeader.GetEpoch(), currentMetaHdr.GetEpoch())
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"math"
 	"sync"
 	"time"
@@ -10,11 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+const waitTimeForHeaders = time.Minute
 
 type headersToSync struct {
 	mutMeta                sync.Mutex
@@ -141,19 +143,19 @@ func (h *headersToSync) receivedMetaBlockFirstPending(headerHandler data.HeaderH
 		return
 	}
 
-	meta, ok := headerHandler.(*block.MetaBlock)
+	metaHeader, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		h.mutMeta.Unlock()
 		return
 	}
 
-	if _, ok := h.missingMetaBlocks[string(hash)]; !ok {
+	if _, ok = h.missingMetaBlocks[string(hash)]; !ok {
 		h.mutMeta.Unlock()
 		return
 	}
 
 	delete(h.missingMetaBlocks, string(hash))
-	h.firstPendingMetaBlocks[string(hash)] = meta
+	h.firstPendingMetaBlocks[string(hash)] = metaHeader
 
 	if len(h.missingMetaBlocks) > 0 {
 		h.mutMeta.Unlock()
@@ -177,7 +179,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 		return
 	}
 
-	if _, ok := h.missingMetaNonces[meta.GetNonce()]; !ok {
+	if _, ok = h.missingMetaNonces[meta.GetNonce()]; !ok {
 		h.mutMeta.Unlock()
 		return
 	}
@@ -197,17 +199,17 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 
 // SyncUnFinishedMetaHeaders syncs and validates all the unfinished metaHeaders for each shard
 func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
-	err := h.syncEpochStartMetaHeader(epoch, time.Minute)
+	err := h.syncEpochStartMetaHeader(epoch, waitTimeForHeaders)
 	if err != nil {
 		return err
 	}
 
-	err = h.syncFirstPendingMetaBlocks(time.Minute)
+	err = h.syncFirstPendingMetaBlocks(waitTimeForHeaders)
 	if err != nil {
 		return err
 	}
 
-	err = h.syncAllNeededMetaHeaders(time.Minute)
+	err = h.syncAllNeededMetaHeaders(waitTimeForHeaders)
 	if err != nil {
 		return err
 	}
@@ -356,7 +358,7 @@ func (h *headersToSync) lowestPendingNonceFrom(metaBlocks map[string]*block.Meta
 	return lowestNonce
 }
 
-// GetMetaBlock returns the synced metablock
+// GetEpochStartMetaBlock returns the synced epoch start metaBlock
 func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	h.mutMeta.Lock()
 	meta := h.epochStartMetaBlock

@@ -1676,13 +1676,10 @@ func proposeBlocks(
 	}
 }
 
+// WaitOperationToBeDone -
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
-		UpdateRound(nodes, round)
-		ProposeBlock(nodes, idxProposers, round, nonce)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
-		nonce++
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
 	return nonce, round
