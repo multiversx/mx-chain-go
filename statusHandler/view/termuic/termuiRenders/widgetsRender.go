@@ -144,7 +144,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[4] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
+	rows[4] = []string{fmt.Sprintf("Blocks accepted / blocks proposed:  %d / %d", countAcceptedBlocks, countLeader)}
 
 	switch instanceType {
 	case string(core.NodeTypeValidator):
@@ -262,7 +262,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
 
 	currentBlockHash := wr.presenter.GetCurrentBlockHash()
-	rows[3] = []string{fmt.Sprintf("Current block hash : %s", currentBlockHash)}
+	rows[3] = []string{fmt.Sprintf("Current block hash: %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
@@ -291,7 +291,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[7] = []string{fmt.Sprintf("Current round timestamp : %d", currentRoundTimestamp)}
+	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
 	wr.blockInfo.Title = "Block info"
 	wr.blockInfo.RowSeparator = false
