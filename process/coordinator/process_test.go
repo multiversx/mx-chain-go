@@ -1367,7 +1367,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	}
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
-	assert.Equal(t, int(nrShards), len(mbs))
+	assert.Equal(t, 1, len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
 	assert.Equal(t, 5, len(usedTxs))

@@ -1048,6 +1048,7 @@ func createDataPoolFromConfig(args *dataComponentsFactoryArgs) (dataRetriever.Po
 		Config:         storageFactory.GetCacherFromConfig(configs.TxDataPool),
 		MinGasPrice:    args.economicsData.MinGasPrice(),
 		NumberOfShards: args.shardCoordinator.NumberOfShards(),
+		SelfShardID:    args.shardCoordinator.SelfId(),
 	})
 	if err != nil {
 		log.Error("error creating txpool")

@@ -90,6 +90,8 @@ func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
 }
 
 func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) {
+	t.Skip("Skip this because it requires non-merged tx pool caches")
+
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
@@ -284,6 +286,21 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	require.NotPanics(t, func() { pool.CreateShardStore("foo") })
+}
+
+func Test_routeToCache(t *testing.T) {
+	config := storageUnit.CacheConfig{Size: 100, SizeInBytes: 40960, Shards: 16}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4, SelfShardID: 42}
+	poolAsInterface, _ := NewShardedTxPool(args)
+	pool := poolAsInterface.(*shardedTxPool)
+
+	require.Equal(t, "42", pool.routeToCache("42"))
+	require.Equal(t, "42", pool.routeToCache("42_0"))
+	require.Equal(t, "42", pool.routeToCache("42_1"))
+	require.Equal(t, "42", pool.routeToCache("42_2"))
+	require.Equal(t, "42", pool.routeToCache("42_*"))
+	require.Equal(t, "2_5", pool.routeToCache("2_5"))
+	require.Equal(t, "foobar", pool.routeToCache("foobar"))
 }
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {

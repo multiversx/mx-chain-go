@@ -1,6 +1,8 @@
 package txpool
 
 import (
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,6 +21,7 @@ type shardedTxPool struct {
 	mutexAddCallbacks    sync.RWMutex
 	onAddCallbacks       []func(key []byte)
 	cacheConfigPrototype txcache.CacheConfig
+	selfShardID          uint32
 }
 
 type txPoolShard struct {
@@ -56,6 +59,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		mutexAddCallbacks:    sync.RWMutex{},
 		onAddCallbacks:       make([]func(key []byte), 0),
 		cacheConfigPrototype: cacheConfigPrototype,
+		selfShardID:          args.SelfShardID,
 	}
 
 	return shardedTxPoolObject, nil
@@ -74,6 +78,8 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 }
 
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
+	cacheID = txPool.routeToCache(cacheID)
+
 	txPool.mutex.RLock()
 	shard, ok := txPool.backingMap[cacheID]
 	txPool.mutex.RUnlock()
@@ -200,6 +206,9 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
+	sourceCacheID = txPool.routeToCache(sourceCacheID)
+	destCacheID = txPool.routeToCache(destCacheID)
+
 	sourceShard := txPool.getOrCreateShard(sourceCacheID)
 	sourceCache := sourceShard.Cache
 
@@ -244,4 +253,23 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil
+}
+
+func (txPool *shardedTxPool) routeToCache(cacheID string) string {
+	parts := strings.Split(cacheID, "_")
+
+	if len(parts) != 2 {
+		return cacheID
+	}
+
+	sourceShardID, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return cacheID
+	}
+
+	if uint32(sourceShardID) == txPool.selfShardID {
+		return parts[0]
+	}
+
+	return cacheID
 }
