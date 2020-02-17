@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	keyFormat = "%s_%v_%v"
+	keyFormat = "%s_%v_%v_%v"
 )
 
 // TODO: move this to config parameters
@@ -244,7 +244,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, ErrNilRandomness
 	}
 
-	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId))
+	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardId, epoch))
 	validators := ihgs.searchConsensusForKey(key)
 	if validators != nil {
 		return validators, nil

@@ -155,8 +155,6 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	vsrh, _ := mp.validatorStatisticsProcessor.RootHash()
-	log.Debug("processBlock with", "initial vsrh 1.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
-
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
@@ -170,6 +168,8 @@ func (mp *metaProcessor) ProcessBlock(
 
 		return err
 	}
+
+	log.Debug("processBlock with", "initial vsrh 1.", vsrh, "expected final vsrh", headerHandler.GetValidatorStatsRootHash())
 
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
