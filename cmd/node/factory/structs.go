@@ -2190,6 +2190,7 @@ func newMetaBlockProcessor(
 		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
+		state.AddressConverter,
 	)
 	if err != nil {
 		return nil, err

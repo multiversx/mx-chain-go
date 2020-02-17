@@ -27,6 +27,7 @@ type preProcessorsContainerFactory struct {
 	miniBlocksCompacter process.MiniBlocksCompacter
 	gasHandler          process.GasHandler
 	blockTracker        preprocess.BlockTracker
+	addrConverter       state.AddressConverter
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -44,6 +45,7 @@ func NewPreProcessorsContainerFactory(
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
+	addrConverter state.AddressConverter,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -84,6 +86,9 @@ func NewPreProcessorsContainerFactory(
 	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
+	}
+	if check.IfNil(addrConverter) {
+		return nil, process.ErrNilAddressConverter
 	}
 
 	return &preProcessorsContainerFactory{
@@ -145,6 +150,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		block.TxBlock,
+		ppcm.addrConverter,
 	)
 
 	return txPreprocessor, err

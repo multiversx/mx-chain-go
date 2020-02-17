@@ -189,6 +189,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor(blockType block.
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		blockType,
+		ppcm.addrConverter,
 	)
 
 	return txPreprocessor, err
