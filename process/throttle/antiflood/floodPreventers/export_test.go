@@ -1,4 +1,4 @@
-package antiflood
+package floodPreventers
 
 func (qfp *quotaFloodPreventer) SetGlobalQuotaValues(maxMessages uint32, size uint64) {
 	qfp.mutOperation.Lock()

@@ -1,4 +1,4 @@
-package antiflood
+package floodPreventers
 
 import (
 	"errors"

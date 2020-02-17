@@ -1,4 +1,4 @@
-package antiflood
+package blackList
 
 import (
 	"fmt"

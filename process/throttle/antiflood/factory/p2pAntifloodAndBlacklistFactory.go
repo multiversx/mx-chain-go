@@ -10,9 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process"
-	processAntiflood "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -70,7 +71,7 @@ func initP2PAntiFloodAndBlackList(
 	}
 
 	p2pPeerBlackList := timecache.NewTimeCache(time.Second * time.Duration(peerBanInSeconds))
-	blackListProcessor, err := processAntiflood.NewP2PBlackListProcessor(
+	blackListProcessor, err := blackList.NewP2PBlackListProcessor(
 		blackListCache,
 		p2pPeerBlackList,
 		mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
@@ -81,9 +82,9 @@ func initP2PAntiFloodAndBlackList(
 		return nil, nil, err
 	}
 
-	floodPreventer, err := processAntiflood.NewQuotaFloodPreventer(
+	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
 		antifloodCache,
-		[]processAntiflood.QuotaStatusHandler{quotaProcessor, blackListProcessor},
+		[]floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
 		maxMessagesPerSecond,
@@ -93,7 +94,7 @@ func initP2PAntiFloodAndBlackList(
 		return nil, nil, err
 	}
 
-	topicFloodPreventer, err := processAntiflood.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
+	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -111,7 +112,7 @@ func initP2PAntiFloodAndBlackList(
 
 	topicFloodPreventer.SetMaxMessagesForTopic("heartbeat", mainConfig.Antiflood.Topic.HeartbeatMaxMessagesPerSec)
 
-	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	p2pAntiflood, err := antiflood2.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
 	if err != nil {
 		return nil, nil, err
 	}

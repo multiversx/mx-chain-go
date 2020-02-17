@@ -1,4 +1,4 @@
-package antiflood
+package floodPreventers
 
 // QuotaStatusHandler defines the behavior of a quota handler able to process periodic updates of peers quota measured
 // by the system
