@@ -34,6 +34,7 @@ type NodesCoordinator interface {
 	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
+	ConsensusGroupSize(uint32) int
 	IsInterfaceNil() bool
 }
 

@@ -69,10 +69,10 @@ type AccountHandler interface {
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	AccountHandler
-	IncreaseLeaderSuccessRateWithJournal() error
-	DecreaseLeaderSuccessRateWithJournal() error
-	IncreaseValidatorSuccessRateWithJournal() error
-	DecreaseValidatorSuccessRateWithJournal() error
+	IncreaseLeaderSuccessRateWithJournal(value uint32) error
+	DecreaseLeaderSuccessRateWithJournal(value uint32) error
+	IncreaseValidatorSuccessRateWithJournal(value uint32) error
+	DecreaseValidatorSuccessRateWithJournal(value uint32) error
 	GetRating() uint32
 	SetRatingWithJournal(uint322 uint32) error
 	GetTempRating() uint32

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -684,7 +685,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	statsFile := filepath.Join(workingDir, defaultStatsPath, "session.info")
+	statsFolder := filepath.Join(workingDir, defaultStatsPath)
+	copyConfigToStatsFolder(
+		statsFolder,
+		[]string{
+			configurationFileName,
+			configurationEconomicsFileName,
+			configurationPreferencesFileName,
+			p2pConfigurationFileName,
+			configurationFileName,
+			ctx.GlobalString(genesisFile.Name),
+			ctx.GlobalString(nodesFile.Name),
+		})
+
+	statsFile := filepath.Join(statsFolder, "session.info")
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
@@ -753,6 +767,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
 		generalConfig.StateTrieConfig.RoundsModulus,
+		generalConfig.GeneralSettings.MaxComputableRounds,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -883,7 +898,50 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		err = rm.Close()
 		log.LogIfError(err)
 	}
+
+	log.Info("closing network connections...")
+	err = networkComponents.NetMessenger.Close()
+	log.LogIfError(err)
+
 	return nil
+}
+
+func copyConfigToStatsFolder(statsFolder string, configs []string) {
+	for _, configFile := range configs {
+		copySingleFile(statsFolder, configFile)
+	}
+}
+
+func copySingleFile(folder string, configFile string) {
+	fileName := filepath.Base(configFile)
+
+	source, err := core.OpenFile(configFile)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := source.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	destPath := filepath.Join(folder, fileName)
+	destination, err := os.Create(destPath)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := destination.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	_, err = io.Copy(destination, source)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+	}
 }
 
 func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
