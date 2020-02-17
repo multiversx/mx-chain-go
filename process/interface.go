@@ -661,3 +661,13 @@ type MiniBlocksResolver interface {
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool
 }
+
+// BuiltinFunction defines the methods for the built-in protocol smart contract functions
+type BuiltinFunction interface {
+	ProcessBuiltinFunction(
+		tx data.TransactionHandler,
+		acntSnd, acntDst state.UserAccountHandler,
+		vmInput *vmcommon.ContractCallInput,
+	) (*big.Int, error)
+	IsInterfaceNil() bool
+}

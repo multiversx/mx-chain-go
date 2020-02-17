@@ -632,3 +632,6 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
 // ErrInvalidArguments signals that invalid arguments were given to process built-in function
 var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
+
+// ErrNilBuiltInFunction signals that built in function is nil
+var ErrNilBuiltInFunction = errors.New("built in function is nil")

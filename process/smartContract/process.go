@@ -21,10 +21,12 @@ import (
 )
 
 // claimDeveloperRewards is a constant which defines the name for the claim developer rewards function
-const claimDeveloperRewards = "ERDClaimDeveloperRewards"
+const claimDevRewards = "ERDClaimDeveloperRewards"
 
 // changeOwnerAddress is a constant which defines the name for the change owner address function
 const changeOwnerAddress = "ERDChangeOwnerAddress"
+
+const builtInFunctionBaseCostMultiplier = 2
 
 var log = logger.GetOrCreate("process/smartcontract")
 
@@ -39,6 +41,7 @@ type scProcessor struct {
 	argsParser          process.ArgumentsParser
 	isCallBack          bool
 	developerPercentage float64
+	builtInFunctions    map[string]process.BuiltinFunction
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -104,7 +107,7 @@ func NewSmartContractProcessor(
 		return nil, process.ErrNilGasHandler
 	}
 
-	return &scProcessor{
+	sc := &scProcessor{
 		vmContainer:      vmContainer,
 		argsParser:       argsParser,
 		hasher:           hasher,
@@ -117,7 +120,24 @@ func NewSmartContractProcessor(
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
 		txTypeHandler:    txTypeHandler,
-		gasHandler:       gasHandler}, nil
+		gasHandler:       gasHandler,
+	}
+
+	err := sc.createBuiltInFunctions()
+	if err != nil {
+		return nil, err
+	}
+
+	return sc, nil
+}
+
+func (sc *scProcessor) createBuiltInFunctions() error {
+	sc.builtInFunctions = make(map[string]process.BuiltinFunction)
+
+	sc.builtInFunctions[claimDevRewards] = &claimDeveloperRewards{}
+	sc.builtInFunctions[changeOwnerAddress] = &changeOwner{}
+
+	return nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -237,34 +257,17 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	vmInput *vmcommon.ContractCallInput,
 ) (bool, error) {
 
-	var err error
-	value := big.NewInt(0)
-	resolved := false
-
-	switch vmInput.Function {
-	case claimDeveloperRewards:
-		value, err = acntDst.ClaimDeveloperRewards(tx.GetSndAddress())
-		if err != nil {
-			return true, err
-		}
-
-		resolved = true
-
-	case changeOwnerAddress:
-		if len(vmInput.Arguments) == 0 {
-			return true, process.ErrInvalidArguments
-		}
-
-		err := acntDst.ChangeOwnerAddress(tx.GetSndAddress(), vmInput.Arguments[0])
-		if err != nil {
-			return true, err
-		}
-
-		resolved = true
+	builtIn, ok := sc.builtInFunctions[vmInput.Function]
+	if !ok {
+		return false, nil
+	}
+	if check.IfNil(builtIn) {
+		return true, process.ErrNilBuiltInFunction
 	}
 
-	if !resolved {
-		return false, nil
+	valueToSend, err := builtIn.ProcessBuiltinFunction(tx, acntSnd, acntDst, vmInput)
+	if err != nil {
+		return true, err
 	}
 
 	txHash, err := sc.computeTransactionHash(tx)
@@ -272,12 +275,12 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	computedGas := sc.economicsFee.ComputeGasLimit(tx)
-	if tx.GetGasLimit() < 2*computedGas {
+	gasConsumed := builtInFunctionBaseCostMultiplier * sc.economicsFee.ComputeGasLimit(tx)
+	if tx.GetGasLimit() < gasConsumed {
 		return true, process.ErrNotEnoughGas
 	}
 
-	gasRemaining := tx.GetGasLimit() - computedGas
+	gasRemaining := tx.GetGasLimit() - gasConsumed
 	scrRefund, consumedFee, err := sc.createSCRForSender(
 		big.NewInt(0),
 		gasRemaining,
@@ -291,7 +294,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	scrRefund.Value.Add(scrRefund.Value, value)
+	scrRefund.Value.Add(scrRefund.Value, valueToSend)
 	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrRefund})
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
