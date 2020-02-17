@@ -150,6 +150,7 @@ func (sr *subroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler
 	}
 
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
+		sr.Blockchain(),
 		header,
 		haveTimeInCurrentSubround,
 	)

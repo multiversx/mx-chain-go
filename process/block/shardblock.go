@@ -581,7 +581,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) CreateBlockBody(_ data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 

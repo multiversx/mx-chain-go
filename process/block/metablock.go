@@ -563,7 +563,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 }
 
 // CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (mp *metaProcessor) CreateBlockBody(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
@@ -580,6 +580,10 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), haveTime)
 	if err != nil {
 		return nil, err
+	}
+
+	if mp.epochStartTrigger.IsEpochStart() {
+		// implement here
 	}
 
 	err = mp.scToProtocol.UpdateProtocol(miniBlocks, initialHdrData.GetRound())

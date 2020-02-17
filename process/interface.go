@@ -201,7 +201,7 @@ type BlockProcessor interface {
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
 	CreateNewHeader() data.HeaderHandler
-	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	ApplyBodyToHeader(blockChain data.ChainHandler, hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)

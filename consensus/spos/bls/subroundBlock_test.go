@@ -288,7 +288,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	bpm := &mock.BlockProcessorMock{}
 	err := errors.New("error")
-	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.BodyHandler, error) {
+	bpm.CreateBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
 	container.SetBlockProcessor(bpm)

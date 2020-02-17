@@ -1065,9 +1065,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, func() bool {
-		return true
-	})
+	_, err = mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -1168,7 +1166,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, haveTime)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -1319,7 +1317,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, haveTime)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -1470,7 +1468,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	assert.Equal(t, 0, len(shardInfo))
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err = mp.CreateBlockBody(metaHdr, haveTime)
+	_, err = mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, haveTime)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
@@ -2166,7 +2164,7 @@ func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) 
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
 
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
+	bodyHandler, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
 }
@@ -2179,7 +2177,7 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
 
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
+	bodyHandler, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return false })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -2198,7 +2196,7 @@ func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
 	round := uint64(10)
 
 	metaHdr := &block.MetaBlock{Round: round}
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
+	bodyHandler, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
@@ -2265,7 +2263,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	round := uint64(10)
 
 	metaHdr := &block.MetaBlock{Round: round}
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
+	bodyHandler, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	miniBlocks, _ := bodyHandler.(block.Body)
 
 	assert.Equal(t, expectedMiniBlock1, miniBlocks[0])
@@ -2447,7 +2445,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	round := uint64(10)
 
 	metaHdr := &block.MetaBlock{Round: round}
-	_, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
+	_, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
 	err = mp.VerifyCrossShardMiniBlockDstMe(hdr)
@@ -2515,7 +2513,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	round := uint64(10)
 
 	metaHdr := &block.MetaBlock{Round: round}
-	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
+	bodyHandler, err := mp.CreateBlockBody(&mock.BlockChainMock{}, metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
 	headerHandler := mp.CreateNewHeader()

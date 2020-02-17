@@ -14,7 +14,7 @@ type BlockProcessorStub struct {
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBodyCalled            func(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	ApplyBodyToHeaderCalled          func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
@@ -64,8 +64,8 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) err
 }
 
 // CreateBlockBody mocks the creation of a transaction block body
-func (bps *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	return bps.CreateBlockBodyCalled(initialHdrData, haveTime)
+func (bps *BlockProcessorStub) CreateBlockBody(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	return bps.CreateBlockBodyCalled(blockChain, initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -

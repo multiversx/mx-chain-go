@@ -330,7 +330,7 @@ func createConsensusOnlyNode(
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
+		CreateBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
 		ApplyBodyToHeaderCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {

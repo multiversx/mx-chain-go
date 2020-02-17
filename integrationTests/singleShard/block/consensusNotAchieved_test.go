@@ -148,7 +148,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(node.ChainID)
 
-	blockBody, err := node.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
+	blockBody, err := node.BlockProcessor.CreateBlockBody(node.BlockChain, blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

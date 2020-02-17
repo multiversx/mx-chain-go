@@ -18,7 +18,7 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 // InitBlockProcessorMock -
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
-	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	blockProcessorMock.CreateBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 		emptyBlock := make(block.Body, 0)
 
 		return emptyBlock, nil

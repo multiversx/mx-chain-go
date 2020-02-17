@@ -16,7 +16,7 @@ type BlockProcessorMock struct {
 	ProcessBlockCalled                      func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                       func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled                func()
-	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                       func(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
 	ApplyBodyToHeaderCalled                 func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
@@ -61,8 +61,8 @@ func (bpm *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
 }
 
 // CreateBlockBody -
-func (bpm *BlockProcessorMock) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	return bpm.CreateBlockCalled(initialHdrData, haveTime)
+func (bpm *BlockProcessorMock) CreateBlockBody(blockChain data.ChainHandler, initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	return bpm.CreateBlockCalled(blockChain, initialHdrData, haveTime)
 }
 
 // RestoreBlockIntoPools -

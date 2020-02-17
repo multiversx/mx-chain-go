@@ -80,6 +80,7 @@ func initNodesAndTest(
 				return nil, process.ErrAccountStateDirty
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
+				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				haveTime func() bool,
 			) (handler data.BodyHandler, e error) {
