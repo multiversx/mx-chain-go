@@ -1,0 +1,7 @@
+[Explorer]
+   Enabled = true
+   IndexerURL = "http://localhost:9200"
+
+[ElasticSearchConnector]
+    Username = "basic_auth_username"
+    Password = "basic_auth_password"

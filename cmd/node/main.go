@@ -125,17 +125,17 @@ VERSION:
 		Usage: "The preferences configuration file to load",
 		Value: "./config/prefs.toml",
 	}
+	// externalConfigFile defines a flag for the path to the external toml configuration file
+	externalConfigFile = cli.StringFlag{
+		Name:  "configExternal",
+		Usage: "The external configuration file to load",
+		Value: "./config/external.toml",
+	}
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
 		Name:  "p2pconfig",
 		Usage: "The configuration file for P2P",
 		Value: "./config/p2p.toml",
-	}
-	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
-	serversConfigurationFile = cli.StringFlag{
-		Name:  "serversconfig",
-		Usage: "The configuration file for servers confidential data",
-		Value: "./config/server.toml",
 	}
 	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
 	gasScheduleConfigurationFile = cli.StringFlag{
@@ -335,6 +335,7 @@ func main() {
 		configurationFile,
 		configurationEconomicsFile,
 		configurationPreferencesFile,
+		externalConfigFile,
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
 		txSignSk,
@@ -347,7 +348,6 @@ func main() {
 		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
-		serversConfigurationFile,
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
@@ -456,6 +456,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationPreferencesFileName)
+
+	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
+	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", externalConfigurationFileName)
 
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
@@ -624,7 +631,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -714,13 +721,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	if generalConfig.Explorer.Enabled {
+	if externalConfig.Explorer.Enabled {
 		log.Trace("creating elastic search components")
-		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = createElasticIndexer(
 			ctx,
-			serversConfigurationFileName,
-			generalConfig.Explorer.IndexerURL,
+			externalConfig.ElasticSearchConnector,
+			externalConfig.Explorer.IndexerURL,
 			shardCoordinator,
 			coreComponents.Marshalizer,
 			coreComponents.Hasher,
@@ -1044,6 +1050,16 @@ func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
 	return cfg, nil
 }
 
+func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
+	cfg := &config.ExternalConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
 func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
 	if pubKey == nil {
 		return 0, errors.New("nil public key")
@@ -1187,21 +1203,17 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // authentication for the server is using the username and password
 func createElasticIndexer(
 	ctx *cli.Context,
-	serversConfigurationFileName string,
+	elasticSearchConfig config.ElasticSearchConfig,
 	url string,
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (indexer.Indexer, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	dbIndexer, err = indexer.NewElasticIndexer(
 		url,
-		serversConfig.ElasticSearch.Username,
-		serversConfig.ElasticSearch.Password,
+		elasticSearchConfig.Username,
+		elasticSearchConfig.Password,
 		coordinator,
 		marshalizer,
 		hasher,

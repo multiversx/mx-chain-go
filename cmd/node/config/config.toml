@@ -23,10 +23,6 @@
    # to the NumOfEpochsToKeep flag
    NumActivePersisters = 2
 
-[Explorer]
-   Enabled = false
-   IndexerURL = "http://localhost:9200"
-
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Size = 300

@@ -190,3 +190,36 @@ func TestTomlPreferencesParser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cfgPreferencesExpected, cfg)
 }
+
+func TestTomlExternalParser(t *testing.T) {
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
+
+	cfgExternalExpected := ExternalConfig{
+		Explorer: ExplorerConfig{
+			Enabled:    true,
+			IndexerURL: indexerURL,
+		},
+		ElasticSearchConnector: ElasticSearchConfig{
+			Username: elasticUsername,
+			Password: elasticPassword,
+		},
+	}
+
+	testString := `
+[Explorer]
+   Enabled = true
+   IndexerURL = "` + indexerURL + `"
+
+[ElasticSearchConnector]
+    Username = "` + elasticUsername + `"
+    Password = "` + elasticPassword + `"`
+
+	cfg := ExternalConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, cfgExternalExpected, cfg)
+}
