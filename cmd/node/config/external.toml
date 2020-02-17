@@ -1,7 +1,6 @@
-[Explorer]
-   Enabled = true
-   IndexerURL = "http://localhost:9200"
-
+# ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [ElasticSearchConnector]
-    Username = "basic_auth_username"
-    Password = "basic_auth_password"
+    Enabled    = false
+    URL        = "http://localhost:9200"
+    Username   = "basic_auth_username"
+    Password   = "basic_auth_password"

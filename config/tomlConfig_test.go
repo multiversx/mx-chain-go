@@ -197,22 +197,18 @@ func TestTomlExternalParser(t *testing.T) {
 	elasticPassword := "pass"
 
 	cfgExternalExpected := ExternalConfig{
-		Explorer: ExplorerConfig{
-			Enabled:    true,
-			IndexerURL: indexerURL,
-		},
 		ElasticSearchConnector: ElasticSearchConfig{
+			Enabled:  true,
+			URL:      indexerURL,
 			Username: elasticUsername,
 			Password: elasticPassword,
 		},
 	}
 
 	testString := `
-[Explorer]
-   Enabled = true
-   IndexerURL = "` + indexerURL + `"
-
 [ElasticSearchConnector]
+    Enabled = true
+    URL = "` + indexerURL + `"
     Username = "` + elasticUsername + `"
     Password = "` + elasticPassword + `"`
 
