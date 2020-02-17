@@ -506,14 +506,12 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		"num txs", len(orderedTxs),
 		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
 	)
+	txSpaceRemained := int(maxTxSpaceRemained)
 
 	orderedTxsPerShard, orderedTxHashesPerShard := txs.getOrderedTxsForShard(
 		sharding.MetachainShardId,
 		orderedTxs,
 		orderedTxHashes)
-
-	newMBAdded := true
-	txSpaceRemained := int(maxTxSpaceRemained)
 
 	miniBlock, err := txs.createAndProcessMiniBlock(
 		txs.shardCoordinator.SelfId(),
@@ -527,6 +525,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		txSpaceRemained -= len(miniBlock.TxHashes)
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
+
+	newMBAdded := true
 
 	for newMBAdded {
 		newMBAdded = false
