@@ -1116,7 +1116,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, int(nrShards), len(mbs))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocks(t *testing.T) {
@@ -1244,7 +1244,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, numMiniBlocks, len(mbs))
+	assert.Equal(t, 3, len(mbs))
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
