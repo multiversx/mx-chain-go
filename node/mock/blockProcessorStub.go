@@ -17,7 +17,7 @@ type BlockProcessorStub struct {
 	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	ApplyBodyToHeaderCalled          func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled   func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -32,7 +32,7 @@ func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 }
 
 // SetNumProcessedObj -
-func (bps *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
+func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
 }
 
 // ProcessBlock mocks pocessing a block
@@ -74,8 +74,8 @@ func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, 
 }
 
 // ApplyBodyToHeader -
-func (bps *BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bps.ApplyBodyToHeaderCalled(header, body)
+func (bps *BlockProcessorStub) ApplyBodyToHeader(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	return bps.ApplyBodyToHeaderCalled(blockChain, header, body)
 }
 
 // MarshalizedDataToBroadcast -
@@ -103,18 +103,13 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 	bps.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-// SetConsensusData -
-func (bps *BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	panic("implement me")
-}
-
 // CreateNewHeader creates a new header
 func (bps *BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return bps.CreateNewHeaderCalled()
 }
 
 // ApplyProcessedMiniBlocks -
-func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
+func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -30,7 +30,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	blockProcessorMock.ApplyBodyToHeaderCalled = func(blockChain data.ChainHandler, hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
 		hdr.SetRootHash([]byte{})
 		return body, nil
 	}

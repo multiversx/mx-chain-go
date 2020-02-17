@@ -73,6 +73,7 @@ func initNodesAndTest(
 				return process.ErrBlockHashDoesNotMatch
 			}
 			nodes[0][i].blkProcessor.ApplyBodyToHeaderCalled = func(
+				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				body data.BodyHandler,
 			) (data.BodyHandler, error) {

@@ -18,13 +18,12 @@ type BlockProcessorMock struct {
 	RevertAccountStateCalled                func()
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeaderCalled                 func(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	ApplyBodyToHeaderCalled                 func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyAndHeaderCalled          func(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusDataCalled                  func(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	CreateNewHeaderCalled                   func() data.HeaderHandler
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
 	RestoreLastNotarizedHrdsToGenesisCalled func()
@@ -43,7 +42,7 @@ func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header
 }
 
 // ApplyProcessedMiniBlocks -
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
+func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // CommitBlock mocks the commit of a block
@@ -72,8 +71,8 @@ func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, 
 }
 
 // ApplyBodyToHeader -
-func (bpm *BlockProcessorMock) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
-	return bpm.ApplyBodyToHeaderCalled(header, body)
+func (bpm *BlockProcessorMock) ApplyBodyToHeader(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {
+	return bpm.ApplyBodyToHeaderCalled(blockChain, header, body)
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
@@ -86,7 +85,7 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 }
 
 // SetNumProcessedObj -
-func (bpm *BlockProcessorMock) SetNumProcessedObj(numObj uint64) {
+func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 }
 
 // MarshalizedDataToBroadcast -
@@ -156,13 +155,6 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 // AddLastNotarizedHdr -
 func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
-}
-
-// SetConsensusData -
-func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	if bpm.SetConsensusDataCalled != nil {
-		bpm.SetConsensusDataCalled(randomness, round, epoch, shardId)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

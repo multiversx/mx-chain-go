@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -950,7 +951,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
+	return &block.Header{AccumulatedFees: big.NewInt(0)}
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
@@ -1593,7 +1594,7 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) ApplyBodyToHeader(_ data.ChainHandler, hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
 	sw.Start("ApplyBodyToHeader")
 	defer func() {

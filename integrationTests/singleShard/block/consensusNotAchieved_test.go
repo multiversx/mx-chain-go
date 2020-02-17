@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -52,10 +51,6 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	for _, nodes := range nodesMap {
 		integrationTests.DisplayAndStartNodes(nodes)
 		integrationTests.SetEconomicsParameters(nodes, integrationTests.MaxGasLimitPerBlock, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
-		//set rewards = 0 so we can easily test the balances taking into account only the tx fee
-		for _, n := range nodes {
-			n.EconomicsData.SetRewards(big.NewInt(0))
-		}
 	}
 
 	defer func() {
@@ -157,7 +152,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	blockBody, err = node.BlockProcessor.ApplyBodyToHeader(node.BlockChain, blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

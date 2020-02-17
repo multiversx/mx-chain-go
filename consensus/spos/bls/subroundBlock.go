@@ -89,7 +89,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	body, err = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	body, err = sr.BlockProcessor().ApplyBodyToHeader(sr.Blockchain(), header, body)
 	if err != nil {
 		log.Debug("doBlockJob.ApplyBodyToHeader", "error", err.Error())
 		return false

@@ -2121,7 +2121,7 @@ func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, nil)
+	_, err := bp.ApplyBodyToHeader(&mock.BlockChainMock{}, hdr, nil)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -2131,7 +2131,7 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, block.Body{})
+	_, err := bp.ApplyBodyToHeader(&mock.BlockChainMock{}, hdr, block.Body{})
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }
@@ -2160,7 +2160,7 @@ func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testi
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(&mock.BlockChainMock{}, hdr, body)
 	assert.NotNil(t, err)
 }
 
@@ -2187,7 +2187,7 @@ func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(&mock.BlockChainMock{}, hdr, body)
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(hdr.MiniBlockHeaders))
 }

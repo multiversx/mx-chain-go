@@ -1,7 +1,6 @@
 package economics
 
 import (
-	"math"
 	"math/big"
 	"strconv"
 
@@ -11,10 +10,7 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue         *big.Int
-	communityPercentage  float64
 	leaderPercentage     float64
-	burnPercentage       float64
 	maxGasLimitPerBlock  uint64
 	gasPerDataByte       uint64
 	dataLimitForBaseCalc uint64
@@ -27,19 +23,11 @@ type EconomicsData struct {
 	ratingsData          *RatingsData
 }
 
-const float64EqualityThreshold = 1e-9
-
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
-	//TODO check what happens if addresses are wrong
 	data, err := convertValues(economics)
 	if err != nil {
 		return nil, err
-	}
-
-	notGreaterThanZero := data.rewardsValue.Cmp(big.NewInt(0))
-	if notGreaterThanZero < 0 {
-		return nil, process.ErrInvalidRewardsValue
 	}
 
 	err = checkValues(economics)
@@ -57,10 +45,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		rewardsValue:         data.rewardsValue,
-		communityPercentage:  economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:     economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:       economics.RewardsSettings.BurnPercentage,
 		maxGasLimitPerBlock:  data.maxGasLimitPerBlock,
 		minGasPrice:          data.minGasPrice,
 		minGasLimit:          data.minGasLimit,
@@ -78,12 +63,6 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
-	rewardsValue := new(big.Int)
-	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
-	if !ok {
-		return nil, process.ErrInvalidRewardsValue
-	}
-
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, process.ErrInvalidMinimumGasPrice
@@ -95,7 +74,7 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	}
 
 	stakeValue := new(big.Int)
-	stakeValue, ok = stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
+	stakeValue, ok := stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
 	if !ok {
 		return nil, process.ErrInvalidRewardsValue
 	}
@@ -121,7 +100,6 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	}
 
 	return &EconomicsData{
-		rewardsValue:         rewardsValue,
 		minGasPrice:          minGasPrice,
 		minGasLimit:          minGasLimit,
 		stakeValue:           stakeValue,
@@ -133,17 +111,7 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
-	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
-		return process.ErrInvalidRewardsPercentages
-	}
-
-	sumPercentage := economics.RewardsSettings.BurnPercentage
-	sumPercentage += economics.RewardsSettings.CommunityPercentage
-	sumPercentage += economics.RewardsSettings.LeaderPercentage
-	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
-	if !isEqualsToOne {
+	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -159,24 +127,9 @@ func isPercentageInvalid(percentage float64) bool {
 	return false
 }
 
-// RewardsValue will return rewards value
-func (ed *EconomicsData) RewardsValue() *big.Int {
-	return ed.rewardsValue
-}
-
-// CommunityPercentage will return community reward percentage
-func (ed *EconomicsData) CommunityPercentage() float64 {
-	return ed.communityPercentage
-}
-
 // LeaderPercentage will return leader reward percentage
 func (ed *EconomicsData) LeaderPercentage() float64 {
 	return ed.leaderPercentage
-}
-
-// BurnPercentage will return burn percentage
-func (ed *EconomicsData) BurnPercentage() float64 {
-	return ed.burnPercentage
 }
 
 // MinGasPrice will return min gas price

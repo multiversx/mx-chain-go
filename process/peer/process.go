@@ -43,6 +43,7 @@ type ArgValidatorStatisticsProcessor struct {
 	AdrConv             state.AddressConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.RaterHandler
+	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
 }
 
@@ -57,6 +58,7 @@ type validatorStatistics struct {
 	prevShardInfo       map[string]block.ShardData
 	mutPrevShardInfo    sync.RWMutex
 	rater               sharding.RaterHandler
+	rewardsHandler      process.RewardsHandler
 	initialNodes        []*sharding.InitialNode
 	maxComputableRounds uint64
 }
@@ -64,25 +66,25 @@ type validatorStatistics struct {
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
-	if arguments.PeerAdapter == nil || arguments.PeerAdapter.IsInterfaceNil() {
+	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
-	if arguments.AdrConv == nil || arguments.AdrConv.IsInterfaceNil() {
+	if check.IfNil(arguments.AdrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
+	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.StorageService == nil || arguments.StorageService.IsInterfaceNil() {
+	if check.IfNil(arguments.StorageService) {
 		return nil, process.ErrNilStorage
 	}
-	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
-	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(arguments.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if arguments.StakeValue == nil {
@@ -105,6 +107,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		marshalizer:         arguments.Marshalizer,
 		prevShardInfo:       make(map[string]block.ShardData),
 		rater:               arguments.Rater,
+		rewardsHandler:      arguments.RewardsHandler,
 		maxComputableRounds: arguments.MaxComputableRounds,
 	}
 
@@ -578,7 +581,8 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 				return err
 			}
 
-			err = peerAcc.IncreaseAccumulatedFees(accumulatedFees)
+			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			err = peerAcc.IncreaseAccumulatedFees(leaderAccumulatedFees)
 		case leaderFail:
 			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())

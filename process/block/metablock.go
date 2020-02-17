@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
@@ -277,6 +278,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyTotalAccumulatedFeesInEpoch(chainHandler, header)
+	if err != nil {
+		return err
+	}
+
 	defer func() {
 		if err != nil {
 			mp.RevertAccountState()
@@ -294,6 +300,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return err
+	}
+
+	err = mp.verifyAccumulatedFees(header)
 	if err != nil {
 		return err
 	}
@@ -1210,9 +1221,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
-
 		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.MiniBlockHeaders) {
 			return nil, process.ErrHeaderShardDataMismatch
+		}
+		if shardData.AccumulatedFees.Cmp(shardHdr.AccumulatedFees) != 0 {
+			return nil, process.ErrAccumulatedFeesDoNotMatch
 		}
 
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
@@ -1468,6 +1481,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
 		shardData.NumPendingMiniBlocks = mp.pendingMiniBlocksHandler.GetNumPendingMiniBlocks(shardData.ShardID)
+		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1506,8 +1520,44 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 	return peerInfo, nil
 }
 
+func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(blockChain data.ChainHandler, metaHdr *block.MetaBlock) error {
+	computedTotalFees, err := mp.computeAccumulatedFeesInEpoch(blockChain, metaHdr)
+	if err != nil {
+		return err
+	}
+
+	if computedTotalFees.Cmp(metaHdr.AccumulatedFeesInEpoch) != 0 {
+		return process.ErrAccumulatedFeesDoNotMatch
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) computeAccumulatedFeesInEpoch(blockChain data.ChainHandler, metaHdr *block.MetaBlock) (*big.Int, error) {
+	currentlyAccumulated := big.NewInt(0)
+
+	lastHdr := blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(lastHdr) {
+		lastMeta, ok := lastHdr.(*block.MetaBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		if !lastHdr.IsStartOfEpochBlock() {
+			currentlyAccumulated = lastMeta.AccumulatedFeesInEpoch
+		}
+	}
+
+	currentlyAccumulated.Add(currentlyAccumulated, metaHdr.GetAccumulatedFees())
+	for _, shardData := range metaHdr.ShardInfo {
+		currentlyAccumulated.Add(currentlyAccumulated, shardData.AccumulatedFees)
+	}
+
+	return currentlyAccumulated, nil
+}
+
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
+func (mp *metaProcessor) ApplyBodyToHeader(blockChain data.ChainHandler, hdr data.HeaderHandler, bodyHandler data.BodyHandler) (data.BodyHandler, error) {
 	sw := core.NewStopWatch()
 	sw.Start("ApplyBodyToHeader")
 	defer func() {
@@ -1519,6 +1569,13 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr, ok := hdr.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
+	}
+	if check.IfNil(blockChain) {
+		return nil, process.ErrNilBlockChain
 	}
 
 	var err error
@@ -1553,8 +1610,9 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.TxCount = getTxCount(shardInfo)
 	metaHdr.AccumulatedFees = mp.feeHandler.GetAccumulatedFees()
 
-	if check.IfNil(bodyHandler) {
-		return nil, process.ErrNilBlockBody
+	metaHdr.AccumulatedFeesInEpoch, err = mp.computeAccumulatedFeesInEpoch(blockChain, metaHdr)
+	if err != nil {
+		return nil, err
 	}
 
 	body, ok := bodyHandler.(block.Body)
@@ -1633,7 +1691,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
+	return &block.MetaBlock{AccumulatedFees: big.NewInt(0), AccumulatedFeesInEpoch: big.NewInt(0)}
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

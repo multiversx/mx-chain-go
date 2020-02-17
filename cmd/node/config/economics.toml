@@ -4,10 +4,7 @@
     BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
 [RewardsSettings]
-    RewardsValue = "20000000000000000000" #20ERD
-    CommunityPercentage = 0.10
-    LeaderPercentage = 0.50
-    BurnPercentage = 0.40
+    LeaderPercentage = 0.10
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
