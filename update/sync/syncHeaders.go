@@ -79,6 +79,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		firstPendingMetaBlocks: make(map[string]*block.MetaBlock),
 		missingMetaBlocks:      make(map[string]struct{}),
 		missingMetaNonces:      make(map[uint64]struct{}),
+		uint64Converter:        args.Uint64Converter,
 	}
 
 	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockIfEpochStart)
@@ -182,6 +183,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 	}
 
 	delete(h.missingMetaNonces, meta.GetNonce())
+	log.Debug("writing to unFinished")
 	h.unFinishedMetaBlocks[string(hash)] = meta
 
 	if len(h.missingMetaNonces) > 0 {
@@ -215,6 +217,12 @@ func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
 
 // SyncEpochStartMetaHeader syncs and validates an epoch start metaHeader
 func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Duration) error {
+	defer func() {
+		h.mutMeta.Lock()
+		h.stopSyncing = true
+		h.mutMeta.Unlock()
+	}()
+
 	h.epochToSync = epoch
 	epochStartId := core.EpochStartIdentifier(epoch)
 	meta, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), h.marshalizer, h.store)
@@ -232,10 +240,6 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 			return err
 		}
 
-		h.mutMeta.Lock()
-		meta = h.epochStartMetaBlock
-		h.mutMeta.Unlock()
-
 		return nil
 	}
 
@@ -247,6 +251,12 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 }
 
 func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error {
+	defer func() {
+		h.mutMeta.Lock()
+		h.stopSyncing = true
+		h.mutMeta.Unlock()
+	}()
+
 	h.mutMeta.Lock()
 
 	epochStart := h.epochStartMetaBlock
@@ -276,19 +286,27 @@ func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error
 		h.stopSyncing = false
 		h.requestHandler.RequestMetaHeader([]byte(metaHash))
 	}
-
+	requested := len(h.missingMetaBlocks) > 0
 	h.mutMeta.Unlock()
 
-	err := WaitFor(h.chReceivedAll, waitTime)
-	if err != nil {
-		log.Warn("timeOut for requesting first pending metaHeaders")
-		return err
+	if requested {
+		err := WaitFor(h.chReceivedAll, waitTime)
+		if err != nil {
+			log.Warn("timeOut for requesting first pending metaHeaders")
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
+	defer func() {
+		h.mutMeta.Lock()
+		h.stopSyncing = true
+		h.mutMeta.Unlock()
+	}()
+
 	h.mutMeta.Lock()
 
 	lowestPendingNonce := h.lowestPendingNonceFrom(h.firstPendingMetaBlocks)
@@ -300,12 +318,15 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 		h.requestHandler.RequestMetaHeaderByNonce(nonce)
 	}
 
+	requested := len(h.missingMetaNonces) > 0
 	h.mutMeta.Unlock()
 
-	err := WaitFor(h.chReceivedAll, waitTime)
-	if err != nil {
-		log.Warn("timeOut for requesting all unfinished metaBlocks")
-		return err
+	if requested {
+		err := WaitFor(h.chReceivedAll, waitTime)
+		if err != nil {
+			log.Warn("timeOut for requesting all unfinished metaBlocks")
+			return err
+		}
 	}
 
 	return nil
@@ -314,13 +335,13 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 func (h *headersToSync) computeMissingNonce(lowestNonce uint64, epochStartNonce uint64) {
 	h.missingMetaNonces = make(map[uint64]struct{})
 
-	for nonce := lowestNonce; nonce < epochStartNonce; nonce++ {
+	for nonce := lowestNonce; nonce <= epochStartNonce; nonce++ {
 		metaHdr, metaHash, err := process.GetMetaHeaderWithNonce(nonce, h.metaBlockPool, h.marshalizer, h.store, h.uint64Converter)
 		if err != nil {
 			h.missingMetaNonces[nonce] = struct{}{}
 			continue
 		}
-
+		log.Debug("writing to unFinished")
 		h.unFinishedMetaBlocks[string(metaHash)] = metaHdr
 	}
 }
@@ -351,6 +372,7 @@ func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 // GetUnfinishedMetaBlocks returns the synced metablock
 func (h *headersToSync) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
 	h.mutMeta.Lock()
+	log.Debug("getting unFinished")
 	unFinished := h.unFinishedMetaBlocks
 	h.mutMeta.Unlock()
 

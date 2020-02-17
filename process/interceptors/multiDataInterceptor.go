@@ -107,7 +107,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
 		if !mdi.dataVerifier.IsForCurrentShard(interceptedData) {
-			log.Trace("intercepted data is for other shards")
+			log.Trace("intercepted data is for other shards", "hash", interceptedData.Hash())
 			wgProcess.Done()
 			continue
 		}

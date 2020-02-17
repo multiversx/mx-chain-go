@@ -19,12 +19,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+var log = logger.GetOrCreate("integrationTests/hardfork")
 
-	numOfShards := 1
+func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
+	//TODO continue writing the tests in the next PR
+	//if testing.Short() {
+	t.Skip("this is not a short test")
+	//}
+
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -71,7 +74,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -86,19 +89,21 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 	for _, node := range nodes {
-		go func() {
-			err := node.ExportHandler.ExportAll(1)
-			assert.Nil(t, err)
-			wg.Done()
-		}()
+		log.Warn("***********************************************************************************")
+		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
+		err := node.ExportHandler.ExportAll(1)
+		assert.Nil(t, err)
+		log.Warn("***********************************************************************************")
+		wg.Done()
 	}
 	wg.Wait()
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	//TODO continue writing the tests in the next PR
+	//if testing.Short() {
+	t.Skip("this is not a short test")
+	//}
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -176,11 +181,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 	for _, node := range nodes {
-		go func() {
-			err := node.ExportHandler.ExportAll(2)
-			assert.Nil(t, err)
-			wg.Done()
-		}()
+		err := node.ExportHandler.ExportAll(2)
+		assert.Nil(t, err)
 	}
 	wg.Wait()
 }

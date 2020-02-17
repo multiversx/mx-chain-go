@@ -200,11 +200,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
-		StorageService: e.storageService,
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.marshalizer,
-		EpochHandler:   epochHandler,
-		RequestHandler: e.requestHandler,
+		StorageService:  e.storageService,
+		Cache:           e.dataPool.Headers(),
+		Marshalizer:     e.marshalizer,
+		EpochHandler:    epochHandler,
+		RequestHandler:  e.requestHandler,
+		Uint64Converter: e.uint64Converter,
 	}
 	epochStartHeadersSyncer, err := sync.NewHeadersSyncHandler(argsNewHeadersSync)
 	if err != nil {
@@ -215,7 +216,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		TrieSyncers: trieSyncers,
 		ActiveTries: e.activeTries,
 	}
-	epochStartTriesSyncer, err := sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
+	_, err = sync.NewSyncTriesHandler(argsNewEpochStartTrieSyncer)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +245,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	argsSyncState := sync.ArgsNewSyncState{
 		Headers:      epochStartHeadersSyncer,
-		Tries:        epochStartTriesSyncer,
+		Tries:        sync.NewNilSyncTries(), // TODO change to the actual trie syncer
 		MiniBlocks:   epochStartMiniBlocksSyncer,
 		Transactions: epochStartTransactionsSyncer,
 	}

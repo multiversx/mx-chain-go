@@ -3,6 +3,7 @@ package sync
 import (
 	"encoding/json"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"testing"
 	"time"
@@ -22,10 +23,11 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
-						{Hash: []byte("hash")},
-					},
+				{
+					ShardId:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash")}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
 				},
 			},
 		},
@@ -42,6 +44,16 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 			},
 		}
 	}}
+
+	if !retErr {
+		args.StorageService = initStore()
+		byteArray := args.Uint64Converter.ToByteSlice(meta.Nonce)
+		_ = args.StorageService.Put(dataRetriever.MetaHdrNonceHashDataUnit, byteArray, []byte("firstPending"))
+		marshalledData, _ := json.Marshal(meta)
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte("firstPending"), marshalledData)
+
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(meta.Epoch)), marshalledData)
+	}
 
 	headersSyncHandler, _ := NewHeadersSyncHandler(args)
 	return headersSyncHandler
@@ -184,7 +196,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
-			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, waitTime time.Duration) error {
+			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error {
 				return localErr
 			},
 		},
