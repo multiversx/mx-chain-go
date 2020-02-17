@@ -273,7 +273,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
 	if err != nil {
-		log.Debug("UpdatePeerState after process.GetMetaHeader", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		log.Debug("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, err
 	}
 
@@ -301,7 +301,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byt
 		return nil, err
 	}
 
-	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap())
+	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees())
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +446,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap)
+		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -556,7 +556,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return nil
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte) error {
+func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -573,6 +573,12 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 		case leaderSuccess:
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
+
+			if err != nil {
+				return err
+			}
+
+			err = peerAcc.IncreaseAccumulatedFees(accumulatedFees)
 		case leaderFail:
 			err = peerAcc.DecreaseLeaderSuccessRateWithJournal(1)
 			newRating = vs.rater.ComputeDecreaseProposer(peerAcc.GetTempRating())
