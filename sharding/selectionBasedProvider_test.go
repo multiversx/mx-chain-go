@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
@@ -50,9 +51,9 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 	lastIndex := sbp.sortedSlice[0].startIndex
 	for i := 1; i < len(sbp.sortedSlice); i++ {
 		if sbp.sortedSlice[i].startIndex < lastIndex {
-			lastIndex = sbp.sortedSlice[i].startIndex
-			assert.Fail(t, "slice is not sorted.")
+			require.Fail(t, "slice is not sorted.")
 		}
+		lastIndex = sbp.sortedSlice[i].startIndex
 	}
 }
 
