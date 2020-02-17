@@ -257,11 +257,6 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 func CreateMockArguments() blproc.ArgShardProcessor {
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
-		&mock.AddressConverterMock{},
-		shardCoordinator,
-		nodesCoordinator,
-	)
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
@@ -278,7 +273,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Store:                        initStore(),
 			ShardCoordinator:             shardCoordinator,
 			NodesCoordinator:             nodesCoordinator,
-			SpecialAddressHandler:        specialAddressHandler,
+			FeeHandler:                   &mock.FeeAccumulatorStub{},
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},

@@ -49,11 +49,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
-	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.NodesCoordinator,
-	)
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()

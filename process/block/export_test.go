@@ -65,11 +65,6 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
-		&mock.AddressConverterMock{},
-		shardCoordinator,
-		nodesCoordinator,
-	)
 
 	argsHeaderValidator := ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
@@ -86,7 +81,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			Store:                        &mock.ChainStorerMock{},
 			ShardCoordinator:             shardCoordinator,
 			NodesCoordinator:             nodesCoordinator,
-			SpecialAddressHandler:        specialAddressHandler,
+			FeeHandler:                   &mock.FeeAccumulatorStub{},
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},

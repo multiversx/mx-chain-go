@@ -468,7 +468,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
 		txPreProc := tc.getPreProcessor(blockType)
-		if txPreProc == nil || txPreProc.IsInterfaceNil() {
+		if check.IfNil(txPreProc) {
 			return nil
 		}
 

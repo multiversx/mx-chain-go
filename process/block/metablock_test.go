@@ -40,7 +40,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Store:                        &mock.ChainStorerMock{},
 			ShardCoordinator:             shardCoordinator,
 			NodesCoordinator:             mock.NewNodesCoordinatorMock(),
-			SpecialAddressHandler:        &mock.SpecialAddressHandlerMock{},
+			FeeHandler:                   &mock.FeeAccumulatorStub{},
 			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:               &mock.RequestHandlerStub{},
 			Core:                         &mock.ServiceContainerMock{},
