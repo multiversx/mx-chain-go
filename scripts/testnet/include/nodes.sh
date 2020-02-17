@@ -123,11 +123,13 @@ assembleCommand_startObserverNode() {
   OBSERVER_INDEX=$2
   let "PORT = $PORT_ORIGIN_OBSERVER + $OBSERVER_INDEX"
   let "RESTAPIPORT=$PORT_ORIGIN_OBSERVER_REST + $OBSERVER_INDEX"
+  let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
         -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -num-of-nodes $TOTAL_NODECOUNT -destination-shard-as-observer $SHARD \
+        -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR"
 
   if [ -n "$NODE_NICENESS" ]
@@ -147,11 +149,13 @@ assembleCommand_startValidatorNode() {
   VALIDATOR_INDEX=$1
   let "PORT = $PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX"
   let "RESTAPIPORT=$PORT_ORIGIN_VALIDATOR_REST + $VALIDATOR_INDEX"
+  let "KEY_INDEX=$VALIDATOR_INDEX"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
   local nodeCommand="./node \
         -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
         -num-of-nodes $TOTAL_NODECOUNT \
+        -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR"
 
   if [ -n "$NODE_NICENESS" ]
