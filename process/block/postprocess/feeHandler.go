@@ -8,7 +8,7 @@ import (
 )
 
 type feeHandler struct {
-	mut             sync.Mutex
+	mut             sync.RWMutex
 	accumulatedFees *big.Int
 }
 
@@ -28,9 +28,9 @@ func (f *feeHandler) CreateBlockStarted() {
 
 // GetAccumulatedFees returns the total accumulated fees
 func (f *feeHandler) GetAccumulatedFees() *big.Int {
-	f.mut.Lock()
+	f.mut.RLock()
 	accumulatedFees := big.NewInt(0).Set(f.accumulatedFees)
-	f.mut.Unlock()
+	f.mut.RUnlock()
 
 	return accumulatedFees
 }

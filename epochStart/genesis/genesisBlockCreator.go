@@ -43,16 +43,16 @@ func CreateShardGenesisBlockFromInitialBalances(
 	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if check.IfNil(addrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
 	if initialBalances == nil {
 		return nil, process.ErrNilValue
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -300,7 +300,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.ShardCoordinator,
 		scProcessor,
 		txTypeHandler,
-		genesisFeeHandler, //we need the nil fee handler in order to process the the staking transactions
+		genesisFeeHandler,
 	)
 	if err != nil {
 		return nil, nil, process.ErrNilTxProcessor

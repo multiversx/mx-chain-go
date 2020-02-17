@@ -203,7 +203,7 @@ func (m *MetaBlock) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0).Set(m.AccumulatedFees)
 }
 
-// SetAccumulatedFees returns the accumulated fees in the header
+// SetAccumulatedFees sets the accumulated fees in the header
 func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 	m.AccumulatedFees.Set(value)
 }

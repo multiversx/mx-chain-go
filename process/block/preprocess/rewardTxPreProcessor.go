@@ -196,7 +196,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
 			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
-			if txData == nil || txData.tx == nil {
+			if txData == nil || check.IfNil(txData.tx) {
 				log.Debug("missing rewardsTransaction in ProcessBlockTransactions ", "type", block.RewardsBlock, "hash", txHash)
 				return process.ErrMissingTransaction
 			}
@@ -331,7 +331,6 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 		return err
 	}
 
-	//TODO: These lines could be deleted as in this point these values are already set (this action only overwrites them)
 	txShardData := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData}

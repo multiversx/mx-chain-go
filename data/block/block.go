@@ -207,7 +207,7 @@ func (h *Header) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0).Set(h.AccumulatedFees)
 }
 
-// SetAccumulatedFees returns the accumulated fees in the header
+// SetAccumulatedFees sets the accumulated fees in the header
 func (h *Header) SetAccumulatedFees(value *big.Int) {
 	h.AccumulatedFees.Set(value)
 }
