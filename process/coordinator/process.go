@@ -94,8 +94,6 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = miniBlockPool
-	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
-
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
@@ -361,6 +359,35 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
+	mbIndex, err := tc.processMiniBlocksDestinationMe(body, haveTime)
+	if err != nil {
+		return err
+	}
+
+	if mbIndex == len(body) {
+		return nil
+	}
+
+	miniBlocksFromMe := body[mbIndex:]
+	err = tc.processMiniBlocksFromMe(miniBlocksFromMe, haveTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) processMiniBlocksFromMe(
+	body block.Body,
+	haveTime func() bool,
+) error {
+
+	for _, mb := range body {
+		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+			return process.ErrMiniBlocksInWrongOrder
+		}
+	}
+
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -368,18 +395,45 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			continue
 		}
 
-		preproc := tc.getPreProcessor(blockType)
-		if check.IfNil(preproc) {
+		preProc := tc.getPreProcessor(blockType)
+		if check.IfNil(preProc) {
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(separatedBodies[blockType], haveTime)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) processMiniBlocksDestinationMe(
+	body block.Body,
+	haveTime func() bool,
+) (int, error) {
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	// processing destination ME miniblocks first
+	mbIndex := 0
+	for mbIndex = 0; mbIndex < len(body); mbIndex++ {
+		miniBlock := body[mbIndex]
+		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+			return mbIndex, nil
+		}
+
+		preProc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preProc) {
+			return mbIndex, process.ErrMissingPreProcessor
+		}
+
+		err := preProc.ProcessBlockTransactions(block.Body{miniBlock}, haveTime)
+		if err != nil {
+			return mbIndex, err
+		}
+	}
+
+	return mbIndex, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
@@ -604,42 +658,59 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc != nil && !preproc.IsInterfaceNil() {
+		if !check.IfNil(preproc) {
 			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			appended = true
 
-			var currMrsTxs [][]byte
-			currMrsTxs, err = preproc.CreateMarshalizedData(miniblock.TxHashes)
-			if err != nil {
-				log.Trace("CreateMarshalizedData", "error", err.Error())
-				continue
-			}
-
-			if len(currMrsTxs) > 0 {
-				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
+			if ok {
+				//preproc supports marshalizing items
+				tc.appendMarshalizedItems(
+					dataMarshalizer,
+					miniblock.TxHashes,
+					mrsTxs,
+					broadcastTopic,
+				)
 			}
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc != nil && !interimProc.IsInterfaceNil() {
+		if !check.IfNil(interimProc) {
 			if !appended {
 				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 			}
 
-			var currMrsInterTxs [][]byte
-			currMrsInterTxs, err = interimProc.CreateMarshalizedData(miniblock.TxHashes)
-			if err != nil {
-				log.Trace("CreateMarshalizedData", "error", err.Error())
-				continue
-			}
-
-			if len(currMrsInterTxs) > 0 {
-				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
+			if ok {
+				//interimProc supports marshalizing items
+				tc.appendMarshalizedItems(
+					dataMarshalizer,
+					miniblock.TxHashes,
+					mrsTxs,
+					broadcastTopic,
+				)
 			}
 		}
 	}
 
 	return bodies, mrsTxs
+}
+
+func (tc *transactionCoordinator) appendMarshalizedItems(
+	dataMarshalizer process.DataMarshalizer,
+	txHashes [][]byte,
+	mrsTxs map[string][][]byte,
+	broadcastTopic string,
+) {
+	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
+	if err != nil {
+		log.Trace("CreateMarshalizedData", "error", err.Error())
+		return
+	}
+
+	if len(currMrsTxs) > 0 {
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+	}
 }
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
@@ -677,27 +748,6 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
-}
-
-// receivedMiniBlock is a callback function when a new miniblock was received
-// it will further ask for missing transactions
-func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
-	val, ok := tc.miniBlockPool.Peek(miniBlockHash)
-	if !ok {
-		return
-	}
-
-	miniBlock, ok := val.(*block.MiniBlock)
-	if !ok {
-		return
-	}
-
-	preproc := tc.getPreProcessor(miniBlock.Type)
-	if preproc == nil || preproc.IsInterfaceNil() {
-		return
-	}
-
-	_ = preproc.RequestTransactionsForMiniBlock(miniBlock)
 }
 
 // processMiniBlockComplete - all transactions must be processed together, otherwise error
@@ -780,6 +830,21 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		}
 
 		mb := interProc.GetCreatedInShardMiniBlock()
+
+		if mb != nil {
+			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock",
+				"type", mb.Type,
+				"senderShardID", mb.SenderShardID,
+				"receiverShardID", mb.ReceiverShardID,
+			)
+
+			for _, hash := range mb.TxHashes {
+				log.Trace("tx", "hash", hash)
+			}
+		} else {
+			log.Trace("CreateReceiptsHash.GetCreatedInShardMiniBlock -> nil miniblock", "block.Type", value)
+		}
+
 		currHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, mb)
 		if err != nil {
 			return nil, err

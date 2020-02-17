@@ -517,6 +517,26 @@ func TestCreateBloomFilterFromConfOk(t *testing.T) {
 	assert.NotNil(t, bf, "valid persister expected but got nil")
 }
 
+func TestNewStorageUnit_FromConfWrongCacheSizeVsBatchSize(t *testing.T) {
+
+	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
+		Size: 10,
+		Type: storageUnit.LRUCache,
+	}, storageUnit.DBConfig{
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		MaxBatchSize:      11,
+		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
+	}, storageUnit.BloomConfig{
+		Size:     2048,
+		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
+	})
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
+}
+
 func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
@@ -674,7 +694,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 
 	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
-	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
+	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}})
 
 	if err1 != nil {
 		fmt.Println(err1)
