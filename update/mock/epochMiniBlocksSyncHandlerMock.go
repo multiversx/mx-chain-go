@@ -7,13 +7,13 @@ import (
 )
 
 type EpochStartPendingMiniBlocksSyncHandlerMock struct {
-	SyncPendingMiniBlocksFromMetaCalled func(meta *block.MetaBlock, waitTime time.Duration) error
+	SyncPendingMiniBlocksFromMetaCalled func(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error
 	GetMiniBlocksCalled                 func() (map[string]*block.MiniBlock, error)
 }
 
-func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(meta *block.MetaBlock, waitTime time.Duration) error {
+func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, waitTime time.Duration) error {
 	if ep.SyncPendingMiniBlocksFromMetaCalled != nil {
-		return ep.SyncPendingMiniBlocksFromMetaCalled(meta, waitTime)
+		return ep.SyncPendingMiniBlocksFromMetaCalled(epochStart, unFinished, waitTime)
 	}
 	return nil
 }

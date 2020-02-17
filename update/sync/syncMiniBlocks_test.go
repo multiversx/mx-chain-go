@@ -104,15 +104,18 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
-						{Hash: mbHash},
-					},
+				{
+					ShardId:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
 				},
 			},
 		},
 	}
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, time.Second)
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
 	require.Nil(t, err)
 	require.True(t, miniBlockInPool)
 
@@ -152,15 +155,18 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
-						{Hash: mbHash},
-					},
+				{
+					ShardId:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
 				},
 			},
 		},
 	}
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, time.Second)
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -191,20 +197,23 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardId: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
-						{Hash: mbHash},
-					},
+				{
+					ShardId:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
 				},
 			},
 		},
 	}
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		_ = pendingMiniBlocksSyncer.pool.Put(mbHash, mb)
 	}()
 
-	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, time.Second)
 	require.Nil(t, err)
 }

@@ -162,8 +162,8 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
-// CreateShardStore creates a storage service for shard nodes
-func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
+// CreateStore creates a storage service for shard nodes
+func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
@@ -175,29 +175,11 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, CreateMemUnit())
-	}
-
-	return store
-}
-
-// CreateMetaStore creates a storage service for meta nodes
-func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
-
-	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
 
 	return store
@@ -382,8 +364,6 @@ func CreateGenesisMetaBlock(
 			sharding.MetachainShardId,
 		)
 
-		newStore := CreateMetaStore(newShardCoordinator)
-
 		newDataPool := CreateTestDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
@@ -392,7 +372,6 @@ func CreateGenesisMetaBlock(
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
 		argsMetaGenesis.DataPool = newDataPool
 	}
@@ -1695,4 +1674,13 @@ func proposeBlocks(
 		crtNonce := atomic.LoadUint64(nonces[idx])
 		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
 	}
+}
+
+// WaitOperationToBeDone -
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	return nonce, round
 }

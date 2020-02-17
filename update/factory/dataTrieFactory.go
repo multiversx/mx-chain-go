@@ -50,7 +50,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	}
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
-	dbConfig.FilePath = path.Join(args.SyncFolder, "syncTries")
+	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
 		dbConfig,

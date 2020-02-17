@@ -11,18 +11,49 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 	return ArgsNewHeadersSyncHandler{
-		Storage:        &mock.StorerStub{},
-		Cache:          &mock.HeadersCacherStub{},
-		Marshalizer:    &mock.MarshalizerFake{},
-		EpochHandler:   &mock.EpochStartTriggerStub{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		StorageService:  &mock.ChainStorerMock{},
+		Cache:           &mock.HeadersCacherStub{},
+		Marshalizer:     &mock.MarshalizerFake{},
+		EpochHandler:    &mock.EpochStartTriggerStub{},
+		RequestHandler:  &mock.RequestHandlerStub{},
+		Uint64Converter: &mock.Uint64ByteSliceConverterStub{},
 	}
+}
+
+func generateTestCache() storage.Cacher {
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	return cache
+}
+
+func generateTestUnit() storage.Storer {
+	storer, _ := storageUnit.NewStorageUnit(
+		generateTestCache(),
+		memorydb.New(),
+	)
+
+	return storer
+}
+
+func initStore() *dataRetriever.ChainStorer {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	return store
 }
 
 func TestHeadersSyncHandler(t *testing.T) {
@@ -40,11 +71,11 @@ func TestHeadersSyncHandler_NilStorageErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHeadersSyncHandlerArgs()
-	args.Storage = nil
+	args.StorageService = nil
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, headersSyncHandler)
-	require.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
+	require.Equal(t, update.ErrNilStorage, err)
 }
 
 func TestHeadersSyncHandler_NilCacheErr(t *testing.T) {
@@ -55,7 +86,7 @@ func TestHeadersSyncHandler_NilCacheErr(t *testing.T) {
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, headersSyncHandler)
-	require.Equal(t, dataRetriever.ErrNilCacher, err)
+	require.Equal(t, update.ErrNilCacher, err)
 }
 
 func TestHeadersSyncHandler_NilEpochHandlerErr(t *testing.T) {
@@ -94,18 +125,32 @@ func TestHeadersSyncHandler_NilRequestHandlerEr(t *testing.T) {
 func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {
 	t.Parallel()
 
-	meta := &block.MetaBlock{}
+	meta := &block.MetaBlock{Epoch: 1,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardId: 0, RootHash: []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
+						{Hash: []byte("hash")},
+					},
+				},
+			},
+		}}
 	args := createMockHeadersSyncHandlerArgs()
-	args.Storage = &mock.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
-			return json.Marshal(meta)
-		},
-	}
+	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				return json.Marshal(meta)
+			},
+		}
+	}}
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, err)
 
-	metaBlock, err := headersSyncHandler.SyncEpochStartMetaHeader(1, time.Second)
+	err = headersSyncHandler.syncEpochStartMetaHeader(1, time.Second)
+	require.Nil(t, err)
+
+	metaBlock, err := headersSyncHandler.GetEpochStartMetaBlock()
 	require.Nil(t, err)
 	require.Equal(t, meta, metaBlock)
 }
@@ -115,20 +160,21 @@ func TestSyncEpochStartMetaHeader_MissingHeaderTimeout(t *testing.T) {
 
 	localErr := errors.New("not found")
 	args := createMockHeadersSyncHandlerArgs()
-	args.Storage = &mock.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
-			return nil, localErr
-		},
-		GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
-			return nil, localErr
-		},
-	}
+	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				return nil, localErr
+			},
+			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+				return nil, localErr
+			},
+		}
+	}}
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, err)
 
-	metaBlock, err := headersSyncHandler.SyncEpochStartMetaHeader(1, time.Second)
-	require.Nil(t, metaBlock)
+	err = headersSyncHandler.syncEpochStartMetaHeader(1, time.Second)
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -147,14 +193,16 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 		return true
 	}}
 
-	args.Storage = &mock.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
-			return nil, localErr
-		},
-		GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
-			return nil, localErr
-		},
-	}
+	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				return nil, localErr
+			},
+			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+				return nil, localErr
+			},
+		}
+	}}
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, err)
@@ -164,8 +212,7 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 		headersSyncHandler.metaBlockPool.AddHeader(metaHash, meta)
 	}()
 
-	metaBlock, err := headersSyncHandler.SyncEpochStartMetaHeader(1, time.Second)
-	require.Nil(t, metaBlock)
+	err = headersSyncHandler.syncEpochStartMetaHeader(1, time.Second)
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -199,14 +246,16 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 		},
 	}
 
-	args.Storage = &mock.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
-			return nil, localErr
-		},
-		GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
-			return nil, localErr
-		},
-	}
+	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				return nil, localErr
+			},
+			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+				return nil, localErr
+			},
+		}
+	}}
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, err)
@@ -216,11 +265,10 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 		headersSyncHandler.metaBlockPool.AddHeader(metaHash, meta)
 	}()
 
-	metaBlock, err := headersSyncHandler.SyncEpochStartMetaHeader(1, 100*time.Second)
-	require.Equal(t, meta, metaBlock)
+	err = headersSyncHandler.syncEpochStartMetaHeader(1, 2*time.Second)
 	require.Nil(t, err)
 
-	metaBlockSync, err := headersSyncHandler.GetMetaBlock()
+	metaBlockSync, err := headersSyncHandler.GetEpochStartMetaBlock()
 	require.Nil(t, err)
 	require.Equal(t, meta, metaBlockSync)
 

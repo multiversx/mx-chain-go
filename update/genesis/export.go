@@ -91,6 +91,7 @@ func (se *stateExport) exportAllTransactions() error {
 		return err
 	}
 
+	log.Debug("Exported transactions", "len", len(toExportTransactions))
 	for key, tx := range toExportTransactions {
 		err := se.exportTx(key, tx)
 		if err != nil {
@@ -107,6 +108,7 @@ func (se *stateExport) exportAllMiniBlocks() error {
 		return err
 	}
 
+	log.Debug("Exported miniBlocks", "len", len(toExportMBs))
 	for key, mb := range toExportMBs {
 		err := se.exportMBs(key, mb)
 		if err != nil {
@@ -136,7 +138,7 @@ func (se *stateExport) exportAllTries() error {
 }
 
 func (se *stateExport) exportMeta() error {
-	metaBlock, err := se.stateSyncer.GetMetaBlock()
+	metaBlock, err := se.stateSyncer.GetEpochStartMetaBlock()
 	if err != nil {
 		return err
 	}
@@ -152,6 +154,8 @@ func (se *stateExport) exportMeta() error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("Exported metaBlock", "rootHash", metaBlock.RootHash)
 
 	return nil
 }

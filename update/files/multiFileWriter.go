@@ -72,7 +72,7 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 	if !ok {
 		err := m.NewFile(fileName)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		dataWriter, ok = m.dataWriters[fileName]

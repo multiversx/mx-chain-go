@@ -97,3 +97,24 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilMultiFileReader signals that nil multi file reader was provided
+var ErrNilMultiFileReader = errors.New("nil multi file reader")
+
+// ErrNilCacher signals that nil cacher was provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that nil epoch handler was provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrNilHeaderSyncHandler signals that nil header sync handler was provided
+var ErrNilHeaderSyncHandler = errors.New("nil header sync handler")
+
+// ErrNilMiniBlocksSyncHandler signals that nil miniblocks sync handler was provided
+var ErrNilMiniBlocksSyncHandler = errors.New("nil miniblocks sync handler")
+
+// ErrNilTransactionsSyncHandler signals that nil transactions sync handler was provided
+var ErrNilTransactionsSyncHandler = errors.New("nil transaction sync handler")
+
+// ErrWrongUnfinishedMetaHdrsMap signals that wrong unfinished meta headers map was provided
+var ErrWrongUnfinishedMetaHdrsMap = errors.New("wrong unfinished meta headers map")

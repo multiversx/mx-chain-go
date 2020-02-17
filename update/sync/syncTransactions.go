@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -77,12 +76,6 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 
 	for _, pool := range p.txPools {
 		pool.RegisterHandler(p.receivedTransaction)
-	}
-
-	for _, store := range p.storage {
-		if check.IfNil(store) {
-			return nil, epochStart.ErrNilStorage
-		}
 	}
 
 	return p, nil

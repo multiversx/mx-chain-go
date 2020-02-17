@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
@@ -201,6 +202,8 @@ type TestProcessorNode struct {
 	CounterMetaRcv int32
 
 	ChainID []byte
+
+	ExportHandler update.ExportHandler
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
@@ -352,11 +355,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 }
 
 func (tpn *TestProcessorNode) initStorage() {
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.Storage = CreateMetaStore(tpn.ShardCoordinator)
-	} else {
-		tpn.Storage = CreateShardStore(tpn.ShardCoordinator.NumberOfShards())
-	}
+	tpn.Storage = CreateStore(tpn.ShardCoordinator.NumberOfShards())
 }
 
 func (tpn *TestProcessorNode) initChainHandler() {
