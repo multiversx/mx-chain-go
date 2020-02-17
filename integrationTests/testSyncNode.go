@@ -73,11 +73,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initAccountDBs()
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
-		TestAddressConverter,
-		tpn.ShardCoordinator,
-		tpn.NodesCoordinator,
-	)
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -126,7 +121,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Store:                        tpn.Storage,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		NodesCoordinator:             tpn.NodesCoordinator,
-		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		FeeHandler:                   tpn.FeeAccumulator,
 		Uint64Converter:              TestUint64Converter,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,

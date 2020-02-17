@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -83,7 +84,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
 		forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
 			continue
 		}
 

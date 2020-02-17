@@ -91,9 +91,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		}
 		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -176,9 +175,8 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
-			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			addrRewards := shardRewardData.Addresses
+		for shardId := range consensusNodes {
+			addrRewards := make([]string, 0)
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 			if len(addrRewards) > 0 {
@@ -249,16 +247,12 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
-		for shardId, consensusGroup := range consensusNodes {
+		for shardId := range consensusNodes {
 			if shardId == sharding.MetachainShardId {
 				continue
 			}
 
-			shardRewardsData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
-			if shardRewardsData == nil {
-				shardRewardsData = &data.ConsensusRewardData{}
-			}
-
+			shardRewardsData := &data.ConsensusRewardData{}
 			addrRewards := shardRewardsData.Addresses
 			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 		}
@@ -398,15 +392,7 @@ func updateNumberTransactionsProposed(
 	transactionsForLeader[addressProposer] += nbTransactions
 }
 
-func updateRewardsForMetachain(rewardsMap map[string]uint32, consensusNode *integrationTests.TestProcessorNode) {
-	metaRewardDataSlice := consensusNode.SpecialAddressHandler.ConsensusMetaRewardData()
-	if len(metaRewardDataSlice) > 0 {
-		for _, metaRewardData := range metaRewardDataSlice {
-			for _, addr := range metaRewardData.Addresses {
-				rewardsMap[addr]++
-			}
-		}
-	}
+func updateRewardsForMetachain(_ map[string]uint32, _ *integrationTests.TestProcessorNode) {
 }
 
 func verifyRewardsForMetachain(

@@ -168,25 +168,9 @@ type TransactionVerifier interface {
 
 // TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
+	CreateBlockStarted()
+	GetAccumulatedFees() *big.Int
 	ProcessTransactionFee(cost *big.Int)
-	IsInterfaceNil() bool
-}
-
-// SpecialAddressHandler responds with needed special addresses
-type SpecialAddressHandler interface {
-	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
-	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
-	ConsensusShardRewardData() *data.ConsensusRewardData
-	ConsensusMetaRewardData() []*data.ConsensusRewardData
-	ClearMetaConsensusData()
-	ElrondCommunityAddress() []byte
-	LeaderAddress() []byte
-	BurnAddress() []byte
-	SetElrondCommunityAddress(elrond []byte)
-	ShardIdForAddress([]byte) (uint32, error)
-	Epoch() uint32
-	Round() uint64
-	IsCurrentNodeInConsensus() bool
 	IsInterfaceNil() bool
 }
 

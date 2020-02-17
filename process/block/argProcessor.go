@@ -23,7 +23,7 @@ type ArgBaseProcessor struct {
 	Store                        dataRetriever.StorageService
 	ShardCoordinator             sharding.Coordinator
 	NodesCoordinator             sharding.NodesCoordinator
-	SpecialAddressHandler        process.SpecialAddressHandler
+	FeeHandler                   process.TransactionFeeHandler
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	RequestHandler               process.RequestHandler
 	Core                         serviceContainer.Core
