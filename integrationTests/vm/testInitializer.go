@@ -4,7 +4,6 @@ package vm
 
 import (
 	"encoding/hex"
-	"errors"
 	"math"
 	"math/big"
 	"testing"
@@ -474,31 +473,6 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 	})
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-}
-
-func GetIntValueFromSCWithError(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) (*big.Int, error) {
-	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
-
-	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
-		ScAddress: scAddressBytes,
-		FuncName:  funcName,
-		Arguments: args,
-	})
-
-	if vmOutput == nil {
-		return nil, errors.New("nil vmOutput in GetIntValueFromSCWithError")
-	}
-
-	if vmOutput.ReturnData == nil {
-		return nil, errors.New("nil vmOutput.ReturnData in GetIntValueFromSCWithError")
-	}
-
-	if len(vmOutput.ReturnData) == 0 {
-		return nil, errors.New("empty vmOutput.ReturnData in GetIntValueFromSCWithError")
-	}
-
-	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0]), nil
 }
 
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
