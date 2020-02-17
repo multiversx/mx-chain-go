@@ -2,7 +2,7 @@ package mock
 
 import "math/big"
 
-// FeeAccumulatorSub is a stub which implement TransactionFeeHandler interface
+// FeeAccumulatorSub is a stub which implements TransactionFeeHandler interface
 type FeeAccumulatorStub struct {
 	CreateBlockStartedCalled    func()
 	GetAccumulatedFeesCalled    func() *big.Int
