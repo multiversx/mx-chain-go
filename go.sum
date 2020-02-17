@@ -10,6 +10,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v0.3.3 h1:koDT7gHvAcxLXWEB4aWzfhQxbutL22N
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.3/go.mod h1:6Suwu24I9Hf5tmpUHCVLH9z/XfEJKG6QPbQP7iGv1/o=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.4 h1:JZ0NHmn/mJkDfDv/sTgqRcTyAOY+es1qmIgZZxIfrJ4=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.4/go.mod h1:pH2AXUsZiSMCxPKJz7YBx+ZcXp4FGIQwXFHuJttulzY=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.6 h1:RolK7A28MbZPpGi1GIuBhA34dHMDz+9BXfWJ1f5fUjs=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.6/go.mod h1:9UL42+YcyowDTb6lgIGH00shNqLV8VD2g6BufLoOsCk=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
@@ -28,6 +30,8 @@ github.com/ElrondNetwork/elrond-vm-common v0.1.6 h1:NaK6rTjCW20s7/X3JI/Ui4RSdBoA
 github.com/ElrondNetwork/elrond-vm-common v0.1.6/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.1.9 h1:9WTpHz09MAdSkvxb9LbFrnl5iup6gLB2IwikOeMOKIY=
 github.com/ElrondNetwork/elrond-vm-common v0.1.9/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.1.10 h1:TGcowwzBmKn5MFLx9EtS3oLWaiJ1JRu3tUbm9I9zJLU=
+github.com/ElrondNetwork/elrond-vm-common v0.1.10/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.1.1/go.mod h1:02LPKFh/Z5rbejgW2dazwjWGnsniuLOhRM2JjaOA3Mg=
 github.com/ElrondNetwork/elrond-vm-util v0.1.3/go.mod h1:02LPKFh/Z5rbejgW2dazwjWGnsniuLOhRM2JjaOA3Mg=
 github.com/ElrondNetwork/go-ext-wasm v0.1.0 h1:aSXdg60JLQMSYdQbq0VtqpoyMdFYZqz09BcGiKwGY5U=
@@ -466,6 +470,7 @@ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/src-d/envconfig v1.0.0/go.mod h1:Q9YQZ7BKITldTBnoxsE5gOeB5y66RyPXeue/R4aaNBc=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/objx v0.1.1 h1:2vfRuCMp5sSVIDSqO8oNnWJq7mPa6KVP3iPIwFBuy8A=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=

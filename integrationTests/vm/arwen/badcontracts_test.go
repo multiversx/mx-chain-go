@@ -40,3 +40,16 @@ func Test_Corrupt_NoPanic(t *testing.T) {
 	context.deploySC("./testdata/bad/corrupt.wasm", "")
 	context.executeSC(&context.Owner, "thisDoesNotExist")
 }
+
+func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
+	context := setupTestContext(t)
+
+	context.deploySC("./testdata/bad/nomemory/nomemory.wasm", "")
+	context.executeSC(&context.Owner, "memoryFault")
+}
+
+func Test_BadFunctionNames_NoPanic(t *testing.T) {
+	context := setupTestContext(t)
+
+	context.deploySC("./testdata/bad/badFunctionNames/badFunctionNames.wasm", "")
+}

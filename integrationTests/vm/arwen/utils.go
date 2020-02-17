@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testContext struct {
@@ -54,7 +54,7 @@ func setupTestContext(t *testing.T) testContext {
 	context.initAccounts()
 
 	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
@@ -97,7 +97,7 @@ func (context *testContext) initAccounts() {
 func (context *testContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
@@ -122,14 +122,14 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 
 	owner.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
@@ -157,14 +157,14 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 
 	sender.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
@@ -184,7 +184,7 @@ func (context *testContext) querySC(function string, args [][]byte) []byte {
 
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 		return []byte{}
 	}
 
