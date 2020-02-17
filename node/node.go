@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	nodeCmdFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -725,7 +724,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 }
 
 func (n *Node) validateTx(tx *transaction.Transaction) error {
-	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, core.MaxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil
 	}
