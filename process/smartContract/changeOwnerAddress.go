@@ -10,11 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
-type changeOwner struct {
+type changeOwnerAddress struct {
 }
 
 // ProcessBuiltinFunction processes simple protocol built-in function
-func (c *changeOwner) ProcessBuiltinFunction(
+func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	tx data.TransactionHandler,
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -38,6 +38,6 @@ func (c *changeOwner) ProcessBuiltinFunction(
 }
 
 // IsInterfaceNil returns true if underlying object in nil
-func (c *changeOwner) IsInterfaceNil() bool {
+func (c *changeOwnerAddress) IsInterfaceNil() bool {
 	return c == nil
 }

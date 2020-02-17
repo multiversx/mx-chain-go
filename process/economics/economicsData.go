@@ -72,7 +72,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		gasPerDataByte:       data.gasPerDataByte,
 		dataLimitForBaseCalc: data.dataLimitForBaseCalc,
 		ratingsData:          rd,
-		developerPercentage:  economics.FeeSettings.DeveloperPercentage,
+		developerPercentage:  economics.RewardsSettings.DeveloperPercentage,
 	}, nil
 }
 
@@ -137,7 +137,8 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 func checkValues(economics *config.ConfigEconomics) error {
 	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
+		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 

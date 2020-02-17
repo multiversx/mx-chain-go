@@ -20,12 +20,14 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// claimDeveloperRewards is a constant which defines the name for the claim developer rewards function
-const claimDevRewards = "ERDClaimDeveloperRewards"
+// claimDeveloperRewardsFunctionName is a constant which defines the name for the claim developer rewards function
+const claimDeveloperRewardsFunctionName = "ClaimDeveloperRewards"
 
-// changeOwnerAddress is a constant which defines the name for the change owner address function
-const changeOwnerAddress = "ERDChangeOwnerAddress"
+// changeOwnerAddressFunctionName is a constant which defines the name for the change owner address function
+const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
 
+// builtInFunctionBaseCostMultiplier is a constant which defines the multiplier to calculate the transactions gas cost
+// when using built-in protocol functions
 const builtInFunctionBaseCostMultiplier = 2
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -134,8 +136,8 @@ func NewSmartContractProcessor(
 func (sc *scProcessor) createBuiltInFunctions() error {
 	sc.builtInFunctions = make(map[string]process.BuiltinFunction)
 
-	sc.builtInFunctions[claimDevRewards] = &claimDeveloperRewards{}
-	sc.builtInFunctions[changeOwnerAddress] = &changeOwner{}
+	sc.builtInFunctions[claimDeveloperRewardsFunctionName] = &claimDeveloperRewards{}
+	sc.builtInFunctions[changeOwnerAddressFunctionName] = &changeOwnerAddress{}
 
 	return nil
 }
@@ -199,9 +201,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	resolved, err := sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
-	if err != nil || resolved {
-		log.Debug("processed build in functions")
+	executed, err := sc.resolveBuiltInFunctions(tx, acntSnd, acntDst, vmInput)
+	if err != nil {
+		log.Debug("processed built in functions error", "error", err.Error())
+		return nil
+	}
+	if executed {
 		return nil
 	}
 
@@ -231,7 +236,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.developerPercentage)
 	feeForValidators := big.NewInt(0).Sub(consumedFee, newDeveloperReward)
-	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
 
 	acntDst, err = sc.reloadLocalAccount(acntDst)
 	if err != nil {
@@ -244,6 +248,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
 		return nil
 	}
+
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators)
 
 	return nil
 }

@@ -12,6 +12,7 @@ type RewardsSettings struct {
 	CommunityPercentage            float64
 	LeaderPercentage               float64
 	BurnPercentage                 float64
+	DeveloperPercentage            float64
 	DenominationCoefficientForView string
 }
 
@@ -22,7 +23,6 @@ type FeeSettings struct {
 	DataLimitForBaseCalc string
 	MinGasPrice          string
 	MinGasLimit          string
-	DeveloperPercentage  float64
 }
 
 // ValidatorSettings will hold the validator settings

@@ -59,15 +59,15 @@ func NewJournalEntryDeveloperReward(account *Account, oldDeveloperReward *big.In
 }
 
 // Revert applies undo operation
-func (jeb *JournalEntryDeveloperReward) Revert() (AccountHandler, error) {
-	jeb.account.DeveloperReward = jeb.oldDeveloperReward
+func (jed *JournalEntryDeveloperReward) Revert() (AccountHandler, error) {
+	jed.account.DeveloperReward = jed.oldDeveloperReward
 
-	return jeb.account, nil
+	return jed.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jeb *JournalEntryDeveloperReward) IsInterfaceNil() bool {
-	return jeb == nil
+func (jed *JournalEntryDeveloperReward) IsInterfaceNil() bool {
+	return jed == nil
 }
 
 //------- JournalEntryDataTrieUpdates
@@ -120,7 +120,7 @@ func (jedtu *JournalEntryDataTrieUpdates) IsInterfaceNil() bool {
 
 //------- JournalEntryOwnerAddress
 
-// JournalEntryOwnerAddress is used to revert a balance change
+// JournalEntryOwnerAddress is used to revert an owner change
 type JournalEntryOwnerAddress struct {
 	account         *Account
 	oldOwnerAddress []byte
@@ -139,13 +139,13 @@ func NewJournalEntryOwnerAddress(account *Account, ownerAddress []byte) (*Journa
 }
 
 // Revert applies undo operation
-func (jeb *JournalEntryOwnerAddress) Revert() (AccountHandler, error) {
-	jeb.account.OwnerAddress = jeb.oldOwnerAddress
+func (jeo *JournalEntryOwnerAddress) Revert() (AccountHandler, error) {
+	jeo.account.OwnerAddress = jeo.oldOwnerAddress
 
-	return jeb.account, nil
+	return jeo.account, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jeb *JournalEntryOwnerAddress) IsInterfaceNil() bool {
-	return jeb == nil
+func (jeo *JournalEntryOwnerAddress) IsInterfaceNil() bool {
+	return jeo == nil
 }

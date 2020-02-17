@@ -217,7 +217,7 @@ func (a *Account) AddToDeveloperReward(value *big.Int) error {
 	err := a.setDeveloperRewardWithJournal(newDeveloperReward)
 	if err != nil {
 		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
-		return nil
+		return err
 	}
 
 	return nil
@@ -233,7 +233,7 @@ func (a *Account) AddToBalance(value *big.Int) error {
 	err := a.SetBalanceWithJournal(newBalance)
 	if err != nil {
 		log.Debug("SetDeveloperRewardWithJournal error", "error", err.Error())
-		return nil
+		return err
 	}
 
 	return nil
@@ -248,5 +248,3 @@ func (a *Account) GetOwnerAddress() []byte {
 func (a *Account) GetBalance() *big.Int {
 	return big.NewInt(0).Set(a.Balance)
 }
-
-//TODO add Cap'N'Proto converter funcs
