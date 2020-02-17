@@ -2328,7 +2328,12 @@ func createMemUnit() storage.Storer {
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key
-func GetSigningParams(ctx *cli.Context, skName string, skIndexName string, skPemFileName string, suite crypto.Suite,
+func GetSigningParams(
+	ctx *cli.Context,
+	skName string,
+	skIndexName string,
+	skPemFileName string,
+	suite crypto.Suite,
 ) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
 	sk, err := getSk(ctx, skName, skIndexName, skPemFileName)

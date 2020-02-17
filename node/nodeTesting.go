@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -186,11 +187,10 @@ func (n *Node) generateAndSignSingleTx(
 	data string,
 	sk crypto.PrivateKey,
 ) (*transaction.Transaction, []byte, error) {
-
-	if n.marshalizer == nil {
+	if check.IfNil(n.marshalizer) {
 		return nil, nil, ErrNilMarshalizer
 	}
-	if sk == nil {
+	if check.IfNil(sk) {
 		return nil, nil, ErrNilPrivateKey
 	}
 

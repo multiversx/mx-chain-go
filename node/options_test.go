@@ -1,7 +1,6 @@
 package node
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -170,6 +169,18 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 
 	assert.True(t, node.blkc == blkc)
 	assert.Nil(t, err)
+}
+
+func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithDataStore(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.store)
+	assert.Equal(t, ErrNilStore, err)
 }
 
 func TestWithDataStore_ShouldWork(t *testing.T) {
@@ -584,35 +595,6 @@ func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.uint64ByteSliceConverter == converter)
-	assert.Nil(t, err)
-}
-
-func TestWithInitialNodesBalances_NilBalancesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithInitialNodesBalances(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.initialNodesBalances)
-	assert.Equal(t, ErrNilBalances, err)
-}
-
-func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	balances := map[string]*big.Int{
-		"pk1": big.NewInt(45),
-		"pk2": big.NewInt(56),
-	}
-
-	opt := WithInitialNodesBalances(balances)
-	err := opt(node)
-
-	assert.Equal(t, node.initialNodesBalances, balances)
 	assert.Nil(t, err)
 }
 

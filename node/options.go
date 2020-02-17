@@ -1,7 +1,6 @@
 package node
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -266,17 +265,6 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
-		return nil
-	}
-}
-
-// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]*big.Int) Option {
-	return func(n *Node) error {
-		if balances == nil {
-			return ErrNilBalances
-		}
-		n.initialNodesBalances = balances
 		return nil
 	}
 }

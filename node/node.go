@@ -63,7 +63,6 @@ type Node struct {
 	hasher                   hashing.Hasher
 	feeHandler               process.FeeHandler
 	initialNodesPubkeys      map[uint32][]string
-	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                P2PMessenger

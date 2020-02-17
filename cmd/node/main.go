@@ -211,13 +211,6 @@ VERSION:
 		Usage: "will not enable the user-friendly terminal view of the node",
 	}
 
-	// initialBalancesSkPemFile defines a flag for the path to the ...
-	initialBalancesSkPemFile = cli.StringFlag{
-		Name:  "initialBalancesSkPemFile",
-		Usage: "The file containing the secret keys which ...",
-		Value: "./config/initialBalancesSk.pem",
-	}
-
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
 		Name:  "initialNodesSkPemFile",
@@ -330,7 +323,6 @@ func main() {
 		skIndex,
 		numOfNodes,
 		storageCleanup,
-		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
@@ -648,9 +640,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveCurrentNodeName(coreComponents.StatusHandler, preferencesConfig.Preferences.NodeDisplayName)
 
-	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s\n:%v\n%s:%s\n%s:%v\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
@@ -1291,10 +1283,6 @@ func createNode(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
-		if err != nil {
-			return nil, errors.New("error creating node: " + err.Error())
-		}
 		err = nd.CreateShardedStores()
 		if err != nil {
 			return nil, err

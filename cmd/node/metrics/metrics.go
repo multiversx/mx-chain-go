@@ -76,8 +76,8 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
-// SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
-func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, nodeName string) {
+// SaveCurrentNodeName will save metric in status handler with nodeName
+func SaveCurrentNodeName(ash core.AppStatusHandler, nodeName string) {
 	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
 }
 
