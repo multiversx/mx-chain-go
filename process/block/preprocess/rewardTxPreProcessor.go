@@ -206,12 +206,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			err := rtp.processRewardTransaction(
-				txHash,
-				rTx,
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-			)
+			err := rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
 				return err
 			}
@@ -316,27 +311,6 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 	)
 
 	return missingTxsForShards
-}
-
-// processRewardTransaction processes a reward transaction, if the transactions has an error it removes it from pool
-func (rtp *rewardTxPreprocessor) processRewardTransaction(
-	rewardTxHash []byte,
-	rewardTx *rewardTx.RewardTx,
-	sndShardId uint32,
-	dstShardId uint32,
-) error {
-
-	err := rtp.rewardsProcessor.ProcessRewardTransaction(rewardTx)
-	if err != nil {
-		return err
-	}
-
-	txShardData := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
-	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData}
-	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
-
-	return nil
 }
 
 // RequestTransactionsForMiniBlock requests missing reward transactions for a certain miniblock
