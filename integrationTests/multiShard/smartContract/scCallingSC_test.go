@@ -96,7 +96,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 
 	// verify how many times was the first SC called
 	for index, node := range nodes {
@@ -176,7 +176,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
@@ -269,7 +269,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
