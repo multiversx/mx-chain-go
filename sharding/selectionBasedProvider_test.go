@@ -62,7 +62,9 @@ func TestSelectionBasedProvider_Get(t *testing.T) {
 	randomness := []byte("randomness")
 	expElList := getExpandedEligibleList(17)
 	res, err := sbp.Get(randomness, int64(numVals), expElList)
+
+	displayVals(res)
+
 	assert.Nil(t, err)
 	assert.Equal(t, numVals, len(res))
-	displayVals(res)
 }

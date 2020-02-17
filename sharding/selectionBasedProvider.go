@@ -42,8 +42,8 @@ func (sbp *SelectionBasedProvider) addToSortedSlice(ve *validatorEntry) {
 	sbp.sortedSlice = append(sbp.sortedSlice, ve)
 }
 
-func (sbp *SelectionBasedProvider) add(expElList []Validator, x int64) {
-	startIdx, numAppearances := computeStartIndexAndNumAppearancesForValidator(expElList, x)
+func (sbp *SelectionBasedProvider) add(expElList []Validator, index int64) {
+	startIdx, numAppearances := computeStartIndexAndNumAppearancesForValidator(expElList, index)
 	ve := &validatorEntry{
 		startIndex:     startIdx,
 		numAppearances: numAppearances,
@@ -54,20 +54,20 @@ func (sbp *SelectionBasedProvider) add(expElList []Validator, x int64) {
 // Get will return the consensus group based on the randomness.
 // After a validator is chosen, it is added to the slice so it won't be selected again so next time a new validator
 // is needed, the index is recalculated until the validator doesn't exist in that slice
-func (sbp *SelectionBasedProvider) Get(randomness []byte, numVal int64, expandedEligibleList []Validator) ([]Validator, error) {
+func (sbp *SelectionBasedProvider) Get(randomness []byte, numValidators int64, expandedEligibleList []Validator) ([]Validator, error) {
 	if len(randomness) == 0 {
 		return nil, ErrNilRandomness
 	}
-	validators := make([]Validator, 0, numVal)
-	var x uint64
+	validators := make([]Validator, 0, numValidators)
+	var index uint64
 	lenExpandedList := int64(len(expandedEligibleList))
 
-	for i := int64(0); i < numVal; i++ {
+	for i := int64(0); i < numValidators; i++ {
 		newRandomness := sbp.computeRandomnessAsUint64(randomness, int(i))
-		x = newRandomness % uint64(lenExpandedList-sbp.size)
-		x = sbp.adjustIndex(x)
-		validators = append(validators, expandedEligibleList[x])
-		sbp.add(expandedEligibleList, int64(x))
+		index = newRandomness % uint64(lenExpandedList-sbp.size)
+		index = sbp.adjustIndex(index)
+		validators = append(validators, expandedEligibleList[index])
+		sbp.add(expandedEligibleList, int64(index))
 	}
 
 	return validators, nil
