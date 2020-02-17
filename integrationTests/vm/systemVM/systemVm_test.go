@@ -69,7 +69,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -90,10 +90,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbound period
-	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
 	for index, node := range nodes {
@@ -107,7 +107,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	verifyUnbound(t, nodes, initialVal, consumedBalance)
 }
@@ -177,7 +177,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -198,10 +198,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	time.Sleep(time.Second)
 
-	nonce, round = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbound period
-	nonce, round = waitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBoundPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
 	for index, node := range nodes {
@@ -215,7 +215,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	time.Sleep(time.Second)
 
-	_, _ = waitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	verifyUnbound(t, nodes, initialVal, consumedBalance)
 }
@@ -263,18 +263,6 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 			}
 		}
 	}
-}
-
-func waitOperationToBeDone(t *testing.T, nodes []*integrationTests.TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
-	for i := 0; i < nrOfRounds; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	return nonce, round
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {

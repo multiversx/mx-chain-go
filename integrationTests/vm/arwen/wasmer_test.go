@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -148,25 +148,4 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		Arguments:   arguments,
 		CallType:    vmcommon.DirectCall,
 	}
-}
-
-func padBytesLeft(source []byte, totalLen int, padByte byte) []byte {
-	result := make([]byte, 0)
-	paddingSize := totalLen - len(source)
-	for i := 0; i < paddingSize; i++ {
-		result = append(result, padByte)
-	}
-	for _, b := range source {
-		result = append(result, b)
-	}
-	return result
-}
-
-func reverseBytes(source []byte) []byte {
-	length := len(source)
-	result := make([]byte, 0)
-	for i := length - 1; i >= 0; i-- {
-		result = append(result, source[i])
-	}
-	return result
 }

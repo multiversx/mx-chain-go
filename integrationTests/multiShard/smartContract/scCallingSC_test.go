@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 	_ = logger.SetLogLevel("*:INFO")
 
 	numOfShards := 1
-	nodesPerShard := 4
+	nodesPerShard := 2
 	numMetachainNodes := 0
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
@@ -83,17 +83,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
 	// Run two rounds, so the two SmartContracts get deployed.
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -106,14 +96,7 @@ func TestSCCallingInIntraShard(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
 
-	nrRoundsToExecute := 3
-	for i := 0; i < nrRoundsToExecute; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 
 	// verify how many times was the first SC called
 	for index, node := range nodes {
@@ -182,11 +165,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// make smart contract call to shard 1 which will do in shard 0
 	for _, node := range nodes {
@@ -197,13 +176,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
@@ -286,11 +259,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
 	node := nodes[0]
@@ -300,13 +269,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
