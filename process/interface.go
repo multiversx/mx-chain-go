@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -143,12 +143,16 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	IsInterfaceNil() bool
+}
+
+// DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
+type DataMarshalizer interface {
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 }
 
 // InternalTransactionProducer creates system transactions (e.g. rewards)
@@ -198,8 +202,6 @@ type PreProcessor interface {
 	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
-
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
@@ -220,6 +222,7 @@ type BlockProcessor interface {
 	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
@@ -431,15 +434,16 @@ type DataPacker interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	SetEpoch(epoch uint32)
-	RequestShardHeader(shardId uint32, hash []byte)
+	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
-	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
-	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestShardHeaderByNonce(shardID uint32, nonce uint64)
+	RequestTransaction(destShardID uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlock(shardId uint32, miniblockHash []byte)
-	RequestTrieNodes(shardId uint32, hash []byte, topic string)
+	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
+	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
+	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	IsInterfaceNil() bool
 }
 
@@ -624,6 +628,7 @@ type BlockTracker interface {
 	GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error)
+	GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -646,5 +651,12 @@ type EpochStartDataCreator interface {
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// MiniBlocksResolver defines what a mini blocks resolver should do
+type MiniBlocksResolver interface {
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool
 }

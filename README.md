@@ -165,3 +165,4 @@ Please make sure your contributions adhere to our coding guidelines:
     - E.g. "core/indexer: fixed a typo"
 
 Please see the [documentation](https://docs.elrond.com/) for more details on the Elrond project.
+

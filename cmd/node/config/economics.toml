@@ -16,13 +16,14 @@
     MinGasLimit = "100000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
+
 [ValidatorSettings]
     StakeValue = "500000000000000000000000" #500000ERD
     UnBoundPeriod = "100000"
 
 [RatingSettings]
-    StartRating = 50
-    MaxRating = 100
+    StartRating = 500000
+    MaxRating = 1000000
     MinRating = 1
     ProposerIncreaseRatingStep = 2
     ProposerDecreaseRatingStep = 4

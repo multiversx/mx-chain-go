@@ -126,7 +126,7 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 		headersCacher.AddHeader(headersHashes[i], &headers[i])
 	}
 
-	// Cache will do eviction 2 times, in items cache will be 801 items
+	// Cacher will do eviction 2 times, in items cache will be 801 items
 	require.Equal(t, 801, headersCacher.GetNumHeaders(0))
 
 	for i := 200; i < numHeadersToGenerate; i++ {

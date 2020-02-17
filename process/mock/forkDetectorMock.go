@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// ForkDetectorMock -
 type ForkDetectorMock struct {
 	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeaderCalled              func(nonce uint64, hash []byte)
@@ -19,48 +20,62 @@ type ForkDetectorMock struct {
 	ResetProbableHighestNonceCalled func()
 }
 
+// RestoreToGenesis -
 func (fdm *ForkDetectorMock) RestoreToGenesis() {
 	fdm.RestoreToGenesisCalled()
 }
 
+// AddHeader -
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 }
 
+// RemoveHeader -
 func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
 	fdm.RemoveHeaderCalled(nonce, hash)
 }
 
+// CheckFork -
 func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
 	return fdm.CheckForkCalled()
 }
 
+// GetHighestFinalBlockNonce -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return fdm.GetHighestFinalBlockNonceCalled()
+	if fdm.GetHighestFinalBlockNonceCalled != nil {
+		return fdm.GetHighestFinalBlockNonceCalled()
+	}
+	return 0
 }
 
+// GetHighestFinalBlockHash -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
 	return fdm.GetHighestFinalBlockHashCalled()
 }
 
+// ProbableHighestNonce -
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
 	return fdm.ProbableHighestNonceCalled()
 }
 
+// SetRollBackNonce -
 func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
 	if fdm.SetRollBackNonceCalled != nil {
 		fdm.SetRollBackNonceCalled(nonce)
 	}
 }
 
+// ResetFork -
 func (fdm *ForkDetectorMock) ResetFork() {
 	fdm.ResetForkCalled()
 }
 
+// GetNotarizedHeaderHash -
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 	return fdm.GetNotarizedHeaderHashCalled(nonce)
 }
 
+// ResetProbableHighestNonce -
 func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 	if fdm.ResetProbableHighestNonceCalled != nil {
 		fdm.ResetProbableHighestNonceCalled()

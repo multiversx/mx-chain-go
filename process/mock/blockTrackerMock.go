@@ -16,6 +16,7 @@ type headerInfo struct {
 	header data.HeaderHandler
 }
 
+// BlockTrackerMock -
 type BlockTrackerMock struct {
 	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
 	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
@@ -31,6 +32,7 @@ type BlockTrackerMock struct {
 	GetFinalHeaderCalled                              func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
+	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -40,23 +42,29 @@ type BlockTrackerMock struct {
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
 
-	shardCoordinator         sharding.Coordinator
+	shardCoordinator sharding.Coordinator
+
 	mutCrossNotarizedHeaders sync.RWMutex
 	crossNotarizedHeaders    map[uint32][]*headerInfo
+
+	mutSelfNotarizedHeaders sync.RWMutex
+	selfNotarizedHeaders    map[uint32][]*headerInfo
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32][]*headerInfo
 }
 
+// NewBlockTrackerMock -
 func NewBlockTrackerMock(shardCoordinator sharding.Coordinator, startHeaders map[uint32]data.HeaderHandler) *BlockTrackerMock {
 	bts := BlockTrackerMock{
 		shardCoordinator: shardCoordinator,
 	}
 	bts.headers = make(map[uint32][]*headerInfo)
-	_ = bts.InitCrossNotarizedHeaders(startHeaders)
+	_ = bts.InitNotarizedHeaders(startHeaders)
 	return &bts
 }
 
+// AddTrackedHeader -
 func (btm *BlockTrackerMock) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
 	if btm.AddTrackedHeaderCalled != nil {
 		btm.AddTrackedHeaderCalled(header, hash)
@@ -86,24 +94,40 @@ func (btm *BlockTrackerMock) AddTrackedHeader(header data.HeaderHandler, hash []
 	btm.headers[shardID] = headersForShard
 }
 
-func (btm *BlockTrackerMock) InitCrossNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
-	btm.mutCrossNotarizedHeaders.Lock()
-	defer btm.mutCrossNotarizedHeaders.Unlock()
-
+// InitNotarizedHeaders -
+func (btm *BlockTrackerMock) InitNotarizedHeaders(startHeaders map[uint32]data.HeaderHandler) error {
 	if startHeaders == nil {
 		return process.ErrNotarizedHeadersSliceIsNil
 	}
 
+	btm.mutCrossNotarizedHeaders.Lock()
 	btm.crossNotarizedHeaders = make(map[uint32][]*headerInfo)
 
 	for _, startHeader := range startHeaders {
 		shardID := startHeader.GetShardID()
 		btm.crossNotarizedHeaders[shardID] = append(btm.crossNotarizedHeaders[shardID], &headerInfo{header: startHeader, hash: nil})
 	}
+	btm.mutCrossNotarizedHeaders.Unlock()
+
+	selfStartHeader := startHeaders[btm.shardCoordinator.SelfId()]
+	selfStartHeaders := make(map[uint32]data.HeaderHandler)
+	for shardID := range startHeaders {
+		selfStartHeaders[shardID] = selfStartHeader
+	}
+
+	btm.mutSelfNotarizedHeaders.Lock()
+	btm.selfNotarizedHeaders = make(map[uint32][]*headerInfo)
+
+	for _, startHeader := range selfStartHeaders {
+		shardID := startHeader.GetShardID()
+		btm.selfNotarizedHeaders[shardID] = append(btm.selfNotarizedHeaders[shardID], &headerInfo{header: startHeader, hash: nil})
+	}
+	btm.mutSelfNotarizedHeaders.Unlock()
 
 	return nil
 }
 
+// AddCrossNotarizedHeader -
 func (btm *BlockTrackerMock) AddCrossNotarizedHeader(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte) {
 	if btm.AddCrossNotarizedHeaderCalled != nil {
 		btm.AddCrossNotarizedHeaderCalled(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
@@ -124,12 +148,14 @@ func (btm *BlockTrackerMock) AddCrossNotarizedHeader(shardID uint32, crossNotari
 	btm.mutCrossNotarizedHeaders.Unlock()
 }
 
+// AddSelfNotarizedHeader -
 func (btm *BlockTrackerMock) AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte) {
 	if btm.AddSelfNotarizedHeaderCalled != nil {
 		btm.AddSelfNotarizedHeaderCalled(shardID, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 }
 
+// CheckBlockAgainstRounder -
 func (btm *BlockTrackerMock) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
 	if btm.CheckBlockAgainstRounderCalled != nil {
 		return btm.CheckBlockAgainstRounderCalled(headerHandler)
@@ -138,6 +164,7 @@ func (btm *BlockTrackerMock) CheckBlockAgainstRounder(headerHandler data.HeaderH
 	return nil
 }
 
+// CheckBlockAgainstFinal -
 func (btm *BlockTrackerMock) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
 	if btm.CheckBlockAgainstFinalCalled != nil {
 		return btm.CheckBlockAgainstFinalCalled(headerHandler)
@@ -146,12 +173,14 @@ func (btm *BlockTrackerMock) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
+// CleanupHeadersBehindNonce -
 func (btm *BlockTrackerMock) CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64) {
 	if btm.CleanupHeadersBehindNonceCalled != nil {
 		btm.CleanupHeadersBehindNonceCalled(shardID, selfNotarizedNonce, crossNotarizedNonce)
 	}
 }
 
+// ComputeLongestChain -
 func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	if btm.ComputeLongestChainCalled != nil {
 		return btm.ComputeLongestChainCalled(shardID, header)
@@ -173,6 +202,7 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 	return headers, hashes
 }
 
+// ComputeLongestMetaChainFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
 	if err != nil {
@@ -184,6 +214,7 @@ func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
+// ComputeLongestShardsChainsFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
@@ -226,12 +257,14 @@ func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]da
 	return orderedHeaders, orderedHeadersHashes, hdrsMap, nil
 }
 
+// DisplayTrackedHeaders -
 func (btm *BlockTrackerMock) DisplayTrackedHeaders() {
 	if btm.DisplayTrackedHeadersCalled != nil {
 		btm.DisplayTrackedHeadersCalled()
 	}
 }
 
+// GetCrossNotarizedHeader -
 func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	if btm.GetCrossNotarizedHeaderCalled != nil {
 		return btm.GetCrossNotarizedHeaderCalled(shardID, offset)
@@ -240,6 +273,7 @@ func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint
 	return nil, nil, nil
 }
 
+// GetFinalHeader -
 func (btm *BlockTrackerMock) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if btm.GetFinalHeaderCalled != nil {
 		return btm.GetFinalHeaderCalled(shardID)
@@ -248,6 +282,7 @@ func (btm *BlockTrackerMock) GetFinalHeader(shardID uint32) (data.HeaderHandler,
 	return nil, nil, nil
 }
 
+// GetLastCrossNotarizedHeader -
 func (btm *BlockTrackerMock) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if btm.GetLastCrossNotarizedHeaderCalled != nil {
 		return btm.GetLastCrossNotarizedHeaderCalled(shardID)
@@ -268,6 +303,7 @@ func (btm *BlockTrackerMock) GetLastCrossNotarizedHeader(shardID uint32) (data.H
 	return headerInfo.header, headerInfo.hash, nil
 }
 
+// GetLastCrossNotarizedHeadersForAllShards -
 func (btm *BlockTrackerMock) GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error) {
 	lastCrossNotarizedHeaders := make(map[uint32]data.HeaderHandler, btm.shardCoordinator.NumberOfShards())
 
@@ -284,6 +320,27 @@ func (btm *BlockTrackerMock) GetLastCrossNotarizedHeadersForAllShards() (map[uin
 	return lastCrossNotarizedHeaders, nil
 }
 
+// GetLastSelfNotarizedHeader -
+func (btm *BlockTrackerMock) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+	if btm.GetLastSelfNotarizedHeaderCalled != nil {
+		return btm.GetLastSelfNotarizedHeaderCalled(shardID)
+	}
+
+	btm.mutSelfNotarizedHeaders.RLock()
+	defer btm.mutSelfNotarizedHeaders.RUnlock()
+
+	if btm.selfNotarizedHeaders == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceIsNil
+	}
+
+	headerInfo := btm.lastSelfNotarizedHdrForShard(shardID)
+	if headerInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
+	}
+
+	return headerInfo.header, headerInfo.hash, nil
+}
+
 func (btm *BlockTrackerMock) lastCrossNotarizedHdrForShard(shardID uint32) *headerInfo {
 	crossNotarizedHeadersCount := len(btm.crossNotarizedHeaders[shardID])
 	if crossNotarizedHeadersCount > 0 {
@@ -293,6 +350,16 @@ func (btm *BlockTrackerMock) lastCrossNotarizedHdrForShard(shardID uint32) *head
 	return nil
 }
 
+func (btm *BlockTrackerMock) lastSelfNotarizedHdrForShard(shardID uint32) *headerInfo {
+	selfNotarizedHeadersCount := len(btm.selfNotarizedHeaders[shardID])
+	if selfNotarizedHeadersCount > 0 {
+		return btm.selfNotarizedHeaders[shardID][selfNotarizedHeadersCount-1]
+	}
+
+	return nil
+}
+
+// GetTrackedHeaders -
 func (btm *BlockTrackerMock) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	if btm.GetTrackedHeadersCalled != nil {
 		return btm.GetTrackedHeadersCalled(shardID)
@@ -301,6 +368,7 @@ func (btm *BlockTrackerMock) GetTrackedHeaders(shardID uint32) ([]data.HeaderHan
 	return nil, nil
 }
 
+// GetTrackedHeadersForAllShards -
 func (btm *BlockTrackerMock) GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler {
 	trackedHeaders := make(map[uint32][]data.HeaderHandler)
 
@@ -312,6 +380,7 @@ func (btm *BlockTrackerMock) GetTrackedHeadersForAllShards() map[uint32][]data.H
 	return trackedHeaders
 }
 
+// GetTrackedHeadersWithNonce -
 func (btm *BlockTrackerMock) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	if btm.GetTrackedHeadersWithNonceCalled != nil {
 		return btm.GetTrackedHeadersWithNonceCalled(shardID, nonce)
@@ -320,6 +389,7 @@ func (btm *BlockTrackerMock) GetTrackedHeadersWithNonce(shardID uint32, nonce ui
 	return nil, nil
 }
 
+// IsShardStuck -
 func (btm *BlockTrackerMock) IsShardStuck(shardId uint32) bool {
 	if btm.IsShardStuckCalled != nil {
 		return btm.IsShardStuckCalled(shardId)
@@ -328,30 +398,35 @@ func (btm *BlockTrackerMock) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
+// RegisterCrossNotarizedHeadersHandler -
 func (btm *BlockTrackerMock) RegisterCrossNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if btm.RegisterCrossNotarizedHeadersHandlerCalled != nil {
 		btm.RegisterCrossNotarizedHeadersHandlerCalled(handler)
 	}
 }
 
+// RegisterSelfNotarizedHeadersHandler -
 func (btm *BlockTrackerMock) RegisterSelfNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if btm.RegisterSelfNotarizedHeadersHandlerCalled != nil {
 		btm.RegisterSelfNotarizedHeadersHandlerCalled(handler)
 	}
 }
 
+// RemoveLastNotarizedHeaders -
 func (btm *BlockTrackerMock) RemoveLastNotarizedHeaders() {
 	if btm.RemoveLastNotarizedHeadersCalled != nil {
 		btm.RemoveLastNotarizedHeadersCalled()
 	}
 }
 
+// RestoreToGenesis -
 func (btm *BlockTrackerMock) RestoreToGenesis() {
 	if btm.RestoreToGenesisCalled != nil {
 		btm.RestoreToGenesisCalled()
 	}
 }
 
+// IsInterfaceNil -
 func (btm *BlockTrackerMock) IsInterfaceNil() bool {
 	return btm == nil
 }

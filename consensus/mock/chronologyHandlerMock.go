@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
+// ChronologyHandlerMock -
 type ChronologyHandlerMock struct {
 	AddSubroundCalled        func(consensus.SubroundHandler)
 	RemoveAllSubroundsCalled func()
@@ -11,6 +12,7 @@ type ChronologyHandlerMock struct {
 	EpochCalled              func() uint32
 }
 
+// Epoch -
 func (chrm *ChronologyHandlerMock) Epoch() uint32 {
 	if chrm.EpochCalled != nil {
 		return chrm.EpochCalled()
@@ -18,18 +20,21 @@ func (chrm *ChronologyHandlerMock) Epoch() uint32 {
 	return 0
 }
 
+// AddSubround -
 func (chrm *ChronologyHandlerMock) AddSubround(subroundHandler consensus.SubroundHandler) {
 	if chrm.AddSubroundCalled != nil {
 		chrm.AddSubroundCalled(subroundHandler)
 	}
 }
 
+// RemoveAllSubrounds -
 func (chrm *ChronologyHandlerMock) RemoveAllSubrounds() {
 	if chrm.RemoveAllSubroundsCalled != nil {
 		chrm.RemoveAllSubroundsCalled()
 	}
 }
 
+// StartRounds -
 func (chrm *ChronologyHandlerMock) StartRounds() {
 	if chrm.StartRoundCalled != nil {
 		chrm.StartRoundCalled()
