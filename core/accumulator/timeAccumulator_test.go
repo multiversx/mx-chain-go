@@ -64,7 +64,7 @@ func TestTimeAccumulator_AddDataShouldWorkEvenIfTheChanIsBlocked(t *testing.T) {
 	select {
 	case <-chDone:
 	case <-time.After(timeout):
-		assert.Fail(t, "test did not finished in a reasonable time span. "+
+		assert.Fail(t, "test did not finish in a reasonable time span. "+
 			"Maybe problems with the used mutexes?")
 	}
 }
@@ -83,7 +83,7 @@ func TestTimeAccumulator_EvictionShouldStopWhenCloseIsCalled(t *testing.T) {
 	ta.Close()
 	time.Sleep(allowedTime)
 
-	ch := ta.OutputChan()
+	ch := ta.OutputChannel()
 	items, ok := <-ch
 
 	assert.False(t, ok)
@@ -100,7 +100,7 @@ func TestTimeAccumulator_EvictionDuringWaitShouldStopWhenCloseIsCalled(t *testin
 	ta.Close()
 	time.Sleep(allowedTime)
 
-	ch := ta.OutputChan()
+	ch := ta.OutputChannel()
 	items, ok := <-ch
 
 	assert.False(t, ok)
@@ -119,7 +119,7 @@ func TestTimeAccumulator_EvictionShouldPreserveTheOrder(t *testing.T) {
 	}
 	time.Sleep(allowedTime * 3)
 
-	ch := ta.OutputChan()
+	ch := ta.OutputChannel()
 	items, ok := <-ch
 
 	require.True(t, ok)
@@ -138,7 +138,7 @@ func TestTimeAccumulator_EvictionWithOffsetShouldPreserveTheOrder(t *testing.T) 
 	}
 	time.Sleep(allowedTime * 3)
 
-	ch := ta.OutputChan()
+	ch := ta.OutputChannel()
 	items, ok := <-ch
 
 	require.True(t, ok)

@@ -35,6 +35,6 @@ type P2PAntifloodHandler interface {
 // Accumulator defines the interface able to accumulate data and periodically evict them
 type Accumulator interface {
 	AddData(data interface{})
-	OutputChan() <-chan []interface{}
+	OutputChannel() <-chan []interface{}
 	IsInterfaceNil() bool
 }

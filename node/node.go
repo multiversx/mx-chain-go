@@ -657,37 +657,28 @@ func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
 	}
 }
 
-func (n *Node) setTxAccumulator(txAccumulator Accumulator) error {
-	if check.IfNil(txAccumulator) {
-		return ErrNilTxAccumulator
-	}
-	n.txAcumulator = txAccumulator
+func (n *Node) sendFromTxAccumulator() {
+	outputChannel := n.txAcumulator.OutputChannel()
 
-	go func() {
-		chanOutput := n.txAcumulator.OutputChan()
+	for objs := range outputChannel {
+		//this will read continuously until the chan is closed
 
-		for objs := range chanOutput {
-			//this will read continuously until the chan is closed
+		if len(objs) == 0 {
+			continue
+		}
 
-			if len(objs) == 0 {
+		txs := make([]*transaction.Transaction, 0, len(objs))
+		for _, obj := range objs {
+			tx, ok := obj.(*transaction.Transaction)
+			if !ok {
 				continue
 			}
 
-			txs := make([]*transaction.Transaction, 0, len(objs))
-			for _, obj := range objs {
-				tx, ok := obj.(*transaction.Transaction)
-				if !ok {
-					continue
-				}
-
-				txs = append(txs, tx)
-			}
-
-			n.sendBulkTransactions(txs)
+			txs = append(txs, tx)
 		}
-	}()
 
-	return nil
+		n.sendBulkTransactions(txs)
+	}
 }
 
 // sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes

@@ -539,6 +539,13 @@ func WithAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
 // WithTxAccumulator sets up a transaction accumulator handler for the Node
 func WithTxAccumulator(accumulator Accumulator) Option {
 	return func(n *Node) error {
-		return n.setTxAccumulator(accumulator)
+		if check.IfNil(accumulator) {
+			return ErrNilTxAccumulator
+		}
+		n.txAcumulator = accumulator
+
+		go n.sendFromTxAccumulator()
+
+		return nil
 	}
 }

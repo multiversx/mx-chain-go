@@ -226,8 +226,8 @@ type TopicAntifloodConfig struct {
 
 // TxAccumulatorConfig will hold the tx accumulator config values
 type TxAccumulatorConfig struct {
-	MaxAllowedTimeInMillis   uint32
-	MaxDeviationTimeInMillis uint32
+	MaxAllowedTimeInMilliseconds   uint32
+	MaxDeviationTimeInMilliseconds uint32
 }
 
 // AntifloodConfig will hold all p2p antiflood parameters

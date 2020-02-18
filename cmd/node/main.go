@@ -1208,8 +1208,8 @@ func createNode(
 	var txAccumulator node.Accumulator
 	txAccumulatorConfig := config.Antiflood.TxAccumulator
 	txAccumulator, err = accumulator.NewTimeAccumulator(
-		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMillis)*time.Millisecond,
-		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMillis)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
 	)
 	if err != nil {
 		return nil, err

@@ -79,9 +79,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	var txHash []byte
-	var tx *transaction.Transaction
-	tx, txHash, err = ef.CreateTransaction(
+	tx, txHash, err := ef.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,

@@ -13,8 +13,8 @@ import (
 
 const minimumAlowedTime = time.Millisecond * 10
 
-// timeAccumulator defines a structure that is able to accumulate data and once per interval provided
-// will try to write on the output chan
+// timeAccumulator is a structure that is able to accumulate data and will try to write on the output channel
+//once per provided interval
 type timeAccumulator struct {
 	ctx            context.Context
 	cancel         func()
@@ -46,6 +46,7 @@ func NewTimeAccumulator(maxAllowedTime time.Duration, maxOffset time.Duration) (
 		output:         make(chan []interface{}),
 		maxOffset:      maxOffset,
 	}
+
 	go ta.continuousEviction()
 
 	return ta, nil
@@ -58,8 +59,8 @@ func (ta *timeAccumulator) AddData(data interface{}) {
 	ta.mut.Unlock()
 }
 
-// OutputChan returns the output channel on which accumulated data will be sent periodically
-func (ta *timeAccumulator) OutputChan() <-chan []interface{} {
+// OutputChannel returns the output channel on which accumulated data will be sent periodically
+func (ta *timeAccumulator) OutputChannel() <-chan []interface{} {
 	return ta.output
 }
 
@@ -99,13 +100,13 @@ func (ta *timeAccumulator) computeWaitTime() time.Duration {
 // if context.Done is triggered during the eviction, the whole operation will be aborted
 func (ta *timeAccumulator) doEviction() bool {
 	ta.mut.Lock()
-	data := make([]interface{}, len(ta.data))
-	copy(data, ta.data)
+	tempData := make([]interface{}, len(ta.data))
+	copy(tempData, ta.data)
 	ta.data = nil
 	ta.mut.Unlock()
 
 	select {
-	case ta.output <- data:
+	case ta.output <- tempData:
 		return false
 	case <-ta.ctx.Done():
 		return true

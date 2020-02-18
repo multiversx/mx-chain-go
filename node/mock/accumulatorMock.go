@@ -16,8 +16,8 @@ func (am *accumulatorMock) AddData(data interface{}) {
 	am.ch <- []interface{}{data}
 }
 
-// OutputChan -
-func (am *accumulatorMock) OutputChan() <-chan []interface{} {
+// OutputChannel -
+func (am *accumulatorMock) OutputChannel() <-chan []interface{} {
 	return am.ch
 }
 
