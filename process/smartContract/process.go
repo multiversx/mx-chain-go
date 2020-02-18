@@ -245,14 +245,17 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 	dataToParse := tx.GetData()
 
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
-	hasTxData := len(scr.Data) > 0
-	hasTxDataWithIncompleteSCCall := scr.Data[0] == '@'
-	if isSCR && hasTxData && !hasTxDataWithIncompleteSCCall {
-		sc.isAsyncCall = true
-	}
-	if sc.isAsyncCall && hasTxDataWithIncompleteSCCall {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-		sc.isAsyncCallBack = true
+	if isSCR {
+		hasTxData := scr.Data != nil && len(scr.Data) > 0
+		hasTxDataWithIncompleteSCCall := hasTxData && scr.Data[0] == '@'
+
+		if isSCR && hasTxData && !hasTxDataWithIncompleteSCCall {
+			sc.isAsyncCall = true
+		}
+		if sc.isAsyncCall && hasTxDataWithIncompleteSCCall {
+			dataToParse = append([]byte("callBack"), tx.GetData()...)
+			sc.isAsyncCallBack = true
+		}
 	}
 
 	err := sc.argsParser.ParseData(string(dataToParse))
