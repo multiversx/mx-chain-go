@@ -287,6 +287,18 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if header.IsStartOfEpochBlock() {
+		currentValidatorStatisticsRootHash, err := mp.validatorStatisticsProcessor.RootHash()
+		if err != nil {
+			return err
+		}
+
+		_, err = mp.validatorStatisticsProcessor.GetValidatorInfosForHash(currentValidatorStatisticsRootHash)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = mp.txCoordinator.ProcessBlockTransaction(body, haveTime)
 	if err != nil {
 		return err
@@ -660,8 +672,6 @@ func (mp *metaProcessor) generateValidatorMiniBlocks() (block.Body, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Trace(fmt.Sprintf("%#v", validatorInfoDataList))
 
 	return mp.createValidatorMiniBlocks(validatorInfoDataList)
 }
@@ -1839,20 +1849,14 @@ func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBl
 func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]state.ValidatorInfo) ([]*block.MiniBlock, error) {
 	miniblocks := make([]*block.MiniBlock, 0)
 
-	for shardId, validators := range list {
+	for _, validators := range list {
 		miniBlock := &block.MiniBlock{}
 		miniBlock.SenderShardID = mp.shardCoordinator.SelfId()
-		miniBlock.ReceiverShardID = shardId
+		miniBlock.ReceiverShardID = mp.shardCoordinator.SelfId()
 		miniBlock.TxHashes = make([][]byte, len(validators))
 		miniBlock.Type = block.PeerBlock
 
 		for index, validator := range validators {
-			//account, _ := mp.validatorStatisticsProcessor.GetPeerAccount(validator.PublicKey())
-			//tempRating := account.GetTempRating()
-			//err := account.SetRatingWithJournal(tempRating)
-			//if err != nil{
-			//	return nil, err
-			//}
 			marshalizedValidator, err := mp.marshalizer.Marshal(validator)
 			if err != nil {
 				return nil, err
@@ -1866,13 +1870,3 @@ func (mp *metaProcessor) createValidatorMiniBlocks(list map[uint32][]state.Valid
 
 	return miniblocks, nil
 }
-
-//
-//func (mp *metaProcessor) createTrieSnapshot(hash []byte) ([]state.ValidatorInfo, error) {
-//	validatorInfos, err :=
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return prevTrie, nil
-//}

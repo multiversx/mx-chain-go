@@ -349,16 +349,16 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 func (vs *validatorStatistics) GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
 	vinfos, err := vs.peerAdapter.GetValidatorInfoFromRootHash(rootHash)
 
-	//for _, validators := range vinfos{
-	//	for _, validator := range validators{
-	//		addrContainer, _ := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
-	//		account, _ := vs.peerAdapter.GetAccountWithJournal(addrContainer)
-	//		peerAccount, ok := account.(*state.PeerAccount)
-	//		if ok {
-	//			peerAccount.SetRatingWithJournal(validator.GetTempRating())
-	//		}
-	//	}
-	//}
+	for _, validators := range vinfos {
+		for _, validator := range validators {
+			addrContainer, _ := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+			account, _ := vs.peerAdapter.GetAccountWithJournal(addrContainer)
+			peerAccount, ok := account.(*state.PeerAccount)
+			if ok {
+				peerAccount.SetRatingWithJournal(validator.GetTempRating())
+			}
+		}
+	}
 
 	return vinfos, err
 }
@@ -708,8 +708,8 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
-	rootHash, _ := vs.RootHash()
-	log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
+	//rootHash, _ := vs.RootHash()
+	//log.Trace("UpdateRatingFromTempRating before", "rootHash", rootHash)
 	for _, pk := range pks {
 		peer, err := vs.GetPeerAccount([]byte(pk))
 
@@ -725,6 +725,6 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) {
 			log.Debug("Error setting rating with journal on peer account", "error", err)
 		}
 	}
-	rootHash, _ = vs.RootHash()
-	log.Trace("UpdateRatingFromTempRating after", "rootHash", rootHash)
+	//rootHash, _ = vs.RootHash()
+	//log.Trace("UpdateRatingFromTempRating after", "rootHash", rootHash)
 }

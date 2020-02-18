@@ -230,6 +230,11 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		}
 	}
 
+	if len(mbHash) == 0 {
+		t.updateTriggerFromMeta(metaHdr, hdrHash)
+		return
+	}
+
 	mb, found := t.miniblocksPool.Get(mbHash)
 
 	if !found {

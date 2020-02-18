@@ -113,7 +113,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(validators 
 
 	for _, validatorInShard := range validators {
 		pk := validatorInShard.PubKey()
-		ihgs.UpdateRatingFromTempRating([]string{string(pk)})
+		//ihgs.UpdateRatingFromTempRating([]string{string(pk)})
 		rating := ihgs.GetRating(string(pk))
 		chances := ihgs.GetChance(rating)
 		log.Trace("Computing chances for validator", "pk", pk, "rating", rating, "chances", chances)

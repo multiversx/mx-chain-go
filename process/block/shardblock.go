@@ -170,6 +170,7 @@ func (sp *shardProcessor) receivedMiniBlock(key []byte) {
 							pa, _ := sp.validatorStatisticsProcessor.GetPeerAccount(vid.PublicKey)
 							pa.SetRatingWithJournal(vid.Rating)
 							pa.SetTempRatingWithJournal(vid.TempRating)
+							pa.SetRatingWithJournal(vid.TempRating)
 						}
 					}
 

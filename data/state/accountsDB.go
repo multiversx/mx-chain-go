@@ -512,7 +512,7 @@ func (adb *AccountsDB) GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32
 		if err != nil {
 			return nil, err
 		}
-
+		log.Debug("ValidatorInfoData", "pk", validatorInfoData.PublicKey, "rating", validatorInfoData.Rating, "tempRating", validatorInfoData.TempRating)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 
 		i++

@@ -72,7 +72,7 @@ func (inTxBody *InterceptedTxBlockBody) isMiniblockForCurrentShard(miniblock *bl
 	isForCurrentShardRecv := miniblock.ReceiverShardID == inTxBody.shardCoordinator.SelfId()
 	isForCurrentShardSender := miniblock.SenderShardID == inTxBody.shardCoordinator.SelfId()
 
-	return isForCurrentShardRecv || isForCurrentShardSender
+	return isForCurrentShardRecv || isForCurrentShardSender || miniblock.Type == block.PeerBlock
 }
 
 // Hash gets the hash of this transaction block body
