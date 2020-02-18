@@ -30,17 +30,6 @@ func TestPresenterStatusHandler_GetNodeType(t *testing.T) {
 	assert.Equal(t, nodeType, result)
 }
 
-func TestPresenterStatusHandler_GetPublicKeyTxSign(t *testing.T) {
-	t.Parallel()
-
-	publicKey := "publicKeyTxSign"
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, publicKey)
-	result := presenterStatusHandler.GetPublicKeyTxSign()
-
-	assert.Equal(t, publicKey, result)
-}
-
 func TestPresenterStatusHandler_GetPublicKeyBlockSign(t *testing.T) {
 	t.Parallel()
 
