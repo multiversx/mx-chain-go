@@ -9,6 +9,7 @@ type EconomicsAddresses struct {
 // RewardsSettings will hold economics rewards settings
 type RewardsSettings struct {
 	LeaderPercentage               float64
+	DeveloperPercentage            float64
 	DenominationCoefficientForView string
 }
 

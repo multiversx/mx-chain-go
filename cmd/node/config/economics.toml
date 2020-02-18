@@ -5,6 +5,7 @@
 
 [RewardsSettings]
     LeaderPercentage = 0.10
+    DeveloperPercentage = 0.30
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]

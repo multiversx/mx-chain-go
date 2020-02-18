@@ -333,7 +333,6 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	idxProposerShard1 := 1
 	idxProposerMeta := 2
 	idxProposers := []int{idxProposerShard0, idxProposerShard1, idxProposerMeta}
-	idxProposersWithoutShard1 := []int{idxProposerShard0, idxProposerMeta}
 
 	defer func() {
 		_ = advertiser.Close()
@@ -371,26 +370,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposersWithoutShard1, round, nonce)
-
-		hdr, body, isBodyEmpty := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round, nonce)
-		if !isBodyEmpty {
-			nodes[idxProposerShard1].CommitBlock(body, hdr)
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-			nonce++
-			continue
-		}
-
-		//shard 1' proposer got to process at least 1 tx, should not commit but the shard 1's validator
-		//should be able to process the block
-
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-		integrationTests.CheckRootHashes(t, nodes, idxProposers)
-		break
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
 	nodeWithSc := nodes[idxProposerShard1]
@@ -476,8 +456,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	randomness := generateInitialRandomness(uint32(maxShards))
 	_, _, consensusNodes, _ := integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 	shardId0 := uint32(0)
-	leaderPkBytes := []byte("leader")
-	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
 
 	_ = integrationTests.IncrementAndPrintRound(round)
 
@@ -491,13 +469,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
 
 	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
-
-	accnt, err = consensusNodes[shardId0][0].AccntState.GetExistingAccount(leaderAddress)
-	assert.Nil(t, err)
-	leaderAccnt := accnt.(*state.Account)
-	expectedBalance = big.NewInt(0).Set(txCost)
-	expectedBalance.Div(expectedBalance, big.NewInt(2))
-	assert.Equal(t, expectedBalance, leaderAccnt.Balance)
 }
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {
