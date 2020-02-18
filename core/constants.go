@@ -60,10 +60,6 @@ const MetricIsSyncing = "erd_is_syncing"
 // MetricPublicKeyBlockSign is the metric for monitoring public key of a node used in block signing
 const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
 
-// MetricPublicKeyTxSign is the metric for monitoring public key of a node used in tx signing
-// (balance account held by the node)
-const MetricPublicKeyTxSign = "erd_public_key_tx_sign"
-
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
 
