@@ -95,12 +95,6 @@ VERSION:
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
 		Value: "./config/nodesSetup.json",
 	}
-	// txSignSk defines a flag for the path of the single sign private key used when starting the node
-	txSignSk = cli.StringFlag{
-		Name:  "tx-sign-sk",
-		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
-		Value: "",
-	}
 	// sk defines a flag for the path of the multi sign private key used when starting the node
 	sk = cli.StringFlag{
 		Name:  "sk",
@@ -165,12 +159,6 @@ VERSION:
 		Name:  "profile-mode",
 		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
 	}
-	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
-	txSignSkIndex = cli.IntFlag{
-		Name:  "tx-sign-sk-index",
-		Usage: "Single sign private key index specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
-		Value: 0,
-	}
 	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
 		Name:  "sk-index",
@@ -221,13 +209,6 @@ VERSION:
 	useLogView = cli.BoolFlag{
 		Name:  "use-log-view",
 		Usage: "will not enable the user-friendly terminal view of the node",
-	}
-
-	// initialBalancesSkPemFile defines a flag for the path to the ...
-	initialBalancesSkPemFile = cli.StringFlag{
-		Name:  "initialBalancesSkPemFile",
-		Usage: "The file containing the secret keys which ...",
-		Value: "./config/initialBalancesSk.pem",
 	}
 
 	// initialNodesSkPemFile defines a flag for the path to the ...
@@ -337,14 +318,11 @@ func main() {
 		configurationPreferencesFile,
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
-		txSignSk,
 		sk,
 		profileMode,
-		txSignSkIndex,
 		skIndex,
 		numOfNodes,
 		storageCleanup,
-		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
@@ -656,21 +634,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		keyGen,
 		privKey,
 		log,
-		initialBalancesSkPemFile.Name,
-		txSignSk.Name,
-		txSignSkIndex.Name,
 	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
 	}
 
-	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveCurrentNodeName(coreComponents.StatusHandler, preferencesConfig.Preferences.NodeDisplayName)
 
-	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
-		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
@@ -1274,8 +1247,6 @@ func createNode(
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
 		node.WithKeyGenForAccounts(crypto.TxSignKeyGen),
-		node.WithTxSignPubKey(crypto.TxSignPubKey),
-		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(process.ForkDetector),
@@ -1312,10 +1283,6 @@ func createNode(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
-		if err != nil {
-			return nil, errors.New("error creating node: " + err.Error())
-		}
 		err = nd.CreateShardedStores()
 		if err != nil {
 			return nil, err
