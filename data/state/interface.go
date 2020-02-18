@@ -1,8 +1,9 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HashLength defines how many bytes are used in a hash
