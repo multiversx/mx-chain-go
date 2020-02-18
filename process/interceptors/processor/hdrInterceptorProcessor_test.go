@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -15,10 +14,9 @@ import (
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 	arg := &processor.ArgHdrInterceptorProcessor{
-		Headers:       &mock.CacherStub{},
-		HeadersNonces: &mock.Uint64SyncMapCacherStub{},
-		HdrValidator:  &mock.HeaderValidatorStub{},
-		BlackList:     &mock.BlackListHandlerStub{},
+		Headers:      &mock.HeadersCacherStub{},
+		HdrValidator: &mock.HeaderValidatorStub{},
+		BlackList:    &mock.BlackListHandlerStub{},
 	}
 
 	return arg
@@ -32,7 +30,7 @@ func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	hip, err := processor.NewHdrInterceptorProcessor(nil)
 
 	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {
@@ -44,17 +42,6 @@ func TestNewHdrInterceptorProcessor_NilHeadersShouldErr(t *testing.T) {
 
 	assert.Nil(t, hip)
 	assert.Equal(t, process.ErrNilCacher, err)
-}
-
-func TestNewHdrInterceptorProcessor_NilHeadersNoncesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockHdrArgument()
-	arg.HeadersNonces = nil
-	hip, err := processor.NewHdrInterceptorProcessor(arg)
-
-	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
 }
 
 func TestNewHdrInterceptorProcessor_NilValidatorShouldErr(t *testing.T) {
@@ -87,6 +74,7 @@ func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(hip))
 	assert.Nil(t, err)
+	assert.False(t, hip.IsInterfaceNil())
 }
 
 //------- Validate
@@ -192,19 +180,11 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	}
 
 	wasAddedHeaders := false
-	wasMergedHeadersNonces := false
 
 	arg := createMockHdrArgument()
-	arg.Headers = &mock.CacherStub{
-		HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
+	arg.Headers = &mock.HeadersCacherStub{
+		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
 			wasAddedHeaders = true
-
-			return true, true
-		},
-	}
-	arg.HeadersNonces = &mock.Uint64SyncMapCacherStub{
-		MergeCalled: func(nonce uint64, src dataRetriever.ShardIdHashMap) {
-			wasMergedHeadersNonces = true
 		},
 	}
 
@@ -213,7 +193,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	err := hip.Save(hdrInterceptedData)
 
 	assert.Nil(t, err)
-	assert.True(t, wasAddedHeaders && wasMergedHeadersNonces)
+	assert.True(t, wasAddedHeaders)
 }
 
 //------- IsInterfaceNil

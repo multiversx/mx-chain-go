@@ -26,7 +26,7 @@ type TxBodyInterceptorProcessor struct {
 // NewTxBodyInterceptorProcessor creates a new TxBodyInterceptorProcessor instance
 func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*TxBodyInterceptorProcessor, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.MiniblockCache) {
 		return nil, process.ErrNilMiniBlockPool
@@ -103,6 +103,10 @@ func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBloc
 	}
 
 	return nil
+}
+
+// SignalEndOfProcessing signals the end of processing
+func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -34,11 +34,6 @@ type StatusResponse struct {
 	Running bool `json:"running"`
 }
 
-type AddressResponse struct {
-	GeneralResponse
-	Address string `json:"address"`
-}
-
 type StatisticsResponse struct {
 	GeneralResponse
 	Statistics struct {
@@ -67,66 +62,6 @@ func TestStartNode_FailsWithoutFacade(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/node/start", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
-}
-
-func TestAddress_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-	defer func() {
-		r := recover()
-		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
-	}()
-	req, _ := http.NewRequest("GET", "/node/address", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-}
-
-func TestAddress_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/node/address", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	addressRsp := AddressResponse{}
-	loadResponse(resp.Body, &addressRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, addressRsp.Error, errors.ErrInvalidAppContext.Error())
-}
-
-func TestAddress_FailsWithInvalidUrlString(t *testing.T) {
-	facade := mock.Facade{}
-	facade.GetCurrentPublicKeyHandler = func() string {
-		// we return a malformed scheme so that url.Parse will error
-		return "cache_object:foo/bar"
-	}
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/address", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	addressRsp := AddressResponse{}
-	loadResponse(resp.Body, &addressRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, addressRsp.Error, errors.ErrCouldNotParsePubKey.Error())
-}
-
-func TestAddress_ReturnsSuccessfully(t *testing.T) {
-	facade := mock.Facade{}
-	address := "abcdefghijklmnopqrstuvwxyz"
-	facade.GetCurrentPublicKeyHandler = func() string {
-		// we return a malformed scheme so that url.Parse will error
-		return address
-	}
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/address", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	addressRsp := AddressResponse{}
-	loadResponse(resp.Body, &addressRsp)
-	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, addressRsp.Address, address)
 }
 
 //------- Heartbeatstatus

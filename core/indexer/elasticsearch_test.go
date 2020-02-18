@@ -70,17 +70,13 @@ func newTestBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			&block.MiniBlock{
-				TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
-				ReceiverShardID: 2,
-				SenderShardID:   2,
-				Type:            0,
-			},
+				TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, 
+				ReceiverShardID: 2, 
+				SenderShardID: 2},,
 			&block.MiniBlock{
-				TxHashes:        [][]byte{[]byte("tx3")},
-				ReceiverShardID: 4,
-				SenderShardID:   1,
-				Type:            0,
-			},
+				TxHashes: [][]byte{[]byte("tx3")}, 
+				ReceiverShardID: 4, 
+				SenderShardID: 1},
 		},
 	}
 }
@@ -106,7 +102,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address1"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      "tx_data1",
+		Data:      []byte("tx_data1"),
 		Signature: []byte("signature1"),
 	}
 
@@ -117,7 +113,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address2"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      "tx_data2",
+		Data:      []byte("tx_data2"),
 		Signature: []byte("signature2"),
 	}
 
@@ -128,7 +124,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address3"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      "tx_data3",
+		Data:      []byte("tx_data3"),
 		Signature: []byte("signature3"),
 	}
 

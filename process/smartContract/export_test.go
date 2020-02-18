@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (sc *scProcessor) CreateVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
@@ -39,8 +39,11 @@ func (sc *scProcessor) CreateSCRForSender(
 	return sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 }
 
-func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
-	return sc.processSCOutputAccounts(outputAccounts, tx)
+func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) ([]data.TransactionHandler, error) {
+	return sc.processSCOutputAccounts(outputAccounts, tx, txHash)
 }
 
 func (sc *scProcessor) DeleteAccounts(deletedAccounts [][]byte) error {
@@ -60,5 +63,5 @@ func (sc *scProcessor) CreateSCRTransactions(
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	return sc.createSCRTransactions(crossOutAccs, tx, txHash)
+	return sc.processSCOutputAccounts(crossOutAccs, tx, txHash)
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -68,7 +69,6 @@ func NewElasticIndexer(
 	hasher hashing.Hasher,
 	options *Options,
 ) (Indexer, error) {
-
 	err := checkElasticSearchParams(
 		url,
 		shardCoordinator,
@@ -255,7 +255,11 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	}
 
 	buff.Grow(len(marshalizedRoundInfo))
-	buff.Write(marshalizedRoundInfo)
+	_, err = buff.Write(marshalizedRoundInfo)
+	if err != nil {
+		log.Warn("elastic search: save round info, write", "error", err.Error())
+		return
+	}
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
@@ -279,7 +283,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	valPubKeys := make(map[uint32][]string, 0)
+	valPubKeys := make(map[uint32][]string)
 	for shardId, shardPubKeys := range validatorsPubKeys {
 		for _, pubKey := range shardPubKeys {
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
@@ -306,7 +310,10 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 	}
 
 	buff.Grow(len(marshalizedValidatorPubKeys))
-	buff.Write(marshalizedValidatorPubKeys)
+	_, err = buff.Write(marshalizedValidatorPubKeys)
+	if err != nil {
+		log.Warn("elastic search: save shard validators pub keys, write", "error", err.Error())
+	}
 
 	req := esapi.IndexRequest{
 		Index:      validatorsIndex,
@@ -367,7 +374,10 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes [
 	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
 
 	buff.Grow(len(serializedBlock))
-	buff.Write(serializedBlock)
+	_, err := buff.Write(serializedBlock)
+	if err != nil {
+		log.Warn("elastic search: save header, write", "error", err.Error())
+	}
 
 	req := esapi.IndexRequest{
 		Index:      blockIndex,
@@ -404,8 +414,14 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 		serializedTx = append(serializedTx, "\n"...)
 
 		buff.Grow(len(meta) + len(serializedTx))
-		buff.Write(meta)
-		buff.Write(serializedTx)
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedTx)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
 	}
 
 	return buff
@@ -540,20 +556,35 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	serializedInfo = append(serializedInfo, "\n"...)
 
 	buff.Grow(len(meta) + len(serializedInfo))
-	buff.Write(meta)
-	buff.Write(serializedInfo)
+	_, err = buff.Write(meta)
+	if err != nil {
+		log.Warn("elastic search: update TPS write meta", "error", err.Error())
+	}
+	_, err = buff.Write(serializedInfo)
+	if err != nil {
+		log.Warn("elastic search: update TPS write serialized info", "error", err.Error())
+	}
 
+	var serializedShardInfo []byte
+	var serializedMetaInfo []byte
+	var res *esapi.Response
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
-		if serializedInfo == nil {
+		serializedShardInfo, serializedMetaInfo = ei.serializeShardInfo(shardInfo)
+		if serializedShardInfo == nil {
 			continue
 		}
 
-		buff.Grow(len(meta) + len(serializedInfo))
-		buff.Write(meta)
-		buff.Write(serializedInfo)
+		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
+		_, err = buff.Write(serializedMetaInfo)
+		if err != nil {
+			log.Warn("elastic search: update TPS write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedShardInfo)
+		if err != nil {
+			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
+		}
 
-		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
+		res, err = ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
 			log.Warn("indexer: error indexing tps information")
 			continue
@@ -568,10 +599,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ei *elasticIndexer) IsInterfaceNil() bool {
-	if ei == nil {
-		return true
-	}
-	return false
+	return ei == nil
 }
 
 func closeESResponseBody(res *esapi.Response) {
@@ -616,6 +644,11 @@ func getTransactionByType(
 	currentReward, ok := tx.(*rewardTx.RewardTx)
 	if ok && currentReward != nil {
 		return buildRewardTransaction(currentReward, txHash, mbHash, blockHash, mb, header)
+	}
+
+	currentReceipt, ok := tx.(*receipt.Receipt)
+	if ok && currentReceipt != nil {
+		return buildReceiptTransaction(currentReceipt, txHash, mbHash, blockHash, mb, header)
 	}
 
 	return nil
@@ -686,7 +719,6 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
-
 	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardID)
 
 	return &Transaction{
@@ -702,7 +734,35 @@ func buildRewardTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
 		GasLimit:      0,
-		Data:          "",
+		Data:          []byte(""),
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
+}
+
+func buildReceiptTransaction(
+	rpt *receipt.Receipt,
+	txHash []byte,
+	mbHash []byte,
+	blockHash []byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         rpt.GetNonce(),
+		Round:         header.GetRound(),
+		Value:         rpt.Value.String(),
+		Receiver:      hex.EncodeToString(rpt.GetRecvAddress()),
+		Sender:        hex.EncodeToString(rpt.GetSndAddress()),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          rpt.Data,
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",

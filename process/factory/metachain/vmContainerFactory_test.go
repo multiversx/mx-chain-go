@@ -1,11 +1,11 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -39,6 +39,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
+	assert.False(t, vmf.IsInterfaceNil())
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
@@ -57,13 +58,24 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "10000000000",
-				MinGasPrice:         "10",
-				MinGasLimit:         "10",
+				MaxGasLimitPerBlock:  "10000000000",
+				MinGasPrice:          "10",
+				MinGasLimit:          "10",
+				GasPerDataByte:       "1",
+				DataLimitForBaseCalc: "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
 				UnBoundPeriod: "1000",
+			},
+			RatingSettings: config.RatingSettings{
+				StartRating:                 5,
+				MaxRating:                   10,
+				MinRating:                   1,
+				ProposerIncreaseRatingStep:  2,
+				ProposerDecreaseRatingStep:  4,
+				ValidatorIncreaseRatingStep: 1,
+				ValidatorDecreaseRatingStep: 2,
 			},
 		},
 	)

@@ -20,7 +20,7 @@ type interceptedRewardTxDataFactory struct {
 // NewInterceptedRewardTxDataFactory creates an instance of interceptedRewardTxDataFactory
 func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*interceptedRewardTxDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -59,8 +59,5 @@ func (irtdf *interceptedRewardTxDataFactory) Create(buff []byte) (process.Interc
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (irtdf *interceptedRewardTxDataFactory) IsInterfaceNil() bool {
-	if irtdf == nil {
-		return true
-	}
-	return false
+	return irtdf == nil
 }

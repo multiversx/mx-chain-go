@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strings"
 	"sync"
@@ -15,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -27,15 +28,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -56,8 +61,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
-var p2pBootstrapStepDelay = 5 * time.Second
+// StepDelay is used so that transactions can disseminate properly
+var StepDelay = time.Second
+
+// SyncDelay is used so that nodes have enough time to sync
+var SyncDelay = time.Second * 2
+
+// P2pBootstrapDelay is used so that nodes have enough time to bootstrap
+var P2pBootstrapDelay = 5 * time.Second
+
+var log = logger.GetOrCreate("integrationtests")
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -70,6 +83,20 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
+// CreateKadPeerDiscoverer creates a default kad peer dicoverer instance to be used in tests
+func CreateKadPeerDiscoverer(peerRefreshInterval time.Duration, initialPeersList []string) p2p.PeerDiscoverer {
+	arg := discovery.ArgKadDht{
+		PeersRefreshInterval: peerRefreshInterval,
+		RandezVous:           "test",
+		InitialPeersList:     initialPeersList,
+		BucketSize:           100,
+		RoutingTableRefresh:  time.Minute,
+	}
+	peerDiscovery, _ := discovery.NewKadDhtPeerDiscoverer(arg)
+
+	return peerDiscovery
+}
+
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
 func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
@@ -80,7 +107,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
+		CreateKadPeerDiscoverer(StepDelay, []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -89,73 +116,36 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 	return libP2PMes
 }
 
-// CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+// CreateTestDataPool creates a test data pool for shard nodes
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+		txPool, _ = createTxPool()
 	}
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
-	dPool, _ := dataPool.NewShardedDataPool(
+	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		uTxPool,
 		rewardsTxPool,
 		hdrPool,
-		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		metaBlocks,
-		currTxs,
-	)
-
-	return dPool
-}
-
-// CreateTestMetaDataPool creates a test data pool for meta nodes
-func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewMetaDataPool(
-		metaBlocks,
-		txBlockBody,
-		shardHeaders,
-		shardHeadersNonces,
-		txPool,
-		uTxPool,
+		trieNodes,
 		currTxs,
 	)
 
@@ -215,10 +205,21 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
 func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
-	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
-	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
+	// TODO change this implementation with a factory
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := &config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, cfg, ewl)
+
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
@@ -315,13 +316,15 @@ func CreateGenesisBlocks(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlock := CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = genesisBlock
 	}
 
 	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
@@ -334,8 +337,9 @@ func CreateGenesisBlocks(
 		marshalizer,
 		hasher,
 		uint64Converter,
-		metaDataPool,
+		dataPool,
 		economics,
+		rootHash,
 	)
 
 	return genesisBlocks
@@ -352,8 +356,9 @@ func CreateGenesisMetaBlock(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	metaDataPool dataRetriever.MetaPoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
+	rootHash []byte,
 ) data.HeaderHandler {
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
@@ -366,9 +371,9 @@ func CreateGenesisMetaBlock(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64Converter,
-		MetaDatapool:             metaDataPool,
+		DataPool:                 dataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   []byte("validator stats root hash"),
+		ValidatorStatsRootHash:   rootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -378,7 +383,8 @@ func CreateGenesisMetaBlock(
 		)
 
 		newStore := CreateMetaStore(newShardCoordinator)
-		newMetaDataPool := CreateTestMetaDataPool()
+
+		newDataPool := CreateTestDataPool(nil)
 
 		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 		newBlkc, _ := blockchain.NewMetaChain(cache)
@@ -388,11 +394,14 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.Accounts = newAccounts
 		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.MetaDatapool = newMetaDataPool
+		argsMetaGenesis.DataPool = newDataPool
 	}
 
-	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	log.LogIfError(err)
+
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
+	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
 
 	return metaHdr
 }
@@ -448,7 +457,6 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 		)
 	}
 	table, _ := display.CreateTableString(header, dataLines)
-
 	return table
 }
 
@@ -556,6 +564,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
@@ -563,7 +573,9 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
-	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), &config.DBConfig{}, ewl)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
 
@@ -631,10 +643,6 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	fmt.Println("All shards propose blocks...")
 
 	for idx, n := range nodes {
-		// set the consensus reward addresses as rewards processor expects at least valid round
-		// otherwise the produced rewards will not be valid on verification
-		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())
-
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
@@ -645,7 +653,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
@@ -670,7 +678,7 @@ func SyncBlock(
 		}
 	}
 
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
@@ -783,7 +791,7 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 		return tx.Nonce
 	}
 
-	buff, _ := hex.DecodeString(txHandler.GetData())
+	buff := txHandler.GetData()
 	return binary.BigEndian.Uint64(buff)
 }
 
@@ -794,7 +802,6 @@ func CreateNodes(
 	numMetaChainNodes int,
 	serviceID string,
 ) []*TestProcessorNode {
-	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
@@ -809,6 +816,35 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
+func CreateNodesWithCustomStateCheckpointModulus(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+	stateCheckpointModulus uint,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), shardId, shardId, serviceID, stateCheckpointModulus)
+
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID, stateCheckpointModulus)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -832,7 +868,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(p2pBootstrapStepDelay)
+	time.Sleep(P2pBootstrapDelay)
 }
 
 // SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
@@ -859,7 +895,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := make([]uint64, len(senders))
 		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
 			receiverPubKey := shardReceiversPublicKeys[i]
-			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
+			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -906,12 +942,36 @@ func CreateAndSendTransaction(
 		Value:    new(big.Int).Set(txValue),
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	node.OwnAccount.Nonce++
+}
+
+func CreateAndSendTransactionWithGasLimit(
+	node *TestProcessorNode,
+	txValue *big.Int,
+	gasLimit uint64,
+	rcvAddress []byte,
+	txData []byte,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    txValue,
+		SndAddr:  node.OwnAccount.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: MinTxGasPrice,
+		GasLimit: gasLimit,
+	}
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -928,7 +988,8 @@ type txArgs struct {
 	gasLimit uint64
 }
 
-func generateTransferTx(
+// GenerateTransferTx will generate a move balance transaction
+func GenerateTransferTx(
 	nonce uint64,
 	senderPrivateKey crypto.PrivateKey,
 	receiverPublicKey crypto.PublicKey,
@@ -943,7 +1004,7 @@ func generateTransferTx(
 		Value:    new(big.Int).Set(valToTransfer),
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
-		Data:     "",
+		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -966,7 +1027,7 @@ func generateTx(
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
-		Data:     args.data,
+		Data:     []byte(args.data),
 	}
 	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
@@ -1139,7 +1200,7 @@ func ProposeBlockSignalsEmptyBlock(
 	isEmptyBlock := len(txHashes) == 0
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	return header, body, isEmptyBlock
 }
@@ -1179,7 +1240,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	neededTxs := make([][]byte, 0)
 
 	for i := 0; i < len(generatedTxHashes); i++ {
-		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
+		_, ok := n.DataPool.Transactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
@@ -1192,7 +1253,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
-		_ = txResolver.RequestDataFromHash(neededTxs[i])
+		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
 	}
 }
 
@@ -1200,7 +1261,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(&mock.ShardedDataStub{
+	return CreateTestDataPool(&mock.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			assert.Fail(t, "same-shard requesters should not be queried")
 			return nil, false
@@ -1237,7 +1298,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+	txPool, _ := createTxPool()
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -1247,7 +1308,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes, txsSndAddr
+	return CreateTestDataPool(txPool), txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1269,7 +1330,7 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
-		node.WithProtoMarshalizer(TestMarshalizer),
+		node.WithProtoMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
@@ -1334,7 +1395,7 @@ func ProposeAndSyncBlocks(
 			proposerNode := nodes[idProposer]
 			numTxsInPool = GetNumTxsWithDst(
 				proposerNode.ShardCoordinator.SelfId(),
-				proposerNode.ShardDataPool,
+				proposerNode.DataPool,
 				proposerNode.ShardCoordinator.NumberOfShards(),
 			)
 
@@ -1371,6 +1432,8 @@ func ProposeAndSyncOneBlock(
 	round uint64,
 	nonce uint64,
 ) (uint64, uint64) {
+
+	UpdateRound(nodes, round)
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
@@ -1393,7 +1456,7 @@ func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapin
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
 func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
-	keysMap := make(map[uint32][]string, 0)
+	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))
@@ -1436,8 +1499,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1446,7 +1509,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1478,5 +1541,174 @@ func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(p2pBootstrapStepDelay)
+	time.Sleep(P2pBootstrapDelay)
+}
+
+// SetupSyncNodesOneShardAndMeta creates nodes with sync capabilities divided into one shard and a metachain
+func SetupSyncNodesOneShardAndMeta(
+	numNodesPerShard int,
+	numNodesMeta int,
+) ([]*TestProcessorNode, p2p.Messenger, []int) {
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+
+	advertiser := CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := GetConnectableAddress(advertiser)
+
+	nodes := make([]*TestProcessorNode, 0)
+	for i := 0; i < numNodesPerShard; i++ {
+		shardNode := NewTestSyncNode(
+			maxShards,
+			shardId,
+			shardId,
+			advertiserAddr,
+		)
+		nodes = append(nodes, shardNode)
+	}
+	idxProposerShard0 := 0
+
+	for i := 0; i < numNodesMeta; i++ {
+		metaNode := NewTestSyncNode(
+			maxShards,
+			sharding.MetachainShardId,
+			shardId,
+			advertiserAddr,
+		)
+		nodes = append(nodes, metaNode)
+	}
+	idxProposerMeta := len(nodes) - 1
+
+	idxProposers := []int{idxProposerShard0, idxProposerMeta}
+
+	return nodes, advertiser, idxProposers
+}
+
+// StartSyncingBlocks starts the syncing process of all the nodes
+func StartSyncingBlocks(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		_ = n.StartSync()
+	}
+
+	fmt.Println("Delaying for nodes to start syncing blocks...")
+	time.Sleep(StepDelay)
+}
+
+// ForkChoiceOneBlock rollbacks a block from the given shard
+func ForkChoiceOneBlock(nodes []*TestProcessorNode, shardId uint32) {
+	for idx, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+		err := n.Bootstrapper.RollBack(false)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		newNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
+		fmt.Printf("Node's id %d is at block height %d\n", idx, newNonce)
+	}
+}
+
+// ResetHighestProbableNonce resets the highest probable nonce
+func ResetHighestProbableNonce(nodes []*TestProcessorNode, shardId uint32, targetNonce uint64) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+		if n.BlockChain.GetCurrentBlockHeader().GetNonce() != targetNonce {
+			continue
+		}
+
+		n.Bootstrapper.SetProbableHighestNonce(targetNonce)
+	}
+}
+
+// EmptyDataPools clears all the data pools
+func EmptyDataPools(nodes []*TestProcessorNode, shardId uint32) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+
+		emptyNodeDataPool(n)
+	}
+}
+
+func emptyNodeDataPool(node *TestProcessorNode) {
+	if node.DataPool != nil {
+		emptyDataPool(node.DataPool)
+	}
+}
+
+func emptyDataPool(sdp dataRetriever.PoolsHolder) {
+	sdp.Headers().Clear()
+	sdp.UnsignedTransactions().Clear()
+	sdp.Transactions().Clear()
+	sdp.MiniBlocks().Clear()
+	sdp.PeerChangesBlocks().Clear()
+}
+
+// UpdateRound updates the round for every node
+func UpdateRound(nodes []*TestProcessorNode, round uint64) {
+	for _, n := range nodes {
+		n.Rounder.IndexField = int64(round)
+	}
+}
+
+// ProposeBlocks proposes blocks for a given number of rounds
+func ProposeBlocks(
+	nodes []*TestProcessorNode,
+	round *uint64,
+	idxProposers []int,
+	nonces []*uint64,
+	numOfRounds int,
+) {
+
+	for i := 0; i < numOfRounds; i++ {
+		crtRound := atomic.LoadUint64(round)
+		proposeBlocks(nodes, idxProposers, nonces, crtRound)
+
+		time.Sleep(SyncDelay)
+
+		crtRound = IncrementAndPrintRound(crtRound)
+		atomic.StoreUint64(round, crtRound)
+		UpdateRound(nodes, crtRound)
+		IncrementNonces(nonces)
+	}
+	time.Sleep(SyncDelay)
+}
+
+// IncrementNonces increments all the nonces
+func IncrementNonces(nonces []*uint64) {
+	for i := 0; i < len(nonces); i++ {
+		atomic.AddUint64(nonces[i], 1)
+	}
+}
+
+func proposeBlocks(
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	nonces []*uint64,
+	crtRound uint64,
+) {
+	for idx, proposer := range idxProposers {
+		crtNonce := atomic.LoadUint64(nonces[idx])
+		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
+	}
+}
+
+func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
+	return txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+		},
+	)
 }

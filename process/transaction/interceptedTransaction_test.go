@@ -48,7 +48,7 @@ func createKeyGenMock() crypto.KeyGenerator {
 	}
 }
 
-func createFreeTxFeeHandler() process.FeeHandler {
+func createFreeTxFeeHandler() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
@@ -320,7 +320,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -343,7 +343,7 @@ func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T)
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -363,7 +363,7 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   nil,
@@ -383,7 +383,7 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -403,7 +403,7 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     nil,
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -424,7 +424,7 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(-2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -446,7 +446,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  gasLimit,
 		GasPrice:  gasPrice,
 		RcvAddr:   recvAddress,
@@ -472,7 +472,7 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -492,7 +492,7 @@ func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -512,7 +512,7 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -532,7 +532,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -559,7 +559,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddressDeploy,
@@ -611,7 +611,7 @@ func TestInterceptedTransaction_GetNonce(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     nonce,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -631,7 +631,7 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -645,32 +645,32 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	assert.Equal(t, senderShard, result)
 }
 
-func TestInterceptedTransaction_GetTotalValue(t *testing.T) {
+func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 	t.Parallel()
-
-	txValue := big.NewInt(2)
-	gasPrice := uint64(3)
-	gasLimit := uint64(4)
-	val := big.NewInt(0)
-	val = val.Mul(big.NewInt(int64(gasPrice)), big.NewInt(int64(gasLimit)))
-	expectedValue := big.NewInt(0)
-	expectedValue.Add(txValue, val)
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
-		Value:     new(big.Int).Set(txValue),
-		Data:      "data",
-		GasLimit:  gasPrice,
-		GasPrice:  gasLimit,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	computeFeeCalled := false
+	txFeeHandler := createFreeTxFeeHandler()
+	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler)
+	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
+		computeFeeCalled = true
 
-	result := txi.TotalValue()
-	assert.Equal(t, expectedValue, result)
+		return big.NewInt(0)
+	}
+
+	_ = txi.Fee()
+
+	assert.True(t, computeFeeCalled)
 }
 
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
@@ -679,7 +679,7 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
-		Data:      "data",
+		Data:      []byte("data"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,

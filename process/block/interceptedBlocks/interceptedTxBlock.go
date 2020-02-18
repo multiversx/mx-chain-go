@@ -54,10 +54,10 @@ func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) 
 func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {
 	inTxBody.hash = inTxBody.hasher.Compute(string(txBuff))
 
-	inTxBody.processIsForCurrentShard(inTxBody.txBlockBody)
+	inTxBody.processIsForCurrentShard()
 }
 
-func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody *block.Body) {
+func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard() {
 	inTxBody.isForCurrentShard = false
 	for _, miniblock := range inTxBody.txBlockBody.MiniBlocks {
 		inTxBody.isForCurrentShard = inTxBody.isMiniblockForCurrentShard(miniblock)
@@ -117,10 +117,12 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 	return nil
 }
 
+// Type returns the type of this intercepted data
+func (inTxBody *InterceptedTxBlockBody) Type() string {
+	return "intercepted block body"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inTxBody *InterceptedTxBlockBody) IsInterfaceNil() bool {
-	if inTxBody == nil {
-		return true
-	}
-	return false
+	return inTxBody == nil
 }

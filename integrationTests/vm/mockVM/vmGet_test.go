@@ -35,9 +35,9 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	}
 
 	vmOutput, err := service.ExecuteQuery(&query)
-	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
-
 	assert.Nil(t, err)
+
+	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
 	assert.Equal(t, expectedValueForVar, returnData)
 }
 

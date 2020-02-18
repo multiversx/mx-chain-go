@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
@@ -139,8 +140,10 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		return err
 	}
 
-	for key := range affectedStates {
-		peerAcc, err := stp.getPeerAccount([]byte(key))
+	for _, key := range affectedStates {
+		blsPubKey := []byte(key)
+		var peerAcc *state.PeerAccount
+		peerAcc, err = stp.getPeerAccount(blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -148,14 +151,15 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
 			FuncName:  "get",
-			Arguments: [][]byte{[]byte(key)},
+			Arguments: [][]byte{blsPubKey},
 		}
-		vmOutput, err := stp.scQuery.ExecuteQuery(&query)
+		var vmOutput *vmcommon.VMOutput
+		vmOutput, err = stp.scQuery.ExecuteQuery(&query)
 		if err != nil {
 			return err
 		}
 
-		data := make([]byte, 0)
+		var data []byte
 		if len(vmOutput.ReturnData) > 0 {
 			data = vmOutput.ReturnData[0]
 		}
@@ -166,12 +170,18 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 				return err
 			}
 
-			adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+			var adrSrc state.AddressContainer
+			adrSrc, err = stp.adrConv.CreateAddressFromPublicKeyBytes(blsPubKey)
 			if err != nil {
 				return err
 			}
 
-			return stp.peerState.RemoveAccount(adrSrc)
+			err = stp.peerState.RemoveAccount(adrSrc)
+			if err != nil {
+				return err
+			}
+
+			continue
 		}
 
 		var stakingData systemSmartContracts.StakingData
@@ -180,12 +190,12 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.createPeerChangeData(stakingData, peerAcc, nonce)
+		err = stp.createPeerChangeData(stakingData, peerAcc, nonce, blsPubKey)
 		if err != nil {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc)
+		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -199,7 +209,7 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 	defer stp.mutPeerChanges.Unlock()
 
 	actualPeerChange := block.PeerData{
-		Address:     account.Address,
+		Address:     account.RewardAddress,
 		PublicKey:   account.BLSPublicKey,
 		Action:      block.PeerDeregistration,
 		TimeStamp:   nonce,
@@ -218,9 +228,17 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
+	blsPubKey []byte,
 ) error {
-	if !bytes.Equal(stakingData.BlsPubKey, account.BLSPublicKey) {
-		err := account.SetBLSPublicKeyWithJournal(stakingData.BlsPubKey)
+	if !bytes.Equal(stakingData.Address, account.RewardAddress) {
+		err := account.SetRewardAddressWithJournal(stakingData.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bytes.Equal(blsPubKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(blsPubKey)
 		if err != nil {
 			return err
 		}
@@ -259,22 +277,25 @@ func (stp *stakingToPeer) createPeerChangeData(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
 	nonce uint64,
+	blsKey []byte,
 ) error {
 	stp.mutPeerChanges.Lock()
 	defer stp.mutPeerChanges.Unlock()
 
 	actualPeerChange := block.PeerData{
-		Address:     account.Address,
+		Address:     account.RewardAddress,
 		PublicKey:   account.BLSPublicKey,
 		Action:      0,
 		TimeStamp:   nonce,
 		ValueChange: big.NewInt(0),
 	}
 
-	if len(account.BLSPublicKey) == 0 {
+	if len(account.RewardAddress) == 0 {
 		actualPeerChange.Action = block.PeerRegistration
 		actualPeerChange.TimeStamp = stakingData.StartNonce
 		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
+		actualPeerChange.Address = stakingData.Address
+		actualPeerChange.PublicKey = blsKey
 
 		peerHash, err := core.CalculateHash(stp.protoMarshalizer, stp.hasher, &actualPeerChange)
 		if err != nil {
@@ -313,8 +334,8 @@ func (stp *stakingToPeer) createPeerChangeData(
 	return nil
 }
 
-func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) (map[string]struct{}, error) {
-	affectedStates := make(map[string]struct{})
+func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, error) {
+	affectedStates := make([]string, 0)
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.SmartContractResultBlock {
@@ -339,13 +360,13 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) (map[string]str
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			storageUpdates, err := stp.argParser.GetStorageUpdates(scr.Data)
+			storageUpdates, err := stp.argParser.GetStorageUpdates(string(scr.Data))
 			if err != nil {
 				return nil, err
 			}
 
 			for _, storageUpdate := range storageUpdates {
-				affectedStates[string(storageUpdate.Offset)] = struct{}{}
+				affectedStates = append(affectedStates, string(storageUpdate.Offset))
 			}
 		}
 	}
@@ -356,7 +377,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) (map[string]str
 // PeerChanges returns peer changes created in current round
 func (stp *stakingToPeer) PeerChanges() []block.PeerData {
 	stp.mutPeerChanges.Lock()
-	peersData := make([]block.PeerData, 0)
+	peersData := make([]block.PeerData, 0, len(stp.peerChanges))
 	for _, peerData := range stp.peerChanges {
 		peersData = append(peersData, peerData)
 	}

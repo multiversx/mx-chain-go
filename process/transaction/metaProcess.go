@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,28 +22,33 @@ func NewMetaTxProcessor(
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
+	economicsFee process.FeeHandler,
 ) (*metaTxProcessor, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addressConv == nil || addressConv.IsInterfaceNil() {
+	if check.IfNil(addressConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scProcessor == nil || scProcessor.IsInterfaceNil() {
+	if check.IfNil(scProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
+	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		adrConv:          addressConv,
+		economicsFee:     economicsFee,
 	}
 
 	return &metaTxProcessor{
@@ -67,6 +73,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 	if err != nil {
 		return err
 	}
+
+	process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
 
 	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
@@ -120,8 +128,5 @@ func (txProc *metaTxProcessor) processSCInvoking(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txProc *metaTxProcessor) IsInterfaceNil() bool {
-	if txProc == nil {
-		return true
-	}
-	return false
+	return txProc == nil
 }

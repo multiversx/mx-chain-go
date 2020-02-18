@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -30,9 +31,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -41,20 +44,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
+	defaultStatsPath      = "stats"
+	defaultLogsPath       = "logs"
+	defaultDBPath         = "db"
+	defaultEpochString    = "Epoch"
+	defaultStaticDbString = "Static"
+	defaultShardString    = "Shard"
+	metachainShardName    = "metachain"
 )
 
 var (
@@ -200,25 +209,12 @@ VERSION:
 		Usage: "Start the rest API engine in debug mode",
 	}
 
-	// networkID defines the version of the network. If set, will override the same parameter from config.toml
-	networkID = cli.StringFlag{
-		Name:  "network-id",
-		Usage: "The network version, overriding the one from config.toml",
-		Value: "",
-	}
-
 	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
 	// the NodeDisplayName from config.toml
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
 		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
 		Value: "",
-	}
-
-	// usePrometheus joins the node for prometheus monitoring if set
-	usePrometheus = cli.BoolFlag{
-		Name:  "use-prometheus",
-		Usage: "Will make the node available for prometheus and grafana monitoring",
 	}
 
 	//useLogView is used when termui interface is not needed.
@@ -242,9 +238,14 @@ VERSION:
 	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
-		Name:  "logLevel",
+		Name:  "log-level",
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
+	}
+	//logFile is used when the log output needs to be logged in a file
+	logSaveFile = cli.BoolFlag{
+		Name:  "log-save",
+		Usage: "Will automatically log into a file",
 	}
 	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
 	disableAnsiColor = cli.BoolFlag{
@@ -278,6 +279,23 @@ VERSION:
 		Value: "",
 	}
 
+	isNodefullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "If set, the node won't remove any DB",
+	}
+
+	numEpochsToSave = cli.Uint64Flag{
+		Name:  "num-epochs-to-keep",
+		Usage: "This represents the number of epochs which kept in the databases",
+		Value: uint64(2),
+	}
+
+	numActivePersisters = cli.Uint64Flag{
+		Name:  "num-active-persisters",
+		Usage: "This represents the number of persisters which are kept open at a moment",
+		Value: uint64(2),
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -288,6 +306,9 @@ var dbIndexer indexer.Indexer
 // coreServiceContainer is defined globally so it can be injected with appropriate
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
+
+// TODO: this will be calculated from storage or fetched from network
+var currentEpoch = uint32(0)
 
 // appVersion should be populated at build time using ldflags
 // Usage examples:
@@ -327,18 +348,20 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
-		networkID,
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
 		logLevel,
-		usePrometheus,
+		logSaveFile,
 		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
+		isNodefullArchive,
+		numEpochsToSave,
+		numActivePersisters,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -362,17 +385,31 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
 	case factory.BlsConsensusType:
 		return kyber.NewSuitePairingBn256(), nil
-	case factory.BnConsensusType:
-		return kyber.NewBlakeSHA256Ed25519(), nil
+	default:
+		return nil, errors.New("no consensus provided in config file")
 	}
-
-	return nil, errors.New("no consensus provided in config file")
 }
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-	logLevel := ctx.GlobalString(logLevel.Name)
-	err := logger.SetLogLevel(logLevel)
+	workingDir := getWorkingDir(ctx, log)
+
+	var err error
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
+	if withLogFile {
+		var fileForLogs *os.File
+		fileForLogs, err = prepareLogFile(workingDir)
+		if err != nil {
+			return fmt.Errorf("%w creating a log file", err)
+		}
+
+		defer func() {
+			_ = fileForLogs.Close()
+		}()
+	}
+
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return err
 	}
@@ -392,7 +429,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 	}
-	log.Trace("logger updated", "level", logLevel, "disable ANSI color", noAnsiColor)
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -483,10 +520,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
 	}
 
-	if ctx.IsSet(networkID.Name) {
-		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
-	}
-
 	if ctx.IsSet(nodeDisplayName.Name) {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
@@ -496,51 +529,78 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var workingDir = ""
-	if ctx.IsSet(workingDirectory.Name) {
-		workingDir = ctx.GlobalString(workingDirectory.Name)
-	} else {
-		workingDir, err = os.Getwd()
-		if err != nil {
-			log.LogIfError(err)
-			workingDir = ""
-		}
-	}
-	log.Trace("working directory", "path", workingDir)
+	var shardId = core.GetShardIdString(shardCoordinator.SelfId())
 
-	var shardId = "metachain"
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
-	}
-
-	uniqueDBFolder := filepath.Join(
+	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		fmt.Sprintf("%s_%d", defaultEpochString, 0),
-		fmt.Sprintf("%s_%s", defaultShardString, shardId))
+		nodesConfig.ChainID,
+		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
-		log.Trace("cleaning storage", "path", uniqueDBFolder)
-		err = os.RemoveAll(uniqueDBFolder)
+	pathTemplateForStaticStorer := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		nodesConfig.ChainID,
+		defaultStaticDbString,
+		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	if err != nil {
+		return err
+	}
+
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
+		dbPath := filepath.Join(
+			workingDir,
+			defaultDBPath)
+		log.Trace("cleaning storage", "path", dbPath)
+		err = os.RemoveAll(dbPath)
 		if err != nil {
 			return err
 		}
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(nodesConfig.ChainID))
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating nodes coordinator")
+	if ctx.IsSet(isNodefullArchive.Name) {
+		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	if ctx.IsSet(numActivePersisters.Name) {
+		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
+	// TODO: use epochStartNotifier in nodes coordinator
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
-		coreComponents.Hasher)
+		coreComponents.Hasher,
+		rater)
 	if err != nil {
 		return err
 	}
@@ -551,7 +611,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisConfig,
 		shardCoordinator,
 		coreComponents,
-		uniqueDBFolder,
+		pathManager,
 	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -559,12 +619,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir)
+	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, ctx, coreComponents.ProtoMarshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -576,7 +636,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -625,7 +685,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	statsFile := filepath.Join(workingDir, defaultStatsPath, "session.info")
+	statsFolder := filepath.Join(workingDir, defaultStatsPath)
+	copyConfigToStatsFolder(
+		statsFolder,
+		[]string{
+			configurationFileName,
+			configurationEconomicsFileName,
+			configurationPreferencesFileName,
+			p2pConfigurationFileName,
+			configurationFileName,
+			ctx.GlobalString(genesisFile.Name),
+			ctx.GlobalString(nodesFile.Name),
+		})
+
+	statsFile := filepath.Join(statsFolder, "session.info")
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
@@ -662,12 +735,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
-	}
-
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -694,6 +761,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
+		epochStartNotifier,
+		&generalConfig.EpochStartConfig,
+		0,
+		rater,
+		generalConfig.Marshalizer.SizeCheckDelta,
+		generalConfig.StateTrieConfig.RoundsModulus,
+		generalConfig.GeneralSettings.MaxComputableRounds,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -786,11 +860,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
-		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        statusHandlersInfo.UsePrometheus,
-		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
-		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
+		RestApiInterface: ctx.GlobalString(restApiInterface.Name),
+		PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 	}
 
 	ef.SetSyncer(syncer)
@@ -813,11 +884,107 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	<-sigs
 	log.Info("terminating at user's signal...")
 
+	log.Debug("closing all store units....")
+	err = dataComponents.Store.CloseAll()
+	log.LogIfError(err)
+
+	dataTries := coreComponents.TriesContainer.GetAll()
+	for _, trie := range dataTries {
+		err = trie.ClosePersister()
+		log.LogIfError(err)
+	}
+
 	if rm != nil {
 		err = rm.Close()
 		log.LogIfError(err)
 	}
+
+	log.Info("closing network connections...")
+	err = networkComponents.NetMessenger.Close()
+	log.LogIfError(err)
+
 	return nil
+}
+
+func copyConfigToStatsFolder(statsFolder string, configs []string) {
+	for _, configFile := range configs {
+		copySingleFile(statsFolder, configFile)
+	}
+}
+
+func copySingleFile(folder string, configFile string) {
+	fileName := filepath.Base(configFile)
+
+	source, err := core.OpenFile(configFile)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := source.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	destPath := filepath.Join(folder, fileName)
+	destination, err := os.Create(destPath)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err := destination.Close()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+		}
+	}()
+
+	_, err = io.Copy(destination, source)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+	}
+}
+
+func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
+	var workingDir string
+	var err error
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
+	}
+	log.Trace("working directory", "path", workingDir)
+
+	return workingDir
+}
+
+func prepareLogFile(workingDir string) (*os.File, error) {
+	logDirectory := filepath.Join(workingDir, defaultLogsPath)
+	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	//we need this function as to close file.Close() when the code panics and the defer func associated
+	//with the file pointer in the main func will never be reached
+	runtime.SetFinalizer(fileForLog, func(f *os.File) {
+		_ = f.Close()
+	})
+
+	err = redirects.RedirectStderr(fileForLog)
+	if err != nil {
+		return nil, err
+	}
+
+	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
+	if err != nil {
+		return nil, fmt.Errorf("%w adding file log observer", err)
+	}
+
+	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
@@ -934,6 +1101,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
+	_ sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -953,9 +1121,9 @@ func createNodesCoordinator(
 	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
+			validator, errNewValidator := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if errNewValidator != nil {
+				return nil, errNewValidator
 			}
 
 			validators = append(validators, validator)
@@ -968,6 +1136,10 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	consensusGroupCache, err := lrucache.NewCache(25000)
+	if err != nil {
+		return nil, err
+	}
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -976,13 +1148,22 @@ func createNodesCoordinator(
 		NbShards:                nbShards,
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     consensusGroupCache,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodesCoordinator, nil
+	//TODO fix IndexHashedNodesCoordinatorWithRater as to perform better when expanding eligible list based on rating
+	// do not forget to return nodesCoordinator from this function instead of baseNodesCoordinator
+	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return baseNodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
@@ -1073,7 +1254,7 @@ func createNode(
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
-		node.WithProtoMarshalizer(core.ProtoMarshalizer),
+		node.WithProtoMarshalizer(core.ProtoMarshalizer, config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(core.VmMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
@@ -1107,10 +1288,15 @@ func createNode(
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
+		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithValidatorStatistics(process.ValidatorsStatistics),
+		node.WithChainID(core.ChainID),
+		node.WithBlockTracker(process.BlockTracker),
+		node.WithRequestHandler(process.RequestHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1121,11 +1307,13 @@ func createNode(
 		return nil, err
 	}
 
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.InBalanceForShard),
-			node.WithDataPool(data.Datapool),
-		)
+		err = nd.ApplyOptions(node.WithInitialNodesBalances(state.InBalanceForShard))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
@@ -1135,7 +1323,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
@@ -1143,8 +1331,15 @@ func createNode(
 	return nd, nil
 }
 
-func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
-	workingDir string) error {
+func initStatsFileMonitor(
+	config *config.Config,
+	pubKey crypto.PublicKey,
+	log logger.Logger,
+	workingDir string,
+	pathManager storage.PathManagerHandler,
+	shardId string,
+) error {
+
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
@@ -1156,7 +1351,7 @@ func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log lo
 	if err != nil {
 		return err
 	}
-	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1184,12 +1379,18 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 	return errors.New("could not init core service container")
 }
 
-func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log logger.Logger) error {
-	if !config.Enabled {
+func startStatisticsMonitor(
+	file *os.File,
+	generalConfig *config.Config,
+	log logger.Logger,
+	pathManager storage.PathManagerHandler,
+	shardId string,
+) error {
+	if !generalConfig.ResourceStats.Enabled {
 		return nil
 	}
 
-	if config.RefreshIntervalInSec < 1 {
+	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
@@ -1200,9 +1401,9 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 
 	go func() {
 		for {
-			err = resMon.SaveStatistics()
+			err = resMon.SaveStatistics(generalConfig, pathManager, shardId)
 			log.LogIfError(err)
-			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}
 	}()
 

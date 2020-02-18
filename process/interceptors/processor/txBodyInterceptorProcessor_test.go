@@ -44,7 +44,7 @@ func TestNewTxBodyInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	tbip, err := processor.NewTxBodyInterceptorProcessor(nil)
 
 	assert.Nil(t, tbip)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewTxBodyInterceptorProcessor_NilMiniblocksShouldErr(t *testing.T) {

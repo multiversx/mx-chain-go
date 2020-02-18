@@ -16,7 +16,7 @@ type TxInterceptorProcessor struct {
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
 func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxInterceptorProcessor, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ShardedDataCache) {
 		return nil, process.ErrNilDataPoolHolder
@@ -42,7 +42,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 	if errTxValidation != nil {
 		return errTxValidation
 	}
-	log.Trace("Intercepted transaction", "valid", true)
+
 	return nil
 }
 
@@ -61,6 +61,10 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 	)
 
 	return nil
+}
+
+// SignalEndOfProcessing signals the end of processing
+func (txip *TxInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

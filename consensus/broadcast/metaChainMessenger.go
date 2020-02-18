@@ -108,13 +108,6 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 	return nil
 }
 
-// BroadcastShardHeader will send on meta-to-shards topic the header
-func (mcm *metaChainMessenger) BroadcastShardHeader(header data.HeaderHandler) error {
-	// meta chain does not need to broadcast separately the header, as it have no body and BroadcastBlock does all
-	// the job for it, but this method is created to satisfy the BroadcastMessenger interface
-	return nil
-}
-
 // BroadcastHeader will send on metachain blocks topic the header
 func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
 	if header == nil || header.IsInterfaceNil() {
@@ -133,8 +126,5 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcm *metaChainMessenger) IsInterfaceNil() bool {
-	if mcm == nil {
-		return true
-	}
-	return false
+	return mcm == nil
 }

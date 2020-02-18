@@ -174,7 +174,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -193,7 +193,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testi
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  nil,
@@ -211,7 +211,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilSenderAddressShouldErr(t
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: nil,
 		TxHash:  []byte("TX"),
@@ -229,7 +229,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilRecvAddressShouldErr(t *
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: nil,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -247,7 +247,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilValueShouldErr(t *testin
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   nil,
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -265,7 +265,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilNegativeValueShouldErr(t
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(-2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -283,7 +283,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityInvalidSenderShouldErr(t *t
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: []byte(""),
 		TxHash:  []byte("TX"),
@@ -301,7 +301,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    "data",
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -319,11 +319,10 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(45)
-	value := big.NewInt(2)
 	tx := &smartContractResult.SmartContractResult{
 		Nonce:   nonce,
-		Value:   value,
-		Data:    "data",
+		Value:   big.NewInt(2),
+		Data:    []byte("data"),
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("TX"),
@@ -340,7 +339,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
-	assert.Equal(t, value, txi.TotalValue())
+	assert.Equal(t, big.NewInt(0), txi.Fee())
 	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
 }
 

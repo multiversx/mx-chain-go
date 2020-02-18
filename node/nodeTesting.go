@@ -55,7 +55,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	for nonce := newNonce; nonce < newNonce+numOfTxs; nonce++ {
 		go func(crtNonce uint64) {
-			_, signedTxBuff, err := n.generateAndSignSingleTx(
+			_, signedTxBuff, errGenTx := n.generateAndSignSingleTx(
 				crtNonce,
 				value,
 				recvAddressBytes,
@@ -63,9 +63,9 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				"",
 			)
 
-			if err != nil {
+			if errGenTx != nil {
 				mutErrFound.Lock()
-				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", crtNonce, err.Error()))
+				errFound = fmt.Errorf("failure generating transaction %d: %s", crtNonce, errGenTx.Error())
 				mutErrFound.Unlock()
 
 				wg.Done()
@@ -198,7 +198,7 @@ func (n *Node) generateAndSignSingleTx(
 		GasPrice: minTxGasPrice,
 		RcvAddr:  rcvAddrBytes,
 		SndAddr:  sndAddrBytes,
-		Data:     dataField,
+		Data:     []byte(dataField),
 	}
 
 	marshalizedTx, err := n.txSignMarshalizer.Marshal(&tx)

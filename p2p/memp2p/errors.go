@@ -10,6 +10,3 @@ var ErrNotConnectedToNetwork = errors.New("not connected to network")
 
 // ErrReceivingPeerNotConnected signals that the receiving peer of a sending operation is not connected to the network
 var ErrReceivingPeerNotConnected = errors.New("receiving peer not connected to network")
-
-// ErrCannotSendToSelf signals that a peer tried to send a message to itself
-var ErrCannotSendToSelf = errors.New("cannot send message to itself")

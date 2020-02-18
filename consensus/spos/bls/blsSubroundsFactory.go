@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -19,6 +19,7 @@ type factory struct {
 
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
+	chainID          []byte
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -26,11 +27,13 @@ func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
+		chainID,
 	)
 	if err != nil {
 		return nil, err
@@ -41,6 +44,7 @@ func NewSubroundsFactory(
 		consensusState:   consensusState,
 		worker:           worker,
 		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		chainID:          chainID,
 	}
 
 	return &fct, nil
@@ -50,6 +54,7 @@ func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
 	worker spos.WorkerHandler,
+	chainID []byte,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -61,18 +66,21 @@ func checkNewFactoryParams(
 	if worker == nil || worker.IsInterfaceNil() {
 		return spos.ErrNilWorker
 	}
+	if len(chainID) == 0 {
+		return spos.ErrInvalidChainID
+	}
 
 	return nil
 }
 
 // SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return spos.ErrNilAppStatusHandler
 	}
-
 	fct.appStatusHandler = ash
-	return nil
+
+	return fct.worker.SetAppStatusHandler(ash)
 }
 
 // SetIndexer method will update the value of the factory's indexer
@@ -125,23 +133,23 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
 	}
 
-	subroundStartRound, err := commonSubround.NewSubroundStartRound(
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
+	subroundStartRound, err := NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
-		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -165,25 +173,29 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
 	}
 
-	subroundBlock, err := commonSubround.NewSubroundBlock(
+	err = subround.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
+	subroundBlock, err := NewSubroundBlock(
 		subround,
 		fct.worker.Extend,
-		int(MtBlockBody),
-		int(MtBlockHeader),
 		processingThresholdPercent,
-		getSubroundName,
 	)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.ReceivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.ReceivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlock.receivedBlockBodyAndHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil
@@ -201,12 +213,13 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
 	}
 
-	subroundSignature, err := NewSubroundSignature(
+	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
 	)
@@ -214,13 +227,13 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	err = subroundSignature.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundSignatureObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.consensusCore.Chronology().AddSubround(subroundSignature)
+	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
+	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
 }
@@ -237,25 +250,30 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
+		fct.chainID,
 	)
 	if err != nil {
 		return err
 	}
 
-	subroundEndRound, err := NewSubroundEndRound(
+	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
+		spos.MaxThresholdPercent,
+		fct.worker.DisplayStatistics,
 	)
 	if err != nil {
 		return err
 	}
 
-	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundEndRoundObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
+	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
+	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
+	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
 	return nil
 }
@@ -268,12 +286,5 @@ func (fct *factory) initConsensusThreshold() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
-	if fct == nil {
-		return true
-	}
-	return false
-}
-
-func debugError(message string, err error) {
-	log.Debug(message, "type", "spos/bls", "error", err.Error())
+	return fct == nil
 }

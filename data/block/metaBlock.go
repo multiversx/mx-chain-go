@@ -4,13 +4,16 @@ package block
 import (
 	io "io"
 	"io/ioutil"
+	"bytes"
+	"encoding/hex"
+	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // don't break the interface
-
 var _ = data.HeaderHandler(&MetaBlock{})
 
 // GetShardID returns the metachain shard id
@@ -73,6 +76,11 @@ func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 	m.LeaderSignature = sg
 }
 
+// SetChainID sets the chain ID on which this block is valid on
+func (m *MetaBlock) SetChainID(chainID []byte) {
+	m.ChainID = chainID
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
@@ -85,7 +93,7 @@ func (m *MetaBlock) SetTxCount(txCount uint32) {
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	hashDst := make(map[string]uint32, 0)
+	hashDst := make(map[string]uint32)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
@@ -128,6 +136,11 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 	return uint32(itemsInHeader)
 }
 
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (m *MetaBlock) IsStartOfEpochBlock() bool {
+	return len(m.EpochStart.LastFinalizedHeaders) > 0
+}
+
 // ItemsInBody gets the number of items(hashes) added in block body
 func (m *MetaBlock) ItemsInBody() uint32 {
 	return m.TxCount
@@ -137,6 +150,21 @@ func (m *MetaBlock) ItemsInBody() uint32 {
 func (m *MetaBlock) Clone() data.HeaderHandler {
 	metaBlockCopy := *m
 	return &metaBlockCopy
+}
+
+// CheckChainID returns nil if the header's chain ID matches the one provided
+// otherwise, it will error
+func (m *MetaBlock) CheckChainID(reference []byte) error {
+	if !bytes.Equal(m.ChainID, reference) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			data.ErrInvalidChainID,
+			hex.EncodeToString(reference),
+			hex.EncodeToString(m.ChainID),
+		)
+	}
+
+	return nil
 }
 
 // ----- for compatibility only ----

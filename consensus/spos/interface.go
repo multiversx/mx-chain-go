@@ -2,6 +2,7 @@ package spos
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -59,12 +60,16 @@ type ConsensusService interface {
 	GetMessageRange() []consensus.MessageType
 	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
 	CanProceed(*ConsensusState, consensus.MessageType) bool
+	//IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
+	IsMessageWithBlockBodyAndHeader(consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
 	//IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
+	//IsSubroundStartRound returns if the current subround is about start round
+	IsSubroundStartRound(int) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -78,8 +83,10 @@ type SubroundsFactory interface {
 
 //WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
-	//AddReceivedMessageCall adds a new handler function for a received messege type
+	//AddReceivedMessageCall adds a new handler function for a received message type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	//AddReceivedHeaderHandler adds a new handler function for a received header
+	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
 	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
@@ -90,6 +97,12 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
+	//DisplayStatistics method displays statistics of worker at the end of the round
+	DisplayStatistics()
+	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
+	SetAppStatusHandler(ash core.AppStatusHandler) error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

@@ -25,4 +25,7 @@ type ArgInterceptedDataFactory struct {
 	AddrConv          state.AddressConverter
 	FeeHandler        process.FeeHandler
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+	ChainID           []byte
+	ValidityAttester  process.ValidityAttester
+	EpochStartTrigger process.EpochStartTriggerHandler
 }

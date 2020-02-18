@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //------- NewBlockBodyResolver
@@ -84,6 +85,45 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, gbbRes)
+}
+
+func TestRequestDataFromHashArray_MarshalErr(t *testing.T) {
+	t.Parallel()
+
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{
+			Fail: true,
+		},
+	)
+	assert.Nil(t, err)
+
+	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
+	require.NotNil(t, err)
+}
+
+func TestRequestDataFromHashArray(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	gbbRes, err := resolvers.NewGenericBlockBodyResolver(
+		&mock.TopicResolverSenderStub{
+			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+				called = true
+				return nil
+			},
+		},
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+	)
+	assert.Nil(t, err)
+
+	err = gbbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
+	require.Nil(t, err)
+	require.True(t, called)
 }
 
 //------- ProcessReceivedMessage
@@ -236,7 +276,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		wasResolved = true
 		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
 		return mb, nil
@@ -281,7 +321,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		return nil, errors.New("key not found")
 	}
 
@@ -326,6 +366,6 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested))
+	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasCalled)
 }

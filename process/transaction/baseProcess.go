@@ -2,8 +2,10 @@ package transaction
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,6 +16,7 @@ type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
+	economicsFee     process.FeeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -111,7 +114,7 @@ func (txProc *baseTxProcessor) getAddresses(
 }
 
 func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+	if check.IfNil(acntSnd) {
 		// transaction was already done at sender shard
 		return nil
 	}
@@ -123,18 +126,28 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrLowerNonceInTransaction
 	}
 
-	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
-
-	if cost.Cmp(big.NewInt(0)) == 0 {
-		return nil
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return err
 	}
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+
+	txFee := txProc.economicsFee.ComputeFee(tx)
+	if stAcc.Balance.Cmp(txFee) < 0 {
+		return fmt.Errorf("%w, has: %s, wanted: %s",
+			process.ErrInsufficientFee,
+			stAcc.Balance.String(),
+			txFee.String(),
+		)
+	}
+
+	cost := big.NewInt(0)
+	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost.Add(cost, tx.Value)
 
 	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds

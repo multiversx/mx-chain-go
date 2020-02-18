@@ -14,12 +14,14 @@ type interceptedMetaHeaderDataFactory struct {
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier process.InterceptedHeaderSigVerifier
+	chainID           []byte
+	validityAttester  process.ValidityAttester
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
 func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMetaHeaderDataFactory, error) {
 	if argument == nil {
-		return nil, process.ErrNilArguments
+		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ProtoMarshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -36,12 +38,20 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if len(argument.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
+	if check.IfNil(argument.ValidityAttester) {
+		return nil, process.ErrNilValidityAttester
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:       argument.ProtoMarshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
+		chainID:           argument.ChainID,
+		validityAttester:  argument.ValidityAttester,
 	}, nil
 }
 
@@ -53,6 +63,9 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		Hasher:            imhdf.hasher,
 		ShardCoordinator:  imhdf.shardCoordinator,
 		HeaderSigVerifier: imhdf.headerSigVerifier,
+		ChainID:           imhdf.chainID,
+		ValidityAttester:  imhdf.validityAttester,
+		EpochStartTrigger: &nilEpochTrigger{},
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
@@ -60,8 +73,5 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (imhdf *interceptedMetaHeaderDataFactory) IsInterfaceNil() bool {
-	if imhdf == nil {
-		return true
-	}
-	return false
+	return imhdf == nil
 }

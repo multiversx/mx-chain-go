@@ -30,7 +30,6 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
-
 	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
 		return nil, ErrBadBlocksCacheNil
 	}
@@ -182,8 +181,5 @@ func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChain) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
-	}
-	return false
+	return bc == nil
 }

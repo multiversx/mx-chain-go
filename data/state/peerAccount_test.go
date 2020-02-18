@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -48,8 +49,8 @@ func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
 
 	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
-	assert.NotNil(t, acc)
 	assert.Nil(t, err)
+	assert.False(t, check.IfNil(acc))
 }
 
 func TestPeerAccount_AddressContainer(t *testing.T) {
@@ -216,11 +217,11 @@ func TestPeerAccount_SetAddressWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	address := []byte("address")
-	err = acc.SetAddressWithJournal(address)
+	err = acc.SetRewardAddressWithJournal(address)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, address, acc.Address)
+	assert.Equal(t, address, acc.RewardAddress)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -470,7 +471,7 @@ func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseLeaderSuccessRateWithJournal()
+	err = acc.IncreaseLeaderSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -498,7 +499,7 @@ func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseValidatorSuccessRateWithJournal()
+	err = acc.IncreaseValidatorSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -526,7 +527,7 @@ func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseLeaderSuccessRateWithJournal()
+	err = acc.DecreaseLeaderSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
@@ -554,7 +555,7 @@ func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
 	assert.Nil(t, err)
 
 	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseValidatorSuccessRateWithJournal()
+	err = acc.DecreaseValidatorSuccessRateWithJournal(1)
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)

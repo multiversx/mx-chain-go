@@ -83,10 +83,11 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	}
 
 	txs := 0
+	var packets [][]byte
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err := dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
+		packets, err = dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}

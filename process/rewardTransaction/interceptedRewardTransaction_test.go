@@ -196,14 +196,13 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	assert.Equal(t, uint64(0), nonce)
 }
 
-func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
+func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).Set(value),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
 		ShardID: 0,
 	}
@@ -217,8 +216,7 @@ func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(3))
 
-	totalValue := irt.TotalValue()
-	assert.Equal(t, value, totalValue)
+	assert.Equal(t, big.NewInt(0), irt.Fee())
 }
 
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {

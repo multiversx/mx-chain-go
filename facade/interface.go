@@ -30,10 +30,10 @@ type NodeWrapper interface {
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, error)
+		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the 'send transactions pipe' channel
-	SendTransaction(nonce uint64, senderHex string, receiverHex string, value string, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value string, gasPrice uint64, gasLimit uint64, transactionData []byte, signature []byte) (string, error)
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
@@ -50,6 +50,9 @@ type NodeWrapper interface {
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+
+	// ValidatorStatisticsApi return the statistics for all the validators
+	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

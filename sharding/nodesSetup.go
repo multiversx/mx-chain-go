@@ -3,6 +3,8 @@ package sharding
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -41,6 +43,7 @@ type NodesSetup struct {
 	RoundDuration      uint64 `json:"roundDuration"`
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+	ChainID            string `json:"chainID"`
 
 	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
@@ -84,17 +87,26 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
-		ns.InitialNodes[i].pubKey, err = hex.DecodeString(ns.InitialNodes[i].PubKey)
-		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
+		pubKey := ns.InitialNodes[i].PubKey
+		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubKey)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
+		}
+
+		address := ns.InitialNodes[i].Address
+		ns.InitialNodes[i].address, err = hex.DecodeString(address)
+		if err != nil {
+			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParseAddress, err.Error(), address)
+		}
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
-		if ns.InitialNodes[i].PubKey == "" || err != nil {
+		if ns.InitialNodes[i].PubKey == "" {
 			ns.InitialNodes[i].pubKey = nil
 			return ErrCouldNotParsePubKey
 		}
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as address
-		if ns.InitialNodes[i].Address == "" || err != nil {
+		if ns.InitialNodes[i].Address == "" {
 			ns.InitialNodes[i].address = nil
 			return ErrCouldNotParseAddress
 		}
@@ -175,7 +187,7 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 
 // InitialNodesPubKeys - gets initial nodes public keys
 func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
-	allNodesPubKeys := make(map[uint32][]string, 0)
+	allNodesPubKeys := make(map[uint32][]string)
 	for shardId, nodesInfo := range ns.allNodesInfo {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {

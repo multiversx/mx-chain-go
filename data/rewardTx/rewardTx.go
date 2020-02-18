@@ -12,13 +12,13 @@ import (
 var _ = data.TransactionHandler(&RewardTx{})
 
 // IsInterfaceNil verifies if underlying object is nil
-func (tx *RewardTx) IsInterfaceNil() bool {
-	return tx == nil
+func (rtx *RewardTx) IsInterfaceNil() bool {
+	return rtx == nil
 }
 
 // SetValue sets the value of the transaction
-func (tx *RewardTx) SetValue(value *big.Int) {
-	tx.Value = value
+func (rtx *RewardTx) SetValue(value *big.Int) {
+	rtx.Value = value
 }
 
 // GetNonce returns 0 as reward transactions do not have a nonce
@@ -27,8 +27,8 @@ func (_ *RewardTx) GetNonce() uint64 {
 }
 
 // GetData returns the data of the reward transaction
-func (_ *RewardTx) GetData() string {
-	return ""
+func (_ *RewardTx) GetData() []byte {
+	return []byte("")
 }
 
 // GetSndAddr returns the sender address from the reward transaction

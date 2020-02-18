@@ -11,33 +11,30 @@ func NewNilStatusHandler() *NilStatusHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nsh *NilStatusHandler) IsInterfaceNil() bool {
-	if nsh == nil {
-		return true
-	}
-	return false
+	return nsh == nil
 }
 
-func (nsh *NilStatusHandler) AddUint64(key string, val uint64) {
+func (nsh *NilStatusHandler) AddUint64(_ string, _ uint64) {
 }
 
 // Increment method - won't do anything
-func (nsh *NilStatusHandler) Increment(key string) {
+func (nsh *NilStatusHandler) Increment(_ string) {
 }
 
 // Decrement method - won't do anything
-func (nsh *NilStatusHandler) Decrement(key string) {
+func (nsh *NilStatusHandler) Decrement(_ string) {
 }
 
 // SetInt64Value method - won't do anything
-func (nsh *NilStatusHandler) SetInt64Value(key string, value int64) {
+func (nsh *NilStatusHandler) SetInt64Value(_ string, _ int64) {
 }
 
 // SetUInt64Value method - won't do anything
-func (nsh *NilStatusHandler) SetUInt64Value(key string, value uint64) {
+func (nsh *NilStatusHandler) SetUInt64Value(_ string, _ uint64) {
 }
 
 // SetStringValue method - won't do anything
-func (nsh *NilStatusHandler) SetStringValue(key string, value string) {
+func (nsh *NilStatusHandler) SetStringValue(_ string, _ string) {
 }
 
 // Close method - won't do anything

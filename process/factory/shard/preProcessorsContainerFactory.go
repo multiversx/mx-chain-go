@@ -30,6 +30,7 @@ type preProcessorsContainerFactory struct {
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
 	gasHandler          process.GasHandler
+	blockTracker        preprocess.BlockTracker
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -50,6 +51,7 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
+	blockTracker preprocess.BlockTracker,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -100,6 +102,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
@@ -118,6 +123,7 @@ func NewPreProcessorsContainerFactory(
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
 		gasHandler:          gasHandler,
+		blockTracker:        blockTracker,
 	}, nil
 }
 
@@ -125,12 +131,22 @@ func NewPreProcessorsContainerFactory(
 func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
 	container := containers.NewPreProcessorsContainer()
 
-	preproc, err := ppcm.createTxPreProcessor()
+	preproc, err := ppcm.createTxPreProcessor(block.TxBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	err = container.Add(block.TxBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
+	preproc, err = ppcm.createTxPreProcessor(block.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.InvalidBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +174,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	return container, nil
 }
 
-func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
+func (ppcm *preProcessorsContainerFactory) createTxPreProcessor(blockType block.Type) (process.PreProcessor, error) {
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
 		ppcm.dataPool.Transactions(),
 		ppcm.store,
@@ -171,6 +187,8 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
+		ppcm.blockTracker,
+		blockType,
 	)
 
 	return txPreprocessor, err
@@ -187,6 +205,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
+		ppcm.economicsFee,
 	)
 
 	return scrPreprocessor, err
@@ -211,8 +230,5 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
-	if ppcm == nil {
-		return true
-	}
-	return false
+	return ppcm == nil
 }

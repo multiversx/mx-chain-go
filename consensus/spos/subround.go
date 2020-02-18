@@ -4,6 +4,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround
@@ -20,9 +23,11 @@ type Subround struct {
 	startTime int64
 	endTime   int64
 	name      string
+	chainID   []byte
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
+	appStatusHandler             core.AppStatusHandler
 
 	Job    func() bool          // method does the Subround Job and send the result to the peers
 	Check  func() bool          // method checks if the consensus of the Subround is done
@@ -41,31 +46,35 @@ func NewSubround(
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
+	chainID []byte,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
 		consensusStateChangedChannel,
 		executeStoredMessages,
 		container,
+		chainID,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	sr := Subround{
-		container,
-		consensusState,
-		previous,
-		current,
-		next,
-		startTime,
-		endTime,
-		name,
-		consensusStateChangedChannel,
-		executeStoredMessages,
-		nil,
-		nil,
-		nil,
+		ConsensusCoreHandler:         container,
+		ConsensusState:               consensusState,
+		previous:                     previous,
+		current:                      current,
+		next:                         next,
+		startTime:                    startTime,
+		endTime:                      endTime,
+		name:                         name,
+		chainID:                      chainID,
+		consensusStateChangedChannel: consensusStateChangedChannel,
+		executeStoredMessages:        executeStoredMessages,
+		Job:                          nil,
+		Check:                        nil,
+		Extend:                       nil,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
 	}
 
 	return &sr, nil
@@ -76,6 +85,7 @@ func checkNewSubroundParams(
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
+	chainID []byte,
 ) error {
 	err := ValidateConsensusCore(container)
 	if err != nil {
@@ -89,6 +99,9 @@ func checkNewSubroundParams(
 	}
 	if executeStoredMessages == nil {
 		return ErrNilExecuteStoredMessages
+	}
+	if len(chainID) == 0 {
+		return ErrInvalidChainID
 	}
 
 	return nil
@@ -105,9 +118,8 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 
-	startTime := time.Time{}
-	startTime = rounder.TimeStamp()
-	maxTime := rounder.TimeDuration() * maxThresholdPercent / 100
+	startTime := rounder.TimeStamp()
+	maxTime := rounder.TimeDuration() * MaxThresholdPercent / 100
 
 	sr.Job()
 	if sr.Check() {
@@ -122,6 +134,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 			}
 		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
+				sr.RoundCanceled = true
 				sr.Extend(sr.current)
 			}
 
@@ -160,10 +173,27 @@ func (sr *Subround) Name() string {
 	return sr.name
 }
 
+// ChainID method returns the current chain ID
+func (sr *Subround) ChainID() []byte {
+	return sr.chainID
+}
+
+// SetAppStatusHandler method sets appStatusHandler
+func (sr *Subround) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if check.IfNil(ash) {
+		return ErrNilAppStatusHandler
+	}
+	sr.appStatusHandler = ash
+
+	return nil
+}
+
+// AppStatusHandler method returns the appStatusHandler instance
+func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
+	return sr.appStatusHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
-	if sr == nil {
-		return true
-	}
-	return false
+	return sr == nil
 }

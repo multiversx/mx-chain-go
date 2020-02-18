@@ -17,7 +17,7 @@ func TestNewInterceptedTxDataFactory_NilArgumentShouldErr(t *testing.T) {
 	imh, err := NewInterceptedTxDataFactory(nil)
 
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -116,6 +116,7 @@ func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.NotNil(t, imh)
 	assert.Nil(t, err)
+	assert.False(t, imh.IsInterfaceNil())
 
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &dataTransaction.Transaction{

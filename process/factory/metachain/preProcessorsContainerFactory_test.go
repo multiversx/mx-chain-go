@@ -18,14 +18,15 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -40,14 +41,15 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -62,14 +64,15 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -84,14 +87,15 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -108,12 +112,13 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -128,14 +133,15 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		nil,
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -150,14 +156,15 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		nil,
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -172,14 +179,15 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		nil,
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -194,7 +202,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
 		nil,
 		&mock.TxProcessorMock{},
@@ -202,6 +210,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -215,14 +224,15 @@ func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		nil,
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
 	assert.Nil(t, ppcm)
@@ -236,16 +246,39 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		nil,
+		&mock.BlockTrackerMock{},
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewPoolsHolderMock(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -257,24 +290,26 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
+	assert.False(t, ppcm.IsInterfaceNil())
 }
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.MetaPoolsHolderStub{}
+	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -286,12 +321,13 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.HasherMock{},
 		dataPool,
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -310,14 +346,15 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 		&mock.AccountsStub{},
-		&mock.RequestHandlerMock{},
+		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
 	)
 
 	assert.Nil(t, err)

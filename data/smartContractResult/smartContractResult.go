@@ -22,7 +22,7 @@ func (scr *SmartContractResult) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the smart contract result
-func (scr *SmartContractResult) SetData(data string) {
+func (scr *SmartContractResult) SetData(data []byte) {
 	scr.Data = data
 }
 
@@ -34,6 +34,16 @@ func (scr *SmartContractResult) SetRcvAddr(addr []byte) {
 // SetSndAddr sets the sender address of the smart contract result
 func (scr *SmartContractResult) SetSndAddr(addr []byte) {
 	scr.SndAddr = addr
+}
+
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
+func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
+	if len(in) == 0 {
+		return []*SmartContractResult{}
+	}
+	ret := make([]*SmartContractResult, len(in))
+	copy(ret, in)
+	return ret
 }
 
 // ----- for compatibility only ----

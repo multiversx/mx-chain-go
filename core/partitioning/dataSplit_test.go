@@ -2,7 +2,6 @@ package partitioning_test
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -13,13 +12,13 @@ import (
 
 func checkExpectedElementsNoUnmarshal(buffer [][]byte, expectedElements [][]byte) error {
 	if len(buffer) != len(expectedElements) {
-		return errors.New(fmt.Sprintf("expected %d elements, got %d", len(expectedElements), len(buffer)))
+		return fmt.Errorf("expected %d elements, got %d", len(expectedElements), len(buffer))
 	}
 
 	for idx, expElem := range expectedElements {
 		elem := buffer[idx]
 		if !bytes.Equal(elem, expElem) {
-			return errors.New(fmt.Sprintf("error at index %d expected %v, got %v", idx, expElem, elem))
+			return fmt.Errorf("error at index %d expected %v, got %v", idx, expElem, elem)
 		}
 	}
 

@@ -16,6 +16,7 @@ type BootstrapperMock struct {
 	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
 }
 
+// CreateAndCommitEmptyBlock -
 func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	if boot.CreateAndCommitEmptyBlockCalled != nil {
 		return boot.CreateAndCommitEmptyBlockCalled(shardForCurrentNode)
@@ -24,15 +25,14 @@ func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint
 	return &block.Body{}, &block.Header{}, nil
 }
 
+// AddSyncStateListener -
 func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSyncing bool)) {
 	if boot.AddSyncStateListenerCalled != nil {
 		boot.AddSyncStateListenerCalled(syncStateNotifier)
-		return
 	}
-
-	return
 }
 
+// ShouldSync -
 func (boot *BootstrapperMock) ShouldSync() bool {
 	if boot.ShouldSyncCalled != nil {
 		return boot.ShouldSyncCalled()
@@ -41,14 +41,17 @@ func (boot *BootstrapperMock) ShouldSync() bool {
 	return false
 }
 
+// StartSync -
 func (boot *BootstrapperMock) StartSync() {
 	boot.StartSyncCalled()
 }
 
+// StopSync -
 func (boot *BootstrapperMock) StopSync() {
 	boot.StopSyncCalled()
 }
 
+// SetStatusHandler -
 func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
 	return boot.SetStatusHandlerCalled(handler)
 }

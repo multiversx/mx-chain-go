@@ -18,7 +18,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -34,7 +34,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -50,7 +50,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -66,7 +66,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -82,7 +82,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		nil,
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -98,11 +98,12 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ipcf)
+	assert.False(t, ipcf.IsInterfaceNil())
 }
 
 func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
@@ -114,7 +115,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
-		mock.NewMetaPoolsHolderFake(),
+		mock.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, err)

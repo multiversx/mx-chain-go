@@ -27,6 +27,9 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		Hasher:            testHasher,
 		Marshalizer:       testMarshalizer,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		ChainID:           []byte("chain ID"),
+		ValidityAttester:  &mock.ValidityAttesterStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 	}
 
 	hdr := createMockShardHeader()
@@ -53,6 +56,7 @@ func createMockShardHeader() *dataBlock.Header {
 		RootHash:         []byte("root hash"),
 		MetaBlockHashes:  nil,
 		TxCount:          0,
+		ChainID:          []byte("chain ID"),
 	}
 }
 
@@ -64,7 +68,7 @@ func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(nil)
 
 	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilArguments, err)
+	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
 func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
@@ -171,6 +175,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 			return expectedErr
 		},
 	}
+	arg.EpochStartTrigger = &mock.EpochStartTriggerStub{}
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
@@ -228,6 +233,40 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedHeader_CheckAgainstRounderErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgument()
+	expectedErr := errors.New("expected error")
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
+			return expectedErr
+		},
+	}
+	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+
+	err := inHdr.CheckValidity()
+
+	assert.Equal(t, expectedErr, err)
 }
 
 //------- getters

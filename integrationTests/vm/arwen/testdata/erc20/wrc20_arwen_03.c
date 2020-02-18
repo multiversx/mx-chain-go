@@ -1,6 +1,5 @@
 #include "elrond/context.h"
 #include "elrond/bigInt.h"
-#include "elrond/debug.h"
 
 // global data used in functions, will be statically allocated to WebAssembly memory
 byte sender[32]        = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -80,7 +79,8 @@ void saveLogWith3Topics(byte *topic1, byte *topic2, byte *topic3, bigInt value) 
 // will set the fixed global token supply and give all the supply to the creator
 void init() {
   if (getNumArguments() != 1) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -100,7 +100,8 @@ void init() {
 // getter function: retrieves total token supply
 void totalSupply() {
   if (getNumArguments() != 0) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
   
@@ -116,7 +117,8 @@ void totalSupply() {
 // getter function: retrieves balance for an account
 void balanceOf() {
   if (getNumArguments() != 1) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -135,7 +137,8 @@ void balanceOf() {
 // getter function: retrieves allowance granted from one account to another
 void allowance() {
   if (getNumArguments() != 2) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -157,7 +160,8 @@ void allowance() {
 // transfers tokens from sender to another account
 void transferToken() {
   if (getNumArguments() != 2) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -171,7 +175,8 @@ void transferToken() {
   bigInt amount = bigIntNew(0);
   bigIntGetUnsignedArgument(1, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
-    signalError();
+    char message[] = "negative amount";
+    signalError(message, 15);
     return;
   }
 
@@ -182,7 +187,8 @@ void transferToken() {
 
   // check if enough funds
   if (bigIntCmp(amount, senderBalance) > 0) {
-    signalError();
+    char message[] = "insufficient funds";
+    signalError(message, 18);
     return;
   }
 
@@ -208,7 +214,8 @@ void transferToken() {
 // it will completely overwrite any previously existing allowance from sender to beneficiary
 void approve() {
   if (getNumArguments() != 2) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -222,7 +229,8 @@ void approve() {
   bigInt amount = bigIntNew(0);
   bigIntGetUnsignedArgument(1, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
-    signalError();
+    char message[] = "negative amount";
+    signalError(message, 15);
     return;
   }
 
@@ -241,7 +249,8 @@ void approve() {
 // caller uses allowance to transfer funds between 2 other accounts
 void transferFrom() {
    if (getNumArguments() != 3) {
-    signalError();
+    char message[] = "wrong args num";
+    signalError(message, 14);
     return;
   }
 
@@ -258,8 +267,8 @@ void transferFrom() {
   bigInt amount = bigIntNew(0);
   bigIntGetUnsignedArgument(2, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
-    myDebugPrintString("amount is negative");
-    signalError();
+    char message[] = "negative amount";
+    signalError(message, 15);
     return;
   }
 
@@ -270,8 +279,8 @@ void transferFrom() {
 
   // amount should not exceed allowance
   if (bigIntCmp(amount, allowance) > 0) {
-    myDebugPrintString("amount > allowance");
-    signalError();
+    char message[] = "allowance exceeded";
+    signalError(message, 18);
     return;
   }
 
@@ -286,8 +295,8 @@ void transferFrom() {
 
   // check if enough funds
   if (bigIntCmp(amount, senderBalance) > 0) {
-    myDebugPrintString("amount > senderBalance");
-    signalError();
+    char message[] = "insufficient funds";
+    signalError(message, 18);
     return;
   }
 

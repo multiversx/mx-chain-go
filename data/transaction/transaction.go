@@ -23,7 +23,7 @@ func (tx *Transaction) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the transaction
-func (tx *Transaction) SetData(data string) {
+func (tx *Transaction) SetData(data []byte) {
 	tx.Data = data
 }
 
@@ -51,7 +51,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		SndAddr   []byte `json:"sender"`
 		GasPrice  uint64 `json:"gasPrice,omitempty"`
 		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
+		Data      []byte `json:"data,omitempty"`
 		Signature []byte `json:"signature,omitempty"`
 	}{
 		Nonce:     tx.Nonce,
@@ -74,7 +74,7 @@ func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
 		SndAddr   []byte `json:"sender"`
 		GasPrice  uint64 `json:"gasPrice,omitempty"`
 		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      string `json:"data,omitempty"`
+		Data      []byte `json:"data,omitempty"`
 		Signature []byte `json:"signature,omitempty"`
 	}{}
 	if err := json.Unmarshal(dataBuff, &aux); err != nil {
@@ -97,21 +97,22 @@ func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
 	return nil
 }
 
-// ----- for compatibility only ----
-
-func (t *Transaction) Save(w io.Writer) error {
-	b, err := t.Marshal()
-	if err != nil {
-		return err
+// TrimSlicePtr creates a copy of the provided slice without the excess capacity
+func TrimSlicePtr(in []*Transaction) []*Transaction {
+	if len(in) == 0 {
+		return []*Transaction{}
 	}
-	_, err = w.Write(b)
-	return err
+	ret := make([]*Transaction, len(in))
+	copy(ret, in)
+	return ret
 }
 
-func (t *Transaction) Load(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
+// TrimSliceHandler creates a copy of the provided slice without the excess capacity
+func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
+	if len(in) == 0 {
+		return []data.TransactionHandler{}
 	}
-	return t.Unmarshal(b)
+	ret := make([]data.TransactionHandler, len(in))
+	copy(ret, in)
+	return ret
 }

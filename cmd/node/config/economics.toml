@@ -4,17 +4,28 @@
     BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
 [RewardsSettings]
-    RewardsValue = "1000"
+    RewardsValue = "20000000000000000000" #20ERD
     CommunityPercentage = 0.10
     LeaderPercentage = 0.50
     BurnPercentage = 0.40
-    DenominationCoefficientForView = "0.0001"
+    DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
     MaxGasLimitPerBlock = "1500000000"
-    MinGasPrice = "0"
+    MinGasPrice = "100000000000000" #will yield min tx fee of 10ERD
     MinGasLimit = "100000"
+    GasPerDataByte = "1500"
+    DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    StakeValue = "500000000000000000000000"
+    StakeValue = "500000000000000000000000" #500000ERD
     UnBoundPeriod = "100000"
+
+[RatingSettings]
+    StartRating = 500000
+    MaxRating = 1000000
+    MinRating = 1
+    ProposerIncreaseRatingStep = 2
+    ProposerDecreaseRatingStep = 4
+    ValidatorIncreaseRatingStep = 1
+    ValidatorDecreaseRatingStep = 2

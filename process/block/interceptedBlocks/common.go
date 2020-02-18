@@ -10,7 +10,7 @@ import (
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
-		return process.ErrNilArguments
+		return process.ErrNilArgumentStruct
 	}
 	if arg.HdrBuff == nil {
 		return process.ErrNilBuffer
@@ -27,13 +27,22 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.HeaderSigVerifier) {
 		return process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(arg.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
+	if len(arg.ChainID) == 0 {
+		return process.ErrInvalidChainID
+	}
+	if check.IfNil(arg.ValidityAttester) {
+		return process.ErrNilValidityAttester
+	}
 
 	return nil
 }
 
 func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 	if arg == nil {
-		return process.ErrNilArguments
+		return process.ErrNilArgumentStruct
 	}
 	if arg.TxBlockBodyBuff == nil {
 		return process.ErrNilBuffer

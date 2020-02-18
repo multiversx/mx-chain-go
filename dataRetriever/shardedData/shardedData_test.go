@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -22,6 +24,8 @@ var defaultTestConfig = storageUnit.CacheConfig{
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 0,
 		Type: storageUnit.LRUCache,
@@ -33,6 +37,8 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
 		Type: storageUnit.LRUCache,
@@ -40,7 +46,31 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
 	assert.Nil(t, err)
-	assert.NotNil(t, sd)
+	assert.False(t, check.IfNil(sd))
+}
+
+func TestNewShardedData_CreateShardStore(t *testing.T) {
+	t.Parallel()
+
+	cacheConfigBad := storageUnit.CacheConfig{
+		Size: 10,
+		Type: storageUnit.LRUCache,
+	}
+
+	sd, err := shardedData.NewShardedData(cacheConfigBad)
+	assert.Nil(t, err)
+
+	id := "id"
+	key := []byte("key")
+	sd.CreateShardStore(id)
+	sd.AddData(key, key, id)
+
+	shardStore := sd.ShardDataStore(id)
+	require.NotNil(t, shardStore)
+
+	sd.RemoveSetOfDataFromPool([][]byte{key}, id)
+	_, found := sd.SearchFirstData(key)
+	require.False(t, found)
 }
 
 func TestShardedData_AddData(t *testing.T) {
@@ -182,26 +212,6 @@ func TestShardedData_MergeShardStores(t *testing.T) {
 	assert.Nil(t, sd.ShardDataStore("1"))
 }
 
-func TestShardedData_MoveData(t *testing.T) {
-	t.Parallel()
-
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
-
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
-	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, "2")
-	sd.AddData([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, "2")
-	sd.AddData([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, "2")
-	sd.AddData([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, "2")
-
-	sd.MoveData("2", "3", [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
-
-	assert.Equal(t, 3, sd.ShardDataStore("2").Len(),
-		"Mini pool for shard 2 should have 3 elements")
-	assert.Equal(t, 2, sd.ShardDataStore("3").Len(),
-		"Mini pool for shard 3 should have 2 elements")
-}
-
 func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	t.Parallel()
 
@@ -217,7 +227,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		if !bytes.Equal([]byte("aaaa"), key) {
@@ -263,7 +273,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	chDone := make(chan bool, 0)
+	chDone := make(chan bool)
 
 	f := func(key []byte) {
 		wg.Done()

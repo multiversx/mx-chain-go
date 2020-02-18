@@ -3,6 +3,7 @@ package leveldb
 import (
 	"context"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -66,12 +67,14 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	go dbStore.batchTimeoutHandle(ctx)
 	go dbStore.processLoop(ctx)
 
+	runtime.SetFinalizer(dbStore, func(db *SerialDB) {
+		_ = db.Close()
+	})
+
 	return dbStore, nil
 }
 
 func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
-	ct, _ := context.WithCancel(ctx)
-
 	for {
 		select {
 		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
@@ -80,7 +83,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 				log.Warn("leveldb serial putBatch", "error", err.Error())
 				continue
 			}
-		case <-ct.Done():
+		case <-ctx.Done():
 			log.Debug("closing the timed batch handler")
 			return
 		}
@@ -166,7 +169,7 @@ func (s *SerialDB) Init() error {
 // putBatch writes the Batch data into the database
 func (s *SerialDB) putBatch() error {
 	s.mutBatch.Lock()
-	batch, ok := s.batch.(*batch)
+	dbBatch, ok := s.batch.(*batch)
 	if !ok {
 		s.mutBatch.Unlock()
 		return storage.ErrInvalidBatch
@@ -177,7 +180,7 @@ func (s *SerialDB) putBatch() error {
 
 	ch := make(chan error)
 	req := &putBatchAct{
-		batch:   batch,
+		batch:   dbBatch,
 		resChan: ch,
 	}
 
@@ -207,6 +210,7 @@ func (s *SerialDB) Close() error {
 	s.mutClosed.Unlock()
 
 	_ = s.putBatch()
+
 	s.cancel()
 
 	return s.db.Close()
@@ -258,14 +262,21 @@ func (s *SerialDB) Destroy() error {
 	return err
 }
 
-func (s *SerialDB) processLoop(ctx context.Context) {
-	ct, _ := context.WithCancel(ctx)
+// DestroyClosed removes the already closed storage medium stored data
+func (s *SerialDB) DestroyClosed() error {
+	err := os.RemoveAll(s.path)
+	if err != nil {
+		log.Error("error destroy closed", "error", err, "path", s.path)
+	}
+	return err
+}
 
+func (s *SerialDB) processLoop(ctx context.Context) {
 	for {
 		select {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
-		case <-ct.Done():
+		case <-ctx.Done():
 			log.Debug("closing the leveldb process loop")
 			return
 		}
@@ -274,8 +285,5 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SerialDB) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

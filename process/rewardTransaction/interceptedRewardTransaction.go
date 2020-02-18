@@ -33,7 +33,6 @@ func NewInterceptedRewardTransaction(
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedRewardTransaction, error) {
-
 	if rewardTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
@@ -112,10 +111,9 @@ func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
 	return inRTx.rTx.GetNonce()
 }
 
-// TotalValue returns the maximum cost of transaction
-// totalValue = txValue + gasPrice*gasLimit
-func (inRTx *InterceptedRewardTransaction) TotalValue() *big.Int {
-	return big.NewInt(0).Set(inRTx.rTx.GetValue())
+// Fee represents the reward transaction fee. It is always 0
+func (inRTx *InterceptedRewardTransaction) Fee() *big.Int {
+	return big.NewInt(0)
 }
 
 // SenderAddress returns the transaction sender address
@@ -158,11 +156,12 @@ func (inRTx *InterceptedRewardTransaction) IsForCurrentShard() bool {
 	return inRTx.isForCurrentShard
 }
 
+// Type returns the type of this intercepted data
+func (inRTx *InterceptedRewardTransaction) Type() string {
+	return "intercepted reward tx"
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inRTx *InterceptedRewardTransaction) IsInterfaceNil() bool {
-	if inRTx == nil {
-		return true
-	}
-
-	return false
+	return inRTx == nil
 }
