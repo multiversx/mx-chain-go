@@ -16,6 +16,9 @@
     #p2p identity generation
     Seed = "seed"
 
+    # The targeted number of peer connections
+    TargetPeerCount = 10000
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered
@@ -50,3 +53,11 @@
 
    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
    RoutingTableRefreshIntervalInSec = 300
+
+   Type = "kad dht with lists"
+
+[Sharding]
+    # Number of ptiority bits used
+    PrioBits = 4
+    MaxIntraShard = 15
+    MaxCrossShard = 15

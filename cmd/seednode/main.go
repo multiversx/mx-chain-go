@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
@@ -59,12 +58,11 @@ VERSION:
 
 	p2pConfigurationFile = "./config/p2p.toml"
 
-	errNilSeed                     = errors.New("nil seed")
-	errEmotySeed                   = errors.New("empty seed")
-	errNilBuffer                   = errors.New("nil buffer")
-	errEmptyBuffer                 = errors.New("empty buffer")
-	errInvalidPort                 = errors.New("cannot start node on port < 0")
-	errPeerDiscoveryShouldBeKadDht = errors.New("kad-dht peer discovery should have been enabled")
+	errNilSeed     = errors.New("nil seed")
+	errEmotySeed   = errors.New("empty seed")
+	errNilBuffer   = errors.New("nil buffer")
+	errEmptyBuffer = errors.New("empty buffer")
+	errInvalidPort = errors.New("cannot start node on port < 0")
 )
 
 type seedRandReader struct {
@@ -200,10 +198,6 @@ func createNetMessenger(
 	pDiscoverer, err := factoryP2P.NewPeerDiscoverer(*p2pConfig)
 	if err != nil {
 		return nil, err
-	}
-	_, ok := pDiscoverer.(*discovery.KadDhtDiscoverer)
-	if !ok {
-		return nil, errPeerDiscoveryShouldBeKadDht
 	}
 
 	fmt.Printf("Starting with peer discovery: %s\n", pDiscoverer.Name())
