@@ -269,10 +269,10 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	// TODO: RWmutex?
 	listForSender.accountNonce.Set(nonce)
 	listForSender.accountNonceKnown.Set()
-	listForSender.updateInitialGapPenalty()
+	listForSender.penalizeInitialGap()
 }
 
-func (listForSender *txListForSender) updateInitialGapPenalty() {
+func (listForSender *txListForSender) penalizeInitialGap() {
 	if listForSender.hasInitialGap() {
 		listForSender.initialGapPenalty.Increment()
 	} else {

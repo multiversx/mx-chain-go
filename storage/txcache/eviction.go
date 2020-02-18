@@ -164,3 +164,6 @@ func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (
 
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
+
+func (cache *TxCache) doEvictPenalizedSenders() {
+}
