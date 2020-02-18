@@ -423,7 +423,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	sr := *initSubroundBlock(nil, container)
 	blProcMock := mock.InitBlockProcessorMock()
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(data.ChainHandler, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 	container.SetBlockProcessor(blProcMock)
@@ -469,7 +469,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr.Header = hdr
 	sr.Body = blk
 	blockProcessorMock := mock.InitBlockProcessorMock()
-	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
 	}
 	container.SetBlockProcessor(blockProcessorMock)
@@ -845,7 +845,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	container.SetBlockProcessor(&mock.BlockProcessorMock{
-		ProcessBlockCalled: func(_ data.ChainHandler, _ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
+		ProcessBlockCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
 			time.Sleep(time.Duration(delay))
 			return nil
 		},

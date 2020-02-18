@@ -225,7 +225,7 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.chainHandler != nil && boot.chainHandler.GetCurrentBlockHeader() != nil {
+	if !check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		nonce = boot.chainHandler.GetCurrentBlockHeader().GetNonce() + 1
 	}
 	return nonce
@@ -267,7 +267,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
-	if boot.chainHandler.GetCurrentBlockHeader() == nil {
+	if check.IfNil(boot.chainHandler.GetCurrentBlockHeader()) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
@@ -358,6 +358,7 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.MiniBlocksResolver) {
 		return process.ErrNilMiniBlocksResolver
 	}
+
 	return nil
 }
 
@@ -501,7 +502,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(boot.chainHandler, hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -511,7 +512,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime = time.Now()
-	err = boot.blockProcessor.CommitBlock(boot.chainHandler, hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,

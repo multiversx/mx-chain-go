@@ -76,6 +76,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		RandSeed:               rootHash,
 		TimeStamp:              genesisTime,
 		ValidatorStatsRootHash: validatorStatsRootHash,
+		AccumulatedFees:        big.NewInt(0),
 	}
 
 	return header, err
@@ -173,10 +174,12 @@ func CreateMetaGenesisBlock(
 	}
 
 	header := &block.MetaBlock{
-		RootHash:     rootHash,
-		PrevHash:     rootHash,
-		RandSeed:     rootHash,
-		PrevRandSeed: rootHash,
+		RootHash:               rootHash,
+		PrevHash:               rootHash,
+		RandSeed:               rootHash,
+		PrevRandSeed:           rootHash,
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
 	header.SetTimeStamp(args.GenesisTime)

@@ -55,7 +55,6 @@ import (
 )
 
 const blsConsensusType = "bls"
-const bnConsensusType = "bn"
 
 var r *rand.Rand
 var consensusChainID = []byte("consensus chain ID")
@@ -323,8 +322,9 @@ func createConsensusOnlyNode(
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
 
+	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
@@ -347,14 +347,13 @@ func createConsensusOnlyNode(
 		},
 	}
 
-	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
 		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
 		Nonce:         0,

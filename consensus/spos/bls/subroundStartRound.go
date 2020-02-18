@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 )
 
@@ -192,9 +193,9 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	if check.IfNil(currentHeader) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
-		if currentHeader == nil {
+		if check.IfNil(currentHeader) {
 			return spos.ErrNilHeader
 		}
 	}

@@ -131,10 +131,7 @@ func TestTomlEconomicsParser(t *testing.T) {
 			BurnAddress:      burnAddress,
 		},
 		RewardsSettings: RewardsSettings{
-			RewardsValue:        rewardsValue,
-			CommunityPercentage: communityPercentage,
-			LeaderPercentage:    leaderPercentage,
-			BurnPercentage:      burnPercentage,
+			LeaderPercentage: leaderPercentage,
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,

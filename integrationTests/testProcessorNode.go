@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"math/big"
 	"sort"
@@ -293,11 +294,11 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
-	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -368,10 +369,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        "1000",
-				CommunityPercentage: 0.10,
-				LeaderPercentage:    0.50,
-				BurnPercentage:      0.40,
+				LeaderPercentage: 0.10,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
@@ -803,6 +801,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
+		RewardsHandler:      tpn.EconomicsData,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -856,6 +855,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 		BlockTracker: tpn.BlockTracker,
 		DataPool:     tpn.DataPool,
+		BlockChain:   tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1019,13 +1019,15 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
+
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
+	currHdrHash := tpn.BlockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(currHdr) {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
+		currHdrHash = tpn.BlockChain.GetGenesisHeaderHash()
 	}
 
-	buff, _ := TestMarshalizer.Marshal(currHdr)
-	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
+	blockHeader.SetPrevHash(currHdrHash)
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
@@ -1071,7 +1073,7 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 
 // CommitBlock commits the block and body
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	_ = tpn.BlockProcessor.CommitBlock(header, body)
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
@@ -1193,7 +1195,6 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.ProcessBlock(
-		tpn.BlockChain,
 		header,
 		body,
 		func() time.Duration {
@@ -1204,7 +1205,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	err = tpn.BlockProcessor.CommitBlock(header, body)
 	if err != nil {
 		return err
 	}
@@ -1224,7 +1225,6 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.ProcessBlock(
-		tpn.BlockChain,
 		header,
 		body,
 		func() time.Duration {
@@ -1235,7 +1235,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	err = tpn.BlockProcessor.CommitBlock(header, body)
 	if err != nil {
 		return err
 	}

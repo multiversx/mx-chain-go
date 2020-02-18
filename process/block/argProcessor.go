@@ -3,6 +3,7 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -36,6 +37,7 @@ type ArgBaseProcessor struct {
 	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
 	DataPool                     dataRetriever.PoolsHolder
+	BlockChain                   data.ChainHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

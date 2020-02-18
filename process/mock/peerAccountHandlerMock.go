@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -29,6 +31,15 @@ type PeerAccountHandlerMock struct {
 	DecreaseLeaderSuccessRateWithJournalCalled    func(value uint32) error
 	IncreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
 	DecreaseValidatorSuccessRateWithJournalCalled func(value uint32) error
+	AddToAccumulatedFeesCalled                    func(value *big.Int) error
+}
+
+// AddToAccumulatedFees -
+func (pahm *PeerAccountHandlerMock) AddToAccumulatedFees(value *big.Int) error {
+	if pahm.AddToAccumulatedFeesCalled != nil {
+		return pahm.AddToAccumulatedFeesCalled(value)
+	}
+	return nil
 }
 
 // GetCodeHash -

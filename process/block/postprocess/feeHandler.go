@@ -43,7 +43,7 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int) {
 	}
 
 	f.mut.Lock()
-	_ = f.accumulatedFees.Add(f.accumulatedFees, cost)
+	f.accumulatedFees.Add(f.accumulatedFees, cost)
 	f.mut.Unlock()
 }
 

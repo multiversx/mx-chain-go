@@ -77,6 +77,7 @@ type ShardData struct {
 	NumPendingMiniBlocks  uint32
 	ShardID               uint32
 	TxCount               uint32
+	AccumulatedFees       *big.Int
 }
 
 // EpochStartShardData hold the last finalized headers hash and state root hash
@@ -116,6 +117,7 @@ type MetaBlock struct {
 	Epoch                  uint32
 	TxCount                uint32
 	AccumulatedFees        *big.Int
+	AccumulatedFeesInEpoch *big.Int
 }
 
 // GetShardID returns the metachain shard id

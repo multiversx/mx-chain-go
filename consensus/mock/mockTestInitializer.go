@@ -23,11 +23,11 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 
 		return emptyBlock, nil
 	}
-	blockProcessorMock.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
 	blockProcessorMock.RevertAccountStateCalled = func() {}
-	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
 	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error) {

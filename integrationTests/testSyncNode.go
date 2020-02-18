@@ -67,11 +67,11 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.initAccountDBs()
-	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData()
 	tpn.initRequestedItemsHandler()
@@ -137,6 +137,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 		BlockTracker: tpn.BlockTracker,
 		DataPool:     tpn.DataPool,
+		BlockChain:   tpn.BlockChain,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
