@@ -121,3 +121,10 @@ var ErrIncompatibleMethodCalled = errors.New("incompatible method called")
 
 // ErrNilReconnecter signals that a nil reconnecter has been provided
 var ErrNilReconnecter = errors.New("nil reconnecter")
+
+// ErrPeerAlreadyConnected signals that the peer is already connected
+var ErrPeerAlreadyConnected = errors.New("peer is already connected")
+
+// ErrUnwantedPeer signals that the provided peer has a longer kademlia distance in respect with the already connected
+// peers and a connection to this peer will result in an immediate disconnection
+var ErrUnwantedPeer = errors.New("unwanted peer: will not initiate connection as it will get disconnected")

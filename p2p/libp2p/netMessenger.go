@@ -645,6 +645,15 @@ func (netMes *networkMessenger) SetPeerShardResolver(
 	}
 	netMes.peerShardResolver = peerShardResolver
 
+	peerDiscovererWithSharder, ok := netMes.peerDiscoverer.(PeerDiscovererWithSharder)
+	if ok {
+		log.Debug("peer discoverer supports sharding, setting component")
+		err = peerDiscovererWithSharder.SetSharder(kadSharder)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
