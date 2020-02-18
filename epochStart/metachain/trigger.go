@@ -141,10 +141,9 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 		t.epoch += 1
 	}
 
-	t.currEpochStartRound = t.currentRound
-	t.isEpochStart = true
 	t.prevEpochStartRound = t.currEpochStartRound
 	t.currEpochStartRound = t.currentRound
+	t.isEpochStart = true
 
 	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 	log.Debug(display.Headline(msg, "", "#"))

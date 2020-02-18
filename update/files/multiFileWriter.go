@@ -33,7 +33,7 @@ func NewMultiFileWriter(args ArgsNewMultiFileWriter) (*multiFileWriter, error) {
 	if check.IfNil(args.ExportStore) {
 		return nil, update.ErrNilStorage
 	}
-	if len(args.ExportFolder) == 2 {
+	if len(args.ExportFolder) < 2 {
 		return nil, update.ErrInvalidFolderName
 	}
 
@@ -68,21 +68,13 @@ func (m *multiFileWriter) NewFile(fileName string) error {
 
 // Write appends the next key, value pair to the selected file, creates a file if that does not exist
 func (m *multiFileWriter) Write(fileName string, key string, value []byte) error {
-	dataWriter, ok := m.dataWriters[fileName]
-	if !ok {
-		err := m.NewFile(fileName)
-		if err != nil {
-			return err
-		}
-
-		dataWriter, ok = m.dataWriters[fileName]
-		if !ok {
-			return update.ErrNilDataWriter
-		}
+	dataWriter, err := m.getOrCreateDataWriter(fileName)
+	if err != nil {
+		return err
 	}
 
 	hexEncoded := hex.EncodeToString([]byte(key))
-	_, err := dataWriter.WriteString(hexEncoded + "\n")
+	_, err = dataWriter.WriteString(hexEncoded + "\n")
 	if err != nil {
 		return err
 	}
@@ -93,6 +85,26 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 	}
 
 	return nil
+}
+
+func (m *multiFileWriter) getOrCreateDataWriter(fileName string) (update.DataWriter, error) {
+	var dataWriter update.DataWriter
+	var ok bool
+
+	if dataWriter, ok = m.dataWriters[fileName]; ok {
+		return dataWriter, nil
+	}
+
+	if err := m.NewFile(fileName); err != nil {
+		return nil, err
+	}
+
+	if dataWriter, ok = m.dataWriters[fileName]; ok {
+		return dataWriter, nil
+
+	}
+
+	return nil, update.ErrNilDataWriter
 }
 
 // Finish flushes all the data to the files and closes the opened files

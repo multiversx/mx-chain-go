@@ -80,11 +80,11 @@ func (si *stateImport) ImportAll() error {
 			err = si.importTransactions()
 		default:
 			splitString := strings.Split(fileName, atSep)
-			if len(splitString) > 1 && splitString[0] == TrieFileName {
-				err = si.importState(splitString[0], splitString[1])
-			} else {
+			canImportState := len(splitString) > 1 && splitString[0] == TrieFileName
+			if !canImportState {
 				continue
 			}
+			err = si.importState(splitString[0], splitString[1])
 		}
 		if err != nil {
 			return err
@@ -97,7 +97,6 @@ func (si *stateImport) ImportAll() error {
 }
 
 func (si *stateImport) importMetaBlock() error {
-
 	object, err := si.readNextElement(MetaBlockFileName)
 	if err != nil {
 		return nil

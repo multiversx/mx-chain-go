@@ -75,7 +75,7 @@ type MultiFileWriter interface {
 	IsInterfaceNil() bool
 }
 
-// MultiFileReaders reads data from several files in a buffered way
+// MultiFileReader reads data from several files in a buffered way
 type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)

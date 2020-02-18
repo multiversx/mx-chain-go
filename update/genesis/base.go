@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -163,8 +164,10 @@ func GetKeyTypeAndHash(key string) (Type, []byte, error) {
 	}
 
 	switch splitString[0] {
+	case "meta":
+		return getHeaderTypeAndHash(splitString)
 	case "mb":
-		return MiniBlock, []byte(splitString[1]), nil
+		return getMbTypeAndHash(splitString)
 	case "tx":
 		return getTransactionKeyTypeAndHash(splitString[1:])
 	case "tr":
@@ -176,9 +179,31 @@ func GetKeyTypeAndHash(key string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
+func getHeaderTypeAndHash(splitString []string) (Type, []byte, error) {
+	if len(splitString) < 3 {
+		return Unknown, nil, update.ErrUnknownType
+	}
+
+	hash, err := hex.DecodeString(splitString[2])
+	if err != nil {
+		return Unknown, nil, err
+	}
+
+	return MetaHeader, hash, nil
+}
+
+func getMbTypeAndHash(splitString []string) (Type, []byte, error) {
+	hash, err := hex.DecodeString(splitString[1])
+	if err != nil {
+		return Unknown, nil, err
+	}
+
+	return MiniBlock, hash, nil
+}
+
 // CreateVersionKey creates a version key from the given metaBlock
-func CreateVersionKey(meta *block.MetaBlock) string {
-	return "meta" + atSep + string(meta.ChainID)
+func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
+	return "meta" + atSep + string(meta.ChainID) + atSep + hex.EncodeToString(hash)
 }
 
 // CreateAccountKey creates a key for an account according to its type, shard ID and address
@@ -199,25 +224,19 @@ func CreateTrieIdentifier(shID uint32, accountType factory.Type) string {
 
 // CreateMiniBlockKey returns a miniblock key
 func CreateMiniBlockKey(key string) string {
-	return "mb" + atSep + key
+	return "mb" + atSep + hex.EncodeToString([]byte(key))
 }
 
 // CreateTransactionKey create a transaction key according to its type
 func CreateTransactionKey(key string, tx data.TransactionHandler) string {
-	_, ok := tx.(*transaction.Transaction)
-	if ok {
+	switch tx.(type) {
+	case *transaction.Transaction:
 		return "tx" + atSep + "nrm" + atSep + key
-	}
-
-	_, ok = tx.(*smartContractResult.SmartContractResult)
-	if ok {
+	case *smartContractResult.SmartContractResult:
 		return "tx" + atSep + "scr" + atSep + key
+	case *rewardTx.RewardTx:
+		return "tx" + atSep + "rwd" + atSep + key
+	default:
+		return "tx" + atSep + "ukw" + key
 	}
-
-	_, ok = tx.(*rewardTx.RewardTx)
-	if ok {
-		return "tx" + atSep + "rwd" + key
-	}
-
-	return "tx" + atSep + "ukw" + key
 }
