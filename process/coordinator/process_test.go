@@ -1314,7 +1314,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
 
-	assert.Equal(t, uint64(1), uint64(len(mbs)))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
