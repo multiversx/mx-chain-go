@@ -326,7 +326,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	header *block.Header,
 ) error {
 	currentBlockHeader := sp.blockChain.GetCurrentBlockHeader()
-	if currentBlockHeader == nil {
+	if check.IfNil(currentBlockHeader) {
 		return nil
 	}
 

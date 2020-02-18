@@ -58,9 +58,6 @@ func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // GetGenesisHeader returns the genesis block header pointer
 func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
-	if bc.GenesisHeader == nil {
-		return nil
-	}
 	return bc.GenesisHeader
 }
 
@@ -91,9 +88,6 @@ func (bc *BlockChain) SetGenesisHeaderHash(hash []byte) {
 
 // GetCurrentBlockHeader returns current block header pointer
 func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
-	if bc.CurrentBlockHeader == nil {
-		return nil
-	}
 	return bc.CurrentBlockHeader
 }
 
@@ -128,9 +122,6 @@ func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 
 // GetCurrentBlockBody returns the tx block body pointer
 func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
-	if check.IfNil(bc.CurrentBlockBody) {
-		return nil
-	}
 	return bc.CurrentBlockBody
 }
 

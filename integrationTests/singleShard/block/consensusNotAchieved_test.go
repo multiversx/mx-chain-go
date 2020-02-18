@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -136,7 +137,7 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap(bitmap)
 	currHdr := node.BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
+	if check.IfNil(currHdr) {
 		currHdr = node.BlockChain.GetGenesisHeader()
 	}
 

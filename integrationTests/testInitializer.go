@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -249,8 +250,8 @@ func CreateMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
-	genesisHeaderM, _ := TestMarshalizer.Marshal(metaChain.GenesisBlock)
-	metaChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
+	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GenesisBlock)
+	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
 
 	return metaChain
 }
