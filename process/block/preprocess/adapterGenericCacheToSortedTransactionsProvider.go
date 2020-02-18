@@ -110,6 +110,10 @@ func sortTxByNonce(cache storage.Cacher) ([]data.TransactionHandler, [][]byte) {
 	return transaction.TrimSliceHandler(txsSlice), sliceUtil.TrimSliceSliceByte(txHashes)
 }
 
+// NotifyAccountNonce isn't implemented for the generic cache
+func (adapter *adapterGenericCacheToSortedTransactionsProvider) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adapter *adapterGenericCacheToSortedTransactionsProvider) IsInterfaceNil() bool {
 	return adapter == nil

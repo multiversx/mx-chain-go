@@ -24,6 +24,11 @@ func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions
 	return txs, txHashes
 }
 
+// NotifyAccountNonce notifies the cache about the current nonce of an account
+func (adapter *adapterTxCacheToSortedTransactionsProvider) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+	adapter.txCache.NotifyAccountNonce(accountKey, nonce)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adapter *adapterTxCacheToSortedTransactionsProvider) IsInterfaceNil() bool {
 	return adapter == nil
