@@ -3,16 +3,17 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockStakingScArguments() ArgsNewStakingSmartContract {
@@ -854,37 +855,6 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
-func doStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte, stakeValue *big.Int) {
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "stake"
-	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
-	arguments.CallValue = stakeValue
-
-	retCode := sc.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-}
-
-func doUnStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte) {
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "unStake"
-	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
-
-	retCode := sc.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-}
-
-func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte, expectedCode vmcommon.ReturnCode) {
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "isStaked"
-	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{stakerPubKey}
-
-	retCode := sc.Execute(arguments)
-	assert.Equal(t, expectedCode, retCode)
-}
-
 // TestStakingSc_ExecuteIsStaked
 // Will test next behaviour
 // 1 - will execute function isStaked should return UserError
@@ -918,11 +888,11 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	// check if account is staked should return error code
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 	// do stake should work
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, stakeValue)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 	// check again isStaked should return vmcommon.Ok
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
 	//do unStake
-	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.Ok)
 	// check if account is staked should return error code
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 }
@@ -972,5 +942,125 @@ func TestStakingSc_SetStakeValueForCurrentEpoch(t *testing.T) {
 	//setStakeValueCurrentEpoch will return Ok
 	setStakeValueCurrentEpoch(t, stakingSmartContract, callerAddress, currentEpochStakeValue, vmcommon.Ok)
 
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, stakeValue)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+}
+
+// Test scenario
+// 1 -- will set stake value for current epoch should work
+// 2 -- will try to do jail before stake should return user error
+// 3 -- will stake and stake should work
+// 4 -- will jail user that stake and should work
+// 5 -- will try do to unStake and should not work before cannot do unStake if validator is jail
+// 6 -- will try to do unJail with wrong access address should not work
+// 7 -- will do unJail with correct parameters and should work and after that stakeValue should be 999
+func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	jailAccessAddr := []byte("jailAccessAddr")
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.MinStakeValue = stakeValue
+	args.StakingAccessAddr = stakingAccessAddress
+	args.Eei = eei
+	args.NumRoundsWithoutBleed = 100
+	args.MaximumPercentageToBleed = 0.5
+	args.BleedPercentagePerRound = 0.00001
+	args.JailAccessAddr = jailAccessAddr
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPublicKey")
+
+	currentEpochStakeValue := big.NewInt(1000)
+	setStakeValueCurrentEpoch(t, stakingSmartContract, stakingAccessAddress, currentEpochStakeValue, vmcommon.Ok)
+
+	// cannot do jail if access addr is wrong should return userError
+	doJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
+	// cannot do jail if no stake should return userError
+	doJail(t, stakingSmartContract, jailAccessAddr, stakerPubKey, vmcommon.UserError)
+	//do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+	// jail should work
+	blockChainHook.CurrentRoundCalled = func() uint64 {
+		return 1000
+	}
+	doJail(t, stakingSmartContract, jailAccessAddr, stakerPubKey, vmcommon.Ok)
+
+	//do unStake should return error because validator is jail
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.UserError)
+
+	// unJail wrong access address should not work
+	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
+	// cannot do unJail on a address that not stake
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
+	// unJail should work
+	blockChainHook.CurrentRoundCalled = func() uint64 {
+		return 1200
+	}
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, stakerPubKey, vmcommon.Ok)
+
+	//stakeValue should be 999
+	var registrationData StakedData
+	data := stakingSmartContract.eei.GetStorage(stakerPubKey)
+	_ = json.Unmarshal(data, &registrationData)
+	require.Equal(t, big.NewInt(999), registrationData.StakeValue)
+}
+
+func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unJail"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{addrToUnJail}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+func doJail(t *testing.T, sc *stakingSC, callerAddr, addrToJail []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "jail"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{addrToJail}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+func doStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "stake"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func doUnStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unStake"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "isStaked"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
 }
