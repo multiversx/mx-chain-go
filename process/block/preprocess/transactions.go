@@ -401,6 +401,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.mutBadTxs.Unlock()
 	}
 
+	txs.notifyTransactionProviderIfNeeded(sndShardId, dstShardId, transaction.GetSndAddress())
+
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		return err
 	}
@@ -411,6 +413,48 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return err
+}
+
+func (txs *transactions) notifyTransactionProviderIfNeeded(sndShardId uint32, dstShardId uint32, address []byte) {
+	if sndShardId != txs.shardCoordinator.SelfId() {
+		return
+	}
+
+	account, err := txs.getAccountForAddress(address)
+	if err != nil {
+		log.Debug("notifyTransactionProviderIfNeeded.getAccountForAddress", "error", err)
+		return
+	}
+
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txShardPool := txs.txPool.ShardDataStore(strCache)
+
+	if txShardPool == nil {
+		log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
+		return
+	}
+
+	if txShardPool.Len() == 0 {
+		log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrEmptyTxDataPool)
+		return
+	}
+
+	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
+	sortedTransactionsProvider.NotifyAccountNonce(address, account.GetNonce())
+}
+
+func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHandler, error) {
+	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := txs.accounts.GetAccountWithJournal(addressContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
