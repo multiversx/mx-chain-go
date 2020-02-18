@@ -356,15 +356,15 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return nil
 	}
 
-	isEpochIncorrect := header.GetEpoch() < currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
+	headerEpochBehindCurrentHeader := header.GetEpoch() < currentBlockHeader.GetEpoch()
+	if headerEpochBehindCurrentHeader {
 		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
 	}
 
-	isEpochIncorrect = header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
+	if incorrectStartOfEpochBlock {
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
 	}
@@ -377,7 +377,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		header.GetEpoch() < sp.epochStartTrigger.Epoch()
+		header.GetEpoch() < sp.epochStartTrigger.Epoch() && sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
 	if isOldEpochAndShouldBeNew {
 		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.Epoch())
