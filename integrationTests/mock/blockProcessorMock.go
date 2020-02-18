@@ -118,7 +118,7 @@ func (bpm *BlockProcessorMock) DecodeBlockBodyAndHeader(dta []byte) (data.BodyHa
 		return nil, nil
 	}
 
-	return body, &header
+	return &body, &header
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
@@ -134,7 +134,7 @@ func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	return &b
+	return &body
 }
 
 // DecodeBlockHeader method decodes block header from a given byte array

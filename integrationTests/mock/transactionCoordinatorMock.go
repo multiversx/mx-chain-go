@@ -23,7 +23,7 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, maxMbRemaining uint32, haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
-	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, *body block.Body) error
+	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 }
 
 // CreateReceiptsHash -

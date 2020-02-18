@@ -44,7 +44,7 @@ func NewTrieNodeResolver(
 // (for the topic this validator was registered to, usually a request topic)
 func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(tnRes.marshalizer, message)
+	err := rd.UnmarshalWith(tnRes.marshalizer, message)
 	if err != nil {
 		return err
 	}

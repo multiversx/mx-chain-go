@@ -47,7 +47,7 @@ func createShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
 		Epoch:            2,
-		ShardId:          0,
+		ShardID:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
 		PrevRandSeed:     make([]byte, 0),
@@ -105,7 +105,7 @@ func createReward(round uint64, shardId uint32) (data.TransactionHandler, []byte
 		Epoch:   0,
 		Value:   big.NewInt(1),
 		RcvAddr: make([]byte, integrationTests.TestHasher.Size()),
-		ShardId: shardId,
+		ShardID: shardId,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, reward)

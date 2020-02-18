@@ -144,7 +144,7 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	txData []byte,
 	signatureHex string,
 ) (*transaction.Transaction, error) {
-	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
+	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
