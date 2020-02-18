@@ -127,14 +127,6 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	return nil
 }
 
-// BroadcastHeader will send on in-shard trie topic the trie
-func (mcm *shardChainMessenger) BroadcastTrie(trieBytes []byte) error {
-	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
-	go mcm.messenger.Broadcast(factory.ValidatorTrieNodesTopic+selfIdentifier, trieBytes)
-
-	return nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *shardChainMessenger) IsInterfaceNil() bool {
 	return scm == nil

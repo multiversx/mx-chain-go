@@ -229,11 +229,6 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// TrieBroadCaster is the main interface for block execution engine
-type TrieProcessor interface {
-	MarshalizedTrieToBroadcast([]byte) ([]byte, error)
-}
-
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)

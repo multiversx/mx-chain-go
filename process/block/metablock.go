@@ -1643,7 +1643,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	sw.Start("UpdatePeerState")
 	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
-
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -1735,39 +1734,6 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	return mrsData, mrsTxs, nil
 }
-
-//
-//// MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
-//func (mp *metaProcessor) MarshalizedTrieToBroadcast(validatorStatsRootHash []byte) ([]byte, error) {
-//
-//
-//	trie, err := mp.validatorStatisticsProcessor.GetValidatorInfosForHash(validatorStatsRootHash)
-//
-//	leaves, _ := trie.GetAllLeaves()
-//	nrLeaves := len(leaves)
-//
-//	log.Debug("MarshalizedTrieToBroadcast trie", "nrLeaves", nrLeaves)
-//
-//	for key, value := range leaves{
-//		log.Debug("leave", "key", core.ToHex([]byte(key)), "len", len(value))
-//	}
-//
-//	var serializedNodes [][]byte
-//	serializedNodes, err = trie.GetSerializedNodes(validatorStatsRootHash, 1000000)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var buff []byte
-//	buff, err = mp.marshalizer.Marshal(serializedNodes)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	log.Debug("MarshalizedTrieToBroadcast trie", "triesize", len(buff))
-//
-//	return buff, nil
-//}
 
 func getTxCount(shardInfo []block.ShardData) uint32 {
 	txs := uint32(0)

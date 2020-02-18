@@ -105,7 +105,7 @@ func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
 	rm.RatingReader = reader
 }
 
-// GetChance --
+// GetChance -
 func (rm *RaterMock) GetChance(rating uint32) uint32 {
 	return rm.GetChancesCalled(rating)
 }

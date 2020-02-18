@@ -1992,7 +1992,6 @@ func newShardBlockProcessor(
 		data.Datapool,
 		state.AddressConverter,
 		state.AccountsAdapter,
-		state.PeerAccounts,
 		requestHandler,
 		transactionProcessor,
 		scProcessor,
@@ -2003,7 +2002,6 @@ func newShardBlockProcessor(
 		miniBlocksCompacter,
 		gasHandler,
 		blockTracker,
-		state.BLSAddressConverter,
 	)
 	if err != nil {
 		return nil, err

@@ -757,7 +757,7 @@ func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, 
 
 	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
-	validators, err := vs.nodesCoordinator.GetAllValidatorsPublicKeys(epoch)
+	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}

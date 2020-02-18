@@ -62,10 +62,6 @@ type BroadcastMessenger interface {
 	IsInterfaceNil() bool
 }
 
-type TrieBroadcaster interface {
-	BroadcastTrie(trieBytes []byte) error
-}
-
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)

@@ -29,7 +29,6 @@ func processInterceptedData(
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
-
 	err := processor.Validate(data)
 	if err != nil {
 		log.Trace("intercepted data is not valid",

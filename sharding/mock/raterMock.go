@@ -45,6 +45,7 @@ func (rm *RaterMock) GetStartRating() uint32 {
 	return 5
 }
 
+// GetChance -
 func (rm *RaterMock) GetChance(rating uint32) uint32 {
 	if rm.GetChancesCalled != nil {
 		return rm.GetChancesCalled(rating)

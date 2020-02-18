@@ -20,13 +20,11 @@ type preProcessorsContainerFactory struct {
 	hasher              hashing.Hasher
 	dataPool            dataRetriever.PoolsHolder
 	addrConverter       state.AddressConverter
-	blsAddressConverter state.AddressConverter
 	txProcessor         process.TransactionProcessor
 	scProcessor         process.SmartContractProcessor
 	scResultProcessor   process.SmartContractResultProcessor
 	rewardsTxProcessor  process.RewardTransactionProcessor
 	accounts            state.AccountsAdapter
-	peerAccounts        state.AccountsAdapter
 	requestHandler      process.RequestHandler
 	rewardsProducer     process.InternalTransactionProducer
 	economicsFee        process.FeeHandler
@@ -44,7 +42,6 @@ func NewPreProcessorsContainerFactory(
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
 	accounts state.AccountsAdapter,
-	peerAccounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
 	scProcessor process.SmartContractProcessor,
@@ -55,7 +52,6 @@ func NewPreProcessorsContainerFactory(
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
-	blsAddressConverter state.AddressConverter,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -128,8 +124,6 @@ func NewPreProcessorsContainerFactory(
 		miniBlocksCompacter: miniBlocksCompacter,
 		gasHandler:          gasHandler,
 		blockTracker:        blockTracker,
-		peerAccounts:        peerAccounts,
-		blsAddressConverter: blsAddressConverter,
 	}, nil
 }
 
@@ -173,11 +167,6 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	}
 
 	err = container.Add(block.RewardsBlock, preproc)
-	if err != nil {
-		return nil, err
-	}
-
-	preproc, err = ppcm.createPeerPreprocessor()
 	if err != nil {
 		return nil, err
 	}
@@ -242,19 +231,6 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 	)
 
 	return rewardTxPreprocessor, err
-}
-
-func (ppcm *preProcessorsContainerFactory) createPeerPreprocessor() (process.PreProcessor, error) {
-	txPreprocessor, err := preprocess.NewPeerPreprocessor(
-		ppcm.store,
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.peerAccounts,
-		ppcm.blsAddressConverter,
-		block.PeerBlock,
-	)
-
-	return txPreprocessor, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

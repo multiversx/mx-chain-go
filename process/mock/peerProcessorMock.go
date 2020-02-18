@@ -66,6 +66,7 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 	return nil, nil
 }
 
+// GetValidatorInfosForHash -
 func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfosForHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
 	if vsp.GetTrieFromRootHashCalled != nil {
 		return vsp.GetTrieFromRootHashCalled(rootHash)

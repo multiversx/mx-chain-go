@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -64,26 +64,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accounts:              arguments.Accounts,
-		blockSizeThrottler:    blockSizeThrottler,
-		forkDetector:          arguments.ForkDetector,
-		hasher:                arguments.Hasher,
-		marshalizer:           arguments.Marshalizer,
-		store:                 arguments.Store,
-		shardCoordinator:      arguments.ShardCoordinator,
-		nodesCoordinator:      arguments.NodesCoordinator,
-		specialAddressHandler: arguments.SpecialAddressHandler,
-		uint64Converter:       arguments.Uint64Converter,
-		requestHandler:        arguments.RequestHandler,
-		appStatusHandler:      statusHandler.NewNilStatusHandler(),
-		blockChainHook:        arguments.BlockChainHook,
-		txCoordinator:         arguments.TxCoordinator,
-		rounder:               arguments.Rounder,
-		epochStartTrigger:     arguments.EpochStartTrigger,
-		headerValidator:       arguments.HeaderValidator,
-		bootStorer:            arguments.BootStorer,
-		blockTracker:          arguments.BlockTracker,
-		dataPool:              arguments.DataPool,
+		accounts:                     arguments.Accounts,
+		blockSizeThrottler:           blockSizeThrottler,
+		forkDetector:                 arguments.ForkDetector,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		specialAddressHandler:        arguments.SpecialAddressHandler,
+		uint64Converter:              arguments.Uint64Converter,
+		requestHandler:               arguments.RequestHandler,
+		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		blockChainHook:               arguments.BlockChainHook,
+		txCoordinator:                arguments.TxCoordinator,
+		rounder:                      arguments.Rounder,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		headerValidator:              arguments.HeaderValidator,
+		bootStorer:                   arguments.BootStorer,
+		blockTracker:                 arguments.BlockTracker,
+		dataPool:                     arguments.DataPool,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 	}
 

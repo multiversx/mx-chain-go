@@ -133,9 +133,6 @@ var ErrNilBody = errors.New("body is nil")
 // ErrNilMetaHeader is raised when an expected meta header is nil
 var ErrNilMetaHeader = errors.New("meta header is nil")
 
-// ErrNilTrie is raised when an expected trie is nil
-var ErrNilTrie = errors.New("trie is nil")
-
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")
 

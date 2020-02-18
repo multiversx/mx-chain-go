@@ -199,6 +199,7 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	return false
 }
 
+// GetValidatorInfoFromRootHash -
 func (as *AccountsStub) GetValidatorInfoFromRootHash(rootHash []byte) (map[uint32][]state.ValidatorInfo, error) {
 	return as.GetTrieFromRootHashCalled(rootHash)
 }

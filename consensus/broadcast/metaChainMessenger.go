@@ -122,15 +122,6 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 	return nil
 }
 
-// BroadcastHeader will send on metachain blocks topic the header
-func (mcm *metaChainMessenger) BroadcastTrie(trieBytes []byte) error {
-	log.Debug("broadcastTrie", "size", len(trieBytes))
-	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
-	go mcm.messenger.Broadcast(factory.ValidatorTrieNodesTopic+selfIdentifier, trieBytes)
-
-	return nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcm *metaChainMessenger) IsInterfaceNil() bool {
 	return mcm == nil
