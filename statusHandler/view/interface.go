@@ -4,7 +4,6 @@ package view
 type Presenter interface {
 	GetAppVersion() string
 	GetNodeName() string
-	GetPublicKeyTxSign() string
 	GetPublicKeyBlockSign() string
 	GetShardId() uint64
 	GetNodeType() string
